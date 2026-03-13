@@ -718,31 +718,26 @@ Cards in dark mode: No border, use subtle elevation (`box-shadow: 0 1px 4px rgba
 │   │                  │   │   ◉ Concierge            │
 │   │  Building photo  │   │                          │
 │   │  (full bleed,    │   │   Welcome back           │
-│   │   object-fit:    │   │   Sign in to continue    │
+│   │   object-fit:    │   │   Sign in to your account │
 │   │   cover)         │   │                          │
-│   │                  │   │   [ ▪ Sign in with Google ]│
-│   │                  │   │   [ ▪ Sign in with Apple ] │
-│   │                  │   │                          │
-│   │                  │   │   ──── or ────            │
-│   │                  │   │                          │
 │   │                  │   │   Email *                 │
-│   └──────────────────┘   │   ┌──────────────────┐   │
-│                          │   │ you@email.com    │   │
-│   ░░░░░░░░░░░░░░░░░░░   │   └──────────────────┘   │
-│   Building Name          │                          │
-│   "Your home,            │   Password *   Forgot?   │
-│    your community"       │   ┌──────────────────👁┐  │
-│                          │   │ ••••••••          │   │
-│                          │   └──────────────────┘   │
-│                          │                          │
+│   │                  │   │   ┌──────────────────┐   │
+│   │                  │   │   │ you@email.com    │   │
+│   │                  │   │   └──────────────────┘   │
+│   └──────────────────┘   │                          │
+│                          │   Password *   Forgot?   │
+│   ░░░░░░░░░░░░░░░░░░░   │   ┌──────────────────👁┐  │
+│   Building Name          │   │ ••••••••          │   │
+│   "Your home,            │   └──────────────────┘   │
+│    your community"       │                          │
 │                          │   ☑ Remember this device  │
 │                          │                          │
 │                          │   ┌──────────────────┐   │
 │                          │   │    Sign In    ▶  │   │
 │                          │   └──────────────────┘   │
 │                          │                          │
-│                          │   First time? Contact     │
-│                          │   your property manager   │
+│                          │   Need access? Contact    │
+│                          │   your building admin     │
 │                          │                          │
 └──────────────────────────┴──────────────────────────┘
 ```
@@ -1691,6 +1686,321 @@ The events calendar shares the same component as amenity booking but with differ
 - **Cart**: Slide-in panel from right (320px). Item list + quantities + total + "Place Order" button.
 - **Order history**: Tab view — Place Order | My Orders | All Orders (admin).
 - **Admin**: Can add/edit products, manage orders, view all orders.
+
+---
+
+### 19.15 Search
+
+**Layout**: Integrated into the Command Palette (⌘K) as the primary search experience + dedicated `/search` page for advanced filtering.
+
+The **Command Palette** (Section 6) handles 90% of search use cases — quick lookups of pages, units, residents, and actions. The dedicated search page is for filtered, multi-module deep search.
+
+#### Dedicated Search Page (`/search`)
+
+```
+┌────────────────┬──────────────────────────────────────────────────┐
+│  FILTERS       │  RESULTS                                         │
+│                │                                                  │
+│  Building      │  🔍 ┌──────────────────────────────────────┐    │
+│  ☑ Bond Tower  │     │ "leaking"                         🔍  │    │
+│  ☐ Maple Court │     └──────────────────────────────────────┘    │
+│                │                                                  │
+│  Search Mode   │  12 results for "leaking"                       │
+│  ◉ Full Search │                                                  │
+│  ○ Units/People│  ┌──────────────────────────────────────────┐   │
+│                │  │ 🔧 Service Request #4521                  │   │
+│  Content Types │  │    Leaking faucet in kitchen — Unit 1205  │   │
+│  ☑ Service Req │  │    Open • High Priority • 2 hours ago     │   │
+│  ☑ Logs        │  └──────────────────────────────────────────┘   │
+│  ☑ Library     │  ┌──────────────────────────────────────────┐   │
+│  ☑ Announcements│ │ 📢 Announcement                           │   │
+│  ☑ Ads         │  │    Water leak protocol reminder            │   │
+│  ☐ Incidents   │  │    Sent Mar 10 • 1,298 recipients         │   │
+│                │  └──────────────────────────────────────────┘   │
+│  Clear Filters │                                                  │
+└────────────────┴──────────────────────────────────────────────────┘
+```
+
+| Feature | Specification |
+|---------|---------------|
+| **Left filter panel** | 240px width. Collapsible on tablet/mobile. |
+| **Building selector** | Checkboxes. Multi-building search supported. |
+| **Search mode toggle** | "Full Search" (default) searches all content. "Units/People" focuses on unit files and resident profiles. |
+| **Content type checkboxes** | Filter results by module. All checked by default. Unchecking hides those results instantly (client-side filter). |
+| **Result cards** | Module icon + title + excerpt + metadata (status, date, etc.). Clickable → navigates to the item. |
+| **Instant search** | Debounced 300ms. Results update as you type. Skeleton loading for results area. |
+| **Empty state** | "No results for '[query]'. Try broadening your filters." |
+| **Keyboard nav** | Arrow keys to navigate results, Enter to open, Escape to clear. |
+
+---
+
+### 19.16 Security Operations
+
+**Layout**: Tabbed interface — **Visitor Parking** | **Key Checkout** | **Key Inventory** | **Parking Violations**
+
+Primary users: security guards and front desk. Quick-create actions at top for speed.
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  Security & Concierge                                                │
+│                                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
+│  │ 🚗 + Visitor  │  │ 🔑 + Key     │  │ ⛔ + Violation│              │
+│  │   Parking     │  │   Checkout   │  │              │              │
+│  └──────────────┘  └──────────────┘  └──────────────┘              │
+│                                                                      │
+│  [ ■ Visitor Parking ]  [ Key Checkout ]  [ Keys ]  [ Violations ]   │
+│  ──────────────────────────────────────────────────────────────────  │
+│  ...tab content...                                                   │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+#### Quick-Create Action Buttons
+
+Three large action buttons (Display icon size 48px, `--bg-secondary` background, 16px radius, 100px×80px) at the top. These are the most-used actions — always visible regardless of active tab.
+
+| Button | Action |
+|--------|--------|
+| 🚗 **+ Visitor Parking** | Opens Create Visitor Parking modal |
+| 🔑 **+ Key Checkout** | Opens Key Checkout modal |
+| ⛔ **+ Violation** | Opens Create Parking Violation modal |
+
+#### Tab 1: Visitor Parking
+
+**Filter bar** (horizontal, above table):
+
+| Filter | Type | Specification |
+|--------|------|---------------|
+| Plate Number | Text input with search icon | Instant filter on keypress |
+| Building | Dropdown | Default: current building |
+| Unit | Dropdown | Filtered by selected building |
+| Date Range | Start + End date pickers | Default: last 14 days to +7 days |
+| Include Deleted | Toggle | Default: off |
+| Clear / Search | Buttons | Secondary style |
+
+**Table columns**: Start Time, End Time (override), Visitor Type, License Plate (monospace), Created By, Unit, Actions (Sign Out, View, Print, Edit, Delete).
+
+**Create Visitor Parking Modal (Medium — 560px)**:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| Building * | Dropdown | Default: current building |
+| Unit * | Searchable dropdown | Shows resident name |
+| Visitor Type * | Segmented control | Contractor, Delivery, Guest, Resident, Other |
+| Guest Name | Text input | Optional |
+| Needs Parking | Toggle | Default: on |
+| Vehicle Photo | Camera/upload | Optional. One-tap capture. |
+| Comments | Textarea | Optional, single line |
+| **Save** | Primary button | Creates entry + success toast |
+
+#### Tab 2: Key Checkout
+
+**Table columns**: Ref #, Key Number (monospace), Checkout Time, Checked Out To, Company, Signature (thumbnail), Check In (button/timestamp), Actions.
+
+**Key Checkout Modal (Large — 720px)** — more fields, needs space:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| Building * | Dropdown | |
+| Key * | Dropdown | Only shows available (checked-in) keys |
+| Checked Out To * | Text input | |
+| Company | Text input | Optional |
+| ID Type * | Dropdown | Driver's License, Passport, Building ID, Other |
+| ID Number * | Text input | Monospace |
+| Reason * | Text input | |
+| Signature * | Signature pad | Canvas with Sign/Clear/Done controls. 200px height. |
+| ID Photo (front) | Camera capture | Optional |
+| ID Photo (back) | Camera capture | Optional |
+| **Deliver Key** | Primary button | |
+
+#### Tab 3: Key Inventory
+
+**Simple table**: Key #, Key Name, Status badge (Checked In = green, Checked Out = warning), Edit, Delete.
+
+**Add Key Modal (Small — 400px)**: Building, Key Number, Key Name, Send button. "Bulk Add" toggle opens multi-line input mode.
+
+#### Tab 4: Parking Violations
+
+**Filter bar**: Plate Number, Date Range, Include Deleted toggle.
+
+**Table columns**: Ref #, Ban Type (badge: Ban = red, Ticket = warning, Warning = info, Towed = error), License Plate (monospace), Issued By, Time, Actions.
+
+**Create Violation Modal (Medium — 560px)**:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| Building * | Dropdown | |
+| License Plate * | Text input | Uppercase auto-format. Monospace. |
+| Type * | Segmented control | Ban / Ticket / Warning / Vehicle Towed — color-coded segments |
+| Auto-lift Date | Date picker | Optional. When the restriction automatically expires. |
+| **Save** | Primary button | |
+
+Warning banner at top of modal: "This action records a violation against a license plate." — `--status-warning-bg` background.
+
+---
+
+### 19.17 Emergency Procedures
+
+**Layout**: Full-screen modal overlay — not a page. Accessible from sidebar on any page.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│  🚨 Emergency Procedures                                     ✕  │
+│     Bond Tower                                                   │
+│  ──────────────────────────────────────────────────────────────  │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │  FIRE EMERGENCY                                          │   │
+│  │  1. Pull the nearest fire alarm                          │   │
+│  │  2. Call 911                                             │   │
+│  │  3. Evacuate via stairwell — do NOT use elevators        │   │
+│  │  4. Proceed to assembly point at [location]              │   │
+│  │                                                          │   │
+│  │  MEDICAL EMERGENCY                                       │   │
+│  │  1. Call 911                                             │   │
+│  │  2. Contact concierge at ext. 100                        │   │
+│  │  3. AED located at: Lobby, Floor 12, Floor 24            │   │
+│  │                                                          │   │
+│  │  FLOOD / WATER LEAK                                      │   │
+│  │  1. Turn off water at main valve (under kitchen sink)    │   │
+│  │  2. Contact concierge immediately                        │   │
+│  │  3. Do NOT use electrical appliances near water           │   │
+│  │                                                          │   │
+│  │  BUILDING CONTACTS                                       │   │
+│  │  Concierge: 416-555-0100                                 │   │
+│  │  Property Manager: 416-555-0200                          │   │
+│  │  Non-emergency Police: 416-808-2222                      │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│                                                    [ Print ]     │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+| Feature | Specification |
+|---------|---------------|
+| **Trigger** | Sidebar item with 🚨 icon. Always visible to all roles. Red icon color (`--status-error`). |
+| **Modal size** | Large (720px). Scrollable content area. |
+| **Content** | Rich text — configured by building admin in Settings. Supports headings, lists, bold, links, phone numbers (clickable on mobile). |
+| **Backdrop** | Slightly darker than standard modals: `rgba(0, 0, 0, 0.5)`. Conveys urgency. |
+| **Print button** | Bottom-right. Opens browser print dialog with print-optimized CSS. |
+| **Empty state** | If no procedures configured: "Emergency procedures have not been set up for this building. Contact your property manager." |
+| **Admin edit** | Admin/PM sees an "Edit" button in the modal header → opens rich text editor inline to update procedures. |
+
+---
+
+### 19.18 Advertisements (Classifieds)
+
+**Layout**: Card grid with moderation workflow.
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  Classifieds               + Post Ad     Pending Review (3)         │
+│                                                                      │
+│  [ All ]  [ Approved ]  [ My Posts ]        🔍 Search               │
+│                                                                      │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
+│  │ 🖼               │  │ 🖼               │  │ 🖼               │  │
+│  │                  │  │                  │  │                  │  │
+│  │ Moving Sale      │  │ Dog Walker       │  │ Piano Lessons    │  │
+│  │ Furniture & more │  │ Available        │  │ Experienced      │  │
+│  │                  │  │                  │  │ teacher          │  │
+│  │ $250  • Unit 1205│  │ Free • Unit 807  │  │ $40/hr • U. 502 │  │
+│  │ ● Approved       │  │ ● Approved       │  │ ● Pending        │  │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘  │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+**Ad Card**:
+- Image (16:9 ratio, placeholder if no image), Title (Headline), Description excerpt (Body, 2 lines max), Price (Title 3), Unit + Status badge.
+- Click → detail view (inline panel or modal).
+
+**Create Ad Form (Medium — 560px modal)**:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| Building * | Dropdown | |
+| Category * | Dropdown | For Sale, Services, Wanted, Free, Other |
+| Title * | Text input | Max 80 chars |
+| Description * | Textarea | Max 500 chars |
+| Attachments | Upload zone | Max 4 files. Image thumbnails. |
+| Price | Text input | Optional. Helper: "Enter price, 'Free', or 'Contact me'" |
+| Terms checkbox * | Checkbox | "I agree to the community posting guidelines" |
+| **Post** | Primary button | |
+
+**Approval notice**: Info bar (`--status-info-bg`): "Your post will be reviewed by property management within 2 business days."
+
+**Admin Approval Queue** ("Pending Review" button):
+
+| Feature | Specification |
+|---------|---------------|
+| **Badge count** | Shows pending count. Only visible to admin/PM. |
+| **Modal** | Table: Approve (checkbox), Title, Category, Author, Unit, Price, Date. |
+| **Approve action** | Check ads → "Approve Selected" button. Bulk approve supported. |
+| **Reject** | Per-row action in `⋯` menu. Opens reason textarea. Notifies author. |
+
+---
+
+### 19.19 Contractors Directory
+
+**Layout**: Simple card list — read-only for residents, editable by admin.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Building Contractors                                    + Add   │
+│  Bond Tower                         🔍 Filter by service type   │
+│  ──────────────────────────────────────────────────────────────  │
+│                                                                  │
+│  LOCKSMITH                                                       │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ 🔒  Citywide Locksmith                                   │   │
+│  │     📞 905-264-4401                              ⋯       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  PLUMBING                                                        │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ 🔧  ABC Plumbing Services                                │   │
+│  │     📞 416-555-0300                              ⋯       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ 🔧  Emergency Plumbing 24/7                              │   │
+│  │     📞 416-555-0400                              ⋯       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  HVAC                                                            │
+│  ...                                                             │
+│                                                                  │
+│  APPLIANCE REPAIR                                                │
+│  ...                                                             │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+| Feature | Specification |
+|---------|---------------|
+| **Grouping** | Contractors grouped by service category. Overline headers (uppercase, `--text-secondary`). |
+| **Contractor card** | Icon (by category) + Company name (Headline) + Phone number (Body, clickable `tel:` link on mobile). Minimal — no extra chrome. |
+| **Search/filter** | Dropdown or segmented control to filter by service type. Or "All" to show everything. |
+| **Phone click** | On mobile: taps to call. On desktop: shows copy-to-clipboard tooltip. |
+| **Admin actions** | `⋯` menu per card: Edit, Delete. "+ Add" button in header opens modal (Company Name, Phone, Service Category, Notes). |
+| **Resident view** | Read-only. No `⋯` menus, no "+ Add" button. Just the directory. |
+| **Empty state** | "No contractors have been added for this building yet. Contact your property manager." |
+
+---
+
+### 19.20 Cross-Reference: Dashboard & Top Bar
+
+The following features are fully specified elsewhere in this document but are listed here for completeness:
+
+| Feature | Aquarius Doc | Design System Section |
+|---------|-------------|----------------------|
+| **Dashboard** (role-based layouts, KPI cards, charts) | `dashboard.md` | **Section 8** — Three role-specific layouts: PM command center, Resident simple view, Security guard action view |
+| **Top Navigation Bar** (search, notifications, profile, building switcher) | `top-navigation.md` | **Section 6** — Top Bar / Header with command palette, notification bell, user avatar flyout |
+| **Create User** | `top-navigation.md` | **Section 19.10** — Settings & Admin Panel → Users tab |
+| **Create Unit** | `top-navigation.md` | **Section 19.10** — Settings & Admin Panel → Building tab (unit management) |
+| **Logs** | `top-navigation.md` | **Section 19.10** — Settings & Admin Panel → Audit Log tab |
+| **Packages** | `top-navigation.md` | **Section 19.4** — Package Management (dedicated page) |
 
 ---
 
