@@ -2062,4 +2062,75 @@ Mobile card:
 
 ---
 
+## 20. Detailed Feature Documentation (Appendix)
+
+The following standalone documentation files provide exhaustive field-level specifications captured from the reference platform (Aquarius/ICON). These supplement the design specs in Section 19 with real-world data models, form fields, validation rules, and workflow details.
+
+### 20.1 Documentation Index
+
+| File | Section 19 Reference | Content |
+|------|---------------------|---------|
+| [`dashboard.md`](dashboard.md) | 19.20 | Dashboard layout, stats cards, quick actions, recent activity tables |
+| [`unit-file.md`](unit-file.md) | 19.5 | Unit file directory, resident profiles, unit details |
+| [`amenities.md`](amenities.md) | 19.2 | Amenity booking cards, availability calendar, reservation flow |
+| [`security-menu.md`](security-menu.md) | 19.16 | Visitor parking, key checkout, key inventory, parking violations |
+| [`announcement.md`](announcement.md) | 19.7 | Announcement creation, scheduling, multi-building distribution |
+| [`advertisement.md`](advertisement.md) | 19.18 | Classified ads, approval workflow, category management |
+| [`maintenance.md`](maintenance.md) | 19.3 | Service request tickets, status tracking, assignment |
+| [`library.md`](library.md) | 19.6 | Document library, file management, category organization |
+| [`store.md`](store.md) | 19.13 | Online store, product catalog, ordering system |
+| [`events.md`](events.md) | 19.12 | Event creation, calendar, RSVP management |
+| [`reports.md`](reports.md) | 19.8 | Report generation, export options, analytics |
+| [`search.md`](search.md) | 19.15 | Global search, filters, results display |
+| [`survey.md`](survey.md) | 19.9 | Survey builder, question types, response collection |
+| [`emergency.md`](emergency.md) | 19.17 | Emergency contact info, assistance requirements |
+| [`contractors.md`](contractors.md) | 19.19 | Contractor directory, service categories |
+| [`top-navigation.md`](top-navigation.md) | 19.20 | Top nav bar, profile dropdown, global search |
+| [`logs.md`](logs.md) | 19.16 | **6 log types**: General, Incident, Fire, Noise, Inspection, Bulletin — complete form specs |
+| [`settings.md`](settings.md) | 19.10 | **8 settings tabs**: General, Parking, Login, Payment, Amenity, Groups, Keys, Contractors |
+| [`packages.md`](packages.md) | 19.4 | Package receive/release workflow, parcel type management, search filters |
+| [`user-profile.md`](user-profile.md) | 19.5 | **6 profile tabs**: User, Emergency Contacts, Notifications, Vehicles/Parking, Pets, Documents |
+| [`user-management.md`](user-management.md) | 19.10 | User management menu, welcome email system |
+| [`create-unit.md`](create-unit.md) | 19.10 | Unit creation form — FOB/key/buzzer/parking/locker fields |
+| [`preferences.md`](preferences.md) | 19.11 | **10 notification categories** with per-user toggle controls |
+| [`url-map.md`](url-map.md) | — | Complete URL routing map across all modules |
+
+### 20.2 Key Data Points for Concierge Design
+
+These critical details from the reference platform should inform our design decisions:
+
+#### Role System (18 Groups, 4 Types)
+- **admin** (1): Full system access
+- **staff** (5): Property Manager, Superintendent, Supervisor, Security Head Office, Security Guard
+- **tenant** (4): Family member - Spouse, Family Member - Child, Other Occupant, Tenant
+- **owner** (8): Owner, Family member - Spouse, Family Member - Child, Family Member - Other, Other Occupant, Offsite Owner, Other Group, Board Member
+
+#### Log System Complexity
+- **Fire Log** is the most complex form: 10+ timestamp fields, 3 checklists (fire preparation, elevator response, device reset), 7+ device types to reset
+- **Noise Log** has 14 complaint categories and 4 investigation assessment fields
+- **General Log** supports rich text editing (WYSIWYG) and multi-building posting
+
+#### Package Lifecycle
+- Receive → Store (with parcel type + storage spot) → Release → 21-day history
+- 11 configurable parcel type categories (size + color based)
+- Perishable item flagging
+- Bulk recording support
+
+#### Settings Depth
+- 8 configuration tabs per building
+- 6 different email notification "from" addresses
+- 4 auto-CC email lists (per log type)
+- 9 role-based parking limit notifications
+- 7 overnight parking limit types (per plate/unit, weekly/monthly/yearly + consecutive)
+
+#### User Profile Depth
+- 6 tabs of user data
+- Up to 3 vehicles per user (plate, color, model each)
+- Up to 6 FOB/Remote/Key entries per unit
+- 2 buzzer codes, 2 garage clickers, 1 key tag per unit
+- Parcel waiver tracking with signatures
+- 3 legal document types (POA, Lease, Insurance)
+
+---
+
 *This document is the single source of truth for all design decisions. Every component, page, and feature must comply with these standards. Deviations require explicit approval and documentation.*
