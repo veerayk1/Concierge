@@ -320,30 +320,179 @@ Each announcement shows:
 
 ---
 
-## 8. Public Display
+## 8. Public Display Logins and Templates
 
-**URL**: `/v2/Mgmt/EventLog/Default.aspx` (shared with Event Log settings)
+**URL**: `/v2/Mgmt/EventLog/Default.aspx`
+**Page Title**: "Public Display Logins and Templates"
 
-*Not deeply explored — links to lobby screen/digital signage configuration.*
+### New Public Display Banner
+- **Heading**: "We have a new public display!"
+- **Description**: "Our new public display has a fresh look and a wide variety of features and customization options. Enable the new display, then log in to an existing display template or create a new one below."
+- **Help link**: "help site article"
+- **Enable button**: "New public display enabled" (green button, right side)
+- **Note**: "Enabling the new display will not remove or delete your current displays. You can disable it at any time and go back to your current displays."
 
-### From Dashboard
-- Status: "None with an Active Status"
+### Pendo Modal (on first visit)
+- "To view/edit a Public Display, please log in at buildinglink.com with the Public Display login and password."
+- "Find the login and password for each Public Display by clicking View/Edit Login Info in the List of Public Display Logins below."
+- "Public Displays cannot be launched in the same browser where staff is logged into BuildingLink. You must use separate browsers to view Public Display and the BuildingLink staff or resident portal on the same computer."
+- **Dismiss**: "Remind me tomorrow" button
+
+### Section 1: List of Public Display Logins
+
+| Element | Description |
+|---------|-------------|
+| Header | "List of Public Display Logins:" (orange/red bar) |
+| Status | "There are currently no active Public Displays." |
+| Action | **Create New Login/Template** button (green, top right) |
+
+### Informational Text Block (green border)
+- **Create New Login/Template** button (green, left)
+- "It is no longer possible to 'Launch' the public display screen from the staff login that you are logged in as right now. To view or configure a 'public display' on this computer, you must log out and log in using a 'public display' login."
+- "A 'public display' login has only one function when you log in: it brings up the public display for your building, and lets you design or change its template settings. You can create as many public display logins as you wish, in case you wish to utilize different designs of public displays for different places in your building."
+
+### Section 2: Active Scrolling Announcements
+
+| Element | Description |
+|---------|-------------|
+| Header | "Active Scrolling Announcements" (orange/red bar) |
+| Status | "There are no active Announcements at this time." |
+| Action | **🔍 View/Edit Scrolling Announcements** button (green, right) |
+
+### Key Observations
+- Public displays require separate login credentials (not staff login)
+- Multiple display logins possible for different building locations
+- Separate browser required (cannot share with staff portal)
+- Scrolling announcements are managed separately from regular announcements
+- New display system recently launched (promotional banner active)
 
 ---
 
 ## 9. Building Directory
 
 **URL**: `/v2/mgmt/communicate/buildingdirectory.aspx?t=1`
+**Page Title**: "Building Directory"
 
-*Not deeply explored — accessible from Communicate sidebar and dashboard.*
+### Header Bar
+- **Title bar**: "Building Directory" (blue)
+- **🖨 Print / Export** button (grey)
+- **✏ Edit Building Directory** button (grey)
+
+### Note
+"Note: This building directory, message links, and contacts appear on the Resident Portal 'Communicate' Page."
+
+### Section 1: Building & Management Info (2-column layout)
+
+#### Building Column (left)
+| Field | Value |
+|-------|-------|
+| Label | **Building:** |
+| Name | Queensway Park Condos - TSCC 2934 |
+| Address | 7 Smith Crescent |
+| City/Province/Postal | Etobicoke, Ontario M8Z 0G3 Canada |
+| Phone | Building Phone#: 416-259-2323 |
+
+#### Management Column (right)
+| Field | Value |
+|-------|-------|
+| Label | **Management:** |
+| Company | Duka Property Management |
+| Address | 6205 Airport Rd |
+| City/Province/Postal | Mississauga, Ontario ON L4V 1E1 Canada |
+
+### Section 2: Send a Message
+- **Send Message to Manager** — clickable link (blue)
+
+### Section 3: Contacts (3 contacts displayed)
+
+| # | Title | Name | Phone | Email | Icon |
+|---|-------|------|-------|-------|------|
+| 1 | Property Manager | Gledis Xhoxhi | (416) 259-2323 | queenswaypark.cm@dukamanagement.com | Person silhouette |
+| 2 | Concierge Desk | — | (416) 503-4806 | tscc2934concierge@royalcas.ca | Concierge bell icon |
+| 3 | Site Administrator | Sidita Nazifi | (416) 259-2323 | queenswaypark.office@dukamanagement.com | Person silhouette |
+
+### Contact Card Layout
+- **Icon** (left): Person silhouette or role-specific icon (concierge bell)
+- **Title** (bold): Role/position
+- **Name**: Contact person name
+- **Phone**: Phone number
+- **Email**: Clickable email link
+
+### Key Observations
+- Shared data with Settings > Property Directory (same contacts appear in both places)
+- This is the staff view; same data appears on Resident Portal "Communicate" page
+- Print/Export capability for directory distribution
+- Edit redirects to Settings > Property Directory settings page
 
 ---
 
 ## 10. Photo Albums
 
 **URL**: `/v2/mgmt/photoalbum/list.aspx`
+**Page Title**: "Photo Albums List"
 
-*Not deeply explored — accessible from Communicate sidebar and dashboard.*
+### Description
+"Photo Albums you create here can be shown to Residents on both your Public Display Monitor(s) and Resident Portal home page by adding a slideshow widget."
+
+### Album List Section
+
+| Element | Description |
+|---------|-------------|
+| Header | "List of Photo Albums" (green bar) |
+| Status | "There are no Photo Albums to display" (italic) |
+| Action | **+ New Album** button (green, top right) |
+
+### Key Observations
+- Photo albums serve dual purpose: Public Display slideshows + Resident Portal content
+- No albums configured at this property
+- Linked to Public Display module via slideshow widget
+- Simple list interface with create action
+
+---
+
+## 11. Resident Directory (Communicate)
+
+**URL**: `/V2/Mgmt/Communicate/ResidentDirectory.aspx?v=1`
+**Page Title**: "Resident Directory"
+
+**Note**: There are TWO "Resident directory" links in the sidebar — one under Front desk and one under Communicate. They link to slightly different URLs but appear to be the same page.
+
+### Header Bar
+- **Title bar**: "The Resident Directory" (blue)
+- **🖨 Print** button (grey, top right)
+
+### Search Options (left)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| Search | Text input | "Enter any part of the Unit#, Name or Email Address" |
+| **🔍 Search** | Button | Execute search |
+| **+ Show Advanced Search Options** | Button | Expand advanced filters |
+
+### Layout Options (right)
+
+| Option | Type | Choices |
+|--------|------|---------|
+| View mode | Radio (2) | ◉ List / ○ Address Card |
+| Sort order | Radio (2) | ◉ Sort By Unit / ○ Sort By Name |
+
+### Advanced Search Options (expanded)
+
+| # | Field | Type | Options |
+|---|-------|------|---------|
+| 1 | Show residents | Radio (3) | ◉ All / ○ With photos / ○ Without photos |
+| 2 | Select Floors | Checkboxes | ☐ 1, ☐ 2, ☐ 3, ☐ 4, ☐ 5, ☐ 6, ☐ 7, ☐ 8 |
+| 3 | Select Lines | (text/dropdown) | Line selection |
+| 4 | Select Locations | (text/dropdown) | Location selection |
+| 5 | Occupants to Include | Radio (3) | ◉ All Occupants (Owners and Tenants) / ○ Owners only (omit Tenants) / ○ Current Residents only (omit Owners of units that have Tenants) |
+
+### Key Observations
+- Floor-based filtering (8 floors in this building)
+- Photo-based filtering for ID verification workflows
+- 3 occupant filter modes: All, Owners only, Current Residents only
+- 2 layout modes: List (tabular) and Address Card (visual cards)
+- Print capability for physical directory distribution
+- Sort by unit or by name
 
 ---
 
@@ -382,3 +531,27 @@ Each announcement shows:
 ### From Email Groups Deep Dive
 1. **Custom distribution lists** — Beyond standard unit/building groups
 2. **Active/Inactive toggle** — Soft delete pattern consistent across platform
+
+### From Public Display Deep Dive
+1. **Separate login system** — Public displays require dedicated credentials, not staff logins
+2. **Multi-display support** — Multiple display logins for different building locations
+3. **Browser isolation** — Cannot run display and staff portal in same browser
+4. **Scrolling announcements** — Separate from regular announcements, specific to lobby displays
+5. **New display system** — Recently modernized with promotional banner — shows active development
+
+### From Building Directory Deep Dive
+1. **Shared data model** — Directory data same as Settings > Property Directory; single source of truth
+2. **Role-specific icons** — Concierge bell icon vs person silhouette — visual role identification
+3. **Print/Export** — Physical directory distribution still important
+4. **Appears on Resident Portal** — Same directory visible to residents on their Communicate page
+
+### From Photo Albums Deep Dive
+1. **Dual-purpose content** — Albums feed both Public Display slideshow widgets and Resident Portal
+2. **Widget-based integration** — Photo slideshows added to displays via widget system
+
+### From Resident Directory Deep Dive
+1. **Floor-based filtering** — Building physical layout awareness (8 floors)
+2. **Photo filter** — "With photos" / "Without photos" useful for photo compliance tracking
+3. **3 occupant scoping modes** — All, Owners only, Current Residents only — reflects complex ownership/tenancy relationships
+4. **2 view modes** — List (compact) vs Address Card (visual) — good for different use cases
+5. **Print support** — Physical directory printout still needed for front desk operations
