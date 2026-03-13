@@ -703,4 +703,157 @@ Cards in dark mode: No border, use subtle elevation (`box-shadow: 0 1px 4px rgba
 
 ---
 
+## 19. Page Specifications
+
+### 19.1 Login & Authentication
+
+**Layout**: Split-screen — 50/50 on desktop, form-only on mobile.
+
+```
+┌──────────────────────────┬──────────────────────────┐
+│                          │                          │
+│   BUILDING IMAGE PANEL   │     AUTHENTICATION       │
+│                          │          FORM            │
+│   ┌──────────────────┐   │                          │
+│   │                  │   │   ◉ Concierge            │
+│   │  Building photo  │   │                          │
+│   │  (full bleed,    │   │   Welcome back           │
+│   │   object-fit:    │   │   Sign in to continue    │
+│   │   cover)         │   │                          │
+│   │                  │   │   [ ▪ Sign in with Google ]│
+│   │                  │   │   [ ▪ Sign in with Apple ] │
+│   │                  │   │                          │
+│   │                  │   │   ──── or ────            │
+│   │                  │   │                          │
+│   │                  │   │   Email *                 │
+│   └──────────────────┘   │   ┌──────────────────┐   │
+│                          │   │ you@email.com    │   │
+│   ░░░░░░░░░░░░░░░░░░░   │   └──────────────────┘   │
+│   Building Name          │                          │
+│   "Your home,            │   Password *   Forgot?   │
+│    your community"       │   ┌──────────────────👁┐  │
+│                          │   │ ••••••••          │   │
+│                          │   └──────────────────┘   │
+│                          │                          │
+│                          │   ☑ Remember this device  │
+│                          │                          │
+│                          │   ┌──────────────────┐   │
+│                          │   │    Sign In    ▶  │   │
+│                          │   └──────────────────┘   │
+│                          │                          │
+│                          │   First time? Contact     │
+│                          │   your property manager   │
+│                          │                          │
+└──────────────────────────┴──────────────────────────┘
+```
+
+#### Left Panel — Building Image
+
+| Property | Specification |
+|----------|---------------|
+| **Width** | 50% of viewport on desktop; hidden on mobile (<768px) |
+| **Image source** | Building-specific photo uploaded by property manager |
+| **Fallback** | If no building photo: subtle architectural line-art pattern on `--bg-secondary` background (similar to Hotelook's illustration style but minimal) |
+| **Image treatment** | `object-fit: cover`, slight dark gradient overlay at bottom (`linear-gradient(transparent 60%, rgba(0,0,0,0.5))`) |
+| **Bottom overlay** | Building name (Title 1, white) + optional tagline (Body, white 80% opacity) |
+| **Border radius** | 0px (full bleed to edge) on desktop. On tablet: 24px radius with 24px margin, creating a card effect |
+| **Animation** | Subtle parallax on scroll (mobile only when stacked). Ken Burns slow zoom (8s) on desktop for photo. |
+
+#### Multi-Building Support
+
+When the portal serves multiple buildings, the left panel becomes a **building selector** on first visit:
+
+```
+┌──────────────────────────┬──────────────────────────┐
+│                          │                          │
+│   Select Your Building   │                          │
+│                          │   Form appears AFTER     │
+│   ┌────────┐ ┌────────┐ │   building selection     │
+│   │ 📷     │ │ 📷     │ │                          │
+│   │ Bond   │ │ Maple  │ │   (or shows building     │
+│   │ Tower  │ │ Court  │ │    selector inline if     │
+│   └────────┘ └────────┘ │    fewer than 6)          │
+│                          │                          │
+│   ┌────────┐ ┌────────┐ │                          │
+│   │ 📷     │ │ 📷     │ │                          │
+│   │ Lake   │ │ Park   │ │                          │
+│   │ View   │ │ Place  │ │                          │
+│   └────────┘ └────────┘ │                          │
+│                          │                          │
+└──────────────────────────┴──────────────────────────┘
+```
+
+After selection, the building photo loads and the login form appears with a smooth transition.
+
+#### Right Panel — Authentication Form
+
+**Structure** (top to bottom):
+
+| Order | Element | Specification |
+|-------|---------|---------------|
+| 1 | **Logo** | Concierge logo, 32px height, top-left of form panel. `margin-top: 48px` |
+| 2 | **Heading** | "Welcome back" — Display size (34px), `--text-primary` |
+| 3 | **Subheading** | "Sign in to your account" — Body size, `--text-secondary` |
+| 4 | **SSO buttons** | Google + Apple. Full-width, 48px height, `--bg-secondary` background, 12px radius. Icon (20px) + label. Stacked vertically, 12px gap. |
+| 5 | **Divider** | "or" centered with hairline rules on each side. Caption size, `--text-tertiary`. 24px vertical margin. |
+| 6 | **Email field** | Label above ("Email"), 44px height, full-width. Mail icon inside (left). |
+| 7 | **Password field** | Label above ("Password") with "Forgot?" link right-aligned on same line (`--accent` color, Caption size). 44px height. Eye toggle icon (right). |
+| 8 | **Remember checkbox** | "Remember this device" — iOS-style toggle (not checkbox). Default: on. |
+| 9 | **Sign In button** | Full-width, 48px height, `--text-primary` background (#1D1D1F), white text, 12px radius. THE primary action. |
+| 10 | **Registration link** | "First time? Contact your property manager" — Body size, centered. No self-registration (admin-controlled). |
+
+#### Form Behavior
+
+| State | Behavior |
+|-------|----------|
+| **Empty** | Placeholder text in `--text-tertiary`. Sign In button disabled (40% opacity). |
+| **Typing** | Real-time email format validation (debounced 500ms). No validation on password length during typing. |
+| **Error — wrong credentials** | Shake animation on form (300ms). Red inline message: "Incorrect email or password. Please try again." below password field. Fields NOT cleared. |
+| **Error — account locked** | Red banner at top of form: "Account locked after 5 failed attempts. Contact your property manager." |
+| **Loading** | Sign In button shows spinner, text changes to "Signing in…", button disabled. |
+| **Success** | Button turns green with checkmark (200ms), then fade-transition to dashboard. |
+| **Forgot password** | Replaces form content (slide-left transition) with email-only field + "Send Reset Link" button + "Back to sign in" ghost link. |
+
+#### Role Handling
+
+Unlike the Hotelook screenshot with radio buttons for role selection — **we do NOT show role selection on login**. The system determines the user's role from their account. If a user has multiple roles (e.g., owner + board member), the dashboard adapts, not the login screen. This keeps the login dead simple.
+
+Exception: If a user belongs to **multiple buildings**, after login they see a building picker (modal, not a new page):
+
+```
+┌──────────────────────────────────┐
+│  Select Building                 │
+│                                  │
+│  ┌──────────────────────────┐    │
+│  │ 🏢  Bond Tower           │ ←  │  Active: accent border
+│  │     TSCC 2584 • Toronto  │    │
+│  └──────────────────────────┘    │
+│  ┌──────────────────────────┐    │
+│  │ 🏢  Maple Court           │    │
+│  │     TSCC 3201 • Toronto  │    │
+│  └──────────────────────────┘    │
+│                                  │
+│  ☑ Remember my choice            │
+│                    [ Continue ]   │
+└──────────────────────────────────┘
+```
+
+#### Responsive Behavior
+
+| Breakpoint | Layout |
+|------------|--------|
+| Desktop (≥1024px) | 50/50 split. Image left, form right. |
+| Tablet (768–1023px) | Image panel becomes 40% width with 24px margin + 24px radius (card effect). Form panel 60%. |
+| Mobile (<768px) | Image panel hidden entirely. Form takes full screen. Building name + logo shown at top of form instead. Subtle gradient background (white → `--bg-secondary`). |
+
+#### Security Considerations
+
+- No "Sign Up" link — accounts are created by property managers only
+- Rate limiting: 5 failed attempts → 15-minute lockout + email notification to user
+- SSO is the recommended primary path (Google/Apple) — email/password is the fallback
+- Password visibility toggle defaults to hidden
+- "Remember this device" uses secure token, NOT "remember password"
+
+---
+
 *This document is the single source of truth for all design decisions. Every component, page, and feature must comply with these standards. Deviations require explicit approval and documentation.*
