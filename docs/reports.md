@@ -19,8 +19,6 @@ Every report supports two export formats:
 - **Generate Excel**: Export data as Excel spreadsheet
 - **Open PDF Viewer**: View/export as PDF document
 
-(Some reports like Resident List only support Excel export)
-
 ## Report Categories
 
 ### Amenity Reports
@@ -54,7 +52,7 @@ Every report supports two export formats:
 ### Unit and User Reports
 | Report | Description |
 |--------|-------------|
-| Resident List | Complete list of all residents (Excel only) |
+| Resident List | Complete list of all residents |
 | Unit Details | Unit, Parking Spots, Locker, Phone Code details |
 | Pet Details | Pet registration information |
 | Vehicle Details | Registered vehicle information |
