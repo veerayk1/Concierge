@@ -794,13 +794,11 @@ After selection, the building photo loads and the login form appears with a smoo
 | 1 | **Logo** | Concierge logo, 32px height, top-left of form panel. `margin-top: 48px` |
 | 2 | **Heading** | "Welcome back" — Display size (34px), `--text-primary` |
 | 3 | **Subheading** | "Sign in to your account" — Body size, `--text-secondary` |
-| 4 | **SSO buttons** | Google + Apple. Full-width, 48px height, `--bg-secondary` background, 12px radius. Icon (20px) + label. Stacked vertically, 12px gap. |
-| 5 | **Divider** | "or" centered with hairline rules on each side. Caption size, `--text-tertiary`. 24px vertical margin. |
-| 6 | **Email field** | Label above ("Email"), 44px height, full-width. Mail icon inside (left). |
-| 7 | **Password field** | Label above ("Password") with "Forgot?" link right-aligned on same line (`--accent` color, Caption size). 44px height. Eye toggle icon (right). |
-| 8 | **Remember checkbox** | "Remember this device" — iOS-style toggle (not checkbox). Default: on. |
-| 9 | **Sign In button** | Full-width, 48px height, `--text-primary` background (#1D1D1F), white text, 12px radius. THE primary action. |
-| 10 | **Registration link** | "First time? Contact your property manager" — Body size, centered. No self-registration (admin-controlled). |
+| 4 | **Email field** | Label above ("Email"), 44px height, full-width. Mail icon inside (left). |
+| 5 | **Password field** | Label above ("Password") with "Forgot?" link right-aligned on same line (`--accent` color, Caption size). 44px height. Eye toggle icon (right). |
+| 6 | **Remember toggle** | "Remember this device" — iOS-style toggle (not checkbox). Default: on. |
+| 7 | **Sign In button** | Full-width, 48px height, `--text-primary` background (#1D1D1F), white text, 12px radius. THE primary action. |
+| 8 | **Help text** | "Need access? Contact your building administrator" — Caption size, centered, `--text-tertiary`. |
 
 #### Form Behavior
 
@@ -814,11 +812,34 @@ After selection, the building photo loads and the login form appears with a smoo
 | **Success** | Button turns green with checkmark (200ms), then fade-transition to dashboard. |
 | **Forgot password** | Replaces form content (slide-left transition) with email-only field + "Send Reset Link" button + "Back to sign in" ghost link. |
 
-#### Role Handling
+#### Access Hierarchy
 
-Unlike the Hotelook screenshot with radio buttons for role selection — **we do NOT show role selection on login**. The system determines the user's role from their account. If a user has multiple roles (e.g., owner + board member), the dashboard adapts, not the login screen. This keeps the login dead simple.
+There is **no self-registration and no SSO**. All access is admin-controlled:
 
-Exception: If a user belongs to **multiple buildings**, after login they see a building picker (modal, not a new page):
+```
+Super Admin
+  └── Creates Buildings
+  └── Creates Building Admins
+        └── Admin creates roles for their building:
+              ├── Property Manager
+              ├── Security Guard
+              ├── Security Head Office
+              ├── Superintendent
+              ├── Supervisor
+              ├── Board Member
+              ├── Owner
+              ├── Offsite Owner
+              ├── Tenant
+              ├── Family Member (Spouse/Child)
+              ├── Other Occupant
+              └── Custom roles as needed
+```
+
+**Login determines role automatically** — no role selection on the login screen. The system knows who you are from your account. If a user has multiple roles, the dashboard adapts accordingly.
+
+#### Multi-Building Handling
+
+If a user belongs to **multiple buildings**, after login they see a building picker (modal, not a new page):
 
 ```
 ┌──────────────────────────────────┐
@@ -848,11 +869,224 @@ Exception: If a user belongs to **multiple buildings**, after login they see a b
 
 #### Security Considerations
 
-- No "Sign Up" link — accounts are created by property managers only
+- No "Sign Up" link and no SSO — all accounts created by building admin via admin panel
 - Rate limiting: 5 failed attempts → 15-minute lockout + email notification to user
-- SSO is the recommended primary path (Google/Apple) — email/password is the fallback
 - Password visibility toggle defaults to hidden
 - "Remember this device" uses secure token, NOT "remember password"
+- First-time login: user receives email invitation with temporary password, forced to set new password on first sign-in
+
+---
+
+### 19.2 Amenity Booking — Calendar & Scheduling
+
+**Layout**: Left sidebar (filters + mini calendar) + Main area (calendar grid) + Booking popover.
+
+```
+┌────────────────┬──────────────────────────────────────────────────┐
+│  FILTER PANEL  │  CALENDAR MAIN AREA                             │
+│                │                                                  │
+│  ┌──────────┐  │  March 2026          ◀  Today  ▶               │
+│  │ Mini Cal │  │                                                  │
+│  │ March    │  │  [ Month ]  [ Week ]  [ Day ]                   │
+│  │ ◀  ▶    │  │                                                  │
+│  │ grid...  │  │  ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┐  │
+│  └──────────┘  │  │ Mon │ Tue │ Wed │ Thu │ Fri │ Sat │ Sun │  │
+│                │  │ 16  │ 17  │ 18  │ 19  │ 20  │ 21  │ 22  │  │
+│  AMENITIES     │  ├─────┼─────┼─────┼─────┼─────┼─────┼─────┤  │
+│  ☑ All         │  │8am  │     │     │     │     │     │     │  │
+│                │  │     │░░░░░│     │     │     │     │     │  │
+│  ● Party Room  │  │9am  │Party│     │░░░░░│     │     │     │  │
+│  ● Gym         │  │     │Room │     │Gym  │     │     │     │  │
+│  ● BBQ Area    │  │10am │Unit │     │Unit │     │     │     │  │
+│  ● Guest Suite │  │     │1205 │     │807  │     │     │     │  │
+│  ● Pool        │  │11am │     │     │     │     │░░░░░│     │  │
+│  ● Tennis      │  │     │     │     │     │     │BBQ  │     │  │
+│  ● Yoga Studio │  │12pm │     │     │     │     │Area │     │  │
+│  ● Rooftop     │  │     │     │     │     │     │     │     │  │
+│                │  └─────┴─────┴─────┴─────┴─────┴─────┴─────┘  │
+│  ────────────  │                                                  │
+│  MY BOOKINGS   │                                                  │
+│  3 upcoming    │                                                  │
+│  View all →    │                                                  │
+└────────────────┴──────────────────────────────────────────────────┘
+```
+
+#### Left Panel — Filter & Navigation (280px width)
+
+| Section | Specification |
+|---------|---------------|
+| **Mini Calendar** | Compact month grid. Dots below dates indicate existing bookings. Click date → jumps main calendar. Current date: accent circle fill. Selected date: accent border ring. |
+| **Amenity Filter** | Checkbox list of all bookable amenities. Each amenity has a **color dot** (assigned from visualization palette). "All" toggle at top. Unchecking hides that amenity's blocks from the grid. |
+| **Color Assignment** | Each amenity type gets a consistent color from the palette: Party Room `#0071E3`, Gym `#34C759`, BBQ `#FF9500`, Guest Suite `#AF52DE`, Pool `#5AC8FA`, Tennis `#FF3B30`, Yoga `#FFCC00`, Rooftop `#30D158`. |
+| **My Bookings** | Count of upcoming bookings for the logged-in user. "View all →" opens a list view of the user's bookings. |
+| **Collapse** | Panel collapses to icon-only (64px) on screens <1280px. Toggle button at top. |
+
+#### Main Area — Calendar Grid
+
+**View Modes** (segmented control, top-right):
+
+| Mode | Layout | Best For |
+|------|--------|----------|
+| **Week** (default) | 7 columns × 24 hour rows. Time labels on left (30-min increments). Scrollable vertically. | Day-to-day booking management |
+| **Day** | Single column, expanded. Larger time slots. Shows all amenities side-by-side as sub-columns. | Security guards / front desk booking for today |
+| **Month** | Traditional month grid. Each day cell shows colored dots for bookings (max 3 visible + "+N more"). Click day → zooms into Day view. | Overview / finding open dates |
+
+**Navigation Controls**:
+```
+March 2026          ◀  Today  ▶         [ Month ] [ ■ Week ] [ Day ]
+```
+
+- **Month/Year**: Title 1 size (28px). Click → opens month/year picker dropdown.
+- **◀ ▶ arrows**: Navigate back/forward by current view period (week/day/month).
+- **Today pill**: Accent background, white text. Click → jumps to current date. Only visible when viewing a date range that doesn't include today.
+- **View switcher**: Segmented control. Active segment: `--accent` background, white text. Inactive: `--bg-secondary` background, `--text-secondary` text.
+
+#### Booking Blocks (Calendar Events)
+
+```
+┌─────────────────────┐
+│ ● Party Room        │  ← Amenity name (Caption, 600 weight)
+│   9:00 — 11:00 AM   │  ← Time range (Caption, 400 weight)
+│   Unit 1205          │  ← Booked by (Caption, --text-secondary)
+└─────────────────────┘
+```
+
+| Property | Specification |
+|----------|---------------|
+| **Background** | Amenity color at 12% opacity (e.g., `rgba(0, 113, 227, 0.12)` for Party Room) |
+| **Left border** | 3px solid amenity color |
+| **Border radius** | 8px |
+| **Height** | Proportional to duration. 1 hour = 60px in week view. Minimum: 40px (30-min slot). |
+| **Text** | Amenity name (600 weight) + time range + unit number. All truncate with ellipsis if block is too small. |
+| **Hover** | Elevate with shadow `0 2px 8px rgba(0,0,0,0.08)`. Cursor: pointer. |
+| **Click** | Opens Booking Detail Popover. |
+| **Conflict/Unavailable** | Diagonal stripe pattern (`repeating-linear-gradient`) in `--bg-tertiary`. Non-clickable. Shows "Unavailable" or "Maintenance" label. |
+| **Your booking** | Slightly darker background (18% opacity instead of 12%). Small "Your booking" badge in top-right corner. |
+
+#### Quick Booking — Click Empty Slot
+
+Clicking an empty time slot opens a **Booking Popover** anchored to the click position:
+
+```
+┌──────────────────────────────────┐
+│  New Booking                  ✕  │
+│                                  │
+│  Amenity *                       │
+│  ┌──────────────────────────▾┐   │
+│  │ Party Room                │   │
+│  └──────────────────────────┘   │
+│                                  │
+│  Date                            │
+│  ┌──────────────────────────┐   │
+│  │ 📅  Wed, March 18, 2026  │   │
+│  └──────────────────────────┘   │
+│                                  │
+│  Time                            │
+│  ┌───────────┐  ┌───────────┐   │
+│  │ 09:00 AM ▾│  │ 11:00 AM ▾│   │
+│  └───────────┘  └───────────┘   │
+│  Start            End            │
+│                                  │
+│  Unit * (admin only)             │
+│  ┌──────────────────────────▾┐   │
+│  │ 1205 — Sarah Chen         │   │
+│  └──────────────────────────┘   │
+│                                  │
+│  Notes (optional)                │
+│  ┌──────────────────────────┐   │
+│  │                          │   │
+│  └──────────────────────────┘   │
+│                                  │
+│  ⓘ Max 4 hours • $50 deposit    │
+│                                  │
+│           Cancel    Book Now  ▶  │
+└──────────────────────────────────┘
+```
+
+| Field | Behavior |
+|-------|----------|
+| **Amenity dropdown** | Pre-filled if clicked from a specific amenity's column in Day view. Otherwise required selection. Shows availability indicator (green dot = open, red dot = fully booked today). |
+| **Date** | Pre-filled from clicked slot. Calendar picker on click. Blocked dates shown greyed out. |
+| **Time — Start** | Pre-filled from clicked slot. 30-min increment dropdown. Unavailable slots greyed out with strikethrough. |
+| **Time — End** | Auto-calculated from amenity's default duration. Adjustable. Capped at amenity's max duration. Shows "exceeds max" warning in real-time. |
+| **Unit selector** | Admin/PM only — pick any unit. Residents: auto-filled with their unit, not editable. Searchable dropdown with unit + resident name. |
+| **Notes** | Optional textarea. Max 200 chars. |
+| **Info bar** | Shows amenity rules: max duration, deposit required, cancellation policy. Dynamic per amenity. `--status-info-bg` background. |
+| **Book Now** | Primary button. Disabled until all required fields filled. On click: spinner → success toast → block appears on calendar. |
+
+#### Booking Detail Popover (Click Existing Booking)
+
+```
+┌──────────────────────────────────┐
+│  Party Room                   ✕  │
+│  ● Confirmed                     │
+│                                  │
+│  📅  Wed, March 18, 2026         │
+│  🕐  9:00 AM — 11:00 AM (2h)    │
+│  🏠  Unit 1205 — Sarah Chen      │
+│  📝  Birthday party setup        │
+│                                  │
+│  Booked on Mar 10 at 2:15 PM     │
+│                                  │
+│  ┌────────────┐  ┌────────────┐  │
+│  │  Cancel     │  │  Modify    │  │  ← Only for booking owner or admin
+│  └────────────┘  └────────────┘  │
+└──────────────────────────────────┘
+```
+
+| Element | Specification |
+|---------|---------------|
+| **Status badge** | Confirmed (green), Pending (yellow), Cancelled (red) |
+| **Cancel button** | Secondary/destructive. Opens confirmation: "Cancel this booking? Cancellation policy: free if >24h before." |
+| **Modify button** | Secondary. Opens the booking form pre-filled. Only available if >24h before the booking (configurable per amenity). |
+| **Admin view** | Admin/PM sees additional: "Booked by [admin name] on behalf of Unit 1205." + "Override" button to bypass rules. |
+
+#### Availability Rules Engine (Admin-Configured Per Amenity)
+
+| Rule | Example | UI Representation |
+|------|---------|-------------------|
+| **Operating hours** | 8:00 AM — 10:00 PM | Time slots outside hours are greyed/hidden |
+| **Max duration** | 4 hours | End time dropdown caps automatically |
+| **Min advance booking** | 24 hours | Slots within 24h show "Too late to book" |
+| **Max advance booking** | 30 days | Dates >30 days out are disabled in picker |
+| **Bookings per unit/week** | 2 per week | After 2nd booking, unit sees "Limit reached this week" |
+| **Deposit required** | $50 | Info bar shows deposit. Booking marked "Pending" until confirmed. |
+| **Maintenance blackout** | Every Monday 8-10 AM | Diagonal stripe pattern block, label "Maintenance" |
+| **Concurrent bookings** | 1 (exclusive) or 5 (shared like gym) | Shared: multiple blocks stack in same slot. Exclusive: slot blocked after 1 booking. |
+
+#### Responsive Behavior
+
+| Breakpoint | Layout |
+|------------|--------|
+| Desktop (≥1280px) | Full layout: filter panel (280px) + calendar grid |
+| Desktop small (1024–1279px) | Filter panel collapsed to icons. Calendar grid full-width. |
+| Tablet (768–1023px) | Filter panel hidden (hamburger toggle). Calendar defaults to Day view. |
+| Mobile (<768px) | **Completely different layout** — no grid calendar. Instead: date scroller at top (horizontal scroll of dates) → list of available time slots below → tap slot → booking sheet slides up from bottom. |
+
+**Mobile Booking View**:
+```
+┌──────────────────────────┐
+│  Book Party Room         │
+│                          │
+│  ◀ Mar 16  17  ■18  19 ▶│  ← Horizontal date scroller
+│                          │
+│  Available slots         │
+│  ┌──────────────────┐    │
+│  │ 9:00 — 11:00 AM  │ ✓ │  ← Tap to select
+│  └──────────────────┘    │
+│  ┌──────────────────┐    │
+│  │ 11:00 — 1:00 PM  │   │
+│  └──────────────────┘    │
+│  ┌──────────────────┐    │
+│  │ 2:00 — 4:00 PM   │   │
+│  └──────────────────┘    │
+│  ┌──────────────────┐    │
+│  │ 6:00 — 8:00 PM   │   │
+│  └──────────────────┘    │
+│                          │
+│  [ Book Selected Slot ]  │
+└──────────────────────────┘
+```
 
 ---
 
