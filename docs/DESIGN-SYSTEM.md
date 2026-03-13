@@ -1090,4 +1090,666 @@ Clicking an empty time slot opens a **Booking Popover** anchored to the click po
 
 ---
 
+### 19.3 Service Requests (Ticket System)
+
+**Layout**: Dual-view — Toggle between **Kanban board** (default for PM/admin) and **List view** (default for residents).
+
+#### Kanban Board View (Property Manager / Admin)
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  Service Requests          + New Request     🔍 Filter   ≡ List  ▦ Board │
+│                                                                      │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐ │
+│  │ OPEN (12)   │  │ IN PROGRESS │  │ ON HOLD (3) │  │ CLOSED     │ │
+│  │             │  │ (5)         │  │             │  │ (89)       │ │
+│  │ ┌─────────┐ │  │ ┌─────────┐ │  │ ┌─────────┐ │  │            │ │
+│  │ │🔴 High  │ │  │ │🟡 Med   │ │  │ │🔵 Low   │ │  │ ┌────────┐ │ │
+│  │ │Leaking  │ │  │ │Elevator │ │  │ │Light    │ │  │ │✓ Fixed │ │ │
+│  │ │faucet   │ │  │ │noise    │ │  │ │flickr   │ │  │ │parking │ │ │
+│  │ │Unit 1205│ │  │ │Lobby    │ │  │ │Floor 8  │ │  │ │gate    │ │ │
+│  │ │2h ago   │ │  │ │1d ago   │ │  │ │3d ago   │ │  │ └────────┘ │ │
+│  │ └─────────┘ │  │ └─────────┘ │  │ └─────────┘ │  │            │ │
+│  │ ┌─────────┐ │  │ ┌─────────┐ │  │             │  │            │ │
+│  │ │🟡 Med   │ │  │ │🔴 High  │ │  │             │  │            │ │
+│  │ │Noise    │ │  │ │HVAC     │ │  │             │  │            │ │
+│  │ │complnt  │ │  │ │repair   │ │  │             │  │            │ │
+│  │ └─────────┘ │  │ └─────────┘ │  │             │  │            │ │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+**Kanban Card**:
+```
+┌───────────────────────────┐
+│ 🔴 High    #SR-4521       │  ← Priority dot + ID (Caption, monospace)
+│                           │
+│ Leaking faucet in kitchen │  ← Title (Headline, 1 line, truncate)
+│                           │
+│ 🏠 Unit 1205 • Plumbing   │  ← Unit + Category (Caption, --text-secondary)
+│ 👤 → Mike (Maintenance)   │  ← Assigned to (Caption)
+│ 🕐 2 hours ago            │  ← Time (Caption, --text-tertiary)
+└───────────────────────────┘
+```
+
+| Property | Specification |
+|----------|---------------|
+| **Card width** | Fills column (equal-width columns, min 280px) |
+| **Priority indicator** | Left 3px border: High `--status-error`, Medium `--status-warning`, Low `--status-info`, None `--border-subtle` |
+| **Drag-and-drop** | PM/admin can drag cards between columns to change status. Animate: card lifts (shadow), column highlights on hover. |
+| **Column count badge** | Shows count in header. Updates in real-time. |
+| **Overflow** | Each column scrolls independently. Max visible: 8 cards, then scroll. |
+| **Empty column** | Dashed border placeholder: "No requests [status]. Great job!" |
+
+#### List View (Default for Residents)
+
+Standard table following Section 7.3 table rules:
+
+| Column | Width | Content |
+|--------|-------|---------|
+| Priority | 48px | Color dot only (no text) |
+| ID | 80px | `#SR-4521` monospace |
+| Title | flex | Truncated at 1 line |
+| Category | 120px | Plumbing, Electrical, HVAC, General, etc. |
+| Unit | 80px | Unit number |
+| Status | 100px | Status badge pill |
+| Assigned To | 140px | Name or "Unassigned" |
+| Created | 120px | Relative time ("2h ago") or date if >7 days |
+| Actions | 48px | `⋯` menu |
+
+#### Create Service Request Modal (Medium — 560px)
+
+| Order | Field | Type | Notes |
+|-------|-------|------|-------|
+| 1 | Title * | Text input | Max 100 chars |
+| 2 | Category * | Dropdown | Plumbing, Electrical, HVAC, Pest Control, Noise, Parking, Common Area, General |
+| 3 | Priority * | Segmented control | Low / Medium / High — color-coded segments |
+| 4 | Unit * | Dropdown (admin) / Auto-filled (resident) | Searchable for admin |
+| 5 | Description * | Textarea | Auto-resize, max 1000 chars |
+| 6 | Attachments | File upload zone | Max 4 files, 5MB each. Drag-drop or click. Shows thumbnails. |
+| 7 | Suite entry authorization | Toggle | "I authorize maintenance to enter my suite" |
+| 8 | Assign to (admin only) | Dropdown | Staff list. Optional — can assign later. |
+
+#### Ticket Detail View (Full-Sheet Modal — 90vw)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  #SR-4521  Leaking faucet in kitchen                          ✕  │
+│  ──────────────────────────────────────────────────────────────  │
+│                                                                  │
+│  ┌────────────────────────────────┐  ┌────────────────────────┐ │
+│  │  DETAILS                       │  │  ACTIVITY TIMELINE     │ │
+│  │                                │  │                        │ │
+│  │  Status:  ● In Progress        │  │  Mar 13, 10:45 AM      │ │
+│  │  Priority: 🔴 High             │  │  Mike assigned himself │ │
+│  │  Category: Plumbing            │  │                        │ │
+│  │  Unit: 1205 — Sarah Chen       │  │  Mar 13, 10:30 AM      │ │
+│  │  Assigned: Mike (Maintenance)  │  │  Status → In Progress  │ │
+│  │  Created: Mar 13, 8:15 AM      │  │                        │ │
+│  │  Entry Auth: ✓ Yes             │  │  Mar 13, 8:15 AM       │ │
+│  │                                │  │  Sarah created request │ │
+│  │  DESCRIPTION                   │  │  "Faucet is dripping   │ │
+│  │  Kitchen faucet has been       │  │  constantly..."        │ │
+│  │  dripping for 2 days...        │  │                        │ │
+│  │                                │  │  ┌──────────────────┐  │ │
+│  │  ATTACHMENTS                   │  │  │ Add comment...   │  │ │
+│  │  📷 photo1.jpg  📷 photo2.jpg  │  │  │              Send│  │ │
+│  │                                │  │  └──────────────────┘  │ │
+│  └────────────────────────────────┘  └────────────────────────┘ │
+│                                                                  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐    │
+│  │ Update   │  │ Assign   │  │ Close    │  │ Delete       │    │
+│  │ Status ▾ │  │ To ▾     │  │ Request  │  │ (admin only) │    │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────────┘    │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- **Left panel (60%)**: Static details + description + attachments (clickable thumbnails for lightbox)
+- **Right panel (40%)**: Activity timeline (all status changes, comments, assignments) + comment input at bottom
+- **Timeline entries**: Timestamp (Caption, `--text-tertiary`) + action description + actor name. System actions in `--text-secondary`, user comments in `--text-primary`.
+
+---
+
+### 19.4 Package Management
+
+**Layout**: Tab-based — **Pending Release** (default) | **Released** | **All Packages**
+
+Primary user: security guard at front desk. Designed for speed — **large touch targets, minimal clicks to release**.
+
+#### Package List View
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  Packages                + Check In       🔍 Search    📊 12 pending │
+│                                                                      │
+│  [ ■ Pending ]  [ Released ]  [ All ]          Date: Today ▾        │
+│  ──────────────────────────────────────────────────────────────────  │
+│                                                                      │
+│  ┌──────┬───────────┬──────────┬────────────┬──────────┬──────────┐ │
+│  │ ☐    │ Unit      │ Carrier  │ Received   │ Status   │ Actions  │ │
+│  ├──────┼───────────┼──────────┼────────────┼──────────┼──────────┤ │
+│  │ ☐    │ 1205      │ FedEx    │ Today 9:15 │ ● Pending│ Release  │ │
+│  │ ☐    │ 807       │ Amazon   │ Today 8:42 │ ● Pending│ Release  │ │
+│  │ ☐    │ 1304      │ UPS      │ Ystrdy 4pm │ ● Pending│ Release  │ │
+│  │ ☐    │ 502       │ Canada P │ Ystrdy 2pm │ ● Pending│ Release  │ │
+│  └──────┴───────────┴──────────┴────────────┴──────────┴──────────┘ │
+│                                                                      │
+│  ☑ 2 selected                          [ Release Selected ]         │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+| Feature | Specification |
+|---------|---------------|
+| **Release button** | Ghost button per row. Click → opens release confirmation. On the floating action bar: batch release for selected. |
+| **Batch select** | Checkboxes on left. Select multiple → floating action bar at bottom with "Release Selected (N)" primary button. |
+| **Search** | Instant filter by unit number, carrier name, or tracking number. |
+| **Pending count** | Badge in header showing unreleased count. Updates in real-time. |
+| **Row highlight** | Packages older than 48h: subtle `--status-warning-bg` background to draw attention. |
+
+#### Check-In Modal (Medium — 560px)
+
+Optimized for speed. Guard should complete in <15 seconds.
+
+| Order | Field | Type | Notes |
+|-------|-------|------|-------|
+| 1 | Unit * | Searchable dropdown | Type unit number — auto-completes. Shows resident name. Large text (Title 3). |
+| 2 | Carrier * | Preset buttons | `[Amazon] [FedEx] [UPS] [Canada Post] [Purolator] [Other]` — tap to select, one row of pills. |
+| 3 | Tracking # | Text input | Optional. Monospace font. Paste-friendly. |
+| 4 | Photo | Camera capture | One-tap camera button. Shows preview thumbnail. Optional. |
+| 5 | Notes | Text input | Single line, optional. "Fragile", "Large", etc. |
+| — | **Check In** | Primary button | 48px height. Immediately saves + shows success toast + resets form for next package. |
+
+**Key UX**: After check-in, form **does NOT close** — it resets for the next package. Guard is checking in 20+ packages at a time. "Done" ghost link in top-right to close when finished.
+
+#### Release Flow
+
+Clicking "Release" opens a **small confirmation modal (400px)**:
+
+```
+┌──────────────────────────────────┐
+│  Release Package              ✕  │
+│                                  │
+│  📦 FedEx — Unit 1205            │
+│  Checked in: Today 9:15 AM       │
+│                                  │
+│  Released to *                    │
+│  ┌──────────────────────────┐    │
+│  │ Sarah Chen (Unit Owner)  │    │
+│  └──────────────────────────┘    │
+│                                  │
+│  ID Type                         │
+│  [Driver's License] [Other] [None]│
+│                                  │
+│  Signature (optional)            │
+│  ┌──────────────────────────┐    │
+│  │    ✍ Tap to sign         │    │
+│  └──────────────────────────┘    │
+│                                  │
+│            Cancel    Release  ▶  │
+└──────────────────────────────────┘
+```
+
+- **Released to**: Auto-filled with unit residents. Dropdown to pick specific person.
+- **Notification**: On release, resident receives push notification + email: "Your package has been released."
+
+---
+
+### 19.5 Unit File & Resident Profile
+
+**Layout**: Master-detail — Unit header at top, tabbed content below.
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  ◀ Back to Units                                                     │
+│                                                                      │
+│  Unit 1205                                          Edit Unit  ⋯    │
+│  Bond Tower • Floor 12 • 2BR + Den • Owner-Occupied                  │
+│  ──────────────────────────────────────────────────────────────────  │
+│                                                                      │
+│  [ ■ Residents ]  [ Vehicles ]  [ Packages ]  [ Requests ]  [ Logs ]│
+│                                                                      │
+│  ┌──────────────────────────────────┐  ┌──────────────────────────┐ │
+│  │  PRIMARY RESIDENT                │  │  QUICK STATS             │ │
+│  │                                  │  │                          │ │
+│  │  👤 Sarah Chen                   │  │  📦 3 pending packages   │ │
+│  │  Role: Owner                     │  │  🔧 1 open request      │ │
+│  │  📧 sarah.chen@email.com         │  │  📅 2 upcoming bookings │ │
+│  │  📱 416-555-0123                 │  │  🚗 2 vehicles          │ │
+│  │  Since: Jan 15, 2023             │  │  🔑 0 keys checked out  │ │
+│  │                                  │  │                          │ │
+│  │  ADDITIONAL OCCUPANTS            │  └──────────────────────────┘ │
+│  │  👤 James Chen — Spouse          │                               │
+│  │  👤 Lily Chen — Child            │  ┌──────────────────────────┐ │
+│  │                                  │  │  RECENT ACTIVITY         │ │
+│  │  ┌─────────────────────────┐     │  │  • Package released 2h   │ │
+│  │  │ + Add Resident          │     │  │  • Booking confirmed 1d  │ │
+│  │  └─────────────────────────┘     │  │  • Request #4519 closed  │ │
+│  └──────────────────────────────────┘  └──────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+#### Unit Header
+
+| Element | Specification |
+|---------|---------------|
+| **Unit number** | Display size (34px). Bold. |
+| **Building + details** | Body size, `--text-secondary`. Floor, layout, occupancy status. |
+| **Edit button** | Secondary button. Opens edit modal for unit details. |
+| **More menu (⋯)** | Print unit report, Export PDF, View history. |
+
+#### Tab Content
+
+| Tab | Content |
+|-----|---------|
+| **Residents** | Cards for each resident. Name, role, contact info, move-in date. + Add Resident button. Quick stats card. Recent activity timeline. |
+| **Vehicles** | Table: Make, Model, Color, License Plate, Parking Spot. + Add Vehicle. License plates in monospace. |
+| **Packages** | Filtered package list (same table as 19.4) showing only this unit's packages. |
+| **Requests** | Filtered service request list showing only this unit's requests. |
+| **Logs** | Activity timeline: all events related to this unit (packages, requests, visitor parking, key checkouts, announcements sent). Filterable by type. |
+
+---
+
+### 19.6 Document Library
+
+**Layout**: Two-panel — Folder tree (left) + File list (right).
+
+```
+┌────────────────┬──────────────────────────────────────────────────┐
+│  FOLDERS       │  Documents > Rules & Regulations                 │
+│                │                                                  │
+│  📁 Documents  │  ┌──────┬──────────────────┬────────┬──────────┐│
+│    📁 Rules    │  │ Type │ Name             │ Size   │ Actions  ││
+│    📁 Forms    │  ├──────┼──────────────────┼────────┼──────────┤│
+│    📁 Minutes  │  │ 📄   │ Noise Policy.pdf │ 245 KB │ ⬇  ⋯    ││
+│    📁 Notices  │  │ 📄   │ Pet Rules.pdf    │ 180 KB │ ⬇  ⋯    ││
+│    📁 Newsltrs │  │ 📄   │ Move-in Guide.pdf│ 1.2 MB │ ⬇  ⋯    ││
+│  📁 Templates  │  └──────┴──────────────────┴────────┴──────────┘│
+│  📁 Expert Tips│                                                  │
+│                │  ┌───────────────────────────────────────┐      │
+│  + New Folder  │  │   Drop files here or click to upload  │      │
+│                │  └───────────────────────────────────────┘      │
+│  ────────────  │                                                  │
+│  Storage       │                                                  │
+│  ▓▓▓▓░░░ 2.4GB│                                                  │
+│  of 10GB used  │                                                  │
+└────────────────┴──────────────────────────────────────────────────┘
+```
+
+| Feature | Specification |
+|---------|---------------|
+| **Folder tree** | Collapsible tree. Active folder: accent text + `--accent-subtle` background. Drag files between folders. |
+| **File icons** | By type: 📄 PDF, 📊 Excel, 📝 Doc, 🖼 Image. Consistent 20px size. |
+| **Download** | Direct download icon per file. No page navigation. |
+| **More menu (⋯)** | Rename, Move to, Delete, Permissions, Preview. |
+| **Upload zone** | Dashed border, 80px height at bottom of file list. Drag-and-drop + click. Progress bar during upload. |
+| **Permissions** | Modal with role group checkboxes (14 roles). Read / Read-Write toggles per group. |
+| **Storage indicator** | Left panel bottom. Progress bar + text. Warning color >80% used. |
+| **Breadcrumb** | Top of right panel: "Documents > Rules & Regulations". Clickable segments. |
+| **Search** | Search bar above file list. Filters across all folders. Results show folder path. |
+
+---
+
+### 19.7 Announcement Composer
+
+**Layout**: Full-sheet modal (720px wide) with rich text editor.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Create Announcement                                          ✕  │
+│  ──────────────────────────────────────────────────────────────  │
+│                                                                  │
+│  🚨 Emergency SMS    (toggle — shows only for admin/PM)          │
+│                                                                  │
+│  Title *                                                         │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Elevator maintenance March 15-17                         │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Recipients *                                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ All Residents                                         ▾  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Content *                                                       │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ B  I  U  H1 H2  • ─  🔗  📷  ≡                          │   │
+│  │──────────────────────────────────────────────────────────│   │
+│  │                                                          │   │
+│  │ The elevators in Tower A will be undergoing scheduled    │   │
+│  │ maintenance from March 15-17...                          │   │
+│  │                                                          │   │
+│  │                                                      │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────┐  ┌──────────────────┐                     │
+│  │ 📎 Attachments   │  │ 📅 Schedule Send  │                     │
+│  │ 0 files (max 4)  │  │ Send immediately  │                     │
+│  └──────────────────┘  └──────────────────┘                     │
+│                                                                  │
+│  Options                                                    ▾    │
+│  ☐ Save copy to Library   ☐ Never expires   ☐ No-reply email    │
+│                                                                  │
+│  ──────────────────────────────────────────────────────────────  │
+│  Preview                                        Cancel   Send ▶  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+| Feature | Specification |
+|---------|---------------|
+| **Rich text toolbar** | Bold, Italic, Underline, H1, H2, Bullet list, Horizontal rule, Link, Image embed, Code block. Sticky on scroll. |
+| **Recipients dropdown** | Options: All Residents (incl offsite), All Residents (excl offsite), All Owners, Tenants Only, Board Members, Select Units (multi-select with search), Custom Groups, Groups + Units. |
+| **Attachments** | Max 4 files, 5MB each. Thumbnails with remove button. |
+| **Schedule** | Toggle opens datetime picker. Default: "Send immediately." |
+| **Preview button** | Ghost button, bottom-left. Opens a read-only preview in a new modal showing exactly how the announcement will appear to residents. |
+| **Emergency SMS** | Red-accented toggle. When on: sends SMS to all residents. Requires confirmation dialog: "This will send SMS to N phone numbers." |
+| **Options section** | Collapsed by default (accordion). Expands to show secondary checkboxes. |
+
+---
+
+### 19.8 Reports & Analytics
+
+**Layout**: KPI overview at top + Report category list below.
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  Reports                              Date Range: Last 30 Days  ▾   │
+│                                                                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
+│  │ Owners   │  │ Tenants  │  │ Offsite  │  │ Board    │           │
+│  │ 235      │  │ 1,298    │  │ 454      │  │ Members  │           │
+│  │          │  │          │  │          │  │ 12       │           │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘           │
+│                                                                      │
+│  ┌─────────────────────────────┐  ┌─────────────────────────────┐   │
+│  │ Resident Breakdown     ◕   │  │ Service Requests Trend  📈  │   │
+│  │ [Donut chart]               │  │ [Line chart - 30 days]      │   │
+│  └─────────────────────────────┘  └─────────────────────────────┘   │
+│                                                                      │
+│  REPORT CATEGORIES                                                   │
+│  ──────────────────────────────────────────────────────────────────  │
+│                                                                      │
+│  📊 Amenity Reports                                            ▾    │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │ Report Name                          Excel        PDF        │   │
+│  │ Amenity Bookings Summary             [Generate]  [Generate]  │   │
+│  │ Amenity Usage by Unit                [Generate]  [Generate]  │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+│  📢 Announcement Reports                                       ▾    │
+│  🔧 Service Request Reports                                    ▾    │
+│  🔒 Security Reports                                           ▾    │
+│  🏠 Unit and User Reports                                      ▾    │
+│  📦 Package Reports                                            ▾    │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+| Feature | Specification |
+|---------|---------------|
+| **KPI cards** | Top row. Follow Section 7.1 Stat/KPI Card style. Resident breakdown numbers. |
+| **Charts** | Donut for breakdown, Line for trends. Follow Section 16 data visualization rules. |
+| **Report categories** | Accordion sections. Click to expand. Each report row has two generation buttons. |
+| **Generate Excel** | Secondary button with spreadsheet icon. Triggers download (with user confirmation per design system rules). |
+| **Generate PDF** | Secondary button with PDF icon. Opens PDF in new tab or triggers download. |
+| **Date range** | Global filter at top-right. Presets: Last 7 days, Last 30 days, Last 90 days, This year, Custom range. Applies to charts and report data. |
+
+---
+
+### 19.9 Survey Builder
+
+**Layout**: Two views — **Survey List** (table) and **Survey Builder** (full-sheet modal).
+
+#### Survey List
+
+Standard table: Title, Status (Draft/Active/Closed), Responses count, Created date, Expiry date, Actions.
+
+#### Survey Builder Modal (Full-Sheet — 90vw)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Create Survey                              Preview   Save Draft │
+│  ──────────────────────────────────────────────────────────────  │
+│                                                                  │
+│  Survey Title *                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Resident Satisfaction Survey 2026                        │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Expiry Date          Recipients                                 │
+│  ┌──────────────┐    ┌──────────────────────────────────┐       │
+│  │ Apr 15, 2026 │    │ All Residents                  ▾ │       │
+│  └──────────────┘    └──────────────────────────────────┘       │
+│                                                                  │
+│  QUESTIONS                                                       │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ ≡  Q1. How satisfied are you with building maintenance?  │   │
+│  │     Type: Rating (1-5 stars)                    ✏️  🗑   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ ≡  Q2. What improvements would you suggest?              │   │
+│  │     Type: Free text                             ✏️  🗑   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ ≡  Q3. Rate the following amenities                      │   │
+│  │     Type: Multiple choice (matrix)              ✏️  🗑   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  + Add Question                                                  │
+│  ──────────────────────────────────────────────────────────────  │
+│                                            Cancel   Publish  ▶   │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Question Types**: Rating (1-5 stars), Multiple Choice (single), Multiple Choice (multi-select), Free Text, Yes/No, Matrix (rate multiple items on same scale).
+
+**Drag handles (≡)**: Reorder questions via drag-and-drop.
+
+**Edit question (✏️)**: Expands the question card inline to show editable fields (question text, type selector, options for multiple choice, required toggle).
+
+**Survey Results View**: Bar charts per question. Response rate shown as progress ring. Export to Excel button.
+
+---
+
+### 19.10 Settings & Admin Panel
+
+**Layout**: Left settings nav + Right content panel.
+
+```
+┌────────────────┬──────────────────────────────────────────────────┐
+│  SETTINGS      │  User Management                                 │
+│                │                                                  │
+│  Building      │  + Create User            🔍 Search users        │
+│  ■ Users       │                                                  │
+│  Roles         │  ┌──────┬──────────┬─────────┬────────┬───────┐ │
+│  Amenities     │  │ Name │ Unit     │ Role    │ Status │ ⋯     │ │
+│  Announcements │  ├──────┼──────────┼─────────┼────────┼───────┤ │
+│  Security      │  │ Sarah│ 1205     │ Owner   │●Active │ ⋯     │ │
+│  Notifications │  │ Mike │ Staff    │ Maint.  │●Active │ ⋯     │ │
+│  Integrations  │  │ John │ 807      │ Tenant  │●Inactive│ ⋯    │ │
+│                │  └──────┴──────────┴─────────┴────────┴───────┘ │
+│  ────────────  │                                                  │
+│  Billing       │  Showing 1-25 of 1,987          ◀ 1 2 3 ▶       │
+│  Audit Log     │                                                  │
+└────────────────┴──────────────────────────────────────────────────┘
+```
+
+**Settings Categories**:
+
+| Category | Content |
+|----------|---------|
+| **Building** | Building name, address, photo (for login page), timezone, contact info. |
+| **Users** | Full user CRUD table. Create sends email invitation. Bulk import via CSV. |
+| **Roles** | Role list with permission matrix. Toggles per module (View/Edit/Admin) per role. |
+| **Amenities** | Amenity CRUD + rules engine (hours, max duration, deposits, booking limits). |
+| **Announcements** | Default settings: expiry days, email templates, custom groups management. |
+| **Security** | Shift report config, parking rules, key management defaults. |
+| **Notifications** | Email/push notification templates. Per-event toggle (package arrived, request updated, etc.). |
+| **Integrations** | Third-party connections (if any). API keys management. |
+| **Billing** | Subscription plan, payment history. Super admin only. |
+| **Audit Log** | Searchable log of all admin actions with timestamp, user, action, details. |
+
+**Role Permission Matrix**:
+
+```
+┌───────────────────┬──────────┬──────────┬──────────┐
+│ Module            │ View     │ Edit     │ Admin    │
+├───────────────────┼──────────┼──────────┼──────────┤
+│ Dashboard         │ ◉        │ ○        │ ○        │
+│ Amenities         │ ◉        │ ◉        │ ○        │
+│ Service Requests  │ ◉        │ ◉        │ ◉        │
+│ Packages          │ ◉        │ ◉        │ ○        │
+│ Security          │ ○        │ ○        │ ○        │
+│ ...               │          │          │          │
+└───────────────────┴──────────┴──────────┴──────────┘
+```
+
+Radio buttons per cell. Changes save immediately (auto-save with toast confirmation).
+
+---
+
+### 19.11 Notification Center
+
+**Notification Panel** (defined in Section 7.7) + **Full Notification Preferences Page** in Settings.
+
+#### Notification Preferences
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Notification Preferences                                        │
+│                                                                  │
+│  How would you like to be notified?                              │
+│                                                                  │
+│  ┌──────────────────────────────┬────────┬────────┬────────────┐│
+│  │ Event                        │ In-App │ Email  │ Push (mob) ││
+│  ├──────────────────────────────┼────────┼────────┼────────────┤│
+│  │ Package received             │  ◉     │  ◉     │  ◉         ││
+│  │ Package released             │  ◉     │  ○     │  ○         ││
+│  │ Service request update       │  ◉     │  ◉     │  ◉         ││
+│  │ New announcement             │  ◉     │  ◉     │  ○         ││
+│  │ Amenity booking confirmed    │  ◉     │  ◉     │  ○         ││
+│  │ Amenity booking reminder     │  ◉     │  ○     │  ◉         ││
+│  │ Survey available             │  ◉     │  ◉     │  ○         ││
+│  │ Emergency alert              │  ◉     │  ◉     │  ◉         ││
+│  └──────────────────────────────┴────────┴────────┴────────────┘│
+│                                                                  │
+│  ◉ = On   ○ = Off   (toggle by clicking)                        │
+│                                                                  │
+│  Quiet Hours                                                     │
+│  ┌────────────┐  to  ┌────────────┐                             │
+│  │ 10:00 PM   │      │ 7:00 AM    │    ☑ Enabled                │
+│  └────────────┘      └────────────┘                             │
+│  (Emergency alerts always break through quiet hours)             │
+│                                                                  │
+│                                            Save Preferences  ▶   │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- **In-App**: Always on for all events (cannot disable — greyed out toggle).
+- **Email/Push**: User-controllable per event.
+- **Emergency**: Always on for all channels (cannot disable). Noted in UI.
+- **Quiet Hours**: Time range during which push notifications are suppressed (except emergency).
+
+---
+
+### 19.12 Events
+
+**Layout**: Calendar view (reuses calendar component from 19.2) + Event cards.
+
+The events calendar shares the same component as amenity booking but with different content:
+
+| Difference from Amenity Booking | Specification |
+|---|---|
+| **No booking flow** | Click event → detail popover (view only for residents). No slot-click-to-book. |
+| **Event blocks** | Larger, can span multiple days. Show event title + time + attendee count. |
+| **Color coding** | By event type: Building events `#0071E3`, Board meetings `#AF52DE`, Social `#34C759`, Maintenance `#FF9500`. |
+| **RSVP** | Detail popover has "Going / Not Going / Maybe" segmented control for residents. |
+| **Create event** | Admin/PM only. Modal similar to announcement composer but with date/time, location, guard-required toggle, and group selector. |
+| **Attendee list** | Admin sees RSVP list in detail view. Avatar stack on event card (max 3 + "+N"). |
+
+---
+
+### 19.13 Marketplace / Online Store
+
+**Layout**: Simple grid of product cards + Cart.
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  Marketplace                    🔍 Search         🛒 Cart (2)       │
+│                                                                      │
+│  [ All ]  [ Services ]  [ Rentals ]  [ Products ]                    │
+│                                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
+│  │ 🖼           │  │ 🖼           │  │ 🖼           │              │
+│  │              │  │              │  │              │              │
+│  │ Parking Fob  │  │ Storage Unit │  │ Locker Key   │              │
+│  │ $50.00       │  │ $75/month    │  │ $25.00       │              │
+│  │ [Add to Cart]│  │ [Add to Cart]│  │ [Add to Cart]│              │
+│  └──────────────┘  └──────────────┘  └──────────────┘              │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+- **Product card**: Image (1:1 ratio, `object-fit: cover`, 8px radius), Title (Headline), Price (Title 3, `--text-primary`), Action button.
+- **Cart**: Slide-in panel from right (320px). Item list + quantities + total + "Place Order" button.
+- **Order history**: Tab view — Place Order | My Orders | All Orders (admin).
+- **Admin**: Can add/edit products, manage orders, view all orders.
+
+---
+
+### 19.14 Mobile Responsive — Global Rules
+
+Beyond the per-page responsive specs above, these rules apply globally:
+
+#### Bottom Navigation Bar (Mobile <768px)
+
+Replaces the sidebar entirely. Fixed at bottom, 56px height.
+
+```
+┌────────────────────────────────────────┐
+│                                        │
+│   🏠        📦        ➕        🔔    ☰  │
+│  Home    Packages  Action   Alerts  More│
+│                                        │
+└────────────────────────────────────────┘
+```
+
+| Item | Role: Resident | Role: Security Guard | Role: PM/Admin |
+|------|:-:|:-:|:-:|
+| Tab 1 | 🏠 Home | 🏠 Home | 🏠 Home |
+| Tab 2 | 📅 Bookings | 📦 Packages | 📋 Requests |
+| Tab 3 (CTA) | ➕ Request | ➕ Check In | ➕ Create |
+| Tab 4 | 🔔 Alerts | 🔔 Alerts | 🔔 Alerts |
+| Tab 5 | ☰ More | ☰ More | ☰ More |
+
+- **Center CTA (➕)** is elevated (floating, 56×56px circle, accent background). Changes per role.
+- **Active tab**: Accent color icon + label. Inactive: `--text-tertiary`.
+- **"More" menu**: Opens full sidebar as bottom sheet (slides up 70vh).
+
+#### Mobile Table Adaptation
+
+Tables on mobile transform into **card lists**:
+
+```
+Desktop table row:
+│ Unit 1205 │ Sarah Chen │ Owner │ Active │ ⋯ │
+
+Mobile card:
+┌──────────────────────────────┐
+│  Unit 1205           ● Active │
+│  Sarah Chen • Owner           │
+│                          ⋯    │
+└──────────────────────────────┘
+```
+
+- Each row becomes a card with 16px padding.
+- Primary info (unit, name) prominent. Secondary info (role, status) smaller.
+- Actions via `⋯` or swipe gestures (swipe left → action buttons slide in).
+
+#### Mobile Forms
+
+- All inputs stack full-width.
+- Modals become **full-screen sheets** (slide up from bottom, 100vh with top safe area).
+- Buttons become full-width at bottom (sticky footer).
+- File upload: direct camera access button alongside file picker.
+
+---
+
 *This document is the single source of truth for all design decisions. Every component, page, and feature must comply with these standards. Deviations require explicit approval and documentation.*
