@@ -2131,6 +2131,113 @@ These critical details from the reference platform should inform our design deci
 - Parcel waiver tracking with signatures
 - 3 legal document types (POA, Lease, Insurance)
 
+### 20.3 Anticipated Behaviors & Deduced Workflows
+
+These workflows were not directly observed but are confidently deduced from the complete data model, UI patterns, and cross-referencing multiple pages of the reference platform.
+
+#### Package Release Flow
+1. Staff clicks Release icon on a Non-Released package row
+2. System prompts for confirmation (resident identity verification)
+3. Package status transitions: Non-Released → Released
+4. `ReleaseTime` populated with current timestamp
+5. `Released By` populated with staff username
+6. Row moves from Non-Released table to Released Packages section
+7. Resident receives package pickup notification email (unless "Emails Declined" is on — but package notices are exempt from the opt-out)
+8. Released package visible for 21 days, then archived
+
+#### Group Permission Editing
+1. Admin clicks Edit icon on a group row in Settings > Groups tab
+2. Permission matrix modal opens with checkboxes per feature module
+3. Modules likely include: Dashboard access, Unit File access, Amenity management, Log creation (per type), Package management, Maintenance tickets, Settings access, User management, Report generation
+4. Permissions are building-scoped — a group's permissions apply within the assigned building
+5. Custom groups can be created beyond the 18 defaults
+
+#### Resident Onboarding Workflow
+1. Admin creates unit via Create Unit form (`/unit`) — assigns FOBs, buzzer codes, parking, locker
+2. Admin creates user via Create User (`/create-user`) — assigns to unit and user group
+3. Admin sends Welcome Email from User Management (`/manage-users`) or individual profile
+4. Welcome email uses template configured in Settings > Login Instructions tab
+5. Resident receives email with login credentials and building information
+6. Resident logs in and completes profile (emergency contacts, vehicles, pets, documents)
+7. Resident sets notification preferences at `/preferences`
+
+#### Parking Violation Lifecycle
+1. Security guard observes violation (unauthorized parking, expired visitor pass, etc.)
+2. Creates parking violation entry (likely via Security Menu)
+3. System checks overnight parking limits configured in Settings > Parking:
+   - Per plate: 1-12/year based on type (plate only, plate + unit, weekly, monthly, yearly, consecutive)
+   - Per unit: 1-12/year based on same type options
+   - Day visit limits with configurable number
+4. Notification sent to up to 9 configured roles (from Settings > Parking > Notification toggles)
+5. Resident receives violation notification if "Parking violation" preference is enabled
+6. Violation appears in Security Menu > Parking Violations table
+
+#### Security Log Notification Chain
+1. Staff creates a log (General, Incident, Fire, Noise, or Inspection)
+2. Auto-CC emails sent to configured addresses (Settings > General > Auto-CC per log type)
+3. Users with "New security report/log created" preference enabled receive notification
+4. Log appears in the Logs Menu under the appropriate section
+5. Fire Logs trigger highest-priority workflow (PA announcements, fire department coordination, device resets)
+
+#### Amenity Booking Chain
+1. Resident browses amenity cards on Amenities page (7 configured amenities)
+2. Selects date/time on availability calendar
+3. System checks booking rules (configured in Settings > Amenity or `/new-amenity`)
+4. Booking created → confirmation email sent to resident
+5. Users with "Amenity booked" preference enabled receive notification
+6. On cancellation → users with "Amenity booking cancelled" preference get notified
+7. Pre-booking inspection → Inspection Log (Pre type) created → linked to booking
+8. Post-booking inspection → Inspection Log (Post type) created → linked to booking
+
+#### Multi-Building Context
+1. User with access to multiple buildings sees "Switch Building" in profile dropdown
+2. All data (units, packages, logs, settings) is building-scoped
+3. "Post in all buildings" checkbox on General Log allows cross-building announcements
+4. Settings > General > Parking > all configurations are per-building
+5. User Management shows users for the currently selected building
+6. Package Management filters by current building but supports cross-building search
+
+#### Email Notification Architecture
+The system has 3 layers of email configuration:
+1. **Global "from" addresses** (Settings > General): 6 different "from" emails for different notification types
+2. **Auto-CC lists** (Settings > General): Automatic CC recipients per log type (comma-separated)
+3. **Per-user preferences** (`/preferences`): 10 toggle categories for individual notification control
+
+Priority: System-critical emails (package notices, booking warnings) always send regardless of "Emails Declined" preference.
+
+---
+
+### 20.4 Complete Documentation Inventory
+
+| # | File | Description | Fields Documented |
+|---|------|-------------|-------------------|
+| 1 | `dashboard.md` | Dashboard stats, quick actions, activity tables | ~15 |
+| 2 | `unit-file.md` | Unit directory, resident profiles, unit details | ~25 |
+| 3 | `amenities.md` | Amenity cards, calendar, reservation flow | ~20 |
+| 4 | `security-menu.md` | Visitor parking, key checkout, violations | ~30 |
+| 5 | `announcement.md` | Announcement creation, scheduling | ~10 |
+| 6 | `advertisement.md` | Classified ads, approval workflow | ~12 |
+| 7 | `maintenance.md` | Service requests, status tracking | ~15 |
+| 8 | `library.md` | Document library, file management | ~8 |
+| 9 | `store.md` | Online store, product catalog | ~10 |
+| 10 | `events.md` | Event creation, calendar, RSVP | ~12 |
+| 11 | `reports.md` | Report generation, exports | ~8 |
+| 12 | `search.md` | Global search, filters | ~6 |
+| 13 | `survey.md` | Survey builder, question types | ~10 |
+| 14 | `emergency.md` | Emergency contacts, assistance | ~8 |
+| 15 | `contractors.md` | Contractor directory | ~6 |
+| 16 | `top-navigation.md` | Top nav, profile dropdown, search | ~12 |
+| 17 | `logs.md` | 6 log types with complete form specs | ~85 |
+| 18 | `settings.md` | 8 settings tabs with every field | ~120 |
+| 19 | `packages.md` | Package lifecycle, parcel types, search | ~30 |
+| 20 | `user-profile.md` | 6 profile tabs, vehicles, pets, docs | ~40 |
+| 21 | `user-management.md` | User management, welcome emails | ~5 |
+| 22 | `create-unit.md` | Unit creation with FOB/buzzer/parking | ~20 |
+| 23 | `preferences.md` | 10 notification categories | ~10 |
+| 24 | `url-map.md` | Complete URL routing (41 routes) | — |
+
+**Total documented fields**: ~500+ across 24 files
+
 ---
 
 *This document is the single source of truth for all design decisions. Every component, page, and feature must comply with these standards. Deviations require explicit approval and documentation.*

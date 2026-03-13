@@ -42,6 +42,28 @@ All options are checkboxes (checked = enabled, unchecked = disabled):
 
 ---
 
+## Role-Based Notification Relevance
+
+| Role Type | Most Relevant Notifications |
+|-----------|------------------------------|
+| Admin / Property Manager | All 10 categories |
+| Concierge / Front Desk | Service requests, security logs, parking violations, resident profile changes |
+| Security Staff | Security logs, parking violations, emergency assistance changes |
+| Resident / Tenant | Amenity bookings, events, service request updates |
+| Owner | Amenity bookings, events, service requests, profile changes |
+
+---
+
+## Anticipated Behaviors
+
+1. **Emails Declined** is a soft opt-out — system-critical emails (booking confirmations, package arrivals) still send regardless
+2. Notifications route to the user's primary email address from their profile
+3. The "from" email address for each category is configured in Settings > General > Default Email Settings
+4. Auto-CC recipients for log-type notifications are configured separately in Settings > General > Auto-CC Email Lists
+5. Parking-related notifications have their own role-based configuration in Settings > Parking tab (9 roles can be toggled independently)
+
+---
+
 ## Features Summary
 
 - 10 configurable email notification categories
@@ -49,3 +71,15 @@ All options are checkboxes (checked = enabled, unchecked = disabled):
 - Per-user notification customization
 - Covers: amenities, maintenance, security, parking, events, profiles, emergency
 - Accessible from both profile dropdown and user profile page
+
+---
+
+## Concierge Improvement Opportunities
+
+1. **Granular channels** — Let users choose email vs. in-app vs. push per category
+2. **Frequency control** — Instant, daily digest, or weekly summary options
+3. **Quiet hours** — Don't send non-critical notifications during specified hours
+4. **Smart grouping** — Batch multiple related notifications into a single email
+5. **Category expansion** — Add package arrival, visitor check-in, maintenance scheduled, move-in/move-out
+6. **Priority levels** — Mark certain notifications as urgent (fire log, emergency assistance) with different delivery behavior
+7. **Preview** — Show a sample notification before enabling each category

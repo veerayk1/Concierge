@@ -134,11 +134,41 @@ Opened by clicking the **Inbox Icon**.
 
 ---
 
+## Anticipated Behaviors
+
+### Package Release Flow
+When clicking the Release icon on a non-released package:
+1. Staff verifies resident identity (likely prompts for confirmation or signature)
+2. Package status changes from Non-Released to Released
+3. ReleaseTime field is populated with current timestamp
+4. "Released By" field populated with the staff member's username
+5. Package row moves from Non-Released to Released Packages section
+6. Resident may receive email notification based on notification settings
+
+### Batch Release (Sitemap Icon)
+The second create icon (sitemap) likely enables:
+1. Select multiple packages for a single resident
+2. Release all at once during a single pickup visit
+3. Single confirmation/signature for multiple packages
+
+### Perishable Package Handling
+When "Check if the item is Perishable" is checked:
+1. Package likely receives a visual flag/badge in the table
+2. May trigger immediate email notification to resident (bypassing "Emails Declined" preference)
+3. Could appear in a priority section or with highlighted styling
+
+### Package Notification Chain
+1. Package recorded → resident receives "You have a package" email
+2. Package sits uncollected → likely no auto-reminders (improvement opportunity)
+3. Package released → timestamp recorded, moves to Released section
+
+---
+
 ## Features Summary
 
 - Dual-section layout: Non-Released vs Released packages
 - Package lifecycle tracking (receive → store → release)
-- Configurable parcel type categories
+- Configurable parcel type categories (11 default types)
 - Storage spot assignment
 - Perishable item flagging
 - Bulk package recording
@@ -146,3 +176,20 @@ Opened by clicking the **Inbox Icon**.
 - Courier tracking with tracking numbers
 - 21-day released package history
 - Multi-building support
+- Auto-generated reference numbers
+
+---
+
+## Concierge Improvement Opportunities
+
+1. **Barcode/QR scanning** — Scan tracking numbers instead of manual entry
+2. **Photo capture** — Photograph packages on intake for proof and identification
+3. **Smart notifications** — Escalating reminders for uncollected packages (24h, 48h, 72h)
+4. **Perishable priority** — Auto-notify immediately with countdown timer for perishable items
+5. **Courier analytics** — Track which couriers deliver most, peak delivery times
+6. **Resident self-serve** — Let residents see their pending packages via mobile/portal
+7. **Locker integration** — Support for package locker systems with automated release
+8. **Batch intake** — Multi-package form for high-volume delivery days
+9. **Storage spot mapping** — Visual map of parcel room with available spots
+10. **Digital signature** — Capture resident signature on release for proof of pickup
+11. **Package search by tracking number** — Currently missing as a search filter
