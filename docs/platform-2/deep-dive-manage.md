@@ -384,7 +384,126 @@ Status IDs observed in URL: 1, 2, 3, 4, 5, 6, 7, 8, -1, -2, -3
 
 ---
 
+## 9. Library (Document Library)
+
+**URL**: `/V2/Mgmt/Library/Library.aspx`
+**Architecture**: Legacy ASP.NET (iframe)
+
+### Main Tabs (3)
+1. **Active Documents** (default) — All non-expired library documents
+2. **Recently Viewed** — Documents viewed within a configurable time window
+3. **Expired Documents** — Documents past their expiration date
+
+### Active Documents Tab
+
+#### Options Bar
+| # | Control | Type | Default | Description |
+|---|---------|------|---------|-------------|
+| 1 | Group by | Radio buttons (2) | ◉ Group by Category | Group by Category / Group by Date |
+| 2 | Show Viewing Permissions | Checkbox | ☐ | Toggle permission columns in table |
+| 3 | Select Category | Dropdown | All Categories | Filter by document category |
+| 4 | Text Search | Text input | (empty) | Search document names |
+| 5 | Search button | Button | — | Execute search |
+
+#### Actions
+- **+ Add New Document** button (green, top right)
+- **- Hide All** / **+ Expand All** buttons (top right, above table)
+- **Create SubCategory** (per category row) — Create sub-folder within a category
+
+#### Table Columns (8)
+| # | Column | Description |
+|---|--------|-------------|
+| 1 | Document Name | Document title (clickable link) |
+| 2 | Document Date | Upload/creation date |
+| 3 | Last Revised On | Last modification date |
+| 4 | Expires On | Expiration date |
+| 5 | Last 30 Days No. of Views | Recent view count |
+| 6 | Lifetime No. of Views | Total view count |
+| 7 | Att./Imp. | Attachment/Important indicators (icons) |
+| 8 | (Actions) | Notify by Email, View, Edit/Delete |
+
+#### Document Categories (6 configured)
+| # | Category | Document Count |
+|---|----------|---------------|
+| 1 | Agreements and Waivers | 3 |
+| 2 | Amenity Reservation Forms | 0 |
+| 3 | Board of Directors Minutes | 0 |
+| 4 | Common Announcement Library | 0 |
+| 5 | Emergency Information | 0 |
+| 6 | Newsletters | 0 |
+
+#### Observed Documents (3 in "Agreements and Waivers")
+| Document Name | Date | Views | Actions |
+|---------------|------|-------|---------|
+| TSCC2934 - Condominium Declaration | 3/19/25 | 20 | Notify by Email, View, Edit/Delete |
+| TSCC2934 - Condominium Rules | 3/19/25 | 116 | Notify by Email, View, Edit/Delete |
+| TSCC2934 - Product Library Available for Residents to Use | 8/26/25 | 76 | Notify by Email, View, Edit/Delete |
+
+#### Per-Document Actions
+- **Notify by Email** — Send email notification to residents about the document
+- **View** — Open/download the document
+- **Edit/Delete** — Modify document metadata or remove
+
+### Recently Viewed Tab
+
+**URL**: `/V2/Mgmt/Library/recent.aspx`
+
+#### Time Filter
+| Control | Type | Options | Default |
+|---------|------|---------|---------|
+| Show all documents viewed within the last | Radio buttons (3) | 7 days / 30 days / 90 days | 30 days |
+
+#### Table Columns (12+)
+| # | Column | Description |
+|---|--------|-------------|
+| 1 | Document Name | Document title |
+| 2 | Category | Document category |
+| 3 | Document Date | Upload date |
+| 4 | Recent No. of Views | Views in selected time period |
+| 5 | Att./Imp. | Attachment/Important flags |
+| 6 | Tenant | Tenant viewing permission |
+| 7 | Sub Tenant | Sub-tenant viewing permission |
+| 8 | Board | Board member viewing permission |
+| 9 | Front Text | Front desk text viewing permission |
+| 10 | Maint | Maintenance viewing permission |
+| 11 | Locations | Location-based viewing permission |
+
+**Observed Data**: No records to display (no documents viewed recently)
+
+### Expired Documents Tab
+
+**URL**: `/V2/Mgmt/Library/expired.aspx`
+
+#### Table Columns (12+)
+| # | Column | Description |
+|---|--------|-------------|
+| 1 | Expired On | Date the document expired |
+| 2 | Document Name | Document title |
+| 3 | Category | Document category |
+| 4 | Document Date | Original upload date |
+| 5 | No. of Visits | Total visit count |
+| 6 | Att./Imp. | Attachment/Important flags |
+| 7-12 | (Permission columns) | Same as Recently Viewed: Tenant, Sub Tenant, Board, Front Text, Maint, Locations |
+
+**Observed Data**: No records to display (no expired documents)
+
+### Language Support
+**Language dropdown** (top right): Supports 12 languages:
+Chinese (Simplified), Chinese (Traditional), Czech, English (Australia), English (Canada), English (Ireland), English (United Kingdom), English (United States), French (Canada), Japanese, Spanish, Vietnamese
+
+---
+
 ## Concierge Design Implications
+
+### From Library Deep Dive
+1. **6 document categories** — Pre-configured categories cover agreements, forms, board minutes, announcements, emergency info, newsletters
+2. **Viewing permissions matrix** — 6+ permission levels (Tenant, Sub Tenant, Board, Front Text, Maint, Locations) control document visibility
+3. **Document lifecycle** — Active → Expired workflow with separate tabs for each state
+4. **View analytics** — Both 30-day and lifetime view counts tracked per document
+5. **Email notification** — "Notify by Email" action per document for resident communication
+6. **Multi-language support** — 12 languages for international buildings
+7. **Subcategory support** — Categories can have nested subcategories for organization
+8. **Recently Viewed tracking** — Configurable time window (7/30/90 days) for usage analytics
 
 ### From Employees Deep Dive
 1. **3 authority levels** — Security Officer, Manager, Front Desk — maps to role-based access

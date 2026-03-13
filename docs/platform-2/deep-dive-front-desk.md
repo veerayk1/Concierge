@@ -416,8 +416,68 @@ Each card shows:
 ## 4. Resident Directory
 
 **URL**: `/V2/Mgmt/Communicate/ResidentDirectory.aspx?v=1`
+**Architecture**: Legacy ASP.NET (iframe)
 
-*Not yet deep-dived — accessible from Front desk sidebar.*
+### Search Options
+| # | Control | Type | Description |
+|---|---------|------|-------------|
+| 1 | Search | Text input | "Enter any part of the Unit#, Name or Email Address" |
+| 2 | Search button | Button (teal) | Execute search |
+| 3 | Show Advanced Search Options | Toggle button | Expand/collapse advanced filters |
+
+### Advanced Search Options (expanded)
+| # | Filter | Type | Options | Default |
+|---|--------|------|---------|---------|
+| 1 | Show residents | Radio buttons (3) | All / With photos / Without photos | All |
+| 2 | Select Floors | Checkboxes | 1, 2, 3, 4, 5, 6, 7, 8 | All unchecked (= all floors) |
+| 3 | Select Lines | (empty) | No lines configured for this property | — |
+| 4 | Select Locations | (empty) | No locations configured for this property | — |
+| 5 | Occupants to Include | Radio buttons (3) | All Occupants (Owners and Tenants) / Owners only (omit Tenants) / Current Residents only (omit Owners of units that have Tenants) | All Occupants |
+
+### Layout Options (right panel)
+| # | Option | Type | Default |
+|---|--------|------|---------|
+| 1 | Display mode | Radio buttons (2) | ◉ List / ○ Address Card |
+| 2 | Sort order | Radio buttons (2) | ◉ Sort By Unit / ○ Sort By Name |
+
+### Actions
+- **Print** button (top right) — Print the directory
+
+**Key observations**:
+- Floor checkboxes match the 8 floors configured in Physical Units settings
+- 3-way occupant filter supports owner/tenant distinction — critical for condo management
+- "Current Residents only" option omits absentee owners who have tenants
+- Dual layout modes (List vs Address Card) for different use cases
+- No Lines or Locations configured for this property, but the filters exist for buildings with those designations
+
+---
+
+## 6. Front Desk Home
+
+**URL**: `/v2/mgmt/dashboard/frontdeskhome.aspx`
+**Architecture**: Legacy ASP.NET (iframe)
+
+### Page Description
+"The 'Front Desk' functions bring efficiency, accountability, and security to your door and lobby operations."
+
+### Navigation Links (4)
+| # | Link | Description | Expand Button |
+|---|------|-------------|---------------|
+| 1 | Event Log | Navigate to Event Log module | + About |
+| 2 | Instructions | Navigate to Front Desk Instructions | + About |
+| 3 | Incident Reports | Navigate to Incident Reports | + About |
+| 4 | Resident Directory | Navigate to Resident Directory | + About |
+
+Each link has a "+ About" expand button that shows a description of the module.
+
+### Section: Front Desk Instructions from Management
+Displays active management instructions for front desk staff. Shows instructions that management has posted for front desk awareness (same content as Dashboard section "Front desk instructions from management").
+
+**Key observations**:
+- Simple landing/hub page linking to the 4 Front Desk sub-modules
+- Each module has a "+ About" expandable description for orientation
+- "Front Desk Instructions from Management" section provides quick access to active instructions
+- This is a legacy ASP.NET page, while the actual sub-modules (Event Log, Instructions) are modern SPA
 
 ---
 
@@ -442,3 +502,16 @@ Each card shows:
 2. **5-stage approval workflow** — Draft → Pending Approval → Finalized → Archived → Deleted
 3. **Long-form narrative descriptions** — incident reports are detailed write-ups, not short notes
 4. **Legacy ASP.NET iframe pattern** — this is the oldest part of the UI, Concierge should modernize this significantly
+
+### From Resident Directory Deep Dive
+1. **3-way occupant filter** — All Occupants / Owners only / Current Residents only — critical for condo owner vs tenant distinction
+2. **Floor-based filtering** — Checkbox per floor for building section filtering
+3. **Dual layout modes** — List and Address Card views for different use cases
+4. **Photo filter** — Can filter to residents with/without photos for directory completeness
+5. **Print capability** — Physical directory printout for front desk use
+6. **Sort flexibility** — By Unit or By Name for different lookup patterns
+
+### From Front Desk Home Deep Dive
+1. **Hub page pattern** — Simple landing page linking to 4 sub-modules with descriptions
+2. **Management instructions surfaced** — Front desk staff see active management instructions on their home page
+3. **"+ About" expandable descriptions** — Self-documenting module orientation for new staff
