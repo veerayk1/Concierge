@@ -1,4 +1,4 @@
-# 05 — Maintenance / Service Requests
+# 05 — Maintenance
 
 > **Status**: Draft
 > **Last updated**: 2026-03-14
@@ -9,11 +9,11 @@
 
 ## 1. Overview
 
-The Maintenance module manages every service request in a building -- from a dripping faucet in Unit 1205 to a broken lobby elevator. It is the single place where residents report problems, staff track work, vendors receive assignments, and managers monitor building health.
+The Maintenance module manages the complete lifecycle of building service requests -- from a resident reporting a leaking faucet to a vendor completing the repair and the system logging the resolution. It is the operational backbone for property managers, maintenance staff, and residents.
 
 ### Why This Module Exists
 
-Buildings break. When they do, residents need an easy way to report problems, staff need a clear way to track repairs, and managers need visibility into what is open, what is stuck, and what is costing money. Without a centralized system, requests get lost in emails, sticky notes, and verbal hand-offs between shifts.
+Buildings break. Pipes leak, elevators stall, hallway lights burn out. The speed and quality of maintenance response directly affects resident satisfaction, property value, and legal liability. This module replaces paper work orders, email chains, and spreadsheet tracking with a structured, auditable, AI-enhanced workflow.
 
 ### Key Facts
 
@@ -24,961 +24,1390 @@ Buildings break. When they do, residents need an easy way to report problems, st
 | **Sidebar group** | Operations |
 | **Badge** | Count of open requests (visible to Property Manager, Maintenance Staff) |
 | **v1 scope** | Service request lifecycle, 43 categories, vendor/employee assignment, attachments, work orders, comments |
-| **v2 scope** | Equipment tracking, inspection checklists, recurring tasks, vendor compliance dashboard |
+| **v2 scope** | Equipment tracking, inspection checklists, recurring tasks, vendor compliance dashboard, alteration projects |
 | **AI capabilities** | 12 features (IDs 23-34 in the AI Framework) |
 | **Reference number format** | `SR-YYYY-NNNNN` (e.g., `SR-2026-00147`) |
 
 ### What This Module Does NOT Cover
 
-- **Equipment lifecycle management** -- v2 (see Section 3.11)
-- **Inspection checklists** -- v2 (see Section 3.12)
-- **Recurring/preventive maintenance scheduling** -- v2 (see Section 3.13)
-- **Vendor compliance and insurance tracking** -- v2 (see Section 3.14)
-- **Alteration projects** (renovation tracking with permits) -- separate module
+- **Equipment lifecycle management** -- v2 (see Section 3.2.3)
+- **Inspection checklists** -- v2 (see Section 3.2.2)
+- **Recurring/preventive maintenance scheduling** -- v2 (see Section 3.2.1)
+- **Vendor compliance tracking** -- v2 (see Section 3.2.4)
+- **Alteration projects** -- v2 (see Section 3.2.5)
+- **Security incidents** -- See PRD 03 (Security Console)
+- **Common area cleaning logs** -- See PRD 03 (Security Console, event type)
+
+### Key Metrics
+
+| Metric | Target |
+|--------|--------|
+| Average time to first response | < 4 hours for high priority |
+| Average resolution time | < 48 hours for normal priority |
+| Resident satisfaction on closure | > 4.2 / 5.0 |
+| Requests with AI-assisted categorization | > 80% |
+| Duplicate request prevention rate | > 70% |
 
 ---
 
 ## 2. Research Summary
 
-### Key Findings That Shaped Decisions
+### Key Findings from Competitive Analysis
 
-| # | Finding | Decision |
-|---|---------|----------|
-| 1 | The most basic platform observed had only 2 request types (In Suite Repairs, Service Request) with no photo uploads, no vendor assignment, and no equipment linkage. | Concierge ships with 43 categories across 2 groups (Common Areas and In-Suite), full photo/document attachments, and vendor + employee + equipment linkage from day one. |
-| 2 | The most advanced platform observed used a two-column form layout with 20+ fields, including permission-to-enter, high urgency flag, and the ability to create requests in any status (Open, Hold, or Closed). | Concierge adopts the two-column layout. Left column holds problem details; right column holds assignment and logistics. Requests can be created in any initial status. |
-| 3 | One platform supported 4000-character descriptions with 1000-character entry instructions, photo attachments (JPG/PNG/BMP/GIF/HEIC at 4MB), and document attachments (PDF/DOC/DOCX/XLS/XLSX at 4MB). | Concierge matches these limits exactly. |
-| 4 | One platform had 7 sub-modules under Maintenance: requests, equipment, inspections, vendors, recurring tasks, reports, and search. | Concierge starts with requests in v1 and adds equipment, inspections, recurring tasks, and vendor compliance in v2. Reports live in the Reports module (PRD 10). |
-| 5 | The most advanced platform offered inline preview of problem descriptions in the request listing, eliminating the need to click into each request. | Concierge shows a truncated description preview (first 120 characters) beneath each row in the table listing. |
-| 6 | One platform had a "Don't show to residents" toggle, allowing staff to create internal-only requests. | Concierge supports a "Hide from resident" toggle on both requests and individual comments. |
-| 7 | No platform observed had AI-powered auto-categorization, priority suggestion, duplicate detection, or predictive maintenance. | Concierge integrates 12 AI capabilities (IDs 23-34) as first-class features with graceful manual fallbacks. |
+Our research across three industry-leading platforms revealed significant variation in maintenance capabilities:
+
+| Finding | Detail |
+|---------|--------|
+| **Form depth varies dramatically** | One platform offers a basic 8-field form. Another provides 20+ fields including permission-to-enter, entry instructions, vendor assignment, equipment linkage, and urgency flags. Concierge adopts the richer form with progressive disclosure to avoid overwhelming users. |
+| **Equipment and inspections are absent from most** | Only one platform provides equipment tracking, recurring tasks, and mobile-first inspections. These are essential for preventive maintenance -- buildings that only fix things when they break spend 3-5x more over 10 years. |
+| **Vendor compliance is rare but critical** | One platform tracks vendor insurance with a 5-status dashboard (compliant, not compliant, expiring, expired, not tracking). This prevents liability exposure from uninsured contractors. |
+| **Photo/document uploads are table stakes** | One platform has no attachment support at all. Modern maintenance requires photos of damage, receipts, permits, and work completion evidence. |
+| **Work order printing matters** | Field staff and vendors often work without screens. Printable work orders bridge the digital-physical gap. |
+| **Category systems should be configurable** | One platform hardcodes 11 categories. Another allows property-level customization. Concierge uses configurable categories because every building has different needs. |
+| **Status workflows need flexibility** | The ability to create a request directly in "on hold" or "closed" status (for retroactive logging) was a valuable pattern observed in competitive research. |
+| **Recurring tasks with forecasting** | Only one platform provides task forecasting -- showing what maintenance is coming up next week, next month. This transforms reactive maintenance into proactive management. |
+
+### What We Take
+
+- Rich request form with 20+ fields and progressive disclosure
+- Equipment lifecycle management with categories and replacement scheduling
+- Vendor compliance dashboard with insurance expiry tracking
+- Recurring task scheduler with forecast view
+- Mobile-first inspections with customizable checklists
+- Work order generation (print and PDF)
+- Configurable category system managed by property admins
+
+### What We Avoid
+
+- Text-only request descriptions with no attachment support
+- Hardcoded, unchangeable category lists
+- No equipment tracking or preventive maintenance
+- Single-channel notifications (email only)
+- No vendor compliance tracking
 
 ---
 
 ## 3. Feature Specification
 
-### 3.1 Service Request Listing Page
+### 3.1 Core Features (v1)
 
-**URL**: `/maintenance`
+#### 3.1.1 Create Service Request
 
-The listing page shows all service requests for the property in a filterable, sortable table with inline description previews.
+**Who can create**: Property Manager, Property Admin, Super Admin (full form). Residents -- Owner and Tenant (simplified form). Maintenance Staff cannot create requests -- they receive assignments.
 
-#### Page Header
+##### Staff Form (Full)
 
-| Element | Spec |
-|---------|------|
-| **Page title** | "Service Requests" -- Display weight, 34px |
-| **Primary action** | "New Request" button (Primary style, `--accent` background, white text, 44px height). One per screen. |
-| **Secondary actions** | "Export to Excel" (Secondary button), "Print List" (Secondary button) |
+| Field | Data Type | Max Length | Required | Default | Validation | Error Message | Tooltip |
+|-------|-----------|-----------|----------|---------|------------|---------------|---------|
+| Building | dropdown (select) | -- | Yes | Current building | Must select a valid building | "Please select a building" | -- |
+| Unit | autocomplete | -- | No | None | Must match an existing unit if provided | "Unit not found. Check the number and try again." | "Leave blank for common area requests" |
+| Requested By | autocomplete | -- | Yes | None | Must match an existing resident or "Walk-in" | "Please select who made this request" | "Type a resident name or unit number to search" |
+| Title | text | 200 chars | Yes | None | Min 5 characters, no HTML tags | "Title must be between 5 and 200 characters" | -- |
+| Description | textarea | 4,000 chars | No | None | None | -- | "Include as much detail as possible: what is broken, where exactly, when it started" |
+| Category | dropdown | -- | Yes | AI-suggested (if enabled) | Must select from active categories | "Please select a category" | -- |
+| Sub-Category | dropdown | -- | No | None | Options filter based on selected Category | -- | -- |
+| Priority | dropdown | -- | Yes | "Normal" | Must be one of: Low, Normal, High, Critical | "Please select a priority level" | -- |
+| Urgency Flag | toggle | -- | No | Off | -- | -- | "Urgent requests trigger immediate notifications to the property manager and assigned staff. Use for active water leaks, security hazards, or loss of essential services." |
+| Permission to Enter | radio group | -- | Yes (if unit selected) | "Not Applicable" | Must select one of: Yes, No, Not Applicable | "Please indicate if staff can enter the unit" | "Does the resident allow maintenance staff to enter their unit without the resident being present?" |
+| Entry Instructions | textarea | 1,000 chars | No (shown only if Permission = Yes) | None | None | -- | "Include lockbox codes, pet warnings, alarm info, or preferred entry times" |
+| Assigned Employee | dropdown | -- | No | None | Must be an active staff member | "Selected staff member is no longer active" | -- |
+| Assigned Vendor | dropdown | -- | No | None | Must be an active vendor | "Selected vendor is no longer active" | -- |
+| Equipment | dropdown | -- | No | None | Must be active equipment for the selected building | "Equipment not found in this building" | "Link this request to specific building equipment to build maintenance history" |
+| Contact Numbers | text | 100 chars | No | None | Phone format validation (digits, spaces, dashes, parentheses, +) | "Please enter a valid phone number" | -- |
+| Email Notifications | email chips | -- | No | Submitter's email | Valid email format per chip | "Please enter a valid email address" | "Additional people to notify about updates" |
+| Photo Attachments | file upload (drag-drop) | 4 MB each, max 10 files | No | None | JPG, JPEG, PNG, BMP, GIF, HEIC only | "File must be an image (JPG, PNG, GIF, HEIC) under 4 MB" | -- |
+| Documents | file upload (drag-drop) | 4 MB each, max 5 files | No | None | PDF, DOC, DOCX, XLS, XLSX only | "File must be a document (PDF, DOC, XLS) under 4 MB" | -- |
+| Create with Status | radio group | -- | No | "Open" | One of: Open, On Hold, Closed | -- | "Use On Hold or Closed to log past requests retroactively" |
+| Hold/Close Date | date picker | -- | Yes (if status is On Hold or Closed) | Today | Cannot be in the future | "Date cannot be in the future" | -- |
+| Print Work Order | checkbox | -- | No | Off | -- | -- | "Generate a printable PDF work order with all request details" |
+| Internal Notes | textarea | 2,000 chars | No | None | Not visible to residents | -- | "Staff-only notes. Residents will never see these." |
+| Scheduled Date | date picker | -- | No | None | Must be today or later | "Scheduled date cannot be in the past" | -- |
 
-**"New Request" button behavior**:
-- **On click**: Navigates to `/maintenance/new`
-- **Loading state**: Not applicable (navigation)
-- **Who sees it**: Property Manager, Property Admin, Super Admin, Maintenance Staff, Resident (Owner), Resident (Tenant). Security Guard and Concierge do not see this button.
-- **Tooltip**: "Create a new service request for a unit or common area"
+##### Resident Form (Simplified)
 
-**"Export to Excel" button behavior**:
-- **On click**: Generates an `.xlsx` file containing all requests matching the current filters. Download begins immediately. File name: `service-requests-YYYY-MM-DD.xlsx`
-- **Loading state**: Button label replaced with spinner. Button disabled. Label returns after download starts.
-- **Success state**: Browser download dialog appears
-- **Error state**: Toast notification: "Export failed. Please try again." (red, bottom-right, auto-dismiss after 5 seconds)
-- **Who sees it**: Property Manager, Property Admin, Super Admin, Board Member
-- **Tooltip**: "Download all filtered requests as an Excel spreadsheet"
+Residents see a streamlined form. Staff-only fields (assignment, equipment, internal notes, work order, create-with-status) are hidden entirely -- not greyed out, not disabled, absent.
 
-**"Print List" button behavior**:
-- **On click**: Opens browser print dialog with a print-optimized stylesheet applied
-- **Loading state**: Not applicable
-- **Who sees it**: Property Manager, Property Admin, Super Admin, Maintenance Staff
-- **Tooltip**: "Print the current list of service requests"
+| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
+|-------|-----------|-----------|----------|---------|------------|---------------|
+| Title | text | 200 chars | Yes | None | Min 5 characters | "Please describe your issue in at least 5 characters" |
+| Description | textarea | 4,000 chars | Yes | None | Min 20 characters | "Please provide more detail so we can help you (at least 20 characters)" |
+| Category | dropdown | -- | Yes | AI-suggested | Must select from active categories | "Please select a category" |
+| Priority | dropdown | -- | No | "Normal" | Low, Normal, High (Critical hidden from residents) | "Please select a priority" |
+| Permission to Enter | radio group | -- | Yes | None | Yes or No (Not Applicable hidden) | "Please let us know if staff can enter your unit" |
+| Entry Instructions | textarea | 1,000 chars | No | None | Shown only if Permission = Yes | -- |
+| Photos | file upload (drag-drop + camera on mobile) | 4 MB each, max 5 | No | None | Image formats only | "File must be an image under 4 MB" |
+| Contact Number | text | 20 chars | No | Profile phone number | Phone format | "Please enter a valid phone number" |
+| Authorization Checkbox | checkbox | -- | Yes | Off | Must be checked to submit | "Please confirm the information is accurate" |
 
-#### Filters
+##### Action Buttons
 
-| Filter | Type | Options | Default | Behavior |
-|--------|------|---------|---------|----------|
-| **Search** | Text input (44px height) with magnifying glass icon | Free text | Empty | Searches across: reference number, title, description, unit number, resident name, assigned employee name, assigned vendor name. Debounced 300ms. Minimum 2 characters. |
-| **Status** | Dropdown with badge count | All, Open, On Hold, Closed | All | Badge shows count of active filters. Selecting a status immediately filters the table. |
-| **Category** | Dropdown | All 43 categories (grouped by Common Areas / In-Suite) | All | Filters by maintenance category. |
-| **Assigned Employee** | Dropdown | All staff members + "Unassigned" | All | Filters by who is assigned. |
-| **Priority** | Dropdown | All, Low, Normal, High, Critical | All | Filters by priority level. |
-| **Date Range** | Date range picker (two date inputs) | Start date, End date | Last 30 days | Filters by `created_at` date. |
-| **Clear Filters** | Ghost button ("Clear") | -- | -- | Resets all filters to defaults. Only visible when at least one filter is active. |
+| Button | Label | Who Sees | Action | Loading State | Success State | Failure State |
+|--------|-------|----------|--------|---------------|---------------|---------------|
+| Primary | "Submit Request" | All | Saves request, generates reference number, sends notifications | Button disabled + spinner + "Submitting..." | Green toast: "Request SR-2026-XXXXX created successfully" + redirect to detail page | Red toast: "Failed to create request. Please try again." Form data preserved, no fields cleared. |
+| Secondary | "Save and Create Another" | Staff only | Saves and clears form for next entry | Button disabled + spinner + "Saving..." | Green toast: "Request SR-2026-XXXXX created" + form resets with building/employee pre-filled | Red toast: "Failed to create request." Form data preserved. |
+| Tertiary | "Clear" | Staff only | Resets all fields to defaults | Instant (no loading) | All fields reset, focus moves to first field | -- |
+| Tertiary | "Cancel" | All | Returns to request list without saving | Instant | Navigate back to listing page | -- |
 
-**Filter error handling**: If no results match the filters, the table shows an empty state: centered illustration + "No service requests match your filters" + "Clear Filters" ghost button.
+#### 3.1.2 Request Listing and Search
 
-#### Table Columns
+##### Filters
 
-| Column | Width | Sortable | Content | Format |
-|--------|-------|----------|---------|--------|
-| **Checkbox** | 40px | No | Bulk selection checkbox | 20x20px checkbox |
-| **Status** | 100px | Yes | Status badge (color-coded pill) | Open = `--status-info`, On Hold = `--status-warning`, Closed = `--status-success` |
-| **ID** | 140px | Yes (default, descending) | Reference number | Monospace font, e.g., `SR-2026-00147` |
-| **Unit** | 120px | Yes | Unit number + resident name below | Unit: Headline weight. Name: Caption, `--text-secondary` |
-| **Category** | 160px | Yes | Maintenance category | Body weight |
-| **Priority** | 100px | Yes | Priority badge | Low = gray, Normal = `--status-info`, High = `--status-warning`, Critical = `--status-error` |
-| **Assignee** | 140px | Yes | Assigned employee name | Body weight. "Unassigned" shown in `--text-tertiary` if empty |
-| **Requested** | 120px | Yes | Date requested + source label | Date: Body weight. Source: Caption badge ("Resident", "Staff", "AI Draft") |
-| **Last Comment** | 120px | Yes | Date of most recent comment | Caption, `--text-secondary`. "None" if no comments |
-| **Actions** | 48px | No | `...` icon button | Opens dropdown: View, Edit, Print Work Order, Delete |
+| Filter | Type | Options | Default |
+|--------|------|---------|---------|
+| Search | text input with search icon | Searches title, description, reference number, unit number, resident name | Empty |
+| Status | multi-select dropdown with badge count | Open, In Progress, On Hold, Closed | Open, In Progress |
+| Category | dropdown | All active categories + "All" | All |
+| Priority | multi-select chips | Low, Normal, High, Critical | All |
+| Assigned Employee | dropdown | All active staff + "Unassigned" + "All" | All |
+| Assigned Vendor | dropdown | All active vendors + "None" + "All" | All |
+| Date Range | date range picker | From / To dates | Last 30 days |
+| Has Urgency Flag | toggle | Yes / No / All | All |
+| Sort By | dropdown | Newest First, Oldest First, Priority (High-Low), Priority (Low-High), Last Updated | Newest First |
 
-**Inline preview**: Below each row, the first 120 characters of the problem description appear in Caption size, `--text-secondary`. This preview is always visible -- no click required.
+**Reset Filters**: A "Clear all filters" link appears when any filter is non-default. Clicking resets all to defaults instantly.
 
-**Pagination**: Bottom-right. Shows "Showing 1-25 of 342 requests". 25 rows per page default. Page navigation: `< 1 2 3 ... 14 >`.
+##### Listing Views
 
-**Bulk actions**: When one or more checkboxes are selected, a floating action bar appears at the bottom of the screen:
-- "Assign to..." (dropdown of employees)
-- "Change Status..." (dropdown: Open, On Hold, Closed)
-- "Change Priority..." (dropdown: Low, Normal, High, Critical)
-- "Export Selected" (generates Excel with selected rows only)
-- "x selected" counter + "Deselect All" ghost button
+| View | Layout | Best For | Toggle Location |
+|------|--------|----------|----------------|
+| **Card View** (default) | 3-column grid (desktop), 2-column (tablet), 1-column (mobile) | Visual scanning, seeing status at a glance | Icon toggle in top-right of listing area |
+| **Table View** | Sortable columns with inline description preview below each row | Bulk management, exporting, sorting | Icon toggle in top-right of listing area |
 
-**Row click behavior**: Clicking anywhere on a row (except the checkbox or actions button) navigates to `/maintenance/:id` (detail view).
+##### Card Contents
+
+Each card displays:
+
+| Element | Position | Detail |
+|---------|----------|--------|
+| Status Badge | Top-left | Color-coded pill |
+| Priority Badge | Top-right | Color-coded pill |
+| Urgency Icon | Top-right (before priority) | Red flame icon, only if urgency flag set |
+| Reference Number | Below badges | Monospace font, e.g., "SR-2026-00089" |
+| Title | Below reference | Truncated at 60 characters with ellipsis |
+| Unit + Resident | Below title | "Unit 1205 -- Sarah Chen" or "Common Area" |
+| Category | Below unit | Category name with icon |
+| Assigned To | Bottom-left | Employee name or "Unassigned" (gray italic) |
+| Created Date | Bottom-right | Relative time (e.g., "2 hours ago", "3 days ago") |
+| Attachment Icon | Bottom, near date | Paperclip icon + count, only if attachments exist |
+
+**Color coding for status**:
+
+| Status | Badge Color | Hex | Text Color |
+|--------|-------------|-----|------------|
+| Open | Blue | `#2563EB` | White |
+| In Progress | Amber | `#D97706` | White |
+| On Hold | Gray | `#6B7280` | White |
+| Closed | Green | `#059669` | White |
+
+**Color coding for priority**:
+
+| Priority | Badge Color | Hex | Text Color |
+|----------|-------------|-----|------------|
+| Low | Gray | `#9CA3AF` | White |
+| Normal | Blue | `#3B82F6` | White |
+| High | Orange | `#F97316` | White |
+| Critical | Red | `#EF4444` | White |
+
+##### Table View Columns
+
+| Column | Sortable | Width |
+|--------|----------|-------|
+| Checkbox (bulk select) | No | 40px |
+| Status | Yes | 100px |
+| Reference # | Yes | 140px |
+| Title | No | Flexible |
+| Unit | Yes | 80px |
+| Category | Yes | 150px |
+| Priority | Yes | 90px |
+| Assigned To | Yes | 140px |
+| Created | Yes | 100px |
+| Last Updated | Yes | 100px |
+
+Clicking a row expands an inline preview showing the description (first 200 characters).
+
+##### Bulk Actions (Table View Only)
+
+| Action | Description | Confirmation Required |
+|--------|-------------|----------------------|
+| Change Status | Set status for all selected requests | Yes -- "Change status of [N] requests to [status]?" with [Confirm] and [Cancel] |
+| Assign Employee | Assign a staff member to all selected | Yes -- "Assign [name] to [N] requests?" |
+| Assign Vendor | Assign a vendor to all selected | Yes -- "Assign [vendor] to [N] requests?" |
+| Change Priority | Update priority for all selected | Yes -- "Change priority of [N] requests to [priority]?" |
+| Export Selected | Export selected rows to Excel or PDF | No confirmation needed |
+| Print Work Orders | Generate work orders for all selected | No confirmation needed |
+
+##### Top Bar Actions
+
+| Button | Label | Icon | Action | Loading | Success | Failure |
+|--------|-------|------|--------|---------|---------|---------|
+| Primary | "Create Request" | Plus icon | Navigate to creation form | -- | -- | -- |
+| Secondary | "Export to Excel" | Spreadsheet icon | Downloads filtered results as .xlsx | Spinner on button + "Exporting..." | Browser download starts | Toast: "Export failed. Try again." |
+| Secondary | "Export to PDF" | PDF icon | Downloads filtered results as PDF | Spinner on button + "Exporting..." | Browser download starts | Toast: "Export failed. Try again." |
+| Secondary | "Print List" | Printer icon | Opens browser print dialog with optimized print stylesheet | -- | Print dialog opens | -- |
+
+##### Pagination
+
+| Setting | Default | Options |
+|---------|---------|---------|
+| Items per page | 25 | 10, 25, 50, 100 |
+| Navigation | Page numbers + Previous/Next arrows | -- |
+| Showing indicator | "Showing 1-25 of 147 requests" | -- |
+
+##### Empty States
+
+**When no requests exist (staff view)**:
+- Illustration: Simple line drawing of a wrench and clipboard
+- Heading: "No service requests yet"
+- Body: "When residents or staff create service requests, they will appear here."
+- CTA Button: "Create First Request" (primary button)
+
+**When no requests exist (resident view)**:
+- Illustration: Simple line drawing of a toolbox
+- Heading: "You don't have any service requests"
+- Body: "Need something fixed? Submit a request and we'll take care of it."
+- CTA Button: "Submit a Request" (primary button)
+
+**When no requests exist (maintenance staff view)**:
+- Illustration: Simple line drawing of a checkmark
+- Heading: "No requests assigned to you"
+- Body: "When a manager assigns a request to you, it will appear here."
+- CTA: None (they cannot create requests)
+
+**When filters return no results**:
+- Heading: "No requests match your filters"
+- Body: "Try adjusting your filters or clearing them to see all requests."
+- Link: "Clear all filters" (resets to defaults)
+
+##### Loading State
+
+Skeleton cards matching the card layout: gray pulsing rectangles for each field position. Show 6 skeleton cards (2 rows of 3 on desktop).
+
+##### Error State
+
+Full-page error with illustration:
+- Heading: "Unable to load requests"
+- Body: "Check your internet connection and try again."
+- CTA Button: "Retry" (primary button, triggers reload)
+
+#### 3.1.3 Request Detail View
+
+##### Header Section
+
+| Element | Description |
+|---------|-------------|
+| Back Link | "< Back to Service Requests" (navigates to listing, preserves filters) |
+| Reference Number | "SR-2026-00089" (large, monospace font, 20px) |
+| Title | Request title (h2, 24px) |
+| Status Badge | Color-coded current status pill |
+| Priority Badge | Color-coded priority level pill |
+| Urgency Banner | Full-width red banner if urgency flag set: "URGENT -- This request has been flagged as urgent" |
+| Created Date | "Created Mar 14, 2026 at 2:30 PM by Sarah Chen" |
+
+##### Detail Sections (Progressive Disclosure)
+
+Sections expand and collapse. On desktop, the first 3 sections are expanded by default. On mobile, only the first section is expanded.
+
+| Section | Always Visible | Expandable Content |
+|---------|---------------|-------------------|
+| **Request Information** | Title, Description, Category, Status, Priority | Sub-category, Contact Numbers, Scheduled Date, Created/Updated timestamps |
+| **Unit and Resident** | Unit number, Resident name, Permission to enter | Entry instructions, Resident phone/email, Emergency contacts link, Unit front desk instructions |
+| **Assignment** | Assigned Employee, Assigned Vendor | Employee phone/email, Vendor phone/email/address, Vendor compliance status badge |
+| **Equipment** (if linked) | Equipment name, Category | Serial number, Location, Last service date, Total requests against this equipment, Status |
+| **Attachments** | Photo thumbnail grid (3-column), Document list with icons | Full-size photo lightbox (swipeable), Document download links with file size |
+| **Activity Timeline** | Last 5 entries | Full timeline with all entries (lazy-loaded in batches of 20) |
+| **AI Insights** (if any AI features active) | Category/priority suggestions, Resolution time estimate | Duplicate detection results, Vendor recommendation, Cost estimate, Description enhancement |
+| **Internal Notes** (staff only) | Notes content | Edit button to update notes |
+
+##### Action Buttons (Detail View)
+
+| Button | Label | Who Sees It | Action | Loading State | Success State | Failure State |
+|--------|-------|-------------|--------|---------------|---------------|---------------|
+| Primary | "Update Status" | PM, Admin, Maintenance Staff | Opens status change dialog | -- | -- | -- |
+| Secondary | "Assign" | PM, Admin | Opens assignment panel (employee + vendor dropdowns) | -- | -- | -- |
+| Secondary | "Print Work Order" | PM, Admin, Maintenance Staff | Generates and opens printable work order | Button disabled + "Generating..." | New tab opens with PDF | Toast: "Failed to generate work order. Try again." |
+| Secondary | "Add Comment" | PM, Admin, Maintenance Staff, Resident (own request) | Expands comment input area below timeline | -- | -- | -- |
+| Secondary | "Upload Files" | PM, Admin, Maintenance Staff, Resident (own request) | Opens file upload area | -- | -- | -- |
+| Danger | "Delete" | Admin only | Confirmation dialog (see below) | Spinner in dialog + "Deleting..." | Toast: "Request deleted" + redirect to list | Toast: "Failed to delete request" |
+
+**Delete Confirmation Dialog**:
+- Heading: "Delete Service Request?"
+- Body: "This will permanently delete request SR-2026-XXXXX and all associated comments, attachments, and history. This action cannot be undone."
+- Buttons: "Delete Permanently" (red) | "Cancel" (gray)
+
+##### Status Change Dialog
+
+| Field | Type | Validation | Notes |
+|-------|------|------------|-------|
+| New Status | radio group: Open, In Progress, On Hold, Closed | Required | Current status pre-selected and disabled |
+| Reason (if On Hold) | textarea, 500 chars | Required when selecting On Hold | "Why is this request being placed on hold?" |
+| Resolution Notes (if Closed) | textarea, 2,000 chars | Required when closing | "Describe what was done to resolve this request" |
+| Notify Resident | checkbox | -- | Default: On. Tooltip: "Send an update to the resident about this status change" |
+| Predefined Response | dropdown | -- | Property-configured templates filter by applicable status |
+| Custom Message | textarea, 1,000 chars | -- | Optional additional message appended to the notification |
+
+**Status Change Button States**:
+| State | Display |
+|-------|---------|
+| Loading | "Updating..." with spinner, dialog stays open |
+| Success | Dialog closes, toast: "Status updated to [new status]", detail page refreshes |
+| Failure | Dialog stays open, inline error: "Failed to update status. Please try again." |
+
+#### 3.1.4 Activity Timeline
+
+Every action on a request is logged with a timestamp, actor, and description. This creates an immutable audit trail that cannot be edited or deleted.
+
+| Event Type | Icon | Display Text |
+|------------|------|-------------|
+| Created | Plus circle | "[User] created this request" |
+| Status Changed | Arrow circle | "[User] changed status from [old] to [new]" + reason if provided |
+| Assigned | User plus | "[User] assigned this request to [assignee]" |
+| Unassigned | User minus | "[User] removed [assignee] from this request" |
+| Comment Added | Chat bubble | "[User] commented: [first 100 chars]" with "Show more" link |
+| Comment (internal) | Lock icon | "[User] added internal note" (staff only, hidden from residents) |
+| Photo Added | Camera | "[User] added [N] photo(s)" with thumbnails inline |
+| Document Added | Paperclip | "[User] added document: [filename]" |
+| Priority Changed | Flag | "[User] changed priority from [old] to [new]" |
+| Category Changed | Tag | "[User] changed category from [old] to [new]" |
+| Urgency Set | Flame | "[User] flagged this request as urgent" |
+| Urgency Removed | Flame (strikethrough) | "[User] removed urgency flag" |
+| Notification Sent | Bell | "Notification sent to [recipient] via [channel]" |
+| Work Order Printed | Printer | "[User] generated a work order" |
+| AI Suggestion | Sparkle | "AI suggested category: [category] ([X]%)" |
+| Scheduled Date Set | Calendar | "[User] scheduled visit for [date]" |
+
+Timeline entries show:
+- Relative time ("2 hours ago") with full timestamp on hover
+- User avatar (small, 24px circle)
+- Color-coded left border matching event type
+
+#### 3.1.5 Maintenance Categories
+
+Categories are configurable per property. A default set of 43 categories is pre-loaded when a property is created. Property Admins can add, edit, deactivate, and reorder categories at Settings > Maintenance > Categories.
+
+##### Default Category Set (43 Categories)
+
+| # | Category | Example Requests |
+|---|----------|-----------------|
+| 1 | Plumbing -- Leak | Dripping faucet, pipe leak, toilet running |
+| 2 | Plumbing -- Drain/Clog | Clogged sink, slow drain, backed-up toilet |
+| 3 | Plumbing -- Water Heater | No hot water, temperature issues |
+| 4 | Electrical -- Lighting | Burnt-out bulbs, flickering lights, ballast replacement |
+| 5 | Electrical -- Outlets/Switches | Dead outlet, broken switch, sparking |
+| 6 | Electrical -- Circuit/Panel | Tripped breaker, panel issues |
+| 7 | HVAC -- Heating | No heat, radiator noise, thermostat malfunction |
+| 8 | HVAC -- Cooling | No AC, temperature issues, condensation |
+| 9 | HVAC -- Ventilation | Exhaust fan, duct cleaning, air quality |
+| 10 | Appliance -- Dishwasher | Not draining, not cleaning, leaking |
+| 11 | Appliance -- Refrigerator | Not cooling, ice maker, noise |
+| 12 | Appliance -- Stove/Oven | Not heating, burner issues, display |
+| 13 | Appliance -- Washer/Dryer | Not spinning, leaking, not drying |
+| 14 | Appliance -- Microwave | Not heating, turntable, display |
+| 15 | Appliance -- Garbage Disposal | Jammed, not working, leaking |
+| 16 | Door/Lock -- Entry Door | Lock broken, door not closing, hinges |
+| 17 | Door/Lock -- Interior Door | Closet door, bathroom door, sliding door |
+| 18 | Door/Lock -- Balcony/Patio | Sliding door track, screen door, weather seal |
+| 19 | Window -- Glass | Cracked, broken, foggy between panes |
+| 20 | Window -- Hardware | Latch broken, won't open/close, screen torn |
+| 21 | Flooring -- Hardwood | Scratches, buckling, squeaking |
+| 22 | Flooring -- Tile | Cracked tile, loose tile, grout repair |
+| 23 | Flooring -- Carpet | Stain, tear, coming loose |
+| 24 | Walls/Ceiling -- Paint | Peeling, stains, touch-up needed |
+| 25 | Walls/Ceiling -- Drywall | Hole, crack, water damage |
+| 26 | Walls/Ceiling -- Mold/Mildew | Visible mold, musty smell |
+| 27 | Bathroom -- Toilet | Won't flush, running, loose |
+| 28 | Bathroom -- Shower/Tub | Caulking, drain, showerhead, tiles |
+| 29 | Bathroom -- Exhaust Fan | Not working, noisy, weak suction |
+| 30 | Kitchen -- Countertop | Chip, crack, stain, loose edge |
+| 31 | Kitchen -- Cabinets | Door off hinge, shelf broken, handle loose |
+| 32 | Pest Control | Ants, roaches, mice, bedbugs |
+| 33 | Common Area -- Hallway | Lighting, carpet, paint, damage |
+| 34 | Common Area -- Lobby | Furniture, lighting, flooring |
+| 35 | Common Area -- Elevator | Malfunction, noise, stuck between floors |
+| 36 | Common Area -- Stairwell | Lighting, railing, cleaning |
+| 37 | Common Area -- Laundry Room | Machine out of order, payment system |
+| 38 | Common Area -- Gym/Fitness | Equipment broken, cleaning, ventilation |
+| 39 | Common Area -- Pool/Sauna | Temperature, equipment, cleaning |
+| 40 | Parking/Garage -- Gate/Door | Opener, sensor, motor |
+| 41 | Parking/Garage -- Lighting | Burnt-out fixture, motion sensor |
+| 42 | Exterior -- Landscaping | Tree trimming, irrigation, walkway repair |
+| 43 | General/Other | Anything not covered above |
+
+##### Category Configuration Fields
+
+| Field | Data Type | Max Length | Required | Description |
+|-------|-----------|-----------|----------|-------------|
+| Name | text | 100 chars | Yes | Display name of the category |
+| Icon | icon picker | -- | No | Icon displayed on cards and forms |
+| Color | color picker | -- | No | Accent color for the category |
+| Sub-Categories | text array | 100 chars each, max 20 | No | Optional sub-categories |
+| Default Priority | dropdown | -- | No | Auto-set priority when this category is selected |
+| Default Assignee | dropdown | -- | No | Auto-assign to this staff member |
+| Active | toggle | -- | Yes | Whether this category appears in dropdowns |
+| Sort Order | number (integer) | -- | Yes | Display position in dropdowns (lower = higher) |
+
+#### 3.1.6 Predefined Response Templates
+
+Property managers create reusable response templates for common status updates. Accessible at Settings > Maintenance > Response Templates.
+
+| Field | Data Type | Max Length | Required | Validation | Error Message |
+|-------|-----------|-----------|----------|------------|---------------|
+| Template Name | text | 100 chars | Yes | Min 3 chars, unique per property | "Template name must be unique and at least 3 characters" |
+| Template Body | textarea (rich text) | 2,000 chars | Yes | Min 10 chars. Supports placeholders: `[DATE]`, `[VENDOR]`, `[EMPLOYEE]`, `[RESIDENT]`, `[UNIT]`, `[REF]` | "Template body must be at least 10 characters" |
+| Applicable Statuses | multi-select | -- | Yes | At least one status selected | "Select at least one status this template applies to" |
+| Active | toggle | -- | Yes | -- | -- |
+
+**Default Templates** (pre-loaded, editable):
+
+| Name | Applicable Status | Body |
+|------|-------------------|------|
+| Received and Scheduled | In Progress | "We have received your request and scheduled a visit for [DATE]. Our team will contact you to confirm access to your unit." |
+| Awaiting Parts | On Hold | "Your request is on hold while we wait for replacement parts. We expect delivery by [DATE] and will resume work promptly." |
+| Completed Successfully | Closed | "The repair has been completed by [EMPLOYEE]. If you experience any further issues, please submit a new request." |
+| Unable to Access Unit | On Hold | "Our team visited but was unable to access your unit. Please confirm your availability and entry instructions so we can reschedule." |
+| Vendor Scheduled | In Progress | "We have assigned [VENDOR] to handle your request. They will contact you directly to schedule a visit." |
+| Requires Board Approval | On Hold | "This request requires approval from the board of directors. We will update you once a decision is made." |
+
+#### 3.1.7 Work Order Generation
+
+A printable work order can be generated from any service request. The work order is a PDF document formatted for A4 or Letter paper (configurable per property at Settings > Maintenance > Work Order Format).
+
+##### Work Order Layout
+
+| Section | Fields |
+|---------|--------|
+| Header | Property name, Property logo, "WORK ORDER" title, Reference number (large), Date generated, Page number |
+| Request Summary | Title, Description (full), Category, Sub-category, Priority, Urgency flag |
+| Unit Information | Unit number, Building, Floor, Resident name, Contact phone, Contact email |
+| Access Details | Permission to enter (Yes/No), Entry instructions (full text, highlighted box) |
+| Assignment | Assigned employee name + phone, Assigned vendor name + phone, Scheduled date |
+| Equipment | Equipment name, Serial number, Location, Category (only if equipment linked) |
+| Photos | Thumbnail grid of attached photos (max 6 per page, additional pages as needed) |
+| Notes | Internal notes (staff version only) |
+| Completion Section | "Work Performed: ____________", "Parts Used: ____________", "Time Spent: ____", "Completed by: ____________ Date: ________", "Resident Signature: ____________" |
+
+**Button behavior**:
+| State | Display |
+|-------|---------|
+| Idle | "Print Work Order" button (secondary style) |
+| Loading | Button disabled + "Generating..." (1-3 seconds) |
+| Success | New browser tab opens with PDF. Toast: "Work order ready" |
+| Failure | Toast: "Failed to generate work order. Please try again." |
+
+#### 3.1.8 Vendor Assignment
+
+When assigning a vendor to a request, the assignment panel shows vendor details to help the manager choose:
+
+| Column | Description |
+|--------|-------------|
+| Company Name | Vendor business name |
+| Specialty | Service category (e.g., "Plumbing", "Electrical") |
+| Compliance Status | Color-coded badge: Compliant (green), Expiring Soon (amber), Expired (red), Not Tracked (gray) |
+| Rating | Star rating 1-5 based on past request resolution quality (calculated from manager feedback on closed requests) |
+| Active Requests | Count of currently assigned open requests (workload indicator) |
+| Avg. Resolution Time | Average days to close assigned requests |
+| AI Recommendation | "Recommended" badge with one-line reasoning (if AI vendor suggestion is enabled) |
+
+**Compliance Warning**: If a vendor with "Expired" compliance status is selected, a blocking warning appears:
+
+- Warning icon (amber triangle) + text: "[Vendor Name]'s insurance expired on [date]. Assigning an uninsured vendor may create liability."
+- Buttons: "Assign Anyway" (requires typing "CONFIRM" in a text field) | "Choose Different Vendor" (primary)
+
+#### 3.1.9 Equipment Linkage
+
+When linking equipment to a request, the equipment picker shows:
+
+| Column | Description |
+|--------|-------------|
+| Name | Equipment display name |
+| Category | Equipment category (e.g., Electrical, Mechanical) |
+| Location | Physical location in the building |
+| Serial Number | Equipment serial/asset number |
+| Status | Badge: Operational (green), Needs Repair (amber), Out of Service (red) |
+| Request History | Total count of past requests linked to this equipment |
+| Last Service | Date of most recent maintenance activity |
+
+**Link Benefit Tooltip**: "Linking equipment builds a maintenance history for each piece of building equipment. Over time, this enables pattern detection, failure prediction, and replacement planning."
 
 ---
 
-### 3.2 Service Request Create Form
-
-**URL**: `/maintenance/new`
-
-Two-column layout inside the content area (12-column grid). Left column occupies 7 grid columns. Right column occupies 5 grid columns. On screens narrower than 768px, columns stack vertically (left column on top).
-
-A "Back" ghost button (left arrow + "Back to Service Requests") appears above the form title. Clicking it navigates to `/maintenance`.
-
-**Form title**: "New Service Request" -- Title 1, 28px, 700 weight.
-
-#### Left Column -- Problem Details
-
-| # | Field | Label | Type | Required | Max Length | Default | Validation | Error Message | Tooltip |
-|---|-------|-------|------|----------|------------|---------|------------|---------------|---------|
-| 1 | `building_id` | Building | Dropdown (44px) | Yes | -- | User's primary building | Must select a valid building | "Please select a building" | "The building where this issue is located" |
-| 2 | `unit_id` | Unit | Autocomplete search (44px) | No | -- | Empty | Must be a valid unit in the selected building if provided. Typing filters by unit number or resident name. | "Unit not found. Check the unit number and try again." | "Start typing a unit number or resident name. Leave blank for common area requests." |
-| 3 | `requested_by` | Requested By | Autocomplete search (44px) | Yes | -- | Logged-in user (if resident); empty (if staff) | Must be a valid resident or staff member | "Please select who is making this request" | "The person reporting this issue. For resident requests, select the resident. For staff-initiated requests, select yourself." |
-| 4 | `title` | Title | Text input (44px) | Yes | 200 characters | Empty | Minimum 5 characters. Maximum 200 characters. No special character restrictions. | "Title must be between 5 and 200 characters" | "A brief summary of the issue (e.g., 'Leaking kitchen faucet')" |
-| 5 | `description` | Problem Description | Textarea (min 88px, auto-grows to 200px, then scrolls) | No | 4,000 characters | Empty | Maximum 4,000 characters. Character counter appears when 3,600+ characters entered. | "Description cannot exceed 4,000 characters" | "Describe the issue in detail. Include when it started, how severe it is, and any steps you have already tried." |
-| 6 | `category_id` | Category | Dropdown (44px) with grouped options | Yes | -- | Empty | Must select a category from the list | "Please select a category" | "Choose the category that best matches the issue. The system may suggest a category based on your description." |
-| 7 | `permission_to_enter` | Permission to Enter | Radio group: "Yes" / "No" | Yes | -- | "No" | Must select one option | "Please indicate whether staff may enter the unit" | "Does building staff have permission to enter the unit to inspect or repair the issue?" |
-| 8 | `entry_instructions` | Entry Instructions | Textarea (min 88px, auto-grows) | No | 1,000 characters | Empty | Only shown when `permission_to_enter` is "Yes". Maximum 1,000 characters. | "Entry instructions cannot exceed 1,000 characters" | "How should staff access the unit? (e.g., 'Key is under the mat', 'Call before entering', 'Available weekdays 9-5')" |
-| 9 | `photo_attachments` | Photos | File upload zone (80px dashed border, drag-and-drop) | No | 10 files max | Empty | Accepted formats: JPG, JPEG, PNG, BMP, GIF, HEIC. Max file size: 4MB per file. Max 10 files total. | "File must be an image (JPG, PNG, BMP, GIF, or HEIC) and under 4MB" | "Upload photos of the issue. Drag and drop files here or click to browse. Maximum 10 photos, 4MB each." |
-| 10 | `document_attachments` | Documents | File upload zone (80px dashed border, drag-and-drop) | No | 5 files max | Empty | Accepted formats: PDF, DOC, DOCX, XLS, XLSX. Max file size: 4MB per file. Max 5 files total. | "File must be a document (PDF, DOC, DOCX, XLS, or XLSX) and under 4MB" | "Upload related documents such as warranties, invoices, or previous repair records. Maximum 5 documents, 4MB each." |
-| 11 | `hide_from_resident` | Don't show to resident | Toggle (iOS-style, 28x48px) | No | -- | Off (false) | -- | -- | "When enabled, this request is only visible to staff. The resident will not see it in their portal." |
-
-#### Right Column -- Assignment and Logistics
-
-| # | Field | Label | Type | Required | Max Length | Default | Validation | Error Message | Tooltip |
-|---|-------|-------|------|----------|------------|---------|------------|---------------|---------|
-| 12 | `assigned_employee_id` | Assigned Employee | Dropdown (44px) | No | -- | Empty ("Unassigned") | Must be a valid staff member if selected | "Selected employee not found" | "The staff member responsible for this request. You can assign someone later." |
-| 13 | `assigned_vendor_id` | Assigned Vendor | Dropdown (44px) with search | No | -- | Empty ("None") | Must be a valid vendor from the vendor directory if selected | "Selected vendor not found" | "The external vendor or contractor assigned to this job. Vendors must be in the vendor directory first." |
-| 14 | `equipment_id` | Linked Equipment | Dropdown (44px) with search | No | -- | Empty ("None") | Must be a valid equipment item if selected. Only available if equipment module is active (v2). | "Selected equipment not found" | "Link this request to a specific piece of equipment (e.g., Elevator #2, HVAC Unit 3A). Available when the equipment module is active." |
-| 15 | `date_requested` | Date Requested | Date picker (44px, calendar popover) | Yes | -- | Today's date | Must be a valid date. Cannot be more than 30 days in the past. Cannot be a future date. | "Date must be within the last 30 days and not in the future" | "The date the issue was reported. Defaults to today." |
-| 16 | `priority` | Priority | Dropdown (44px) | Yes | -- | "Normal" | Must select one of: Low, Normal, High, Critical | "Please select a priority level" | "How urgent is this request? Critical = safety hazard or building-wide impact. High = significant disruption. Normal = standard repair. Low = cosmetic or non-urgent." |
-| 17 | `high_urgency` | High Urgency | Toggle (iOS-style, 28x48px) | No | -- | Off (false) | -- | -- | "Flag this request for immediate attention. High urgency requests appear at the top of every list and trigger an immediate notification to the assigned employee and Property Manager." |
-| 18 | `initial_status` | Create with Status | Radio group: "Open" / "On Hold" / "Closed" | Yes | -- | "Open" | Must select one option | "Please select an initial status" | "Set the starting status. Use 'On Hold' if waiting for parts or a vendor. Use 'Closed' if logging a completed repair retroactively." |
-| 19 | `hold_until_date` | Hold Until | Date picker (44px) | Conditional | -- | Empty | Only shown when `initial_status` is "On Hold". Must be a future date. | "Hold date must be in the future" | "When should this request come off hold? The system will automatically change the status to Open on this date and notify the assignee." |
-| 20 | `closed_date` | Closed Date | Date picker (44px) | Conditional | -- | Today | Only shown when `initial_status` is "Closed". Must not be a future date. | "Closed date cannot be in the future" | "The date the issue was resolved. Used when logging a completed repair retroactively." |
-| 21 | `contact_numbers` | Contact Numbers | Text input (44px) | No | 100 characters | Empty | No format enforcement (supports international formats). | "Contact numbers cannot exceed 100 characters" | "Phone numbers where the requester can be reached about this issue." |
-| 22 | `email_notifications` | Email Notifications | Email tag input (44px, chips) | No | 5 emails max | Empty | Each entry must be a valid email address. Maximum 5 addresses. | "Please enter a valid email address" | "People to notify when this request is updated. They will receive email notifications for every status change and comment." |
-| 23 | `additional_emails` | Additional CC | Email tag input (44px, chips) | No | 5 emails max | Empty | Each entry must be a valid email address. Maximum 5 addresses. | "Please enter a valid email address" | "Additional people to copy on notifications. They receive the same updates as the primary notification list." |
-| 24 | `reference_number_external` | External Reference | Text input (44px) | No | 50 characters | Empty | No validation. Free text. | -- | "An optional reference number from an external system, vendor work order, or insurance claim." |
-| 25 | `print_work_order` | Print Work Order | Toggle (iOS-style, 28x48px) | No | -- | Off (false) | -- | -- | "When enabled, a printable work order will be generated after saving. The work order includes all request details in a printer-friendly format." |
-
-#### Form Action Buttons
-
-| Button | Style | Position | Behavior |
-|--------|-------|----------|----------|
-| **Save** | Primary (accent background, white text, 44px) | Bottom-right of form | See below |
-| **Save and Add Another** | Secondary (border, 44px) | Left of Save button | See below |
-| **Clear** | Ghost (accent text, no border) | Left of Save and Add Another | See below |
-
-**"Save" button behavior**:
-- **On click**: Validates all required fields. If valid, creates the request, generates the reference number, sends notifications (if configured), and navigates to the newly created request detail page (`/maintenance/:id`). If `print_work_order` is enabled, opens the print dialog after navigation.
-- **Loading state**: Button label replaced with spinner. Button width unchanged. All form inputs disabled. Button text: disabled.
-- **Success state**: Toast notification: "Service request SR-2026-00148 created" (green, bottom-right, auto-dismiss 5s). Navigates to detail page.
-- **Error state**: Inline validation errors appear beneath each invalid field (red text, Caption size). Page scrolls to the first error. Toast: "Please fix the errors below" (red, bottom-right, auto-dismiss 5s).
-- **Duplicate detection (AI)**: Before saving, the system checks for potential duplicate requests (AI capability #25). If duplicates are found, a modal appears: "Similar requests found" with a list of matching requests (reference number, title, status, date). User can click "Create Anyway" (Primary button) or "View Existing" (Ghost button) to open the similar request. If AI is unavailable, the save proceeds without duplicate detection.
-
-**"Save and Add Another" button behavior**:
-- Same validation and save logic as "Save"
-- **Success state**: Toast notification as above. Form resets to defaults (building and requested-by fields retain their values). Page stays on `/maintenance/new`.
-
-**"Clear" button behavior**:
-- **On click**: Confirmation dialog (small modal, 400px): "Clear all fields? You will lose any unsaved changes." Buttons: "Cancel" (Secondary) and "Clear" (Destructive).
-- **Success state**: All fields reset to defaults. No toast.
-
----
-
-### 3.3 Categories (43 Total)
-
-Categories are pre-configured per property. Property Admins can add, rename, reorder, or deactivate categories in Settings. The 43 default categories below are installed for every new property.
-
-#### Common Area Categories (33)
-
-| # | Category Name | Description |
-|---|---------------|-------------|
-| 1 | Elevator | Elevator malfunction, stuck doors, noise, display issues |
-| 2 | Lobby | Lobby furniture, flooring, lighting, signage, doors |
-| 3 | Hallway | Hallway lighting, carpet, walls, ceiling, doors |
-| 4 | Parking Garage | Garage lighting, gate, drainage, markings, concrete |
-| 5 | Loading Dock | Loading dock doors, ramp, lighting, signage |
-| 6 | Garbage / Recycling Room | Bins, chute, odor, lighting, signage, pest control |
-| 7 | Mail Room | Mailboxes, lighting, parcel lockers, signage |
-| 8 | Pool | Pool equipment, water quality, fencing, lighting, furniture |
-| 9 | Gym / Fitness Center | Exercise equipment, flooring, mirrors, ventilation, cleaning |
-| 10 | Party Room / Event Space | Tables, chairs, kitchen appliances, AV equipment, cleaning |
-| 11 | Rooftop / Terrace | Furniture, planters, railings, lighting, drainage |
-| 12 | Sauna / Steam Room | Temperature controls, benches, tiles, drainage, ventilation |
-| 13 | Laundry Room | Washers, dryers, payment system, lint traps, plumbing |
-| 14 | Concierge Desk | Desk equipment, computer, phone, signage, supplies |
-| 15 | Security System | Cameras, intercoms, access control, alarm panels, monitors |
-| 16 | Fire Safety | Fire extinguishers, sprinklers, alarms, exit signs, fire doors |
-| 17 | HVAC (Building) | Building-wide heating, cooling, ventilation, boiler, chiller |
-| 18 | Plumbing (Building) | Main water supply, sewer, risers, valves, water heater |
-| 19 | Electrical (Building) | Transformers, panels, emergency generator, common lighting |
-| 20 | Roof | Membrane, flashing, drains, vents, skylights, antenna |
-| 21 | Exterior | Facade, windows (common), awnings, signage, landscaping |
-| 22 | Stairwell | Lighting, handrails, doors, paint, floor surface |
-| 23 | Storage Locker Area | Locker doors, lighting, ventilation, pest control |
-| 24 | Bike Room | Bike racks, lighting, ventilation, access door |
-| 25 | Guest Suite | Furniture, linens, appliances, bathroom, cleaning |
-| 26 | Meeting Room | Table, chairs, projector, screen, whiteboard, phone |
-| 27 | Workshop / Hobby Room | Tools, workbench, ventilation, lighting, storage |
-| 28 | Pet Wash Station | Fixtures, drainage, hoses, ventilation, cleaning |
-| 29 | Playground | Equipment, surfacing, fencing, lighting, signage |
-| 30 | Garden / Courtyard | Plants, irrigation, walkways, benches, lighting |
-| 31 | Intercom / Buzzer System | Buzzer panels, wiring, programming, handsets |
-| 32 | Building Envelope | Windows (common), caulking, insulation, weather stripping |
-| 33 | Other Common Area | Any common area issue not covered by the above categories |
-
-#### In-Suite Categories (10)
-
-| # | Category Name | Description |
-|---|---------------|-------------|
-| 34 | Plumbing (In-Suite) | Faucets, toilets, sinks, bathtubs, shower, water heater, pipes |
-| 35 | Electrical (In-Suite) | Outlets, switches, light fixtures, circuit breaker, wiring |
-| 36 | HVAC (In-Suite) | Thermostat, fan coil unit, vents, filters, heat pump |
-| 37 | Appliances | Refrigerator, stove, dishwasher, microwave, washer/dryer |
-| 38 | Doors / Locks | Entry door, balcony door, closet doors, locks, hinges, weather stripping |
-| 39 | Windows (In-Suite) | Window glass, frames, seals, screens, blinds, hardware |
-| 40 | Flooring | Hardwood, tile, carpet, vinyl, baseboard, transitions |
-| 41 | Walls / Ceiling | Drywall, paint, cracks, water stains, mold, popcorn ceiling |
-| 42 | Bathroom | Shower enclosure, caulking, exhaust fan, fixtures, tiles |
-| 43 | Other In-Suite | Any in-suite issue not covered by the above categories |
-
----
-
-### 3.4 Status Workflow
-
-Service requests follow a three-state lifecycle. Each transition is logged in the activity timeline with the user who made the change and a timestamp.
-
-```
-┌────────┐     ┌─────────┐     ┌────────┐
-│  Open  │────▶│ On Hold │────▶│ Closed │
-│        │◀────│         │     │        │
-│        │─────────────────────▶│        │
-└────────┘     └─────────┘     └────────┘
-     ▲               │
-     └───────────────┘
-     (can reopen from On Hold)
-
-     Closed can be reopened (becomes Open) by Property Manager or above.
-```
-
-| Status | Badge Color | Meaning | Who Can Set | Required Fields on Transition |
-|--------|-------------|---------|-------------|------------------------------|
-| **Open** | `--status-info` (blue pill) | Request is active and awaiting action | Any authorized user | None |
-| **On Hold** | `--status-warning` (orange pill) | Request is paused, waiting for parts, vendor, or resident | Property Manager, Maintenance Staff, Property Admin, Super Admin | `hold_until_date` (optional but recommended) and `hold_reason` (text, max 500 chars, required) |
-| **Closed** | `--status-success` (green pill) | Request is resolved | Property Manager, Maintenance Staff, Property Admin, Super Admin | `closed_date` (defaults to now), `resolution_notes` (text, max 2000 chars, optional) |
-
-**Automatic transitions**:
-- When `hold_until_date` arrives, the system automatically changes status from "On Hold" to "Open" and sends a notification to the assigned employee.
-- Requests open for more than 30 days without a comment trigger an automatic reminder notification to the assigned employee and Property Manager. The threshold (30 days) is configurable per property in Settings.
-
-**Reopening a closed request**:
-- Only Property Manager, Property Admin, or Super Admin can reopen.
-- Reopening changes status to "Open" and logs the reopening in the activity timeline.
-- A comment is required when reopening (text, max 2000 chars): "Please explain why this request is being reopened."
-
----
-
-### 3.5 Service Request Detail Page
-
-**URL**: `/maintenance/:id`
-
-The detail page shows the full request with all fields, comments, attachments, and an activity timeline.
-
-#### Layout
-
-Two-column layout. Left column (8 grid columns): request details + comments. Right column (4 grid columns): assignment, status, metadata, and actions.
-
-#### Left Column
-
-**Request Header**:
-- Reference number in monospace (e.g., `SR-2026-00147`) -- Title 3, 20px
-- Title -- Title 1, 28px
-- Status badge (pill) + Priority badge (pill) + High Urgency flag (red banner: "HIGH URGENCY" if enabled)
-- Created by [name] on [date] at [time] -- Caption, `--text-secondary`
-
-**Problem Description**: Full description text -- Body, 15px. If AI capability #34 (Request Description Enhancement) is active, an "Enhanced" badge appears next to the description, and a toggle lets the user switch between the original and enhanced versions.
-
-**Attachments Section**:
-- Photos displayed as a thumbnail grid (80x80px thumbnails). Click a thumbnail to open a lightbox viewer (full-screen overlay with left/right navigation arrows, close button, and download button).
-- Documents displayed as a list with file icon, file name, file size, and a "Download" ghost button per file.
-- "Add Attachment" ghost button to upload additional files after creation.
-
-**Comments and Responses** (see Section 3.7)
-
-**Activity Timeline** (see Section 3.8)
-
-#### Right Column (Sticky Sidebar)
-
-| Section | Content |
-|---------|---------|
-| **Status Card** | Current status badge. "Change Status" dropdown button. Hold/Close fields appear inline when selected. |
-| **Assignment** | Assigned Employee (name + avatar, or "Unassigned"). "Reassign" ghost button opens a dropdown. Assigned Vendor (name, or "None"). "Assign Vendor" ghost button opens a dropdown. |
-| **Details** | Category (with icon), Priority (badge), Date Requested, Unit + Resident name (linked to unit file), Permission to Enter (Yes/No + instructions if Yes), Contact Numbers, External Reference. |
-| **Linked Equipment** | Equipment name (linked to equipment detail if v2 active), or "None" |
-| **Notifications** | List of email addresses receiving updates. "Edit" ghost button to modify. |
-| **Actions** | "Print Work Order" (Secondary button), "Delete Request" (Destructive button, requires confirmation). |
-
-**"Delete Request" button behavior**:
-- **On click**: Confirmation dialog (small modal): "Delete SR-2026-00147? This action cannot be undone. Type the reference number to confirm." Text input for confirmation. "Cancel" (Secondary) and "Delete" (Destructive, disabled until reference number is typed correctly).
-- **Success state**: Toast: "Service request deleted" (green). Navigates to `/maintenance`.
-- **Error state**: Toast: "Failed to delete request. Please try again." (red)
-- **Who can delete**: Property Admin, Super Admin only. Property Managers can delete if property setting `allow_pm_delete_requests` is enabled (default: disabled).
-
----
-
-### 3.6 Priority Levels
-
-| Level | Badge Color | Meaning | Example |
-|-------|-------------|---------|---------|
-| **Low** | Gray pill (`--text-secondary` text, `--bg-secondary` background) | Cosmetic or non-urgent issue. No impact on daily living. | Scuffed paint in hallway, minor carpet stain |
-| **Normal** | Blue pill (`--status-info`) | Standard repair needed. Moderate inconvenience. | Dripping faucet, squeaky door, burned-out light |
-| **High** | Orange pill (`--status-warning`) | Significant disruption. Requires attention within 24 hours. | No hot water in unit, broken window latch, toilet running constantly |
-| **Critical** | Red pill (`--status-error`) | Safety hazard or building-wide impact. Requires immediate action. | Water flooding from ceiling, gas smell, elevator stuck with occupants, power outage |
-
-**AI Priority Suggestion (capability #24)**: When a user submits a request, the AI analyzes the description, unit history, and category to suggest a priority. The suggestion appears as a small chip below the Priority dropdown: "Suggested: High -- [reason]". The user can accept (click the chip) or ignore it and select their own priority.
-
----
-
-### 3.7 Comments and Responses
-
-Comments are threaded beneath the request description on the detail page. Each comment shows who wrote it, when, and whether it is visible to the resident.
-
-#### Comment Form
-
-| Field | Type | Required | Max Length | Default | Validation | Error Message |
-|-------|------|----------|------------|---------|------------|---------------|
-| `comment_text` | Textarea (min 88px, auto-grows) | Yes (when submitting) | 2,000 characters | Empty | Minimum 1 character. Maximum 2,000 characters. | "Comment cannot be empty" / "Comment cannot exceed 2,000 characters" |
-| `hide_from_resident` | Toggle (iOS-style) | No | -- | Off (false) | -- | -- |
-| `response_template` | Dropdown (appears above textarea) | No | -- | "Custom" (freeform) | -- | -- |
-
-**"Post Comment" button behavior**:
-- **On click**: Validates comment text. Saves the comment. Sends notifications to all configured email addresses. The comment appears immediately at the top of the comment list (newest first).
-- **Loading state**: Button label replaced with spinner. Textarea disabled.
-- **Success state**: Comment appears in the list. Textarea clears. Toast: "Comment added" (green, auto-dismiss 3s).
-- **Error state**: Toast: "Failed to post comment. Please try again." (red, auto-dismiss 5s). Comment text is preserved in the textarea.
-
-**"Hide from resident" toggle**: When enabled, the comment is only visible to staff roles (Property Manager, Maintenance Staff, Property Admin, Super Admin). Residents and Board Members cannot see it. Hidden comments display a small eye-slash icon and a gray left border.
-
-#### Predefined Response Templates (7)
-
-Staff can select a template from the dropdown above the comment textarea. Selecting a template pre-fills the textarea. The user can edit the text before posting.
-
-| # | Template Name | Template Text |
-|---|---------------|---------------|
-| 1 | Received and Assigned | "We have received your request and assigned it to [employee_name]. You can expect an update within [X] business days." |
-| 2 | Awaiting Parts | "The repair requires parts that have been ordered. We expect them to arrive by [date]. Your request is on hold until then." |
-| 3 | Vendor Scheduled | "A vendor has been scheduled to address this issue on [date] between [time_range]. Please ensure access to the unit is available." |
-| 4 | Inspection Completed | "Our team has inspected the issue. [Summary of findings]. Next steps: [next_steps]." |
-| 5 | Work Completed | "The repair has been completed. Please check the area and let us know if you experience any further issues. We will close this request in [X] days if no response is received." |
-| 6 | Unable to Access | "Our team attempted to access the unit but was unable to gain entry. Please contact us at [phone] to schedule a time for the repair." |
-| 7 | Request Closed | "This request has been resolved and closed. If the issue recurs, please submit a new request and reference SR-[reference_number]." |
-
-Bracketed values (e.g., `[employee_name]`, `[date]`) are placeholders that the user fills in manually. AI capability #32 (Response Template Generation) can auto-fill these placeholders based on request context when available.
-
----
-
-### 3.8 Activity Timeline / Audit Log
-
-The activity timeline is a chronological record of every change to the request. It is displayed below the comments section on the detail page. The timeline is immutable -- entries cannot be edited or deleted.
-
-#### Timeline Entry Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `timestamp` | Datetime | When the action occurred. Displayed as relative time ("2 hours ago") with full datetime on hover tooltip. |
-| `actor` | User reference | Who performed the action. Displayed as avatar + name. System actions show a gear icon + "System". |
-| `action_type` | Enum | One of: created, status_changed, priority_changed, assigned_employee, assigned_vendor, comment_added, attachment_added, category_changed, reopened, edited, deleted_attachment |
-| `old_value` | String (nullable) | The previous value (for changes). Displayed with strikethrough. |
-| `new_value` | String (nullable) | The new value (for changes). |
-| `details` | String (nullable) | Additional context (e.g., hold reason, reopen reason). |
-
-#### Timeline Display
-
-```
-─── Activity Timeline ────────────────────────
-
-● Sarah Chen changed status from Open to On Hold
-  "Waiting for replacement part from vendor"
-  2 hours ago
-
-● System automatically reopened from On Hold
-  Hold-until date (Mar 10) reached
-  Yesterday at 9:00 AM
-
-● Mike Johnson assigned vendor: ABC Plumbing
-  3 days ago
-
-● Jane Doe created this request
-  Mar 5, 2026 at 2:30 PM
-```
-
-Each entry: circle indicator (8px, `--accent` for human, `--text-tertiary` for system) + Body text + Caption timestamp. Connected by a thin vertical line (1px, `--border-subtle`).
-
----
-
-### 3.9 Print Work Order
-
-Clicking "Print Work Order" on the detail page or enabling the toggle on the create form generates a printer-friendly version of the request.
-
-#### Work Order Contents
-
-| Section | Fields Included |
-|---------|----------------|
-| **Header** | Property name, property address, property logo, "WORK ORDER" title, reference number, date printed |
-| **Request Details** | Title, description, category, priority, date requested, requested by (name + unit) |
-| **Assignment** | Assigned employee name, assigned vendor name, contact numbers |
-| **Access** | Permission to enter (Yes/No), entry instructions |
-| **Attachments** | Photo thumbnails (small, 4 per row), document file names |
-| **Notes** | Blank lined area (8 lines) for handwritten notes by maintenance staff |
-| **Signature** | Blank signature line: "Completed by: _____________ Date: _____________" |
-| **Footer** | "Generated by Concierge on [datetime]" |
-
-**Print behavior**: Uses `@media print` stylesheet. Hides navigation, sidebar, and interactive elements. Optimized for letter-size paper (8.5 x 11 inches).
-
----
-
-### 3.10 High Urgency Flag
-
-When the "High Urgency" toggle is enabled on a request:
-
-| Behavior | Detail |
-|----------|--------|
-| **Visual indicator** | A red banner appears at the top of the request detail page and card: "HIGH URGENCY" in white text on `--status-error` background. |
-| **List sorting** | Urgent requests always appear at the top of the listing, regardless of the active sort column. |
-| **Notifications** | An immediate push notification and email are sent to the assigned employee AND the Property Manager, regardless of their notification preferences. |
-| **Dashboard badge** | The "Open Requests" KPI card on the Property Manager and Maintenance Staff dashboards shows a sub-count: "3 urgent" in red. |
-| **Who can set it** | Property Manager, Maintenance Staff, Property Admin, Super Admin. Residents cannot flag requests as high urgency. |
-
----
-
-### 3.11 v2: Equipment Tracking
-
-Equipment tracking links physical building equipment to maintenance requests, enabling lifecycle management and preventive maintenance.
-
-#### Equipment Entity
-
-| Field | Type | Required | Max Length | Description |
-|-------|------|----------|------------|-------------|
-| `id` | UUID | Auto | -- | Unique identifier |
-| `name` | Varchar | Yes | 200 | Equipment name (e.g., "Elevator #2", "HVAC Unit 3A") |
-| `category_id` | FK → EquipmentCategory | Yes | -- | Equipment category |
-| `location` | Varchar | No | 200 | Where in the building (e.g., "Mechanical Room B2", "Lobby") |
-| `manufacturer` | Varchar | No | 200 | Manufacturer name |
-| `model_number` | Varchar | No | 100 | Model/part number |
-| `serial_number` | Varchar | No | 100 | Serial number |
-| `install_date` | Date | No | -- | When installed |
-| `warranty_expiry` | Date | No | -- | Warranty end date |
-| `expected_lifespan_years` | Integer | No | -- | Expected lifespan in years |
-| `replacement_cost` | Decimal | No | -- | Estimated replacement cost |
-| `status` | Enum | Yes | -- | Active, Inactive, Decommissioned |
-| `notes` | Text | No | 2000 | General notes |
-| `maintenance_requests[]` | Relation | Auto | -- | Linked service requests |
-| `documents[]` | Relation | No | -- | Manuals, warranties, invoices |
-
-#### Default Equipment Categories (6)
+### 3.2 Enhanced Features (v2)
+
+#### 3.2.1 Recurring Tasks
+
+Scheduled preventive maintenance tasks that automatically generate service requests at defined intervals.
+
+| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
+|-------|-----------|-----------|----------|---------|------------|---------------|
+| Task Name | text | 200 chars | Yes | None | Min 5 chars | "Task name must be at least 5 characters" |
+| Description | textarea | 2,000 chars | No | None | -- | -- |
+| Category | dropdown | -- | Yes | None | Must select active category | "Please select a category" |
+| Unit or Area | dropdown + text | 200 chars | No | None | Unit must exist if selected | "Unit not found" |
+| Assigned Employee | dropdown | -- | No | None | Must be active staff | -- |
+| Equipment | dropdown | -- | No | None | Must be active equipment | -- |
+| Interval | dropdown | -- | Yes | Monthly | One of: Daily, Weekly, Bi-weekly, Monthly, Quarterly, Semi-annually, Annually, Custom | "Please select an interval" |
+| Custom Interval (days) | number | -- | Yes if Custom | None | Integer, 1-365 | "Enter a number between 1 and 365 days" |
+| Start Date | date | -- | Yes | Today | Must be today or later | "Start date cannot be in the past" |
+| End Date | date | -- | No | None (indefinite) | Must be after start date | "End date must be after start date" |
+| Auto-Create Request | toggle | -- | No | On | -- | -- |
+| Default Priority | dropdown | -- | Yes | Normal | -- | -- |
+| Active | toggle | -- | No | On | -- | -- |
+
+**Auto-Create Behavior**: When a recurring task fires, it creates a new service request pre-filled with the task details. If Auto-Create is off, it sends a notification to the assigned employee and PM instead.
+
+##### Task Forecast View
+
+A forward-looking calendar/table showing all upcoming recurring task occurrences.
+
+| Filter | Options |
+|--------|---------|
+| Time Range | Next 30 days, 60 days, 90 days |
+| Category | All or specific |
+| Assigned Employee | All or specific |
+| Equipment | All or specific |
+
+**Display**: Timeline view (default) or table view. Each occurrence shows: Task name, Category, Assigned employee, Equipment (if linked), Scheduled date.
+
+**Empty State**: Heading: "No upcoming tasks" | Body: "Create a recurring task to see scheduled maintenance projected here." | CTA: "Create Recurring Task"
+
+#### 3.2.2 Inspections
+
+Checklist-driven inspection workflows designed for mobile-first execution.
+
+| Component | Description |
+|-----------|-------------|
+| **Checklist Builder** | Drag-and-drop builder for creating inspection checklists. Item types: Pass/Fail toggle, Numeric measurement (with min/max range), Photo required (camera prompt), Text note, Dropdown selection. |
+| **Schedule Inspector** | Assign inspections to dates, areas/units, and staff members. Calendar view of upcoming inspections. |
+| **Mobile Execution** | Inspections completed on mobile device. GPS verification confirms inspector is on-site. Photo capture at each checkpoint. Works offline -- syncs when reconnected. |
+| **Review and Sign-off** | Supervisor reviews completed inspections. Can add notes, flag items for follow-up, and digitally sign off. Failed items auto-generate service requests. |
+| **Report Generation** | Auto-generate inspection reports: overall pass/fail percentage, failed items with photos, trend comparison to previous inspections. Export as PDF. |
+
+##### Default Checklists (pre-loaded, editable)
+
+| Checklist | Items | Typical Interval |
+|-----------|-------|-----------------|
+| Common Area Daily | 15 items (lobby, hallways, elevators, stairwells, mail room) | Daily |
+| Fire Safety Monthly | 20 items (extinguishers, exit signs, sprinklers, alarms, fire doors) | Monthly |
+| Parking Garage Quarterly | 12 items (lighting, gates, drainage, signage, surfaces) | Quarterly |
+| Rooftop Semi-Annual | 10 items (membrane, drains, HVAC units, railings, antenna mounts) | Semi-annually |
+| Pool/Amenity Weekly | 18 items (water quality, equipment, safety equipment, signage, cleanliness) | Weekly |
+| Move-in/Move-out | 25 items (walls, floors, fixtures, appliances, keys, cleanliness, damage) | Per event |
+
+#### 3.2.3 Equipment Tracking
+
+Full lifecycle management for building equipment and assets.
+
+| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
+|-------|-----------|-----------|----------|---------|------------|---------------|
+| Name | text | 200 chars | Yes | None | Min 3 chars | "Equipment name must be at least 3 characters" |
+| Category | dropdown | -- | Yes | None | Must select from active categories | "Please select a category" |
+| Sub-Category | dropdown | -- | No | None | -- | -- |
+| Serial Number | text | 100 chars | No | None | Unique per property if provided | "This serial number already exists in this property" |
+| Asset Tag | text | 50 chars | No | None | Unique per property if provided | "This asset tag already exists" |
+| Location | text | 200 chars | Yes | None | Min 3 chars | "Please specify the equipment location" |
+| Manufacturer | text | 200 chars | No | None | -- | -- |
+| Model | text | 200 chars | No | None | -- | -- |
+| Installation Date | date | -- | No | None | Cannot be in the future | "Installation date cannot be in the future" |
+| Warranty Expiry | date | -- | No | None | Must be after installation date | "Warranty expiry must be after installation date" |
+| Expected Replacement | date | -- | No | None | -- | -- |
+| Replacement Cost | currency (decimal) | 12 digits | No | None | Positive number | "Cost must be a positive number" |
+| Status | dropdown | -- | Yes | Operational | One of: Operational, Needs Repair, Out of Service, Decommissioned | -- |
+| Photos | file upload | 4 MB each, max 5 | No | None | Image formats | -- |
+| Documents | file upload | 4 MB each, max 5 | No | None | PDF, DOC, XLS | -- |
+| Notes | textarea | 2,000 chars | No | None | -- | -- |
+
+##### Default Equipment Categories (6)
 
 | Category | Examples |
 |----------|----------|
-| Electrical | Transformers, panels, generators, lighting systems |
-| Fire | Sprinklers, alarm panels, extinguishers, fire pumps |
-| Gas | Gas meters, regulators, shut-off valves |
-| Mechanical | Elevators, pumps, motors, compressors |
-| Roof | Membranes, drains, vents, satellite equipment |
-| Valves | Water shut-offs, pressure regulators, backflow preventers |
+| Electrical | Generators, transformers, panel boards, emergency lighting |
+| Fire | Sprinkler systems, extinguishers, alarms, fire pumps |
+| Gas | Boilers, water heaters, gas meters, regulators |
+| Mechanical | Elevators, HVAC units, pumps, motors, compressors |
+| Roof | Membranes, drains, antenna mounts, skylights |
+| Valves | Water shutoffs, pressure regulators, backflow preventers |
 
-#### Equipment Replacement Report
+##### Equipment Replacement Report
 
-A table showing all equipment sorted by expected replacement date, including:
-- Equipment name, category, location
-- Install date, expected lifespan, calculated replacement year
-- Current age vs. expected lifespan (progress bar)
-- Estimated replacement cost
-- Total replacement cost projection per year
+A sortable table showing all equipment approaching or past its expected replacement date.
+
+| Column | Description |
+|--------|-------------|
+| Equipment Name | Clickable link to equipment detail |
+| Category | Equipment category |
+| Location | Physical location |
+| Age | Years since installation |
+| Expected Replacement | Date (red if past due, amber if within 6 months) |
+| Estimated Cost | Replacement cost estimate |
+| Status | Current operational status |
+
+Exportable to Excel and PDF. Filterable by category, status, and date range.
+
+#### 3.2.4 Vendor Compliance Dashboard
+
+A centralized view of all vendor insurance and compliance status, accessible at Maintenance > Vendors.
+
+##### Compliance Summary Cards (top of page)
+
+| Card | Color | Count Logic |
+|------|-------|-------------|
+| Compliant | Green `#059669` | All required documents current and verified |
+| Expiring in 30 Days | Amber `#D97706` | Any required document expiring within 30 days |
+| Expired | Red `#EF4444` | Any required document past expiry date |
+| Not Compliant | Red `#DC2626` | Required documents missing entirely |
+| Not Tracking | Gray `#6B7280` | Compliance tracking not enabled for this vendor |
+
+Clicking a card filters the vendor list below to show only vendors in that status.
+
+##### Vendor Compliance Fields
+
+| Field | Data Type | Required | Description |
+|-------|-----------|----------|-------------|
+| General Liability Insurance | file upload (PDF) + expiry date | Yes (if tracking) | Certificate of insurance + expiry date |
+| Workers Compensation | file upload (PDF) + expiry date | Yes (if tracking) | Workers comp certificate + expiry |
+| WSIB Clearance | file upload (PDF) + expiry date | Configurable per property | Workplace safety clearance certificate |
+| Professional License | file upload + license number (text, 50 chars) + expiry date | Configurable | Trade license verification |
+| Background Check | file upload + verification date | Configurable | Background verification document |
+
+##### Automated Compliance Alerts
+
+| Alert | Trigger | Recipients | Channel |
+|-------|---------|------------|---------|
+| 30-day expiry warning | 30 days before any document expiry | Property Manager + Vendor | Email |
+| 7-day expiry warning | 7 days before expiry | Property Manager + Vendor | Email + Push |
+| Expired notice | On expiry date | Property Manager | Email + Push + Dashboard banner |
+| Assignment blocked | Attempt to assign expired vendor | Assigning user | Inline warning on assignment form |
+
+#### 3.2.5 Alteration Projects
+
+Tracking unit renovations and modifications with permit and insurance compliance.
+
+| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
+|-------|-----------|-----------|----------|---------|------------|---------------|
+| Project Name | text | 200 chars | Yes | None | Min 5 chars | "Project name must be at least 5 characters" |
+| Unit | dropdown | -- | Yes | None | Must be active unit | "Please select a unit" |
+| Resident | auto-populated | -- | -- | Primary resident of unit | -- | -- |
+| Start Date | date | -- | Yes | None | -- | "Please select a start date" |
+| End Date | date | -- | No | None | Must be after start date if set | "End date must be after start date" |
+| Status | dropdown | -- | Yes | "Not Started" | One of: Not Started, In Progress, On Hold, Completed, Cancelled | -- |
+| Momentum | auto-calculated | -- | -- | -- | Read-only, system-computed | -- |
+| Contractor | dropdown | -- | Yes | None | Must be active vendor | "Please select a contractor" |
+| Permit Required | toggle | -- | Yes | Off | -- | -- |
+| Permit Number | text | 50 chars | Yes if permit required | None | -- | "Permit number is required when a permit is needed" |
+| Permit Document | file upload | 4 MB | Yes if permit required | None | PDF only | "Please upload the permit document (PDF)" |
+| Insurance Certificate | file upload | 4 MB | Yes | None | PDF only | "Please upload the contractor's insurance certificate" |
+| Deposit Required | toggle | -- | No | Property default | -- | -- |
+| Deposit Amount | currency | 10 digits | Yes if deposit required | None | Positive number | "Enter a valid deposit amount" |
+| Deposit Status | dropdown | -- | -- | "Not Collected" | Collected, Refunded, Partially Refunded, Forfeited | -- |
+| Approved By | dropdown | -- | Yes | None | Must be PM, Admin, or Board Member | "Please select who approved this project" |
+| Notes/Conditions | textarea | 4,000 chars | No | None | -- | -- |
+
+**Momentum Indicator**: Automatically calculated based on the timestamp of the last activity (status change, comment, document upload).
+
+| Momentum | Color | Badge | Logic |
+|----------|-------|-------|-------|
+| OK | Green `#059669` | Green dot | Activity within last 7 days |
+| Slow | Amber `#D97706` | Amber dot | No activity for 8-14 days |
+| Stalled | Orange `#F97316` | Orange dot | No activity for 15-30 days |
+| Stopped | Red `#EF4444` | Red dot | No activity for 30+ days |
 
 ---
 
-### 3.12 v2: Inspection Checklists
+### 3.3 Future Features (v3+)
 
-Mobile-first inspection system for routine building checks.
-
-| Feature | Detail |
-|---------|--------|
-| **Schedule inspections** | Set frequency (daily, weekly, monthly, quarterly, annually) per checklist |
-| **Custom checklists** | Property Admin creates checklists with named items, pass/fail/N/A options, and photo capture per item |
-| **Global checklists** | System provides 6 default checklists: Lobby, Stairwell, Parking Garage, Pool Area, Gym, Rooftop |
-| **Completion** | Staff complete inspections on mobile devices. GPS verification confirms the inspector is on-site. |
-| **Results** | Each completed inspection generates a report. Failed items automatically create service requests. |
-| **History** | Full inspection history per area with trend visualization. |
-
----
-
-### 3.13 v2: Recurring Tasks
-
-Preventive maintenance scheduling for routine work.
-
-| Feature | Detail |
-|---------|--------|
-| **Task definition** | Name, description, category, assigned employee, linked equipment |
-| **Intervals** | Daily, weekly, bi-weekly, monthly, quarterly, semi-annually, annually, custom (every N days) |
-| **Forecast** | A "Tasks Forecast" tab shows all upcoming tasks for the next 90 days in a timeline view |
-| **Auto-creation** | When a recurring task is due, the system automatically creates a service request with pre-filled details |
-| **Tracking** | Each recurring task tracks: last completed date, next scheduled date, completion rate (%), overdue count |
-| **Export** | Export task list and forecast to Excel or PDF |
-
----
-
-### 3.14 v2: Vendor Compliance Dashboard
-
-A dashboard for tracking vendor insurance and compliance status.
-
-| Feature | Detail |
-|---------|--------|
-| **5 status cards** | Compliant, Not Compliant, Expiring in 30 Days, Expired, Not Tracking -- each showing a count |
-| **Insurance tracking** | Per vendor: liability insurance, workers' compensation, WSIB/WCB certificate. Expiry dates, policy numbers, document uploads. |
-| **Auto-alerts** | 60, 30, and 7 days before insurance expiry, the system sends email alerts to the vendor contact and the Property Manager |
-| **Compliance blocking** | Optionally, vendors with expired insurance cannot be assigned to new requests (configurable per property) |
-| **Vendor directory** | Full vendor list with: name, address, phone, category, compliance status, notes, linked requests count |
+| Feature | Description | Rationale |
+|---------|-------------|-----------|
+| **Resident Satisfaction Surveys** | Auto-send a brief survey on request closure, track NPS per category and staff member | Measure and improve service quality over time |
+| **AI Root Cause Analysis** | Analyze clusters of related requests to identify systemic building issues | Move from reactive to proactive building management |
+| **Vendor Bidding System** | Post work requests to multiple vendors, compare quotes, select best value | Cost optimization for larger projects |
+| **IoT Sensor Integration** | Connect to smart building sensors for automatic fault detection and request creation | Catch problems before residents notice them |
+| **Warranty Claim Management** | Track which repairs fall under equipment warranty and manage the claim process | Recover costs from manufacturers |
+| **Budget Tracking per Category** | Set maintenance budgets per category, track spend, forecast overages | Financial planning and board reporting |
+| **Resident Self-Schedule** | Let residents pick from available time slots for maintenance visits | Reduce scheduling back-and-forth |
 
 ---
 
 ## 4. Data Model
 
-### 4.1 MaintenanceRequest
+### 4.1 Primary Entity: MaintenanceRequest
+
+Defined in full in `01-architecture.md`. Key fields reproduced here for reference:
 
 ```
 MaintenanceRequest
-├── id (UUID, auto-generated)
-├── property_id → Property (required, set from session)
-├── reference_number (varchar 20, auto-generated, unique per property, format: SR-YYYY-NNNNN)
-├── building_id → Building (required)
+├── id (UUID, primary key)
+├── property_id → Property (required, indexed)
 ├── unit_id → Unit (nullable -- null for common area requests)
-├── requested_by → User (required)
-├── created_by → User (required, the staff member who entered it)
-├── title (varchar 200, required, min 5 chars)
-├── description (text, max 4000 chars, nullable)
+├── resident_id → User (who submitted, required)
+├── correlated_event_id → Event (for unified timeline, auto-generated)
+├── reference_number (varchar 20, auto-generated: "SR-YYYY-NNNNN", unique, indexed)
 ├── category_id → MaintenanceCategory (required)
-├── status (enum: open, on_hold, closed -- default: open)
-├── priority (enum: low, normal, high, critical -- default: normal)
-├── high_urgency (boolean, default: false)
-├── permission_to_enter (boolean, required)
-├── entry_instructions (text, max 1000 chars, nullable -- only when permission_to_enter is true)
-├── hide_from_resident (boolean, default: false)
-├── assigned_employee_id → User (nullable)
-├── assigned_vendor_id → Vendor (nullable)
-├── equipment_id → Equipment (nullable, v2)
-├── date_requested (date, required, default: today)
-├── hold_until_date (date, nullable -- only when status is on_hold)
-├── hold_reason (text, max 500 chars, nullable -- required when transitioning to on_hold)
-├── closed_date (date, nullable -- set when status transitions to closed)
-├── resolution_notes (text, max 2000 chars, nullable)
+├── sub_category (varchar 100, nullable)
+├── title (varchar 200, required)
+├── description (text, max 4000 chars)
+├── status (enum: open, in_progress, on_hold, closed -- default: open, indexed)
+├── priority (enum: low, normal, high, critical -- default: normal, indexed)
+├── urgency_flag (boolean, default: false)
+├── permission_to_enter (enum: yes, no, not_applicable -- default: not_applicable)
+├── entry_instructions (text, max 1000 chars, nullable)
+├── assigned_employee_id → User (nullable, indexed)
+├── assigned_vendor_id → Vendor (nullable, indexed)
+├── equipment_id → Equipment (nullable)
 ├── contact_numbers (varchar 100, nullable)
-├── email_notifications[] (array of email addresses, max 5)
-├── additional_emails[] (array of email addresses, max 5)
-├── reference_number_external (varchar 50, nullable)
+├── internal_notes (text, max 2000 chars, nullable -- hidden from residents)
 ├── print_work_order (boolean, default: false)
-├── photo_attachments[] → Attachment (max 10, photo types only)
-├── document_attachments[] → Attachment (max 5, document types only)
-├── comments[] → MaintenanceComment
-├── audit_log[] → AuditEntry (immutable)
-├── ai_metadata (JSONB -- AI suggestions, classification scores)
-├── created_at (timestamp with timezone, auto)
-├── updated_at (timestamp with timezone, auto)
-└── deleted_at (timestamp with timezone, nullable -- soft delete)
+├── scheduled_date (date, nullable)
+├── completed_date (date, nullable)
+├── resolution_notes (text, max 2000 chars, nullable)
+├── ai_metadata (JSONB -- structure defined in 4.3)
+├── custom_fields (JSONB)
+├── created_at (timestamp with timezone, auto-set)
+├── updated_at (timestamp with timezone, auto-updated)
+│
+├── photos[] → Attachment (polymorphic, max 10)
+├── documents[] → Attachment (polymorphic, max 5)
+├── comments[] → MaintenanceComment (ordered by created_at)
+├── status_history[] → MaintenanceStatusChange (ordered by created_at)
+└── notifications[] → Notification (system-generated)
 ```
 
-### 4.2 MaintenanceComment
+### 4.2 Supporting Entities
 
-```
-MaintenanceComment
-├── id (UUID, auto-generated)
-├── request_id → MaintenanceRequest (required)
-├── author_id → User (required)
-├── comment_text (text, max 2000 chars, required)
-├── hide_from_resident (boolean, default: false)
-├── template_used (varchar 50, nullable -- which template was used, if any)
-├── created_at (timestamp with timezone, auto)
-└── updated_at (timestamp with timezone, auto)
-```
-
-### 4.3 MaintenanceCategory
+#### MaintenanceCategory
 
 ```
 MaintenanceCategory
-├── id (UUID, auto-generated)
-├── property_id → Property (nullable -- null means system default)
+├── id (UUID)
+├── property_id → Property (indexed)
 ├── name (varchar 100, required)
-├── group (enum: common_area, in_suite)
-├── description (varchar 500, nullable)
-├── icon (varchar 100, icon name reference)
-├── sort_order (integer, default: 0)
+├── icon (varchar 50, nullable -- icon identifier)
+├── color (varchar 7, nullable -- hex code e.g. "#3B82F6")
+├── sub_categories (text[], nullable -- array of sub-category names)
+├── default_priority (enum: low, normal, high, critical -- nullable)
+├── default_assignee_id → User (nullable)
+├── sort_order (integer, required)
 ├── active (boolean, default: true)
-├── created_at (timestamp with timezone, auto)
-└── updated_at (timestamp with timezone, auto)
+├── created_at (timestamp)
+└── updated_at (timestamp)
 ```
 
-### 4.4 Attachment
+#### MaintenanceComment
 
 ```
-Attachment
-├── id (UUID, auto-generated)
-├── entity_type (enum: maintenance_request, equipment, inspection -- polymorphic)
-├── entity_id (UUID, the linked record)
-├── file_name (varchar 255, original file name)
-├── file_type (enum: photo, document)
-├── mime_type (varchar 100, e.g., image/jpeg, application/pdf)
-├── file_size_bytes (integer, max 4194304 = 4MB)
-├── storage_url (varchar 500, cloud storage path)
-├── thumbnail_url (varchar 500, nullable -- generated for photos)
-├── uploaded_by → User (required)
-├── created_at (timestamp with timezone, auto)
-└── deleted_at (timestamp with timezone, nullable -- soft delete)
+MaintenanceComment
+├── id (UUID)
+├── request_id → MaintenanceRequest (indexed)
+├── author_id → User
+├── body (text, max 2000 chars, required)
+├── visible_to_resident (boolean, default: true)
+├── attachments[] → Attachment (polymorphic, max 3)
+├── is_from_template (boolean, default: false)
+├── template_id → ResponseTemplate (nullable)
+└── created_at (timestamp)
 ```
 
-### 4.5 Relationships
+#### MaintenanceStatusChange
 
 ```
-MaintenanceRequest ──────── belongs to ──────── Property
-MaintenanceRequest ──────── belongs to ──────── Building
-MaintenanceRequest ──────── optionally belongs to ── Unit
-MaintenanceRequest ──────── belongs to ──────── User (requested_by)
-MaintenanceRequest ──────── belongs to ──────── User (created_by)
-MaintenanceRequest ──────── belongs to ──────── MaintenanceCategory
-MaintenanceRequest ──────── optionally belongs to ── User (assigned_employee)
-MaintenanceRequest ──────── optionally belongs to ── Vendor (assigned_vendor)
-MaintenanceRequest ──────── optionally belongs to ── Equipment (v2)
-MaintenanceRequest ──────── has many ─────────── MaintenanceComment
-MaintenanceRequest ──────── has many ─────────── Attachment
-MaintenanceRequest ──────── has many ─────────── AuditEntry
-MaintenanceCategory ─────── belongs to ──────── Property (or system default)
+MaintenanceStatusChange
+├── id (UUID)
+├── request_id → MaintenanceRequest (indexed)
+├── changed_by → User
+├── from_status (enum: open, in_progress, on_hold, closed)
+├── to_status (enum: open, in_progress, on_hold, closed)
+├── reason (text, max 500 chars, nullable)
+├── resolution_notes (text, max 2000 chars, nullable -- populated on close)
+├── notification_sent (boolean, default: false)
+└── created_at (timestamp)
+```
+
+#### ResponseTemplate
+
+```
+ResponseTemplate
+├── id (UUID)
+├── property_id → Property
+├── name (varchar 100, required, unique per property)
+├── body (text, max 2000 chars, required -- supports placeholders)
+├── applicable_statuses (enum[], required -- at least one)
+├── active (boolean, default: true)
+├── usage_count (integer, default: 0 -- incremented on use)
+├── created_by → User
+├── created_at (timestamp)
+└── updated_at (timestamp)
+```
+
+#### RecurringTask (v2)
+
+```
+RecurringTask
+├── id (UUID)
+├── property_id → Property
+├── name (varchar 200, required)
+├── description (text, max 2000 chars, nullable)
+├── category_id → MaintenanceCategory
+├── unit_id → Unit (nullable)
+├── area_description (varchar 200, nullable -- for common areas)
+├── assigned_employee_id → User (nullable)
+├── equipment_id → Equipment (nullable)
+├── interval_type (enum: daily, weekly, biweekly, monthly, quarterly, semiannually, annually, custom)
+├── custom_interval_days (integer, nullable -- 1-365)
+├── start_date (date, required)
+├── end_date (date, nullable)
+├── next_occurrence (date, computed)
+├── auto_create_request (boolean, default: true)
+├── default_priority (enum, default: normal)
+├── active (boolean, default: true)
+├── last_generated_at (timestamp, nullable)
+├── generated_requests[] → MaintenanceRequest
+├── created_by → User
+└── created_at (timestamp)
+```
+
+### 4.3 AI Metadata Structure
+
+The `ai_metadata` JSONB field on MaintenanceRequest stores all AI-related suggestions and decisions:
+
+```json
+{
+  "category_suggestion": {
+    "suggested_category_id": "uuid",
+    "suggested_category_name": "Plumbing -- Leak",
+    "confidence": 0.92,
+    "accepted": true,
+    "suggested_at": "2026-03-14T10:00:00Z"
+  },
+  "priority_suggestion": {
+    "suggested_priority": "high",
+    "reasoning": "Active water leak with potential for structural damage if delayed",
+    "confidence": 0.87,
+    "accepted": false,
+    "user_selected": "normal",
+    "suggested_at": "2026-03-14T10:00:00Z"
+  },
+  "duplicate_check": {
+    "potential_duplicates": ["uuid1", "uuid2"],
+    "similarity_scores": [0.91, 0.78],
+    "user_confirmed_not_duplicate": true,
+    "checked_at": "2026-03-14T10:00:00Z"
+  },
+  "vendor_suggestion": {
+    "suggested_vendors": [
+      { "vendor_id": "uuid1", "reasoning": "Highest rated for plumbing (4.8/5)" },
+      { "vendor_id": "uuid2", "reasoning": "Fastest avg resolution (1.2 days)" },
+      { "vendor_id": "uuid3", "reasoning": "Lowest avg cost ($185)" }
+    ],
+    "accepted_vendor_id": "uuid1",
+    "suggested_at": "2026-03-14T10:01:00Z"
+  },
+  "cost_estimate": {
+    "estimated_range_low": 150,
+    "estimated_range_high": 400,
+    "currency": "CAD",
+    "confidence": 0.72,
+    "basis": "Based on 47 similar plumbing requests at this property",
+    "estimated_at": "2026-03-14T10:01:00Z"
+  },
+  "resolution_time_prediction": {
+    "estimated_hours": 48,
+    "confidence": 0.81,
+    "predicted_at": "2026-03-14T10:00:00Z"
+  },
+  "description_enhancement": {
+    "enhanced_text": "Kitchen faucet has a constant drip from the handle base...",
+    "accepted": false,
+    "enhanced_at": "2026-03-14T10:00:00Z"
+  },
+  "photo_analysis": [
+    {
+      "attachment_id": "uuid",
+      "assessment": "Moderate water damage to cabinet base. Visible warping.",
+      "severity": "moderate",
+      "analyzed_at": "2026-03-14T10:02:00Z"
+    }
+  ],
+  "satisfaction_prediction": {
+    "predicted_score": 3.8,
+    "risk_factors": ["Response time was 2x average for this priority level"],
+    "predicted_at": "2026-03-14T18:00:00Z"
+  }
+}
 ```
 
 ---
 
 ## 5. User Flows
 
-### 5.1 Resident Submits a Service Request
+### 5.1 Resident Submits a Request
 
-| Step | Action | System Response |
-|------|--------|-----------------|
-| 1 | Resident clicks "Submit Request" on their dashboard or navigates to Service Requests | Create form opens. Building and "Requested By" are pre-filled with the resident's info. Fields hidden from residents: `hide_from_resident`, `assigned_employee`, `assigned_vendor`, `equipment_id`, `initial_status` (always Open), `high_urgency`, `email_notifications`, `additional_emails`, `print_work_order`. |
-| 2 | Resident fills in: Title, Description, Category, Permission to Enter | AI suggests category (capability #23) and priority (capability #24) as the resident types. Suggestions appear as small chips below the respective fields. |
-| 3 | Resident uploads photos (optional) | Thumbnails appear in the upload zone. AI analyzes photos for damage assessment (capability #29, if enabled). |
-| 4 | Resident clicks "Save" | System validates all fields. If duplicates detected (capability #25), a modal appears showing similar open requests. Resident can proceed or view existing. |
-| 5 | Request is saved | Reference number generated (e.g., `SR-2026-00148`). Notification sent to Property Manager. Resident redirected to request detail page. |
-| 6 | Resident views request detail | Resident sees: reference number, title, description, status, priority, their comments, staff comments (unless hidden). Resident cannot see: internal notes, assigned vendor details, audit log, hidden comments. |
+```
+1. Resident logs in → sees "My Requests" in sidebar under "My Unit"
+2. Clicks "Submit New Request" button
+3. Form loads: unit auto-filled (read-only), category field has AI suggestion chips
+4. Resident types title → after 500ms pause, AI auto-suggests category (chip below dropdown)
+5. Resident fills description (min 20 chars) → AI may refine suggestion
+6. Resident selects category (accepts AI suggestion or picks manually)
+7. Resident selects Permission to Enter: Yes → Entry Instructions field appears
+8. Resident fills entry instructions (e.g., "Lockbox code 4321, cat inside")
+9. Optionally taps "Add Photos" → camera opens on mobile, file picker on desktop
+10. Optionally adjusts priority (defaults to Normal)
+11. Checks authorization checkbox
+12. Clicks "Submit Request"
+13. [If AI duplicate detection finds matches]: Modal shows similar open requests
+    → Resident clicks "This is a new issue" or "View existing request SR-XXXX"
+14. System: generates reference number, creates correlated Event, sends notifications
+15. Success: toast "Request SR-2026-00089 submitted" + redirect to detail page
+16. Resident receives email: "Your request has been received. Reference: SR-2026-00089"
+```
 
-### 5.2 Property Manager Handles a Request
+### 5.2 Property Manager Triages a Request
 
-| Step | Action | System Response |
-|------|--------|-----------------|
-| 1 | Property Manager views the listing page | Requests sorted by priority (critical first) and date. High urgency requests pinned to top with red banner. |
-| 2 | PM clicks on a request to view details | Detail page opens. All fields visible. AI suggestions shown (if available): category confidence, priority reasoning, similar past requests, vendor recommendations, cost estimate, time-to-resolution estimate. |
-| 3 | PM assigns an employee from the dropdown | Employee receives notification (email + push). Activity timeline records the assignment. |
-| 4 | PM optionally assigns a vendor | Vendor receives notification (email only). Activity timeline records the assignment. If vendor compliance module is active (v2), a warning appears if the vendor's insurance is expired. |
-| 5 | PM posts a comment using the "Vendor Scheduled" template | Template pre-fills the comment textarea. PM fills in the date and time range. Posts the comment. Resident receives notification (unless comment is hidden). |
-| 6 | PM changes status to "Closed" | Closed date defaults to now. Resolution notes field appears (optional). Resident receives a "Request Closed" notification. Activity timeline records the closure. |
+```
+1. PM sees "3 new requests" badge on Service Requests sidebar item
+2. Navigates to Service Requests → default filter shows Open + In Progress
+3. Scans card grid → spots new request with OPEN badge
+4. Clicks card → detail page loads with all sections
+5. Reviews AI Insights panel:
+   - Category suggestion: "Plumbing -- Leak (92%)" → clicks "Apply" or overrides
+   - Priority suggestion: "High -- Active water leak" → accepts or changes
+   - Resolution estimate: "2-3 business days"
+   - Duplicate check: "No duplicates found"
+6. Clicks "Assign" button → assignment panel opens
+   - AI vendor recommendation: "Recommended: FastFix Plumbing (4.8 rating, compliant)"
+   - PM selects vendor from recommendation
+   - PM selects employee (sees workload dots: green/amber/red per person)
+7. Sets scheduled date for vendor visit
+8. Clicks "Update Status" → selects "In Progress"
+9. Selects predefined response: "Vendor Scheduled"
+   → Template auto-fills with vendor name and date
+10. Checks "Notify Resident" → clicks "Save"
+11. System: logs all changes in timeline, sends notification to resident + vendor + employee
+```
 
-### 5.3 Maintenance Staff Completes a Work Order
+### 5.3 Maintenance Staff Completes a Request
 
-| Step | Action | System Response |
-|------|--------|-----------------|
-| 1 | Maintenance staff views their dashboard | Dashboard shows assigned requests sorted by priority. Urgent requests highlighted. |
-| 2 | Staff clicks "Print Work Order" on a request | Browser print dialog opens with a printer-friendly work order. |
-| 3 | Staff completes the repair on-site | -- |
-| 4 | Staff returns and adds a comment describing the work done | Comment saved. Photos of completed work can be uploaded as additional attachments. |
-| 5 | Staff changes status to "Closed" | Resolution notes added. Status changes. Notifications sent. |
+```
+1. Maintenance staff logs in → dashboard shows "My Assigned Requests" sorted by priority
+2. Sees 3 requests: 1 Critical (red), 1 High (orange), 1 Normal (blue)
+3. Taps Critical request → detail page loads
+4. Reviews: description, photos of damage, entry instructions
+5. Optionally taps "Print Work Order" → PDF opens for printing
+6. Travels to unit, completes repair
+7. Returns to app → taps "Update Status"
+8. Selects "Closed"
+9. Types resolution notes: "Replaced kitchen faucet cartridge. Tested -- no more drip."
+10. Uploads 2 completion photos (taps camera icon on mobile)
+11. Taps "Save"
+12. System: logs closure, notifies resident, updates equipment history if linked
+13. Resident receives: "Your request SR-2026-00089 has been resolved."
+```
 
-### 5.4 Staff Creates an Internal Request
+### 5.4 Resident Tracks Their Request
 
-| Step | Action | System Response |
-|------|--------|-----------------|
-| 1 | Staff clicks "New Request" | Create form opens. |
-| 2 | Staff enables "Don't show to resident" toggle | Request will be invisible to residents. |
-| 3 | Staff fills in details and saves | Request created. No resident notification sent (since hidden). Only staff notifications are sent. |
+```
+1. Resident navigates to "My Requests" in sidebar
+2. Sees card list: each card shows status badge, title, date, reference number
+3. Clicks into open request → sees full timeline:
+   - "You created this request" (Mar 14, 2:30 PM)
+   - "Status changed to In Progress" (Mar 14, 3:15 PM)
+   - "Assigned to FastFix Plumbing" (Mar 14, 3:15 PM)
+   - "Staff commented: FastFix Plumbing will visit on Mar 16..." (Mar 14, 3:16 PM)
+4. Resident adds comment: "The leak got worse overnight, water under the sink now"
+5. System notifies assigned employee + PM of new comment
+6. Later: resident gets push notification "Status updated to Closed"
+7. Resident views resolution notes and completion photos
+8. [v3] Resident receives satisfaction survey
+```
+
+### 5.5 Bulk Request Management
+
+```
+1. PM navigates to Service Requests → clicks table view toggle
+2. Uses filters: Category = "HVAC -- Heating", Status = "Open"
+3. Sees 8 requests from different units all reporting heating issues
+4. Selects all 8 via header checkbox
+5. Clicks bulk action "Assign Vendor" → selects HVAC contractor
+6. Confirmation dialog: "Assign ClimatePro HVAC to 8 requests?"
+7. Clicks "Confirm"
+8. System: updates all 8 requests, sends notifications to vendor and residents
+9. PM exports the filtered list to Excel for board reporting
+```
 
 ---
 
 ## 6. UI/UX
 
-### 6.1 Listing Page Layout
+### 6.1 Desktop Layout (1280px+)
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  Service Requests                    New Request  Export  Print  │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │ 🔍 Search requests...   Status ▾   Category ▾   More ▾  │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │ ☑  Status  ID            Unit   Category  Priority  ...  │   │
-│  │ ── ─────── ──────────── ────── ───────── ───────── ──── │   │
-│  │ ☐  ● Open  SR-2026-0148 1205   Plumbing  ● High    ...  │   │
-│  │    Leaking kitchen faucet, water dripping from handle... │   │
-│  │ ☐  ● Hold  SR-2026-0147 Lobby  Elevator  ● Critical ...  │   │
-│  │    Elevator #2 making grinding noise on floors 10-15...  │   │
-│  │ ☐  ● Closed SR-2026-0146 302   Appliances ● Normal  ...  │   │
-│  │    Dishwasher not draining after cycle completes...       │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  Showing 1-25 of 342 requests                     ◀ 1 2 3 ... ▶ │
-└─────────────────────────────────────────────────────────────────┘
++------------------------------------------------------------------+
+| Top Nav: Logo | Global Search | Notifications (3) | Profile       |
++----------+-------------------------------------------------------+
+| Sidebar  | SERVICE REQUESTS                     [+ Create Request] |
+|          |-------------------------------------------------------|
+| OVERVIEW |  [Search...___________] [Status v] [Category v]        |
+| Dashboard|  [Priority] [Employee v] [Date Range]  [Clear filters] |
+| ------   |-------------------------------------------------------|
+| OPERATIONS  Card/Table toggle -->                    [Export v]   |
+| Security |-------------------------------------------------------|
+| Packages |  +---Card 1---+  +---Card 2---+  +---Card 3---+      |
+| *Service |  | SR-00089   |  | SR-00088   |  | SR-00087   |      |
+|  Requests|  | [OPEN][HIGH]|  | [IN PROG]  |  | [CLOSED]   |      |
+| Announce.|  | Leak Faucet |  | Elev Noise |  | Lobby Light|      |
+| ------   |  | U1205-Chen |  | Common Area|  | Common Area|      |
+| MGMT     |  | John S.    |  | Unassigned |  | Maria R.   |      |
+| Reports  |  +------------+  +------------+  +------------+      |
+| Training |                                                       |
+| Logs     |  +---Card 4---+  +---Card 5---+  +---Card 6---+      |
+|          |  | ...        |  | ...        |  | ...        |      |
+|          |  +------------+  +------------+  +------------+      |
+|          |                                                       |
+|          |  Showing 1-25 of 147   < 1  2  3  4  5  6 >          |
++----------+-------------------------------------------------------+
 ```
 
-### 6.2 Create Form Layout
+### 6.2 Tablet Layout (768px - 1279px)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  ← Back to Service Requests                                     │
-│                                                                  │
-│  New Service Request                                             │
-│                                                                  │
-│  ┌── Problem Details ──────────┐  ┌── Assignment ────────────┐  │
-│  │                              │  │                          │  │
-│  │  Building*         [Bond ▾]  │  │  Assigned Employee       │  │
-│  │  Unit       [Search unit...] │  │  [Select employee... ▾]  │  │
-│  │  Requested By*    [Search..] │  │                          │  │
-│  │  Title*           [________] │  │  Assigned Vendor         │  │
-│  │  Problem Description         │  │  [Select vendor... ▾]   │  │
-│  │  [________________________]  │  │                          │  │
-│  │  [________________________]  │  │  Linked Equipment        │  │
-│  │  [________________________]  │  │  [Select equipment... ▾] │  │
-│  │                              │  │                          │  │
-│  │  Category*     [Select... ▾] │  │  Date Requested*         │  │
-│  │  AI: Suggested: Plumbing 94% │  │  [Mar 14, 2026      📅] │  │
-│  │                              │  │                          │  │
-│  │  Permission to Enter*        │  │  Priority*     [Normal▾] │  │
-│  │  ○ Yes  ● No                 │  │  AI: Suggested: High     │  │
-│  │                              │  │                          │  │
-│  │  Photos                      │  │  ☐ High Urgency          │  │
-│  │  ┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐  │  │                          │  │
-│  │  │  Drop photos here     │  │  │  Create with Status*     │  │
-│  │  │  or click to browse   │  │  │  ● Open ○ Hold ○ Closed  │  │
-│  │  └─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘  │  │                          │  │
-│  │                              │  │  Contact Numbers         │  │
-│  │  Documents                   │  │  [________________]      │  │
-│  │  ┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐  │  │                          │  │
-│  │  │  Drop documents here  │  │  │  Email Notifications     │  │
-│  │  │  or click to browse   │  │  │  [email@example.com  ×]  │  │
-│  │  └─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘  │  │                          │  │
-│  │                              │  │  Additional CC           │  │
-│  │  ☐ Don't show to resident   │  │  [________________]      │  │
-│  │                              │  │                          │  │
-│  └──────────────────────────────┘  │  External Reference      │  │
-│                                     │  [________________]      │  │
-│                                     │                          │  │
-│                                     │  ☐ Print Work Order      │  │
-│                                     │                          │  │
-│                                     └──────────────────────────┘  │
-│                                                                  │
-│                          Clear    Save and Add Another    Save ▶  │
-└─────────────────────────────────────────────────────────────────┘
-```
+- Sidebar collapses to icon-only rail (40px wide). Tap hamburger icon to expand overlay.
+- Card grid becomes 2 columns.
+- Filters collapse into a single "Filters" button that opens a slide-over panel from the right.
+- Active filter count shown as badge on the Filters button.
+- Create button remains in header as a text button (not FAB).
 
-### 6.3 Detail Page Layout
+### 6.3 Mobile Layout (< 768px)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  ← Back to Service Requests                                     │
-│                                                                  │
-│  SR-2026-00148                                                   │
-│  Leaking kitchen faucet                                          │
-│  ● Open   ● High   🔴 HIGH URGENCY                              │
-│  Created by John Smith (Unit 1205) on Mar 14, 2026 at 2:30 PM   │
-│                                                                  │
-│  ┌── Left Column (8 cols) ─────┐  ┌── Right Column (4 cols) ─┐ │
-│  │                              │  │                          │ │
-│  │  Problem Description         │  │  Status                  │ │
-│  │  The kitchen faucet has been │  │  ● Open    [Change ▾]    │ │
-│  │  dripping steadily for 3     │  │                          │ │
-│  │  days. Water pools on the... │  │  Assignment              │ │
-│  │                              │  │  Employee: Mike Johnson  │ │
-│  │  Photos (3)                  │  │  [Reassign]              │ │
-│  │  [thumb] [thumb] [thumb]     │  │  Vendor: ABC Plumbing    │ │
-│  │                              │  │  [Change Vendor]         │ │
-│  │  Documents (1)               │  │                          │ │
-│  │  📄 warranty.pdf  120KB  ⬇   │  │  Details                 │ │
-│  │                              │  │  Category: Plumbing      │ │
-│  │  ─── Comments ────────────   │  │  Priority: ● High        │ │
-│  │                              │  │  Requested: Mar 14, 2026 │ │
-│  │  Template: [Custom ▾]        │  │  Unit: 1205 (John Smith) │ │
-│  │  [________________________]  │  │  Entry: Yes              │ │
-│  │  ☐ Hide from resident        │  │  "Call before entering"  │ │
-│  │              [Post Comment]  │  │  Contact: 416-555-0123   │ │
-│  │                              │  │                          │ │
-│  │  Sarah Chen (PM) • 2h ago    │  │  Actions                 │ │
-│  │  "Vendor scheduled for       │  │  [Print Work Order]      │ │
-│  │  tomorrow 9-11 AM"           │  │  [Delete Request]        │ │
-│  │                              │  │                          │ │
-│  │  ─── Activity Timeline ───   │  └──────────────────────────┘ │
-│  │                              │                                │
-│  │  ● Status: Open → On Hold   │                                │
-│  │    Sarah Chen • 2h ago       │                                │
-│  │  ● Assigned to Mike Johnson  │                                │
-│  │    Sarah Chen • 3h ago       │                                │
-│  │  ● Request created           │                                │
-│  │    John Smith • Mar 14       │                                │
-│  │                              │                                │
-│  └──────────────────────────────┘                                │
-└─────────────────────────────────────────────────────────────────┘
-```
+- No sidebar. Bottom tab navigation: Dashboard, Requests, Packages, More.
+- Card grid becomes single column, full-width cards.
+- Filters behind a "Filter" icon button in top-right of header. Opens full-screen filter panel.
+- Create request: Floating Action Button (FAB) in bottom-right corner, 56px diameter, primary color.
+- Detail view: all sections stacked as expandable accordions (first section auto-expanded).
+- Photos: horizontal swipeable gallery with counter "2 of 5".
+- Activity timeline: chat-style thread, newest at bottom.
+- Status change: full-screen modal instead of dialog.
 
-### 6.4 Responsive Behavior
+### 6.4 Loading States
 
-| Breakpoint | Behavior |
-|------------|----------|
-| **Desktop (>1280px)** | Full two-column layout. All filters visible. Table shows all columns. |
-| **Tablet (768-1280px)** | Two-column form stacks to single column. Table hides "Last Comment" and "Assignee" columns (accessible via row click). Filters collapse into a "Filters" button that opens a slide-over panel. |
-| **Mobile (<768px)** | Single column for everything. Table becomes a card list (one card per request showing: status, ID, title, priority, date). Filters in a full-screen slide-over. Create form is full-width single column. |
+| Component | Loading Display |
+|-----------|----------------|
+| Request listing | 6 skeleton cards (2 rows of 3 on desktop). Each skeleton matches card layout: gray pulsing rectangles for badge, title, unit, assignee. |
+| Request detail | Skeleton blocks for each section header + content area. Progressive: header loads first, then sections top-to-bottom. |
+| Filter dropdowns | Spinner inside dropdown while options load. Dropdown disabled until loaded. |
+| File upload | Per-file progress bar with percentage + file name. "Uploading 2 of 5..." |
+| Status update | Submit button shows spinner + "Updating..." Dialog remains open until complete. |
+| Work order PDF | Button disabled + "Generating..." for 1-3 seconds. |
+| AI suggestions | Subtle shimmer animation on the suggestion chip area. Chips fade in when ready. Label: "Analyzing..." in gray italic. |
+| Export | Button spinner + "Preparing export..." Toast when file ready: "Export ready -- downloading." |
 
-### 6.5 Empty States
+### 6.5 Error States
 
 | Scenario | Display |
 |----------|---------|
-| **No requests exist** | Centered illustration (wrench icon) + "No service requests yet" (Title 2) + "Create your first request to start tracking maintenance issues." (Body, `--text-secondary`) + "New Request" (Primary button) |
-| **No results match filters** | Centered illustration (search icon) + "No requests match your filters" (Title 2) + "Try adjusting your search or filters." (Body, `--text-secondary`) + "Clear Filters" (Ghost button) |
-| **No comments on a request** | "No comments yet. Add a comment to provide an update." (Body, `--text-secondary`) |
-| **No attachments on a request** | "No attachments. Upload photos or documents to support this request." (Body, `--text-secondary`) + "Add Attachment" (Ghost button) |
+| Network error on listing load | Full-page: wrench illustration + "Unable to load requests" + "Check your connection and try again." + [Retry] button (primary). |
+| Network error on form submit | Red toast (persists until dismissed): "Unable to submit request. Your data has been saved locally. We'll retry automatically." + local draft indicator on the form. |
+| Network error on detail load | Full-page: "Unable to load this request" + "Check your connection and try again." + [Retry] + [Back to Requests]. |
+| File upload failure | Inline error below the specific file: red text "[filename] failed to upload" + [Retry] link + [Remove] link. Other files unaffected. |
+| File too large | Inline error: "[filename] is too large. Maximum file size is 4 MB." File not added to upload queue. |
+| Wrong file type | Inline error: "[filename] is not a supported format. Accepted: JPG, PNG, GIF, HEIC." |
+| Validation errors on submit | Red border on each invalid field. Error message below each field in red. Page auto-scrolls to the first error. Submit button remains enabled. |
+| Permission denied | Full-page: lock icon + "You don't have permission to view this request." + "Contact your property manager if you need access." + [Back to Requests]. |
+| Request not found | Full-page: magnifying glass icon + "Request not found" + "It may have been deleted or moved to a different property." + [Back to Requests]. |
+| AI service unavailable | Graceful: AI suggestion areas simply don't appear. No error message. Form works normally without suggestions. |
+
+### 6.6 Empty States
+
+Described inline in Section 3.1.2 (listing empty states) and throughout detail sections. Summary:
+
+| Context | Heading | Body | CTA |
+|---------|---------|------|-----|
+| No requests (staff) | "No service requests yet" | "Requests from residents and staff will appear here." | "Create First Request" |
+| No requests (resident) | "You don't have any service requests" | "Need something fixed? Submit a request and we'll take care of it." | "Submit a Request" |
+| No assigned requests (maintenance staff) | "No requests assigned to you" | "When a manager assigns a request to you, it will appear here." | None |
+| Filters return nothing | "No requests match your filters" | "Try adjusting your filters or clearing them." | "Clear all filters" (link) |
+| No comments | "No comments yet" | "Add a comment to share an update." | "Add Comment" (text link) |
+| No photos | "No photos attached" | "Photos help diagnose the issue faster." | "Add Photos" (text link) |
+| No equipment (v2) | "No equipment registered" | "Add building equipment to track maintenance history." | "Add Equipment" |
+| No recurring tasks (v2) | "No recurring tasks" | "Schedule preventive maintenance to avoid costly repairs." | "Create Recurring Task" |
+| No vendors | "No vendors in directory" | "Add vendors to assign them to maintenance requests." | "Add Vendor" |
+
+### 6.7 Accessibility
+
+| Requirement | Implementation |
+|-------------|---------------|
+| Keyboard navigation | All interactive elements reachable via Tab. Enter/Space to activate buttons. Arrow keys navigate dropdowns and radio groups. Escape closes dialogs and panels. |
+| Screen readers | Status badges: `aria-label="Status: Open"`. Priority badges: `aria-label="Priority: High"`. Card grid: `role="list"` with `role="listitem"` per card. Forms: all inputs have associated `<label>`. Errors linked via `aria-describedby`. |
+| Color contrast | All text meets WCAG AA (4.5:1 minimum). Status and priority communicated by both color and text label -- never color alone. |
+| Focus indicators | 2px blue focus ring (`#2563EB`) on all interactive elements, visible on both light and dark backgrounds. |
+| Touch targets | Minimum 44x44px tap area for all buttons, links, and interactive elements on mobile. |
+| Reduced motion | Users with `prefers-reduced-motion` see no skeleton shimmer, no transition animations. Instant state changes. |
+| High contrast mode | Supports Windows High Contrast Mode. All status badges remain distinguishable. |
 
 ---
 
 ## 7. AI Integration
 
-The Maintenance module integrates 12 AI capabilities (IDs 23-34 from the AI Framework, PRD 19). Each capability has a manual fallback -- the module works fully without AI.
+The Maintenance module integrates **12 AI capabilities** (IDs 23-34 from 19-ai-framework.md). Every capability follows the core principle: **AI suggests, human confirms**. Every feature works fully without AI.
 
-### 7.1 AI Capabilities Summary
+### 7.1 Auto-Categorization (AI ID #23)
 
-| ID | Name | Trigger | What the User Sees | Fallback |
-|----|------|---------|---------------------|----------|
-| 23 | Request Category Auto-Classification | On submit (after description is entered, debounced 500ms) | A chip below the Category dropdown: "Suggested: [category] ([confidence]%)" with an "Apply" button | User selects category manually from the dropdown |
-| 24 | Priority Scoring | On submit (after description + category are set) | A chip below the Priority dropdown: "Suggested: [priority] -- [one-line reason]" with an "Apply" button | User selects priority manually from the dropdown |
-| 25 | Duplicate Detection | On save (pre-save check) | A modal: "Similar requests found" listing 1-5 matching requests with reference number, title, status, and similarity percentage. Buttons: "Create Anyway" and "View Existing" | No duplicate check. Request saves immediately. |
-| 26 | Vendor Auto-Suggestion | On category assignment (when category and vendor directory both exist) | A suggestion card in the vendor dropdown area: "Recommended: [vendor] -- [reason]" | User selects vendor manually from the dropdown |
-| 27 | Time-to-Resolution Estimation | On submit (after category + priority) | A small info card on the detail page right sidebar: "Estimated resolution: [X] days ([confidence]%)" | No estimate shown |
-| 28 | Work Order Generation | On "Print Work Order" click | AI enhances the work order with a structured summary, technical notes, and suggested tools/parts | Standard work order with raw field values |
-| 29 | Photo-Based Damage Assessment | On photo upload | Below the uploaded photo, a text summary: "AI Assessment: [description of damage/issue visible in the photo]" | No assessment. Photo is stored as-is. |
-| 30 | Recurring Issue Detection | Weekly scheduled (Tuesday 3:00 AM) | A "Recurring Issues" card on the Property Manager dashboard showing units or systems with repeated requests. Click opens a detail report. | No automated detection. PM reviews manually. |
-| 31 | Cost Estimation | On demand (button on detail page) | An info card: "Estimated cost: $[low] - $[high] based on [N] similar past repairs" | No cost estimate. PM estimates manually. |
-| 32 | Response Template Generation | On status change (auto-fills template) | Pre-filled comment text with placeholders resolved using request context (employee name, dates, vendor info) | Generic template text with manual placeholder entry |
-| 33 | Equipment Failure Prediction | Weekly scheduled (Wednesday 3:00 AM, v2) | A "Equipment Risk" dashboard card showing equipment items ranked by failure probability | No prediction. Scheduled maintenance only. |
-| 34 | Request Description Enhancement | On submit (after description entered) | An "Enhanced" badge on the detail page. Toggle between "Original" and "Enhanced" versions of the description. Enhanced version adds technical clarity. | Original description used as-is. |
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Classifies requests into the correct category based on the title and description text |
+| **Trigger** | On typing (debounced 500ms after user stops typing in title or description) |
+| **Input** | Request title + description text |
+| **Output** | Top category suggestion with confidence score |
+| **Model** | Haiku ($0.001/call) |
+| **UX** | A chip appears below the Category dropdown: "[Category Name] ([X]%)" with "Apply" button. Clicking Apply selects the category. Chip has subtle sparkle icon. |
+| **Confidence threshold** | Only show if confidence > 70%. Below 70%, no suggestion appears. |
+| **Fallback** | User selects category manually from the dropdown. No indication AI was attempted. |
+| **Default state** | Enabled |
+| **Tracking** | Log: suggestion shown, accepted/rejected, user's final selection, confidence score |
 
-### 7.2 AI Display Rules
+### 7.2 Priority Suggestion (AI ID #24)
 
-1. AI suggestions are always non-blocking. The user can ignore every suggestion.
-2. Suggestions appear as small chips or cards with a subtle AI indicator icon (sparkle icon, `--text-tertiary`). No "AI-powered" branding.
-3. If the AI service is unavailable, the form works identically -- suggestions simply do not appear. No error messages shown to the user.
-4. AI confidence scores are shown only when above 70%. Below 70%, no suggestion is made.
-5. Every AI suggestion click is tracked for acceptance-rate analytics. Features below 60% acceptance rate are flagged for review.
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Recommends a priority level based on description keywords, category, and unit maintenance history |
+| **Trigger** | On submit (after description and category are set) |
+| **Input** | Title + description + category + unit ID + past 90 days of requests for this unit |
+| **Output** | Priority level (Low/Normal/High/Critical) + one-sentence reasoning |
+| **Model** | Haiku ($0.001/call) |
+| **UX** | Priority dropdown auto-selects the AI suggestion. A small tooltip on the priority badge shows the reasoning (e.g., "Water damage can escalate quickly -- High recommended"). User can override. |
+| **Fallback** | Priority defaults to "Normal". No suggestion shown. |
+| **Default state** | Enabled |
+
+### 7.3 Duplicate Detection (AI ID #25)
+
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Finds potential duplicate or related open requests before saving |
+| **Trigger** | Pre-save check (runs after user clicks Submit, before the request is persisted) |
+| **Input** | New request title + description + unit ID. Compared against all open/in-progress requests for the same property. |
+| **Output** | List of 0-5 potential duplicates with similarity scores |
+| **Model** | Embeddings (for similarity search) + Haiku (for relevance ranking). $0.002/call. |
+| **UX** | If matches found (similarity > 75%): modal appears listing each match with reference number, title, status, similarity %. Buttons: "This is a new issue -- create anyway" (primary) or "View [SR-XXXX]" (link per match). If no matches: request saves normally, no modal. |
+| **Fallback** | No duplicate check. Request saves immediately on submit. |
+| **Default state** | Enabled |
+
+### 7.4 Vendor Recommendation (AI ID #26)
+
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Recommends the best vendor based on category match, past ratings, current workload, compliance status, and average cost |
+| **Trigger** | When opening the vendor assignment panel (and a category is already set) |
+| **Input** | Request category + vendor directory + compliance status + performance history + current open assignments |
+| **Output** | Top 3 vendor suggestions, each with a one-line reasoning |
+| **Model** | Sonnet ($0.005/call) |
+| **UX** | In the vendor dropdown, AI-recommended vendors appear at the top with a "Recommended" badge and reasoning text. Other vendors listed below. |
+| **Fallback** | Vendor dropdown shows all vendors alphabetically. No recommendation badges. |
+| **Default state** | Enabled |
+
+### 7.5 Cost Estimation (AI ID #31)
+
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Estimates repair cost range based on issue type, past similar repairs, and vendor pricing history |
+| **Trigger** | On demand -- user clicks "Estimate Cost" button on the request detail page |
+| **Input** | Request description + category + linked equipment + historical cost data for similar requests at this property |
+| **Output** | Low-high cost range + confidence percentage + basis statement |
+| **Model** | Sonnet ($0.005/call) |
+| **UX** | Card in AI Insights section: "$150 - $400 (72% confidence). Based on 47 similar plumbing repairs at this property." |
+| **Fallback** | "Estimate Cost" button hidden. No cost data shown. |
+| **Default state** | Disabled (opt-in via admin settings) |
+
+### 7.6 Predictive Maintenance (AI ID #33)
+
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Analyzes equipment maintenance history to predict upcoming failures and recommend preventive action |
+| **Trigger** | Weekly scheduled job (Wednesday 3:00 AM) |
+| **Input** | All equipment records + their maintenance request history + age + manufacturer data |
+| **Output** | Per-equipment failure risk score (0-100) + recommended maintenance action + urgency |
+| **Model** | Sonnet ($0.01/call) |
+| **UX** | Dashboard widget: "Equipment Risk Alerts" card listing high-risk items (score > 70). Click opens detail with recommended actions. |
+| **Fallback** | No prediction. Equipment shows only historical data. PM relies on scheduled maintenance. |
+| **Default state** | Disabled (requires v2 Equipment Tracking) |
+
+### 7.7 Workload Balancing (AI ID #30 related)
+
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Shows staff workload and suggests reassignment when load is imbalanced |
+| **Trigger** | When opening the employee assignment dropdown |
+| **Input** | Current open request count per staff member + priority distribution + estimated effort |
+| **Output** | Workload indicator per employee (light/moderate/heavy) |
+| **Model** | Haiku ($0.001/call) |
+| **UX** | Each employee in the dropdown shows a colored dot: Green (< 5 open), Amber (5-10 open), Red (> 10 open). Tooltip: "[Name] has 8 open requests (3 High, 2 Critical)". If all staff are overloaded, a banner suggests: "All staff have heavy workloads. Consider assigning to a vendor." |
+| **Fallback** | No workload indicators. Simple alphabetical staff list. |
+| **Default state** | Enabled |
+
+### 7.8 Closure Quality Check (AI ID #34 related)
+
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Reviews resolution notes before closure to ensure completeness and professionalism |
+| **Trigger** | When user changes status to "Closed" and enters resolution notes |
+| **Input** | Resolution notes text + original request description + category |
+| **Output** | Quality assessment (pass/needs improvement) + specific improvement suggestions |
+| **Model** | Haiku ($0.001/call) |
+| **UX** | If notes are too brief (< 20 chars) or vague: soft amber warning below the notes field. Example: "Consider adding: what was repaired, parts used, and whether follow-up is needed." User can proceed anyway or edit. Not blocking. |
+| **Fallback** | No quality check. Notes accepted as-is. |
+| **Default state** | Enabled |
+
+### 7.9 Damage Photo Analysis (AI ID #29)
+
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Analyzes uploaded photos to assess damage severity and suggest repair approaches |
+| **Trigger** | On photo upload (after file is saved) |
+| **Input** | Photo file + request description for context |
+| **Output** | Damage severity (minor/moderate/severe) + description + repair suggestion |
+| **Model** | GPT-4o Vision ($0.01/call) |
+| **UX** | Small card below the uploaded photo thumbnail: "AI Assessment: Moderate water damage to drywall. Recommended: Replace affected section, check for mold behind wall." Card is collapsible. |
+| **Fallback** | No analysis. Photos displayed as-is with no assessment. |
+| **Default state** | Disabled (opt-in) |
+
+### 7.10 Parts Suggestion (new capability)
+
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Suggests parts, materials, or tools likely needed based on the request details |
+| **Trigger** | On demand -- user clicks "Suggest Parts" button on detail page |
+| **Input** | Request description + category + equipment details (if linked) + historical parts data from similar requests |
+| **Output** | List of suggested parts with estimated quantities |
+| **Model** | Sonnet ($0.005/call) |
+| **UX** | Expandable card: "Suggested Parts: Faucet cartridge (1), Plumber's putty (1), Adjustable wrench". Staff can copy list to work order. |
+| **Fallback** | Button hidden. Staff determines parts manually. |
+| **Default state** | Disabled (opt-in) |
+
+### 7.11 Resolution Time Prediction (AI ID #27)
+
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Predicts how long the request will take to resolve |
+| **Trigger** | On request creation (after category and priority are set) |
+| **Input** | Category + priority + unit + historical resolution time data for similar requests |
+| **Output** | Estimated time range (hours or days) + confidence level |
+| **Model** | Haiku ($0.001/call) |
+| **UX** | Small text on detail page header area: "Estimated resolution: 2-3 business days (81% confidence)". Shown to staff and PM only -- not visible to residents. |
+| **Fallback** | No estimate shown. |
+| **Default state** | Enabled |
+
+### 7.12 Resident Satisfaction Prediction (new capability)
+
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Predicts how satisfied the resident will be based on the full request lifecycle |
+| **Trigger** | On request closure |
+| **Input** | Time-to-first-response, total resolution time, number of status changes, comment quality, predicted vs actual resolution time |
+| **Output** | Predicted satisfaction score (1.0-5.0) + risk factors |
+| **Model** | Haiku ($0.001/call) |
+| **UX** | Internal-only card on request detail (PM and Admin only): "Predicted satisfaction: 3.8/5. Risk: response time was 2x average." Not shown to residents or maintenance staff. |
+| **Fallback** | No prediction. |
+| **Default state** | Disabled (opt-in) |
+
+### AI Display Rules (All Capabilities)
+
+1. AI suggestions are **always non-blocking**. The user can ignore every suggestion and proceed normally.
+2. Suggestions appear as small chips or cards with a subtle sparkle icon in `--text-tertiary` color. No "AI-powered" branding or badges.
+3. If the AI provider is unavailable, suggestion areas simply do not render. No error messages. The form works identically without AI.
+4. Confidence scores displayed only when above 70%. Below 70%, no suggestion is made.
+5. Every AI suggestion interaction (shown, accepted, rejected, overridden) is logged for acceptance-rate analytics.
+6. Features with acceptance rate below 60% for 30 consecutive days are flagged for review in the AI Dashboard.
 
 ---
 
 ## 8. Analytics
 
-### 8.1 Operational Metrics (What Happened)
+### 8.1 Operational Metrics (Real-Time Dashboard)
 
-| Metric | Calculation | Displayed On |
-|--------|-------------|--------------|
-| **Open requests** | Count where status = Open | Dashboard KPI card, listing page header |
-| **On hold requests** | Count where status = On Hold | Dashboard KPI card |
-| **Avg. time to close** | Average (closed_date - created_at) for requests closed in the period | Dashboard KPI card, Reports |
-| **Requests by category** | Count grouped by category | Bar chart on dashboard, Reports |
-| **Requests by unit** | Count grouped by unit | Reports |
-| **Requests by priority** | Count grouped by priority | Pie chart on dashboard, Reports |
-| **Requests by status** | Count grouped by status | Reports |
-| **Overdue requests** | Count where status = Open AND age > threshold (default 30 days) | Dashboard KPI card (red if > 0) |
-| **Requests created per day/week/month** | Count grouped by created_at period | Line chart on dashboard, Reports |
+| Metric | Calculation | Display | Who Sees |
+|--------|-------------|---------|----------|
+| Open Requests | Count where status = open | Large number KPI card | PM, Admin |
+| In Progress | Count where status = in_progress | Large number KPI card | PM, Admin |
+| On Hold | Count where status = on_hold | Large number KPI card | PM, Admin |
+| Unassigned | Count where status IN (open, in_progress) AND assigned_employee = null AND assigned_vendor = null | Large number (amber if > 0) | PM, Admin |
+| Urgent | Count where urgency_flag = true AND status != closed | Large number (red if > 0) | PM, Admin |
+| Overdue | Count where status IN (open, in_progress) AND age > SLA threshold | Large number (red if > 0) | PM, Admin |
+| Avg. Response Time | Mean time from created_at to first status change away from "open" | Hours or days | PM, Admin, Board |
+| Avg. Resolution Time | Mean time from created_at to status = closed | Hours or days | PM, Admin, Board |
 
-### 8.2 Performance Metrics (How Well)
+### 8.2 Performance Reports
 
-| Metric | Calculation | Displayed On |
-|--------|-------------|--------------|
-| **First response time** | Time from creation to first staff comment | Reports |
-| **Resolution rate** | (Closed in period / Created in period) x 100 | Dashboard KPI card, Reports |
-| **Employee workload** | Count of open requests per assigned employee | Reports, Manager dashboard |
-| **Vendor performance** | Avg. resolution time per vendor | Reports |
-| **Reopen rate** | (Reopened count / Total closed) x 100 | Reports |
-| **SLA compliance** | % of requests closed within priority-based SLA targets | Reports |
+| Report | Contents | Frequency | Who Sees | Export |
+|--------|----------|-----------|----------|--------|
+| Request Volume | Requests created per day/week/month, grouped by category, unit, or priority. Line and bar charts. | Weekly, Monthly | PM, Admin, Board | Excel, PDF |
+| Resolution Time | Average, median, P90 resolution time by category and priority. Trend line over time. | Weekly, Monthly | PM, Admin | Excel, PDF |
+| Staff Workload | Requests per employee, resolution rate, avg handle time. Ranked table. | Weekly | PM, Admin | Excel, PDF |
+| Category Breakdown | Pie chart and table of requests by category. Identifies top problem areas. | Monthly | PM, Admin, Board | Excel, PDF |
+| Vendor Performance | Requests per vendor, avg resolution time, avg cost, compliance status. | Monthly | PM, Admin | Excel, PDF |
+| Recurring Issues | Units or equipment with 3+ requests in the same category within 90 days. | Monthly | PM, Admin | Excel, PDF |
+| SLA Compliance | Percentage of requests resolved within SLA by priority level. Traffic light indicators. | Weekly, Monthly | PM, Admin, Board | Excel, PDF |
+| Cost Summary | Total maintenance spend by category, vendor, and period. Budget vs. actual (v3). | Monthly | PM, Admin, Board | Excel, PDF |
 
-### 8.3 AI Insight Metrics
+### 8.3 AI Analytics
 
-| Metric | Source | Displayed On |
-|--------|--------|--------------|
-| **Category suggestion acceptance rate** | AI capability #23 tracking | AI dashboard (Super Admin) |
-| **Priority suggestion acceptance rate** | AI capability #24 tracking | AI dashboard |
-| **Duplicate detection hit rate** | AI capability #25 tracking | AI dashboard |
-| **Recurring issue alerts** | AI capability #30 output | Property Manager dashboard card |
-| **Cost estimation accuracy** | AI capability #31 vs. actual cost (when tracked) | AI dashboard |
-| **Predicted equipment failures** | AI capability #33 output (v2) | Equipment dashboard |
-
-### 8.4 SLA Targets (Configurable per Property)
-
-| Priority | Default Target | Configurable |
-|----------|---------------|--------------|
-| Critical | 4 hours | Yes, in Settings > Maintenance > SLA |
-| High | 24 hours | Yes |
-| Normal | 5 business days | Yes |
-| Low | 15 business days | Yes |
-
-Requests exceeding their SLA target are flagged as "Overdue" in the listing with a red badge. The Property Manager receives a daily digest of overdue requests.
+| Metric | Calculation | Target | Purpose |
+|--------|-------------|--------|---------|
+| Category suggestion acceptance rate | Accepted / Total suggestions shown | > 80% | Is the AI categorizing accurately? |
+| Priority suggestion acceptance rate | Accepted / Total suggestions shown | > 75% | Are priority recommendations useful? |
+| Duplicate detection true positive rate | Confirmed duplicates / Total flagged | > 70% | Is the AI finding real duplicates? |
+| Vendor recommendation acceptance rate | AI-recommended vendor selected / Total recommendations | > 60% | Are vendor suggestions helpful? |
+| Cost estimate accuracy | Mean absolute % error between estimate and actual | < 30% | Are cost estimates useful for budgeting? |
+| Resolution time prediction accuracy | Mean absolute % error between predicted and actual | < 25% | Is the prediction helpful for setting expectations? |
+| AI feature usage rate | Requests with at least one AI interaction / Total requests | > 80% | Are users engaging with AI features? |
 
 ---
 
 ## 9. Notifications
 
-### 9.1 Notification Triggers
+### 9.1 Notification Events
 
-| Event | Recipients | Channels | Template |
-|-------|------------|----------|----------|
-| **Request created (by resident)** | Property Manager, Assigned Employee (if set) | Email, Push | "New service request: [title] from [resident_name] (Unit [unit]). Priority: [priority]." |
-| **Request created (by staff)** | Resident (unless hidden) | Email, Push | "A service request has been created for your unit: [title]. Reference: [reference_number]." |
-| **Status changed** | Resident (unless hidden), Assigned Employee, Email notification list | Email, Push | "Service request [reference_number] status changed to [new_status]." |
-| **Comment added** | Resident (unless comment is hidden), Assigned Employee, Email notification list | Email | "New comment on [reference_number]: [first 100 chars of comment]" |
-| **Employee assigned** | Assigned Employee | Email, Push | "You have been assigned to service request [reference_number]: [title]." |
-| **Vendor assigned** | Vendor contact email | Email | "You have been assigned to a service request at [property_name]. Reference: [reference_number]. Details: [title]." |
-| **High urgency flagged** | Property Manager, Assigned Employee | Email, Push, SMS (if configured) | "URGENT: Service request [reference_number] has been flagged as high urgency. [title]." |
-| **Hold expiry reached** | Assigned Employee, Property Manager | Email, Push | "Service request [reference_number] has come off hold and is now Open. Please review." |
-| **Overdue reminder** | Assigned Employee, Property Manager | Email | "Reminder: Service request [reference_number] has been open for [N] days without update." |
-| **Request closed** | Resident (unless hidden) | Email, Push | "Your service request [reference_number] has been resolved. If the issue persists, please submit a new request." |
+| Event | Default Channels | Recipients | Template Preview |
+|-------|-----------------|------------|-----------------|
+| Request Created (by resident) | Email + Push | Property Manager, Assigned Employee (if set) | "New service request from Unit [UNIT]: [TITLE]. Priority: [PRIORITY]. Ref: [REF]." |
+| Request Created (by staff) | Email | Resident (if unit-linked) | "A service request has been created for your unit: [TITLE]. Reference: [REF]. We'll keep you updated." |
+| Status Changed to In Progress | Email + Push | Resident | "Your request [REF] is now being worked on. [CUSTOM_MESSAGE]" |
+| Status Changed to On Hold | Email | Resident | "Your request [REF] has been placed on hold. Reason: [REASON]. We'll resume as soon as possible." |
+| Status Changed to Closed | Email | Resident | "Your request [REF] has been resolved. [RESOLUTION_NOTES]. If the issue persists, submit a new request." |
+| Comment Added (by staff) | Email + Push | Resident | "Update on your request [REF]: [COMMENT_PREVIEW]" |
+| Comment Added (by resident) | Push | Assigned Employee, PM | "New comment from [RESIDENT] on [REF]: [COMMENT_PREVIEW]" |
+| Employee Assigned | Email + Push | Assigned Employee | "You have been assigned to [REF]: [TITLE]. Priority: [PRIORITY]." |
+| Vendor Assigned | Email | Vendor primary contact | "You have been assigned to request [REF] at [PROPERTY]. [WORK_ORDER_PDF_LINK if generated]." |
+| Urgency Flag Set | Push + SMS (if configured) | Property Manager, Assigned Employee | "URGENT: Request [REF] flagged as urgent. [TITLE]. Immediate attention required." |
+| Overdue Alert | Push | Property Manager | "[N] service requests are overdue. [REF_LIST]. Please review." |
+| Vendor Compliance Expiring (v2) | Email | Property Manager, Vendor | "[VENDOR]'s [DOCUMENT_TYPE] expires on [DATE]. Please renew to maintain compliance." |
 
-### 9.2 Notification Preferences
+### 9.2 Resident Notification Preferences
 
-Residents can configure their maintenance notification preferences in My Account > Email Preferences:
+Residents control their maintenance notification preferences at My Account > Notification Preferences:
 
-| Setting | Options | Default |
-|---------|---------|---------|
-| Request status updates | On / Off | On |
-| New comments | On / Off | On |
-| Preferred channel | Email / Push / Both | Both |
+| Notification Type | Default | Options | Can Disable? |
+|-------------------|---------|---------|-------------|
+| Request confirmation (on create) | Email | Email, Push, Both, Off | Yes |
+| Status updates | Email + Push | Email, Push, Both, Off | Yes |
+| Comments from staff | Push | Email, Push, Both, Off | Yes |
+| Resolution notification | Email | Email only | No (always sent) |
 
-Staff notification preferences are managed by the Property Admin in Settings > Notifications.
+Staff notification preferences are managed by Property Admin. Assignment and urgency notifications cannot be disabled for staff roles.
 
-### 9.3 Notification Rate Limits
+### 9.3 Escalation Rules
 
-| Rule | Detail |
-|------|--------|
-| Maximum emails per request per hour | 5 (to prevent spam during rapid updates) |
-| Batch digest option | Staff can opt to receive a daily digest (8:00 AM) instead of individual notifications for non-urgent requests |
-| Quiet hours | Notifications suppressed 10 PM - 7 AM (except high urgency and critical priority). Configurable per property. |
+| Condition | Action | Delay | Configurable |
+|-----------|--------|-------|-------------|
+| Urgent request unassigned | Push notification to PM | 30 minutes | Yes (15 min - 2 hours) |
+| High-priority request unassigned | Push notification to PM | 2 hours | Yes (1 - 8 hours) |
+| Normal-priority request unassigned | Push notification to PM | 24 hours | Yes (4 - 72 hours) |
+| Request open beyond SLA threshold | Email + Push to PM | At SLA threshold | Yes (per priority level) |
+| Request open beyond 2x SLA | Email + Push to Property Admin | At 2x SLA | Yes |
+| Vendor non-responsive (no activity after assignment) | Push to PM + AI suggests alternative vendor | 48 hours | Yes (24 - 72 hours) |
+
+**Default SLA Thresholds** (configurable per property at Settings > Maintenance > SLA):
+
+| Priority | First Response SLA | Resolution SLA |
+|----------|-------------------|----------------|
+| Critical | 1 hour | 24 hours |
+| High | 4 hours | 48 hours |
+| Normal | 24 hours | 7 days |
+| Low | 48 hours | 14 days |
 
 ---
 
@@ -986,231 +1415,282 @@ Staff notification preferences are managed by the Property Admin in Settings > N
 
 ### 10.1 Endpoints
 
-| Method | Path | Description | Auth | Rate Limit |
-|--------|------|-------------|------|------------|
-| `GET` | `/api/v1/maintenance` | List all requests (paginated, filterable) | Bearer token | 60/min |
-| `GET` | `/api/v1/maintenance/:id` | Get request detail | Bearer token | 120/min |
-| `POST` | `/api/v1/maintenance` | Create a new request | Bearer token | 30/min |
-| `PATCH` | `/api/v1/maintenance/:id` | Update a request (partial update) | Bearer token | 60/min |
-| `DELETE` | `/api/v1/maintenance/:id` | Soft-delete a request | Bearer token | 10/min |
-| `POST` | `/api/v1/maintenance/:id/comments` | Add a comment | Bearer token | 30/min |
-| `GET` | `/api/v1/maintenance/:id/comments` | List comments for a request | Bearer token | 120/min |
-| `POST` | `/api/v1/maintenance/:id/attachments` | Upload an attachment | Bearer token | 20/min |
-| `DELETE` | `/api/v1/maintenance/:id/attachments/:attachment_id` | Remove an attachment | Bearer token | 10/min |
-| `GET` | `/api/v1/maintenance/:id/audit-log` | Get the activity timeline | Bearer token | 60/min |
-| `GET` | `/api/v1/maintenance/export` | Export requests as Excel | Bearer token | 5/min |
-| `GET` | `/api/v1/maintenance/categories` | List all categories for the property | Bearer token | 60/min |
-| `GET` | `/api/v1/maintenance/:id/work-order` | Generate a printable work order (PDF) | Bearer token | 10/min |
-| `POST` | `/api/v1/maintenance/:id/ai/suggest-category` | Get AI category suggestion | Bearer token | 30/min |
-| `POST` | `/api/v1/maintenance/:id/ai/suggest-priority` | Get AI priority suggestion | Bearer token | 30/min |
-| `POST` | `/api/v1/maintenance/:id/ai/check-duplicates` | Check for duplicate requests | Bearer token | 10/min |
-| `POST` | `/api/v1/maintenance/:id/ai/estimate-cost` | Get AI cost estimation | Bearer token | 10/min |
+| Method | Path | Description | Authorized Roles |
+|--------|------|-------------|-----------------|
+| `POST` | `/api/v1/properties/{propertyId}/maintenance-requests` | Create a new service request | PM, Admin, Resident (own unit only) |
+| `GET` | `/api/v1/properties/{propertyId}/maintenance-requests` | List requests (filtered, paginated, sorted) | PM, Admin, Maintenance Staff (assigned only), Board (read-only) |
+| `GET` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}` | Get single request detail | PM, Admin, Maintenance Staff (if assigned), Resident (if own) |
+| `PATCH` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}` | Update request fields | PM, Admin, Maintenance Staff (status + comments only) |
+| `DELETE` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}` | Soft-delete request | Admin only |
+| `POST` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/comments` | Add a comment | PM, Admin, Maintenance Staff, Resident (own request) |
+| `POST` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/attachments` | Upload photo or document | PM, Admin, Maintenance Staff, Resident (own request) |
+| `DELETE` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/attachments/{attachmentId}` | Remove an attachment | PM, Admin |
+| `POST` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/assign` | Assign employee and/or vendor | PM, Admin |
+| `POST` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/status` | Change status with reason/resolution | PM, Admin, Maintenance Staff |
+| `POST` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/work-order` | Generate work order PDF | PM, Admin, Maintenance Staff |
+| `GET` | `/api/v1/properties/{propertyId}/maintenance-categories` | List all categories | All authenticated users |
+| `POST` | `/api/v1/properties/{propertyId}/maintenance-categories` | Create a category | Admin only |
+| `PATCH` | `/api/v1/properties/{propertyId}/maintenance-categories/{categoryId}` | Update a category | Admin only |
+| `DELETE` | `/api/v1/properties/{propertyId}/maintenance-categories/{categoryId}` | Deactivate a category (soft delete) | Admin only |
+| `GET` | `/api/v1/properties/{propertyId}/maintenance-requests/analytics` | Analytics summary data | PM, Admin, Board (read-only) |
+| `GET` | `/api/v1/properties/{propertyId}/response-templates` | List response templates | PM, Admin, Maintenance Staff |
+| `POST` | `/api/v1/properties/{propertyId}/response-templates` | Create a template | PM, Admin |
+| `GET` | `/api/v1/residents/me/maintenance-requests` | Current resident's own requests | Any resident role |
 
-### 10.2 List Endpoint Query Parameters
+### 10.2 Request/Response Examples
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `page` | Integer | 1 | Page number |
-| `per_page` | Integer | 25 | Items per page (max 100) |
-| `status` | Enum | all | Filter by status: open, on_hold, closed, all |
-| `priority` | Enum | all | Filter by priority: low, normal, high, critical, all |
-| `category_id` | UUID | -- | Filter by category |
-| `assigned_employee_id` | UUID | -- | Filter by assigned employee |
-| `assigned_vendor_id` | UUID | -- | Filter by assigned vendor |
-| `unit_id` | UUID | -- | Filter by unit |
-| `search` | String | -- | Full-text search across title, description, reference number, unit, resident name |
-| `date_from` | Date (ISO 8601) | 30 days ago | Start of date range |
-| `date_to` | Date (ISO 8601) | today | End of date range |
-| `sort_by` | String | created_at | Sort field: created_at, priority, status, category, assignee, last_comment |
-| `sort_dir` | Enum | desc | Sort direction: asc, desc |
-| `high_urgency` | Boolean | -- | Filter for high urgency requests only |
-| `hide_from_resident` | Boolean | -- | Filter for internal-only requests (staff only) |
+#### Create Request (Staff)
 
-### 10.3 Create Request Payload
+**Request**:
+```http
+POST /api/v1/properties/prop-abc123/maintenance-requests
+Content-Type: application/json
+Authorization: Bearer {token}
 
-```json
 {
-  "building_id": "uuid",
-  "unit_id": "uuid | null",
-  "requested_by": "uuid",
-  "title": "string (5-200 chars, required)",
-  "description": "string (0-4000 chars)",
-  "category_id": "uuid (required)",
-  "permission_to_enter": "boolean (required)",
-  "entry_instructions": "string (0-1000 chars, only if permission_to_enter is true)",
-  "hide_from_resident": "boolean (default: false)",
-  "assigned_employee_id": "uuid | null",
-  "assigned_vendor_id": "uuid | null",
-  "equipment_id": "uuid | null",
-  "date_requested": "date (ISO 8601, required, default: today)",
-  "priority": "low | normal | high | critical (default: normal)",
-  "high_urgency": "boolean (default: false)",
-  "initial_status": "open | on_hold | closed (default: open)",
-  "hold_until_date": "date | null (required if initial_status is on_hold)",
-  "hold_reason": "string (0-500 chars, required if initial_status is on_hold)",
-  "closed_date": "date | null (required if initial_status is closed)",
-  "resolution_notes": "string (0-2000 chars)",
-  "contact_numbers": "string (0-100 chars)",
-  "email_notifications": ["email1@example.com"],
-  "additional_emails": ["email2@example.com"],
-  "reference_number_external": "string (0-50 chars)",
-  "print_work_order": "boolean (default: false)"
+  "unit_id": "unit-456",
+  "resident_id": "user-789",
+  "title": "Leaking faucet in kitchen",
+  "description": "Kitchen faucet drips constantly from the handle base. Water pooling under sink cabinet.",
+  "category_id": "cat-plumbing-leak",
+  "priority": "high",
+  "urgency_flag": false,
+  "permission_to_enter": "yes",
+  "entry_instructions": "Lockbox code: 4321. Small cat in unit, keep door closed.",
+  "assigned_employee_id": "staff-101",
+  "scheduled_date": "2026-03-16",
+  "status": "open"
 }
 ```
 
-### 10.4 Response Format
-
-All responses follow the standard Concierge API envelope:
-
+**Response** (201 Created):
 ```json
 {
-  "success": true,
-  "data": { ... },
-  "meta": {
-    "page": 1,
-    "per_page": 25,
-    "total": 342,
-    "total_pages": 14
-  },
-  "errors": []
-}
-```
-
-Error responses:
-
-```json
-{
-  "success": false,
-  "data": null,
-  "meta": {},
-  "errors": [
-    {
-      "field": "title",
-      "code": "required",
-      "message": "Title must be between 5 and 200 characters"
+  "id": "mr-uuid-001",
+  "reference_number": "SR-2026-00089",
+  "status": "open",
+  "priority": "high",
+  "created_at": "2026-03-14T14:30:00Z",
+  "ai_metadata": {
+    "category_suggestion": {
+      "suggested_category_id": "cat-plumbing-leak",
+      "confidence": 0.95,
+      "accepted": true
+    },
+    "priority_suggestion": {
+      "suggested_priority": "high",
+      "reasoning": "Active water leak can cause structural damage if delayed",
+      "confidence": 0.89
+    },
+    "resolution_time_prediction": {
+      "estimated_hours": 48,
+      "confidence": 0.81
     }
+  },
+  "links": {
+    "self": "/api/v1/properties/prop-abc123/maintenance-requests/mr-uuid-001",
+    "comments": "/api/v1/properties/prop-abc123/maintenance-requests/mr-uuid-001/comments",
+    "attachments": "/api/v1/properties/prop-abc123/maintenance-requests/mr-uuid-001/attachments"
+  }
+}
+```
+
+**Error Response** (400 Bad Request):
+```json
+{
+  "error": "validation_error",
+  "message": "Request validation failed",
+  "details": [
+    { "field": "title", "code": "too_short", "message": "Title must be between 5 and 200 characters" },
+    { "field": "category_id", "code": "required", "message": "Please select a category" }
   ]
 }
 ```
 
-### 10.5 Role-Based API Filtering
+**Error Response** (403 Forbidden):
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have permission to create requests for this unit"
+}
+```
 
-The API automatically filters responses based on the authenticated user's role:
+#### List Requests (Filtered + Paginated)
 
-| Role | What They See | What Is Filtered Out |
-|------|---------------|---------------------|
-| Resident (Owner/Tenant) | Own requests only (where requested_by = self OR unit_id = own unit) | Other residents' requests, hidden requests, internal comments, audit log, vendor details |
-| Family Member | Own unit's requests (read-only) | Everything filtered from residents, plus cannot create or comment |
-| Maintenance Staff | Assigned requests + unassigned requests | Hidden from resident flag (they see all), financial data |
-| Concierge / Front Desk | Cannot access maintenance API | -- |
-| Security Guard | Cannot access maintenance API | -- |
-| Property Manager | All requests for the property | Nothing filtered |
-| Board Member | Summary/aggregate data only (for reports) | Individual request details, comments, attachments |
-| Property Admin / Super Admin | All requests for the property (or all properties) | Nothing filtered |
+**Request**:
+```http
+GET /api/v1/properties/prop-abc123/maintenance-requests?status=open,in_progress&priority=high,critical&assigned_employee_id=staff-101&sort=priority_desc&page=1&per_page=25
+Authorization: Bearer {token}
+```
+
+**Response** (200 OK):
+```json
+{
+  "data": [
+    {
+      "id": "mr-uuid-001",
+      "reference_number": "SR-2026-00089",
+      "title": "Leaking faucet in kitchen",
+      "unit": { "number": "1205", "building": "Main" },
+      "resident": { "name": "Sarah Chen" },
+      "category": { "id": "cat-plumbing-leak", "name": "Plumbing -- Leak" },
+      "status": "open",
+      "priority": "high",
+      "urgency_flag": false,
+      "assigned_employee": { "id": "staff-101", "name": "John Smith" },
+      "assigned_vendor": null,
+      "attachment_count": 2,
+      "comment_count": 1,
+      "created_at": "2026-03-14T14:30:00Z",
+      "updated_at": "2026-03-14T15:10:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 25,
+    "total_items": 47,
+    "total_pages": 2
+  },
+  "filters_applied": {
+    "status": ["open", "in_progress"],
+    "priority": ["high", "critical"],
+    "assigned_employee_id": "staff-101"
+  }
+}
+```
+
+### 10.3 Rate Limits
+
+| Endpoint Pattern | Rate Limit | Per |
+|-----------------|------------|-----|
+| `POST .../maintenance-requests` | 30 requests/min | Per user |
+| `GET .../maintenance-requests` (list) | 120 requests/min | Per user |
+| `POST .../attachments` | 20 uploads/min | Per user |
+| `POST .../work-order` | 10 requests/min | Per user |
+| `GET .../analytics` | 30 requests/min | Per user |
+| `GET /residents/me/maintenance-requests` | 60 requests/min | Per user |
+
+When rate limited, the API returns `429 Too Many Requests` with a `Retry-After` header (seconds).
+
+### 10.4 Webhooks
+
+External integrations can subscribe to maintenance events:
+
+| Event | Payload |
+|-------|---------|
+| `maintenance.request.created` | Full request object |
+| `maintenance.request.status_changed` | Request ID + old status + new status + changed_by + timestamp |
+| `maintenance.request.assigned` | Request ID + assignee type (employee/vendor) + assignee details |
+| `maintenance.request.closed` | Full request object + resolution_notes |
+| `maintenance.request.comment_added` | Request ID + comment object |
+| `maintenance.vendor.compliance_expiring` | Vendor ID + document type + expiry date (v2) |
 
 ---
 
 ## 11. Completeness Checklist
 
-### Functional Requirements
+### Core (v1) Requirements
 
 | # | Requirement | Section | Status |
 |---|-------------|---------|--------|
-| 1 | Service request listing with filters, sort, pagination, inline preview | 3.1 | Specified |
-| 2 | Two-column create form with 25 fields fully specified | 3.2 | Specified |
-| 3 | 43 categories (33 common area + 10 in-suite) listed | 3.3 | Specified |
-| 4 | Three-state status workflow (Open, On Hold, Closed) with transition rules | 3.4 | Specified |
-| 5 | Photo attachments (JPG/PNG/BMP/GIF/HEIC, 4MB, max 10) | 3.2 (field 9) | Specified |
-| 6 | Document attachments (PDF/DOC/DOCX/XLS/XLSX, 4MB, max 5) | 3.2 (field 10) | Specified |
-| 7 | Vendor assignment with dropdown | 3.2 (field 13), 5.2 | Specified |
-| 8 | Employee assignment with dropdown | 3.2 (field 12), 5.2 | Specified |
-| 9 | Equipment linkage (v2) | 3.2 (field 14), 3.11 | Specified |
-| 10 | Print work order with contents defined | 3.9 | Specified |
-| 11 | 7 predefined response templates | 3.7 | Specified |
-| 12 | Comments with hide-from-resident toggle | 3.7 | Specified |
-| 13 | Activity timeline / audit log | 3.8 | Specified |
-| 14 | High urgency flag with behaviors | 3.10 | Specified |
-| 15 | Permission to enter with instructions field | 3.2 (fields 7-8) | Specified |
-| 16 | Email notifications configuration | 3.2 (fields 22-23), 9.1 | Specified |
-| 17 | Export to Excel | 3.1, 10.1 | Specified |
-| 18 | Bulk actions (assign, status change, priority change) | 3.1 | Specified |
-| 19 | Role-based access and filtering | 5.x, 10.5 | Specified |
-| 20 | Soft delete with confirmation dialog | 3.5 | Specified |
+| 1 | Service request creation -- staff form (22 fields) | 3.1.1 | Specified |
+| 2 | Service request creation -- resident form (9 fields) | 3.1.1 | Specified |
+| 3 | 43 configurable categories with admin management | 3.1.5 | Specified |
+| 4 | Request listing with card and table views | 3.1.2 | Specified |
+| 5 | Multi-field filtering (9 filter types) and sorting | 3.1.2 | Specified |
+| 6 | Request detail view with progressive disclosure (8 sections) | 3.1.3 | Specified |
+| 7 | Status change workflow with predefined responses | 3.1.3, 3.1.6 | Specified |
+| 8 | Immutable activity timeline (16 event types) | 3.1.4 | Specified |
+| 9 | Photo uploads (JPG/PNG/GIF/HEIC, 4 MB, max 10) | 3.1.1 | Specified |
+| 10 | Document uploads (PDF/DOC/XLS, 4 MB, max 5) | 3.1.1 | Specified |
+| 11 | Vendor assignment with compliance warnings | 3.1.8 | Specified |
+| 12 | Equipment linkage with history display | 3.1.9 | Specified |
+| 13 | Work order PDF generation | 3.1.7 | Specified |
+| 14 | Priority system (4 levels) + urgency flag | 3.1.1 | Specified |
+| 15 | Permission-to-enter with entry instructions | 3.1.1 | Specified |
+| 16 | Bulk actions (6 actions) in table view | 3.1.2 | Specified |
+| 17 | Export to Excel and PDF | 3.1.2 | Specified |
+| 18 | Predefined response templates (6 defaults) | 3.1.6 | Specified |
+| 19 | Internal notes (staff-only, hidden from residents) | 3.1.1, 3.1.3 | Specified |
+| 20 | Auto-generated reference numbers | 1 (Key Facts) | Specified |
 
-### v2 Requirements
-
-| # | Requirement | Section | Status |
-|---|-------------|---------|--------|
-| 21 | Equipment tracking with lifecycle management | 3.11 | Specified |
-| 22 | Inspection checklists (mobile-first) | 3.12 | Specified |
-| 23 | Recurring tasks with forecast | 3.13 | Specified |
-| 24 | Vendor compliance dashboard (5-status) | 3.14 | Specified |
-
-### AI Requirements
-
-| # | Capability | AI ID | Section | Status |
-|---|------------|-------|---------|--------|
-| 25 | Auto-categorization | 23 | 7.1 | Specified |
-| 26 | Priority suggestion | 24 | 7.1 | Specified |
-| 27 | Duplicate detection | 25 | 7.1 | Specified |
-| 28 | Vendor auto-suggestion | 26 | 7.1 | Specified |
-| 29 | Time-to-resolution estimation | 27 | 7.1 | Specified |
-| 30 | Work order generation | 28 | 7.1 | Specified |
-| 31 | Photo-based damage assessment | 29 | 7.1 | Specified |
-| 32 | Recurring issue detection | 30 | 7.1 | Specified |
-| 33 | Cost estimation | 31 | 7.1 | Specified |
-| 34 | Response template generation | 32 | 7.1 | Specified |
-| 35 | Equipment failure prediction | 33 | 7.1 | Specified |
-| 36 | Request description enhancement | 34 | 7.1 | Specified |
-
-### Design Requirements
+### Enhanced (v2) Requirements
 
 | # | Requirement | Section | Status |
 |---|-------------|---------|--------|
-| 37 | Apple-grade design system compliance | 6.x | Specified |
-| 38 | Two-column form layout | 6.2 | Specified |
-| 39 | Responsive behavior (desktop, tablet, mobile) | 6.4 | Specified |
-| 40 | Empty states for all scenarios | 6.5 | Specified |
-| 41 | Role-aware navigation and visibility | 5.x, 10.5 | Specified |
-| 42 | Accessible (44px touch targets, label placement, error states) | 6.x, 3.2 | Specified |
+| 21 | Recurring tasks with forecast view | 3.2.1 | Specified |
+| 22 | Inspections with checklist builder (6 defaults) | 3.2.2 | Specified |
+| 23 | Equipment tracking with lifecycle management | 3.2.3 | Specified |
+| 24 | Equipment replacement report | 3.2.3 | Specified |
+| 25 | Vendor compliance dashboard (5-status cards) | 3.2.4 | Specified |
+| 26 | Automated compliance alerts | 3.2.4 | Specified |
+| 27 | Alteration projects with permits and deposits | 3.2.5 | Specified |
+| 28 | Momentum indicator for alterations | 3.2.5 | Specified |
 
-### Data Requirements
+### AI Capabilities (12 total)
 
-| # | Requirement | Section | Status |
-|---|-------------|---------|--------|
-| 43 | MaintenanceRequest entity fully defined | 4.1 | Specified |
-| 44 | MaintenanceComment entity fully defined | 4.2 | Specified |
-| 45 | MaintenanceCategory entity fully defined | 4.3 | Specified |
-| 46 | Attachment entity fully defined | 4.4 | Specified |
-| 47 | All relationships mapped | 4.5 | Specified |
+| # | AI Feature | AI Framework ID | Section | Default |
+|---|------------|----------------|---------|---------|
+| 29 | Auto-Categorization | #23 | 7.1 | Enabled |
+| 30 | Priority Suggestion | #24 | 7.2 | Enabled |
+| 31 | Duplicate Detection | #25 | 7.3 | Enabled |
+| 32 | Vendor Recommendation | #26 | 7.4 | Enabled |
+| 33 | Cost Estimation | #31 | 7.5 | Disabled |
+| 34 | Predictive Maintenance | #33 | 7.6 | Disabled |
+| 35 | Workload Balancing | #30 | 7.7 | Enabled |
+| 36 | Closure Quality Check | #34 | 7.8 | Enabled |
+| 37 | Damage Photo Analysis | #29 | 7.9 | Disabled |
+| 38 | Parts Suggestion | new | 7.10 | Disabled |
+| 39 | Resolution Time Prediction | #27 | 7.11 | Enabled |
+| 40 | Resident Satisfaction Prediction | new | 7.12 | Disabled |
 
-### API Requirements
-
-| # | Requirement | Section | Status |
-|---|-------------|---------|--------|
-| 48 | 17 API endpoints defined | 10.1 | Specified |
-| 49 | Query parameters for list endpoint | 10.2 | Specified |
-| 50 | Create payload with all fields | 10.3 | Specified |
-| 51 | Standard response envelope | 10.4 | Specified |
-| 52 | Role-based API filtering | 10.5 | Specified |
-
-### Notification Requirements
-
-| # | Requirement | Section | Status |
-|---|-------------|---------|--------|
-| 53 | 10 notification triggers defined | 9.1 | Specified |
-| 54 | Resident notification preferences | 9.2 | Specified |
-| 55 | Rate limits and quiet hours | 9.3 | Specified |
-
-### Analytics Requirements
+### UX Requirements
 
 | # | Requirement | Section | Status |
 |---|-------------|---------|--------|
-| 56 | 9 operational metrics | 8.1 | Specified |
-| 57 | 6 performance metrics | 8.2 | Specified |
-| 58 | 6 AI insight metrics | 8.3 | Specified |
-| 59 | Configurable SLA targets | 8.4 | Specified |
+| 41 | Desktop layout (1280px+) | 6.1 | Specified |
+| 42 | Tablet layout (768-1279px) | 6.2 | Specified |
+| 43 | Mobile layout (< 768px) | 6.3 | Specified |
+| 44 | Loading states for all components (8 types) | 6.4 | Specified |
+| 45 | Error states for all failure scenarios (10 types) | 6.5 | Specified |
+| 46 | Empty states with guidance and CTAs (9 contexts) | 6.6 | Specified |
+| 47 | Accessibility -- WCAG AA compliance | 6.7 | Specified |
+| 48 | Tooltips for complex features | 3.1.1 | Specified |
+| 49 | Progressive disclosure on detail view | 3.1.3 | Specified |
+| 50 | Color-coded status and priority badges | 3.1.2 | Specified |
+
+### Data and API
+
+| # | Requirement | Section | Status |
+|---|-------------|---------|--------|
+| 51 | Full data model with types, lengths, defaults, validations | 4 | Specified |
+| 52 | AI metadata JSONB structure with examples | 4.3 | Specified |
+| 53 | REST API endpoints (19 endpoints) | 10.1 | Specified |
+| 54 | Request/response examples with error cases | 10.2 | Specified |
+| 55 | Rate limits per endpoint | 10.3 | Specified |
+| 56 | Webhook events (6 event types) | 10.4 | Specified |
+| 57 | Role-based API authorization per endpoint | 10.1 | Specified |
+
+### Notifications
+
+| # | Requirement | Section | Status |
+|---|-------------|---------|--------|
+| 58 | Multi-channel notifications (Email, Push, SMS) | 9.1 | Specified |
+| 59 | 12 notification event types with templates | 9.1 | Specified |
+| 60 | Resident notification preferences (4 types) | 9.2 | Specified |
+| 61 | Escalation rules with configurable thresholds | 9.3 | Specified |
+| 62 | SLA thresholds per priority level | 9.3 | Specified |
+
+### Analytics
+
+| # | Requirement | Section | Status |
+|---|-------------|---------|--------|
+| 63 | Real-time operational dashboard (8 metrics) | 8.1 | Specified |
+| 64 | Performance reports (8 report types) | 8.2 | Specified |
+| 65 | AI analytics (7 tracked metrics) | 8.3 | Specified |
+
+**Total requirements: 65** | **All specified: Yes**
 
 ---
 
-*Total: 59 requirements specified across 11 sections. 690+ lines.*
+*End of document.*
