@@ -197,6 +197,67 @@
 
 ---
 
+## Rule 12: Data Security, PII Encryption & Multi-Framework Compliance
+
+**Why:** Concierge is a multi-tenant SaaS platform handling PII from multiple buildings, multiple property management companies, and multiple boards of directors. Each has sensitive incident reports, financial data, legal documents, and personal information. If a condo loses data and we cannot recover it, we lose that client AND our reputation. One public data incident could kill the company. This is not optional — it is existential.
+
+**Requirements:**
+
+### Encryption (Non-Negotiable for Every Feature)
+- All data encrypted **at rest** (AES-256) and **in transit** (TLS 1.3)
+- **Application-level double encryption** for critical PII: SIN, passport numbers, bank accounts, credit cards, medical information, access codes, alarm codes
+- Encryption keys managed via cloud KMS, rotated quarterly
+- Per-property encryption keys — if one property is compromised, others are unaffected
+- PII must be classified into tiers (Critical / Sensitive / Standard) and handled accordingly
+- **Every feature** that stores, displays, transmits, or exports PII must follow the encryption and access rules defined in `01-architecture.md` Section 13
+
+### Backup & Disaster Recovery
+- **Continuous PITR** (Point-in-Time Recovery) — can restore to any second within the retention window
+- **Automated daily snapshots** — compressed and encrypted before storage
+- **Geographic redundancy** — primary (Toronto), secondary (Montreal), cold (Calgary) — all within Canada
+- **Per-property backup isolation** — one property's backup/restore does not affect others
+- **Configurable retention policies** — Super Admin sets per property (minimum: 7 days hot, 30 days warm)
+- **RPO: 1 hour** maximum data loss. **RTO: 4 hours** to full service restoration
+- **Periodic integrity verification** — weekly checksum validation, monthly test restore, quarterly full DR drill
+- **Super Admin Backup Health Dashboard** — real-time visibility into backup status, storage, health, and alerts for every property
+
+### PII Handling (Global Rule — Every Module Must Comply)
+- Application logs NEVER contain PII — log sanitization middleware strips PII before writing
+- PII is stripped before sending to AI providers (Claude/OpenAI) — anonymized identifiers only
+- Exported files inherit the exporter's permission level — Tier 1 PII exports require additional confirmation
+- Notifications minimize PII exposure — "You have a package" not "John Smith, your Amazon order #12345 is here"
+- When a resident moves out, PII is archived encrypted, then permanently deleted after the retention period
+- Every read of critical or sensitive PII is logged: who, when, from where, why
+
+### Multi-Framework Compliance
+This platform must be designed and built to satisfy **all** of the following compliance frameworks simultaneously:
+
+1. **PIPEDA** (Personal Information Protection and Electronic Documents Act) — Canadian federal privacy law. All personal information collected with informed consent. Data residency: all data stored in Canadian data centers. Breach notification to Privacy Commissioner within 72 hours. Right to access and right to correction for all residents.
+
+2. **GDPR** (General Data Protection Regulation) — EU data protection, required for international expansion. Right to erasure ("right to be forgotten"). Data portability (export all resident data in standard format). Consent tracking (when, what, how consent was given). Data Processing Agreements (DPA) with all sub-processors. Lawful basis for processing documented for each data type.
+
+3. **SOC 2 Type II** — Security, Availability, Processing Integrity, Confidentiality, Privacy. Access controls documented and enforced. Audit trails for all data access. Change management procedures. Incident response plan documented. Annual penetration testing. Continuous monitoring of security controls.
+
+4. **ISO 27001** — Information Security Management System (ISMS). Formal risk assessment and risk treatment plan. Security policies documented and reviewed annually. Asset inventory and classification. Access control policy with least-privilege principle. Incident management procedures. Business continuity planning.
+
+5. **ISO 27701** — Privacy Information Management (extension of ISO 27001). PII controller and processor roles defined. Privacy impact assessments for new features. Data subject rights procedures (access, correction, deletion). Cross-border data transfer safeguards. Privacy-by-design embedded in development lifecycle.
+
+6. **ISO 27017** — Cloud Security Controls. Cloud-specific security controls for multi-tenant isolation. Shared responsibility model documented. Virtual machine and container hardening. Cloud service customer data protection. Secure data deletion when tenants leave.
+
+7. **ISO 9001** — Quality Management System. Documented processes for all critical operations. Regular internal audits. Continuous improvement cycle (Plan-Do-Check-Act). Customer focus in all design decisions. Evidence-based decision making.
+
+8. **HIPAA** (Health Insurance Portability and Accountability Act) — Relevant because resident profiles may store medical conditions, accessibility needs, emergency medical information. Protected Health Information (PHI) must be encrypted at rest and in transit. Minimum necessary standard — only show medical info to roles that need it. Business Associate Agreements (BAA) with any third party that touches health data. Breach notification within 60 days for health data specifically. Access logs for all PHI access must be retained for 6 years.
+
+### Security Incident Response
+- Incident classification (P1-P4) with defined response times
+- P1 (confirmed breach): containment within 15 minutes, Super Admin notified within 15 minutes, affected property admins within 1 hour, Privacy Commissioner within 72 hours
+- Post-incident report within 7 days
+- Super Admin Incident Dashboard showing active incidents, timelines, affected scope, and resolution status
+
+**Verification:** Does this feature handle PII? If yes: Is it encrypted per the tier? Is access logged? Is it stripped before AI processing? Is it excluded from application logs? Is it handled correctly in exports and notifications? Does the backup/recovery strategy cover it? Does the implementation satisfy ALL 8 compliance frameworks listed above?
+
+---
+
 ## Verification Checklist — Run Before Completing ANY Work
 
 Before marking any task as done, verify:
@@ -212,10 +273,11 @@ Before marking any task as done, verify:
 - [ ] **Rule 9**: Progressive disclosure applied — basic first, advanced on demand?
 - [ ] **Rule 10**: Three analytics layers defined with specific charts and KPIs?
 - [ ] **Rule 11**: Multi-channel notifications with resident preferences?
+- [ ] **Rule 12**: Data security, PII encryption, backup/DR, and multi-framework compliance (PIPEDA, GDPR, SOC 2, ISO 27001, ISO 27701, ISO 27017, ISO 9001, HIPAA)?
 
 ---
 
 *This rulebook is a living document. Every instruction from the product owner gets added here as a new rule. Every rule applies to every piece of work — past, present, and future.*
 
 *Last updated: 2026-03-14*
-*Rules: 11*
+*Rules: 12*

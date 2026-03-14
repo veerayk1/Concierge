@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-Settings & Administration is the central configuration hub for the entire Concierge platform. It provides 15 tabbed sections where Super Admins and Property Admins manage every configurable aspect of the system -- from basic property details to AI provider keys, notification templates, and billing.
+Settings & Administration is the central configuration hub for the entire Concierge platform. It provides 16 tabbed sections where Super Admins and Property Admins manage every configurable aspect of the system -- from basic property details to AI provider keys, notification templates, billing, and backup/disaster recovery.
 
 ### Why This Module Exists
 
@@ -19,7 +19,7 @@ Building management is not one-size-fits-all. A 50-unit boutique condo has diffe
 
 | Aspect | Detail |
 |--------|--------|
-| **Total tabs** | 15 configuration sections |
+| **Total tabs** | 16 configuration sections |
 | **Access** | Super Admin (full), Property Admin (property-level), Property Manager (view-only on select tabs) |
 | **Multi-property** | Super Admin sees a property switcher; Property Admin sees only their assigned property |
 | **Audit trail** | Every settings change is logged with timestamp, actor, and before/after values |
@@ -45,6 +45,7 @@ Building management is not one-size-fits-all. A 50-unit boutique condo has diffe
 | 13 | Data Import/Export | Property Admin | Per property |
 | 14 | API Key Management | Super Admin | System-wide |
 | 15 | Buzzer Code Directory | Property Admin | Per property |
+| 16 | Backup & Recovery | Super Admin | System-wide |
 
 ---
 
@@ -775,6 +776,307 @@ See PRD 19, Section 6.4 for the full specification. Summary:
 
 Cross-property audit log with all columns from Tab 10 plus a "Property" column filter.
 
+#### 3.16.5 Backup & Recovery Dashboard
+
+A dedicated Super Admin dashboard for monitoring backups, verifying data integrity, managing retention policies, controlling disaster recovery, and handling compliance data exports. This tab surfaces all capabilities defined in PRD 01, Section 13.
+
+**Access**: Super Admin only.
+
+---
+
+##### Backup Status Card
+
+A top-level summary card showing the health of the most recent backup at a glance.
+
+| Field | Data Type | Description | Source |
+|-------|-----------|-------------|--------|
+| `last_backup_time` | timestamp with timezone | When the most recent backup completed | `BackupRecord.completed_at` (latest where status = completed) |
+| `last_backup_type` | enum: `full`, `incremental`, `pitr` | Type of the most recent backup | `BackupRecord.type` |
+| `last_backup_status` | enum: `completed`, `failed`, `running` | Status of the most recent backup | `BackupRecord.status` |
+| `last_backup_size` | string (formatted) | Human-readable size (e.g., "4.2 GB") | `BackupRecord.size_bytes`, formatted client-side |
+| `next_scheduled_backup` | timestamp with timezone | When the next daily full snapshot will run | Computed: next occurrence of 03:00 property-local-time |
+| `status_indicator` | enum: `green`, `yellow`, `red` | Visual health indicator | See rules below |
+
+**Status indicator rules**:
+
+| Color | Condition |
+|-------|-----------|
+| Green | Last backup completed successfully within the last 25 hours |
+| Yellow | Last backup completed successfully but was more than 25 hours ago, OR last backup is currently running for more than 2 hours |
+| Red | Last backup failed, OR no backup has completed in the last 48 hours |
+
+**Empty state**: If no backups exist yet (brand-new platform), the card shows:
+- Message: "No backups recorded yet. The first automated backup will run at 3:00 AM local time."
+- Status indicator: Yellow
+- No action buttons
+
+---
+
+##### Backup History Table
+
+A paginated, sortable table listing all backup records.
+
+| Column | Data Type | Max Length | Sortable | Filterable | Source |
+|--------|-----------|-----------|----------|------------|--------|
+| Date | timestamp with timezone | -- | Yes (default: newest first) | Yes (date range picker) | `BackupRecord.started_at` |
+| Type | enum | -- | Yes | Yes (dropdown: All, Full, Incremental, PITR) | `BackupRecord.type` |
+| Size | string (formatted) | -- | Yes | No | `BackupRecord.size_bytes` |
+| Duration | string (formatted) | -- | Yes | No | Computed: `completed_at - started_at`, displayed as "2h 15m" |
+| Status | enum | -- | Yes | Yes (dropdown: All, Completed, Failed, Running) | `BackupRecord.status` |
+| Verification | enum | -- | Yes | Yes (dropdown: All, Passed, Failed, Pending) | `BackupRecord.verification_status` |
+| Actions | -- | -- | No | No | See below |
+
+**Action buttons per row**:
+
+| Button | Label | Condition | States |
+|--------|-------|-----------|--------|
+| Download | "Download" | Only shown if status = `completed` | **Default**: Outlined secondary button. **Loading**: Spinner + "Preparing download...". **Success**: Toast "Backup download started." **Failure**: Toast "Download failed: {error}. Try again." |
+| Restore | "Restore" | Only shown if status = `completed` | **Default**: Outlined danger button. **Confirmation**: Modal with text input requiring `RESTORE` typed exactly. **Loading**: Full-page overlay with progress bar: "Restoring backup from {date}... This may take several hours." **Success**: Toast "Restore initiated. You will be notified when complete." **Failure**: Modal "Restore failed: {error}. Contact support if this persists." |
+| View Details | "Details" | Always shown | Opens a slide-over panel with full `BackupRecord` fields and associated `BackupVerification` records |
+
+**Restore confirmation modal fields**:
+
+| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
+|-------|-----------|-----------|----------|---------|------------|---------------|
+| `confirmation_text` | varchar | 7 chars | Yes | -- | Must exactly equal `RESTORE` (case-sensitive) | "Type RESTORE to confirm. This will overwrite current data with the backup from {date}." |
+| `restore_reason` | text | 500 chars | Yes | -- | Min length: 10, Max length: 500 | "Please provide a reason for this restore (10-500 characters)." |
+| `notify_property_admins` | boolean | -- | Yes | `true` | Must be true or false | -- |
+
+**Pagination**: 25 rows per page. Standard pagination controls (first, previous, page numbers, next, last).
+
+**Empty state**: "No backups found matching your filters." with a "Clear Filters" button.
+
+---
+
+##### Integrity Verification Card
+
+Shows the status of automated backup integrity checks and allows manual verification.
+
+| Field | Data Type | Description | Source |
+|-------|-----------|-------------|--------|
+| `last_verification_date` | timestamp with timezone | When the last verification ran | `BackupVerification.verified_at` (latest) |
+| `last_verification_status` | enum: `passed`, `failed` | Result of the last verification | `BackupVerification.status` |
+| `record_count_match` | boolean | Whether database record counts matched | `BackupVerification.record_count_match` |
+| `checksum_match` | boolean | Whether file checksums matched | `BackupVerification.checksum_match` |
+| `boot_test_passed` | boolean | Whether the application booted from the backup | `BackupVerification.boot_test_passed` |
+| `smoke_test_passed` | boolean | Whether read-only smoke tests passed | `BackupVerification.smoke_test_passed` |
+| `verification_duration` | string (formatted) | How long verification took (e.g., "45 minutes") | `BackupVerification.duration_seconds` |
+| `next_scheduled_verification` | timestamp with timezone | When the next automated weekly verification will run | Computed: next Sunday at 04:00 UTC |
+
+**Sub-results display**: Each of the 4 checks (record count, checksum, boot test, smoke test) is shown as a row with a green checkmark or red X icon.
+
+**"Run Verification Now" button**:
+
+| State | Behavior |
+|-------|----------|
+| **Default** | Primary button: "Run Verification Now" |
+| **Disabled** | If a verification is already running. Label changes to "Verification in Progress..." with a spinner |
+| **Loading** | After click: spinner + "Starting verification... This runs in the background and typically takes 30-60 minutes." |
+| **Success** | Toast: "Verification started. Results will appear here when complete." Button returns to default state. |
+| **Failure** | Toast: "Could not start verification: {error}. Try again in a few minutes." Button returns to default state. |
+
+**Empty state**: "No verification has been run yet. Click 'Run Verification Now' to verify your most recent backup." with the button below.
+
+---
+
+##### Retention Policy Configuration
+
+Editable form for backup retention periods. Changes apply to all future backup expiry calculations. Existing backups are not retroactively deleted (their retention_expires_at is recalculated on next cleanup run).
+
+| Field | Label | Data Type | Max Length | Required | Default | Validation | Error Message |
+|-------|-------|-----------|-----------|----------|---------|------------|---------------|
+| `pitr_retention_days` | "Point-in-time recovery" | integer | -- | Yes | `7` | Min: 3, Max: 30 | "PITR retention must be between 3 and 30 days." |
+| `daily_retention_days` | "Daily snapshots" | integer | -- | Yes | `30` | Min: 7, Max: 90 | "Daily snapshot retention must be between 7 and 90 days." |
+| `weekly_retention_days` | "Weekly snapshots" | integer | -- | Yes | `90` | Min: 30, Max: 365 | "Weekly snapshot retention must be between 30 and 365 days." |
+| `monthly_retention_months` | "Monthly snapshots" | integer | -- | Yes | `12` | Min: 6, Max: 84 | "Monthly snapshot retention must be between 6 and 84 months." |
+| `annual_retention_years` | "Annual snapshots" | integer | -- | Yes | `7` | Min: 1, Max: 25 | "Annual snapshot retention must be between 1 and 25 years." |
+
+Each field is displayed as a number input with a unit label suffix ("days", "months", or "years"). Inline help text below each field explains what that retention tier covers.
+
+**"Save Retention Policy" button**:
+
+| State | Behavior |
+|-------|----------|
+| **Default** | Primary button, disabled until at least one field changes from its saved value |
+| **Loading** | Spinner + "Saving..." |
+| **Success** | Toast: "Retention policy updated. Changes apply to future backups." Button returns to disabled state. |
+| **Failure** | Inline error banner above the button: "Could not save: {error}. Your changes have not been applied." |
+
+**"Reset to Defaults" link**: Resets all fields to their default values (7, 30, 90, 12, 7). Does not save automatically -- the Super Admin must still click "Save Retention Policy."
+
+---
+
+##### Storage Usage Chart
+
+A bar chart showing backup storage consumption over time, with projected future growth.
+
+| Aspect | Specification |
+|--------|--------------|
+| **Chart type** | Vertical bar chart |
+| **X-axis** | Months (last 12 months + 3 months projected) |
+| **Y-axis** | Storage in GB or TB (auto-scaled) |
+| **Bar color** | Primary brand color for actual data; lighter/hatched for projected |
+| **Data source** | Aggregated `BackupRecord.size_bytes` per month |
+| **Projection** | Linear extrapolation from last 3 months of actual data |
+| **Tooltip** | On hover: "{month}: {size} ({count} backups)" |
+
+**Below the chart**:
+
+| Metric | Description | Data Type |
+|--------|-------------|-----------|
+| Total storage used | Current total across all backup types | string (formatted, e.g., "142.5 GB") |
+| Storage growth rate | Average monthly growth over last 3 months | string (formatted, e.g., "+8.3 GB/month") |
+| Projected storage (12 months) | Estimated total in 12 months | string (formatted, e.g., "242.1 GB") |
+| Storage limit | If the platform tier has a storage cap | string (formatted, or "Unlimited") |
+
+**Empty state**: "Not enough data to display storage trends. Charts will appear after the first month of backups."
+
+---
+
+##### Disaster Recovery Controls
+
+Controls for monitoring region health and triggering manual failover.
+
+**Region Status Card**:
+
+| Field | Data Type | Description |
+|-------|-----------|-------------|
+| `current_serving_region` | varchar 50 | The region currently serving production traffic (e.g., "Toronto (ca-central-1)") |
+| `primary_region_status` | enum: `healthy`, `degraded`, `down` | Health of the primary region |
+| `secondary_region_status` | enum: `healthy`, `degraded`, `down` | Health of the secondary region |
+| `replication_lag_seconds` | integer | How far behind the secondary replica is (0 = fully caught up) |
+| `last_health_check` | timestamp with timezone | When the last health check ran |
+| `mode` | enum: `primary`, `failover` | Whether the system is running in normal mode or failover mode |
+
+**Status indicators**: Each region shows a colored dot (green = healthy, yellow = degraded, red = down) with the region name and status text.
+
+**"Trigger Manual Failover" button**:
+
+| State | Behavior |
+|-------|----------|
+| **Default** | Danger button (red outline): "Trigger Manual Failover" |
+| **Disabled** | If system is already in failover mode or secondary region is down. Tooltip explains why. |
+| **Confirmation** | Modal opens with the following fields (see below) |
+| **Loading** | Full-page overlay: "Failover in progress... Routing traffic to {secondary_region}. Do not close this page." Progress steps shown as a vertical timeline. |
+| **Success** | Modal: "Failover complete. All traffic is now served from {secondary_region}. Failover took {duration}." with a "Dismiss" button. |
+| **Failure** | Modal: "Failover failed at step: {step}. Error: {error}. Primary region is still serving traffic. Contact platform engineering immediately." with "Dismiss" and "Retry" buttons. |
+
+**Failover confirmation modal fields**:
+
+| Field | Label | Data Type | Max Length | Required | Default | Validation | Error Message |
+|-------|-------|-----------|-----------|----------|---------|------------|---------------|
+| `confirmation_text` | "Type FAILOVER to confirm" | varchar | 8 chars | Yes | -- | Must exactly equal `FAILOVER` (case-sensitive) | "Type FAILOVER to confirm. This routes all traffic to the backup region." |
+| `reason` | "Reason for failover" | text | 500 chars | Yes | -- | Min: 10, Max: 500 | "Please provide a reason (10-500 characters)." |
+
+**Failover History Table**:
+
+| Column | Data Type | Sortable | Source |
+|--------|-----------|----------|--------|
+| Date | timestamp with timezone | Yes (default: newest first) | `FailoverEvent.started_at` |
+| Type | enum: `automated`, `manual` | Yes | `FailoverEvent.trigger_type` |
+| Triggered By | varchar (user name or "System") | No | `FailoverEvent.triggered_by` -> User name, or "System" if automated |
+| From | varchar | No | `FailoverEvent.source_region` |
+| To | varchar | No | `FailoverEvent.target_region` |
+| Duration | string (formatted) | Yes | `FailoverEvent.duration_seconds`, formatted as "Xm Ys" |
+| Status | enum | Yes | `FailoverEvent.status` |
+| Data Loss | string (formatted) | No | `FailoverEvent.data_loss_seconds`, formatted as "X seconds" or "None" |
+| Reason | text (truncated) | No | `FailoverEvent.reason`, truncated to 100 chars with tooltip for full text |
+
+**Empty state**: "No failover events recorded. This is a good thing -- it means the system has been running on the primary region without interruption."
+
+---
+
+##### Data Export (Compliance)
+
+Tools for exporting all data for a specific property, used for compliance requests (PIPEDA right-to-access, legal discovery, etc.).
+
+**"Export All Property Data" button**:
+
+| State | Behavior |
+|-------|----------|
+| **Default** | Secondary button: "Export All Property Data" |
+| **Click** | Opens a configuration modal (see fields below) |
+| **Loading** | Modal content replaced with progress bar: "Generating export for {property_name}... This may take 30-60 minutes for large properties. You will be notified by email when the export is ready." |
+| **Success** | Toast: "Export generated. Download link sent to {email}." Modal closes. Export appears in the export history table below. |
+| **Failure** | Modal error: "Export failed: {error}. No data has been sent. Try again or contact support." |
+
+**Export configuration modal fields**:
+
+| Field | Label | Data Type | Max Length | Required | Default | Validation | Error Message |
+|-------|-------|-----------|-----------|----------|---------|------------|---------------|
+| `property_id` | "Property" | UUID (dropdown) | -- | Yes | -- | Must be a valid property | "Select a property to export." |
+| `format` | "Export format" | enum | -- | Yes | `json` | One of: `json`, `csv` | "Export format must be JSON or CSV." |
+| `include_files` | "Include uploaded files (photos, documents, signatures)" | boolean | -- | Yes | `true` | -- | -- |
+| `date_range_start` | "From date (optional)" | date | -- | No | `null` | Must be before date_range_end if both provided | "Start date must be before end date." |
+| `date_range_end` | "To date (optional)" | date | -- | No | `null` | Must be after date_range_start if both provided | "End date must be after start date." |
+| `recipient_email` | "Send download link to" | email | 320 chars | Yes | Super Admin's email | Valid email format | "A valid email address is required." |
+| `export_reason` | "Reason for export" | text | 500 chars | Yes | -- | Min: 5, Max: 500 | "Please provide a reason for this export (5-500 characters)." |
+
+**Export history table** (below the button):
+
+| Column | Data Type | Source |
+|--------|-----------|--------|
+| Date | timestamp | Export request timestamp |
+| Property | varchar | Property name |
+| Format | enum | JSON or CSV |
+| Size | string (formatted) | File size |
+| Status | enum: `generating`, `ready`, `downloaded`, `expired` | Export status |
+| Requested By | varchar | Super Admin name |
+| Reason | text (truncated) | Export reason |
+| Actions | -- | "Download" (if ready), "Delete" (if ready or expired) |
+
+**Download link expiry**: 7 days. After expiry, the export file is permanently deleted and status changes to `expired`.
+
+**Empty state**: "No data exports have been requested. Use the button above to generate a compliance export for any property."
+
+---
+
+##### Alerts Configuration
+
+Configure who receives notifications for backup, verification, and disaster recovery events.
+
+| Alert Type | Description | Default Recipients | Channels Available |
+|------------|-------------|-------------------|-------------------|
+| Backup failure | A scheduled backup did not complete successfully | Super Admin | Email, SMS |
+| Backup warning | A backup completed but took longer than expected (>2 hours) | Super Admin | Email |
+| Verification failure | Automated integrity verification failed one or more checks | Super Admin | Email, SMS |
+| Verification overdue | No verification has run in 10+ days | Super Admin | Email |
+| Failover triggered | Automated or manual failover has started | Super Admin | Email, SMS, Push |
+| Failover completed | Failover has finished (success or failure) | Super Admin | Email, SMS, Push |
+| Storage threshold | Backup storage exceeds 80% of tier limit (if applicable) | Super Admin | Email |
+| Breach detected | A BreachIncident record has been created | Super Admin | Email, SMS, Push |
+
+**Configuration per alert type**:
+
+| Field | Label | Data Type | Max Length | Required | Default | Validation | Error Message |
+|-------|-------|-----------|-----------|----------|---------|------------|---------------|
+| `enabled` | "Enabled" | boolean | -- | Yes | `true` | -- | -- |
+| `email_recipients` | "Email recipients" | varchar array | 320 chars each, max 10 entries | Yes (if enabled) | Super Admin email | Each must be a valid email | "Each recipient must be a valid email address (max 10 recipients)." |
+| `sms_recipients` | "SMS recipients" | varchar array | 20 chars each, max 5 entries | No | -- | Each must be a valid phone number (E.164 format) | "Each SMS recipient must be a valid phone number in E.164 format (max 5 recipients)." |
+| `push_enabled` | "Send push notification" | boolean | -- | Yes | `true` for critical alerts, `false` for warnings | -- | -- |
+
+Each alert type is displayed as a collapsible row. Expanding a row shows the recipient configuration fields.
+
+**"Save Alert Settings" button**:
+
+| State | Behavior |
+|-------|----------|
+| **Default** | Primary button, disabled until at least one field changes |
+| **Loading** | Spinner + "Saving..." |
+| **Success** | Toast: "Alert settings saved." |
+| **Failure** | Inline error: "Could not save alert settings: {error}." |
+
+**"Test Alerts" button** (per alert type):
+
+| State | Behavior |
+|-------|----------|
+| **Default** | Text link: "Send test alert" |
+| **Loading** | "Sending..." |
+| **Success** | Inline confirmation: "Test alert sent to {count} recipients." |
+| **Failure** | Inline error: "Test failed: {error}." |
+
+**Empty state**: Not applicable -- all alert types are always shown with their default configuration.
+
 ---
 
 ## 4. Data Model
@@ -1202,6 +1504,112 @@ Property Admins can configure which settings-related notifications they receive 
 
 ---
 
+### 3.17 Backup & Recovery Settings (Super Admin Only)
+
+**Tab Label**: "Backup & Recovery"
+**Access**: Super Admin only (hidden from all other roles)
+**Tooltip**: "Monitor backup health, configure retention policies, and manage disaster recovery for all properties."
+
+#### 3.17.1 Backup Health Dashboard
+
+**Layout**: Full-width card grid (1920x1080 optimized)
+
+**Per-Property Backup Status Cards** (one card per property):
+| Field | Type | Description |
+|-------|------|-------------|
+| Property Name | Display | Property name with status indicator dot |
+| Last Backup | Display | Timestamp of last successful backup (e.g., "2 hours ago") |
+| Backup Size | Display | Current backup size with trend arrow (↑↓→) |
+| Status | Badge | Green: Healthy / Yellow: Warning / Red: Critical |
+| Next Scheduled | Display | Next backup timestamp |
+| PITR Window | Display | Available point-in-time recovery range |
+| Storage Used | Progress Bar | Percentage of allocated storage used |
+
+**Status Definitions**:
+- **Green (Healthy)**: Last backup < 24 hours, last integrity check passed
+- **Yellow (Warning)**: Last backup 24-48 hours, OR integrity check pending, OR storage > 80%
+- **Red (Critical)**: Last backup > 48 hours, OR integrity check failed, OR storage > 95%, OR 2+ consecutive backup failures
+
+**Actions per property**:
+- "Run Backup Now" button (with confirmation dialog: "This will create an immediate backup for [Property Name]. Continue?")
+- "View History" → expands to show last 30 backup entries (timestamp, type, size, duration, status)
+- "Test Restore" → initiates integrity verification (with confirmation: "This will test-restore [Property Name] data to a staging environment. No production data will be affected. Continue?")
+- "Configure" → opens retention policy settings for that property
+
+**Summary Bar** (top of page):
+- Total properties: [count]
+- Healthy: [count] (green)
+- Warning: [count] (yellow)
+- Critical: [count] (red)
+- Total storage used: [X GB of Y GB]
+- Last integrity verification: [timestamp]
+
+#### 3.17.2 Retention Policy Configuration
+
+**Per-Property Settings** (expandable accordion):
+| Field | Type | Default | Validation | Description |
+|-------|------|---------|------------|-------------|
+| Hot Retention | Number + "days" | 7 | Min: 7, Max: 30 | Days backups stay instantly restorable |
+| Warm Retention | Number + "days" | 30 | Min: 30, Max: 90 | Days backups stay in secondary region |
+| Cold Retention | Number + "days" | 365 | Min: 90, Max: 2555 (7 years) | Days backups in cold storage |
+| Archive Retention | Number + "years" | 7 | Min: 1, Max: 25 | Years for regulatory archive |
+| Auto-Delete Expired | Toggle | On | — | Automatically delete backups past retention |
+
+**Global Override**: Super Admin can set default retention for all properties at once, then customize individual properties.
+**Compliance Warning**: If retention is set below regulatory minimums, show warning: "This retention period may not meet regulatory requirements (PIPEDA). Minimum recommended: [X] days."
+
+#### 3.17.3 Disaster Recovery Controls
+
+**Recovery Actions** (each with 2-step confirmation):
+| Action | Description | Confirmation Steps | ETA |
+|--------|-------------|-------------------|-----|
+| Restore Records | Restore specific records from PITR | Select property → Select time range → Confirm | 15 min |
+| Restore Property | Full restore of one property's data | Select property → Select backup → Type property name to confirm | 1 hour |
+| Restore Database | Full database restoration | Select backup → Type "RESTORE ALL" → Enter Super Admin password | 4 hours |
+| Geographic Failover | Switch to secondary region | Confirm primary is unavailable → Type "FAILOVER" → Enter Super Admin password | 30 min |
+
+**Recovery Status Dashboard** (visible during active recovery):
+- Progress bar with percentage and ETA
+- Affected properties list
+- Current step description
+- Log stream (real-time)
+- "Abort Recovery" button (with confirmation)
+
+**Communication During Recovery**:
+- Auto-send status email to all Property Admins when recovery starts
+- Template: "System maintenance in progress. Estimated completion: [ETA]. Your data is safe."
+- Auto-send completion email when recovery finishes
+- Template: "System maintenance complete. All data has been verified. If you notice any issues, contact support."
+
+#### 3.17.4 Backup Alerts Configuration
+
+| Alert | Default Channel | Threshold | Configurable |
+|-------|----------------|-----------|--------------|
+| Backup Failure | Email + SMS | 2 consecutive failures | Yes (1-5) |
+| Size Anomaly | Email | >30% change from average | Yes (10-50%) |
+| Storage Warning | Email | 80% capacity | Yes (70-95%) |
+| Storage Critical | Email + SMS | 95% capacity | Yes (85-99%) |
+| Integrity Failure | Email + SMS + Push | Any failure | Not configurable (always on) |
+| PITR Gap | Email + SMS | Any gap > 1 hour | Yes (1-24 hours) |
+
+#### 3.17.5 Backup Audit Log
+
+**Immutable log of all backup-related operations**:
+| Column | Description |
+|--------|-------------|
+| Timestamp | When the operation occurred |
+| Operation | Backup / Restore / Verify / Delete / Config Change |
+| Property | Which property (or "All") |
+| Initiated By | System / Super Admin name |
+| Status | Success / Failed / In Progress |
+| Details | Size, duration, error message if failed |
+| Result | Verification result if applicable |
+
+**Filters**: Date range, operation type, property, status
+**Export**: CSV, Excel, PDF
+
+---
+
 ## 11. Completeness Checklist
 
 | # | Requirement | Status | Section |
@@ -1249,6 +1657,11 @@ Property Admins can configure which settings-related notifications they receive 
 | 41 | Parking pass format configuration | Done | 3.1.3 |
 | 42 | System default notification templates (6 pre-loaded) | Done | 3.5 |
 | 43 | Welcome / Onboarding Email template with merge fields | Done | 3.5 |
+| 44 | Backup health monitoring dashboard | Done | 3.17.1 |
+| 45 | Retention policy configuration per property | Done | 3.17.2 |
+| 46 | Disaster recovery controls with 2-step confirmation | Done | 3.17.3 |
+| 47 | Backup alerts configuration | Done | 3.17.4 |
+| 48 | Backup audit log with immutable history | Done | 3.17.5 |
 
 ---
 
