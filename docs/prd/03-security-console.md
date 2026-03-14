@@ -9,1659 +9,1812 @@
 
 ## 1. Overview
 
-### What Is the Security Console?
+### What It Is
 
-The Security Console is the **primary operational hub** for security staff, concierge teams, and property managers. It combines every security-related operation into a single, unified interface: visitor management, package tracking, incident reporting, key management, shift handoffs, parking enforcement, and authorized entry logging.
+The Security Console is the **primary operational hub** for all front-line building staff -- security guards, concierges, and front desk attendants. It is a single-page application that combines a unified event stream with quick-create actions for 9+ entry types. Every building occurrence -- a visitor arriving, a package delivered, an incident reported, a key checked out -- flows through this console.
 
-Instead of navigating between separate pages for each task, staff see one continuously updating event stream with quick-create buttons for each entry type. Everything happens on one screen through overlay dialogs -- no page navigation, no lost context.
+This is the **largest and most complex module** in Concierge. It is the screen that staff stare at for 8+ hours per shift. Every design decision must optimize for speed, clarity, and minimal cognitive load.
 
-### Why Does It Exist?
+### Why It Exists
 
-Buildings need a centralized place to track everything that happens during a shift. Without it, staff juggle paper logs, sticky notes, and separate systems for packages, visitors, and incidents. The Security Console replaces all of that with a single digital command center that:
+Buildings need a single source of truth for everything happening on-site. Industry research revealed three common approaches:
 
-- Records every operational event with timestamps and accountability
-- Enables shift handoffs without information loss
-- Provides searchable history across all event types
-- Supports real-time collaboration between multiple staff members on the same shift
-- Generates audit trails for legal and compliance purposes
+1. **Rigid log types** -- platforms with exactly 6 hardcoded log types that cannot be extended. Properties are forced into workarounds when their needs do not fit the predefined types.
+2. **Unified but generic** -- platforms with a configurable event model but minimal specialized UIs for different event types. Flexible but slow for common tasks.
+3. **Unified with specialization** -- a configurable event model (so properties can add custom types) combined with purpose-built UIs for the most common entry types (visitors, packages, incidents, keys). This is the approach Concierge takes.
 
-### Which Roles Use It?
+### Which Roles Use It
 
 | Role | Access Level | Primary Use |
 |------|-------------|-------------|
-| **Security Guard** | Create + view events, release packages, sign out visitors | Front-line operations during shifts |
-| **Front Desk / Concierge** | Create + view events (visitors, parcels, notes) | Resident-facing package and visitor operations |
-| **Security Supervisor** | Full access + analytics + export | Team oversight, incident review, reporting |
-| **Property Manager** | Full access + analytics + export | Operational oversight, escalation handling |
-| **Property Admin** | Full access + configuration | Event type setup, console settings |
-| **Super Admin** | Full access across all properties | Platform-wide oversight |
+| **Security Guard** | Full create and view, edit own entries | Log incidents, manage visitors, handle packages, check out keys, write shift notes |
+| **Security Supervisor** | Full create/view/edit + analytics + export | Review all entries, run reports, manage escalations, review guard performance |
+| **Front Desk / Concierge** | Full create and view, edit own entries | Package intake/release, visitor registration, general notes, shift handoffs |
+| **Property Manager** | Full access + delete (configurable) | Oversight, escalation review, report generation |
+| **Property Admin** | Full access + configuration | Configure event types, manage categories, set up notification rules |
+| **Super Admin** | Unrestricted | All of the above across all properties |
 
-Resident, Board Member, Maintenance Staff, and Family Member roles have **no access** to the Security Console. It does not appear in their navigation.
+Roles that do **not** access the Security Console: Board Member, Maintenance Staff, all Resident roles. These roles never see the Security Console in their navigation.
 
 ---
 
-## 2. Industry Research Summary
+## 2. Research Summary
 
-This module's design is informed by field-level research documented across three production platforms. No competitor names are used here; refer to the source files for full details.
+### Key Capabilities from Competitive Analysis
 
-| Research Area | Source File | Key Takeaways |
-|--------------|------------|---------------|
-| Security menu with visitor parking, key checkout, key inventory, parking violations | `docs/security-menu.md` | Quick-create icons, digital signature capture on key checkout, ID verification fields, parking violation lifecycle (Ban/Ticket/Warning/Vehicle Towed), auto-lift dates for bans |
-| Six rigid log types (General, Incident, Fire, Noise, Inspection, Bulletin) | `docs/logs.md` | Fire log has specialized checklists (elevator verification, FD arrival times, device resets). Noise log has structured investigation fields. Pre-filled "Full Report to Follow..." pattern. Rich text editors for long-form reports. |
-| Unified security console with 7 entry types on one page | `docs/platform-3/deep-dive-security-concierge.md` | Single-page design with dialog overlays for all creation and detail views. 20 filter options in one dropdown with sub-filter hierarchy. Courier icon grid for packages. Shift info banner showing live counts. Emergency services tracking table on incidents. Pass-on log with team member notification. Per-type sequential reference numbers. |
-| Configurable event type system with card-based grid | `docs/platform-2/event-log.md` | Unified event model with configurable types, groups, icons, and colors. Card-based grid display with adjustable width and grouping modes. Batch event creation (4-row form). Multi-channel notifications (email, SMS, voice). Label printing integration. Public display (lobby screen) integration. |
+Industry research across three production platforms revealed these essential patterns for a security console:
 
-### Key Improvements Over Researched Platforms
+| Capability | Where Observed | Our Approach |
+|-----------|----------------|-------------|
+| **Unified event stream** | Multiple platforms combine visitors, packages, incidents, keys, and shift notes into a single timeline | Adopt. Single console page with all entry types in one filterable stream |
+| **Quick-create icons** | Circular icon buttons for instant entry creation -- one click to open any form | Adopt. 9 quick-create icons with large tap targets for mobile and desktop |
+| **Courier-specific package tracking** | Branded courier icons (Amazon, FedEx, UPS) instead of text dropdowns for visual recognition | Adopt. Icon grid for courier selection with branded logos |
+| **Batch event creation** | Multi-row form for logging multiple events at once with per-row notification control | Adopt. Batch mode supporting up to 10 rows |
+| **Smart filter hierarchy** | Sub-filters grouped under parent categories (e.g., "All Visitors" > "Visitors Still Signed In") | Adopt with enhancement. Add keyboard shortcuts and saved filter presets |
+| **Emergency services tracking** | Structured table on incident reports for Police, Fire, Ambulance, Client Contact, Supervisor | Adopt. Extend with GPS coordinates and response time calculation |
+| **Shift handoff info box** | Live counts of bookings, keys out, and residents on vacation displayed when starting a new shift | Adopt. Critical context for incoming guard |
+| **Key checkout with ID verification** | ID Type and ID Number fields with optional photo capture of identification | Adopt. Mandatory ID verification with photo capture |
+| **Parking violation lifecycle** | Create > Track > Resolve lifecycle with ban types (Ban, Ticket, Warning, Vehicle Towed) | Adopt. Add auto-expiry and repeat offender detection |
+| **Per-type reference numbers** | Each entry type gets its own sequential counter with configurable prefix | Adopt. Format: `{PREFIX}-{YEAR}-{SEQUENCE}` (e.g., `INC-2026-00147`) |
 
-1. **Extensible event types** instead of hardcoded log categories -- properties add new types without code changes
-2. **Real-time updates via WebSocket** instead of manual refresh -- all staff see new entries instantly
-3. **Batch sign-out** for end-of-shift visitor processing
-4. **Structured package descriptions** via dropdown instead of free text
-5. **Storage location visible on the main grid** instead of buried in detail dialogs
-6. **Column sorting** on the events table (all researched platforms lacked this)
-7. **Date-range quick filters** ("Today", "This Shift", "Last 24 Hours") always visible instead of hidden behind a toggle
-8. **Intermediate incident statuses** (Draft, Open, In Progress, Under Review, Escalated, Closed) instead of just Open/Closed
-9. **Multi-file attachment** on pass-on logs instead of single file
-10. **Resident notification on visitor arrival** integrated into the visitor creation flow
+### Best Practices Adopted
+
+1. **Dialog-based workflow** -- all creation and detail views open as overlays on the console, so staff never lose context of the main event stream
+2. **Real-time updates** -- WebSocket-powered live feed so multiple staff see new entries without refreshing
+3. **Color-coded event cards** -- visual scanning is faster than reading text labels
+4. **Print integration** -- label printing for packages, parking permits for visitors, work orders for incidents
+5. **Audit trail on every entry** -- immutable history of who created, modified, and closed each event
+
+### Pitfalls Avoided
+
+1. **No hardcoded log types** -- properties must be able to add custom event types without code changes
+2. **No mixed time formats** -- consistent time format throughout (user-configurable: 12h or 24h)
+3. **No page-based navigation for events** -- infinite scroll with date-based grouping instead of numbered pages
+4. **No silent failures** -- if a feature is not available for a role, the button is absent, not broken or hidden behind a visible-but-dead link
+5. **No single-channel notifications** -- multi-channel from day one (email, SMS, push, voice)
+6. **No manual-only refresh** -- real-time updates via WebSocket for collaborative shifts
+7. **No free-text-only package descriptions** -- dropdown with predefined types plus an "Other" option for consistency
+8. **No limited incident statuses** -- full lifecycle: Draft > Open > In Progress > Under Review > Escalated > Closed
 
 ---
 
 ## 3. Feature Specification
 
-### 3.1 v1 Features (Launch)
+### 3.1 Core Features (v1)
 
 #### 3.1.1 Unified Event Grid
 
-The main console view displaying all security events in reverse chronological order. Events render as **color-coded cards** in a responsive grid (not table rows) for rapid visual scanning.
+The main console view. All events display in a reverse-chronological, filterable stream of cards.
 
-##### Event Card Fields
+**Display Modes**:
 
-Each card displays:
+| Mode | Description | Default For |
+|------|-------------|-------------|
+| **Card Grid** | Color-coded cards in a responsive grid. Each card shows type icon, unit, summary, timestamp, and status. | Desktop |
+| **Compact List** | Dense table rows for high-volume properties. Shows more entries per screen. | User preference |
+| **Split View** | Event grid on left (60%), detail panel on right (40%). Clicking a card opens detail without losing grid context. | Desktop (optional) |
 
-| Field | Source | Display |
-|-------|--------|---------|
-| Event type icon + color accent | `EventType.icon`, `EventType.color` | Left border (3px) colored by event type |
-| Reference number | `Event.reference_number` | Monospace font, Caption size (e.g., `VST-2026-00903`) |
-| Summary text | Computed from event data (see patterns below) | Body text, truncated to 2 lines |
-| Unit number | `Event.unit_id` → `Unit.number` | Monospace, Caption size. Blank if no unit association |
-| Timestamp | `Event.created_at` | Relative time ("5 min ago") if < 24h, date otherwise. Caption size, `--text-secondary` |
-| Status badge | `Event.status` | Status badge component per Design System section 7.6 |
-| Action button | Context-specific | "Sign Out", "Release", "Check In Key" -- or blank |
-| Created by | `Event.created_by` → `User.display_name` | Caption size, `--text-secondary` |
+**Card Fields**:
 
-##### Summary Text Patterns
+| Field | Display | Description |
+|-------|---------|-------------|
+| Event type icon | Top-left corner | Color-coded icon matching the EventType configuration |
+| Reference number | Top-right corner | Auto-generated (e.g., `PKG-2026-00147`) |
+| Status badge | Below reference | Color-coded pill: Draft (grey), Open (blue), In Progress (amber), Closed (green), Escalated (red) |
+| Title / summary | Card body | First 80 characters of description or auto-generated summary |
+| Unit number | Card body | Unit badge (e.g., "Unit 1205"). Empty for non-unit events |
+| Resident name | Card body | Resident associated with the event (if any) |
+| Timestamp | Bottom-left | Relative time ("3 min ago") with full timestamp on hover |
+| Created by | Bottom-right | Staff member initials or avatar |
+| Quick action | Bottom-right | Context-specific: "Sign Out" for visitors, "Release" for packages, "Close" for incidents |
 
-| Event Type Group | Pattern | Example |
-|-----------------|---------|---------|
-| Visitor (signed in) | "{visitor_name} signed in to visit {unit}" | "Maria Garcia signed in to visit Unit 1205" |
-| Visitor (signed out) | "{visitor_name} signed out from {unit}" | "Maria Garcia signed out from Unit 1205" |
-| Package (received) | "{description} from {courier} for {resident_name} ({unit}) -- stored at {location}" | "Package from Amazon for J. Smith (1205) -- stored at Mailroom B" |
-| Package (released) | "Package picked up by {released_to}" | "Package picked up by John Smith" |
-| Security Shift | "{guard_name} shift log for {date}" | "M. Johnson shift log for Mar 14, 2026" |
-| Incident Report | "{title}" | "Suspicious person reported near loading dock" |
-| Authorized Entry | "{person_name} authorized to enter {unit}" | "ABC Plumbing authorized to enter Unit 807" |
-| Key Checkout | "{key_name} checked out to {person_name}" | "Trade Key #1 checked out to Mike Chen" |
-| Key Return | "{key_name} returned by {person_name}" | "Trade Key #1 returned by Mike Chen" |
-| Pass-On Log | "{subject}" | "Elevator #2 out of service until Monday" |
-| Parking Violation | "{violation_type} issued for plate {plate_number}" | "Warning issued for plate ABCD 123" |
+**Grouping Modes** (toggle via toolbar):
 
-##### Grid Layout
-
-- **Desktop (>=1280px)**: 2-column card grid, cards 50% width
-- **Tablet (768-1279px)**: Single-column card list, full width
-- **Mobile (<768px)**: Single-column card list, compact layout (icon + summary + time only)
-- Cards have `--bg-primary` background, `--border-subtle` bottom border, `--space-4` padding
-- Hover state: `--bg-secondary` background, 150ms ease transition
-- Click anywhere on the card opens the detail dialog
-
-##### Pagination
-
-| Field | Spec |
-|-------|------|
-| Default page size | 25 events |
-| Page size options | 10, 25, 50, 100 |
-| Pagination style | "Showing 1-25 of 1,247 events" with Previous/Next buttons and page number input |
-| Infinite scroll option | Available on mobile. Loads next 25 on scroll to bottom. Loading skeleton shown during fetch. |
+| Mode | Groups By | Use Case |
+|------|-----------|----------|
+| By Time | Today / Yesterday / This Week / Older | Default. Chronological context |
+| By Type | Visitor / Package / Incident / Key / etc. | Scan all packages at once |
+| By Status | Open / In Progress / Closed | Focus on unresolved items |
+| By Unit | Sorted by unit number | See everything happening at a specific unit |
 
 #### 3.1.2 Filter Bar
 
-Always visible above the event grid.
+Always visible at the top of the console.
 
-##### Primary Filters (Always Visible)
+| # | Element | Type | Behavior |
+|---|---------|------|----------|
+| 1 | Search | Text input | Placeholder: "Search by name, unit, reference #, or keyword...". Searches across title, description, unit, resident name, reference number. Minimum 2 characters to trigger. Debounced 300ms. |
+| 2 | Type filter | Multi-select dropdown | Lists all active EventTypes grouped by EventGroup. Multi-select with checkboxes. "Select All" / "Clear All" at top. Persists across page loads. |
+| 3 | Status filter | Multi-select dropdown | Options: Draft, Open, In Progress, Under Review, Escalated, Closed. Default: all except Closed. |
+| 4 | Date range | Date range picker | Presets: Today, Yesterday, Last 7 Days, Last 30 Days, This Month, Custom Range. Default: Today. |
+| 5 | Building filter | Dropdown | Only shown for multi-building properties. "All Buildings" as default. |
+| 6 | Reset | Text link | Resets all filters to defaults. Tooltip: "Clear all filters and show today's events" |
+| 7 | Advanced toggle | Chevron link | Expands: Exact/Broad match toggle, Created By filter, Unit range filter, Priority filter |
 
-| # | Field | Label | Type | Default | Behavior |
-|---|-------|-------|------|---------|----------|
-| 1 | `search` | "Search events..." | Text input | Empty | Free-text search across summary text, reference numbers, unit numbers, names. Minimum 3 characters. Debounced 300ms. |
-| 2 | `filter_type` | "Filter by type" | Select dropdown | "All Types" | 20+ filter options with sub-filter hierarchy (see table below) |
-| 3 | `quick_date` | (button group) | Segmented control | "Today" | Preset date ranges: "Today", "This Shift", "Last 24h", "Last 7 Days", "Custom" |
-| 4 | `search_btn` | "Search" | Button (primary) | -- | Executes search. On click: applies all filters, shows loading skeleton, renders results. On error: toast "Search failed. Please try again." Loading state: button text changes to "Searching..." with spinner icon. |
-| 5 | `reset_btn` | "Reset" | Button (ghost) | -- | Clears all filters, resets to defaults. On click: all filter fields reset, grid reloads with default "Today" view. |
+**Filter validation**:
+- Date range: End date must be after start date. Error: "End date must be after start date."
+- Search: Minimum 2 characters. Error: "Enter at least 2 characters to search."
+- If no results match filters: Show empty state with active filter summary and "Clear Filters" button
 
-##### Filter Dropdown Options (22 options)
-
-| # | Value | Label | Description |
-|---|-------|-------|-------------|
-| 1 | `all` | All Types | Default. Shows all event types. |
-| 2 | `visitor-all` | All Visitors | All visitor entries |
-| 3 | `visitor-signed-in` | -- Visitors Still Signed In | Currently signed in (sub-filter, indented with dash) |
-| 4 | `visitor-signed-out` | -- Visitors Signed Out | Already departed |
-| 5 | `visitor-expected` | -- Expected Visitors | Pre-authorized but not yet arrived |
-| 6 | `package-all` | All Packages | All package entries |
-| 7 | `package-outstanding` | -- Outstanding Packages | Not yet released/picked up |
-| 8 | `package-released` | -- Released Packages | Already picked up |
-| 9 | `security-shift` | Security Shifts / Logs | All security shift entries |
-| 10 | `incident-all` | All Incident Reports | All incident reports |
-| 11 | `incident-open` | -- Open Incidents | Status: Open or In Progress |
-| 12 | `incident-closed` | -- Closed Incidents | Status: Closed |
-| 13 | `incident-draft` | -- Draft Incidents | Status: Draft (not yet submitted) |
-| 14 | `incident-escalated` | -- Escalated Incidents | Status: Escalated |
-| 15 | `authorized-entry` | Authorized Entries | All authorized unit entry logs |
-| 16 | `key-all` | All Key Activity | All key checkouts and returns |
-| 17 | `key-checked-out` | -- Keys Checked Out | Keys currently out |
-| 18 | `key-checked-in` | -- Keys Returned | Completed key checkouts |
-| 19 | `pass-on-log` | Pass-On Logs | Shift handoff notes |
-| 20 | `parking-violation` | Parking Violations | All parking violations |
-| 21 | `security-patrol` | Security Patrols | Patrol round entries (v2) |
-| 22 | `valet-parking` | Valet Parking | Valet parking entries (v2) |
-
-**Tooltip for filter dropdown**: "Filter events by type. Sub-filters (shown with dashes) narrow results within a category."
-
-##### Advanced Search Panel
-
-Toggled by clicking "Advanced Search" link below the filter bar. Collapsible panel.
-
-| # | Field | Label | Type | Default | Validation | Error Message |
-|---|-------|-------|------|---------|-----------|---------------|
-| 1 | `adv_start_date` | "Start Date" | Datetime picker | Empty | Must be a valid date. Must be before End Date if End Date is set. Cannot be in the future. | "Start date must be before end date." / "Start date cannot be in the future." |
-| 2 | `adv_end_date` | "End Date" | Datetime picker | Empty | Must be a valid date. Must be after Start Date if Start Date is set. | "End date must be after start date." |
-| 3 | `adv_match_type` | "Search Accuracy" | Radio group | "Broad Match" | N/A | N/A |
-| 4 | `adv_building` | "Building" | Select dropdown | "All Buildings" | N/A | N/A |
-| 5 | `adv_unit` | "Unit" | Autocomplete text | Empty | Must match an existing unit number if provided. | "No unit found matching '{input}'." |
-| 6 | `adv_created_by` | "Created By" | Select dropdown | "All Staff" | N/A | N/A |
-| 7 | `adv_include_deleted` | "Include Deleted" | Toggle switch | Off | N/A | N/A |
-
-**Tooltip for "Search Accuracy"**: "Exact Match finds events containing your exact search phrase. Broad Match finds events containing any of your search words."
-
-**Tooltip for "Include Deleted"**: "Show soft-deleted events in results. Deleted events appear with a strikethrough style and cannot be edited."
+**Saved Filters**:
+- Users can save current filter combinations as named presets
+- Up to 10 saved filters per user
+- Saved filters appear as quick-access pills below the filter bar
+- Tooltip on each pill: "Click to apply. Right-click to rename or delete."
 
 #### 3.1.3 Quick-Create Icons
 
-A row of circular icon buttons displayed above the event grid, below the filter bar.
+A horizontal row of circular icon buttons below the filter bar. Each opens a creation dialog for a specific entry type.
 
-**Section label**: "Create new entry:" (Overline text, `--text-secondary`)
+| # | Icon | Label | Entry Type | Keyboard Shortcut |
+|---|------|-------|-----------|-------------------|
+| 1 | Person with badge | Visitor | visitor_checkin | `Alt+1` |
+| 2 | Box/package | Package | package_intake | `Alt+2` |
+| 3 | Shield/clipboard | Security Log | security_shift | `Alt+3` |
+| 4 | Document/warning | Incident Report | incident_report | `Alt+4` |
+| 5 | Door/entry | Authorized Entry | authorized_entry | `Alt+5` |
+| 6 | Key | Key Checkout | key_checkout | `Alt+6` |
+| 7 | Notepad/handoff | Pass-On Log | pass_on_log | `Alt+7` |
+| 8 | Broom/sparkle | Cleaning Log | cleaning_log | `Alt+8` |
+| 9 | Pencil/note | General Note | general_note | `Alt+9` |
 
-| # | Icon (Lucide) | Label | Tooltip | Click Action | Success State | Error State | Loading State |
-|---|--------------|-------|---------|-------------|---------------|-------------|---------------|
-| 1 | `user-plus` | "Visitor" | "Log a visitor with optional parking" | Opens Visitor Parking dialog (section 3.1.4) | Dialog opens with empty form, focus on Unit field | Toast: "Failed to load form. Please try again." | Icon pulses, 200ms delay max |
-| 2 | `package` | "Package" | "Log an incoming or outgoing package" | Opens Package Tracking dialog (section 3.1.5) | Dialog opens with Incoming tab active, reference number pre-populated | Toast: "Failed to load form. Please try again." | Icon pulses |
-| 3 | `shield` | "Shift Log" | "Start a new security shift" | Opens Security Shift dialog (section 3.1.6) | Dialog opens with shift times pre-populated | Toast: "Failed to load form. Please try again." | Icon pulses |
-| 4 | `file-warning` | "Incident" | "File an incident report" | Opens Incident Report dialog (section 3.1.7) | Dialog opens with current timestamp pre-filled | Toast: "Failed to load form. Please try again." | Icon pulses |
-| 5 | `door-open` | "Entry" | "Log an authorized unit entry" | Opens Authorized Entry dialog (section 3.1.8) | Dialog opens with focus on Unit field | Toast: "Failed to load form. Please try again." | Icon pulses |
-| 6 | `key` | "Key" | "Check out or return a key" | Opens Key Checkout dialog (section 3.1.9) | Dialog opens with key dropdown populated from inventory | Toast: "Failed to load form. Please try again." | Icon pulses |
-| 7 | `message-square` | "Pass-On" | "Create a shift handoff note" | Opens Pass-On Log dialog (section 3.1.10) | Dialog opens with focus on Subject field | Toast: "Failed to load form. Please try again." | Icon pulses |
-
-**Icon style**: 48px circular buttons. `--bg-secondary` background, `--text-primary` icon color. Hover: `--accent` background with white icon. Active/pressed: scale 0.98, 100ms ease. Label text below icon in Caption size.
+**Icon Specifications**:
+- Size: 56px diameter (desktop), 48px (tablet), 44px (mobile)
+- Background: Primary brand color (default: system blue `#007AFF`)
+- Icon color: White
+- Hover: 10% darker background, slight scale up (1.05x)
+- Active/pressed: 20% darker background
+- Label: Below icon, 12px, medium weight, max 2 lines
+- Tooltip: "{Type Name} -- {Keyboard Shortcut}" (e.g., "Visitor -- Alt+1")
+- Focus ring: 2px blue outline for keyboard navigation (accessibility)
 
 **Responsive behavior**:
-- Desktop: All 7 icons in a horizontal row
-- Tablet: All 7 icons in a horizontal row (smaller, 40px)
-- Mobile: Horizontal scrollable row with label text hidden (icon-only). Or accessed via the "+" floating action button which opens a bottom sheet with all 7 options listed vertically.
+- Desktop (>1024px): All 9 icons in a single row
+- Tablet (768-1024px): All 9 icons in a single scrollable row
+- Mobile (<768px): 2 rows of icons, 5 on top, 4 on bottom. Or a horizontal scrollable row with overflow indicator
 
-#### 3.1.4 Entry Type: Visitor Parking
+#### 3.1.4 Visitor Management
 
-**Dialog title**: "New Visitor"
-**Dialog size**: 560px wide, auto-height
-**Animation**: Scale 0.97 to 1.0 + fade, 250ms ease-out (per Design System section 9)
+**Create Visitor Dialog**
 
-##### Form Fields
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Unit # | Autocomplete text | Yes | 20 chars | Empty | Must match an existing unit | "No unit found. Check the unit number and try again." |
+| 2 | Visitor Name | Text input | Yes | 100 chars | Empty | Min 2 characters | "Visitor name must be at least 2 characters." |
+| 3 | Visitor Type | Toggle radio | Yes | -- | "Visitor" | Must select one | -- |
+| 4 | Expected Departure | DateTime picker | No | -- | +4 hours from now | Must be in the future | "Expected departure must be in the future." |
+| 5 | Needs Parking? | Checkbox | No | -- | Unchecked | -- | -- |
+| 6 | Comments | Textarea | No | 500 chars | Empty | -- | Character count shown: "{count}/500" |
+| 7 | Notify Resident | Checkbox | No | -- | Checked (configurable) | -- | Tooltip: "Send a notification to the resident that their visitor has arrived." |
+| 8 | Photo | Camera/upload | No | 5MB, JPG/PNG | -- | File size and type check | "File must be JPG or PNG and under 5MB." |
 
-| # | Field Name | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip | Placeholder |
-|---|-----------|-------|------|-----------|----------|---------|-----------|---------------|---------|-------------|
-| 1 | `unit_number` | "Unit #" | Autocomplete text input | 20 chars | Yes | Empty | Must match an existing unit in the property. Autocomplete queries API on 2+ characters. | "Please select a valid unit number." | "Start typing a unit number to search." | "Search unit..." |
-| 2 | `visitor_name` | "Visitor Name" | Text input | 100 chars | Yes | Empty | At least 2 characters. Letters, spaces, hyphens, apostrophes only. | "Visitor name is required (2-100 characters)." | -- | "Full name of visitor" |
-| 3 | `visitor_type` | "Type" | Radio group | -- | Yes | "Visitor" | Must select one option. | "Please select visitor or contractor." | "Contractors are logged separately for compliance tracking." | -- |
-| | | | Options: "Visitor", "Contractor" | | | | | | | |
-| 4 | `needs_parking` | "Does the visitor need parking?" | Checkbox | -- | No | Unchecked | N/A | -- | "Check this to add vehicle details and print a parking pass." | -- |
-| 5 | `notify_resident` | "Notify resident of arrival?" | Checkbox | -- | No | Checked | N/A | -- | "Sends an instant notification to the resident's preferred channel (push, SMS, or email)." | -- |
-| 6 | `comments` | "Comments" | Textarea | 500 chars | No | Empty | N/A | -- | -- | "Optional notes about this visit..." |
-| 7 | `photo` | "Photo" | File upload (image) | 4 MB | No | Empty | JPG, PNG, HEIC only. Max 4 MB. | "File must be JPG, PNG, or HEIC and under 4 MB." | "Upload a photo of the visitor's vehicle or ID for records." | -- |
+**Visitor Type Options**:
+- Visitor (default)
+- Contractor
+- Delivery Person
+- Real Estate Agent
+- Emergency Service
+- Other
 
-##### Parking Details (shown when `needs_parking` is checked)
+**Parking Details** (shown when "Needs Parking?" is checked):
 
-Expand with slide-down animation, 200ms ease-out.
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Vehicle Make/Model | Text input | Yes (if parking) | 100 chars | Empty | Min 2 characters | "Enter the vehicle make and model." |
+| 2 | License Plate | Text input | Yes (if parking) | 20 chars | Empty | Alphanumeric, min 2 chars | "Enter a valid license plate number." |
+| 3 | Province/State | Dropdown | Yes (if parking) | -- | Property's province | Must select one | "Select a province or state." |
+| 4 | Vehicle Color | Text input | No | 30 chars | Empty | -- | -- |
+| 5 | Parking Until | DateTime picker | Yes (if parking) | -- | +4 hours from now | Must be in the future | "Parking end time must be in the future." |
+| 6 | Parking Area | Dropdown | No | -- | "Visitor Lot" | -- | Tooltip: "Select where the visitor should park. Options are configured by your property administrator." |
 
-| # | Field Name | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip | Placeholder |
-|---|-----------|-------|------|-----------|----------|---------|-----------|---------------|---------|-------------|
-| 8 | `vehicle_make_model` | "Vehicle Make / Model" | Text input | 100 chars | No | Empty | N/A | -- | -- | "e.g., Black Honda Civic" |
-| 9 | `license_plate` | "License Plate #" | Text input | 15 chars | Yes (if parking checked) | Empty | 2-15 alphanumeric characters. Auto-uppercased. | "License plate is required for parking passes (2-15 characters)." | -- | "e.g., ABCD 123" |
-| 10 | `plate_province` | "Province / State" | Select dropdown | -- | No | Property's default province | Valid province/state from list. | -- | -- | "Select..." |
-| 11 | `parking_until` | "Parking Until" | Datetime picker | -- | Yes (if parking checked) | Current time + property's default visitor parking duration (e.g., 24 hours) | Must be in the future. Must not exceed property's max visitor parking duration. | "Parking end time must be in the future." / "Maximum visitor parking duration is {max_hours} hours." | "When the visitor's parking pass expires." | -- |
+**Action Buttons**:
 
-##### Action Buttons
+| Button | Style | Action | Loading State | Success State | Failure State |
+|--------|-------|--------|---------------|---------------|---------------|
+| Save | Primary (filled) | Creates visitor event, sends notification if checked | Button text changes to "Saving..." with spinner. Form fields disabled. | Toast: "Visitor {name} signed in successfully." Dialog closes. New card appears in grid with slide-in animation. | Toast (error): "Failed to save visitor. Please try again." Form remains open with entered data preserved. |
+| Save & Print Pass | Secondary (outline) | Creates visitor event + opens print dialog for visitor/parking pass | Same as Save + print dialog opens | Toast: "Visitor {name} signed in. Printing pass..." | Same as Save failure |
+| Cancel | Text link | Closes dialog. If form has data, shows confirmation: "Discard visitor entry?" with Yes/No | -- | Dialog closes | -- |
 
-| # | Button | Style | Position | Click Action | Success State | Error State | Loading State |
-|---|--------|-------|----------|-------------|---------------|-------------|---------------|
-| 1 | "Save" | Primary (accent) | Bottom-right | Validates all fields. Creates the visitor event. Sends notification if checked. Prints parking pass if parking checked and property has printing enabled. | Dialog closes. Toast: "Visitor {name} signed in." Event card appears at top of grid (WebSocket push). | Inline field errors shown. If server error: toast "Failed to save visitor. Please try again." | Button text: "Saving..." with spinner. Button disabled. |
-| 2 | "Save & New" | Secondary (outlined) | Bottom-right, left of Save | Same as Save but dialog resets to empty form instead of closing. | Form clears. Toast: "Visitor {name} signed in." Focus returns to Unit field. | Same as Save. | Same as Save. |
-| 3 | "Cancel" | Ghost | Bottom-left | Closes dialog without saving. If form has unsaved changes, shows confirmation: "Discard unsaved changes?" with "Discard" (red) and "Keep Editing" buttons. | Dialog closes with fade-out, 150ms ease-in. | -- | -- |
+**Sign Out Flow**:
+- "Sign Out" quick action on visitor card or detail view
+- Confirmation: "Sign out {visitor name}? This will end their visit and parking permit (if active)."
+- On confirm: Sets departure timestamp, closes parking permit, updates card status to "Signed Out"
+- Batch Sign Out: Available from toolbar. "Sign out all visitors" with confirmation showing count
 
-##### Visitor Detail View (opened by clicking a visitor card)
+**Visitor Detail View**:
 
-Shows all visitor information plus:
-- **Sign Out Visitor** button (only if `departure` is null): Sets departure timestamp, logs "Visitor signed out" action
-- **Print Parking Pass** button (only if parking details exist): Generates and prints parking pass
-- **Edit Vehicle Details** button (only if parking details exist): Opens inline edit for vehicle fields
-- **Add Comment** button: Appends a timestamped comment
-- **History section**: Chronological audit log (Created, Notified, Signed Out, Comments Added)
+| Section | Fields |
+|---------|--------|
+| Visitor Info | Name, Type, Unit visited, Arrival time, Departure time (or "Still signed in"), Comments, Photo |
+| Parking Permits | Table: From, To, Make/Model, Color, License, Province, Area, Status |
+| History | Audit trail: Date/Time, Who (staff), Action, Details |
+| Actions | Sign Out (if signed in), Print Pass, Add Comment, Edit (own entries only) |
 
-#### 3.1.5 Entry Type: Package Tracking
+#### 3.1.5 Package Tracking
 
-**Dialog title**: "New Package"
-**Dialog size**: 600px wide, auto-height
+**Create Package Dialog -- Incoming Tab (default)**
 
-##### Tabs
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Reference # | Read-only text | -- | -- | Auto-generated (e.g., `PKG-2026-00148`) | -- | -- |
+| 2 | Recipient | Autocomplete text | Yes | 100 chars | Empty | Must match a resident or unit | "No resident found. Check the name or unit number." |
+| 3 | Unit | Autocomplete text | Yes | 20 chars | Auto-populated from Recipient | Must match existing unit | "No unit found." |
+| 4 | Courier | Icon grid | Yes | -- | None selected | Must select one | "Select a courier." |
+| 5 | Tracking # | Text input | No | 50 chars | Empty | Alphanumeric with dashes | "Tracking number contains invalid characters." |
+| 6 | Package Type | Dropdown | Yes | -- | "Package" | Must select one | -- |
+| 7 | Perishable | Checkbox | No | -- | Unchecked | -- | Tooltip: "Mark as perishable to trigger priority notifications. Perishable packages are flagged on the dashboard." |
+| 8 | Storage Spot | Dropdown | Yes | -- | Property default (e.g., "Front Desk") | Must select one | "Select a storage location." |
+| 9 | Description | Text input | No | 200 chars | Empty | -- | -- |
+| 10 | Photo | Camera/upload | No | 5MB, JPG/PNG | -- | File size and type | "File must be JPG or PNG and under 5MB." |
+| 11 | Notification | Dropdown | Yes | -- | "Send to primary email" | -- | Tooltip: "Choose how to notify the resident about this package." |
 
-| Tab | Default | Description |
-|-----|---------|-------------|
-| Incoming | Yes (active) | Log a package received at the front desk |
-| Outgoing | No | Log a package being sent out by a resident |
-
-##### Incoming Package Form Fields
-
-| # | Field Name | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip | Placeholder |
-|---|-----------|-------|------|-----------|----------|---------|-----------|---------------|---------|-------------|
-| 1 | `reference_number` | "Ref #" | Read-only text | -- | Auto | Auto-generated (e.g., "PKG-2026-07260") | N/A | -- | "This reference number is auto-generated and used to track this package." | -- |
-| 2 | `recipient` | "Recipient" | Autocomplete text input | 100 chars | Yes | Empty | Must match an existing resident or unit occupant. Autocomplete on 2+ chars, shows "Name (Unit)" format. | "Please select a valid resident." | "Start typing a resident name or unit number." | "Search resident..." |
-| 3 | `unit_number` | "Unit" | Autocomplete text input | 20 chars | Yes | Auto-populated from recipient selection | Must match an existing unit. | "Please select a valid unit number." | -- | "Auto-filled from recipient" |
-| 4 | `courier` | "Courier" | Icon grid (single select) | -- | Yes | None selected | Must select one courier. | "Please select a courier." | "Select the delivery company. Choose 'Other' if not listed." | -- |
-| 5 | `tracking_number` | "Tracking #" | Text input | 50 chars | No | Empty | Alphanumeric, hyphens, spaces allowed. | -- | "The carrier's tracking number, if visible on the package." | "e.g., 1Z999AA10123456784" |
-| 6 | `description` | "Description" | Select dropdown | -- | Yes | "Package" | Must select one. | "Please select a package description." | -- | "Select..." |
-| 7 | `perishable` | "Perishable" | Checkbox | -- | No | Unchecked | N/A | -- | "Mark if the package contains food, flowers, or other time-sensitive items. Triggers a priority notification." | -- |
-| 8 | `storage_spot` | "Storage Location" | Select dropdown | -- | Yes | Property's default storage location (e.g., "Front Desk") | Must select one from configured locations. | "Please select a storage location." | "Where is this package physically stored?" | "Select location..." |
-| 9 | `notify_resident` | "Notify Resident" | Checkbox | -- | No | Checked | N/A | -- | "Sends a notification to the resident that their package has arrived." | -- |
-| 10 | `photo` | "Photo" | File upload (image) | 4 MB | No | Empty | JPG, PNG, HEIC. Max 4 MB. | "File must be JPG, PNG, or HEIC and under 4 MB." | "Photograph the package for documentation." | -- |
-
-##### Courier Icon Grid (Configurable per Property)
-
-Default couriers (property admin can add/remove/reorder):
+**Courier Icon Grid**:
 
 | # | Courier | Icon | Color |
 |---|---------|------|-------|
 | 1 | Amazon | Amazon logo | `#FF9900` |
-| 2 | FedEx | FedEx logo | `#4D148C` |
-| 3 | UPS | UPS logo | `#351C15` |
-| 4 | USPS / Canada Post | Postal logo | `#DA291C` |
+| 2 | Canada Post | CP logo | `#FF0000` |
+| 3 | FedEx | FedEx logo | `#4D148C` |
+| 4 | UPS | UPS logo | `#351C15` |
 | 5 | DHL | DHL logo | `#FFCC00` |
-| 6 | Purolator | Purolator logo | `#CE1126` |
-| 7 | Individual | `user` icon | `--text-secondary` |
-| 8 | Other | `package` icon | `--text-secondary` |
+| 6 | Purolator | Purolator logo | `#E31837` |
+| 7 | USPS | USPS logo | `#004B87` |
+| 8 | Individual Drop-Off | Person icon | `#8E8E93` |
+| 9 | Property Management | Building icon | `#5AC8FA` |
+| 10 | Other | Generic box icon | `#8E8E93` |
 
-**Selection behavior**: Click to select (2px `--accent` border). Only one selected at a time. Previously selected deselects.
+Additional couriers configurable by Property Admin. When "Other" is selected, a text input appears: "Courier name" (required, max 50 chars).
 
-##### Package Description Dropdown Options
+**Package Type Options**: Package, Envelope, Box (Small), Box (Medium), Box (Large), Perishable, Flowers, Dry Cleaning, Pharmacy, Grocery, Furniture/Oversized, Other
 
-| # | Value | Label |
-|---|-------|-------|
-| 1 | `package` | Package |
-| 2 | `envelope` | Envelope |
-| 3 | `box-small` | Small Box |
-| 4 | `box-large` | Large Box |
-| 5 | `bag` | Bag |
-| 6 | `tube` | Tube / Cylinder |
-| 7 | `perishable` | Perishable / Food |
-| 8 | `flowers` | Flowers |
-| 9 | `furniture` | Furniture / Oversized |
-| 10 | `dry-cleaning` | Dry Cleaning |
-| 11 | `pharmacy` | Pharmacy |
-| 12 | `other` | Other |
+**Storage Spot Options**: Configurable per property. Defaults: Front Desk, Package Room, Mailroom, Loading Dock, Concierge Desk, Oversized Storage, Refrigerator (for perishables), Other
 
-##### Batch Package Entry ("Log Multiple Packages")
+**Notification Options**: Send to primary email, Send to all emails, Send SMS, No notification
 
-Button below the form toggles a batch entry mode with 4 rows, each containing:
-- Recipient (autocomplete)
-- Courier (dropdown, compact -- no icon grid in batch mode)
-- Description (dropdown)
-- Storage Location (dropdown)
-- Notify (checkbox)
-- Print Label (checkbox)
+**Package Type Dropdown Selection behavior**: Single-select. Icon appears next to the selected courier (highlighted border). Only one at a time.
 
-**Tooltip for "Log Multiple Packages"**: "Enter up to 4 packages at once. Useful when multiple deliveries arrive together."
+**Batch Package Mode**:
+- Triggered by "Log Multiple Packages" button in the dialog header
+- Shows up to 10 rows, each with: Recipient (autocomplete), Unit (auto-fill), Courier (dropdown), Package Type (dropdown), Storage (dropdown), Notification (dropdown), Print Label (checkbox)
+- "Add Row" button below rows
+- "Save All" button: Creates all packages in a single batch. Success toast: "X packages logged successfully."
+- Per-row validation: Each row validates independently. Invalid rows are highlighted with red border and error icons.
 
-##### Action Buttons
+**Action Buttons (Single Package)**:
 
-| # | Button | Style | Click Action | Success State | Error State | Loading State |
-|---|--------|-------|-------------|---------------|-------------|---------------|
-| 1 | "Save" | Primary | Validates and creates the package event. Prints label if property setting enabled. Sends notification if checked. | Dialog closes. Toast: "Package logged for {resident_name} ({unit})." | Inline errors + toast on server failure. | "Saving..." with spinner. |
-| 2 | "Save & New" | Secondary | Same as Save, form resets. | Form clears. Ref # increments. Toast shown. Focus on Recipient. | Same as Save. | Same. |
-| 3 | "Cancel" | Ghost | Closes with unsaved changes check. | Dialog closes. | -- | -- |
+| Button | Style | Action | Loading State | Success State | Failure State |
+|--------|-------|--------|---------------|---------------|---------------|
+| Save | Primary | Creates package event, sends notification | "Saving..." with spinner | Toast: "Package {ref#} logged for Unit {unit}." Dialog closes. | Toast (error): "Failed to log package." Form preserved. |
+| Save & Print Label | Secondary | Creates package + prints label | "Saving..." then print dialog | Toast: "Package logged. Printing label..." | Same as Save failure |
+| Cancel | Text link | Close with discard confirmation if data entered | -- | Dialog closes | -- |
 
-##### Package Detail View
+**Release Package Flow**:
+- "Release" quick action on package card or from detail view
+- Release dialog fields:
 
-Shows full package info plus:
-- **Release Package** button (outstanding only): Expands inline release form with fields:
-  - `released_to` (text, 100 chars, required): "Who is picking up?"
-  - `release_comments` (textarea, 500 chars, optional): "Notes about the release"
-  - `release_signature` (signature pad, optional): Digital signature capture
-  - `release_photo` (file upload, optional): Photo of person picking up
-  - "Release" button (primary): Marks package as released, logs timestamp and staff member
-  - "Cancel" button (ghost): Hides release form
-- **Send Email Reminder** button (outstanding only): Sends reminder to resident
-- **Log Call** button (outstanding only): Logs that staff called resident about the package
-- **Print Label** button: Reprints the package label
-- **History section**: Package Received, Notification Sent, Reminder Sent, Package Released
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Released To | Text input | Yes | 100 chars | Empty | Min 2 chars | "Enter the name of the person picking up the package." |
+| 2 | ID Verified | Checkbox | No | -- | Unchecked | -- | Tooltip: "Check if you verified the person's identity before releasing the package." |
+| 3 | Comments | Textarea | No | 500 chars | Empty | -- | -- |
+| 4 | Signature | Signature pad | Configurable | -- | Empty | Required if property setting enabled | "Signature is required to release this package." |
+| 5 | Photo | Camera/upload | No | 5MB | -- | JPG/PNG | "File must be JPG or PNG and under 5MB." |
 
-#### 3.1.6 Entry Type: Security Shift / Log
+- Release confirmation: "Release package {ref#} to {name}?"
+- On confirm: Package status changes to "Released". Release timestamp recorded. Card updates in grid.
+- Toast: "Package {ref#} released to {name}."
 
-**Dialog title**: "New Security Shift"
-**Dialog size**: 560px wide, auto-height
+**Outgoing Package Tab**:
+Same form as incoming but without Courier grid and Storage Spot. Additional field: "Courier Pickup Expected" (DateTime, optional).
 
-##### Info Banner
+#### 3.1.6 Security Shift / Log
 
-Light blue info box at the top of the dialog showing live operational context:
+**Create Shift Dialog**
 
-| # | Content | Source | Example |
-|---|---------|--------|---------|
-| 1 | Active bookings | Amenity reservations for today | "You have 3 booking(s) for today." |
-| 2 | Keys checked out | Key checkouts with status = checked_out | "2 key(s) are checked out." |
-| 3 | Active visitors | Visitors with departure = null | "5 visitor(s) currently signed in." |
-| 4 | Outstanding packages | Packages with released = null | "12 package(s) awaiting pickup." |
+**Info Banner** (always shown at top of dialog -- light blue background):
+- "You have {X} booking(s) scheduled for today." (links to Amenity calendar)
+- "{X} key(s) are currently checked out." (links to key checkout list)
+- "{X} resident(s) are on vacation." (links to vacation list)
+- "{X} unreleased package(s)." (links to package list filtered to outstanding)
 
-**Tooltip for banner**: "A summary of what is happening right now in the building. Review this at the start of your shift."
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Start Time | DateTime picker | Yes | -- | Current time (rounded to nearest 15 min) | Must be within last 2 hours | "Shift start time cannot be more than 2 hours in the past." |
+| 2 | End Time | DateTime picker | Yes | -- | +8 hours from Start Time | Must be after Start Time | "End time must be after start time." |
+| 3 | Relieved | Dropdown | Yes | -- | "Select Guard" | Must select a guard or N/A | "Select the guard you are relieving." |
+| 4 | To Be Relieved By | Dropdown | Yes | -- | "Select Guard" | Must select a guard or N/A | "Select the guard who will relieve you." |
+| 5 | Equipment Received | Textarea | No | 500 chars | Empty | -- | Tooltip: "List any equipment handed to you by the previous guard (radios, keys, devices, etc.)" |
+| 6 | Opening Notes | Rich text editor | No | 2000 chars | Empty | -- | Tooltip: "Notes about the current state of the building as you start your shift." |
 
-##### Form Fields
+**Relieved / To Be Relieved By Options**:
+- All active security/concierge staff for the property
+- "N/A -- I am the first shift for today" (for Relieved)
+- "N/A -- I am the last shift for today" (for To Be Relieved By)
 
-| # | Field Name | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip | Placeholder |
-|---|-----------|-------|------|-----------|----------|---------|-----------|---------------|---------|-------------|
-| 1 | `start_time` | "Shift Start" | Datetime picker | -- | Yes | Current time (rounded to nearest hour) | Must be a valid datetime. Cannot be more than 24 hours in the past. | "Shift start time is required." | -- | -- |
-| 2 | `end_time` | "Shift End" | Datetime picker | -- | Yes | Start time + property's default shift duration (e.g., 8 hours) | Must be after start time. Shift duration cannot exceed 16 hours. | "Shift end must be after start time." / "Maximum shift duration is 16 hours." | -- | -- |
-| 3 | `relieved` | "Relieved" | Select dropdown | -- | Yes | "Select..." | Must select a guard or "N/A - First shift of the day". | "Please select who you are relieving." | "The security guard whose shift you are taking over." | "Select guard..." |
-| 4 | `to_be_relieved_by` | "To Be Relieved By" | Select dropdown | -- | Yes | "Select..." | Must select a guard or "N/A - Last shift of the day". | "Please select who will relieve you." | "The security guard who will take over after your shift." | "Select guard..." |
-| 5 | `equipment_received` | "Equipment Received" | Text input | 500 chars | No | Empty | N/A | -- | "List all equipment received at the start of your shift (e.g., radio, keys, flashlight)." | "e.g., Radio #3, master key set, flashlight" |
-| 6 | `shift_notes` | "Initial Notes" | Rich text editor | 4000 chars | No | Empty | N/A | -- | "Record any observations or notes at the start of your shift." | "Type shift notes here..." |
+**Shift Log Entries** (added to an active shift):
+Once a shift is created, staff can add log entries throughout the shift:
 
-**Guard dropdown options**: Populated dynamically from all users with Security Guard or Security Supervisor roles at the current property. Plus two special options:
-- "N/A - First shift of the day" (for `relieved`)
-- "N/A - Last shift of the day" (for `to_be_relieved_by`)
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Time | DateTime picker | Yes | -- | Current time | Within shift time range | "Log entry time must be within the shift period." |
+| 2 | Category | Dropdown | No | -- | "General" | -- | Options: General, Patrol Round, Building Check, Resident Interaction, Contractor Visit, Alarm Response, Other |
+| 3 | Entry | Rich text editor | Yes | 2000 chars | Empty | Min 10 chars | "Log entry must be at least 10 characters." |
+| 4 | Attachment | File upload | No | 10MB, JPG/PNG/PDF | -- | File type and size | "File must be JPG, PNG, or PDF and under 10MB." |
 
-##### Action Buttons
+**End Shift Flow**:
+- "End Shift" button on shift detail or dashboard
+- Closing fields:
 
-| # | Button | Style | Click Action | Success | Error | Loading |
-|---|--------|-------|-------------|---------|-------|---------|
-| 1 | "Start Shift" | Primary | Validates. Creates shift event. Makes this shift the "active shift" for the user. | Dialog closes. Toast: "Shift started. Stay safe." Shift log panel becomes accessible. | Inline errors. Server error toast. | "Starting..." spinner. |
-| 2 | "Cancel" | Ghost | Close with unsaved check. | Dialog closes. | -- | -- |
+| # | Field | Type | Required | Default |
+|---|-------|------|----------|---------|
+| 1 | Actual End Time | DateTime picker | Yes | Current time |
+| 2 | Equipment Returned | Textarea | No | Empty |
+| 3 | Closing Notes | Rich text editor | No | Empty |
+| 4 | AI Summary | Read-only text (generated) | No | Auto-generated summary of shift events |
 
-##### Shift Detail View
+- "End Shift" button: Primary. Loading: "Ending shift...". Success: "Shift ended. Summary generated."
+- AI Summary: Auto-generated narrative of all events during the shift (see Section 7). Staff can edit before finalizing.
 
-When clicking a shift card, shows the full shift form plus:
-- **Add Log Entry** button: Adds a timestamped note to the shift (subject + details rich text editor)
-- **End Shift** button: Triggers shift summary (see AI section) and closes the shift
-- **Print Shift Report** button: Exports shift as PDF with all log entries
-- **Log entries list**: All entries added during the shift, chronological, with timestamps and author
+#### 3.1.7 Incident Report
 
-#### 3.1.7 Entry Type: Incident Report
+**Create Incident Dialog**
 
-**Dialog title**: "New Incident Report"
-**Dialog size**: 640px wide, auto-height
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Unit # | Autocomplete text | No | 20 chars | Empty | Must match existing unit if provided | "No unit found." |
+| 2 | Incident Type | Dropdown | Yes | -- | First option | Must select one | "Select an incident type." |
+| 3 | Title | Text input | Yes | 200 chars | Empty | Min 5 characters | "Title must be at least 5 characters." |
+| 4 | What Happened | Rich text editor | Yes | 4000 chars | Empty | Min 20 characters | "Please provide at least 20 characters describing the incident." |
+| 5 | Time Occurred | DateTime picker | Yes | -- | Current time | Cannot be in the future | "Incident time cannot be in the future." |
+| 6 | Urgency | Toggle | Yes | -- | "Not Urgent" | -- | Tooltip: "Urgent incidents trigger immediate notifications to supervisors and management." |
+| 7 | Priority | Dropdown | No | -- | AI-suggested or "Normal" | -- | Options: Low, Normal, High, Critical. Tooltip: "Priority determines the order incidents appear in review queues." |
+| 8 | Reported By | Text input | No | 100 chars | Empty | -- | Tooltip: "Name of the person who reported this incident (if different from you)." |
+| 9 | Suspect | Text input | No | 200 chars | Empty | -- | -- |
+| 10 | Photos | File upload (multi) | No | 5 files, 5MB each, JPG/PNG | -- | File type, size, count | "Maximum 5 photos. Each must be JPG or PNG and under 5MB." |
+| 11 | Attachments | File upload (multi) | No | 3 files, 10MB each, PDF/DOC/DOCX | -- | File type, size, count | "Maximum 3 documents. Each must be PDF or DOC and under 10MB." |
 
-##### Form Fields
+**Incident Type Options** (configurable per property, system defaults):
 
-| # | Field Name | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip | Placeholder |
-|---|-----------|-------|------|-----------|----------|---------|-----------|---------------|---------|-------------|
-| 1 | `unit_number` | "Related Unit" | Autocomplete text | 20 chars | No | Empty | Must match existing unit if provided. | "No unit found matching '{input}'." | "The unit involved in this incident, if applicable." | "Search unit (optional)..." |
-| 2 | `incident_type` | "Incident Type" | Select dropdown | -- | Yes | First option | Must select one. | "Please select an incident type." | "The category that best describes this incident." | "Select type..." |
-| 3 | `title` | "Title" | Text input | 200 chars | Yes | Empty | 5-200 characters. | "Title is required (5-200 characters)." | -- | "Brief description of what happened" |
-| 4 | `description` | "What Happened?" | Rich text editor | 4000 chars | Yes | Empty | At least 20 characters of text content. | "Please provide a description (at least 20 characters)." | "Describe what happened in detail. Include times, locations, and people involved." | "Describe the incident in detail..." |
-| 5 | `time_occurred` | "Time Occurred" | Datetime picker | -- | Yes | Current date/time | Must be a valid datetime. Cannot be in the future. Cannot be more than 72 hours in the past. | "Time occurred cannot be in the future." / "Incidents older than 72 hours should be reported through management." | "When the incident actually happened (may differ from when you are filing this report)." | -- |
-| 6 | `urgency` | "Urgency" | Toggle switch | -- | Yes | "Not Urgent" | N/A | -- | "Mark as Urgent to immediately notify the Security Supervisor and Property Manager." | -- |
-| 7 | `reported_by` | "Reported By" | Text input | 100 chars | No | Empty | N/A | -- | "The person who reported this incident to you, if different from yourself." | "Name of person who reported this" |
-| 8 | `suspect` | "Suspect Description" | Text input | 200 chars | No | Empty | N/A | -- | "Physical description or name of the suspect, if known." | "Description of suspect (optional)" |
-| 9 | `photos` | "Photos" | Multi-file upload | 4 MB each, 10 max | No | Empty | JPG, PNG, HEIC. Max 4 MB per file, max 10 files. | "Each file must be JPG, PNG, or HEIC and under 4 MB. Maximum 10 files." | "Upload photos documenting the incident (damage, evidence, etc.)." | -- |
-| 10 | `documents` | "Documents" | Multi-file upload | 10 MB each, 5 max | No | Empty | PDF, DOC, DOCX, XLS, XLSX. Max 10 MB per file, max 5 files. | "Each file must be PDF, DOC, DOCX, XLS, or XLSX and under 10 MB." | "Attach supporting documents (police reports, witness statements, etc.)." | -- |
+| # | Type | Default Priority |
+|---|------|-----------------|
+| 1 | Alarm System Occurrence | High |
+| 2 | Doors/Windows Insecure | High |
+| 3 | Fire / Fire Alarm | Critical |
+| 4 | Fire Hazard | High |
+| 5 | Flooding / Water Damage | Critical |
+| 6 | Infraction of Rules | Normal |
+| 7 | Medical Emergency | Critical |
+| 8 | Noise Complaint -- Confirmed | Normal |
+| 9 | Noise Complaint -- Unconfirmed | Low |
+| 10 | Parking Lot Occurrence | Normal |
+| 11 | Property Damage | High |
+| 12 | Safety Hazard | High |
+| 13 | Suspicious Activity | High |
+| 14 | Theft / Break-In | Critical |
+| 15 | Trespasser | High |
+| 16 | Valuables Lost/Found | Low |
+| 17 | Vandalism | High |
+| 18 | Waste/Water/Power Issue | Normal |
+| 19 | Other | Normal |
 
-##### Incident Type Dropdown Options (Configurable per Property)
-
-Default types:
-
-| # | Value | Label |
-|---|-------|-------|
-| 1 | `alarm-system` | Alarm System Occurrence |
-| 2 | `doors-blocked` | Doors or Aisleways Blocked |
-| 3 | `doors-insecure` | Doors or Windows Insecure |
-| 4 | `fire-hazard` | Fire Hazard |
-| 5 | `fire` | Fire |
-| 6 | `rule-infraction` | Infraction of Rules |
-| 7 | `noise-confirmed` | Noise Complaint - Confirmed |
-| 8 | `noise-unconfirmed` | Noise Complaint - Unconfirmed |
-| 9 | `parking-occurrence` | Parking Lot Occurrence |
-| 10 | `rounds-missed` | Rounds Missed |
-| 11 | `rubbish` | Rubbish Accumulation |
-| 12 | `safety-hazard` | Safety Hazard |
-| 13 | `theft` | Theft Occurrence |
-| 14 | `trespasser` | Trespasser |
-| 15 | `lost-found` | Lost / Found Property |
-| 16 | `water-damage` | Water / Plumbing Issue |
-| 17 | `elevator-issue` | Elevator Malfunction |
-| 18 | `medical` | Medical Emergency |
-| 19 | `vandalism` | Vandalism |
-| 20 | `other` | Other |
-
-##### Emergency Services Section
-
-Displayed below the main form fields. A 5-row table for tracking emergency service contacts:
-
-| Row | Service | Fields (all optional) |
-|-----|---------|----------------------|
-| 1 | Police | Called (Yes/No toggle), Time Called (datetime), Arrival Time (datetime), Attending Officer Name (text, 100 chars) |
-| 2 | Fire Department | Called (Yes/No toggle), Time Called (datetime), Arrival Time (datetime), Attending Officer Name (text, 100 chars) |
-| 3 | Ambulance | Called (Yes/No toggle), Time Called (datetime), Arrival Time (datetime), Attending Paramedic Name (text, 100 chars) |
-| 4 | Property Contact | Called (Yes/No toggle), Time Called (datetime), Response Time (datetime), Contact Name (text, 100 chars) |
-| 5 | Patrol Supervisor | Called (Yes/No toggle), Time Called (datetime), Arrival Time (datetime), Supervisor Name (text, 100 chars) |
-
-**Tooltip for Emergency Services section**: "Track which emergency services were contacted and their response times. This information is critical for post-incident review and legal documentation."
-
-##### Action Buttons
-
-| # | Button | Style | Click Action | Success | Error | Loading |
-|---|--------|-------|-------------|---------|-------|---------|
-| 1 | "Submit Report" | Primary | Validates all required fields. Creates incident with status "Open". Sends notifications based on urgency. | Dialog closes. Toast: "Incident report #{ref} submitted." If urgent, additional toast: "Supervisor and management have been notified." | Inline field errors. Server error toast. | "Submitting..." spinner. |
-| 2 | "Save as Draft" | Secondary | Saves with status "Draft". No notifications sent. | Dialog closes. Toast: "Draft saved. You can resume editing later." | Server error toast. | "Saving..." spinner. |
-| 3 | "Cancel" | Ghost | Close with unsaved check. | Dialog closes. | -- | -- |
-
-##### Incident Detail View
-
-Shows full report plus:
-- **Update section**: Add details (textarea), attach files, change status dropdown:
-  - Draft, Open, In Progress, Under Review, Escalated, Closed
-- **Emergency Services table**: Editable inline
-- **Attachments table**: Date, type, filename (downloadable), delete button
-- **Updates log**: Chronological list of all updates with timestamp, author, status at time of update
-- **Print** button: Generates formatted PDF incident report
-- **Escalate** button: Changes status to Escalated, notifies supervisor and property manager
-
-##### Incident Statuses and Transitions
+**Incident Status Lifecycle**:
 
 ```
-Draft ──→ Open ──→ In Progress ──→ Under Review ──→ Closed
-                       │                               ↑
-                       └──→ Escalated ─────────────────┘
+Draft ──> Open ──> In Progress ──> Under Review ──> Closed
+                       │                                ▲
+                       │                                │
+                       └──> Escalated ──> Under Review ─┘
 ```
 
-| Status | Description | Who Can Set |
-|--------|-------------|-------------|
-| Draft | Saved but not submitted. Not visible to supervisors. | Security Guard, Concierge |
-| Open | Submitted, awaiting action. | Security Guard, Concierge (on submit) |
-| In Progress | Actively being investigated or addressed. | Security Guard, Supervisor, Property Manager |
-| Under Review | Investigation complete, awaiting supervisor sign-off. | Supervisor, Property Manager |
-| Escalated | Requires management attention. Triggers notification to Property Manager. | Supervisor, Property Manager |
-| Closed | Resolved. Immutable after 24 hours. | Supervisor, Property Manager |
+| Status | Description | Who Can Set | Color |
+|--------|-------------|------------|-------|
+| Draft | Saved but not yet submitted | Creator | Grey `#8E8E93` |
+| Open | Submitted and awaiting action | Creator, Supervisor, Manager | Blue `#007AFF` |
+| In Progress | Being actively investigated or addressed | Guard, Supervisor, Manager | Amber `#FF9500` |
+| Under Review | Investigation complete, awaiting supervisor review | Supervisor, Manager | Purple `#AF52DE` |
+| Escalated | Requires management attention | Supervisor, Manager | Red `#FF3B30` |
+| Closed | Resolved and documented | Supervisor, Manager | Green `#34C759` |
 
-#### 3.1.8 Entry Type: Authorized Entry
+**Emergency Services Section** (collapsible, shown for High/Critical priority):
 
-**Dialog title**: "New Authorized Entry"
-**Dialog size**: 520px wide, auto-height
+| # | Service | Fields |
+|---|---------|--------|
+| 1 | Police | Called (Yes/No), Time Called, Arrival Time, Badge # / Officer Name, Departure Time, Report # |
+| 2 | Fire Department | Called (Yes/No), Time Called, Arrival Time, Captain / Unit Name, Departure Time |
+| 3 | Ambulance / EMS | Called (Yes/No), Time Called, Arrival Time, Unit Name, Patient Transported (Yes/No) |
+| 4 | Property Manager/Client | Called (Yes/No), Time Called, Responded (Yes/No), Notes |
+| 5 | Supervisor | Called (Yes/No), Time Called, Arrived On-Site (Yes/No), Notes |
 
-##### Form Fields
+**Action Buttons**:
 
-| # | Field Name | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip | Placeholder |
-|---|-----------|-------|------|-----------|----------|---------|-----------|---------------|---------|-------------|
-| 1 | `unit_number` | "Unit #" | Autocomplete text | 20 chars | Yes | Empty | Must match existing unit. | "Please select a valid unit number." | -- | "Search unit..." |
-| 2 | `authorized_person` | "Authorized Person" | Text input | 100 chars | Yes | Empty | 2-100 characters. | "Name is required (2-100 characters)." | "The name of the person authorized to enter the unit." | "Full name of person entering" |
-| 3 | `company` | "Company" | Text input | 100 chars | No | Empty | N/A | -- | "The company the person represents, if applicable." | "e.g., ABC Plumbing" |
-| 4 | `reason` | "Reason for Entry" | Textarea | 500 chars | Yes | Empty | At least 5 characters. | "Reason is required (at least 5 characters)." | -- | "e.g., Water heater repair, carpet cleaning" |
-| 5 | `entry_time` | "Entry Time" | Datetime picker | -- | Yes | Current date/time | Cannot be more than 1 hour in the future. | "Entry time cannot be more than 1 hour in the future." | "When the person entered or will enter the unit." | -- |
-| 6 | `expected_duration` | "Expected Duration" | Select dropdown | -- | No | "1 hour" | N/A | -- | "How long the person is expected to be in the unit." | "Select..." |
-| 7 | `id_verified` | "ID Verified" | Checkbox | -- | No | Unchecked | N/A | -- | "Check if you verified the person's identification before granting entry." | -- |
-| 8 | `comments` | "Comments" | Textarea | 500 chars | No | Empty | N/A | -- | -- | "Additional notes..." |
+| Button | Style | Action | Loading | Success | Failure |
+|--------|-------|--------|---------|---------|---------|
+| Save as Draft | Tertiary (grey outline) | Saves with Draft status | "Saving..." | Toast: "Incident saved as draft." | Toast error |
+| Submit | Primary | Saves with Open status, triggers notifications | "Submitting..." | Toast: "Incident {ref#} submitted." | Toast error |
+| Cancel | Text link | Close with discard confirmation | -- | Dialog closes | -- |
 
-**Expected Duration options**: 30 minutes, 1 hour, 2 hours, 4 hours, Full day, Unknown.
+**Incident Detail View (additional sections beyond creation fields)**:
 
-##### Action Buttons
+| Section | Content |
+|---------|---------|
+| Emergency Services | Editable table (see above) |
+| Updates | Append-only log. Each update: timestamp, staff name, text (2000 chars), status change, file attachment |
+| Linked Incidents | AI-suggested similar past incidents (see Section 7). Manual linking via search. |
+| Attachments | Gallery view of photos. Table view of documents. Each with download and delete (own uploads only). |
+| Print | "Print Report" button generates a formatted PDF |
+| Actions | Update Status (dropdown), Add Update (text + file), Escalate (with reason), Close (with resolution summary) |
 
-| # | Button | Style | Click Action | Success | Error | Loading |
-|---|--------|-------|-------------|---------|-------|---------|
-| 1 | "Save" | Primary | Validates. Creates authorized entry event. | Dialog closes. Toast: "Entry logged for Unit {unit}." | Inline errors + server toast. | "Saving..." spinner. |
-| 2 | "Cancel" | Ghost | Close with unsaved check. | Dialog closes. | -- | -- |
+#### 3.1.8 Authorized Entry
 
-#### 3.1.9 Entry Type: Key Checkout
+**Create Authorized Entry Dialog**
 
-**Dialog title**: "Key Checkout"
-**Dialog size**: 560px wide, auto-height
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Unit # | Autocomplete text | Yes | 20 chars | Empty | Must match existing unit | "No unit found." |
+| 2 | Authorized Person | Text input | Yes | 100 chars | Empty | Min 2 chars | "Enter the name of the authorized person." |
+| 3 | Company | Text input | No | 100 chars | Empty | -- | -- |
+| 4 | Reason | Dropdown + text | Yes | 200 chars | -- | Must select or type reason | "Enter a reason for authorized entry." |
+| 5 | Date/Time | DateTime picker | Yes | -- | Current time | Within 24 hours | "Entry time must be within 24 hours of now." |
+| 6 | Duration | Dropdown | No | -- | "Until departure" | -- | Options: 1 hour, 2 hours, 4 hours, Full day, Until departure |
+| 7 | ID Verified | Checkbox | Yes (configurable) | -- | Unchecked | Must be checked if required by property | "ID verification is required before granting entry." |
+| 8 | ID Type | Dropdown | If ID Verified | -- | -- | Must select if ID verified | "Select the type of ID presented." |
+| 9 | ID Number | Text input | No | 30 chars | Empty | -- | -- |
+| 10 | Resident Notified | Checkbox | No | -- | Unchecked | -- | Tooltip: "Check if you confirmed the entry with the unit's resident." |
+| 11 | Comments | Textarea | No | 500 chars | Empty | -- | -- |
+| 12 | Photo | Camera/upload | No | 5MB, JPG/PNG | -- | File type and size | "File must be JPG or PNG and under 5MB." |
 
-##### Read-Only Header
+**Reason Options**: Maintenance/Repair, Delivery/Installation, Cleaning, Inspection, Emergency, Real Estate Showing, Pet Service, Other (free text)
 
-| Field | Value | Source |
-|-------|-------|--------|
-| Logged By | Current user's display name | Session |
-| Logged On | Current date/time, formatted | System clock |
+**ID Type Options**: Driver's License, Passport, Building ID, Company ID, Government ID, Other
 
-##### Form Fields
+#### 3.1.9 Key Checkout
 
-| # | Field Name | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip | Placeholder |
-|---|-----------|-------|------|-----------|----------|---------|-----------|---------------|---------|-------------|
-| 1 | `key_id` | "Key" | Select dropdown (searchable) | -- | Yes | "Select..." | Must select a key from inventory. Key must have status "Available". | "Please select an available key." | "Select the key being checked out. Only available keys are shown." | "Search key..." |
-| 2 | `checked_out_to` | "Checked Out To" | Text input | 100 chars | Yes | Empty | 2-100 characters. | "Name is required (2-100 characters)." | -- | "Full name of person receiving key" |
-| 3 | `company` | "Company" | Text input | 100 chars | No | Empty | N/A | -- | -- | "Company name (optional)" |
-| 4 | `id_type` | "ID Type" | Select dropdown | -- | Yes | "Select..." | Must select one. | "ID type is required for key checkout." | "The type of identification the person presented." | "Select ID type..." |
-| 5 | `id_number` | "ID Number" | Text input | 50 chars | Yes | Empty | 2-50 characters. | "ID number is required (2-50 characters)." | "The number on the identification document." | "e.g., DL-12345678" |
-| 6 | `reason` | "Reason" | Textarea | 500 chars | Yes | Empty | At least 5 characters. | "Reason is required (at least 5 characters)." | -- | "Why is this key being checked out?" |
-| 7 | `signature` | "Signature" | Signature pad (canvas) | -- | Yes (configurable per property) | Empty | Must contain a signature (canvas not blank). | "Signature is required." | "The person checking out the key must sign here." | -- |
-| 8 | `id_photo_front` | "ID Photo (Front)" | File upload / camera capture | 4 MB | No | Empty | JPG, PNG, HEIC. Max 4 MB. | "File must be JPG, PNG, or HEIC and under 4 MB." | "Photograph the front of the person's ID." | -- |
-| 9 | `id_photo_back` | "ID Photo (Back)" | File upload / camera capture | 4 MB | No | Empty | JPG, PNG, HEIC. Max 4 MB. | "File must be JPG, PNG, or HEIC and under 4 MB." | "Photograph the back of the person's ID." | -- |
+**Create Key Checkout Dialog**
 
-**ID Type options**: Driver's License, Passport, Building ID, Government ID, Employee Badge, Other.
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Logged By | Read-only | -- | -- | Current user (auto) | -- | -- |
+| 2 | Logged On | Read-only | -- | -- | Current timestamp (auto) | -- | -- |
+| 3 | Key | Searchable dropdown | Yes | -- | "Select a key" | Must select from inventory | "Select a key from the inventory." |
+| 4 | Checked Out To | Text input | Yes | 100 chars | Empty | Min 2 chars | "Enter the name of the person checking out the key." |
+| 5 | Company | Text input | No | 100 chars | Empty | -- | -- |
+| 6 | ID Type | Dropdown | Yes | -- | -- | Must select one | "Select the type of ID presented." |
+| 7 | ID Number | Text input | Yes | 30 chars | Empty | Min 3 chars | "Enter the ID number." |
+| 8 | Reason | Textarea | Yes | 500 chars | Empty | Min 5 chars | "Provide a reason for the key checkout." |
+| 9 | Expected Return | DateTime picker | No | -- | +4 hours from now | Must be in the future | "Expected return time must be in the future." |
+| 10 | ID Photo (front) | Camera/upload | No | 5MB, JPG/PNG | -- | File type and size | "File must be JPG or PNG and under 5MB." |
+| 11 | ID Photo (back) | Camera/upload | No | 5MB, JPG/PNG | -- | File type and size | -- |
+| 12 | Signature | Signature pad | Configurable | -- | -- | Required if property setting enabled | "Signature is required for key checkout." |
 
-**Signature pad controls**:
-- "Sign" button: Activates the canvas for drawing
-- "Clear" button: Erases the signature
-- "Done" button: Confirms the signature
+**Key Return (Check-In) Flow**:
+- "Check In" action on key checkout card or detail view
+- Dialog fields: Return Time (auto: now), Condition Notes (optional, 200 chars), Returned By (auto: current user)
+- Confirmation: "Return key {key name}? This will mark it as available."
+- On confirm: Key status returns to "Available". Checkout event closed. Toast: "Key {name} returned."
 
-**"View All Keys" link**: Opens a sub-dialog showing the complete key inventory table with columns: Key Name, Key Details, Assigned Owner, Status (Available/Checked Out), Actions (Select, Edit, Delete). Searchable.
+**Overdue Key Alerts**:
+- If a key is not returned by Expected Return time, an alert appears on the dashboard
+- Notification sent to the guard who checked it out and to the Security Supervisor
+- Overdue keys highlighted in red on the console
 
-**"+ New Key" button**: Next to the key dropdown. Opens inline form to add a new key to inventory (Key Name, Key Number, Building -- see Key Inventory section 3.1.12).
+**Key Inventory View** (accessible via "View All Keys" link):
 
-##### Action Buttons
-
-| # | Button | Style | Click Action | Success | Error | Loading |
-|---|--------|-------|-------------|---------|-------|---------|
-| 1 | "Check Out Key" | Primary | Validates. Creates key checkout event. Changes key status to "Checked Out". | Dialog closes. Toast: "{key_name} checked out to {person_name}." | Inline errors + server toast. | "Processing..." spinner. |
-| 2 | "Cancel" | Ghost | Close with unsaved check. | Dialog closes. | -- | -- |
-
-##### Key Return Flow
-
-When clicking "Check In" on a key checkout card in the grid:
-1. Confirmation dialog: "Return {key_name} checked out to {person_name}?"
-2. Optional return comments field (textarea, 500 chars)
-3. "Return Key" button (primary): Sets key status back to "Available", logs return timestamp
-4. "Cancel" button
-5. Success toast: "{key_name} returned."
-
-#### 3.1.10 Entry Type: Pass-On Log
-
-**Dialog title**: "New Pass-On Log"
-**Dialog size**: 600px wide, auto-height
-
-##### Form Fields
-
-| # | Field Name | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip | Placeholder |
-|---|-----------|-------|------|-----------|----------|---------|-----------|---------------|---------|-------------|
-| 1 | `subject` | "Subject" | Text input | 200 chars | Yes | Empty | 3-200 characters. | "Subject is required (3-200 characters)." | -- | "Brief description of what the next shift needs to know" |
-| 2 | `details` | "Details" | Rich text editor (CKEditor-style) | 4000 chars | Yes | Empty | At least 10 characters of text content. | "Details are required (at least 10 characters)." | "Provide full details. Use formatting for clarity." | "Write the details here..." |
-| 3 | `priority` | "Priority" | Select dropdown | -- | No | "Normal" | Must select one. | -- | "How urgent is this information for the next shift?" | -- |
-| 4 | `attachments` | "Attachments" | Multi-file upload | 10 MB each, 5 max | No | Empty | JPG, PNG, HEIC, PDF, DOC, DOCX. Max 10 MB per file, max 5 files. | "Each file must be under 10 MB. Allowed types: JPG, PNG, HEIC, PDF, DOC, DOCX. Maximum 5 files." | "Attach photos, documents, or other files relevant to this note." | -- |
-| 5 | `send_to` | "Notify Team Members" | Checkbox list | -- | No | All unchecked | N/A | -- | "Select specific team members to notify about this note, or use 'Send to all' to notify the entire team." | -- |
-
-**Priority options**: Low, Normal, High, Critical.
-
-**"Send to all team members" checkbox**: Master checkbox that selects/deselects all individual team members. Individual team members listed below, populated from all users with security/concierge roles at the property.
-
-**Rich text editor toolbar**: Undo, Redo, Bold, Italic, Underline, Strikethrough, Remove Format, Bulleted List, Numbered List, Text Alignment, Font Size, Link, Insert Image.
-
-##### Action Buttons
-
-| # | Button | Style | Click Action | Success | Error | Loading |
-|---|--------|-------|-------------|---------|-------|---------|
-| 1 | "Save" | Primary | Validates. Creates pass-on log event. Sends notifications to selected team members. | Dialog closes. Toast: "Pass-on log saved." | Inline errors + server toast. | "Saving..." spinner. |
-| 2 | "Cancel" | Ghost | Close with unsaved check. | Dialog closes. | -- | -- |
-
-#### 3.1.11 Parking Violation Lifecycle
-
-**Dialog title**: "New Parking Violation"
-**Access**: Accessed via sidebar navigation (Security Console > Parking Violations) or through a dedicated quick-action on the Security Guard dashboard.
-
-##### Form Fields
-
-| # | Field Name | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip | Placeholder |
-|---|-----------|-------|------|-----------|----------|---------|-----------|---------------|---------|-------------|
-| 1 | `building` | "Building" | Select dropdown | -- | Yes | Property's default building | Must select one. | "Please select a building." | -- | "Select building..." |
-| 2 | `license_plate` | "License Plate" | Text input | 15 chars | Yes | Empty | 2-15 alphanumeric characters. Auto-uppercased. | "License plate is required (2-15 characters)." | -- | "e.g., ABCD 123" |
-| 3 | `plate_province` | "Province / State" | Select dropdown | -- | No | Property's default province | N/A | -- | -- | "Select..." |
-| 4 | `violation_type` | "Violation Type" | Radio group | -- | Yes | None | Must select one. | "Please select a violation type." | -- | -- |
-| 5 | `location` | "Location" | Text input | 100 chars | No | Empty | N/A | -- | "Where in the parking area the violation occurred." | "e.g., P1 Level, Visitor Spot #12" |
-| 6 | `description` | "Description" | Textarea | 500 chars | No | Empty | N/A | -- | -- | "Additional details about the violation..." |
-| 7 | `auto_lift_date` | "Automatically Lift On" | Date picker | -- | No | Empty | Must be in the future if provided. | "Auto-lift date must be in the future." | "The violation will be automatically resolved on this date. Leave empty for indefinite violations." | -- |
-| 8 | `photos` | "Photos" | Multi-file upload | 4 MB each, 5 max | No | Empty | JPG, PNG, HEIC. Max 4 MB per file, max 5 files. | "Each file must be JPG, PNG, or HEIC and under 4 MB." | "Photograph the vehicle and the violation for documentation." | -- |
-
-**Violation Type options**:
-| # | Value | Label | Description |
-|---|-------|-------|-------------|
-| 1 | `warning` | Warning | First-time or minor offense. Documented but no further action. |
-| 2 | `ticket` | Ticket | Formal citation issued. May result in fine. |
-| 3 | `ban` | Ban | Vehicle banned from the property. |
-| 4 | `tow` | Vehicle Towed | Vehicle has been or will be towed. |
-
-**Notice banner** (yellow, above form): "This form documents parking violations for individual vehicles by license plate."
-
-##### Violation Lifecycle (State Machine)
-
-```
-Created ──→ Active ──→ Resolved
-               │           ↑
-               └──→ Appealed ──→ Upheld ──→ Resolved
-                        │
-                        └──→ Overturned ──→ Resolved
-```
-
-| Status | Description |
+| Column | Description |
 |--------|-------------|
-| Created | Just filed. Not yet reviewed. |
-| Active | Confirmed and enforced. |
-| Appealed | Vehicle owner has contested the violation. |
-| Upheld | Appeal denied. Violation remains active. |
-| Overturned | Appeal accepted. Violation voided. |
-| Resolved | Violation expired, auto-lifted, or manually resolved. |
+| Key Name | Descriptive name (e.g., "Master Key #1", "Pool Room") |
+| Key Number | System identifier |
+| Status | Available, Checked Out, Lost, Decommissioned |
+| Current Holder | Name (if checked out) |
+| Checked Out Since | Timestamp (if checked out) |
+| Actions | Select (for checkout), Edit (admin), History |
 
-##### Action Buttons
+**Key Inventory Management** (Property Admin / Security Supervisor):
+- Add Key: Name (required, 50 chars), Number (optional, 20 chars), Category (dropdown: Master, Unit, Common Area, Vehicle, Equipment, Other), Notes (optional, 200 chars)
+- Bulk Add: CSV upload with columns: Name, Number, Category
+- Edit Key: Same fields as Add
+- Decommission Key: Soft delete with reason. Maintains history.
 
-| # | Button | Style | Click Action | Success | Error | Loading |
-|---|--------|-------|-------------|---------|-------|---------|
-| 1 | "Issue Violation" | Primary | Validates. Creates violation event. Generates reference number. | Dialog closes. Toast: "Violation #{ref} issued for {plate}." | Inline errors + server toast. | "Issuing..." spinner. |
-| 2 | "Cancel" | Ghost | Close with unsaved check. | Dialog closes. | -- | -- |
+#### 3.1.10 Pass-On Log
 
-#### 3.1.12 Key Inventory Management
+**Create Pass-On Log Dialog**
 
-Accessible from the Security Console sidebar sub-navigation or from within the Key Checkout dialog.
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Subject | Text input | Yes | 200 chars | Empty | Min 3 chars | "Subject must be at least 3 characters." |
+| 2 | Priority | Dropdown | Yes | -- | "Normal" | Must select one | Options: Low, Normal, High, Urgent |
+| 3 | Details | Rich text editor | Yes | 4000 chars | Empty | Min 10 chars | "Details must be at least 10 characters." |
+| 4 | Attachments | File upload (multi) | No | 5 files, 10MB each | -- | File type and size | "Maximum 5 files. Each must be under 10MB." |
+| 5 | Send To | Checkbox list | No | -- | All unchecked | -- | Shows all active security/concierge staff |
+| 6 | Expires | DateTime picker | No | -- | +7 days from now | Must be in the future | "Expiry must be in the future." |
 
-##### Key Inventory Table
+**"Send To" Behavior**:
+- "Send to all team members" master checkbox at top
+- Individual checkboxes for each staff member
+- If no one selected, the log is created but no notification sent. It appears in the console for all staff to see.
 
-| Column | Description | Sortable |
-|--------|-------------|----------|
-| Key # | System-assigned sequential number | Yes |
-| Key Name | Descriptive name (e.g., "Trade Key #1", "Pool Room") | Yes |
-| Building | Which building the key belongs to | Yes |
-| Status | "Available" (green badge) or "Checked Out" (orange badge) | Yes |
-| Checked Out To | Person name (if checked out) | No |
-| Last Activity | Timestamp of last checkout/return | Yes |
-| Actions | Edit, Delete, View History | -- |
+**Rich Text Editor Toolbar**: Bold, Italic, Underline, Strikethrough, Bulleted List, Numbered List, Text Alignment, Font Size (12/14/16/18), Undo, Redo
 
-##### Add Key Form
+#### 3.1.11 Cleaning Log
 
-| # | Field Name | Label | Type | Max Length | Required | Default | Validation | Error Message |
-|---|-----------|-------|------|-----------|----------|---------|-----------|---------------|
-| 1 | `building` | "Building" | Select dropdown | -- | Yes | Property default | Must select one. | "Please select a building." |
-| 2 | `key_name` | "Key Name" | Text input | 100 chars | Yes | Empty | 2-100 characters. Unique within building. | "Key name is required and must be unique within this building." |
-| 3 | `key_number` | "Key Number" | Text input | 20 chars | No | Auto-generated | Alphanumeric. | "Key number must be alphanumeric." |
-| 4 | `key_type` | "Key Type" | Select dropdown | -- | No | "Physical Key" | N/A | -- |
-| 5 | `description` | "Description" | Text input | 200 chars | No | Empty | N/A | -- |
+**Create Cleaning Log Dialog**
 
-**Key Type options**: Physical Key, FOB, Access Card, Garage Remote, Master Key, Other.
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Area Cleaned | Dropdown (multi-select) | Yes | -- | -- | At least one | "Select at least one area." |
+| 2 | Cleaning Type | Radio buttons | Yes | -- | "Routine" | -- | Options: Routine, Deep Clean, Emergency, Move-Out, Inspection Prep |
+| 3 | Date/Time | DateTime picker | Yes | -- | Current time | Within last 4 hours | "Time must be within the last 4 hours." |
+| 4 | Checklist | Checkbox list | Yes (configurable) | -- | Unchecked | At least 1 checked | "Complete at least one checklist item." |
+| 5 | Notes | Textarea | No | 500 chars | Empty | -- | -- |
+| 6 | Photos (Before) | Camera/upload (multi) | No | 3 files, 5MB each | -- | JPG/PNG | -- |
+| 7 | Photos (After) | Camera/upload (multi) | No | 3 files, 5MB each | -- | JPG/PNG | -- |
 
-**Bulk Add**: Button opens a simplified form for adding multiple keys at once (name + building, 10 rows).
+**Area Options** (configurable per property): Lobby, Elevators, Hallways, Stairwells, Gym, Pool Area, Party Room, Rooftop, Parking Garage, Loading Dock, Mail Room, Laundry Room, Storage Areas, Exterior/Grounds, Other
 
-#### 3.1.13 FOB / Access Device Management
+**Checklist Items** (configurable per Area): Property Admin configures checklist items per area. Example for "Lobby": Floors Mopped, Glass Cleaned, Furniture Dusted, Trash Emptied, Mats Cleaned, Hand Sanitizer Refilled.
 
-Each resident/unit can have up to:
-- **6 FOB slots** (key fobs for building access)
-- **2 Buzzer codes** (intercom/buzzer directory entries)
-- **2 Garage clickers** (garage door remotes)
+#### 3.1.12 General Note
 
-##### FOB Record Fields
+**Create General Note Dialog**
 
-| # | Field Name | Label | Type | Max Length | Required | Default | Validation | Error Message |
-|---|-----------|-------|------|-----------|----------|---------|-----------|---------------|
-| 1 | `fob_serial` | "Serial Number" | Text input | 30 chars | Yes | Empty | 4-30 alphanumeric characters. Unique within property. | "Serial number is required and must be unique." |
-| 2 | `fob_type` | "Type" | Select dropdown | -- | Yes | "Standard FOB" | Must select one. | "Please select a FOB type." |
-| 3 | `assigned_to` | "Assigned To" | Autocomplete (resident) | -- | Yes | Empty | Must match existing resident. | "Please select a valid resident." |
-| 4 | `unit_number` | "Unit" | Auto-populated | -- | Yes | From resident | N/A | -- |
-| 5 | `status` | "Status" | Select dropdown | -- | Yes | "Active" | N/A | -- |
-| 6 | `issued_date` | "Issued Date" | Date picker | -- | Yes | Today | Cannot be in the future. | "Issue date cannot be in the future." |
-| 7 | `deposit_paid` | "Deposit Paid" | Currency input | -- | No | $0.00 | Non-negative number. | "Deposit must be a non-negative amount." |
-| 8 | `notes` | "Notes" | Text input | 200 chars | No | Empty | N/A | -- |
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Unit # | Autocomplete text | No | 20 chars | Empty | Must match existing unit if provided | "No unit found." |
+| 2 | Title | Text input | Yes | 200 chars | Empty | Min 3 chars | "Title must be at least 3 characters." |
+| 3 | Date/Time | DateTime picker | Yes | -- | Current time | Within last 24 hours | -- |
+| 4 | Details | Rich text editor | Yes | 4000 chars | Empty | Min 10 chars | "Please provide at least 10 characters." |
+| 5 | Send Copy | Multi-select dropdown | No | -- | None | -- | Email recipients: Staff list + custom email |
+| 6 | Attachments | File upload (multi) | No | 4 files, 10MB each | -- | File type and size | "Maximum 4 files. Each must be under 10MB." |
 
-**FOB Type options**: Standard FOB, Proximity Card, Key Card, Wristband.
-**Status options**: Active, Deactivated, Lost, Stolen, Returned.
+#### 3.1.13 Parking Violations
 
-#### 3.1.14 Emergency Procedures Quick Access
+**Create Parking Violation Dialog**
 
-A persistent button in the console header labeled "Emergency" with a `--status-error` background. Visible to all security and concierge roles.
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | License Plate | Text input | Yes | 20 chars | Empty | Min 2 chars, alphanumeric | "Enter a valid license plate number." |
+| 2 | Province/State | Dropdown | Yes | -- | Property's province | Must select | -- |
+| 3 | Building | Dropdown | Yes (multi-building) | -- | Current building | -- | -- |
+| 4 | Violation Type | Radio buttons | Yes | -- | -- | Must select | "Select a violation type." |
+| 5 | Location | Text input | No | 100 chars | Empty | -- | Tooltip: "Where the violation was observed (e.g., P1 Level 2, Visitor Lot Spot #14)" |
+| 6 | Description | Textarea | No | 500 chars | Empty | -- | -- |
+| 7 | Vehicle Description | Text input | No | 200 chars | Empty | -- | Tooltip: "Color, make, model (e.g., Red Toyota Camry)" |
+| 8 | Photos | Camera/upload (multi) | No | 3 files, 5MB each | -- | JPG/PNG | -- |
+| 9 | Auto-Lift Ban On | Date picker | No | -- | Empty | Must be in the future if provided | "Ban expiry date must be in the future." |
 
-**Click action**: Opens a full-screen modal with:
+**Violation Type Options**:
+- Warning (no enforcement action, documentation only)
+- Ticket (citation issued)
+- Ban (vehicle prohibited from property)
+- Vehicle Towed (enforcement action taken)
 
-1. **Emergency Contact Directory**: Property manager, superintendent, fire department, police (non-emergency), ambulance, building insurance, elevator company, plumber (emergency), electrician (emergency). Each entry: Name, Phone (click-to-call on mobile), Role/Service.
+**Repeat Offender Detection**:
+- When a license plate is entered, the system checks for previous violations
+- If found: Yellow banner appears: "This plate has {X} previous violation(s). [View History]"
+- AI capability: Suggests escalation if pattern detected (see Section 7)
 
-2. **Emergency Procedure Quick Cards** (expandable sections):
-   - Fire Alarm Procedure (checklist format, mirrors the Fire Log fields)
-   - Medical Emergency
-   - Flood / Water Leak
-   - Power Outage
-   - Suspicious Person / Intruder
-   - Elevator Entrapment
-   - Gas Leak / Chemical Spill
+#### 3.1.14 FOB / Access Device Management
 
-Each procedure card contains a numbered step-by-step list, configurable by Property Admin under Settings.
+Accessible from Security Console sidebar or Unit File.
 
-3. **Quick-Create Incident** button: Pre-selects the relevant incident type and opens the incident report dialog.
+**FOB Inventory per Unit**:
 
-**Tooltip for Emergency button**: "Access emergency contacts and step-by-step procedures for common emergency situations."
+| Slot | Fields |
+|------|--------|
+| FOB 1-6 | Serial Number (text, 30 chars), Type (dropdown: Main Door, Garage, Elevator, Pool, Gym, Other), Status (Active, Lost, Deactivated), Assigned To (resident name), Issue Date, Notes |
+| Buzzer Code 1-2 | Code (text, 10 chars), Type (Main/Visitor), Active (boolean), Notes |
+| Garage Clicker 1-2 | Serial Number (text, 30 chars), Type (dropdown), Status (Active, Lost, Deactivated), Assigned To, Issue Date |
 
-#### 3.1.15 Emergency Contacts Quick Access
+**Actions**: Add, Edit, Deactivate (with reason), Transfer (unit-to-unit), Report Lost (triggers security alert)
 
-A button in each unit's detail view and accessible from the console search results. Shows:
-- Emergency contacts for the specific unit/resident
-- Up to 3 contacts per resident: Name, Relationship, Phone (click-to-call), Email
-- Prominent display, no more than 2 clicks from the main console
+### 3.2 Enhanced Features (v2)
 
-#### 3.1.16 Shift Log (Persistent Access)
+#### 3.2.1 Fire Log
 
-The Shift Log is **always accessible** from a persistent tab/panel in the console, not buried in navigation. During an active shift, it appears as a collapsible panel on the right side of the console (desktop) or as a bottom sheet (mobile).
+Specialized incident report for fire events with a structured timeline workflow.
 
-- Shows all log entries for the current active shift
-- "Add Entry" button always visible at top of the panel
-- Each entry: timestamp, subject, details (expandable), author
-- "End Shift" button at the bottom triggers shift summary generation
+**Fire Log Fields** (in addition to standard Incident Report fields):
 
-#### 3.1.17 Batch Event Creation
+| Section | Fields |
+|---------|--------|
+| Alarm | Time alarm went off, Alarm location (floor/zone), Alarm type (smoke, heat, sprinkler, pull station, panel) |
+| Initial Response | Time fire department called, Time first announcement made, Fire Safety Plan retrieved (checkbox), FD keys retrieved (checkbox), Residents needing assistance list pulled (checkbox) |
+| Elevators | Status checklist per elevator: Elevator 1-4 (Responding/Not Responding/N/A) |
+| Fire Department | Arrival time, Unit/Station number, Captain name |
+| Resolution | Second announcement time, All-clear time, Third announcement time, FD departure time |
+| Reset Checklist | Pull Station, Smoke Detector, Heat Detector, Sprinkler Head, Fire Panel, Mag Locks, Elevators (each: checkbox) |
+| Post-Incident | Full report (rich text, 4000 chars), Photos, Documents |
 
-A "Batch Entry" button in the console toolbar opens a multi-row form:
+#### 3.2.2 Noise Complaint Log
 
-| Feature | Spec |
-|---------|------|
-| Max rows | 10 (configurable by property admin, max 20) |
-| Per-row fields | Event Type (dropdown), Unit (autocomplete), Description/Comment (text), Print Label (checkbox), Send Notification (dropdown: No Notification / Primary Email / All Emails) |
-| Submit action | "Save All" creates all events in a single transaction |
-| Success state | Toast: "{n} events created." All new cards appear in the grid. |
-| Error state | Rows with errors highlighted in red. Valid rows saved, error rows remain for correction. |
-| Loading state | Progress bar showing "{n} of {total} saved..." |
+Specialized incident report with investigation structure.
 
-**Tooltip for Batch Entry**: "Create multiple events at once. Useful when several packages or visitors arrive simultaneously."
+**Noise Complaint Fields**:
 
-#### 3.1.18 Batch Sign-Out
+| Section | Fields |
+|---------|--------|
+| Complaint | Nature of complaint (multi-select checkboxes): Loud Music, Banging/Hammering, Dog Barking, Children Playing, Party, Construction, Walking/Stomping, Cooking Odors, Smoking, Piano/Instrument, Verbal Argument, Other |
+| Investigation | Complainant floor noise level (dropdown: Not noticeable, Faintly noticeable, Clearly noticeable, Loud, Very loud), Suspect floor noise level (same), Duration (dropdown: Under 5 min, 5-15 min, 15-30 min, 30-60 min, Over 1 hour), Volume assessment |
+| Contact Attempt | Method (checkboxes: Phone, Door visit, Intercom, Not home), Result (dropdown: Resolved, Ongoing, No contact made) |
+| Follow-Up | Complainant notified of action taken (checkbox), Follow-up required (checkbox) |
 
-An action button visible when filter is set to "Visitors Still Signed In":
-- "Sign Out All" button (secondary, with confirmation)
-- Confirmation dialog: "Sign out {n} visitors? This will set the departure time to now for all currently signed-in visitors."
-- Success toast: "{n} visitors signed out."
+#### 3.2.3 Patrol / Inspection Rounds
 
-### 3.2 v2 Features
+Mobile-first patrol logging with GPS verification.
 
-| Feature | Description |
-|---------|-------------|
-| **Security Patrol Module** | GPS-tracked patrol rounds with checkpoint verification, route mapping, missed checkpoint alerts |
-| **Valet Parking Module** | Full valet workflow: vehicle intake with photos, key tag assignment, retrieval queue, vehicle damage documentation |
-| **Custom Event Types** | Property Admin creates entirely new event types with custom field schemas through a visual builder |
-| **Digital Signage Integration** | Push selected events to lobby display screens (packages ready for pickup, visitor welcome messages) |
-| **Camera Feed Integration** | Embed live camera feeds from building security cameras directly in the console |
-| **Fire Log Template** | Specialized fire log with checklist fields (elevator verification, fire department timeline, device reset checklist) inheriting from Incident Report |
-| **Noise Log Template** | Structured noise investigation form with complaint type checkboxes, investigation assessment dropdowns, contact method tracking |
-| **Visitor Pre-Authorization** | Residents pre-authorize expected visitors through the resident portal; visitors show as "Expected" in the console |
-| **Signature Capture on Package Release** | Digital signature pad integrated into the package release flow |
-| **License Plate OCR** | Camera-based license plate reading for automatic parking pass creation |
+- **Checkpoint system**: Property Admin configures checkpoints (locations staff must visit during patrols)
+- **NFC/QR scan**: Staff scans NFC tags or QR codes at each checkpoint to prove presence
+- **GPS verification**: Optional GPS coordinate recording at each checkpoint
+- **Patrol route**: Configurable sequence of checkpoints
+- **Missed checkpoint alerts**: If a checkpoint is not scanned within the expected window, alert is generated
+- **Patrol report**: Auto-generated report showing all checkpoints visited, timestamps, and any notes
 
-### 3.3 v3 Features
+#### 3.2.4 Emergency Broadcast Integration
 
-| Feature | Description |
-|---------|-------------|
-| **Know Your Residents** | Gamified training module where staff learn resident names, faces, and unit numbers |
-| **Predictive Staffing** | AI-based staffing recommendations based on historical event volume, weather, and building events |
-| **Automated Report Generation** | Scheduled security reports (daily, weekly, monthly) auto-generated and emailed to management |
-| **Biometric Key Checkout** | Fingerprint or facial verification for high-security key checkouts |
-| **IoT Sensor Integration** | Automatic event creation from building sensors (door propped open, water leak detected, temperature anomaly) |
+Direct integration with the Announcements module for emergency scenarios.
+
+- "Emergency" button on the console toolbar (red, prominent)
+- Pre-configured emergency templates: Fire, Flood, Power Outage, Security Threat, Gas Leak, Medical Emergency, Elevator Entrapment, Other
+- Multi-channel blast: Push notification + SMS + Email + Voice call (configurable cascade)
+- Delivery tracking: Real-time dashboard showing notification delivery status per resident
+- All-clear follow-up: Templated all-clear message with one click
+
+#### 3.2.5 Pre/Post Inspection Log
+
+Linked to amenity bookings for damage documentation.
+
+| # | Field | Type | Required | Default |
+|---|-------|------|----------|---------|
+| 1 | Inspection Type | Toggle | Yes | "Pre-Inspection" (Pre/Post) |
+| 2 | Linked Booking | Dropdown | No | Auto-populated if opened from booking |
+| 3 | Amenity | Dropdown | Yes | Auto-populated from booking |
+| 4 | Checklist | Configurable per amenity | Yes | Unchecked |
+| 5 | Condition Notes | Rich text | No | Empty |
+| 6 | Photos | Multi-upload | No | -- |
+| 7 | Damage Found | Checkbox | No | Unchecked |
+| 8 | Damage Description | Textarea (if damage found) | Yes (if damage) | Empty |
+| 9 | Estimated Cost | Number input (if damage found) | No | 0.00 |
+
+### 3.3 Future Features (v3+)
+
+#### 3.3.1 Live Camera Feed Integration
+- View camera feeds directly in the console (RTSP/ONVIF integration)
+- Timestamp linking: Click a timeline event to jump to the corresponding camera footage
+- Snapshot capture from feed and attach to events
+
+#### 3.3.2 Visitor Pre-Registration
+- Residents pre-register expected visitors via the resident portal
+- Creates a "draft" visitor event that front desk confirms on arrival
+- QR code sent to visitor for self-check-in at a kiosk
+
+#### 3.3.3 Digital Signage Integration
+- Console events flagged for "public display" appear on lobby screens
+- Package notification display: "Unit 1205 -- You have a package at Front Desk"
+- Emergency broadcast on all screens
+
+#### 3.3.4 Biometric Access Log Integration
+- Import access events from biometric readers (fingerprint, facial recognition)
+- Correlate with visitor/authorized entry events
+- Anomaly detection for unauthorized access attempts
 
 ---
 
 ## 4. Data Model
 
-All Security Console data builds on the Unified Event Model defined in `docs/prd/01-architecture.md` (Section 3). Security-specific entry types are implemented as **EventType** configurations with specialized `custom_fields` schemas.
+All Security Console data is built on the Unified Event Model defined in `01-architecture.md`. The Security Console adds specialized sub-entities for complex entry types.
 
-### 4.1 Core Entities (Security-Specific Extensions)
+### 4.1 Security Console Event Extensions
 
-#### VisitorEntry (custom_fields schema for EventType "Visitor Check-In")
+The base `Event` entity (see 01-Architecture, Section 3.1) provides: id, event_type_id, event_group_id, property_id, unit_id, resident_id, status, priority, created_by, created_at, updated_by, updated_at, closed_by, closed_at, title, description, comments, attachments, notification_sent, notification_channels, label_printed, signature, photo, location, reference_number, custom_fields, ai_metadata, audit_log.
 
-```
-{
-  visitor_name:        varchar(100), required
-  visitor_type:        enum("visitor", "contractor"), required, default "visitor"
-  needs_parking:       boolean, default false
-  notify_resident:     boolean, default true
-  comments:            text(500), optional
-  departure_time:      timestamp, nullable (null = still signed in)
-  signed_out_by:       UUID → User, nullable
-  parking: {                              // present only if needs_parking = true
-    vehicle_make_model:  varchar(100), optional
-    license_plate:       varchar(15), required if parking
-    plate_province:      varchar(50), optional
-    parking_until:       timestamp, required if parking
-    pass_printed:        boolean, default false
-  }
-}
-```
+The following entities extend Event for Security Console-specific data:
 
-**Relationships**: Event.unit_id → Unit, Event.resident_id → Resident (occupant being visited), Event.created_by → User (staff who logged the visitor).
-
-#### PackageEntry (custom_fields schema for EventType "Package - *")
+### 4.2 VisitorEntry
 
 ```
-{
-  package_type:        enum("incoming", "outgoing"), required, default "incoming"
-  recipient_name:      varchar(100), required
-  courier:             varchar(50), required (from courier configuration)
-  courier_icon:        varchar(100), derived from courier config
-  tracking_number:     varchar(50), optional
-  description:         varchar(50), required (from description dropdown)
-  perishable:          boolean, default false
-  storage_spot:        varchar(100), required (from location configuration)
-  notify_resident:     boolean, default true
-  label_printed:       boolean, default false
-  released_at:         timestamp, nullable (null = outstanding)
-  released_to:         varchar(100), nullable
-  released_by:         UUID → User, nullable
-  release_comments:    text(500), nullable
-  release_signature:   binary, nullable
-  release_photo_url:   varchar(500), nullable
-  reminders_sent:      integer, default 0
-  last_reminder_at:    timestamp, nullable
-}
-```
-
-#### IncidentReport (custom_fields schema for EventType "Incident Report")
-
-```
-{
-  incident_type:       varchar(50), required (from incident type config)
-  title:               varchar(200), required
-  time_occurred:       timestamp, required
-  urgency:             boolean, default false
-  reported_by:         varchar(100), optional
-  suspect_description: varchar(200), optional
-  emergency_services: [
-    {
-      service:         enum("police", "fire", "ambulance", "property_contact", "patrol_supervisor")
-      called:          boolean, default false
-      time_called:     timestamp, nullable
-      arrival_time:    timestamp, nullable
-      attending_name:  varchar(100), nullable
-    }
-  ]
-  updates: [
-    {
-      timestamp:       timestamp, auto-generated
-      author_id:       UUID → User
-      details:         text(2000)
-      status_at_time:  enum("draft", "open", "in_progress", "under_review", "escalated", "closed")
-      attachments:     [UUID → Attachment]
-    }
-  ]
-}
-```
-
-#### SecurityShift (custom_fields schema for EventType "Security Shift")
-
-```
-{
-  start_time:          timestamp, required
-  end_time:            timestamp, required
-  relieved_guard_id:   UUID → User, nullable (null = first shift)
-  relieved_by_guard_id: UUID → User, nullable (null = last shift)
-  equipment_received:  varchar(500), optional
-  shift_notes:         text(4000), optional (rich text HTML)
-  log_entries: [
-    {
-      entry_id:        UUID, auto-generated
-      timestamp:       timestamp, auto-generated
-      author_id:       UUID → User
-      subject:         varchar(200), required
-      details:         text(2000), optional (rich text HTML)
-    }
-  ]
-  shift_summary:       text(2000), nullable (AI-generated or manual)
-  shift_ended:         boolean, default false
-}
-```
-
-#### AuthorizedEntry (custom_fields schema for EventType "Authorized Entry")
-
-```
-{
-  authorized_person:   varchar(100), required
-  company:             varchar(100), optional
-  reason:              text(500), required
-  entry_time:          timestamp, required
-  expected_duration:   enum("30min", "1hr", "2hr", "4hr", "full_day", "unknown"), optional
-  id_verified:         boolean, default false
-  exit_time:           timestamp, nullable
-  comments:            text(500), optional
-}
-```
-
-#### KeyCheckout (custom_fields schema for EventType "Key Checkout")
-
-```
-{
-  key_id:              UUID → Key, required
-  checked_out_to:      varchar(100), required
-  company:             varchar(100), optional
-  id_type:             enum("drivers_license", "passport", "building_id", "government_id", "employee_badge", "other"), required
-  id_number:           varchar(50), required
-  reason:              text(500), required
-  signature:           binary, required (configurable)
-  id_photo_front_url:  varchar(500), nullable
-  id_photo_back_url:   varchar(500), nullable
-  checked_in_at:       timestamp, nullable (null = still checked out)
-  checked_in_by:       UUID → User, nullable
-  return_comments:     text(500), nullable
-}
-```
-
-#### PassOnLog (custom_fields schema for EventType "Pass-On Log")
-
-```
-{
-  subject:             varchar(200), required
-  details:             text(4000), required (rich text HTML)
-  priority:            enum("low", "normal", "high", "critical"), default "normal"
-  send_to:             [UUID → User], optional (team members to notify)
-  acknowledged_by:     [{ user_id: UUID, acknowledged_at: timestamp }]
-}
-```
-
-#### ParkingViolation (custom_fields schema for EventType "Parking Violation")
-
-```
-{
-  license_plate:       varchar(15), required
-  plate_province:      varchar(50), optional
-  violation_type:      enum("warning", "ticket", "ban", "tow"), required
-  location:            varchar(100), optional
-  description:         text(500), optional
-  auto_lift_date:      date, nullable
-  violation_status:    enum("created", "active", "appealed", "upheld", "overturned", "resolved"), default "created"
-  appeal_details:      text(1000), nullable
-  resolution_notes:    text(500), nullable
-  resolved_at:         timestamp, nullable
-  resolved_by:         UUID → User, nullable
-}
-```
-
-### 4.2 Supporting Entities
-
-#### Key (Inventory)
-
-```
-Key
-├── id (UUID)
-├── property_id → Property
-├── building_id → Building
-├── key_name (varchar 100, required, unique per building)
-├── key_number (varchar 20, auto-generated if not provided)
-├── key_type (enum: physical_key, fob, access_card, garage_remote, master_key, other)
-├── description (varchar 200, optional)
-├── status (enum: available, checked_out, lost, decommissioned)
-├── current_checkout_event_id → Event (nullable, for cross-reference)
-├── created_by → User
-├── created_at, updated_at
-└── checkout_history[] → Event (all key checkout events for this key)
-```
-
-#### FOB (Access Device)
-
-```
-FOB
-├── id (UUID)
-├── property_id → Property
-├── unit_id → Unit
-├── resident_id → User
-├── serial_number (varchar 30, required, unique per property)
-├── fob_type (enum: standard_fob, proximity_card, key_card, wristband)
-├── status (enum: active, deactivated, lost, stolen, returned)
-├── issued_date (date, required)
-├── deactivated_date (date, nullable)
-├── deposit_paid (decimal, default 0.00)
-├── notes (varchar 200, optional)
-├── created_by → User
+VisitorEntry
+├── id (UUID, PK)
+├── event_id → Event (FK, unique -- 1:1)
+├── property_id → Property (FK)
+├── unit_id → Unit (FK)
+├── visitor_name (varchar 100, NOT NULL)
+├── visitor_type (enum: visitor, contractor, delivery_person, real_estate_agent, emergency_service, other)
+├── arrival_at (timestamp with tz, NOT NULL)
+├── departure_at (timestamp with tz, nullable -- null = still signed in)
+├── expected_departure_at (timestamp with tz, nullable)
+├── signed_out_by → User (FK, nullable)
+├── parking_permit_id → VisitorParkingPermit (FK, nullable)
+├── notify_resident (boolean, default true)
+├── photo_url (varchar 500, nullable)
+├── comments (text, 500 chars max)
 └── created_at, updated_at
+
+Indexes:
+  - idx_visitor_property_arrival (property_id, arrival_at DESC)
+  - idx_visitor_unit (unit_id)
+  - idx_visitor_signed_in (property_id, departure_at IS NULL)
 ```
 
-#### BuzzerCode
+### 4.3 VisitorParkingPermit
 
 ```
-BuzzerCode
-├── id (UUID)
-├── property_id → Property
-├── unit_id → Unit
-├── code (varchar 10, required)
-├── label (varchar 50, optional, e.g., "Main", "Secondary")
+VisitorParkingPermit
+├── id (UUID, PK)
+├── visitor_entry_id → VisitorEntry (FK)
+├── property_id → Property (FK)
+├── vehicle_make_model (varchar 100, NOT NULL)
+├── license_plate (varchar 20, NOT NULL)
+├── province_state (varchar 50, NOT NULL)
+├── vehicle_color (varchar 30, nullable)
+├── parking_area (varchar 100, nullable)
+├── permit_start (timestamp with tz, NOT NULL)
+├── permit_end (timestamp with tz, NOT NULL)
+├── status (enum: active, expired, cancelled)
+├── printed (boolean, default false)
+└── created_at, updated_at
+
+Indexes:
+  - idx_parking_permit_plate (license_plate)
+  - idx_parking_permit_active (property_id, status, permit_end)
+```
+
+### 4.4 PackageEntry
+
+```
+PackageEntry
+├── id (UUID, PK)
+├── event_id → Event (FK, unique -- 1:1)
+├── property_id → Property (FK)
+├── unit_id → Unit (FK, NOT NULL)
+├── resident_id → User (FK, nullable)
+├── package_direction (enum: incoming, outgoing)
+├── courier_id → CourierType (FK, nullable)
+├── courier_other (varchar 50, nullable -- used when courier is "Other")
+├── tracking_number (varchar 50, nullable)
+├── package_type (enum: package, envelope, box_small, box_medium, box_large, perishable, flowers, dry_cleaning, pharmacy, grocery, furniture_oversized, other)
+├── perishable (boolean, default false)
+├── storage_spot (varchar 100, NOT NULL)
+├── description (varchar 200, nullable)
+├── photo_url (varchar 500, nullable)
+├── released_at (timestamp with tz, nullable -- null = outstanding)
+├── released_to (varchar 100, nullable)
+├── released_by → User (FK, nullable)
+├── release_signature_url (varchar 500, nullable)
+├── release_photo_url (varchar 500, nullable)
+├── release_comments (text, 500 chars, nullable)
+├── notification_count (integer, default 0)
+├── last_notified_at (timestamp with tz, nullable)
+└── created_at, updated_at
+
+Indexes:
+  - idx_package_property_status (property_id, released_at IS NULL)
+  - idx_package_unit (unit_id)
+  - idx_package_tracking (tracking_number)
+  - idx_package_courier (courier_id)
+  - idx_package_perishable (property_id, perishable, released_at IS NULL)
+```
+
+### 4.5 CourierType
+
+```
+CourierType
+├── id (UUID, PK)
+├── property_id (UUID, nullable -- null = system default)
+├── name (varchar 50, NOT NULL)
+├── slug (varchar 50, NOT NULL)
+├── icon_url (varchar 500, NOT NULL)
+├── color (varchar 7, hex)
+├── sort_order (integer)
+├── active (boolean, default true)
+└── created_at, updated_at
+
+System defaults: Amazon, Canada Post, FedEx, UPS, DHL, Purolator, USPS, Individual Drop-Off, Property Management, Other
+```
+
+### 4.6 IncidentReport
+
+```
+IncidentReport
+├── id (UUID, PK)
+├── event_id → Event (FK, unique -- 1:1)
+├── property_id → Property (FK)
+├── unit_id → Unit (FK, nullable)
+├── incident_type_id → IncidentType (FK, NOT NULL)
+├── title (varchar 200, NOT NULL)
+├── report_body (text, 4000 chars, NOT NULL)
+├── time_occurred (timestamp with tz, NOT NULL)
+├── urgency (boolean, default false)
+├── reported_by (varchar 100, nullable)
+├── suspect_description (varchar 200, nullable)
+├── emergency_services (JSONB, nullable -- structured: police, fire, ambulance, client, supervisor)
+├── linked_incident_ids (UUID[], nullable -- related incidents)
+├── resolution_summary (text, 2000 chars, nullable)
+├── resolved_at (timestamp with tz, nullable)
+├── resolved_by → User (FK, nullable)
+├── escalated_at (timestamp with tz, nullable)
+├── escalated_to → User (FK, nullable)
+├── escalation_reason (text, 500 chars, nullable)
+└── created_at, updated_at
+
+Indexes:
+  - idx_incident_property_status (property_id, status)
+  - idx_incident_type (incident_type_id)
+  - idx_incident_urgency (property_id, urgency, status)
+  - idx_incident_occurred (property_id, time_occurred DESC)
+```
+
+### 4.7 IncidentType
+
+```
+IncidentType
+├── id (UUID, PK)
+├── property_id (UUID, nullable -- null = system default)
+├── name (varchar 100, NOT NULL)
+├── slug (varchar 50, NOT NULL)
+├── default_priority (enum: low, normal, high, critical)
+├── requires_emergency_services (boolean, default false)
+├── auto_escalate (boolean, default false)
+├── sort_order (integer)
 ├── active (boolean, default true)
 └── created_at, updated_at
 ```
 
-#### GarageClicker
+### 4.8 IncidentUpdate
 
 ```
-GarageClicker
-├── id (UUID)
-├── property_id → Property
-├── unit_id → Unit
-├── resident_id → User
-├── serial_number (varchar 30, required, unique per property)
-├── status (enum: active, deactivated, lost, returned)
-├── issued_date (date, required)
-├── deposit_paid (decimal, default 0.00)
+IncidentUpdate
+├── id (UUID, PK)
+├── incident_report_id → IncidentReport (FK, NOT NULL)
+├── update_text (text, 2000 chars, NOT NULL)
+├── status_change (enum, nullable -- new status if changed)
+├── attachments (JSONB, nullable -- [{filename, url, type, size}])
+├── created_by → User (FK, NOT NULL)
+└── created_at (immutable -- append-only)
+
+Indexes:
+  - idx_update_incident (incident_report_id, created_at DESC)
+```
+
+### 4.9 SecurityShift
+
+```
+SecurityShift
+├── id (UUID, PK)
+├── event_id → Event (FK, unique -- 1:1)
+├── property_id → Property (FK)
+├── guard_id → User (FK, NOT NULL)
+├── start_time (timestamp with tz, NOT NULL)
+├── end_time (timestamp with tz, NOT NULL)
+├── actual_end_time (timestamp with tz, nullable)
+├── relieved_guard_id → User (FK, nullable)
+├── relieving_guard_id → User (FK, nullable)
+├── equipment_received (text, 500 chars, nullable)
+├── equipment_returned (text, 500 chars, nullable)
+├── opening_notes (text, 2000 chars, nullable)
+├── closing_notes (text, 2000 chars, nullable)
+├── ai_summary (text, 2000 chars, nullable)
+├── status (enum: active, completed, abandoned)
+├── log_entries[] → ShiftLogEntry
 └── created_at, updated_at
+
+Indexes:
+  - idx_shift_property_guard (property_id, guard_id, start_time DESC)
+  - idx_shift_active (property_id, status = 'active')
 ```
 
-### 4.3 Indexes
+### 4.10 ShiftLogEntry
 
-| Table | Index | Type | Purpose |
-|-------|-------|------|---------|
-| events | (property_id, created_at DESC) | B-tree | Default console grid query |
-| events | (property_id, event_type_id, status) | B-tree | Filter by type and status |
-| events | (property_id, unit_id) | B-tree | Unit-based event lookup |
-| events | (reference_number) | Unique | Reference number search |
-| events | (custom_fields->>'license_plate') | GIN | Plate number search across visitors and violations |
-| events | (custom_fields->>'visitor_name') | GIN | Visitor name search |
-| events | (custom_fields->>'tracking_number') | B-tree | Package tracking search |
-| keys | (property_id, building_id, status) | B-tree | Available key lookup |
-| fobs | (property_id, serial_number) | Unique | FOB serial lookup |
-| fobs | (unit_id) | B-tree | Unit's FOB list |
+```
+ShiftLogEntry
+├── id (UUID, PK)
+├── shift_id → SecurityShift (FK, NOT NULL)
+├── entry_time (timestamp with tz, NOT NULL)
+├── category (enum: general, patrol_round, building_check, resident_interaction, contractor_visit, alarm_response, other)
+├── entry_text (text, 2000 chars, NOT NULL)
+├── attachment_url (varchar 500, nullable)
+├── created_by → User (FK, NOT NULL)
+└── created_at (immutable)
+
+Indexes:
+  - idx_log_entry_shift (shift_id, entry_time DESC)
+```
+
+### 4.11 KeyCheckout
+
+```
+KeyCheckout
+├── id (UUID, PK)
+├── event_id → Event (FK, unique -- 1:1)
+├── property_id → Property (FK)
+├── key_id → KeyInventory (FK, NOT NULL)
+├── checked_out_to (varchar 100, NOT NULL)
+├── company (varchar 100, nullable)
+├── id_type (varchar 50, NOT NULL)
+├── id_number (varchar 30, nullable)
+├── reason (text, 500 chars, NOT NULL)
+├── checkout_time (timestamp with tz, NOT NULL)
+├── expected_return (timestamp with tz, nullable)
+├── return_time (timestamp with tz, nullable -- null = still out)
+├── returned_to → User (FK, nullable)
+├── condition_notes (varchar 200, nullable)
+├── id_photo_front_url (varchar 500, nullable)
+├── id_photo_back_url (varchar 500, nullable)
+├── signature_url (varchar 500, nullable)
+├── checked_out_by → User (FK, NOT NULL)
+└── created_at, updated_at
+
+Indexes:
+  - idx_key_checkout_property (property_id, return_time IS NULL)
+  - idx_key_checkout_key (key_id)
+  - idx_key_checkout_overdue (expected_return, return_time IS NULL)
+```
+
+### 4.12 KeyInventory
+
+```
+KeyInventory
+├── id (UUID, PK)
+├── property_id → Property (FK, NOT NULL)
+├── key_name (varchar 50, NOT NULL)
+├── key_number (varchar 20, nullable)
+├── category (enum: master, unit, common_area, vehicle, equipment, other)
+├── status (enum: available, checked_out, lost, decommissioned)
+├── notes (varchar 200, nullable)
+├── decommission_reason (varchar 200, nullable)
+├── decommissioned_at (timestamp with tz, nullable)
+├── created_by → User (FK, NOT NULL)
+└── created_at, updated_at
+
+Indexes:
+  - idx_key_inventory_property_status (property_id, status)
+```
+
+### 4.13 PassOnLog
+
+```
+PassOnLog
+├── id (UUID, PK)
+├── event_id → Event (FK, unique -- 1:1)
+├── property_id → Property (FK)
+├── subject (varchar 200, NOT NULL)
+├── priority (enum: low, normal, high, urgent)
+├── details (text, 4000 chars, NOT NULL)
+├── expires_at (timestamp with tz, nullable)
+├── notify_user_ids (UUID[], nullable -- staff to notify)
+├── attachments (JSONB, nullable)
+├── acknowledged_by (JSONB, nullable -- [{user_id, acknowledged_at}])
+├── created_by → User (FK, NOT NULL)
+└── created_at, updated_at
+
+Indexes:
+  - idx_pass_on_property (property_id, created_at DESC)
+  - idx_pass_on_active (property_id, expires_at > NOW() OR expires_at IS NULL)
+```
+
+### 4.14 ParkingViolation
+
+```
+ParkingViolation
+├── id (UUID, PK)
+├── event_id → Event (FK, unique -- 1:1)
+├── property_id → Property (FK)
+├── license_plate (varchar 20, NOT NULL)
+├── province_state (varchar 50, NOT NULL)
+├── building_id → Building (FK, nullable)
+├── violation_type (enum: warning, ticket, ban, vehicle_towed)
+├── location (varchar 100, nullable)
+├── description (text, 500 chars, nullable)
+├── vehicle_description (varchar 200, nullable)
+├── photos (JSONB, nullable -- [{filename, url}])
+├── auto_lift_on (date, nullable)
+├── lifted_at (timestamp with tz, nullable)
+├── lifted_by → User (FK, nullable)
+├── lift_reason (varchar 200, nullable)
+├── issued_by → User (FK, NOT NULL)
+├── repeat_offender (boolean, default false)
+├── previous_violation_count (integer, default 0)
+└── created_at, updated_at
+
+Indexes:
+  - idx_violation_plate (license_plate)
+  - idx_violation_property (property_id, created_at DESC)
+  - idx_violation_active_bans (property_id, violation_type = 'ban', lifted_at IS NULL)
+```
+
+### 4.15 CleaningLog
+
+```
+CleaningLog
+├── id (UUID, PK)
+├── event_id → Event (FK, unique -- 1:1)
+├── property_id → Property (FK)
+├── areas_cleaned (varchar[] -- array of area slugs)
+├── cleaning_type (enum: routine, deep_clean, emergency, move_out, inspection_prep)
+├── cleaned_at (timestamp with tz, NOT NULL)
+├── checklist_completed (JSONB -- {area_slug: {item_slug: boolean}})
+├── notes (text, 500 chars, nullable)
+├── photos_before (JSONB, nullable -- [{url, filename}])
+├── photos_after (JSONB, nullable -- [{url, filename}])
+├── created_by → User (FK, NOT NULL)
+└── created_at, updated_at
+
+Indexes:
+  - idx_cleaning_property (property_id, cleaned_at DESC)
+  - idx_cleaning_area (property_id, areas_cleaned)
+```
+
+### 4.16 AuthorizedEntry
+
+```
+AuthorizedEntry
+├── id (UUID, PK)
+├── event_id → Event (FK, unique -- 1:1)
+├── property_id → Property (FK)
+├── unit_id → Unit (FK, NOT NULL)
+├── authorized_person (varchar 100, NOT NULL)
+├── company (varchar 100, nullable)
+├── reason (varchar 200, NOT NULL)
+├── entry_time (timestamp with tz, NOT NULL)
+├── duration (enum: one_hour, two_hours, four_hours, full_day, until_departure)
+├── departure_time (timestamp with tz, nullable)
+├── id_verified (boolean, default false)
+├── id_type (varchar 50, nullable)
+├── id_number (varchar 30, nullable)
+├── resident_notified (boolean, default false)
+├── comments (text, 500 chars, nullable)
+├── photo_url (varchar 500, nullable)
+├── created_by → User (FK, NOT NULL)
+└── created_at, updated_at
+
+Indexes:
+  - idx_auth_entry_property (property_id, entry_time DESC)
+  - idx_auth_entry_unit (unit_id)
+```
 
 ---
 
-## 5. User Flows and Workflows
+## 5. User Flows
 
-### 5.1 Security Guard: Start-of-Shift Flow
-
-```
-1. Guard logs in → Dashboard shows Security Guard layout
-2. Guard clicks "Shift Log" quick-create icon
-3. Dialog opens with info banner (active bookings, keys out, visitors, packages)
-4. Guard fills in: Start Time, End Time, Relieved guard, To Be Relieved By, Equipment
-5. Guard clicks "Start Shift"
-   → Shift event created
-   → Shift Log panel becomes active
-   → Toast: "Shift started. Stay safe."
-6. Guard reviews pass-on logs from previous shift (highlighted if priority = High/Critical)
-7. Guard acknowledges pass-on logs by clicking "Acknowledged" on each
-```
-
-### 5.2 Security Guard: Package Intake Flow
+### 5.1 Guard Starts Shift
 
 ```
-1. Courier delivers package(s) to front desk
-2. Guard clicks "Package" quick-create icon
-3. Dialog opens with "Incoming" tab, reference number pre-populated
-4. Guard types recipient name → autocomplete suggests matching residents
-5. Guard selects recipient → Unit auto-fills
-6. Guard clicks courier icon (e.g., Amazon)
-7. Guard enters tracking number (optional), selects description (e.g., "Package")
-8. Guard selects storage location from dropdown
-9. Guard clicks "Save"
-   → Package event created
-   → Notification sent to resident (if enabled)
-   → Toast: "Package logged for J. Smith (1205)."
-   → Card appears in grid via WebSocket
+1. Guard logs in → Directed to Security Console
+2. Dashboard shows: "No active shift. Start your shift?" with prominent CTA
+3. Guard clicks "Security Log" quick-create icon (or Alt+3)
+4. Shift dialog opens with:
+   - Info banner showing today's context (bookings, keys out, vacations, packages)
+   - Start/End time pre-populated
+   - Guard dropdown pre-populated with current user for "Relieved" (if previous shift ended)
+5. Guard fills in: Relieved (selects previous guard), Equipment Received
+6. Guard clicks "Save" → Loading: "Starting shift..."
+7. Success: Toast "Shift started." Console header updates to show "Active Shift: [Guard Name] since [time]"
+8. Permission check: Only Security Guard, Security Supervisor, Front Desk, Property Manager, Property Admin, Super Admin can create shifts
 
-For multiple packages:
-10. Guard clicks "Log Multiple Packages"
-11. Batch form opens with 4 rows
-12. Guard fills each row: recipient, courier, description, location
-13. Guard clicks "Save All"
-    → All packages created in one transaction
-    → All residents notified
-    → Toast: "4 packages logged."
+Edge cases:
+- If a shift is already active for this guard: Warning "You already have an active shift. End it before starting a new one."
+- If another guard has an active shift that overlaps: Info message "Note: [Other guard] has an active shift until [time]."
+- Offline: Shift is queued and syncs when connection restored. Banner: "Shift saved offline. Will sync when connected."
 ```
 
-### 5.3 Concierge: Package Release Flow
+### 5.2 Package Intake (Single)
 
 ```
-1. Resident arrives to pick up a package
-2. Concierge searches by resident name or reference number in the filter bar
-3. Concierge clicks the outstanding package card
-4. Detail dialog opens showing package information
-5. Concierge clicks "Release Package"
-6. Inline release form expands:
-   a. Enters resident's name in "Released To"
-   b. Optionally captures signature (if property requires it)
-   c. Optionally adds comments
-7. Concierge clicks "Release"
-   → Package status changes to "Released"
-   → Released timestamp logged
-   → Card in grid updates via WebSocket (status badge changes to green "Released")
-   → Toast: "Package released to J. Smith."
+1. Package arrives at front desk
+2. Staff clicks "Package" icon (or Alt+2)
+3. Package dialog opens with "Incoming" tab active
+4. Staff types resident name → Autocomplete suggests matches
+5. Selects resident → Unit auto-fills
+6. Taps courier icon (e.g., Amazon) → Highlighted
+7. Optional: Enters tracking number, selects package type, marks perishable
+8. Selects storage spot from dropdown
+9. Notification defaults to "Send to primary email"
+10. Clicks "Save" or "Save & Print Label"
+11. Success: Toast "Package PKG-2026-00148 logged for Unit 1205."
+12. Resident receives notification: "A package from Amazon has arrived and is stored at Front Desk."
+
+Permission check: Security Guard, Concierge, Security Supervisor, Property Manager, Admin roles
+Edge cases:
+- Unknown resident: Staff can type a name not in the system. Warning: "Recipient not found in resident directory. Package will be logged without resident notification."
+- Duplicate tracking number: Warning "A package with this tracking number already exists (PKG-2026-00140). Continue anyway?"
+- Perishable with no notification: Warning "This package is marked perishable but notification is set to None. Send notification?"
 ```
 
-### 5.4 Security Guard: Visitor Check-In/Out Flow
+### 5.3 Package Release
 
 ```
-Check-In:
-1. Visitor arrives at front desk
-2. Guard clicks "Visitor" quick-create icon
-3. Guard enters unit number (autocomplete)
-4. Guard enters visitor name
-5. Guard selects Visitor or Contractor
-6. If visitor needs parking: checks parking checkbox, enters vehicle details
-7. Guard clicks "Save"
-   → Visitor event created with status "Signed In"
-   → Resident notified (if enabled)
-   → Parking pass prints (if parking selected and printing enabled)
-   → Toast: "Visitor Maria Garcia signed in."
+1. Staff finds package in grid (filter by Type: Package, Status: Open)
+2. Clicks "Release" quick action on card
+3. Release dialog opens: "Release Package PKG-2026-00148"
+4. Staff enters: Released To name
+5. Optional: Checks "ID Verified", adds comments, captures signature
+6. Clicks "Release" → Confirmation: "Release package PKG-2026-00148 to [name]?"
+7. On confirm: Package status changes to "Released". Card updates.
+8. Toast: "Package PKG-2026-00148 released to [name]."
 
-Check-Out:
-8. When visitor leaves, guard finds visitor in grid (filter: "Visitors Still Signed In")
-9. Guard clicks "Sign Out" action button on the visitor card
-10. Confirmation: "Sign out Maria Garcia?"
-11. Guard clicks "Confirm"
-    → Departure time set to now
-    → Card updates with "Signed Out" badge
-    → Toast: "Visitor signed out."
-
-End-of-Shift Batch Sign-Out:
-12. Guard filters by "Visitors Still Signed In"
-13. Guard clicks "Sign Out All"
-14. Confirmation: "Sign out 3 visitors?"
-15. Guard clicks "Confirm"
-    → All visitors signed out with same timestamp
+Permission check: Security Guard, Concierge, Security Supervisor, Property Manager, Admin roles
+Edge cases:
+- Releasing to someone other than the resident: Info message "The recipient [name] does not match the resident [resident name]. Please verify identity."
+- Package already released: Error "This package has already been released."
 ```
 
-### 5.5 Incident Report Flow
+### 5.4 Incident Report and Escalation
 
 ```
-1. Guard observes or receives report of an incident
-2. Guard clicks "Incident" quick-create icon
-3. Guard selects incident type from dropdown
-4. Guard enters title and description
-5. Guard sets time occurred (defaults to now)
-6. If urgent: toggles urgency to "Urgent"
-7. Guard uploads photos (optional)
-8. Guard fills emergency services table if applicable
-9. Guard clicks "Submit Report"
-   → Incident created with status "Open"
-   → If urgent: Supervisor and Property Manager notified immediately
-   → Toast: "Incident report #INC-2026-01766 submitted."
+1. Guard observes incident
+2. Clicks "Incident Report" icon (or Alt+4)
+3. Dialog opens with Incident Type dropdown and current time
+4. Guard selects type (e.g., "Suspicious Activity") → AI suggests High priority
+5. Guard writes description → AI checks grammar/tone (subtle inline corrections)
+6. Guard sets Urgency to "Urgent"
+7. Optional: Adds photos, fills suspect description
+8. Clicks "Submit"
+9. System:
+   a. Creates incident with Open status
+   b. AI analyzes: Suggests "Escalate to supervisor" based on urgency + type
+   c. Notification sent to Security Supervisor
+   d. AI links to 2 similar past incidents from last 90 days
+10. Toast: "Incident INC-2026-00042 submitted. Supervisor notified."
+11. Supervisor views incident, adds update, changes status to "Under Review"
+12. Manager reviews, adds resolution, changes status to "Closed"
 
-Follow-up:
-10. Supervisor opens incident from console
-11. Supervisor reviews details, clicks "Add Update"
-12. Enters additional details, changes status to "In Progress"
-13. Clicks "Update"
-    → Update logged with timestamp
-    → Status badge changes on card
+Permission check:
+  - Create: Security Guard, Concierge, Security Supervisor, Property Manager, Admin
+  - Escalate: Security Supervisor, Property Manager, Admin
+  - Close: Security Supervisor, Property Manager, Admin
+  - Guard can update and add to own incidents but cannot close them (unless configurable)
 
-Resolution:
-14. Supervisor changes status to "Closed"
-15. Enters resolution notes
-16. Clicks "Update"
-    → Incident closed. Immutable after 24 hours.
+Edge cases:
+- Draft saved but not submitted: Appears in "My Drafts" with yellow indicator
+- Emergency services called: Emergency Services section auto-expands. Form prevents submission without filling Called time if "Yes" is selected.
+- No unit associated: Valid -- incidents can occur in common areas
 ```
 
-### 5.6 Key Checkout/Return Flow
+### 5.5 Key Checkout and Return
 
 ```
 Checkout:
-1. Contractor arrives, needs access key
-2. Guard clicks "Key" quick-create icon
-3. Guard selects key from dropdown (only "Available" keys shown)
-4. Guard enters contractor name, company
-5. Guard verifies ID: enters ID type, ID number
-6. Guard enters reason
-7. Contractor signs on signature pad
-8. Guard optionally photographs ID (front/back)
-9. Guard clicks "Check Out Key"
-   → Key status changes to "Checked Out"
-   → Event created
-   → Toast: "Trade Key #1 checked out to Mike Chen."
+1. Contractor arrives needing access
+2. Guard clicks "Key Checkout" icon (or Alt+6)
+3. Selects key from inventory dropdown (only "Available" keys shown)
+4. Enters: Checked Out To, Company, ID Type, ID Number, Reason
+5. Optional: Captures ID photo, signature
+6. Clicks "Deliver Key" → Key status changes to "Checked Out"
+7. Toast: "Key [name] checked out to [person]."
 
 Return:
-10. Contractor returns, guard finds the checkout in grid (filter: "Keys Checked Out")
-11. Guard clicks "Check In" action on the card
-12. Confirmation: "Return Trade Key #1?"
-13. Guard optionally adds return comments
-14. Guard clicks "Return Key"
-    → Key status changes to "Available"
-    → Return timestamp logged
-    → Toast: "Trade Key #1 returned."
+1. Contractor returns key
+2. Guard finds the checkout entry (filter by Type: Key Checkout, Status: Open)
+3. Clicks "Check In" action
+4. Return Time auto-fills to now. Optional condition notes.
+5. Clicks "Return Key" → Key status returns to "Available"
+6. Toast: "Key [name] returned."
+
+Permission check: Security Guard, Security Supervisor, Property Manager, Admin
+Edge cases:
+- Key overdue: Dashboard alert after Expected Return. Guard and Supervisor notified.
+- Key lost: "Report Lost" button on checkout detail. Key status changes to "Lost". Incident report auto-created.
+- All keys checked out: Dropdown shows "No keys available" with link to View All Keys showing status.
 ```
 
-### 5.7 End-of-Shift Flow
+### 5.6 End of Shift
 
 ```
-1. Guard clicks "End Shift" in the Shift Log panel
-2. AI generates shift summary (if enabled) showing:
-   - Total events logged during shift
-   - Breakdown by type
-   - Outstanding items (unsigned visitors, unreleased packages, keys out)
-   - Any open incidents
-3. Guard reviews summary, can edit before saving
-4. Guard clicks "Close Shift"
-   → Shift event closed
-   → Summary saved to shift record
-   → Toast: "Shift ended. Summary saved."
-5. Guard creates pass-on log for next shift (if anything needs handoff)
+1. Guard's shift is ending
+2. Clicks "End Shift" on console header or shift detail
+3. End Shift dialog:
+   a. Actual End Time (default: now)
+   b. Equipment Returned (textarea)
+   c. Closing Notes (rich text)
+   d. AI generates shift summary (loading for ~3 seconds)
+4. AI Summary appears: "During this 8-hour shift, [Guard] logged 12 events: 5 visitor check-ins, 4 package intakes, 2 patrol rounds, and 1 incident report..."
+5. Guard reviews and optionally edits the summary
+6. Clicks "End Shift" → Shift status changes to "Completed"
+7. Pass-On Log: Prompt appears: "Create a pass-on note for the next guard?"
+8. Toast: "Shift ended. Summary saved."
+
+Edge cases:
+- Keys still checked out: Warning "You have X key(s) still checked out. Return them before ending your shift." (soft warning, not blocking)
+- Visitors still signed in: Warning "X visitor(s) are still signed in." with option to batch sign out
+- No log entries: Info "No log entries recorded during this shift. Add closing notes?"
 ```
-
-### 5.8 Edge Cases
-
-| Scenario | Behavior |
-|----------|----------|
-| **Duplicate visitor** | Autocomplete warns "Maria Garcia last visited on Mar 12." Guard can proceed or view history. |
-| **Package for unknown resident** | "No resident found" message. Guard can override with manual unit + name entry. Event flagged for admin review. |
-| **Key already checked out** | Key does not appear in available keys dropdown. Guard sees "Currently checked out to {name}" if they search for it. |
-| **Shift overlap** | Warning: "A shift is already active (Guard B, started at 3:00 PM). Do you want to end their shift and start yours?" |
-| **Network disconnection** | Events queue locally. Banner: "Offline. Events will sync when reconnected." Queue visible in the shift log panel. On reconnect, queued events sync and timestamps are preserved. |
-| **Concurrent edits** | WebSocket detects conflict. Dialog: "This event was updated by {other_user} at {time}. Reload to see changes?" |
-| **Deleting an event** | Soft delete only. Confirmation: "Delete this event? It will be hidden from the console but preserved in audit logs." Only Supervisor/Property Manager/Admin can delete. |
-| **Visitor with no unit** | Unit field can be left blank for building-wide visitors (e.g., postal worker, building inspector). Logs with unit = "Common Area". |
 
 ---
 
-## 6. UI/UX Specification
+## 6. UI/UX
 
-### 6.1 Console Page Layout
+### 6.1 Console Layout -- Desktop (>1024px)
 
 ```
-Desktop (>=1280px):
-┌─────────────────────────────────────────────────────────────────────────┐
-│  SIDEBAR   │  Security Console                    [Emergency] 🔔 👤    │
-│  (240px)   │                                                           │
-│            │  ┌─────────────────────────────────────────────────────┐  │
-│            │  │ [Search events...]  [Filter ▾]  Today|Shift|24h|7d  │  │
-│            │  │ Advanced Search ▾                          [Reset]  │  │
-│            │  └─────────────────────────────────────────────────────┘  │
-│            │                                                           │
-│            │  Create new entry:                                        │
-│            │  (👤) (📦) (🛡) (⚠) (🚪) (🔑) (💬)  [Batch Entry]     │
-│            │                                                           │
-│            │  ┌──────────────────────┐  ┌──────────────────────┐      │
-│            │  │ VST-2026-00903       │  │ PKG-2026-07260       │      │
-│            │  │ Maria Garcia signed  │  │ Package from Amazon  │      │
-│            │  │ in to Unit 1205      │  │ for J. Smith (1205)  │      │
-│            │  │ 5 min ago  [Sign Out]│  │ 12 min ago [Release] │      │
-│            │  └──────────────────────┘  └──────────────────────┘      │
-│            │  ┌──────────────────────┐  ┌──────────────────────┐      │
-│            │  │ INC-2026-01766       │  │ KEY-2026-00045       │      │
-│            │  │ Suspicious person    │  │ Trade Key #1 checked │      │
-│            │  │ near loading dock    │  │ out to Mike Chen     │      │
-│            │  │ 1 hr ago   ● Open   │  │ 2 hr ago  [Check In] │      │
-│            │  └──────────────────────┘  └──────────────────────┘      │
-│            │                                                           │
-│            │  Showing 1-25 of 1,247  [< Prev]  [Next >]              │
-└─────────────────────────────────────────────────────────────────────────┘
-
-Mobile (<768px):
-┌──────────────────────────┐
-│ ☰ Security Console  [!]  │
-│                           │
-│ [Search...]  [Filter ▾]   │
-│ Today | Shift | 24h       │
-│                           │
-│ ┌────────────────────────┐│
-│ │ 👤 VST-2026-00903      ││
-│ │ Maria Garcia → 1205    ││
-│ │ 5m ago     [Sign Out]  ││
-│ └────────────────────────┘│
-│ ┌────────────────────────┐│
-│ │ 📦 PKG-2026-07260      ││
-│ │ Amazon → J. Smith 1205 ││
-│ │ 12m ago    [Release]   ││
-│ └────────────────────────┘│
-│                           │
-│     (+) Floating Action   │
-│                           │
-│ 🏠  📦   ➕   🔔   ☰    │
-└──────────────────────────┘
++------------------------------------------------------------------+
+|  [Logo]  Security Console         [Search] [Notif] [User Avatar]  |
++------------------------------------------------------------------+
+|  Active Shift: John D. since 9:00 AM        [End Shift] [+ Shift] |
++------------------------------------------------------------------+
+|  [Search............] [Type v] [Status v] [Date v] [Bldg v] [Reset]|
+|  [Saved: Today's Packages] [My Incidents] [+ Save Filter]         |
++------------------------------------------------------------------+
+|  Quick Create:                                                     |
+|  (O) (O) (O) (O) (O) (O) (O) (O) (O)                            |
+|  Vis  Pkg  Shft Inc  Auth Key  Pass Cln  Note                    |
++------------------------------------------------------------------+
+|  [Card Grid] [Compact List] [Split View]    Group: [Time v]       |
++------------------------------------------------------------------+
+|                                                                    |
+|  TODAY                                                             |
+|  +----------+ +----------+ +----------+ +----------+              |
+|  | PKG      | | VST      | | INC      | | KEY      |              |
+|  | Unit 1205| | Unit 506 | | Parking  | | Master#1 |              |
+|  | Amazon   | | J. Smith | | Suspcious| | J. Doe   |              |
+|  | 3 min ago| | 15 min   | | 1 hr ago | | 2 hrs    |              |
+|  |  [Release]| | [Sign Out]| | [Open]  | | [Return] |              |
+|  +----------+ +----------+ +----------+ +----------+              |
+|                                                                    |
+|  YESTERDAY                                                         |
+|  +----------+ +----------+ +----------+ +----------+              |
+|  | ...      | | ...      | | ...      | | ...      |              |
+|  +----------+ +----------+ +----------+ +----------+              |
++------------------------------------------------------------------+
 ```
 
-### 6.2 Component Usage from Design System
+### 6.2 Console Layout -- Tablet (768-1024px)
 
-| Component | Design System Reference | Usage in Security Console |
-|-----------|------------------------|--------------------------|
-| Status Badge | Section 7.6 | Event status (Open, Closed, Draft, etc.) |
-| Segmented Control | Section 7 | Quick date filter ("Today", "This Shift", etc.) |
-| Autocomplete Input | Section 7 | Unit search, resident search |
-| Modal/Dialog | Section 9 (animation spec) | All creation and detail dialogs |
-| Toast Notification | Section 15 | Success/error feedback |
-| Signature Pad | Custom component | Key checkout signature capture |
-| Icon Buttons | Section 12 (48px Display size) | Quick-create icons |
-| Empty State | Section 13 | When no events match filters |
-| Skeleton Loading | Section 9 (shimmer) | While events load |
-| Card | Section 7 | Event cards in the grid |
+- Filter bar wraps to 2 rows
+- Quick-create icons in a single scrollable row
+- Cards display 2 per row
+- Split View not available (full-width card grid or list)
+- Detail dialogs open as full-width bottom sheets
 
-### 6.3 Empty State
+### 6.3 Console Layout -- Mobile (<768px)
 
-When no events match the current filter:
-```
-┌─────────────────────────────────────┐
-│                                     │
-│           🛡                        │
-│                                     │
-│    No events found                  │
-│    Try adjusting your filters       │
-│    or create a new entry above.     │
-│                                     │
-│         [ Reset Filters ]           │
-│                                     │
-└─────────────────────────────────────┘
-```
+- Filter bar collapses to: Search + Filter icon (opens full-screen filter panel)
+- Quick-create icons: Horizontal scrollable row with overflow dots
+- Cards: Full-width, stacked vertically, one per row
+- Detail dialogs: Full-screen overlays with back button
+- Touch targets: Minimum 44px height for all interactive elements
+- Swipe actions: Swipe right on a visitor card to "Sign Out", swipe right on a package to "Release"
 
-### 6.4 Loading State
+### 6.4 Empty States
 
-Skeleton screen matching the card grid layout: 4-6 card placeholders with shimmer animation (1.5s linear infinite per Design System section 9).
+| Screen | Empty State Message | Action |
+|--------|-------------------|--------|
+| Console (no events today) | "No events logged today. Use the icons above to create your first entry, or start your shift." | Quick-create icons remain visible and prominent |
+| Console (filtered, no results) | "No events match your filters. [Clear Filters] to see all events, or adjust your search." | "Clear Filters" link resets to defaults |
+| Package list (no outstanding) | "All packages have been released. Nice work! New packages will appear here when logged." | -- |
+| Incident list (no open) | "No open incidents. Click + Incident Report to log one if needed." | Quick-create icon highlighted |
+| Key inventory (empty) | "No keys in inventory. Ask your property administrator to add keys." | Link to Settings > Key Management (if admin) |
+| Shift log (no entries) | "No log entries yet. Click + Add Entry to start documenting your shift." | "+ Add Entry" button |
+| Pass-on log (empty) | "No pass-on notes. Create one to communicate important information to the next shift." | Quick-create icon highlighted |
+| Saved filters (none) | "No saved filters yet. Set up filters above and click the save icon to create a quick-access preset." | -- |
 
-### 6.5 Error State
+### 6.5 Loading States
 
-If the event grid fails to load:
-```
-┌─────────────────────────────────────┐
-│                                     │
-│           ⚠                         │
-│                                     │
-│    Unable to load events            │
-│    Check your connection and        │
-│    try again.                       │
-│                                     │
-│         [ Try Again ]               │
-│                                     │
-└─────────────────────────────────────┘
-```
+| Component | Loading Behavior |
+|-----------|-----------------|
+| Console page | Skeleton cards (8 placeholder cards with pulsing animation). Filter bar loads instantly. Quick-create icons load instantly. |
+| Event cards (lazy load) | Cards load in batches of 20 with infinite scroll. Loading indicator at bottom: "Loading more events..." |
+| Creation dialog | Fields render immediately. Autocomplete data fetches in background. Spinner in autocomplete dropdown while loading. |
+| Detail view | Header renders with data. Sections load progressively (info first, then history, then attachments). Skeleton for slow sections. |
+| AI features | Subtle shimmer animation on the field being processed. Text: "Analyzing..." or "Checking..." Small enough not to block the user. |
+| Batch operations | Progress bar: "Saving package 3 of 10..." with per-row checkmarks as each completes. |
 
-Plus toast: "Failed to load security events. Please try again." (red background, error icon, auto-dismiss 6s).
+### 6.6 Error States
 
-### 6.6 Dialog Animations
+| Error Type | Display | User Action |
+|-----------|---------|-------------|
+| Network error | Red banner at top of console: "Connection lost. Changes will be saved when reconnected." Auto-dismiss on reconnect. | Wait for reconnect. Offline-queued changes sync automatically. |
+| Form validation | Red border on invalid field. Error message below field in red text. Submit button remains disabled until all required fields are valid. | Fix the invalid field. Error clears on valid input. |
+| Save failure (server) | Toast (error): "Failed to save. Please try again." Form data preserved. Retry button in toast. | Click retry or re-submit. |
+| Permission denied | Toast (error): "You do not have permission to perform this action." | Contact admin. No retry possible. |
+| Conflict (concurrent edit) | Modal: "This event was updated by [other user] at [time]. Your version / Their version. [Keep Mine] [Keep Theirs] [Merge]" | Select resolution option. |
 
-Per Design System section 9:
-- **Open**: Scale 0.97 to 1.0 + fade in, 250ms ease-out. Backdrop fades to `rgba(0,0,0,0.4)`.
-- **Close**: Fade out, 150ms ease-in.
-- **Parking details expand**: Slide down, 200ms ease-out.
-- **Unsaved changes confirmation**: Nested modal, same animation.
+### 6.7 Component Specifications
 
-### 6.7 Real-Time Update Indicators
+**Event Card**:
+- Border radius: 12px
+- Shadow: 0 1px 3px rgba(0,0,0,0.08)
+- Padding: 16px
+- Left border accent: 4px, color matches EventType color
+- Hover: Shadow increases to 0 2px 8px rgba(0,0,0,0.12)
+- Transition: all 0.15s ease
+- Min height: 120px (desktop), 100px (mobile)
 
-When a new event arrives via WebSocket:
-1. New card slides in from top of grid (300ms spring animation)
-2. Subtle blue pulse on the new card (fades after 2s)
-3. If the user has scrolled away from the top, a "New events" pill appears at the top of the grid. Clicking it scrolls to top and shows new events.
+**Dialog/Modal**:
+- Max width: 640px (single column), 960px (with sidebar)
+- Border radius: 16px
+- Backdrop: rgba(0,0,0,0.4)
+- Animation: Slide up from bottom (mobile), fade in (desktop)
+- Close: X button (top-right) + Escape key + click outside (with confirmation if unsaved data)
+
+**Quick-Create Icon Button**:
+- Size: 56px diameter (desktop), 44px (mobile)
+- Background: System blue `#007AFF`
+- Icon: 24px white SF Symbol or equivalent
+- Label: 12px, medium weight, centered below
+- Focus: 2px blue outline, 2px offset
+- Active: Scale 0.95x, darker background
+
+### 6.8 Tooltips
+
+Tooltips use the info icon (i) for complex features. They appear on hover (desktop) or tap (mobile) with a 200ms delay.
+
+| Feature | Tooltip Text |
+|---------|-------------|
+| Perishable checkbox | "Mark this package as perishable (food, flowers, medicine). Perishable packages get priority notifications and are highlighted on the dashboard so they are released quickly." |
+| Urgency toggle | "Urgent incidents send immediate notifications to your supervisor and property manager. Use this for situations that need attention right now -- not for incidents that can wait until the next shift." |
+| AI Summary | "This summary was generated automatically from the events logged during your shift. Review it for accuracy and edit anything that needs correction before saving." |
+| Batch mode | "Log multiple packages at once. Each row creates a separate package entry. You can set different notification options for each package." |
+| Saved filters | "Save your current filter combination for quick access. Saved filters appear as buttons below the search bar. You can save up to 10 filters." |
+| Storage spot | "Where the package is physically stored. Your property administrator configures the available locations. If the package is too large for the standard spot, choose 'Oversized Storage' or 'Other'." |
+| ID Verified checkbox | "Check this if you verified the person's identity using a government-issued ID. This is recorded in the audit trail for security compliance." |
+| Expected Return (keys) | "When the key should be returned. If the key is not returned by this time, you and your supervisor will receive an overdue alert." |
 
 ---
 
-## 7. AI Integration Points
+## 7. AI Integration
 
-All 12 AI capabilities for the Security Console are defined in `docs/prd/19-ai-framework.md` (Section 4.1). Below is how each integrates into the console UI.
+All AI capabilities reference the patterns defined in `19-ai-framework.md`. The Security Console has 12 AI capabilities -- the most of any module.
 
-### 7.1 Report Grammar and Tone Correction (AI #1)
+### 7.1 AI-Assisted Input
 
-| Aspect | Detail |
-|--------|--------|
-| **Where it appears** | Incident Report and Pass-On Log forms, on the rich text editor |
-| **Trigger** | User clicks "Submit Report" or "Save" -- AI processes the text before submission |
-| **UI element** | After processing, a subtle banner below the editor: "Text improved for clarity. [Review Changes] [Accept] [Use Original]" |
-| **Review Changes view** | Side-by-side diff showing original vs. corrected text, changes highlighted in blue |
-| **Graceful degradation** | If AI unavailable, report saves with original text. No blocking. |
-| **Default model** | Claude Haiku ($0.001/call) |
+#### 7.1.1 Report Grammar and Tone Correction (AI #1)
 
-### 7.2 Incident Category Auto-Suggestion (AI #2)
+| Attribute | Detail |
+|-----------|--------|
+| **Trigger** | When staff clicks "Submit" on any text field longer than 50 characters (incident reports, shift logs, pass-on notes) |
+| **Input** | Raw text from the report field |
+| **Output** | Corrected text with changes highlighted (strikethrough for removed, blue for added) |
+| **UI** | Inline diff below the text field: "Suggested improvements:" with Accept All / Reject / Edit buttons |
+| **Model** | Haiku (fast, $0.001/call) |
+| **Fallback** | No correction shown. Manual proofreading. |
+| **Privacy** | PII (resident names, unit numbers) stripped before API call. Replaced with tokens. Restored in response. |
+| **User control** | Staff can toggle "Auto-correct my reports" in personal settings |
 
-| Aspect | Detail |
-|--------|--------|
-| **Where** | Incident Report dialog, below the incident type dropdown |
-| **Trigger** | Debounced 500ms after user stops typing in the "What Happened?" field (minimum 20 characters) |
-| **UI** | Small pill below dropdown: "Suggested: Parking Lot Occurrence (87%)" -- clicking applies the suggestion |
-| **Multiple suggestions** | Shows top 3 with confidence scores if top score < 80% |
-| **Graceful degradation** | Dropdown works normally with manual selection. Suggestion pill hidden. |
+#### 7.1.2 Incident Category Auto-Suggestion (AI #2)
 
-### 7.3 Incident Severity Scoring (AI #3)
+| Attribute | Detail |
+|-----------|--------|
+| **Trigger** | Debounced 500ms after typing stops in the "What Happened" field (minimum 20 characters) |
+| **Input** | Description text (PII-stripped) |
+| **Output** | Top 3 category suggestions with confidence percentages |
+| **UI** | Below the Incident Type dropdown: 3 pills showing suggested categories. Click to select. Subtle grey text: "Suggested based on your description" |
+| **Model** | Haiku ($0.001/call) |
+| **Fallback** | Manual category selection from dropdown |
 
-| Aspect | Detail |
-|--------|--------|
-| **Where** | Incident Report dialog, next to the urgency toggle |
-| **Trigger** | On submit, before saving |
-| **UI** | Banner: "Suggested severity: High -- This incident involves a safety hazard and should be escalated. [Apply] [Dismiss]" |
-| **Graceful degradation** | Manual urgency toggle works without AI input. |
+#### 7.1.3 Voice-to-Text Reporting (AI #9)
 
-### 7.4 Pattern Detection (AI #4)
+| Attribute | Detail |
+|-----------|--------|
+| **Trigger** | Microphone icon button on any rich text editor field |
+| **Input** | Audio recording (up to 5 minutes) |
+| **Output** | Structured text entry with auto-populated fields (type, location, suspect if mentioned) |
+| **UI** | Microphone button next to text field. Recording indicator: red dot + timer. "Processing..." with waveform animation after recording. |
+| **Model** | Whisper (speech-to-text) + Sonnet (structuring). $0.02/call |
+| **Fallback** | Manual typing |
+| **Default** | Disabled. Enabled by Super Admin per property. |
 
-| Aspect | Detail |
-|--------|--------|
-| **Where** | Security Console dashboard (Supervisor/Property Manager view), "Insights" panel |
-| **Trigger** | Daily at 2:00 AM, results cached |
-| **UI** | Insight card: "Pattern detected: 4 noise complaints from Floor 12 in the last 2 weeks. [View Details]" |
-| **Graceful degradation** | Insights panel shows "No automated insights available" with manual report link. |
+### 7.2 AI-Powered Analysis
 
-### 7.5 Anomaly Detection (AI #5)
+#### 7.2.1 Incident Severity Scoring (AI #3)
 
-| Aspect | Detail |
-|--------|--------|
-| **Where** | Event cards in the grid |
-| **Trigger** | On new event creation, compared against 90-day norms |
-| **UI** | Small yellow warning icon on the event card with tooltip: "Unusual: This is the 3rd incident this week. Average is 1/month." |
-| **Graceful degradation** | No warning icon shown. Events appear normally. |
+| Attribute | Detail |
+|-----------|--------|
+| **Trigger** | On incident submit (before save) |
+| **Input** | Description + category + time of day + historical data for property |
+| **Output** | Severity level (Low/Medium/High/Critical) with brief reasoning |
+| **UI** | Severity badge auto-appears next to Priority field: "AI suggests: High -- [reason]". Staff can override. |
+| **Model** | Haiku ($0.001/call) |
+| **Fallback** | Manual severity selection |
 
-### 7.6 Shift Report Auto-Summarization (AI #6)
+#### 7.2.2 Similar Incident Linking (AI #11)
 
-| Aspect | Detail |
-|--------|--------|
-| **Where** | Shift detail view, "End Shift" flow |
-| **Trigger** | Guard clicks "End Shift" or shift end time is reached |
-| **UI** | AI-generated summary appears in an editable text area: "During this 8-hour shift, {guard_name} logged 12 events: 5 visitor check-ins, 4 package intakes, 2 key checkouts, and 1 incident report. 3 visitors remain signed in. No critical incidents occurred." |
-| **Graceful degradation** | Empty summary text area. Guard writes manual summary. |
+| Attribute | Detail |
+|-----------|--------|
+| **Trigger** | On incident submit |
+| **Input** | Current incident description (PII-stripped) |
+| **Output** | Top 5 similar past incidents with relevance scores (0-100%) |
+| **UI** | "Related Incidents" section on detail view. Cards showing: Reference #, Date, Title, Similarity %. Click to view. |
+| **Model** | Embeddings (OpenAI) + Haiku. $0.002/call |
+| **Fallback** | No automatic linking. Manual search. |
 
-### 7.7 Guard Performance Scoring (AI #7)
+#### 7.2.3 Auto-Escalation Recommendation (AI #12)
 
-| Aspect | Detail |
-|--------|--------|
-| **Where** | Security Supervisor dashboard only |
-| **Trigger** | Weekly (Monday 6:00 AM) |
-| **UI** | Performance scorecard per guard with metrics: events logged, avg response time, report quality score, patrol completion %. Accessible via Reports > Security > Guard Performance. |
-| **Graceful degradation** | Raw activity counts shown without quality scoring. |
-| **Default state** | Disabled. Must be explicitly enabled by Super Admin. |
+| Attribute | Detail |
+|-----------|--------|
+| **Trigger** | On incident submit |
+| **Input** | Description + severity + category + time of day |
+| **Output** | Escalate yes/no with reasoning |
+| **UI** | If escalation recommended: Yellow banner on submit confirmation: "AI recommends escalating this incident. [Escalate Now] [Skip]" with brief reasoning. |
+| **Model** | Haiku ($0.001/call) |
+| **Fallback** | Manual escalation decision |
 
-### 7.8 Predictive Risk Assessment (AI #8)
+#### 7.2.4 Photo Analysis (AI #10)
 
-| Aspect | Detail |
-|--------|--------|
-| **Where** | Security dashboard, "Risk Forecast" card |
-| **Trigger** | Daily at 5:00 AM |
-| **UI** | Card showing risk level (Low/Medium/High) with color coding and recommended staffing. e.g., "Today's Risk: Medium -- Community event expected. Consider additional lobby coverage." |
-| **Graceful degradation** | Card hidden. Standard staffing levels apply. |
-| **Default state** | Disabled. |
+| Attribute | Detail |
+|-----------|--------|
+| **Trigger** | On photo upload for incidents or packages |
+| **Input** | Uploaded photo + event context |
+| **Output** | Damage assessment, hazard identification, condition notes |
+| **UI** | Below the uploaded photo: "AI notes: [analysis]". Editable text field pre-populated with AI output. |
+| **Model** | GPT-4o Vision. $0.01/call |
+| **Default** | Disabled. Enabled per property. |
+| **Fallback** | Manual description by staff |
 
-### 7.9 Voice-to-Text Reporting (AI #9)
+### 7.3 AI-Generated Insights
 
-| Aspect | Detail |
-|--------|--------|
-| **Where** | Incident Report and Pass-On Log rich text editors |
-| **Trigger** | User clicks microphone button next to text editor |
-| **UI** | Recording indicator (pulsing red dot), "Recording... Tap to stop." Transcribed text appears in editor after processing. |
-| **Graceful degradation** | Microphone button hidden. Text entry only. |
-| **Default state** | Disabled. |
+#### 7.3.1 Pattern Detection (AI #4)
 
-### 7.10 Photo Analysis (AI #10)
+| Attribute | Detail |
+|-----------|--------|
+| **Trigger** | Daily scheduled job at 2:00 AM |
+| **Input** | All incidents and events from past 30 days |
+| **Output** | Pattern report: repeat offenders, time-based trends, location clusters, emerging issues |
+| **UI** | "Insights" tab on Security Console (Supervisor and Manager roles only). Cards showing each pattern with charts. |
+| **Model** | Sonnet. $0.01/call |
+| **Default** | Enabled. Reports available to Supervisor+ roles. |
+| **Fallback** | No automated report. Manual review of raw data. |
 
-| Aspect | Detail |
-|--------|--------|
-| **Where** | Incident Report photo upload section |
-| **Trigger** | On photo upload |
-| **UI** | After upload, small text below photo: "Detected: Damaged vehicle bumper, paint scrape. [Add to Description]" Clicking "Add to Description" appends the analysis to the description field. |
-| **Graceful degradation** | No analysis text. Photo uploaded as-is. |
-| **Default state** | Disabled. |
+#### 7.3.2 Anomaly Detection (AI #5)
 
-### 7.11 Similar Incident Linking (AI #11)
+| Attribute | Detail |
+|-----------|--------|
+| **Trigger** | On every new event creation |
+| **Input** | Current event + 90-day historical data for the property |
+| **Output** | Alert if the event is anomalous (e.g., incident at unusual time, unusual volume) |
+| **UI** | If anomaly detected: Red dot on event card. Tooltip: "Unusual: [reason]". Also appears in Insights tab. |
+| **Model** | Haiku. $0.002/call |
+| **Fallback** | No real-time anomaly alerts |
 
-| Aspect | Detail |
-|--------|--------|
-| **Where** | Incident Report detail view, "Related Incidents" section |
-| **Trigger** | On incident submission |
-| **UI** | Section showing up to 5 related past incidents with relevance scores: "Related: INC-2026-01700 'Suspicious person in P2' (82% similar) -- Mar 8, 2026" |
-| **Graceful degradation** | "Related Incidents" section hidden. Manual search available. |
+#### 7.3.3 Shift Report Auto-Summarization (AI #6)
 
-### 7.12 Auto-Escalation Recommendation (AI #12)
+| Attribute | Detail |
+|-----------|--------|
+| **Trigger** | End of shift (manual trigger via "End Shift" button, or auto at shift end time) |
+| **Input** | All events and log entries during the shift |
+| **Output** | Narrative summary (200-400 words) covering key events, visitor count, packages handled, incidents, notes |
+| **UI** | Read-only text block in End Shift dialog. "AI Summary" label. Editable if staff wants to modify. |
+| **Model** | Sonnet. $0.005/call |
+| **Fallback** | Guard writes manual closing notes |
 
-| Aspect | Detail |
-|--------|--------|
-| **Where** | Incident Report dialog, after clicking "Submit Report" |
-| **Trigger** | On submission |
-| **UI** | If escalation recommended: banner "This incident may warrant escalation to your supervisor based on its severity and type. [Escalate Now] [Submit Without Escalation]" |
-| **Graceful degradation** | No recommendation. Manual escalation decision. |
+#### 7.3.4 Predictive Risk Assessment (AI #8)
+
+| Attribute | Detail |
+|-----------|--------|
+| **Trigger** | Daily scheduled at 5:00 AM |
+| **Input** | Historical incidents + weather API + event calendar + seasonal patterns |
+| **Output** | Risk forecast for the upcoming 24 hours with recommended staffing levels |
+| **UI** | Dashboard widget (Supervisor/Manager only): "Today's Risk Level: [Low/Medium/High]" with reasoning and staffing recommendation. |
+| **Model** | Sonnet. $0.01/call |
+| **Default** | Disabled. Opt-in per property. |
+| **Fallback** | Standard staffing with no risk forecast |
+
+#### 7.3.5 Guard Performance Scoring (AI #7)
+
+| Attribute | Detail |
+|-----------|--------|
+| **Trigger** | Weekly scheduled (Monday 6:00 AM) |
+| **Input** | All guard activity for the week: events logged, response times, report quality, patrol coverage |
+| **Output** | Performance scorecard per guard with metrics and trend indicators |
+| **UI** | "Team Performance" tab in Security Analytics (Supervisor only). Table with guard names, scores, and sparkline trends. |
+| **Model** | Sonnet. $0.01/call |
+| **Default** | Disabled. Opt-in per property. |
+| **Fallback** | No automated scoring. Manual supervisor review. |
+
+### 7.4 Model Selection and Cost
+
+| AI Capability | Default Model | Est. Cost/Call | Monthly Est. (500-unit bldg) |
+|--------------|---------------|----------------|------------------------------|
+| Grammar/Tone Correction | Haiku | $0.001 | $1.50 (50 reports/day) |
+| Category Auto-Suggestion | Haiku | $0.001 | $0.30 (10 incidents/day) |
+| Severity Scoring | Haiku | $0.001 | $0.30 |
+| Pattern Detection | Sonnet | $0.01 | $0.30 (daily) |
+| Anomaly Detection | Haiku | $0.002 | $3.00 (50 events/day) |
+| Shift Summarization | Sonnet | $0.005 | $0.45 (3 shifts/day) |
+| Guard Performance | Sonnet | $0.01 | $0.04 (weekly) |
+| Predictive Risk | Sonnet | $0.01 | $0.30 (daily) |
+| Voice-to-Text | Whisper+Sonnet | $0.02 | $0.60 (1 report/day) |
+| Photo Analysis | GPT-4o Vision | $0.01 | $1.50 (5 photos/day) |
+| Similar Incident Linking | Embeddings+Haiku | $0.002 | $0.60 |
+| Auto-Escalation | Haiku | $0.001 | $0.30 |
+| **Total** | -- | -- | **~$9.19/month** |
+
+### 7.5 Super Admin AI Controls
+
+All controls defined in `19-ai-framework.md` Section 6 apply. Security Console-specific controls:
+
+| Control | Options | Default |
+|---------|---------|---------|
+| Security Console AI (module toggle) | On / Off | On |
+| Per-feature toggles (12 features) | On / Off each | See table in 7.4 |
+| Grammar correction scope | All text fields / Incident reports only / Off | All text fields |
+| Auto-escalation sensitivity | Conservative / Balanced / Aggressive | Balanced |
+| Pattern detection lookback | 7 / 14 / 30 / 60 / 90 days | 30 days |
+| Anomaly detection sensitivity | Low (fewer alerts) / Medium / High (more alerts) | Medium |
+| Voice-to-text language | English / French / Spanish / Portuguese / Multilingual | English |
 
 ---
 
-## 8. Analytics and Metrics
+## 8. Analytics
 
-### 8.1 Operational KPIs
+### 8.1 Operational Metrics
 
-| KPI | Formula | Target | Alert Threshold |
-|-----|---------|--------|-----------------|
-| **Avg. Visitor Sign-In Time** | Total time from dialog open to save / count of visitor events | < 45 seconds | > 90 seconds |
-| **Package Release Rate** | Packages released within 24h / total packages received | > 85% | < 70% |
-| **Avg. Package Hold Time** | Sum(released_at - created_at) / count of released packages | < 24 hours | > 48 hours |
-| **Incident Response Time** | Sum(first_update_at - created_at for urgent incidents) / count | < 30 minutes | > 60 minutes |
-| **Open Incident Rate** | Open incidents / total incidents (rolling 30 days) | < 15% | > 30% |
-| **Key Return Compliance** | Keys returned same day / total key checkouts | > 95% | < 85% |
-| **Shift Coverage** | Shifts with no gaps / total shifts | 100% | < 95% |
-| **Events Per Shift** | Total events / total shifts (rolling 30 days) | Informational | Anomaly if 2x above average |
-| **Pass-On Log Acknowledgment** | Pass-on logs acknowledged by next shift / total logs | > 90% | < 75% |
+| Metric | Formula | Update Frequency | Visible To |
+|--------|---------|-----------------|------------|
+| Events Today | COUNT(events WHERE created_at = today AND property_id = current) | Real-time | All console users |
+| Open Incidents | COUNT(incidents WHERE status IN (open, in_progress, escalated)) | Real-time | Guard, Supervisor, Manager |
+| Unreleased Packages | COUNT(packages WHERE released_at IS NULL) | Real-time | All console users |
+| Active Visitors | COUNT(visitors WHERE departure_at IS NULL) | Real-time | All console users |
+| Keys Out | COUNT(key_checkouts WHERE return_time IS NULL) | Real-time | Guard, Supervisor, Manager |
+| Avg. Incident Response Time | AVG(first_update_at - created_at) for incidents this month | Daily | Supervisor, Manager |
+| Avg. Package Dwell Time | AVG(released_at - created_at) for packages this month | Daily | Supervisor, Manager |
+| Shift Coverage | (hours_with_active_shift / total_hours) * 100 for current month | Daily | Supervisor, Manager |
+| Events per Guard per Shift | COUNT(events) / COUNT(distinct guards) for selected period | Weekly | Supervisor, Manager |
 
 ### 8.2 Performance Metrics
 
-| Metric | Target |
-|--------|--------|
-| Console page load time | < 1.5 seconds |
-| Event creation (save click to toast) | < 2 seconds |
-| Search results returned | < 1 second |
-| WebSocket event delivery | < 500ms from creation |
-| Filter application | < 500ms |
+| Metric | Formula | Threshold | Alert |
+|--------|---------|-----------|-------|
+| Incident Escalation Rate | COUNT(escalated) / COUNT(total incidents) * 100 | >30% = review | Weekly email to Supervisor |
+| Package Release SLA | % of packages released within 24 hours | <90% = warning | Daily alert to Manager |
+| Key Return Compliance | % of keys returned by expected time | <95% = warning | Per-occurrence alert |
+| Shift Log Completeness | Shifts with >0 log entries / Total shifts * 100 | <80% = review | Weekly to Supervisor |
+| Report Quality Score | AI grammar correction acceptance rate | <50% = training needed | Monthly report |
+| Average Events per Shift | AVG(events logged) per shift period | Trend tracking | Monthly comparison |
 
-### 8.3 Charts
+### 8.3 Dashboards
 
-| Chart | Type | X-Axis | Y-Axis | Data | Location |
-|-------|------|--------|--------|------|----------|
-| Events by Type (Today) | Donut | N/A | N/A | Count per event type, max 6 segments + Other | Console dashboard |
-| Events Over Time | Line | Days (7/30/90) | Event count | Daily event totals, 1-3 series (total, incidents, packages) | Reports > Security |
-| Package Hold Time Distribution | Horizontal Bar | Hours (0-6, 6-12, 12-24, 24-48, 48+) | Package count | Released packages grouped by hold duration | Reports > Packages |
-| Incident Types (Month) | Horizontal Bar | Count | Incident type labels | Incident count per type | Reports > Security |
-| Key Checkout Duration | Line | Days | Avg. hours checked out | 30-day trend | Reports > Security |
-| Visitor Traffic | Line | Hours (0-23) | Visitor count | Avg. visitors per hour of day, last 30 days | Reports > Security |
-| Guard Activity Comparison | Grouped Bar | Guard names | Event count | Events per guard per type, current week | Supervisor dashboard |
+#### 8.3.1 Security Operations Dashboard (Supervisor/Manager)
 
-### 8.4 Alert Thresholds
+| Widget | Chart Type | X-Axis | Y-Axis | Data |
+|--------|-----------|--------|--------|------|
+| Events by Type | Horizontal bar chart | Event count | Event type | Last 30 days, grouped by type |
+| Incident Trend | Line chart | Day | Count | Last 30 days, daily incident count |
+| Package Volume | Area chart | Day | Count | Last 30 days, daily intake/release |
+| Incident Status Distribution | Donut chart | -- | -- | Current: Open, In Progress, Escalated, Closed |
+| Peak Activity Hours | Heatmap | Hour of day (0-23) | Day of week | Last 90 days, event count per hour/day |
+| Top Incident Types | Treemap | -- | -- | Last 30 days, count by type |
+| Guard Activity | Stacked bar | Guard name | Event count | Last 7 days, events by guard by type |
+| Response Time Trend | Line chart | Week | Hours | Last 12 weeks, avg incident response time |
 
-| Alert | Condition | Channel | Recipients |
-|-------|-----------|---------|------------|
-| Key overdue | Key checked out > 8 hours (configurable) | Push + Email | Security Supervisor, Property Manager |
-| Outstanding packages | Package unreleased > 48 hours | Email | Property Manager |
-| Shift gap | No active shift for > 30 minutes during staffed hours | Push | Security Supervisor |
-| Urgent incident | Incident created with urgency = true | Push + SMS | Security Supervisor, Property Manager |
-| High visitor volume | Active visitors > property's configured max | Push | Security Guard (current shift) |
+#### 8.3.2 Guard Shift Dashboard
+
+| Widget | Chart Type | Data |
+|--------|-----------|------|
+| My Shift Summary | KPI cards | Events logged, packages handled, visitors signed in/out, patrol rounds |
+| Active Items | Count badges | Unreleased packages, signed-in visitors, keys out, open incidents |
+| Recent Activity | Timeline list | Last 20 events in reverse chronological order |
+
+### 8.4 Alerts and Anomaly Detection
+
+| Alert | Trigger | Recipients | Channel |
+|-------|---------|------------|---------|
+| Overdue Key | Key not returned by expected_return time | Guard who checked out + Supervisor | Push + In-app |
+| Perishable Package Aging | Perishable package unreleased >4 hours | Guard on shift + Resident | Push + SMS |
+| Incident Escalation | AI recommends escalation or manual escalation | Supervisor + Manager | Push + Email |
+| Shift Gap | No active shift for >30 minutes during staffed hours | Supervisor | Push + SMS |
+| Anomalous Event | AI anomaly detection flags an event | Supervisor | In-app |
+| High Volume Alert | Event count exceeds 2x daily average within 2 hours | Supervisor + Manager | Push |
+| Repeat Parking Violator | 3+ violations for same plate within 30 days | Security Supervisor | In-app + Email |
+| Package Backlog | >20 unreleased packages | Manager | Email |
 
 ---
 
 ## 9. Notifications
 
-### 9.1 Notification Events
+### 9.1 Event Triggers and Recipients
 
-| Event | Channels | Recipients | Template |
-|-------|----------|------------|----------|
-| **Visitor signed in** | Push, Email (configurable) | Resident being visited | "Hi {resident_name}, your visitor {visitor_name} has arrived at the front desk." |
-| **Package received** | Push, Email, SMS (resident preference) | Resident (recipient) | "Hi {resident_name}, a {description} from {courier} has been received and stored at {storage_spot}. Ref: {ref_number}." |
-| **Package reminder** | Push, Email | Resident | "Reminder: You have a {description} (Ref: {ref_number}) waiting for pickup at {storage_spot}. Received {days_ago} days ago." |
-| **Package released** | Push (optional) | Resident | "Your package (Ref: {ref_number}) has been picked up." |
-| **Incident created (urgent)** | Push, SMS | Security Supervisor, Property Manager | "URGENT: {incident_type} reported. {title}. Ref: {ref_number}." |
-| **Incident created (non-urgent)** | Email | Security Supervisor | "Incident report filed: {title}. Type: {incident_type}. Ref: {ref_number}." |
-| **Incident escalated** | Push, SMS | Property Manager | "Incident {ref_number} has been escalated: {title}. Please review." |
-| **Incident status changed** | Push | Creator of the incident | "Incident {ref_number} status changed to {new_status}." |
-| **Key checkout overdue** | Push, Email | Security Supervisor, Property Manager | "Key '{key_name}' checked out to {person_name} has not been returned. Checked out {hours} hours ago." |
-| **Pass-on log created** | Push | Selected team members | "New pass-on log from {author}: {subject}" |
-| **Parking violation issued** | Email (if plate matches a resident) | Resident (if identifiable) | "A parking violation ({violation_type}) has been recorded for vehicle {plate_number}." |
-| **Shift started** | System log only | N/A | N/A (logged for audit, not sent as notification) |
-| **Shift ended** | Email (optional) | Property Manager | "Shift summary for {guard_name}, {date}: {summary_preview}..." |
+| Event | Recipients | Channels | Template |
+|-------|-----------|----------|----------|
+| Visitor signed in | Unit resident (if notify enabled) | Email, Push | "Your visitor {name} has arrived and is at the front desk." |
+| Visitor signed out | Unit resident | Push (optional) | "Your visitor {name} has departed." |
+| Package received | Unit resident | Email (default), SMS, Push | "A {courier} {package_type} has arrived for your unit and is stored at {storage}. Reference: {ref#}." |
+| Package reminder | Unit resident | Email, Push | "Reminder: You have an uncollected {package_type} ({ref#}) at {storage}. It arrived on {date}." |
+| Package released | Unit resident | Push | "Your package {ref#} has been released to {released_to}." |
+| Incident created (urgent) | Supervisor, Manager | Push, Email | "Urgent incident reported: {title}. Type: {type}. Location: {unit or area}." |
+| Incident escalated | Manager, Admin | Push, Email, SMS | "Incident {ref#} has been escalated. Reason: {reason}. Please review immediately." |
+| Key overdue | Guard, Supervisor | Push, In-app | "Key '{key_name}' is overdue. Checked out to {person} at {time}. Expected return: {expected}." |
+| Shift started | Supervisor (optional) | In-app | "{guard} has started their shift." |
+| Shift ended | Supervisor (optional) | In-app | "{guard} has ended their shift. {event_count} events logged." |
+| Pass-on log created | Selected team members | Push, Email | "New pass-on note from {author}: {subject}" |
+| Parking violation created | Supervisor | In-app | "Parking violation issued: {type} for plate {plate}." |
+| Emergency broadcast | All residents + staff | Push, SMS, Email, Voice | "{emergency_type}: {message}" |
 
-### 9.2 Notification Preferences
+### 9.2 Notification Templates
 
-Residents can configure per-module notification preferences in their account settings. The notification system respects:
-- **Channel preference**: Email, SMS, Push, or combinations
-- **Quiet hours**: Do not send push/SMS during configured hours (default 10 PM - 7 AM)
-- **Exception for urgent**: Urgent notifications always bypass quiet hours
+Each notification template supports:
+- **Variables**: `{resident_name}`, `{unit_number}`, `{ref_number}`, `{courier}`, `{package_type}`, `{storage}`, `{visitor_name}`, `{guard_name}`, `{incident_title}`, `{key_name}`, `{date}`, `{time}`
+- **Channel-specific formatting**: Full HTML for email, 160 chars for SMS, 100 chars for push
+- **Property admin customization**: Templates are editable per property. System defaults provided.
+- **Multi-language**: Templates can be created per language. Resident's language preference determines which template is used.
+
+### 9.3 Notification Preferences
+
+Residents control their preferences per notification type:
+
+| Notification Type | Email | SMS | Push | Off |
+|-------------------|-------|-----|------|-----|
+| Package received | Default | Opt-in | Opt-in | Allowed |
+| Package reminder | Default | Off | Opt-in | Allowed |
+| Visitor arrival | Opt-in | Off | Opt-in | Allowed |
+| Emergency broadcast | Always on | Always on | Always on | Not allowed |
+
+Staff notifications are configured by the Property Admin and cannot be individually disabled for safety-critical alerts.
 
 ---
 
-## 10. API Endpoints
+## 10. API
 
-### 10.1 Events (Security Console)
+### 10.1 REST Endpoints
 
-| Method | Endpoint | Description | Auth | Request Body | Response |
-|--------|----------|-------------|------|-------------|----------|
-| `GET` | `/api/v1/events` | List events with filters | Staff roles | Query params: `type`, `status`, `unit_id`, `start_date`, `end_date`, `search`, `match_type`, `page`, `per_page`, `sort_by`, `sort_dir` | `{ data: Event[], meta: { total, page, per_page, total_pages } }` |
-| `GET` | `/api/v1/events/:id` | Get event detail | Staff roles | -- | `{ data: Event }` |
-| `POST` | `/api/v1/events` | Create event | Security Guard, Concierge, Supervisor, PM, Admin | `{ event_type_id, unit_id?, resident_id?, title, description, custom_fields, attachments[] }` | `{ data: Event }` (201 Created) |
-| `PUT` | `/api/v1/events/:id` | Update event | Own events (Guard/Concierge), all events (Supervisor+) | `{ title?, description?, status?, custom_fields?, attachments[] }` | `{ data: Event }` |
-| `DELETE` | `/api/v1/events/:id` | Soft-delete event | Supervisor, PM, Admin | -- | `{ success: true }` (200) |
-| `POST` | `/api/v1/events/batch` | Batch create events | Staff roles | `{ events: [{ event_type_id, unit_id?, ... }] }` (max 20) | `{ data: Event[], errors: [{ index, message }] }` |
-| `POST` | `/api/v1/events/:id/comments` | Add comment to event | Staff roles | `{ text: string }` | `{ data: EventComment }` (201) |
-| `GET` | `/api/v1/events/export` | Export events as CSV/Excel/PDF | Supervisor, PM, Admin | Query params: same as list + `format` (csv/xlsx/pdf) | File download |
+All endpoints require authentication via Bearer token. Property isolation enforced at middleware layer.
 
-### 10.2 Packages
+#### Events (Unified)
 
-| Method | Endpoint | Description | Auth | Request Body | Response |
-|--------|----------|-------------|------|-------------|----------|
-| `POST` | `/api/v1/packages/:id/release` | Release a package | Staff roles | `{ released_to, comments?, signature? }` | `{ data: Event }` |
-| `POST` | `/api/v1/packages/:id/remind` | Send reminder notification | Staff roles | `{ channel?: "email" \| "sms" \| "push" }` | `{ success: true, notification_id }` |
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| GET | `/api/v1/properties/{propertyId}/events` | List events with filters (type, status, date range, unit, search) | Guard, Concierge, Supervisor, Manager, Admin |
+| GET | `/api/v1/properties/{propertyId}/events/{eventId}` | Get event detail | Guard, Concierge, Supervisor, Manager, Admin |
+| POST | `/api/v1/properties/{propertyId}/events` | Create event (generic) | Guard, Concierge, Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/events/{eventId}` | Update event | Creator (own), Supervisor, Manager, Admin |
+| DELETE | `/api/v1/properties/{propertyId}/events/{eventId}` | Soft-delete event | Manager (configurable), Admin |
 
-### 10.3 Keys
+#### Visitors
 
-| Method | Endpoint | Description | Auth | Request Body | Response |
-|--------|----------|-------------|------|-------------|----------|
-| `GET` | `/api/v1/keys` | List key inventory | Staff roles | Query: `building_id?`, `status?`, `search?` | `{ data: Key[] }` |
-| `POST` | `/api/v1/keys` | Add key to inventory | Supervisor, PM, Admin | `{ key_name, key_number?, building_id, key_type?, description? }` | `{ data: Key }` (201) |
-| `PUT` | `/api/v1/keys/:id` | Update key | Supervisor, PM, Admin | `{ key_name?, description?, status? }` | `{ data: Key }` |
-| `DELETE` | `/api/v1/keys/:id` | Delete key | Admin | -- | `{ success: true }` |
-| `POST` | `/api/v1/keys/:id/checkout` | Check out key (creates event) | Staff roles | `{ checked_out_to, company?, id_type, id_number, reason, signature?, id_photo_front?, id_photo_back? }` | `{ data: Event }` (201) |
-| `POST` | `/api/v1/keys/:id/checkin` | Return key (closes event) | Staff roles | `{ comments? }` | `{ data: Event }` |
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| POST | `/api/v1/properties/{propertyId}/visitors` | Sign in visitor | Guard, Concierge, Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/visitors/{id}/sign-out` | Sign out visitor | Guard, Concierge, Supervisor, Manager, Admin |
+| POST | `/api/v1/properties/{propertyId}/visitors/batch-sign-out` | Sign out all visitors | Supervisor, Manager, Admin |
 
-### 10.4 Visitors
+#### Packages
 
-| Method | Endpoint | Description | Auth | Request Body | Response |
-|--------|----------|-------------|------|-------------|----------|
-| `POST` | `/api/v1/visitors/:event_id/signout` | Sign out visitor | Staff roles | `{ comments? }` | `{ data: Event }` |
-| `POST` | `/api/v1/visitors/batch-signout` | Sign out all active visitors | Staff roles | `{ visitor_event_ids: UUID[] }` | `{ data: { signed_out: number } }` |
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| POST | `/api/v1/properties/{propertyId}/packages` | Log package | Guard, Concierge, Supervisor, Manager, Admin |
+| POST | `/api/v1/properties/{propertyId}/packages/batch` | Log multiple packages | Guard, Concierge, Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/packages/{id}/release` | Release package | Guard, Concierge, Supervisor, Manager, Admin |
+| POST | `/api/v1/properties/{propertyId}/packages/{id}/notify` | Send reminder notification | Guard, Concierge, Supervisor, Manager, Admin |
 
-### 10.5 Parking Violations
+#### Incidents
 
-| Method | Endpoint | Description | Auth | Request Body | Response |
-|--------|----------|-------------|------|-------------|----------|
-| `GET` | `/api/v1/parking-violations` | List violations | Staff roles | Query: `plate?`, `status?`, `start_date?`, `end_date?` | `{ data: Event[] }` |
-| `POST` | `/api/v1/parking-violations` | Create violation | Security Guard, Supervisor, PM, Admin | `{ license_plate, violation_type, building_id, ... }` | `{ data: Event }` (201) |
-| `PUT` | `/api/v1/parking-violations/:id/status` | Update violation status | Supervisor, PM, Admin | `{ status, notes? }` | `{ data: Event }` |
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| POST | `/api/v1/properties/{propertyId}/incidents` | Create incident | Guard, Concierge, Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/incidents/{id}` | Update incident | Creator (own), Supervisor, Manager, Admin |
+| POST | `/api/v1/properties/{propertyId}/incidents/{id}/updates` | Add update | Guard (own incidents), Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/incidents/{id}/escalate` | Escalate incident | Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/incidents/{id}/close` | Close incident | Supervisor, Manager, Admin |
 
-### 10.6 FOBs and Access Devices
+#### Security Shifts
 
-| Method | Endpoint | Description | Auth | Request Body | Response |
-|--------|----------|-------------|------|-------------|----------|
-| `GET` | `/api/v1/units/:id/fobs` | List FOBs for a unit | Staff roles | -- | `{ data: FOB[] }` |
-| `POST` | `/api/v1/fobs` | Register new FOB | Supervisor, PM, Admin | `{ serial_number, fob_type, resident_id, unit_id, issued_date, deposit_paid? }` | `{ data: FOB }` (201) |
-| `PUT` | `/api/v1/fobs/:id` | Update FOB (e.g., deactivate) | Supervisor, PM, Admin | `{ status?, notes? }` | `{ data: FOB }` |
-| `GET` | `/api/v1/units/:id/buzzer-codes` | List buzzer codes for a unit | Staff roles | -- | `{ data: BuzzerCode[] }` |
-| `GET` | `/api/v1/units/:id/garage-clickers` | List garage clickers for a unit | Staff roles | -- | `{ data: GarageClicker[] }` |
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| POST | `/api/v1/properties/{propertyId}/shifts` | Start shift | Guard, Concierge, Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/shifts/{id}/end` | End shift | Creator, Supervisor, Manager, Admin |
+| POST | `/api/v1/properties/{propertyId}/shifts/{id}/entries` | Add log entry | Creator, Supervisor |
+| GET | `/api/v1/properties/{propertyId}/shifts/active` | Get active shift for current user | Guard, Concierge |
 
-### 10.7 Shifts
+#### Keys
 
-| Method | Endpoint | Description | Auth | Request Body | Response |
-|--------|----------|-------------|------|-------------|----------|
-| `GET` | `/api/v1/shifts/active` | Get the current user's active shift | Staff roles | -- | `{ data: Event \| null }` |
-| `POST` | `/api/v1/shifts/:event_id/log-entry` | Add log entry to active shift | Staff roles | `{ subject, details? }` | `{ data: ShiftLogEntry }` (201) |
-| `POST` | `/api/v1/shifts/:event_id/end` | End shift | Staff roles | `{ summary? }` | `{ data: Event }` |
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| GET | `/api/v1/properties/{propertyId}/keys` | List key inventory | Guard, Supervisor, Manager, Admin |
+| POST | `/api/v1/properties/{propertyId}/keys` | Add key to inventory | Supervisor, Manager, Admin |
+| POST | `/api/v1/properties/{propertyId}/key-checkouts` | Check out key | Guard, Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/key-checkouts/{id}/return` | Return key | Guard, Supervisor, Manager, Admin |
 
-### 10.8 Emergency
+#### Parking Violations
 
-| Method | Endpoint | Description | Auth | Request Body | Response |
-|--------|----------|-------------|------|-------------|----------|
-| `GET` | `/api/v1/emergency/contacts` | Get emergency contact directory | Staff roles | -- | `{ data: EmergencyContact[] }` |
-| `GET` | `/api/v1/emergency/procedures` | Get emergency procedures | Staff roles | -- | `{ data: EmergencyProcedure[] }` |
-| `GET` | `/api/v1/units/:id/emergency-contacts` | Get unit's emergency contacts | Staff roles | -- | `{ data: ResidentEmergencyContact[] }` |
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| POST | `/api/v1/properties/{propertyId}/parking-violations` | Create violation | Guard, Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/parking-violations/{id}/lift` | Lift ban/violation | Supervisor, Manager, Admin |
+| GET | `/api/v1/properties/{propertyId}/parking-violations/plate/{plate}` | Get violation history for plate | Guard, Supervisor, Manager, Admin |
 
-### 10.9 Autocomplete and Lookup
+#### Pass-On Logs
 
-| Method | Endpoint | Description | Auth | Response |
-|--------|----------|-------------|------|----------|
-| `GET` | `/api/v1/lookup/residents?q={query}` | Search residents by name (autocomplete) | Staff | `{ data: [{ id, name, unit_number }] }` |
-| `GET` | `/api/v1/lookup/units?q={query}` | Search units by number (autocomplete) | Staff | `{ data: [{ id, number, building, floor }] }` |
-| `GET` | `/api/v1/lookup/guards` | List all security/concierge staff | Staff | `{ data: [{ id, display_name, role }] }` |
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| POST | `/api/v1/properties/{propertyId}/pass-on-logs` | Create pass-on note | Guard, Concierge, Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/pass-on-logs/{id}/acknowledge` | Mark as acknowledged | Guard, Concierge, Supervisor, Manager, Admin |
 
-### 10.10 Authentication
+#### Analytics
 
-All endpoints require a valid JWT bearer token in the `Authorization` header. Tokens are scoped to a property. Requests without a valid token return `401 Unauthorized`. Requests with insufficient role permissions return `403 Forbidden` with body `{ error: "Insufficient permissions", required_role: "security_supervisor" }`.
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| GET | `/api/v1/properties/{propertyId}/security/analytics` | Get analytics dashboard data | Supervisor, Manager, Admin |
+| GET | `/api/v1/properties/{propertyId}/security/analytics/export` | Export analytics (Excel/PDF) | Supervisor, Manager, Admin |
+| GET | `/api/v1/properties/{propertyId}/security/insights` | Get AI-generated insights | Supervisor, Manager, Admin |
 
-Rate limits:
-- Standard endpoints: 100 requests/minute per user
-- Batch endpoints: 10 requests/minute per user
-- Export endpoints: 5 requests/minute per user
-- Autocomplete/lookup: 200 requests/minute per user
+### 10.2 Request/Response Examples
+
+**Create Visitor (POST /api/v1/properties/{propertyId}/visitors)**
+
+Request:
+```json
+{
+  "unit_id": "uuid-1205",
+  "visitor_name": "John Smith",
+  "visitor_type": "visitor",
+  "expected_departure_at": "2026-03-14T17:00:00-05:00",
+  "needs_parking": true,
+  "parking": {
+    "vehicle_make_model": "Black Audi A4",
+    "license_plate": "XLUCKY",
+    "province_state": "Ontario",
+    "vehicle_color": "Black",
+    "parking_area": "Visitor Lot",
+    "permit_end": "2026-03-14T17:00:00-05:00"
+  },
+  "comments": "Visiting for dinner",
+  "notify_resident": true
+}
+```
+
+Response (201 Created):
+```json
+{
+  "id": "uuid-visitor-1",
+  "event_id": "uuid-event-1",
+  "reference_number": "VST-2026-00903",
+  "unit_id": "uuid-1205",
+  "unit_number": "1205",
+  "visitor_name": "John Smith",
+  "visitor_type": "visitor",
+  "arrival_at": "2026-03-14T13:00:00-05:00",
+  "departure_at": null,
+  "expected_departure_at": "2026-03-14T17:00:00-05:00",
+  "parking_permit": {
+    "id": "uuid-permit-1",
+    "vehicle_make_model": "Black Audi A4",
+    "license_plate": "XLUCKY",
+    "province_state": "Ontario",
+    "permit_start": "2026-03-14T13:00:00-05:00",
+    "permit_end": "2026-03-14T17:00:00-05:00",
+    "status": "active"
+  },
+  "notify_resident": true,
+  "notification_sent": true,
+  "created_by": {
+    "id": "uuid-guard-1",
+    "name": "Jane Doe"
+  },
+  "created_at": "2026-03-14T13:00:00-05:00"
+}
+```
+
+**Error Response (422 Unprocessable Entity)**:
+```json
+{
+  "error": "validation_error",
+  "message": "Request validation failed.",
+  "details": [
+    {
+      "field": "visitor_name",
+      "message": "Visitor name must be at least 2 characters."
+    },
+    {
+      "field": "parking.license_plate",
+      "message": "Enter a valid license plate number."
+    }
+  ]
+}
+```
+
+### 10.3 WebSocket Events
+
+Real-time updates pushed to connected clients:
+
+| Event | Payload | Broadcast To |
+|-------|---------|-------------|
+| `event.created` | Full event object | All console users for the property |
+| `event.updated` | Event ID + changed fields | All console users for the property |
+| `event.closed` | Event ID + closed_by + closed_at | All console users for the property |
+| `visitor.signed_out` | Visitor ID + departure_at | All console users for the property |
+| `package.released` | Package ID + released_to + released_at | All console users for the property |
+| `shift.started` | Shift ID + guard name + start_time | All console users for the property |
+| `shift.ended` | Shift ID + guard name + event count | All console users for the property |
+| `key.overdue` | Key checkout ID + key name + expected_return | Guard + Supervisor |
+| `incident.escalated` | Incident ID + escalation reason | Supervisor + Manager |
+| `alert.anomaly` | Event ID + anomaly description | Supervisor |
 
 ---
 
@@ -1669,84 +1822,100 @@ Rate limits:
 
 ### Functional Coverage
 
-- [x] 7 core entry types defined with full field specs (Visitor, Package, Security Shift, Incident, Authorized Entry, Key Checkout, Pass-On Log)
-- [x] 2 additional entry types defined (Parking Violation, Security Patrol placeholder)
-- [x] Extensible via configurable EventType system -- properties can add custom types
-- [x] Unified event grid with color-coded cards
-- [x] 22 filter options with sub-filter hierarchy
-- [x] Advanced search (time frame, exact/broad match, building, unit, staff)
-- [x] Batch event creation (up to 10 rows)
-- [x] Batch visitor sign-out
-- [x] Shift log (persistent panel, always accessible)
-- [x] Key inventory management (CRUD + bulk add)
-- [x] Key checkout with ID verification and signature capture
-- [x] Parking violation lifecycle (create, active, appeal, resolve)
-- [x] FOB/key management (6 FOB slots, 2 buzzer codes, 2 garage clickers per unit)
-- [x] Emergency procedures modal with contacts and checklists
-- [x] Emergency contacts quick access (per unit)
-- [x] Real-time updates via WebSocket
-- [x] Offline event queuing
+| Item | Status | Section |
+|------|--------|---------|
+| 9+ entry types with dedicated creation forms | Defined | 3.1.3 - 3.1.12 |
+| Unified event grid with card/list/split views | Defined | 3.1.1 |
+| Filter bar with 7 filter dimensions + saved presets | Defined | 3.1.2 |
+| Batch event creation (packages) | Defined | 3.1.5 |
+| Visitor management (sign in, sign out, parking, batch sign out) | Defined | 3.1.4 |
+| Package lifecycle (intake, track, notify, release, batch) | Defined | 3.1.5 |
+| Incident management (create, update, escalate, close, link) | Defined | 3.1.7 |
+| Security shift (start, log entries, end, AI summary) | Defined | 3.1.6 |
+| Key checkout and return with ID verification | Defined | 3.1.9 |
+| Key inventory management | Defined | 3.1.9 |
+| Pass-on log with team notification | Defined | 3.1.10 |
+| Cleaning log with checklists and before/after photos | Defined | 3.1.11 |
+| General notes | Defined | 3.1.12 |
+| Parking violations with repeat offender detection | Defined | 3.1.13 |
+| FOB/Access device management | Defined | 3.1.14 |
+| Fire log with structured timeline (v2) | Defined | 3.2.1 |
+| Noise complaint with investigation structure (v2) | Defined | 3.2.2 |
+| Patrol rounds with checkpoint verification (v2) | Defined | 3.2.3 |
+| Emergency broadcast integration (v2) | Defined | 3.2.4 |
+| Pre/Post inspection log (v2) | Defined | 3.2.5 |
 
-### Field-Level Completeness
+### Data Model Coverage
 
-- [x] Every field has: name, label, type, max length, required/optional, default, validation, error message
-- [x] Tooltips on all complex fields
-- [x] Placeholder text on all text inputs
+| Item | Status | Section |
+|------|--------|---------|
+| All entities with fields, types, constraints | Defined | 4.1 - 4.16 |
+| Foreign key relationships | Defined | All entities |
+| Indexes for query performance | Defined | All entities |
+| JSONB for flexible/configurable data | Defined | IncidentReport, CleaningLog, ParkingViolation, PassOnLog |
+| 1:1 relationship to base Event entity | Defined | All sub-entities |
 
-### UI/UX Completeness
+### UI/UX Coverage
 
-- [x] Desktop, tablet, and mobile layouts specified
-- [x] Empty state, loading state, and error state defined
-- [x] Dialog open/close animations specified (per Design System)
-- [x] Real-time update indicators defined
-- [x] Responsive behavior for quick-create icons
-- [x] Card layout for event grid (not table rows)
+| Item | Status | Section |
+|------|--------|---------|
+| Desktop layout | Defined | 6.1 |
+| Tablet layout | Defined | 6.2 |
+| Mobile layout | Defined | 6.3 |
+| Empty states for all screens | Defined | 6.4 |
+| Loading states for all components | Defined | 6.5 |
+| Error states for all failure modes | Defined | 6.6 |
+| Component specifications | Defined | 6.7 |
+| Tooltips for complex features | Defined | 6.8 |
+| Keyboard shortcuts | Defined | 3.1.3 |
+| Accessibility (focus rings, touch targets) | Defined | 6.3, 6.7 |
 
-### Data Model Completeness
+### AI Coverage
 
-- [x] All 7 entry type custom_fields schemas defined
-- [x] Supporting entities (Key, FOB, BuzzerCode, GarageClicker)
-- [x] Database indexes for common queries
-- [x] Relationships to Unified Event Model from architecture PRD
+| Item | Status | Section |
+|------|--------|---------|
+| All 12 AI capabilities specified | Defined | 7.1 - 7.3 |
+| Model selection per capability | Defined | 7.4 |
+| Cost estimates per capability | Defined | 7.4 |
+| Graceful degradation per capability | Defined | 7.1 - 7.3 |
+| Super Admin controls | Defined | 7.5 |
+| Privacy (PII stripping) | Defined | 7.1.1 |
 
-### AI Integration Completeness
+### Permission Coverage
 
-- [x] All 12 AI capabilities from AI Framework mapped to UI locations
-- [x] Trigger, input, output, and graceful degradation for each
-- [x] Default enabled/disabled state for each
+| Item | Status | Section |
+|------|--------|---------|
+| Per-role access defined | Defined | 1 (Overview), 5 (User Flows) |
+| Create/Read/Update/Delete per role | Defined | 02-Roles Section 3.1 (referenced) |
+| Permission checks in user flows | Defined | 5.1 - 5.6 |
+| API role enforcement | Defined | 10.1 |
 
-### Role Coverage
+### Integration Coverage
 
-- [x] Security Guard flows (start shift, package intake, visitor check-in/out, incident report, key checkout)
-- [x] Concierge flows (package release, visitor management)
-- [x] Security Supervisor access (analytics, export, escalation)
-- [x] Property Manager access (full operational oversight)
-- [x] Permission matrix referenced from 02-roles-and-permissions.md
+| Item | Status | Section |
+|------|--------|---------|
+| REST API endpoints | Defined | 10.1 |
+| Request/Response schemas | Defined | 10.2 |
+| WebSocket real-time events | Defined | 10.3 |
+| Notification events and templates | Defined | 9.1 - 9.2 |
+| Analytics metrics and dashboards | Defined | 8.1 - 8.3 |
+| Alerts and anomaly detection | Defined | 8.4 |
 
-### API Completeness
+### Cross-References
 
-- [x] CRUD endpoints for all entities
-- [x] Batch endpoints
-- [x] Export endpoint
-- [x] Autocomplete/lookup endpoints
-- [x] Authentication and rate limiting specified
-- [x] Request/response schemas defined
-
-### Notification Completeness
-
-- [x] 13 notification events defined
-- [x] Channels specified per event
-- [x] Recipients specified per event
-- [x] Template text provided
-- [x] Quiet hours and preference handling noted
-
-### Analytics Completeness
-
-- [x] 9 operational KPIs with formulas, targets, and alert thresholds
-- [x] 5 performance metrics with targets
-- [x] 7 chart specifications with type, axes, and data sources
-- [x] 5 automated alerts with conditions, channels, and recipients
+| Dependency | Document | What We Reference |
+|-----------|----------|-------------------|
+| Unified Event Model | 01-architecture.md Section 3 | Base Event entity, EventType, EventGroup |
+| Role permissions | 02-roles-and-permissions.md Section 3.1 | Security Console permission matrix |
+| AI capabilities | 19-ai-framework.md Section 4.1 | All 12 Security Console AI features |
+| AI controls | 19-ai-framework.md Section 6 | Super Admin control panel |
+| Notification system | 01-architecture.md | Multi-channel notification infrastructure |
 
 ---
 
 *End of document.*
+*Total entry types: 9 (v1) + 5 (v2) + 4 (v3+)*
+*Total data model entities: 16*
+*Total AI capabilities: 12*
+*Total API endpoints: 25+*
+*Total notification types: 13*
