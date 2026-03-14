@@ -108,6 +108,12 @@ The main console view. All events display in a reverse-chronological, filterable
 | Created by | Bottom-right | Staff member initials or avatar |
 | Quick action | Bottom-right | Context-specific: "Sign Out" for visitors, "Release" for packages, "Close" for incidents |
 
+<!-- Added from audit -->
+**Display Customization** (accessible via gear icon in the display mode toolbar):
+- **Card Width**: Slider with 3 presets -- Compact (240px min), Standard (300px min, default), Wide (400px min). Persisted per user.
+- **Font Size**: Dropdown with 3 options -- Small (13px), Medium (14px, default), Large (16px). Applies to card body text. Persisted per user.
+- These settings are per-user and saved to user preferences. They apply across all display modes (Card Grid, Compact List, Split View).
+
 **Grouping Modes** (toggle via toolbar):
 
 | Mode | Groups By | Use Case |
@@ -129,7 +135,7 @@ Always visible at the top of the console.
 | 4 | Date range | Date range picker | Presets: Today, Yesterday, Last 7 Days, Last 30 Days, This Month, Custom Range. Default: Today. |
 | 5 | Building filter | Dropdown | Only shown for multi-building properties. "All Buildings" as default. |
 | 6 | Reset | Text link | Resets all filters to defaults. Tooltip: "Clear all filters and show today's events" |
-| 7 | Advanced toggle | Chevron link | Expands: Exact/Broad match toggle, Created By filter, Unit range filter, Priority filter |
+| 7 | Advanced toggle | Chevron link | Expands: Exact/Broad match toggle, Created By filter, Unit range filter, Priority filter, License Plate search (text input, searches visitor parking and parking violations), Include Deleted toggle (boolean, default off -- when on, shows soft-deleted records with a "Deleted" badge) <!-- Added from audit --> |
 
 **Filter validation**:
 - Date range: End date must be after start date. Error: "End date must be after start date."
@@ -157,6 +163,7 @@ A horizontal row of circular icon buttons below the filter bar. Each opens a cre
 | 7 | Notepad/handoff | Pass-On Log | pass_on_log | `Alt+7` |
 | 8 | Broom/sparkle | Cleaning Log | cleaning_log | `Alt+8` |
 | 9 | Pencil/note | General Note | general_note | `Alt+9` |
+| 10 | Pin/megaphone | Staff Bulletin | staff_bulletin | `Alt+0` | <!-- Added from audit -->
 
 **Icon Specifications**:
 - Size: 56px diameter (desktop), 48px (tablet), 44px (mobile)
@@ -215,6 +222,18 @@ A horizontal row of circular icon buttons below the filter bar. Each opens a cre
 | Save & Print Pass | Secondary (outline) | Creates visitor event + opens print dialog for visitor/parking pass | Same as Save + print dialog opens | Toast: "Visitor {name} signed in. Printing pass..." | Same as Save failure |
 | Cancel | Text link | Closes dialog. If form has data, shows confirmation: "Discard visitor entry?" with Yes/No | -- | Dialog closes | -- |
 
+<!-- Added from audit -->
+**Override Parking End Time**:
+After a visitor parking permit is created, staff can extend or shorten the parking end time without creating a new permit:
+- "Extend Parking" action available on the visitor card quick actions and in the Parking Permits table in the Visitor Detail View
+- Opens a small inline editor: New End Time (DateTime picker, required, must be in the future). Error: "New end time must be in the future."
+- Confirmation: "Update parking end time for {visitor name} from {old time} to {new time}?"
+- On confirm: `permit_end` is updated. Toast: "Parking end time updated to {new time}."
+- Audit trail records the change with old and new values.
+
+**Reprint Parking Pass (Row-Level)**:
+In the Visitor Detail View > Parking Permits table, each active permit row includes a "Print" icon button (printer icon, 24px). Clicking it opens the print dialog for that specific parking pass without opening the full detail view. This supports reprinting when the original pass is lost or damaged.
+
 **Sign Out Flow**:
 - "Sign Out" quick action on visitor card or detail view
 - Confirmation: "Sign out {visitor name}? This will end their visit and parking permit (if active)."
@@ -269,7 +288,7 @@ Additional couriers configurable by Property Admin. When "Other" is selected, a 
 
 **Storage Spot Options**: Configurable per property. Defaults: Front Desk, Package Room, Mailroom, Loading Dock, Concierge Desk, Oversized Storage, Refrigerator (for perishables), Other
 
-**Notification Options**: Send to primary email, Send to all emails, Send SMS, No notification
+**Notification Options**: Send to primary email, Send to all emails, Send SMS, Voice call, No notification <!-- Added from audit: added voice call option for package notifications. Voice call uses the same voice cascade infrastructure as Emergency Broadcast (3.2.4). Useful for high-priority or perishable packages where email/SMS may be missed. -->
 
 **Package Type Dropdown Selection behavior**: Single-select. Icon appears next to the selected courier (highlighted border). Only one at a time.
 
@@ -304,8 +323,41 @@ Additional couriers configurable by Property Admin. When "Other" is selected, a 
 - On confirm: Package status changes to "Released". Release timestamp recorded. Card updates in grid.
 - Toast: "Package {ref#} released to {name}."
 
+<!-- Added from audit -->
+**Package Detail View Actions**:
+
+In addition to the Release flow, the package detail view includes these action buttons:
+
+| Button | Style | Action | Loading State | Success State | Failure State |
+|--------|-------|--------|---------------|---------------|---------------|
+| Send Email Reminder | Secondary (outline, envelope icon) | Sends a reminder notification to the resident that their package is still outstanding. Uses the package reminder notification template. | "Sending reminder..." | Toast: "Reminder sent to {resident name}." Notification count increments. | Toast (error): "Failed to send reminder." |
+| Log Call | Tertiary (text link, phone icon) | Opens a small form to record that a phone call was made about this package. Fields: Called (resident name, read-only), Time (auto: now), Outcome (dropdown: Reached -- will pick up, Reached -- requested hold, No answer, Voicemail left), Notes (text, 200 chars, optional). Saves as an append-only entry in the package's activity log. | "Saving..." | Toast: "Call logged." Activity log updates. | Toast error. |
+| Edit Storage Spot | Inline edit link (pencil icon next to the current Storage Spot value) | Clicking the pencil icon converts the Storage Spot text into a dropdown (same options as creation form). Select a new location and click the checkmark to save, or X to cancel. | "Updating..." | Storage Spot value updates in place. Toast: "Storage location updated to {new spot}." | Toast error. Value reverts. |
+
 **Outgoing Package Tab**:
-Same form as incoming but without Courier grid and Storage Spot. Additional field: "Courier Pickup Expected" (DateTime, optional).
+
+<!-- Added from audit: expanded outgoing package specification -->
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Reference # | Read-only text | -- | -- | Auto-generated (e.g., `PKG-2026-00149`) | -- | -- |
+| 2 | Sender | Autocomplete text | Yes | 100 chars | Empty | Must match a resident or unit | "No resident found. Check the name or unit number." |
+| 3 | Unit | Autocomplete text | Yes | 20 chars | Auto-populated from Sender | Must match existing unit | "No unit found." |
+| 4 | Destination Name | Text input | No | 200 chars | Empty | -- | Tooltip: "Who is the package being sent to?" |
+| 5 | Destination Address | Textarea | No | 500 chars | Empty | -- | Tooltip: "Full mailing address for the recipient." |
+| 6 | Courier for Pickup | Dropdown | No | -- | None | -- | Options: Same as incoming courier list. Tooltip: "Select the courier that will pick up this package." |
+| 7 | Outgoing Tracking # | Text input | No | 50 chars | Empty | Alphanumeric with dashes | "Tracking number contains invalid characters." |
+| 8 | Courier Pickup Expected | DateTime picker | No | -- | Empty | Must be in the future if provided | "Pickup time must be in the future." |
+| 9 | Pickup Instructions | Textarea | No | 500 chars | Empty | -- | Tooltip: "Special instructions for the courier (e.g., call before pickup, ring unit buzzer)." |
+| 10 | Package Type | Dropdown | Yes | -- | "Package" | Must select one | Same options as incoming. |
+| 11 | Description | Text input | No | 200 chars | Empty | -- | -- |
+| 12 | Photo | Camera/upload | No | 5MB, JPG/PNG | -- | File type and size | "File must be JPG or PNG and under 5MB." |
+| 13 | Notification | Dropdown | Yes | -- | "Send to primary email" | -- | Tooltip: "Notify the sender when the package has been picked up by the courier." |
+
+**Outgoing Package Pickup Flow**:
+- When the courier picks up the outgoing package, staff clicks "Mark as Picked Up" on the package card or detail view
+- Pickup dialog: Picked Up By (text, required, 100 chars -- courier driver name or badge), Pickup Time (auto: now), Comments (optional, 200 chars)
+- On confirm: Package status changes to "Picked Up". Sender receives notification: "Your outgoing package {ref#} has been picked up by {courier}."
+- Toast: "Package {ref#} marked as picked up."
 
 #### 3.1.6 Security Shift / Log
 
@@ -341,6 +393,21 @@ Once a shift is created, staff can add log entries throughout the shift:
 | 3 | Entry | Rich text editor | Yes | 2000 chars | Empty | Min 10 chars | "Log entry must be at least 10 characters." |
 | 4 | Attachment | File upload | No | 10MB, JPG/PNG/PDF | -- | File type and size | "File must be JPG, PNG, or PDF and under 10MB." |
 
+<!-- Added from audit -->
+**Shift Detail View vs Edit**:
+
+Shifts have two distinct view modes:
+
+1. **Active Shift View** (while the shift is in progress): Shows the shift header (Guard name, Start/End time, Relieved, Equipment Received, Opening Notes) as read-only summary fields at the top. Below that, the Shift Log Entries section (see below) allows adding new entries. The "End Shift" button appears in the header.
+
+2. **Completed Shift View** (read-only): All fields are displayed as non-editable labels. Log entries are shown in chronological order. The AI Summary appears at the bottom. An "Edit" button (visible to Supervisor, Manager, Admin only) allows modifying closing notes or the AI summary. Guards cannot edit a completed shift -- this prevents after-the-fact changes to the official shift record.
+
+**Shift Log Entry UI** (for adding entries to an active shift):
+
+Below the shift header, a persistent "Log Entries" section displays all entries for the current shift in reverse chronological order. At the top of this section is an "Add Entry" button (secondary style, + icon). Clicking it expands an inline form directly in the section (not a separate dialog) with the fields defined in the Shift Log Entries table below. After saving, the entry appears in the list immediately with a slide-in animation. This inline approach keeps the guard in context of their shift without opening dialogs.
+
+For mobile: The "Add Entry" button becomes a floating action button (FAB) at the bottom-right of the screen, branded blue, 56px diameter. Tapping it slides up the entry form as a bottom sheet.
+
 **End Shift Flow**:
 - "End Shift" button on shift detail or dashboard
 - Closing fields:
@@ -364,14 +431,20 @@ Once a shift is created, staff can add log entries throughout the shift:
 | 1 | Unit # | Autocomplete text | No | 20 chars | Empty | Must match existing unit if provided | "No unit found." |
 | 2 | Incident Type | Dropdown | Yes | -- | First option | Must select one | "Select an incident type." |
 | 3 | Title | Text input | Yes | 200 chars | Empty | Min 5 characters | "Title must be at least 5 characters." |
-| 4 | What Happened | Rich text editor | Yes | 4000 chars | Empty | Min 20 characters | "Please provide at least 20 characters describing the incident." |
+| 4 | What Happened | Rich text editor | Yes | 4000 chars | Pre-filled with "Full report to follow..." (configurable placeholder text per property) | Min 20 characters | "Please provide at least 20 characters describing the incident." |
+
+<!-- Added from audit -->
+> **Pre-filled placeholder text**: The "What Happened" field defaults to "Full report to follow..." in light grey italic. This allows time-pressed guards to save a quick incident record and return later to write the full report. The placeholder text is editable by the Property Admin under Settings > Security Console > Default Text. When the guard clicks into the field, the placeholder is auto-selected for easy replacement. The 20-character minimum validation still applies on final submission (not on Draft save).
 | 5 | Time Occurred | DateTime picker | Yes | -- | Current time | Cannot be in the future | "Incident time cannot be in the future." |
 | 6 | Urgency | Toggle | Yes | -- | "Not Urgent" | -- | Tooltip: "Urgent incidents trigger immediate notifications to supervisors and management." |
 | 7 | Priority | Dropdown | No | -- | AI-suggested or "Normal" | -- | Options: Low, Normal, High, Critical. Tooltip: "Priority determines the order incidents appear in review queues." |
 | 8 | Reported By | Text input | No | 100 chars | Empty | -- | Tooltip: "Name of the person who reported this incident (if different from you)." |
 | 9 | Suspect | Text input | No | 200 chars | Empty | -- | -- |
-| 10 | Photos | File upload (multi) | No | 5 files, 5MB each, JPG/PNG | -- | File type, size, count | "Maximum 5 photos. Each must be JPG or PNG and under 5MB." |
-| 11 | Attachments | File upload (multi) | No | 3 files, 10MB each, PDF/DOC/DOCX | -- | File type, size, count | "Maximum 3 documents. Each must be PDF or DOC and under 10MB." |
+| 10 | Photos | File upload (multi) | No | 5 files, 5MB each, JPG/PNG/HEIC/WEBP | -- | File type, size, count | "Maximum 5 photos. Each must be JPG, PNG, HEIC, or WEBP and under 5MB." |
+| 11 | Attachments | File upload (multi) | No | 3 files, 10MB each, PDF/DOC/DOCX/XLSX/MP3/MP4/MOV/WAV | -- | File type, size, count | "Maximum 3 files. Accepted types: PDF, DOC, XLSX, MP3, MP4, MOV, WAV. Each must be under 10MB." |
+
+<!-- Added from audit -->
+> **Extended file type support**: Guards may need to attach audio recordings (witness statements, noise evidence), video clips (security footage), or spreadsheets. The attachment field accepts a broad set of file types. HEIC support on photos covers iPhone camera output without requiring conversion.
 
 **Incident Type Options** (configurable per property, system defaults):
 
@@ -415,7 +488,12 @@ Draft ──> Open ──> In Progress ──> Under Review ──> Closed
 | Escalated | Requires management attention | Supervisor, Manager | Red `#FF3B30` |
 | Closed | Resolved and documented | Supervisor, Manager | Green `#34C759` |
 
-**Emergency Services Section** (collapsible, shown for High/Critical priority):
+<!-- Added from audit -->
+**Emergency Services Called Toggle** (shown on creation form for ALL priority levels):
+
+A simple Yes/No toggle: "Were police, fire department, or EMS called?" Default: No. When set to "Yes", the Emergency Services Section below auto-expands. This allows guards to record emergency service involvement on any incident regardless of priority -- a Low-priority incident (e.g., minor medical event) may still involve an ambulance call.
+
+**Emergency Services Section** (collapsible, auto-expands for High/Critical priority or when the toggle above is Yes):
 
 | # | Service | Fields |
 |---|---------|--------|
@@ -437,11 +515,12 @@ Draft ──> Open ──> In Progress ──> Under Review ──> Closed
 
 | Section | Content |
 |---------|---------|
+| Incident Summary | Read-only display of: Reported By (name, if provided), Suspect (description, if provided), Time Occurred, Priority, Urgency, Created By (staff name), Created At. These fields are shown as read-only labels in the detail view header area, not in editable form fields. <!-- Added from audit: clarified read-only display in detail view --> |
 | Emergency Services | Editable table (see above) |
 | Updates | Append-only log. Each update: timestamp, staff name, text (2000 chars), status change, file attachment |
 | Linked Incidents | AI-suggested similar past incidents (see Section 7). Manual linking via search. |
 | Attachments | Gallery view of photos. Table view of documents. Each with download and delete (own uploads only). |
-| Print | "Print Report" button generates a formatted PDF |
+| Print | "Print Report" button generates a formatted PDF. <!-- Added from audit: expanded print layout spec --> **Print Layout**: The PDF includes: (1) **Header**: Property name, property address, property logo (if configured), report title "Incident Report", reference number, print date. (2) **Incident Details section**: All creation fields (Type, Title, Unit, Time Occurred, Priority, Urgency, Reported By, Suspect, full What Happened text). (3) **Emergency Services section**: Table of all services contacted (only included if any service was called). (4) **Updates section**: Chronological list of all updates with timestamps, staff names, status changes, and text. (5) **Attachments section**: Thumbnails of photos (4 per row) with captions. Document filenames listed. (6) **Linked Incidents section**: Reference numbers and titles of linked incidents. (7) **Footer**: "Generated by Concierge -- Confidential" with page numbers. The PDF mirrors the on-screen detail view content but uses a print-optimized single-column layout. |
 | Actions | Update Status (dropdown), Add Update (text + file), Escalate (with reason), Close (with resolution summary) |
 
 #### 3.1.8 Authorized Entry
@@ -467,6 +546,22 @@ Draft ──> Open ──> In Progress ──> Under Review ──> Closed
 
 **ID Type Options**: Driver's License, Passport, Building ID, Company ID, Government ID, Other
 
+<!-- Added from audit -->
+**Authorized Entry Detail View**:
+
+| Section | Fields |
+|---------|--------|
+| Entry Info | Authorized Person (read-only), Company (read-only), Unit # (read-only), Reason (read-only), Entry Time (read-only), Duration (read-only), ID Verified (Yes/No badge), ID Type and Number (read-only), Resident Notified (Yes/No badge), Comments (read-only), Photo (thumbnail, click to enlarge) |
+| Departure | Departure Time (displays "Still on premises" if null, with elapsed time badge). "Mark Departed" button: sets departure_time to current timestamp. Confirmation: "Mark {person} as departed from Unit {unit}?" On confirm: Toast "Departure recorded." Card updates to "Departed" status. |
+| History | Audit trail: Date/Time, Who (staff), Action (Created, Updated, Departed), Details |
+| Actions | Mark Departed (if still on premises), Edit (own entries only, before departure is recorded), Print Entry Log |
+
+**Mark Departed Button**:
+
+| Button | Style | Action | Loading State | Success State | Failure State |
+|--------|-------|--------|---------------|---------------|---------------|
+| Mark Departed | Primary | Records departure timestamp | "Recording..." | Toast: "{person} marked as departed from Unit {unit}." | Toast error. |
+
 #### 3.1.9 Key Checkout
 
 **Create Key Checkout Dialog**
@@ -486,6 +581,15 @@ Draft ──> Open ──> In Progress ──> Under Review ──> Closed
 | 11 | ID Photo (back) | Camera/upload | No | 5MB, JPG/PNG | -- | File type and size | -- |
 | 12 | Signature | Signature pad | Configurable | -- | -- | Required if property setting enabled | "Signature is required for key checkout." |
 
+<!-- Added from audit -->
+**Signature Pad Sub-Controls**:
+The signature pad widget includes three action buttons:
+- **Sign** (primary, small): Activates the drawing canvas. The pad area becomes interactive with a "Sign here" prompt in light grey.
+- **Clear** (text link): Erases the current signature and resets the canvas. No confirmation needed.
+- **Done** (secondary, small): Locks the signature, converts it to an image, and displays a "Signature captured" confirmation with a thumbnail preview. After Done, the pad is read-only. Click "Clear" to re-sign.
+
+**Submit Button Label**: The submit button for creating a key checkout reads **"Deliver Key"** (primary style) rather than a generic "Save". This label is semantically clear about the action being taken. Loading state: "Delivering key..." Success: Toast "Key {name} delivered to {person}."
+
 **Key Return (Check-In) Flow**:
 - "Check In" action on key checkout card or detail view
 - Dialog fields: Return Time (auto: now), Condition Notes (optional, 200 chars), Returned By (auto: current user)
@@ -503,10 +607,27 @@ Draft ──> Open ──> In Progress ──> Under Review ──> Closed
 |--------|-------------|
 | Key Name | Descriptive name (e.g., "Master Key #1", "Pool Room") |
 | Key Number | System identifier |
+| Key Owner | The person or unit the key is permanently assigned to (e.g., "Unit 1205" or "Maintenance Dept"). This is different from Current Holder -- Owner is the permanent assignment, Holder is who has it right now. <!-- Added from audit --> |
 | Status | Available, Checked Out, Lost, Decommissioned |
 | Current Holder | Name (if checked out) |
 | Checked Out Since | Timestamp (if checked out) |
+| Signature | Thumbnail of the captured digital signature from the most recent checkout (if available). Click to view full size. Shows "--" if no signature captured. <!-- Added from audit --> |
 | Actions | Select (for checkout), Edit (admin), History |
+
+<!-- Added from audit -->
+**Key Checkout History Export**:
+A "Print / Export History" button appears at the top-right of the Key Inventory View. It generates a report of all key checkout records for the property.
+- **Formats**: PDF (formatted report with property header) or Excel (CSV with all columns)
+- **Filters**: Date range (default: last 30 days), Key Name, Checked Out To
+- **Columns in export**: Key Name, Key Number, Checked Out To, Company, ID Type, ID Number, Reason, Checkout Time, Return Time, Duration, Signature (Yes/No), Logged By
+- **Button states**: Loading: "Generating report..." Success: File downloads. Failure: Toast "Failed to generate report. Please try again."
+
+<!-- Added from audit -->
+**Key Inventory Search**:
+The Key Inventory View includes a search bar at the top: "Search keys by name, number, or owner..." (text input, debounced 300ms, min 2 chars). Search filters the table in real-time across Key Name, Key Number, and Key Owner columns. When no results match: "No keys match your search. [Clear Search]."
+
+**Inline Key Creation from Checkout Dialog**:
+In the Key Checkout dialog, a teal "+ New Key" button appears next to the Key dropdown. Clicking it opens an inline form (expanding below the dropdown) with: Key Name (required, 50 chars), Key Number (optional, 20 chars), Category (dropdown). On save, the new key is created in the inventory, automatically selected in the dropdown, and the checkout flow continues without interruption. This allows guards to add missing keys on-the-fly without leaving the checkout process.
 
 **Key Inventory Management** (Property Admin / Security Supervisor):
 - Add Key: Name (required, 50 chars), Number (optional, 20 chars), Category (dropdown: Master, Unit, Common Area, Vehicle, Equipment, Other), Notes (optional, 200 chars)
@@ -533,6 +654,23 @@ Draft ──> Open ──> In Progress ──> Under Review ──> Closed
 - If no one selected, the log is created but no notification sent. It appears in the console for all staff to see.
 
 **Rich Text Editor Toolbar**: Bold, Italic, Underline, Strikethrough, Bulleted List, Numbered List, Text Alignment, Font Size (12/14/16/18), Undo, Redo
+
+<!-- Added from audit -->
+**Pass-On Log Acknowledgment UI**:
+
+Each pass-on log card in the console includes an "Acknowledge" button (small, secondary style, checkmark icon) visible to all staff who have not yet acknowledged it. Unacknowledged pass-on logs for the current user display a subtle blue dot indicator on the card.
+
+**Acknowledgment flow**:
+1. Staff clicks "Acknowledge" on the pass-on log card or detail view
+2. No confirmation dialog needed -- acknowledgment is a single-click action
+3. On click: Button changes to a green checkmark with "Acknowledged" text (disabled state). Toast: "Pass-on note acknowledged."
+4. The `acknowledged_by` JSONB field is updated with `{user_id, acknowledged_at}` for the current user.
+
+**Acknowledgment Tracking** (visible on the pass-on log detail view):
+- "Acknowledged by" section shows a list of staff members with their acknowledgment timestamps
+- "Not yet acknowledged" section shows staff members from the "Send To" list who have not yet acknowledged
+- Format: "{Staff Name} -- acknowledged at {time}" or "{Staff Name} -- pending"
+- Supervisors and Managers can see the full acknowledgment status to verify that all relevant staff have read the note
 
 #### 3.1.11 Cleaning Log
 
@@ -562,12 +700,28 @@ Draft ──> Open ──> In Progress ──> Under Review ──> Closed
 | 2 | Title | Text input | Yes | 200 chars | Empty | Min 3 chars | "Title must be at least 3 characters." |
 | 3 | Date/Time | DateTime picker | Yes | -- | Current time | Within last 24 hours | -- |
 | 4 | Details | Rich text editor | Yes | 4000 chars | Empty | Min 10 chars | "Please provide at least 10 characters." |
-| 5 | Send Copy | Multi-select dropdown | No | -- | None | -- | Email recipients: Staff list + custom email |
-| 6 | Attachments | File upload (multi) | No | 4 files, 10MB each | -- | File type and size | "Maximum 4 files. Each must be under 10MB." |
+| 5 | Send Copy | Multi-select dropdown | No | -- | None | -- | Email recipients: Staff list + custom email. Staff names shown with checkboxes; "Add custom email" text input at bottom of dropdown for ad-hoc recipients (validates email format). Error: "Enter a valid email address." |
+| 6 | Post in All Buildings | Checkbox | No | -- | Unchecked | Only shown for multi-building properties | Tooltip: "When checked, this note will be posted in all buildings you have access to." <!-- Added from audit --> |
+| 7 | Attachments | File upload (multi) | No | 4 files, 10MB each | -- | File type and size | "Maximum 4 files. Each must be under 10MB." |
+
+<!-- Added from audit -->
+**Action Buttons**:
+
+| Button | Style | Action | Loading State | Success State | Failure State |
+|--------|-------|--------|---------------|---------------|---------------|
+| Save | Primary (filled) | Creates general note event, sends copy if recipients selected | "Saving..." with spinner. Form fields disabled. | Toast: "Note saved." Dialog closes. New card appears in grid. | Toast (error): "Failed to save note. Please try again." Form preserved. |
+| Save and New | Secondary (outline) | Creates general note event, then clears the form for another entry | "Saving..." with spinner | Toast: "Note saved." Form clears and remains open for next entry. | Toast (error): "Failed to save note." Form preserved with current data. |
+| Cancel | Text link | Closes dialog. If form has data, shows confirmation: "Discard note?" with Yes/No | -- | Dialog closes | -- |
 
 #### 3.1.13 Parking Violations
 
 **Create Parking Violation Dialog**
+
+<!-- Added from audit -->
+**Instructional Banner** (yellow background, shown at top of the creation dialog):
+"This form is for recording parking violations against specific license plates. Use it for unauthorized vehicles, expired permits, or parking rule breaches. To issue a visitor parking permit, use the Visitor form instead."
+This banner prevents misuse of the violation form when staff intend to create a parking permit.
+
 
 | # | Field | Type | Required | Max Length | Default | Validation | Error Message |
 |---|-------|------|----------|-----------|---------|------------|---------------|
@@ -606,6 +760,42 @@ Accessible from Security Console sidebar or Unit File.
 
 **Actions**: Add, Edit, Deactivate (with reason), Transfer (unit-to-unit), Report Lost (triggers security alert)
 
+<!-- Added from audit -->
+#### 3.1.15 Staff Bulletin
+
+Internal staff notices with an expiry mechanism. Bulletins are distinct from Pass-On Logs (shift handoff notes) and Announcements (resident-facing). Bulletins are building-scoped notices visible to all staff -- such as policy reminders, temporary procedure changes, or operational alerts -- that automatically expire after a set date.
+
+**Create Staff Bulletin Dialog**
+
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Title | Text input | Yes | 200 chars | Empty | Min 3 chars | "Title must be at least 3 characters." |
+| 2 | Details | Rich text editor | Yes | 4000 chars | Empty | Min 10 chars | "Details must be at least 10 characters." |
+| 3 | Building | Dropdown | No | -- | Current building | Only shown for multi-building properties. "All Buildings" option available. | -- |
+| 4 | Expiry Date | DateTime picker | No | -- | +7 days from now | Must be in the future if provided | "Expiry date must be in the future." |
+| 5 | Never Expires | Checkbox | No | -- | Unchecked | When checked, Expiry Date field is hidden and cleared | Tooltip: "Check this to keep the bulletin visible indefinitely until manually removed." |
+| 6 | Priority | Dropdown | No | -- | "Normal" | Must select one | Options: Low, Normal, High |
+| 7 | Attachments | File upload (multi) | No | 3 files, 10MB each | -- | File type and size | "Maximum 3 files. Each must be under 10MB." |
+
+**Action Buttons**:
+
+| Button | Style | Action | Loading State | Success State | Failure State |
+|--------|-------|--------|---------------|---------------|---------------|
+| Save | Primary (filled) | Creates bulletin event | "Saving..." with spinner | Toast: "Bulletin posted." Dialog closes. | Toast (error): "Failed to post bulletin. Please try again." Form preserved. |
+| Cancel | Text link | Closes dialog with discard confirmation if data entered | -- | Dialog closes | -- |
+
+**Bulletin Display**:
+- Active bulletins appear in the console event stream with a distinct pin/megaphone icon
+- High-priority bulletins display a subtle yellow left border accent on their card
+- Expired bulletins are automatically hidden from the default console view but remain in search results with a "Expired" badge
+- Bulletin cards show: Title, first 80 characters of Details, Expiry date (or "No expiry"), Posted by, Building scope
+- Click to expand full details in a read-only detail view
+
+**Bulletin Lifecycle**:
+- Active: Visible to all staff for the property (or specific building)
+- Expired: Automatically hidden when current time passes expiry date. Searchable with "Include Expired" toggle in filters.
+- Deleted: Soft-deleted by creator or admin. Removed from all views.
+
 ### 3.2 Enhanced Features (v2)
 
 #### 3.2.1 Fire Log
@@ -618,9 +808,10 @@ Specialized incident report for fire events with a structured timeline workflow.
 |---------|--------|
 | Alarm | Time alarm went off, Alarm location (floor/zone), Alarm type (smoke, heat, sprinkler, pull station, panel) |
 | Initial Response | Time fire department called, Time first announcement made, Fire Safety Plan retrieved (checkbox), FD keys retrieved (checkbox), Residents needing assistance list pulled (checkbox) |
-| Elevators | Status checklist per elevator: Elevator 1-4 (Responding/Not Responding/N/A) |
+| Residents Needing Assistance | Read-only list pulled from unit records: shows Unit #, Resident Name, Floor, and Assistance Notes (e.g., "wheelchair user", "hearing impaired", "oxygen-dependent") for all residents flagged as needing fire assistance. This list is maintained in Unit File settings by the Property Admin. If no residents are flagged: "No residents flagged for fire assistance." A "Print List" button generates a one-page PDF of this list for the fire department. <!-- Added from audit --> |
+| Elevators | Status checklist per elevator. The number of elevators is configurable per property (Property Admin > Settings > Building Configuration > Elevator Count, integer, min 1, max 20, default 4). Each elevator shows: Label (e.g., "Elevator 1"), Status radio (Responding / Not Responding / N/A). If the elevator count is not configured, default to 4. <!-- Added from audit --> |
 | Fire Department | Arrival time, Unit/Station number, Captain name |
-| Resolution | Second announcement time, All-clear time, Third announcement time, FD departure time |
+| Resolution | Second announcement time (DateTime picker, optional -- timestamp of follow-up PA announcement), Third announcement time (DateTime picker, optional -- timestamp of final PA announcement before all-clear), All-clear time (DateTime picker, required to close the fire log), FD departure time (DateTime picker, optional). All three announcement fields are tracked separately to document the full communication timeline during the event. <!-- Added from audit: expanded 2nd/3rd announcement detail --> |
 | Reset Checklist | Pull Station, Smoke Detector, Heat Detector, Sprinkler Head, Fire Panel, Mag Locks, Elevators (each: checkbox) |
 | Post-Incident | Full report (rich text, 4000 chars), Photos, Documents |
 
@@ -632,10 +823,10 @@ Specialized incident report with investigation structure.
 
 | Section | Fields |
 |---------|--------|
-| Complaint | Nature of complaint (multi-select checkboxes): Loud Music, Banging/Hammering, Dog Barking, Children Playing, Party, Construction, Walking/Stomping, Cooking Odors, Smoking, Piano/Instrument, Verbal Argument, Other |
-| Investigation | Complainant floor noise level (dropdown: Not noticeable, Faintly noticeable, Clearly noticeable, Loud, Very loud), Suspect floor noise level (same), Duration (dropdown: Under 5 min, 5-15 min, 15-30 min, 30-60 min, Over 1 hour), Volume assessment |
-| Contact Attempt | Method (checkboxes: Phone, Door visit, Intercom, Not home), Result (dropdown: Resolved, Ongoing, No contact made) |
-| Follow-Up | Complainant notified of action taken (checkbox), Follow-up required (checkbox) |
+| Complaint | Nature of complaint (multi-select checkboxes): Loud Music, Banging/Hammering, Dog Barking, Children Playing, Party, Construction, Walking/Stomping, Cooking Odors, Smoking -- Hallway, Smoking -- In Suite, Piano/Instrument, Verbal Argument, Drop on Floor, Hallway Noise, Talking, Other <!-- Added from audit: added 4 missing complaint types --> |
+| Investigation | Complainant floor -- noise noticeable by (dropdown: Standing in hallway, At the door, Inside the unit, Not noticeable), Complainant floor -- noise level (dropdown: Not noticeable, Faintly noticeable, Clearly noticeable, Loud, Very loud), Suspect floor -- noise noticeable by (dropdown: same options), Suspect floor -- noise level (dropdown: same options), Suspect floor -- noise duration (dropdown: Under 5 min, 5-15 min, 15-30 min, 30-60 min, Over 1 hour), Length of time verified (text input, max 50 chars, optional -- free text for exact minutes, e.g., "Verified for 12 minutes"), Volume assessment <!-- Added from audit: separated noticeable-by from level, added exact-time text input --> |
+| Contact Attempt | Suspect contacted by (checkboxes: Home Phone, Work Phone, Other Phone, Door visit, Intercom, No one home), Result (dropdown: Resolved, Ongoing, No contact made) <!-- Added from audit: expanded phone granularity --> |
+| Follow-Up | Complainant notified of action taken (dropdown: By phone, At the door, By intercom, Via email, Not notified), Follow-up required (checkbox) <!-- Added from audit: changed from checkbox to dropdown to capture notification method --> |
 
 #### 3.2.3 Patrol / Inspection Rounds
 
@@ -674,6 +865,39 @@ Linked to amenity bookings for damage documentation.
 | 8 | Damage Description | Textarea (if damage found) | Yes (if damage) | Empty |
 | 9 | Estimated Cost | Number input (if damage found) | No | 0.00 |
 
+<!-- Added from audit -->
+#### 3.2.6 Valet Parking Entry Type
+
+For properties with valet service, a dedicated entry type for tracking valet-parked vehicles.
+
+**Create Valet Parking Dialog**
+
+| # | Field | Type | Required | Max Length | Default | Validation | Error Message |
+|---|-------|------|----------|-----------|---------|------------|---------------|
+| 1 | Unit # | Autocomplete text | Yes | 20 chars | Empty | Must match existing unit | "No unit found." |
+| 2 | Resident / Guest Name | Text input | Yes | 100 chars | Empty | Min 2 chars | "Enter the vehicle owner's name." |
+| 3 | Vehicle Make/Model | Text input | Yes | 100 chars | Empty | Min 2 chars | "Enter the vehicle make and model." |
+| 4 | License Plate | Text input | Yes | 20 chars | Empty | Alphanumeric, min 2 chars | "Enter a valid license plate number." |
+| 5 | Vehicle Color | Text input | No | 30 chars | Empty | -- | -- |
+| 6 | Key Tag # | Text input | Yes | 30 chars | Empty | Unique for active valet entries | "Enter the key tag number." |
+| 7 | Parked Location | Text input | Yes | 100 chars | Empty | Min 2 chars | "Enter where the vehicle is parked (e.g., P2-A15)." |
+| 8 | Valet Attendant | Dropdown | Yes | -- | Current user | Must select one | "Select the valet attendant." |
+| 9 | Comments | Textarea | No | 500 chars | Empty | -- | -- |
+| 10 | Vehicle Photo | Camera/upload | No | 5MB, JPG/PNG | -- | File type and size | "File must be JPG or PNG and under 5MB." |
+
+**Action Buttons**:
+
+| Button | Style | Action | Loading State | Success State | Failure State |
+|--------|-------|--------|---------------|---------------|---------------|
+| Park Vehicle | Primary | Creates valet parking event | "Saving..." | Toast: "Vehicle parked. Key tag #{tag}." | Toast error. Form preserved. |
+| Cancel | Text link | Close with discard confirmation if data entered | -- | Dialog closes | -- |
+
+**Vehicle Retrieval Flow**:
+- "Retrieve" quick action on valet parking card
+- Retrieval dialog: Retrieval Time (auto: now), Retrieved By (auto: current user), Condition Notes (optional, 200 chars)
+- Confirmation: "Retrieve vehicle {make/model} for {name}? Key tag #{tag}."
+- On confirm: Valet entry status changes to "Retrieved". Toast: "Vehicle retrieved."
+
 ### 3.3 Future Features (v3+)
 
 #### 3.3.1 Live Camera Feed Integration
@@ -701,6 +925,19 @@ Linked to amenity bookings for damage documentation.
 ## 4. Data Model
 
 All Security Console data is built on the Unified Event Model defined in `01-architecture.md`. The Security Console adds specialized sub-entities for complex entry types.
+
+<!-- Added from audit -->
+**EventType Configuration Extensions for Security Console**:
+
+The base EventType entity (defined in 01-architecture.md) should include these additional fields for Security Console support:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `on_close_action` | enum: none, notify_creator, notify_unit, run_webhook, auto_archive | none | Configurable action triggered when an event of this type is closed/resolved. "notify_creator" sends a notification to the event creator. "notify_unit" notifies the associated unit's residents. "run_webhook" calls a configured webhook URL. "auto_archive" moves the event to archive after 30 days. |
+| `public_display` | boolean | false | Controls whether events of this type are eligible to appear on lobby digital signage screens (v3 feature, see 3.3.3). The flag should exist in v1 configuration even though digital signage is v3, so properties can pre-configure their display preferences. |
+| `notification_template_id` | FK to NotificationTemplate, nullable | null | Per-EventType notification template override. When set, notifications for events of this type use this template instead of the property default. For example, an Amazon package event can say "You have an Amazon delivery" while a FedEx event says "You have a FedEx delivery." |
+| `notification_sender_name` | varchar 100, nullable | null | Custom sender name for notifications from this event type (e.g., "Concierge Desk" or "Package Room"). Falls back to property-level sender name if null. |
+| `notification_sender_email` | varchar 255, nullable | null | Custom sender email for notifications from this event type. Falls back to property-level sender email if null. Must be a verified sending domain. |
 
 ### 4.1 Security Console Event Extensions
 
@@ -956,6 +1193,7 @@ KeyInventory
 ├── property_id → Property (FK, NOT NULL)
 ├── key_name (varchar 50, NOT NULL)
 ├── key_number (varchar 20, nullable)
+├── key_owner (varchar 100, nullable -- permanent assignee, e.g., "Unit 1205" or "Maintenance Dept") <!-- Added from audit -->
 ├── category (enum: master, unit, common_area, vehicle, equipment, other)
 ├── status (enum: available, checked_out, lost, decommissioned)
 ├── notes (varchar 200, nullable)
@@ -990,7 +1228,30 @@ Indexes:
   - idx_pass_on_active (property_id, expires_at > NOW() OR expires_at IS NULL)
 ```
 
-### 4.14 ParkingViolation
+<!-- Added from audit -->
+### 4.14 StaffBulletin
+
+```
+StaffBulletin
+├── id (UUID, PK)
+├── event_id → Event (FK, unique -- 1:1)
+├── property_id → Property (FK)
+├── building_id → Building (FK, nullable -- null = all buildings)
+├── title (varchar 200, NOT NULL)
+├── details (text, 4000 chars, NOT NULL)
+├── priority (enum: low, normal, high)
+├── expires_at (timestamp with tz, nullable -- null = never expires)
+├── never_expires (boolean, default false)
+├── attachments (JSONB, nullable -- [{filename, url, type, size}])
+├── created_by → User (FK, NOT NULL)
+└── created_at, updated_at
+
+Indexes:
+  - idx_bulletin_property_active (property_id, expires_at > NOW() OR never_expires = true)
+  - idx_bulletin_building (building_id)
+```
+
+### 4.15 ParkingViolation
 
 ```
 ParkingViolation
@@ -1020,7 +1281,7 @@ Indexes:
   - idx_violation_active_bans (property_id, violation_type = 'ban', lifted_at IS NULL)
 ```
 
-### 4.15 CleaningLog
+### 4.16 CleaningLog
 
 ```
 CleaningLog
@@ -1042,7 +1303,7 @@ Indexes:
   - idx_cleaning_area (property_id, areas_cleaned)
 ```
 
-### 4.16 AuthorizedEntry
+### 4.17 AuthorizedEntry
 
 ```
 AuthorizedEntry
@@ -1068,6 +1329,36 @@ AuthorizedEntry
 Indexes:
   - idx_auth_entry_property (property_id, entry_time DESC)
   - idx_auth_entry_unit (unit_id)
+```
+
+<!-- Added from audit -->
+### 4.18 ValetParking
+
+```
+ValetParking
+├── id (UUID, PK)
+├── event_id → Event (FK, unique -- 1:1)
+├── property_id → Property (FK)
+├── unit_id → Unit (FK, NOT NULL)
+├── owner_name (varchar 100, NOT NULL)
+├── vehicle_make_model (varchar 100, NOT NULL)
+├── license_plate (varchar 20, NOT NULL)
+├── vehicle_color (varchar 30, nullable)
+├── key_tag_number (varchar 30, NOT NULL)
+├── parked_location (varchar 100, NOT NULL)
+├── valet_attendant_id → User (FK, NOT NULL)
+├── parked_at (timestamp with tz, NOT NULL)
+├── retrieved_at (timestamp with tz, nullable -- null = still parked)
+├── retrieved_by → User (FK, nullable)
+├── condition_notes (varchar 200, nullable)
+├── photo_url (varchar 500, nullable)
+├── comments (text, 500 chars, nullable)
+└── created_at, updated_at
+
+Indexes:
+  - idx_valet_property_active (property_id, retrieved_at IS NULL)
+  - idx_valet_plate (license_plate)
+  - idx_valet_key_tag (key_tag_number)
 ```
 
 ---
@@ -1638,6 +1929,19 @@ Residents control their preferences per notification type:
 
 Staff notifications are configured by the Property Admin and cannot be individually disabled for safety-critical alerts.
 
+<!-- Added from audit -->
+### 9.4 Property-Level Notification Settings
+
+These settings are configured by the Property Admin under Settings > Security Console > Notifications:
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| Allow staff to select notification recipients | Boolean | true | When enabled, staff see the Notification dropdown on event creation forms and can choose how to notify residents. When disabled, all events use the default notification behavior and staff cannot override it. |
+| Default notification selection | Dropdown: Send to primary email / Send to all emails / Send SMS / No notification | Send to primary email | The default notification method pre-selected on all event creation forms. If "Allow staff to select" is disabled, this is the only method used. |
+| Show resident phone numbers on event creation | Boolean | false | When enabled, the event creation dialog displays the associated resident's phone number(s) below the Unit field. This helps front desk staff who need to call residents about packages or visitors without looking up contact info separately. Phone numbers are displayed as read-only text with a click-to-call link on mobile. |
+| Notification sender name | Text input, 100 chars | Property name | The "From" name on notification emails. Applies to all event notifications unless overridden at the EventType level. |
+| Notification sender email | Text input, 255 chars | noreply@{property domain} | The "From" email address on notification emails. Must be a verified sending domain. Applies to all event notifications unless overridden at the EventType level. |
+
 ---
 
 ## 10. API
@@ -1715,6 +2019,35 @@ All endpoints require authentication via Bearer token. Property isolation enforc
 |--------|----------|-------------|-------|
 | POST | `/api/v1/properties/{propertyId}/pass-on-logs` | Create pass-on note | Guard, Concierge, Supervisor, Manager, Admin |
 | PATCH | `/api/v1/properties/{propertyId}/pass-on-logs/{id}/acknowledge` | Mark as acknowledged | Guard, Concierge, Supervisor, Manager, Admin |
+
+<!-- Added from audit -->
+#### Staff Bulletins
+
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| POST | `/api/v1/properties/{propertyId}/bulletins` | Create staff bulletin | Guard, Concierge, Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/bulletins/{id}` | Update bulletin | Creator (own), Supervisor, Manager, Admin |
+| DELETE | `/api/v1/properties/{propertyId}/bulletins/{id}` | Soft-delete bulletin | Creator (own), Supervisor, Manager, Admin |
+
+#### Valet Parking (v2)
+
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| POST | `/api/v1/properties/{propertyId}/valet` | Park vehicle | Guard, Concierge, Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/valet/{id}/retrieve` | Retrieve vehicle | Guard, Concierge, Supervisor, Manager, Admin |
+
+#### Package Actions
+
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| POST | `/api/v1/properties/{propertyId}/packages/{id}/log-call` | Log a phone call about a package | Guard, Concierge, Supervisor, Manager, Admin |
+| PATCH | `/api/v1/properties/{propertyId}/packages/{id}/storage-spot` | Update package storage location | Guard, Concierge, Supervisor, Manager, Admin |
+
+#### Key Checkout History
+
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| GET | `/api/v1/properties/{propertyId}/key-checkouts/export` | Export key checkout history (PDF/Excel) | Supervisor, Manager, Admin |
 
 #### Analytics
 
@@ -1824,7 +2157,7 @@ Real-time updates pushed to connected clients:
 
 | Item | Status | Section |
 |------|--------|---------|
-| 9+ entry types with dedicated creation forms | Defined | 3.1.3 - 3.1.12 |
+| 10+ entry types with dedicated creation forms (v1) | Defined | 3.1.3 - 3.1.15 | <!-- Updated from audit: added Staff Bulletin -->
 | Unified event grid with card/list/split views | Defined | 3.1.1 |
 | Filter bar with 7 filter dimensions + saved presets | Defined | 3.1.2 |
 | Batch event creation (packages) | Defined | 3.1.5 |
@@ -1844,12 +2177,14 @@ Real-time updates pushed to connected clients:
 | Patrol rounds with checkpoint verification (v2) | Defined | 3.2.3 |
 | Emergency broadcast integration (v2) | Defined | 3.2.4 |
 | Pre/Post inspection log (v2) | Defined | 3.2.5 |
+| Valet Parking entry type (v2) | Defined | 3.2.6 | <!-- Added from audit -->
+| Staff Bulletin with expiry mechanism (v1) | Defined | 3.1.15 | <!-- Added from audit -->
 
 ### Data Model Coverage
 
 | Item | Status | Section |
 |------|--------|---------|
-| All entities with fields, types, constraints | Defined | 4.1 - 4.16 |
+| All entities with fields, types, constraints | Defined | 4.1 - 4.18 | <!-- Updated from audit: added StaffBulletin, ValetParking -->
 | Foreign key relationships | Defined | All entities |
 | Indexes for query performance | Defined | All entities |
 | JSONB for flexible/configurable data | Defined | IncidentReport, CleaningLog, ParkingViolation, PassOnLog |
@@ -1914,8 +2249,8 @@ Real-time updates pushed to connected clients:
 ---
 
 *End of document.*
-*Total entry types: 9 (v1) + 5 (v2) + 4 (v3+)*
-*Total data model entities: 16*
+*Total entry types: 10 (v1) + 6 (v2) + 4 (v3+)*
+*Total data model entities: 18*
 *Total AI capabilities: 12*
 *Total API endpoints: 25+*
 *Total notification types: 13*

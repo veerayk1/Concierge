@@ -77,6 +77,10 @@ Our research across three industry-leading platforms revealed significant variat
 - Work order generation (print and PDF)
 - Configurable category system managed by property admins
 
+### Status Mapping Rationale
+
+One platform uses a "Received" status between "Open" and active work, indicating the request has been acknowledged. Concierge intentionally omits this status and uses a simpler four-state model: Open, In Progress, On Hold, Closed. The "Received" acknowledgment is handled through two mechanisms: (1) the activity timeline entry "Status changed to In Progress" serves as the formal acknowledgment, and (2) the predefined response template "Received and Scheduled" provides the resident-facing communication equivalent. This simplification reduces status clutter while preserving the operational signal.
+
 ### What We Avoid
 
 - Text-only request descriptions with no attachment support
@@ -122,6 +126,9 @@ Our research across three industry-leading platforms revealed significant variat
 | Print Work Order | checkbox | -- | No | Off | -- | -- | "Generate a printable PDF work order with all request details" |
 | Internal Notes | textarea | 2,000 chars | No | None | Not visible to residents | -- | "Staff-only notes. Residents will never see these." |
 | Scheduled Date | date picker | -- | No | None | Must be today or later | "Scheduled date cannot be in the past" | -- |
+| Date Reported | date picker | -- | No | Today | Cannot be in the future | "Date reported cannot be in the future" | "Use this to backdate a request to the actual date the issue was reported, if different from when it is entered into the system. Important for buildings transitioning from paper-based systems." |
+| Hide from Resident Portal | toggle | -- | No | Off | -- | -- | "When enabled, this request is completely hidden from the resident's 'My Requests' view and no resident-facing notifications are sent. Use for internal/common-area work or sensitive issues." |
+| Area Description | text | 200 chars | No (shown only if Unit is blank) | None | Min 3 chars if provided | "Please describe the area (at least 3 characters)" | "Describe the management area, staff quarters, or common space this request relates to (e.g., 'Management Office', 'Staff Room 2B', 'Mechanical Room P1')" |
 
 ##### Resident Form (Simplified)
 
@@ -188,6 +195,7 @@ Each card displays:
 | Category | Below unit | Category name with icon |
 | Assigned To | Bottom-left | Employee name or "Unassigned" (gray italic) |
 | Created Date | Bottom-right | Relative time (e.g., "2 hours ago", "3 days ago") |
+| Source Badge | Bottom, near assignee | Small label: "Resident" (blue text) or "Staff" (gray text). Indicates whether the request was submitted by a resident or created by staff. Helps managers quickly identify resident-facing requests. |
 | Attachment Icon | Bottom, near date | Paperclip icon + count, only if attachments exist |
 
 **Color coding for status**:
@@ -220,6 +228,7 @@ Each card displays:
 | Category | Yes | 150px |
 | Priority | Yes | 90px |
 | Assigned To | Yes | 140px |
+| Source | Yes | 80px | "Resident" or "Staff" label indicating who created the request |
 | Created | Yes | 100px |
 | Last Updated | Yes | 100px |
 
@@ -506,6 +515,7 @@ When assigning a vendor to a request, the assignment panel shows vendor details 
 | Active Requests | Count of currently assigned open requests (workload indicator) |
 | Avg. Resolution Time | Average days to close assigned requests |
 | AI Recommendation | "Recommended" badge with one-line reasoning (if AI vendor suggestion is enabled) |
+| Quick Actions | Icon buttons per vendor row: email icon (opens `mailto:` link with vendor email), phone icon (opens `tel:` link with vendor phone). Displayed inline on desktop, in overflow menu on mobile. Also available on the request detail view's Assignment section next to the vendor name. |
 
 **Compliance Warning**: If a vendor with "Expired" compliance status is selected, a blocking warning appears:
 
@@ -539,6 +549,7 @@ Scheduled preventive maintenance tasks that automatically generate service reque
 | Field | Data Type | Max Length | Required | Default | Validation | Error Message |
 |-------|-----------|-----------|----------|---------|------------|---------------|
 | Task Name | text | 200 chars | Yes | None | Min 5 chars | "Task name must be at least 5 characters" |
+| Task Type | dropdown | -- | Yes | "Standalone" | One of: Standalone, Inspection-Linked | "Please select a task type" | "Standalone tasks generate standard service requests. Inspection-Linked tasks trigger a scheduled inspection using the linked checklist." |
 | Description | textarea | 2,000 chars | No | None | -- | -- |
 | Category | dropdown | -- | Yes | None | Must select active category | "Please select a category" |
 | Unit or Area | dropdown + text | 200 chars | No | None | Unit must exist if selected | "Unit not found" |
@@ -561,6 +572,7 @@ A forward-looking calendar/table showing all upcoming recurring task occurrences
 | Filter | Options |
 |--------|---------|
 | Time Range | Next 30 days, 60 days, 90 days |
+| Task Type | All, Standalone, Inspection-Linked |
 | Category | All or specific |
 | Assigned Employee | All or specific |
 | Equipment | All or specific |
@@ -577,7 +589,7 @@ Checklist-driven inspection workflows designed for mobile-first execution.
 |-----------|-------------|
 | **Checklist Builder** | Drag-and-drop builder for creating inspection checklists. Item types: Pass/Fail toggle, Numeric measurement (with min/max range), Photo required (camera prompt), Text note, Dropdown selection. |
 | **Schedule Inspector** | Assign inspections to dates, areas/units, and staff members. Calendar view of upcoming inspections. |
-| **Mobile Execution** | Inspections completed on mobile device. GPS verification confirms inspector is on-site. Photo capture at each checkpoint. Works offline -- syncs when reconnected. |
+| **Mobile Execution** | Inspections completed on mobile device. GPS verification confirms inspector is on-site (see GPS Verification spec below). Photo capture at each checkpoint. Works offline -- syncs when reconnected. |
 | **Review and Sign-off** | Supervisor reviews completed inspections. Can add notes, flag items for follow-up, and digitally sign off. Failed items auto-generate service requests. |
 | **Report Generation** | Auto-generate inspection reports: overall pass/fail percentage, failed items with photos, trend comparison to previous inspections. Export as PDF. |
 
@@ -591,6 +603,20 @@ Checklist-driven inspection workflows designed for mobile-first execution.
 | Rooftop Semi-Annual | 10 items (membrane, drains, HVAC units, railings, antenna mounts) | Semi-annually |
 | Pool/Amenity Weekly | 18 items (water quality, equipment, safety equipment, signage, cleanliness) | Weekly |
 | Move-in/Move-out | 25 items (walls, floors, fixtures, appliances, keys, cleanliness, damage) | Per event |
+
+##### GPS Verification Specification
+
+GPS verification ensures the inspector is physically on-site before an inspection can begin.
+
+| Aspect | Detail |
+|--------|--------|
+| **Acceptable Radius** | 100 meters from the property's registered GPS coordinates. Configurable per property at Settings > Inspections > GPS Radius (range: 50m - 500m). |
+| **Verification Trigger** | When the inspector taps "Start Inspection," the app requests GPS location and validates against the property coordinates. |
+| **Success Behavior** | Green check icon + "Location verified" message. Inspection proceeds. GPS coordinates and timestamp are stored in the inspection record for the audit trail. |
+| **Failure Behavior (outside radius)** | Amber warning: "You appear to be [X]m from the property. Inspection requires on-site presence." Two options: "Retry Location" (re-requests GPS) or "Override with Confirmation" (inspector types reason for override, e.g., "GPS inaccurate inside parking garage"). Override is logged in the audit trail with the inspector's stated reason. |
+| **GPS Unavailable** | If the device cannot obtain a GPS fix (indoor, airplane mode, permissions denied): fallback to manual location confirmation. Inspector sees: "Unable to verify location. Please confirm you are on-site." Checkbox: "I confirm I am physically present at [Property Name]." Confirmation is logged as "Manual -- GPS unavailable" in the audit trail. |
+| **Stored Data** | Each inspection record stores: `gps_latitude` (decimal), `gps_longitude` (decimal), `gps_accuracy_meters` (decimal), `gps_timestamp` (timestamp), `verification_method` (enum: gps_auto, gps_override, manual_confirmation), `override_reason` (text, nullable). |
+| **Offline Handling** | If the device is offline, GPS verification still works (GPS is device-local). The coordinates are stored locally and synced with the server when connectivity returns. |
 
 #### 3.2.3 Equipment Tracking
 
@@ -658,6 +684,23 @@ A centralized view of all vendor insurance and compliance status, accessible at 
 
 Clicking a card filters the vendor list below to show only vendors in that status.
 
+##### Vendor List Column Visibility
+
+Users can customize which columns are visible in the vendor list via a "Columns" dropdown button (gear icon) in the top-right of the vendor table. Preferences are saved per user.
+
+| Column | Default Visible | Toggleable |
+|--------|----------------|------------|
+| Company Name | Yes | No (always visible) |
+| Service Category | Yes | Yes |
+| Phone | Yes | Yes |
+| Compliance Status | Yes | Yes |
+| Rating | Yes | Yes |
+| Active Requests | Yes | Yes |
+| Avg. Resolution Time | No | Yes |
+| Notes | No | Yes |
+| Address | No | Yes |
+| Added By | No | Yes |
+
 ##### Vendor Compliance Fields
 
 | Field | Data Type | Required | Description |
@@ -723,6 +766,7 @@ Tracking unit renovations and modifications with permit and insurance compliance
 | **Warranty Claim Management** | Track which repairs fall under equipment warranty and manage the claim process | Recover costs from manufacturers |
 | **Budget Tracking per Category** | Set maintenance budgets per category, track spend, forecast overages | Financial planning and board reporting |
 | **Resident Self-Schedule** | Let residents pick from available time slots for maintenance visits | Reduce scheduling back-and-forth |
+| **Shared Vendor Database** | Platform-wide shared vendor directory that properties under the same management company can import vendors from, reducing duplicate data entry. Properties "subscribe" to vendors from the shared pool, inheriting contact info and compliance documents while maintaining property-level ratings and notes. | Cost savings for multi-property management companies |
 
 ---
 
@@ -755,6 +799,10 @@ MaintenanceRequest
 ├── contact_numbers (varchar 100, nullable)
 ├── internal_notes (text, max 2000 chars, nullable -- hidden from residents)
 ├── print_work_order (boolean, default: false)
+├── date_reported (date, nullable -- defaults to created_at date, editable by staff for backdating)
+├── hide_from_resident (boolean, default: false -- when true, request hidden from resident portal)
+├── area_description (varchar 200, nullable -- describes location when unit_id is null)
+├── source (enum: resident, staff -- auto-set based on creator's role, indexed)
 ├── scheduled_date (date, nullable)
 ├── completed_date (date, nullable)
 ├── resolution_notes (text, max 2000 chars, nullable)
@@ -836,6 +884,61 @@ ResponseTemplate
 └── updated_at (timestamp)
 ```
 
+#### Vendor
+
+```
+Vendor
+├── id (UUID, primary key)
+├── property_id → Property (indexed)
+├── company_name (varchar 200, required)
+├── service_category_id → VendorServiceCategory (required -- structured dropdown, maps to maintenance categories for AI vendor matching)
+├── contact_name (varchar 200, nullable)
+├── phone (varchar 50, nullable)
+├── email (varchar 200, nullable)
+├── street_address (varchar 300, nullable)
+├── city (varchar 100, nullable)
+├── state_province (varchar 100, nullable)
+├── postal_code (varchar 20, nullable)
+├── rating (decimal 2,1 -- calculated from manager feedback on closed requests, 1.0-5.0)
+├── compliance_status (enum: compliant, expiring, expired, not_compliant, not_tracking -- computed from document expiry dates)
+├── active (boolean, default: true)
+├── notes (text, max 2000 chars, nullable)
+├── created_by → User (tracks which staff member added this vendor)
+├── created_at (timestamp)
+└── updated_at (timestamp)
+```
+
+#### VendorServiceCategory
+
+```
+VendorServiceCategory
+├── id (UUID, primary key)
+├── property_id → Property (indexed)
+├── name (varchar 100, required -- e.g., "Plumbing", "HVAC", "Locksmith", "Appliance Repair", "Electrical", "General Contractor", "Pest Control", "Landscaping", "Elevator", "Fire Safety", "Cleaning", "Painting")
+├── mapped_maintenance_categories[] → MaintenanceCategory (many-to-many -- enables AI vendor matching by linking vendor specialty to request categories)
+├── sort_order (integer, required)
+├── active (boolean, default: true)
+├── created_at (timestamp)
+└── updated_at (timestamp)
+```
+
+**Default Vendor Service Categories** (pre-loaded, editable by Admin):
+
+| # | Category | Mapped Maintenance Categories |
+|---|----------|-------------------------------|
+| 1 | Plumbing | Plumbing -- Leak, Plumbing -- Drain/Clog, Plumbing -- Water Heater |
+| 2 | Electrical | Electrical -- Lighting, Electrical -- Outlets/Switches, Electrical -- Circuit/Panel |
+| 3 | HVAC | HVAC -- Heating, HVAC -- Cooling, HVAC -- Ventilation |
+| 4 | Locksmith | Door/Lock -- Entry Door, Door/Lock -- Interior Door |
+| 5 | Appliance Repair | All Appliance categories |
+| 6 | General Contractor | Walls/Ceiling, Flooring, Window categories |
+| 7 | Pest Control | Pest Control |
+| 8 | Landscaping | Exterior -- Landscaping |
+| 9 | Elevator Service | Common Area -- Elevator |
+| 10 | Fire Safety | Fire Safety equipment categories |
+| 11 | Cleaning | Common Area categories |
+| 12 | Painting | Walls/Ceiling -- Paint |
+
 #### RecurringTask (v2)
 
 ```
@@ -843,6 +946,7 @@ RecurringTask
 ├── id (UUID)
 ├── property_id → Property
 ├── name (varchar 200, required)
+├── task_type (enum: standalone, inspection_linked -- default: standalone)
 ├── description (text, max 2000 chars, nullable)
 ├── category_id → MaintenanceCategory
 ├── unit_id → Unit (nullable)
@@ -1364,7 +1468,7 @@ The Maintenance module integrates **12 AI capabilities** (IDs 23-34 from 19-ai-f
 | Event | Default Channels | Recipients | Template Preview |
 |-------|-----------------|------------|-----------------|
 | Request Created (by resident) | Email + Push | Property Manager, Assigned Employee (if set) | "New service request from Unit [UNIT]: [TITLE]. Priority: [PRIORITY]. Ref: [REF]." |
-| Request Created (by staff) | Email | Resident (if unit-linked) | "A service request has been created for your unit: [TITLE]. Reference: [REF]. We'll keep you updated." |
+| Request Created (by staff) | Email | Resident (if unit-linked and hide_from_resident = false) | "A service request has been created for your unit: [TITLE]. Reference: [REF]. We'll keep you updated." Note: Requests with "Hide from Resident Portal" enabled suppress ALL resident-facing notifications. |
 | Status Changed to In Progress | Email + Push | Resident | "Your request [REF] is now being worked on. [CUSTOM_MESSAGE]" |
 | Status Changed to On Hold | Email | Resident | "Your request [REF] has been placed on hold. Reason: [REASON]. We'll resume as soon as possible." |
 | Status Changed to Closed | Email | Resident | "Your request [REF] has been resolved. [RESOLUTION_NOTES]. If the issue persists, submit a new request." |
@@ -1435,6 +1539,13 @@ Staff notification preferences are managed by Property Admin. Assignment and urg
 | `GET` | `/api/v1/properties/{propertyId}/maintenance-requests/analytics` | Analytics summary data | PM, Admin, Board (read-only) |
 | `GET` | `/api/v1/properties/{propertyId}/response-templates` | List response templates | PM, Admin, Maintenance Staff |
 | `POST` | `/api/v1/properties/{propertyId}/response-templates` | Create a template | PM, Admin |
+| `GET` | `/api/v1/properties/{propertyId}/vendors` | List all vendors (filtered, paginated) | PM, Admin |
+| `POST` | `/api/v1/properties/{propertyId}/vendors` | Create a new vendor | PM, Admin |
+| `GET` | `/api/v1/properties/{propertyId}/vendors/{vendorId}` | Get vendor detail including compliance documents | PM, Admin |
+| `PATCH` | `/api/v1/properties/{propertyId}/vendors/{vendorId}` | Update vendor fields (name, address, service category, notes, active status) | PM, Admin |
+| `DELETE` | `/api/v1/properties/{propertyId}/vendors/{vendorId}` | Deactivate vendor (soft delete -- sets active=false). Vendors with open assigned requests cannot be deactivated; returns 409 Conflict. | Admin only |
+| `POST` | `/api/v1/properties/{propertyId}/vendors/{vendorId}/compliance-documents` | Upload a compliance document (insurance, license, etc.) | PM, Admin |
+| `GET` | `/api/v1/properties/{propertyId}/vendor-service-categories` | List vendor service categories | PM, Admin, Maintenance Staff |
 | `GET` | `/api/v1/residents/me/maintenance-requests` | Current resident's own requests | Any resident role |
 
 ### 10.2 Request/Response Examples
@@ -1459,6 +1570,8 @@ Authorization: Bearer {token}
   "entry_instructions": "Lockbox code: 4321. Small cat in unit, keep door closed.",
   "assigned_employee_id": "staff-101",
   "scheduled_date": "2026-03-16",
+  "date_reported": "2026-03-13",
+  "hide_from_resident": false,
   "status": "open"
 }
 ```
@@ -1539,6 +1652,7 @@ Authorization: Bearer {token}
       "urgency_flag": false,
       "assigned_employee": { "id": "staff-101", "name": "John Smith" },
       "assigned_vendor": null,
+      "source": "resident",
       "attachment_count": 2,
       "comment_count": 1,
       "created_at": "2026-03-14T14:30:00Z",
@@ -1568,6 +1682,9 @@ Authorization: Bearer {token}
 | `POST .../attachments` | 20 uploads/min | Per user |
 | `POST .../work-order` | 10 requests/min | Per user |
 | `GET .../analytics` | 30 requests/min | Per user |
+| `GET .../vendors` | 60 requests/min | Per user |
+| `POST .../vendors` | 20 requests/min | Per user |
+| `POST .../vendors/{id}/compliance-documents` | 10 uploads/min | Per user |
 | `GET /residents/me/maintenance-requests` | 60 requests/min | Per user |
 
 When rate limited, the API returns `429 Too Many Requests` with a `Retry-After` header (seconds).
@@ -1593,7 +1710,7 @@ External integrations can subscribe to maintenance events:
 
 | # | Requirement | Section | Status |
 |---|-------------|---------|--------|
-| 1 | Service request creation -- staff form (22 fields) | 3.1.1 | Specified |
+| 1 | Service request creation -- staff form (25 fields including Date Reported, Hide from Resident Portal, Area Description) | 3.1.1 | Specified |
 | 2 | Service request creation -- resident form (9 fields) | 3.1.1 | Specified |
 | 3 | 43 configurable categories with admin management | 3.1.5 | Specified |
 | 4 | Request listing with card and table views | 3.1.2 | Specified |
@@ -1613,13 +1730,18 @@ External integrations can subscribe to maintenance events:
 | 18 | Predefined response templates (6 defaults) | 3.1.6 | Specified |
 | 19 | Internal notes (staff-only, hidden from residents) | 3.1.1, 3.1.3 | Specified |
 | 20 | Auto-generated reference numbers | 1 (Key Facts) | Specified |
+| 20a | Vendor data model with service categories, address, and created_by | 4.2 | Specified |
+| 20b | Vendor CRUD API endpoints | 10.1 | Specified |
+| 20c | Source indicator (resident vs staff) on cards and table | 3.1.2 | Specified |
+| 20d | Vendor contact quick-action links (email, phone) | 3.1.8 | Specified |
+| 20e | Vendor list column visibility toggles | 3.2.4 | Specified |
 
 ### Enhanced (v2) Requirements
 
 | # | Requirement | Section | Status |
 |---|-------------|---------|--------|
-| 21 | Recurring tasks with forecast view | 3.2.1 | Specified |
-| 22 | Inspections with checklist builder (6 defaults) | 3.2.2 | Specified |
+| 21 | Recurring tasks with task type (standalone/inspection-linked) and forecast view | 3.2.1 | Specified |
+| 22 | Inspections with checklist builder (6 defaults) and GPS verification spec | 3.2.2 | Specified |
 | 23 | Equipment tracking with lifecycle management | 3.2.3 | Specified |
 | 24 | Equipment replacement report | 3.2.3 | Specified |
 | 25 | Vendor compliance dashboard (5-status cards) | 3.2.4 | Specified |
@@ -1665,7 +1787,7 @@ External integrations can subscribe to maintenance events:
 |---|-------------|---------|--------|
 | 51 | Full data model with types, lengths, defaults, validations | 4 | Specified |
 | 52 | AI metadata JSONB structure with examples | 4.3 | Specified |
-| 53 | REST API endpoints (19 endpoints) | 10.1 | Specified |
+| 53 | REST API endpoints (26 endpoints including vendor CRUD) | 10.1 | Specified |
 | 54 | Request/response examples with error cases | 10.2 | Specified |
 | 55 | Rate limits per endpoint | 10.3 | Specified |
 | 56 | Webhook events (6 event types) | 10.4 | Specified |
@@ -1689,7 +1811,7 @@ External integrations can subscribe to maintenance events:
 | 64 | Performance reports (8 report types) | 8.2 | Specified |
 | 65 | AI analytics (7 tracked metrics) | 8.3 | Specified |
 
-**Total requirements: 65** | **All specified: Yes**
+**Total requirements: 70** | **All specified: Yes**
 
 ---
 

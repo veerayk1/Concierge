@@ -102,6 +102,22 @@ A learning path is an ordered sequence of courses that staff members complete in
 | **Delete** | Soft-deletes path. Courses remain but are unlinked. | Confirmation modal: "This will remove the path but keep all courses. Continue?" On confirm: toast "Learning path deleted." | Toast: "Could not delete. Try again." | Spinner on confirm button. |
 | **Reorder Courses** | Enables drag-and-drop reordering within the path | New order persists on drop. Toast: "Course order updated." | Toast: "Reorder failed. Try again." | Subtle animation during save. |
 
+#### Recommended System Learning Path: Platform Updates
+
+Every property is seeded with a **Platform Updates** learning path (editable, not deletable). This path serves a dual purpose: staff training on new features AND a living changelog for the property.
+
+| Attribute | Detail |
+|-----------|--------|
+| **Default name** | "Platform Updates" |
+| **Default category** | Platform Training |
+| **Auto-population** | When the Concierge platform ships a new feature or significant update, a system-generated course stub is created in draft status. The property admin reviews, customizes (adding property-specific instructions), and publishes it. |
+| **Course stub fields** | Title (auto: "New Feature: {feature_name}"), description (auto-generated summary of what changed), estimated_duration_minutes (default: 10), category (Platform Training), difficulty (beginner) |
+| **Admin control** | Admins can disable auto-generation of platform update stubs in Settings > Training Configuration. Admins can also delete, edit, or reorder any auto-generated stub. |
+| **Display** | Courses within this path are sorted by release date descending (newest first), unlike other paths which use manual sort order. A "Release Date" badge appears on each course card. |
+| **Mandatory toggle** | Defaults to `false`. Admin can make mandatory to ensure all staff complete update training. |
+
+> **Implementation note**: This feature is a v2 enhancement. For v1, properties manually create a "Platform Updates" learning path and add courses as needed.
+
 ### 3.2 Courses
 
 A course is a collection of modules (lessons) that belong to one or more learning paths.
@@ -132,6 +148,25 @@ A course is a collection of modules (lessons) that belong to one or more learnin
 **Tooltip** (on `pass_threshold`): "Minimum quiz score (percentage) required to pass this course. Set to 0 if no quiz is attached."
 
 **Tooltip** (on `max_attempts`): "How many times a learner can retake the quiz before requiring manual reset by an admin."
+
+#### Course Code Naming Convention
+
+When auto-generating course codes, the system uses the first 2--3 letters of the course category as the prefix. Admins can override with any code matching the `[A-Z]{2,5}-[0-9]{3}` pattern. Recommended conventions:
+
+| Prefix | Category | Example |
+|--------|----------|---------|
+| SEC | Security & Concierge | SEC-100: Introduction to Security Console |
+| PKG | Package Management | PKG-200: Package Intake and Release |
+| MNT | Maintenance | MNT-300: Service Request Workflow |
+| AMN | Amenity Management | AMN-400: Amenity Booking System |
+| OPS | Building Operations | OPS-500: Emergency Evacuation Procedures |
+| PLT | Platform Training | PLT-600: Dashboard Navigation |
+| CMP | Compliance | CMP-700: Fire Safety Regulations |
+| ONB | Onboarding | ONB-800: New Hire Orientation |
+
+**Tooltip** (on `course_code` field): "Course codes follow the format ABC-123 (e.g., SEC-100 for security courses). Codes are auto-generated from the category but can be customized. Use number ranges to organize courses within a category (100-level for introductory, 200-level for intermediate, etc.)."
+
+> **Admin guidance**: A help panel in the course creation form displays the naming convention table above. Properties can customize their own prefix conventions via a "Code Prefixes" setting in the Training Configuration.
 
 #### Course Categories (Default Set, Admin-Configurable)
 
@@ -1002,6 +1037,8 @@ Reference: 19-AI Framework, Section 4.7 (IDs 61--67).
 | 34 | No competitor names mentioned | Verified | -- |
 | 35 | Data model with full entity relationships | Covered | Section 4 |
 | 36 | User flows for all key roles | Covered | Section 5 (5 flows) |
+| 37 | Platform Updates learning path with auto-generated course stubs | Covered | Section 3.1 (Recommended System Learning Path) |
+| 38 | Course code naming convention with admin guidance | Covered | Section 3.2 (Course Code Naming Convention) |
 
 ---
 

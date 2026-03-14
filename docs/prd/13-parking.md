@@ -75,16 +75,17 @@ Visitor parking is created from the Security Console (see PRD 03) but managed an
 | Building | Select dropdown | -- | Yes | User's assigned building | Must select a building | "Please select a building" |
 | Unit | Autocomplete text | 20 chars | Yes | Empty | Must match an existing unit | "Unit not found. Please select a valid unit." |
 | Visitor Name | Text input | 100 chars | Yes | Empty | Min 2 characters | "Visitor name must be at least 2 characters" |
-| Visitor Type | Radio buttons | -- | Yes | "Visitor" | One of: Visitor, Contractor, Delivery | "Please select a visitor type" |
-| License Plate | Text input | 15 chars | Yes (if parking needed) | Empty | Alphanumeric, auto-uppercase, strip spaces | "Please enter a valid license plate number" |
-| Province/State | Select dropdown | -- | Yes (if parking needed) | Property's province | Must select from list | "Please select a province or state" |
-| Vehicle Make | Text input | 50 chars | Optional | Empty | -- | -- |
-| Vehicle Model | Text input | 50 chars | Optional | Empty | -- | -- |
-| Vehicle Color | Select dropdown | -- | Optional | Empty | Predefined color list | -- |
-| Parking Spot | Select dropdown | -- | Optional | "Any Available" | Must be an active visitor spot or "Any Available" | "Selected spot is not available" |
-| Parking Until | Datetime picker | -- | Yes (if parking needed) | Current time + property's default visitor duration (e.g., 24 hours) | Must be in the future. Max 7 days from now (configurable). | "Parking end time must be in the future" / "Maximum visitor parking duration is {n} days" |
-| Photo | File upload | 10 MB | Optional | Empty | JPG, PNG, HEIC. Max 3 photos. | "File must be JPG, PNG, or HEIC and under 10 MB" |
-| Comments | Textarea | 500 chars | Optional | Empty | -- | -- |
+| Visitor Type | Radio buttons | -- | Yes | "Visitor" | Must select from configured visitor types | "Please select a visitor type" |
+| Needs Parking | Toggle | -- | Yes | true | -- | -- |
+| License Plate | Text input | 15 chars | Yes (if needs_parking) | Empty | Alphanumeric, auto-uppercase, strip spaces | "Please enter a valid license plate number" |
+| Comments | Textarea | 500 chars | Optional | Empty | Always visible regardless of needs_parking toggle | -- |
+| Province/State | Select dropdown | -- | Yes (if needs_parking) | Property's province | Must select from list. Visible only when needs_parking is true. | "Please select a province or state" |
+| Vehicle Make | Text input | 50 chars | Optional | Empty | Visible only when needs_parking is true | -- |
+| Vehicle Model | Text input | 50 chars | Optional | Empty | Visible only when needs_parking is true | -- |
+| Vehicle Color | Select dropdown | -- | Optional | Empty | Predefined color list. Visible only when needs_parking is true. | -- |
+| Parking Spot | Select dropdown | -- | Optional | "Any Available" | Must be an active visitor spot or "Any Available". Visible only when needs_parking is true. | "Selected spot is not available" |
+| Parking Until | Datetime picker | -- | Yes (if needs_parking) | Current time + property's default visitor duration (e.g., 24 hours) | Must be in the future. Max 7 days from now (configurable). Visible only when needs_parking is true. | "Parking end time must be in the future" / "Maximum visitor parking duration is {n} days" |
+| Photo | File upload | 10 MB | Optional | Empty | JPG, PNG, HEIC. Max 3 photos. On devices with cameras, the upload control offers both "Take Photo" (camera capture, rear camera default) and "Upload File" (gallery/file picker) options. | "File must be JPG, PNG, or HEIC and under 10 MB" |
 
 **Buttons**:
 
@@ -94,11 +95,34 @@ Visitor parking is created from the Security Console (see PRD 03) but managed an
 | Save & Print | Creates record and opens print dialog for parking pass | Same as Save, then browser print dialog opens with formatted pass | Same as Save | "Saving..." then "Preparing print..." |
 | Cancel | Closes form without saving | Form closes, no record created | -- | -- |
 
+**Visitor Types** (admin-configurable, system defaults):
+
+| Type | Icon | Description |
+|------|------|-------------|
+| Visitor | person | General visitor (friend, family, guest) |
+| Contractor | hard-hat | Contractor or tradesperson |
+| Delivery | truck | Delivery driver |
+
+Properties can add custom visitor types via Settings > Parking > Visitor Types (e.g., "Real Estate Agent", "Moving Company", "Emergency Service"). Each type has a name (50 chars), icon (from system set), sort_order, and active toggle.
+
+**Progressive disclosure**: When `needs_parking` is toggled off, all vehicle and parking fields (License Plate, Province/State, Vehicle Make/Model/Color, Parking Spot, Parking Until) collapse with a smooth animation. This supports logging visitors who arrive without a vehicle (e.g., dropped off by taxi, walked in).
+
 #### 3.1.2 Sign Out Visitor Parking
 
 | Button | Action | Success State | Failure State | Loading State |
 |--------|--------|---------------|---------------|---------------|
 | Sign Out | Sets departure time to now, releases parking spot | Toast: "Visitor signed out." Row updates with departure time. Spot status changes to Available. | Toast: "Could not sign out visitor. Please try again." | "Signing out..." with spinner |
+| Batch Sign Out | Sets departure time to now for all selected (or all currently parked) visitors | Confirmation modal: "Sign out {n} visitors? This will set the departure time to now for all selected visitors." On confirm: Toast: "{n} visitors signed out." All rows update. Spots released. | Toast: "Could not sign out visitors. Please try again." | "Signing out {n} visitors..." |
+
+**Batch Sign Out** is available when the Status filter is "Currently Parked" and at least 2 records exist. It appears as a secondary button above the table. Staff can either select specific rows via checkboxes or use "Sign Out All" to sign out every currently parked visitor.
+
+#### 3.1.2b Extend Visitor Parking
+
+| Button | Action | Success State | Failure State | Loading State |
+|--------|--------|---------------|---------------|---------------|
+| Extend | Opens a minimal modal with a datetime picker for new `parking_until` value and an optional comment field (200 chars) | Toast: "Parking extended until {new_time}." Row updates with new parking_until. | Toast: "Could not extend parking." | "Extending..." |
+
+The Extend button appears as a quick action on each visitor parking table row (alongside View, Edit, Sign Out, Print, Delete). It is faster than a full edit for the common scenario of "visitor needs another hour."
 
 #### 3.1.3 Visitor Parking Table
 
@@ -113,7 +137,7 @@ Visitor parking is created from the Security Console (see PRD 03) but managed an
 | Departure | Yes | Check-out timestamp or "Still parked" badge (blue) |
 | Duration | No | Calculated time parked. Red text if exceeding permit time. |
 | Created By | Yes | Staff member who created the entry |
-| Actions | No | View, Edit, Sign Out, Print, Delete |
+| Actions | No | View, Edit, Extend, Sign Out, Print, Delete |
 
 **Empty state**: Illustration of an empty parking lot. Heading: "No visitor parking records." Subtext: "Visitor parking records will appear here when visitors are registered through the Security Console." Button: "Register Visitor Parking" (opens creation form).
 
@@ -126,6 +150,7 @@ Visitor parking is created from the Security Console (see PRD 03) but managed an
 | Building | Dropdown | All Buildings | List of buildings |
 | Unit | Autocomplete | All | Any unit |
 | Plate Search | Text input | Empty | Free text, searches partial match |
+| Show Deleted | Toggle | Off | Visible to PM and Admin only. When enabled, soft-deleted records appear with strikethrough styling and a "Deleted" badge. A "Restore" action appears on deleted rows. |
 
 **Pagination**: 25 rows per page. Previous/Next with page numbers. Row-per-page selector: 10, 25, 50, 100.
 
@@ -255,7 +280,7 @@ Apply (Pending Review)
 | Violation Type | Radio buttons | -- | Yes | Empty | Must select one | "Please select a violation type" |
 | Location | Text input | 100 chars | Yes | Empty | Min 2 chars | "Please describe where the violation occurred" |
 | Description | Textarea | 1000 chars | Yes | Empty | Min 10 chars | "Please provide at least 10 characters describing the violation" |
-| Photos | File upload | 10 MB each | Yes (min 1) | Empty | JPG, PNG, HEIC. Min 1, max 5 photos. | "At least one photo is required as evidence" |
+| Photos | File upload | 10 MB each | Yes (min 1) | Empty | JPG, PNG, HEIC. Min 1, max 5 photos. On devices with cameras, the upload control offers both "Take Photo" (camera capture, rear camera default) and "Upload File" (gallery/file picker) options. | "At least one photo is required as evidence" |
 | Auto-Expire On | Date picker | -- | Optional | Empty (no auto-expiry) | Must be in the future | "Expiry date must be in the future" |
 | Related Unit | Autocomplete | 20 chars | Optional | Empty | Must match existing unit if provided | "Unit not found" |
 | Notify Unit Owner | Checkbox | -- | Optional | Checked (if unit linked) | -- | -- |
@@ -309,6 +334,18 @@ Apply (Pending Review)
 | Actions | No | View, Edit, Resolve, Print, Delete |
 
 **Empty state**: Illustration of a checkmark over a parking lot. Heading: "No parking violations recorded." Subtext: "When parking violations are issued, they will appear here with full history and evidence."
+
+**Filters**:
+
+| Filter | Type | Default | Options |
+|--------|------|---------|---------|
+| Status | Segmented control | "Open" | Open, Resolved, Auto-Expired, All |
+| Violation Type | Multi-select dropdown | All | Notice, Warning, Ticket, Ban, Vehicle Towed |
+| Date Range | Date range picker | Last 30 days | Any range |
+| Plate Search | Text input | Empty | Free text, searches partial match |
+| Show Deleted | Toggle | Off | Visible to PM and Admin only. When enabled, soft-deleted records appear with strikethrough styling and a "Deleted" badge. A "Restore" action appears on deleted rows. |
+
+**Pagination**: 25 rows per page. Previous/Next with page numbers. Row-per-page selector: 10, 25, 50, 100.
 
 ### 3.4 Parking Spot Inventory
 
@@ -404,7 +441,18 @@ Permits print to standard paper (letter/A4) with the following layout:
 | Footer | "Display this permit on your dashboard at all times." + property contact info |
 | QR Code | Links to digital permit verification page |
 
-**Visitor parking passes** print as half-page with: visitor name, plate, spot, valid until, issuing staff, QR code.
+**Visitor parking passes** print as half-page with the following layout:
+
+| Section | Content |
+|---------|---------|
+| Header | Property name, logo, "VISITOR PARKING PASS" title |
+| Visitor Info | Visitor name, unit being visited, visitor type (Visitor/Contractor/Delivery) |
+| Vehicle Info | License plate (large font, bold), make, model, color, province/state |
+| Assignment | Spot number (or "General Visitor Parking" if "Any Available"), area/zone |
+| Validity | Valid from: arrival time. Valid until: parking_until time. Both formatted as date + time. |
+| Staff | Issuing staff name, creation timestamp |
+| Footer | "Display this pass on your dashboard. Remove upon departure." + property contact info |
+| QR Code | Links to digital pass verification page |
 
 ---
 
@@ -419,7 +467,8 @@ VisitorParking
  building_id         UUID -> Building
  unit_id             UUID -> Unit
  visitor_name        VARCHAR(100), required
- visitor_type        ENUM(visitor, contractor, delivery), default: visitor
+ visitor_type_id     UUID -> VisitorType, required
+ needs_parking       BOOLEAN, default: true
  license_plate       VARCHAR(15), uppercase, indexed
  province_state      VARCHAR(50)
  vehicle_make        VARCHAR(50), nullable
@@ -556,7 +605,21 @@ PermitType
  updated_at          TIMESTAMP WITH TZ
 ```
 
-### 4.7 Indexes
+### 4.7 VisitorType
+
+```
+VisitorType
+ id                  UUID, auto-generated
+ property_id         UUID -> Property (nullable for system defaults)
+ name                VARCHAR(50), required
+ icon                VARCHAR(30), required
+ sort_order          INTEGER, default: 0
+ active              BOOLEAN, default: true
+ created_at          TIMESTAMP WITH TZ
+ updated_at          TIMESTAMP WITH TZ
+```
+
+### 4.8 Indexes
 
 | Index | Columns | Purpose |
 |-------|---------|---------|
@@ -784,6 +847,9 @@ Residents can control parking notifications in their notification preferences:
 | GET | `/api/v1/parking/visitors/{id}` | Get visitor parking detail | Staff+ | 60/min |
 | PUT | `/api/v1/parking/visitors/{id}` | Update visitor parking record | Front Desk, Security, PM, Admin | 30/min |
 | POST | `/api/v1/parking/visitors/{id}/signout` | Sign out visitor | Front Desk, Security, PM, Admin | 30/min |
+| POST | `/api/v1/parking/visitors/{id}/extend` | Extend visitor parking (new parking_until + optional comment) | Front Desk, Security, PM, Admin | 30/min |
+| POST | `/api/v1/parking/visitors/batch-signout` | Batch sign out multiple visitors (body: { ids: UUID[] }) | Front Desk, Security, PM, Admin | 10/min |
+| POST | `/api/v1/parking/visitors/{id}/restore` | Restore a soft-deleted visitor record | PM, Admin | 10/min |
 | DELETE | `/api/v1/parking/visitors/{id}` | Soft-delete visitor record | PM, Admin | 10/min |
 | GET | `/api/v1/parking/permits` | List permits (filtered) | Staff+, Resident (own only) | 60/min |
 | POST | `/api/v1/parking/permits` | Create/apply for permit | Staff+, Resident | 10/min |
@@ -797,6 +863,7 @@ Residents can control parking notifications in their notification preferences:
 | POST | `/api/v1/parking/violations` | Create violation | Security, PM, Admin | 30/min |
 | GET | `/api/v1/parking/violations/{id}` | Get violation detail | Staff+ | 60/min |
 | POST | `/api/v1/parking/violations/{id}/resolve` | Resolve violation | PM, Admin | 10/min |
+| POST | `/api/v1/parking/violations/{id}/restore` | Restore a soft-deleted violation record | PM, Admin | 10/min |
 | GET | `/api/v1/parking/spots` | List spots (filtered by area) | Staff+ | 60/min |
 | POST | `/api/v1/parking/spots` | Create spot | Admin | 30/min |
 | PUT | `/api/v1/parking/spots/{id}` | Update spot | PM, Admin | 30/min |
@@ -809,6 +876,9 @@ Residents can control parking notifications in their notification preferences:
 | GET | `/api/v1/parking/permit-types` | List permit types | Staff+, Resident | 60/min |
 | POST | `/api/v1/parking/permit-types` | Create permit type | Admin | 10/min |
 | PUT | `/api/v1/parking/permit-types/{id}` | Update permit type | Admin | 10/min |
+| GET | `/api/v1/parking/visitor-types` | List visitor types | Staff+ | 60/min |
+| POST | `/api/v1/parking/visitor-types` | Create visitor type | Admin | 10/min |
+| PUT | `/api/v1/parking/visitor-types/{id}` | Update visitor type | Admin | 10/min |
 
 ### 10.2 Sample Payloads
 
@@ -908,6 +978,15 @@ Residents can control parking notifications in their notification preferences:
 | 36 | All buttons: action, success, failure, loading states | 3.1-3.4 | Covered |
 | 37 | All fields: data type, max length, required/optional, default, validation, error messages | 3.1-3.4 | Covered |
 | 38 | No competitor names referenced | All | Verified |
+| 39 | Admin-configurable visitor types with system defaults | 3.1.1, 4.7 | Covered |
+| 40 | Needs parking toggle for visitors without vehicles | 3.1.1 | Covered |
+| 41 | Extend visitor parking quick action | 3.1.2b | Covered |
+| 42 | Batch visitor sign-out | 3.1.2 | Covered |
+| 43 | Show Deleted toggle on visitor parking and violation filters | 3.1.3, 3.3.3 | Covered |
+| 44 | Restore soft-deleted records | 10.1 | Covered |
+| 45 | Camera capture integration on photo upload fields | 3.1.1, 3.3.1 | Covered |
+| 46 | Detailed visitor parking pass print layout | 3.6 | Covered |
+| 47 | Violation table filters (status, type, date, plate, deleted) | 3.3.3 | Covered |
 
 ---
 

@@ -27,8 +27,8 @@ This module solves that by providing three layers of reporting:
 
 | Aspect | Detail |
 |--------|--------|
-| **Report types** | 39+ pre-built reports across 8 categories |
-| **Export formats** | CSV, Excel (.xlsx), PDF |
+| **Report types** | 52 pre-built reports across 8 categories |
+| **Export formats** | CSV, Excel (.xlsx), PDF, Word (.docx) |
 | **Scheduled reports** | Email delivery on daily, weekly, or monthly cadence |
 | **Saved templates** | Users save filter/column configurations for one-click reuse |
 | **Chart types** | Bar, line, pie, heatmap, stacked bar, donut |
@@ -46,7 +46,7 @@ Competitive analysis of three major condo management platforms revealed these st
 | Finding | Source | How Concierge Improves |
 |---------|--------|----------------------|
 | 39 pre-built reports across 3 categories covering amenities, security, and unit data | Industry research | Expand to 39+ reports across 8 categories -- add maintenance, parking, communication, training, and community |
-| 10 export formats (PDF, XLS, XLSX, RTF, DOCX, MHT, HTML, Text, CSV, Image) | Industry research | Consolidate to 3 formats (CSV, Excel, PDF) that cover 99% of use cases. Fewer choices, faster export. |
+| 10 export formats (PDF, XLS, XLSX, RTF, DOCX, MHT, HTML, Text, CSV, Image) | Industry research | Consolidate to 4 formats (CSV, Excel, PDF, Word) that cover 99% of use cases. Word (DOCX) included for board meeting distribution where editable documents are needed. |
 | Favourite/star system for frequently used reports | Industry research | Adopt -- add pinned reports to the top of the list with one-click access |
 | Parameterized report viewer with date ranges and multi-select filters | Industry research | Adopt -- extend with saved filter templates and AI-suggested filters |
 | Custom report builder for user-created reports | Industry research | Adopt -- add drag-and-drop column selection, visual query builder, and natural language queries |
@@ -79,16 +79,131 @@ The report library is the main entry point. It displays all available reports or
 
 | # | Category | Icon | Report Count | Description |
 |---|----------|------|-------------|-------------|
-| 1 | Security & Concierge | Shield | 10 | Incidents, visitors, keys, pass-on logs, shift summaries, activity reports |
-| 2 | Package Management | Box | 5 | Package details, release status, unreleased packages, courier breakdown, volume trends |
+| 1 | Security & Concierge | Shield | 10 | Incident summary, incident details, visitor details, key checkouts, pass-on logs, shift summary, shift details, activity summary, unit entries, security patrol log |
+| 2 | Package Management | Box | 6 | Package details, release status, unreleased packages, courier breakdown, volume trends, parcel waiver compliance |
 | 3 | Maintenance | Wrench | 5 | Service requests, response times, category breakdown, vendor performance, recurring issues |
 | 4 | Amenity Booking | Calendar | 4 | Usage statistics, payment reports, booking trends, capacity utilization |
-| 5 | Unit & Resident | Building | 10 | Resident lists, unit details, pets, vehicles, emergency contacts, FOBs/keys, buzzer codes, vacations, front desk instructions |
-| 6 | Communication | Megaphone | 3 | Announcement distribution, email delivery, notification channel usage |
+| 5 | Unit & Resident | Building | 16 | Resident lists, resident demographics, unit details, lease details, pets, vehicles, emergency contacts, FOBs/keys, buzzer codes, common element assignments, vacations, front desk instructions, mailing addresses, unit change history, user change history, user login activity |
+| 6 | Communication | Megaphone | 6 | Announcement distribution, email delivery, notification channel usage, electronic consent compliance, AGM opt-in status, unsubscribed users |
 | 7 | Parking | Car | 3 | Active permits, violations, visitor parking history |
 | 8 | Training | Graduation cap | 2 | Course completion, quiz scores |
 
-**Total standard reports**: 42
+**Total standard reports**: 52
+
+#### 3.1.1a New Report Specifications
+
+The following reports are additions beyond the original report set. Each includes field-level spec, default parameters, and KPI cards.
+
+**Parcel Waiver Compliance** (Package Management)
+
+| Attribute | Detail |
+|-----------|--------|
+| **Description** | Shows which residents have signed parcel handling waivers vs. which have not. Essential for legal compliance. |
+| **Default columns** | Unit Number, Resident Name, Waiver Status (Signed / Not Signed), Date Signed, Waiver Version, Expiry Date |
+| **Parameters** | Date Range (universal), Status filter (Signed / Not Signed / Expired), Building (if multi-building) |
+| **KPI cards** | Total Units, Signed (count + %), Not Signed (count + %), Expired (count) |
+| **Default sort** | Waiver Status ascending (Not Signed first), then Unit Number |
+| **Access** | Property Manager, Admin |
+
+**Resident Demographics** (Unit & Resident)
+
+| Attribute | Detail |
+|-----------|--------|
+| **Description** | Distribution of occupants by user type with donut chart visualization. Quick-read tool for property managers and board members. |
+| **Default columns** | User Type, Count, Percentage |
+| **Chart** | Donut chart showing breakdown: Owners, Tenants, Offsite Owners, Board Members, Other Occupants |
+| **Parameters** | Building (if multi-building), Floor Range, Move-in Date Range |
+| **KPI cards** | Total Occupants, Owners (count), Tenants (count), Vacancy Rate (%) |
+| **Default sort** | Count descending |
+| **Access** | Property Manager, Board Member, Admin |
+
+**Lease Details** (Unit & Resident)
+
+| Attribute | Detail |
+|-----------|--------|
+| **Description** | Lists lease start/end dates, renewal status, and upcoming expirations for all tenant-occupied units. Critical for managing tenant turnover. |
+| **Default columns** | Unit Number, Tenant Name, Lease Start Date, Lease End Date, Renewal Status (Active / Expiring / Expired / Month-to-Month), Days Until Expiry, Owner Name |
+| **Parameters** | Date Range (lease end date), Renewal Status filter, Building (if multi-building) |
+| **KPI cards** | Total Leases, Expiring Within 30 Days, Expiring Within 90 Days, Expired (count) |
+| **Default sort** | Days Until Expiry ascending (soonest first) |
+| **Access** | Property Manager, Admin |
+
+**Common Element Assignments** (Unit & Resident)
+
+| Attribute | Detail |
+|-----------|--------|
+| **Description** | Tracks common element assignments (storage lockers, bike rooms, wine cellars, etc.) per unit. Distinct from parking spots and amenities. |
+| **Default columns** | Unit Number, Resident Name, Element Type (Locker / Bike Room / Wine Cellar / Other), Element Identifier, Assigned Date, Monthly Fee, Status (Active / Vacant) |
+| **Parameters** | Element Type filter, Status filter, Building (if multi-building) |
+| **KPI cards** | Total Elements, Assigned (count + %), Vacant (count + %), Revenue (monthly sum) |
+| **Default sort** | Element Type, then Unit Number |
+| **Access** | Property Manager, Admin |
+
+**Unit Change History** (Unit & Resident)
+
+| Attribute | Detail |
+|-----------|--------|
+| **Description** | Audit trail of all changes made to unit records. Important for dispute resolution and accountability. |
+| **Default columns** | Unit Number, Field Changed, Old Value, New Value, Changed By (staff name), Changed At (timestamp), Change Type (Create / Update / Delete) |
+| **Parameters** | Date Range (universal), Unit filter, Changed By filter, Field Changed filter |
+| **KPI cards** | Total Changes, Units Modified, Most Active Editor (staff name + count) |
+| **Default sort** | Changed At descending (newest first) |
+| **Access** | Property Manager, Admin |
+
+**User Change History** (Unit & Resident)
+
+| Attribute | Detail |
+|-----------|--------|
+| **Description** | Audit trail of all changes made to user/resident records over time. Important for dispute resolution and accountability. |
+| **Default columns** | Resident Name, Unit Number, Field Changed, Old Value, New Value, Changed By (staff name), Changed At (timestamp), Change Type (Create / Update / Delete) |
+| **Parameters** | Date Range (universal), User filter, Changed By filter, Field Changed filter |
+| **KPI cards** | Total Changes, Users Modified, Most Active Editor (staff name + count) |
+| **Default sort** | Changed At descending (newest first) |
+| **Access** | Property Manager, Admin |
+
+**User Login Activity** (Unit & Resident)
+
+| Attribute | Detail |
+|-----------|--------|
+| **Description** | Tracks login frequency, last login date, device types, and failed attempts per user. Supports security auditing and adoption monitoring. |
+| **Default columns** | User Name, Role, Last Login (timestamp), Login Count (period), Device Type (Desktop / Mobile / Tablet), Failed Attempts (period), Account Status (Active / Locked / Suspended) |
+| **Parameters** | Date Range (universal), Role filter, Account Status filter, Device Type filter |
+| **KPI cards** | Total Logins, Unique Users, Failed Attempts, Users Never Logged In (count) |
+| **Default sort** | Last Login descending (most recent first) |
+| **Access** | Property Manager, Admin |
+
+**Electronic Consent Compliance** (Communication)
+
+| Attribute | Detail |
+|-----------|--------|
+| **Description** | Tracks which residents have provided electronic consent for receiving notices and communications. Legal compliance requirement in Canadian condo management. |
+| **Default columns** | Unit Number, Resident Name, Consent Status (Granted / Not Granted / Revoked), Consent Date, Consent Method (Portal / Paper / Email), Expiry Date |
+| **Parameters** | Consent Status filter, Building (if multi-building), Date Range (consent date) |
+| **KPI cards** | Total Residents, Consented (count + %), Not Consented (count + %), Revoked (count) |
+| **Default sort** | Consent Status ascending (Not Granted first), then Unit Number |
+| **Access** | Property Manager, Board Member, Admin |
+
+**AGM Opt-In Status** (Communication)
+
+| Attribute | Detail |
+|-----------|--------|
+| **Description** | Shows which owners have opted in to receive Annual General Meeting notices electronically vs. by mail. Required for condo governance compliance. |
+| **Default columns** | Unit Number, Owner Name, Opt-In Status (Electronic / Paper Mail / Not Responded), Opt-In Date, Email on File (Yes / No) |
+| **Parameters** | Opt-In Status filter, Building (if multi-building) |
+| **KPI cards** | Total Owners, Electronic Opt-In (count + %), Paper Mail (count + %), Not Responded (count) |
+| **Default sort** | Opt-In Status ascending (Not Responded first), then Unit Number |
+| **Access** | Property Manager, Board Member, Admin |
+
+**Unsubscribed Users** (Communication)
+
+| Attribute | Detail |
+|-----------|--------|
+| **Description** | Lists users who have unsubscribed from email notifications. Important for assessing communication reach and respecting notification preferences. |
+| **Default columns** | User Name, Unit Number, Role, Unsubscribed Date, Unsubscribed Categories (list), Email Address, Resubscribed (Yes / No) |
+| **Parameters** | Date Range (unsubscribe date), Role filter, Category filter |
+| **KPI cards** | Total Unsubscribed, Unsubscribed This Period, Resubscribed (count), Unsubscribe Rate (%) |
+| **Default sort** | Unsubscribed Date descending (most recent first) |
+| **Access** | Property Manager, Admin |
 
 #### 3.1.2 Report Library Tabs
 
@@ -338,7 +453,7 @@ The toolbar sits in the top-right of the report viewer.
 
 | # | Button | Icon | Label | Behavior |
 |---|--------|------|-------|----------|
-| 1 | Export | Download | "Export" | Opens dropdown: CSV, Excel, PDF |
+| 1 | Export | Download | "Export" | Opens dropdown: CSV, Excel, PDF, Word |
 | 2 | Schedule | Clock | "Schedule" | Opens schedule modal (see 3.4) |
 | 3 | Save Template | Bookmark | "Save" | Saves current filters + columns as a template (see 3.3) |
 | 4 | Chart | Bar chart | "Chart" | Toggles chart visibility |
@@ -354,6 +469,7 @@ The toolbar sits in the top-right of the report viewer.
 | 1 | CSV | `.csv` | Comma-separated values. All visible columns. UTF-8 encoding. |
 | 2 | Excel | `.xlsx` | Formatted spreadsheet with headers, column widths, and filters. |
 | 3 | PDF | `.pdf` | Print-ready document with property header, report title, filters summary, and paginated table. Charts included if visible. |
+| 4 | Word | `.docx` | Editable document with property header, report title, filters summary, and formatted table. Ideal for board meeting distribution where recipients need to annotate or modify the report. |
 
 **Export -- Button States**:
 - **Click**: Starts file generation
@@ -419,7 +535,7 @@ Users can configure reports to run automatically and be emailed on a recurring s
 | 3 | Day of Month | `select` | -- | Yes (if Monthly) | 1 | Options: 1--28 | -- |
 | 4 | Time | `time` | -- | Yes | 08:00 AM | Must be a valid time. 15-minute increments. | "Select a delivery time" |
 | 5 | Timezone | `select` | -- | Yes | Property timezone | Valid IANA timezone | -- |
-| 6 | Format | `select` | -- | Yes | PDF | Options: CSV, Excel, PDF | -- |
+| 6 | Format | `select` | -- | Yes | PDF | Options: CSV, Excel, PDF, Word | -- |
 | 7 | Recipients | `multi-select` (searchable) | -- | Yes | Current user | At least 1 recipient. Must be users with report access. Max 20 recipients. | "Add at least one recipient" / "Maximum 20 recipients" |
 | 8 | Email Subject | `text` | 150 chars | No | "{Report Name} -- {Frequency} Report" | -- | -- |
 | 9 | Include Chart | `toggle` | -- | No | On (if chart configured) | Only available if report has a chart | -- |
@@ -439,7 +555,7 @@ Displays all reports with active schedules.
 |---|--------|-------------|
 | 1 | Report Name | Clickable -- navigates to report viewer |
 | 2 | Frequency | "Daily at 8:00 AM" / "Weekly on Monday at 8:00 AM" / "Monthly on the 1st at 8:00 AM" |
-| 3 | Format | CSV / Excel / PDF |
+| 3 | Format | CSV / Excel / PDF / Word |
 | 4 | Recipients | Count + avatar stack. Tooltip: full list of names. |
 | 5 | Next Delivery | Relative timestamp. "Tomorrow at 8:00 AM" or "In 3 days" |
 | 6 | Last Delivered | Relative timestamp. "2 days ago" or "Never" |
@@ -877,7 +993,7 @@ HealthScore
 | Chart Type selector | "Select how to visualize this data. AI will suggest the best option." |
 | Comparison toggle | "Compare this report against a previous time period" |
 | Health Score dimension bar | "Click to view the detailed report for this dimension" |
-| Export button | "Download this report as CSV, Excel, or PDF" |
+| Export button | "Download this report as CSV, Excel, PDF, or Word" |
 | Share button | "Copy a link to this report with current filters" |
 | Column visibility toggle | "Choose which columns to show or hide" |
 | Group By selector | "Group rows by this column to see subtotals" |
@@ -1004,7 +1120,7 @@ All AI features follow the platform's AI principles (see PRD 19): graceful degra
 | **Model** | Sonnet |
 | **Cost** | ~$0.02 per presentation |
 | **Input** | Report data + KPIs + charts + Building Health Score |
-| **Output** | Structured presentation outline (exported as PDF) with executive summary, charts, key metrics, and recommendations |
+| **Output** | Structured presentation outline (exported as PDF or DOCX) with executive summary, charts, key metrics, and recommendations |
 | **Fallback** | Standard PDF export without narrative formatting |
 | **Toggle** | Disabled by default. Admin can enable. |
 
@@ -1069,7 +1185,7 @@ The Reports module has its own operational analytics -- meta-reporting on how re
 |--------|-------------|---------------|
 | Most-run reports | Top 10 reports by run count (last 30 days) | Horizontal bar chart |
 | Report generation time | Average, P95, and max generation time per report | Table with sparklines |
-| Export usage | Count of exports by format (CSV vs. Excel vs. PDF) | Pie chart |
+| Export usage | Count of exports by format (CSV vs. Excel vs. PDF vs. Word) | Pie chart |
 | Scheduled report delivery | Success/failure rate of scheduled deliveries | KPI card + trend line |
 | Active users | Number of unique users running reports per week | Line chart |
 | AI feature usage | Invocation count and acceptance rate for each AI capability | Table with progress bars |
@@ -1103,7 +1219,7 @@ These metrics feed into the Building Health Score and are surfaced via the Data 
 |---------|---------|
 | Subject | "{Report Name} -- {Frequency} Report ({Date})" or custom subject |
 | Body | "Hi {First Name}, your scheduled report is attached. Report: {Name}. Period: {Date Range}. Records: {Count}. View online: {deep link}" |
-| Attachment | Report file in configured format (CSV/Excel/PDF) |
+| Attachment | Report file in configured format (CSV/Excel/PDF/Word) |
 | Footer | "Manage your scheduled reports: {link}. Unsubscribe from this report: {link}" |
 
 **Delivery Failure Email Template**:
@@ -1429,10 +1545,10 @@ POST /api/v1/reports/ai/root-cause
 
 | # | Requirement | Section | Status |
 |---|-------------|---------|--------|
-| 1 | 39+ pre-built report types across 8 categories | 3.1.1 | Defined (42 reports) |
+| 1 | 52 pre-built report types across 8 categories | 3.1.1 | Defined (52 reports) |
 | 2 | Date range filtering with 12 presets + custom | 3.2.2 | Defined |
 | 3 | Grouping and sorting on all reports | 3.2.2, 3.2.4 | Defined |
-| 4 | Export: CSV, Excel, PDF | 3.2.6 | Defined |
+| 4 | Export: CSV, Excel, PDF, Word | 3.2.6 | Defined |
 | 5 | Scheduled reports with email delivery (daily/weekly/monthly) | 3.4 | Defined |
 | 6 | Saved report templates with share option | 3.3 | Defined |
 | 7 | Role-based report access | 5.1--5.6 (user flows per role) | Defined |

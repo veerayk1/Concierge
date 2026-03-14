@@ -60,6 +60,8 @@ The same API endpoint returns different data shapes and action sets based on the
 
 Navigation menus, dashboard widgets, available actions, and even the data columns in tables adapt per role. Features a user cannot access must be completely invisible — never shown in a disabled or grayed-out state.
 
+API responses include all user-facing labels and messages in the requesting user's locale. The client never hardcodes display strings — every label, error message, and status name is a translation key resolved server-side. See Section 12 for the full i18n architecture.
+
 ### 2.4 AI as a Service Layer
 
 AI capabilities are exposed through an internal gateway service that any module can call. The AI layer is:
@@ -104,6 +106,8 @@ The following must be configurable by Super Admin or Property Admin without code
 | Report definitions | Per property | Property Admin |
 | Dashboard widget layout | Per user | Individual user |
 | Branding (logo, colors) | Per property | Property Admin |
+| Translation overrides | Per property, per locale | Property Admin |
+| Supported locales | Per property | Property Admin |
 
 ---
 
@@ -249,6 +253,8 @@ Property
 ├── buildings[] → Building
 ├── logo_url (varchar 500)
 ├── branding (JSONB — primary color, accent color)
+├── default_locale (varchar 10, default: "en-US" — the property's primary language)
+├── supported_locales[] (varchar 10 array — all languages enabled for this property, e.g., ["en-US", "fr-CA"])
 ├── features_enabled (JSONB — which modules are active)
 ├── subscription_tier (enum: starter, professional, enterprise)
 ├── custom_fields (JSONB)
@@ -357,6 +363,7 @@ User
 ├── user_type (enum: resident, owner, tenant, staff, admin, board_member)
 ├── move_in_date (date, nullable)
 ├── move_out_date (date, nullable)
+├── preferred_locale (varchar 10, default: null — falls back to property default)
 ├── two_factor_enabled (boolean)
 ├── notification_preferences → NotificationPreference
 ├── emergency_contacts[] → EmergencyContact
@@ -970,6 +977,7 @@ Notification Service
 - Properties can override system default templates
 - Templates are versioned — changes to a template do not affect already-sent notifications
 - Separate templates per channel (email templates are rich HTML; SMS templates are plain text under 160 characters; push templates are title + short body)
+- **Locale-aware**: Each template exists in every locale the property supports. The system ships default templates in all launch locales (en-US, en-CA, fr-CA). When sending, the notification service selects the template matching the recipient's `preferred_locale`, falling back to the property's `default_locale`, then to `en-US`. See Section 12 for full i18n architecture.
 
 ### 6.4 Per-User Preferences
 
@@ -1101,6 +1109,7 @@ Global search spans all modules and entity types:
 - Embeddings are generated for semantic search via the AI Gateway
 - Index updates are near-real-time (eventual consistency within seconds of a data change)
 - Custom fields marked as `searchable` are included in the index
+- **Multi-language indexing**: Search analyzers are configured per locale. Properties with multiple supported locales index content with language-appropriate stemming and tokenization (e.g., French stemming for `fr-CA` content). User-generated content (announcements, classified ads) is indexed in the language it was written in. System UI labels are indexed in all supported locales so a French-language user searching "colis" finds packages. See Section 12 for full i18n architecture.
 
 ---
 
@@ -1202,12 +1211,12 @@ Properties can use shared templates as-is or clone and customize them.
 
 | Entity | Primary Fields (Top 5) | Owned By Module | Key Relationships |
 |--------|----------------------|----------------|-------------------|
-| **Property** | name, address, timezone, total_units, subscription_tier | Core | → ManagementCompany, → Buildings[], → Users[] |
+| **Property** | name, address, timezone, default_locale, supported_locales[] | Core | → ManagementCompany, → Buildings[], → Users[] |
 | **ManagementCompany** | name, properties[], admins[] | Core | → Properties[], → Users[] |
 | **Building** | name, address, total_floors, total_units | Core | → Property, → Units[] |
 | **Unit** | number, floor, unit_type, status, square_footage | Core | → Building, → Users[], → Events[], → FOBs[] |
 | **UnitInstruction** | instruction_text, priority, visible_to_roles[], active | Core | → Unit |
-| **User** | email, first_name, last_name, role_id, user_type | Core | → Role, → Unit, → Properties[] |
+| **User** | email, first_name, last_name, role_id, preferred_locale | Core | → Role, → Unit, → Properties[] |
 | **Role** | name, permissions, visible_modules[], hierarchy_level | Core | → Users[] |
 | **Event** | title, status, priority, event_type_id, reference_number | Events | → EventType, → Property, → Unit, → User |
 | **EventType** | name, icon, color, default_priority, group_id | Events | → EventGroup, → Property, → NotificationTemplates |
@@ -1239,17 +1248,151 @@ Properties can use shared templates as-is or clone and customize them.
 | **Vehicle** | make, model, license_plate, color, year | Core | → User, → Unit |
 | **Pet** | name, species, breed, weight | Core | → User, → Unit |
 | **AuditEntry** | action, actor_id, entity_type, changes, ip_address | Audit | → Property, → User |
+| **TranslationOverride** | locale, namespace, key, value | i18n | → Property, → User (created_by) |
 | **CustomFieldDefinition** | field_key, field_label, field_type, entity_type | Core | → Property, → EventType |
 
 ---
 
+## 12. Internationalization (i18n) & Multi-Language Support
+
+Concierge is built for the Canadian condo market, where bilingual requirements (English and French) are a legal and practical reality in Ontario and Quebec. Multi-language support is a day-one capability, not a retrofit.
+
+### 12.1 Architecture
+
+All user-facing strings are stored as **translation keys**, never hardcoded in source code. The platform resolves keys to display text at render time using the active locale.
+
+**Translation file structure**: One JSON file per locale, organized by module namespace.
+
+```
+locales/
+├── en-US/
+│   ├── common.json          (shared labels: Save, Cancel, Search, etc.)
+│   ├── events.json           (event module strings)
+│   ├── maintenance.json      (maintenance module strings)
+│   ├── amenities.json        (amenity module strings)
+│   ├── notifications.json    (notification subject/body templates)
+│   └── ...                   (one file per module)
+├── en-CA/
+│   └── ...                   (overrides only — inherits from en-US)
+└── fr-CA/
+    └── ...                   (full French-Canadian translations)
+```
+
+**Fallback chain**: When a translation key is missing, the system resolves it in this order:
+
+1. **User's preferred locale** (`User.preferred_locale`, e.g., `fr-CA`)
+2. **Property default locale** (`Property.default_locale`, e.g., `en-CA`)
+3. **Base language** (e.g., `fr-CA` falls back to `fr`, `en-CA` falls back to `en-US`)
+4. **System default** (`en-US` — always complete, never has missing keys)
+
+This means a property can enable French without translating every custom string. Untranslated strings gracefully appear in English rather than showing broken keys.
+
+### 12.2 Supported Languages at Launch
+
+| Locale Code | Language | Reason |
+|------------|----------|--------|
+| `en-US` | English (US) | System default and base language |
+| `en-CA` | English (Canadian) | Canadian spelling and date formats (e.g., "colour", dd/mm/yyyy) |
+| `fr-CA` | French (Canadian) | Required for Quebec properties and bilingual Ontario buildings |
+
+Additional locales can be added post-launch without code changes — only new translation JSON files are needed.
+
+### 12.3 Translation Management
+
+**System-provided translations**: Concierge ships with complete, professional translations for all system UI strings in every launch locale. These are the defaults.
+
+**Property-level overrides**: A Property Admin can customize any translation string for their property. This is stored as a per-property override layer that takes priority over system defaults.
+
+```
+TranslationOverride
+├── id (UUID)
+├── property_id → Property
+├── locale (varchar 10, e.g., "fr-CA")
+├── namespace (varchar 50, e.g., "events", "common")
+├── key (varchar 200, e.g., "event_type.package.name")
+├── value (text — the custom translation)
+├── created_by → User
+└── created_at, updated_at
+```
+
+**Use cases for overrides**:
+- A property calls its amenity "Party Suite" instead of the default "Party Room"
+- A property uses industry-specific terminology in French that differs from the system default
+- Custom event type names need translated labels
+
+**Admin UI**: The translation management screen shows all keys for a selected locale with the system default and any property override side by side. Admins can search, filter by module, and export/import overrides as CSV for bulk editing.
+
+### 12.4 Content Translation
+
+There are two categories of text in Concierge, and each is handled differently:
+
+**System UI strings** (labels, buttons, menus, error messages, status names):
+- Translated via the translation file system described above
+- Every key has a professional translation in all launch locales
+- Rendered in the viewer's preferred locale
+
+**User-generated content** (announcements, classified ads, event descriptions, maintenance notes):
+- Stored in the language the author wrote it in
+- **AI auto-translation**: When a property has multiple supported locales, the AI service layer (via the AI Gateway — see Section 7) can auto-translate user-generated content on demand. For example, a Property Manager writes an announcement in English and the system generates a French version for `fr-CA` residents. This is capability #45 as defined in PRD 09 (Announcements & Communication).
+- Auto-translated content is clearly labeled as machine-translated so readers know it was not written by the author
+- Authors can review and edit auto-translations before publishing
+- The original language version is always preserved as the source of truth
+
+### 12.5 RTL (Right-to-Left) Support
+
+Full RTL layout support for languages like Arabic and Hebrew is a **future consideration** (v3+). However, the architecture is built to support it without rework:
+
+- All layout uses logical properties (`margin-inline-start` instead of `margin-left`)
+- The CSS direction is driven by a `dir` attribute on the root element, set from the active locale
+- Icon mirroring rules are defined per icon (some icons like arrows flip in RTL; others like logos do not)
+- No layout assumes left-to-right text flow
+
+### 12.6 Date, Time, and Currency Formatting
+
+All dates, times, numbers, and currencies are formatted using **locale-aware formatting** (via the `Intl` API on the client and equivalent libraries server-side). Nothing is hardcoded to a single format.
+
+| Data Type | en-US | en-CA | fr-CA |
+|-----------|-------|-------|-------|
+| Date | 03/14/2026 | 2026-03-14 | 2026-03-14 |
+| Time | 2:30 PM | 2:30 p.m. | 14 h 30 |
+| Currency | $1,250.00 | $1,250.00 | 1 250,00 $ |
+| Numbers | 1,250.50 | 1,250.50 | 1 250,50 |
+
+**Rules**:
+- The property's timezone (`Property.timezone`) governs time display. Users always see times in the building's local timezone, regardless of their browser timezone.
+- Currency symbol and format follow the active locale
+- Relative timestamps ("5 minutes ago", "il y a 5 minutes") are locale-aware
+- Calendar controls (week start day, month names, day abbreviations) adapt to the active locale
+- Export files (Excel, PDF) use the requesting user's locale for formatting
+
+### 12.7 Data Model Fields
+
+Three fields across two entities support the i18n system:
+
+| Entity | Field | Type | Purpose |
+|--------|-------|------|---------|
+| `User` | `preferred_locale` | varchar 10, nullable | The user's chosen language. When null, falls back to the property default. |
+| `Property` | `default_locale` | varchar 10, default `"en-US"` | The property's primary language for all UI and notifications. |
+| `Property` | `supported_locales[]` | varchar 10 array | All locales enabled for this property. Controls which languages appear in the user language picker and which notification template translations are required. |
+
+**Locale picker**: Users see a language selector in their profile settings. The options come from `Property.supported_locales[]`. Changing the locale immediately re-renders the entire UI — no page reload is needed.
+
+**Validation**: `Property.default_locale` must always be present in `Property.supported_locales[]`. The API enforces this constraint.
+
+### 12.8 Integration with Other Sections
+
+This section connects to several other parts of the architecture:
+
+- **Notification Templates (Section 6.3)**: Templates exist per locale. The notification service picks the template matching the recipient's locale.
+- **Search Index (Section 8.4)**: Multi-language analyzers index content with locale-appropriate stemming. System labels are indexed in all supported locales.
+- **API Responses (Section 2.3)**: All user-facing labels in API responses are resolved to the requesting user's locale server-side. Clients display what they receive without local translation logic.
+- **AI Service Layer (Section 7)**: The AI Gateway accepts a `target_locale` parameter for translation tasks. PII stripping (Section 7.3) is language-aware.
+- **Configurable Elements (Section 2.7)**: Translation overrides and supported locales are property-level configurations managed by admins.
+- **Announcements (PRD 09)**: AI auto-translation of announcement content is defined as capability #45.
+
+---
+
 ## Appendix A: Cross-Cutting Concerns
-
-### Internationalization (i18n)
-
-- All user-facing strings must be externalized for translation
-- Date, time, and currency formatting must respect property locale
-- Right-to-left (RTL) layout support is a future consideration but the component architecture must not preclude it
 
 ### Data Export
 

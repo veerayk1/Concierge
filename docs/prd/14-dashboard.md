@@ -89,10 +89,12 @@ Each role receives a pre-configured dashboard layout. Layouts differ in which wi
 |--------|----------|-----------|-------------|
 | Building Health Score | Top-left | Yes | Composite score 0-100 with trend arrow and contributing factors |
 | AI Daily Briefing | Top-right | No | AI-generated morning summary of overnight events, pending items, and today's priorities |
-| KPI Cards Row | Row 2 | Yes | 6 cards: Open Requests, Unreleased Packages, Active Visitors, Today's Bookings, Resident Count, Staff On Duty |
+| KPI Cards Row | Row 2 | Yes | 6 cards: Open Requests, Unreleased Packages, Active Visitors, Today's Bookings, Active Users, Staff On Duty |
 | Announcements Widget | Row 3, left | Yes | Latest 3 announcements with "View All" link |
 | Activity Feed | Row 3, right | Yes | Real-time feed of all building activity (events, packages, requests, bookings) |
-| Charts Row | Row 4 | No | Maintenance by month (line chart), Package volume trend (bar chart) |
+| Communication Health Chart | Row 4, left | No | Email/SMS/push delivery success rates over the last 30 days (line chart). Pulls data from the Communication module (09-Communication, Section 8.1). Click to open Communication Analytics. |
+| Building Demographics Chart | Row 4, right | No | Donut chart showing tenant/owner split and unit occupancy (occupied, vacant, offsite-owner). Hover for segment label and count. Click to navigate to Unit Management. |
+| Charts Row | Row 5 | No | Maintenance by month (line chart), Package volume trend (bar chart) |
 | Quick Actions | Floating bottom-right | Yes | Create User, Send Announcement, View Reports, AI Briefing |
 
 #### Property Manager Dashboard
@@ -105,6 +107,7 @@ Each role receives a pre-configured dashboard layout. Layouts differ in which wi
 | Activity Feed | Row 3, right | Yes | Real-time feed filtered to operational events |
 | Building Health Score | Row 4, left | No | Composite score with trend |
 | Charts Row | Row 4, right | No | Configurable charts (maintenance trends, package volume, amenity utilization) |
+| Communication Health Chart | Row 5, left | No | Email/SMS/push delivery success rates over the last 30 days (line chart). Pulls from Communication module analytics. |
 | Quick Actions | Floating bottom-right | Yes | Create Announcement, Assign Request, View Reports, Log Event |
 
 #### Board Member Dashboard
@@ -134,7 +137,7 @@ Each role receives a pre-configured dashboard layout. Layouts differ in which wi
 | Widget | Position | Mandatory | Description |
 |--------|----------|-----------|-------------|
 | KPI Cards Row | Top | Yes | 4 large cards with big numbers: Active Visitors, Unreleased Packages, Keys Out, Open Incidents |
-| Quick Actions Grid | Row 2, full width | Yes | 4 large tap-target buttons: + Visitor, + Package, + Incident, + Key Checkout |
+| Quick Actions Grid | Row 2, full width | Yes | 5 large tap-target buttons: + Visitor, + Package, + Incident, + Key Checkout, Look Up Contact |
 | Shift Handoff Summary | Row 3 | Yes | Notes from outgoing shift. Expandable. |
 | Recent Activity | Row 4 | Yes | Last 20 events from own shift. Auto-updates via WebSocket. |
 | Weather Widget | Sidebar or Row 5 | No | Current weather with any building-relevant alerts |
@@ -144,7 +147,7 @@ Each role receives a pre-configured dashboard layout. Layouts differ in which wi
 | Widget | Position | Mandatory | Description |
 |--------|----------|-----------|-------------|
 | KPI Cards Row | Top | Yes | 4 cards: Unreleased Packages, Expected Visitors, Pending Items, Shift Notes Count |
-| Quick Actions Grid | Row 2, full width | Yes | 4 buttons: + Package, + Visitor, + Note, Look Up Unit |
+| Quick Actions Grid | Row 2, full width | Yes | 5 buttons: + Package, + Visitor, + Shift Log, Look Up Unit, Look Up Contact |
 | Shift Handoff Summary | Row 3 | Yes | Previous shift's notes and flagged items |
 | Recent Activity | Row 4 | Yes | Front desk activity feed (packages, visitors, notes) |
 | Announcements Widget | Row 5 | No | Latest announcements for resident inquiries |
@@ -589,6 +592,72 @@ Configurable chart containers for trend visualization.
 | **Loaded** | Rendered chart with data points, labels, and interactive tooltips |
 | **Empty** | "No data for this time range. Try expanding the date range." |
 | **Error** | "Chart data is temporarily unavailable." with Retry link. |
+
+#### 3.2.9 Security Setup Banner Widget
+
+A conditional banner that appears when the authenticated user has not configured two-factor authentication (2FA). Encourages adoption of 2FA for improved account security.
+
+**Visibility**: Shown to all roles. Appears at the very top of the dashboard, above all other widgets (including KPI cards). Only visible when `user.two_factor_enabled == false`.
+
+**Layout**:
+```
++----------------------------------------------------------------------+
+|  [shield icon]  Secure your account with two-factor authentication   |
+|                                                                       |
+|  [Set Up Now]                              [Remind Me Later]          |
++----------------------------------------------------------------------+
+```
+
+**Fields**:
+
+| Field | Data Type | Description |
+|-------|-----------|-------------|
+| title | string | "Secure your account with two-factor authentication" |
+| description | string | "Add an extra layer of security to protect your account. It only takes a minute." |
+| cta_primary | button | "Set Up Now" -- navigates to `/account/security` |
+| cta_dismiss | button | "Remind Me Later" -- dismisses the banner for 7 days |
+| dismiss_until | timestamp | Stored in `user_preferences`. If null or in the past, the banner reappears. |
+
+**States**:
+
+| State | Behavior |
+|-------|----------|
+| **Shown** | Banner displayed with primary blue background, white text, shield icon |
+| **Dismissed** | Banner hidden. Reappears after 7 days if 2FA is still not configured. |
+| **2FA Configured** | Banner never shows again for this user |
+
+#### 3.2.10 Property Hero Banner Widget (Optional)
+
+An optional full-width banner image at the top of the dashboard that provides visual identity for the property. Configurable by Property Admin in property settings.
+
+**Visibility**: All roles. Only shown if the Property Admin has uploaded a banner image in Settings > Property Appearance.
+
+**Layout**:
+```
++----------------------------------------------------------------------+
+|  [Full-width property image]                                          |
+|                                                                       |
+|  Property Name                                     [Weather overlay]  |
++----------------------------------------------------------------------+
+```
+
+**Fields**:
+
+| Field | Data Type | Max Length | Required | Default | Validation |
+|-------|-----------|-----------|----------|---------|------------|
+| banner_image_url | string | 500 chars | No | null | Valid URL to uploaded image. Supported: JPG, PNG, WebP. Min 1200x300px. Max 5 MB. |
+| overlay_text | string | 60 chars | No | Property name | Non-empty if provided |
+| overlay_position | enum | -- | No | "bottom-left" | One of: bottom-left, bottom-center, bottom-right |
+| show_weather_overlay | boolean | -- | No | true | When true, weather widget overlays the banner instead of appearing as a separate widget |
+
+**States**:
+
+| State | Behavior |
+|-------|----------|
+| **No image configured** | Widget is completely hidden. No placeholder shown. |
+| **Image loading** | 300px height skeleton with pulsing gray background |
+| **Loaded** | Full-width image with optional text overlay and weather overlay |
+| **Image load error** | Widget hidden. Logged as a warning. |
 
 ---
 

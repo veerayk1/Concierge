@@ -29,9 +29,11 @@ Competitive analysis revealed a consistent pattern: platforms that rely on a sin
 | 8 | Smart Building | Vendor APIs | Smart locks, intercoms, camera systems | v2 |
 | 9 | Webhooks (Outbound) | Custom endpoints | Push events to third-party systems | v2 |
 | 10 | Public API | RESTful + API keys | Third-party developer access | v2 |
-| 11 | Import / Export | CSV, Excel, PDF | Bulk data import, report export | v1 |
+| 11 | Import / Export | CSV, Excel, PDF, Word | Bulk data import, report export | v1 |
 | 12 | Digital Signage | Push protocol | Announcements to lobby screens | v3 |
 | 13 | Weather | OpenWeatherMap | Dashboard widget, AI briefing context | v1 |
+| 14 | Localization / i18n | AI provider + static files | Multi-language UI and content translation | v1 (basic), v2 (AI translation) |
+| 15 | Real-Time Chat | WebSocket | Staff-to-staff in-app messaging | v3 |
 
 ### Design Principles
 
@@ -202,7 +204,26 @@ Event occurs (package logged, announcement created, etc.)
 
 #### Fallback Strategy
 
-If SendGrid is unreachable, emails are queued in a persistent retry queue with a 24-hour TTL. If the queue reaches 1,000 unsent emails for a property, the admin is notified. Critical emails (password resets, emergency broadcasts) attempt delivery through a backup SMTP provider.
+If SendGrid is unreachable, emails are queued in a persistent retry queue with a 24-hour TTL. If the queue reaches 1,000 unsent emails for a property, the admin is notified. Critical emails (password resets, emergency broadcasts) attempt delivery through the backup SMTP provider.
+
+**Backup SMTP Configuration** (advanced setting, collapsed by default):
+
+| Field | Type | Max Length | Required | Default | Validation | Error Message |
+|-------|------|-----------|----------|---------|------------|---------------|
+| `backup_smtp_host` | string | 255 | No | -- | Valid hostname or IP | "Enter a valid SMTP host" |
+| `backup_smtp_port` | integer | -- | No | 587 | 25, 465, 587, or 2525 | "SMTP port must be 25, 465, 587, or 2525" |
+| `backup_smtp_username` | string | 255 | Conditional | -- | Required if host is set | "Username is required when SMTP host is configured" |
+| `backup_smtp_password` | string | 255 | Conditional | -- | Required if host is set. Stored encrypted. | "Password is required when SMTP host is configured" |
+| `backup_smtp_encryption` | enum | -- | No | `tls` | `none`, `tls`, `ssl` | -- |
+| `backup_smtp_from_email` | email | 255 | Conditional | Inherits from primary `from_email` | Valid email format, required if host is set | "Enter a valid sender email for backup SMTP" |
+
+> **Tooltip — Backup SMTP**: "Configure a backup SMTP provider for critical emails (password resets, emergency broadcasts) when the primary email provider is unreachable. Leave blank to rely on the retry queue only."
+
+**"Test Backup SMTP" Button**:
+- **Action**: Sends a test email to the admin's address via the backup SMTP provider
+- **Loading state**: "Testing connection..." with spinner
+- **Success state**: Green toast "Backup SMTP test successful -- check your inbox"
+- **Failure state**: Red toast "Backup SMTP connection failed: {error_details}"
 
 ---
 
@@ -590,6 +611,20 @@ Resident books amenity (e.g., Party Room) → booking confirmed
 
 Smart building integrations are always supplementary -- the building's existing physical access system remains the primary method. If the API integration fails, staff handle access manually as they did before the integration.
 
+#### Intercom-to-Buzzer-Code Sync (v2+)
+
+When a smart intercom system (e.g., ButterflyMX, 2N) is integrated, the platform can optionally sync buzzer codes from the intercom directory to the Concierge Buzzer Code Directory (PRD 16, Section 3.15).
+
+| Attribute | Detail |
+|-----------|--------|
+| **Sync direction** | Intercom system → Concierge (read-only sync). Concierge does not push codes to the intercom to avoid overwriting hardware-managed entries. |
+| **Sync frequency** | Daily at a configurable time, or on-demand via "Sync Now" button. |
+| **Conflict handling** | If a buzzer code differs between the intercom system and Concierge, the intercom value takes precedence. Admin is notified of conflicts. |
+| **Toggle** | "Auto-sync buzzer codes from intercom" (boolean, default Off, under intercom device configuration). |
+| **Mapping** | Intercom unit identifier → Concierge unit number. Admin maps units during initial setup via a mapping UI. |
+
+> **Implementation note**: This feature depends on the intercom vendor exposing a directory API. Not all vendors support this. The feature is available only for vendors with directory read access.
+
 ---
 
 ### 3.9 Webhooks — Outbound Event Subscriptions
@@ -762,7 +797,7 @@ All API errors return standard JSON:
 
 ---
 
-### 3.11 Import / Export — CSV, Excel, PDF
+### 3.11 Import / Export — CSV, Excel, PDF, Word
 
 #### Purpose
 
@@ -802,6 +837,7 @@ Every listing page and report includes an export button with format options:
 | **CSV** | Comma-separated values, UTF-8 with BOM | 100,000 |
 | **Excel (XLSX)** | Formatted workbook with headers, filters, and column widths | 50,000 |
 | **PDF** | Formatted document with property branding, headers, footers, page numbers | 10,000 |
+| **Word (DOCX)** | Editable document with property branding, headers, formatted table, and table of contents. Ideal for board meeting distribution where recipients need to annotate or modify content. | 10,000 |
 
 #### Export Data Flow
 
@@ -933,6 +969,115 @@ Dashboard loads → client requests /api/weather
 #### Fallback Strategy
 
 Weather is a non-critical integration. If the API is unreachable, the dashboard widget shows the last known weather with a "last updated" timestamp. AI briefings omit weather context rather than failing entirely.
+
+---
+
+### 3.14 Localization / i18n — Translation Support
+
+#### Purpose
+
+Support multi-language interfaces and translated content for properties serving diverse communities. The platform comparison matrix identifies "i18n from day one" as a strategic decision. This section defines the integration layer for translation services.
+
+#### Architecture
+
+Localization operates at two levels:
+
+| Level | Scope | Implementation |
+|-------|-------|----------------|
+| **UI strings** | All platform interface text (buttons, labels, menus, error messages, tooltips) | Static translation files (JSON) shipped with each release. Community-contributed translations accepted via PR. No runtime API needed. |
+| **User-generated content** | Announcements, notifications, event descriptions, amenity rules | On-demand translation via AI provider (Section 3.5) or optional external translation API. |
+
+#### Configuration Fields
+
+| Field | Type | Max Length | Required | Default | Validation | Error Message |
+|-------|------|-----------|----------|---------|------------|---------------|
+| `default_locale` | enum | -- | Yes | `en-CA` | Valid BCP 47 locale code | "Select a valid locale" |
+| `supported_locales` | enum[] | 10 max | Yes | `[en-CA]` | Valid BCP 47 locale codes, at least one | "Select at least one supported locale" |
+| `auto_translate_announcements` | boolean | -- | No | false | -- | -- |
+| `translation_provider` | enum | -- | No | `ai` | `ai` (uses configured AI provider from 3.5), `none` | -- |
+| `resident_locale_preference` | boolean | -- | No | true | -- | -- |
+
+> **Tooltip — Auto-Translate Announcements**: "When enabled, announcements are automatically translated into all supported locales using the AI provider. Translations are generated as drafts for admin review before publishing."
+
+> **Tooltip — Resident Locale Preference**: "When enabled, residents can choose their preferred language in their profile settings. All notifications, emails, and portal content will be displayed in their chosen language."
+
+#### Supported Locales (v1)
+
+| Locale Code | Language | Notes |
+|-------------|----------|-------|
+| `en-CA` | English (Canada) | Default, always available |
+| `fr-CA` | French (Canada) | Required for Quebec properties |
+| `zh-Hans` | Simplified Chinese | High demand in GTA condo market |
+| `ko` | Korean | High demand in GTA condo market |
+
+Additional locales added via configuration without code changes. UI string translation files follow the pattern: `locales/{locale_code}.json`.
+
+#### Data Flow — Announcement Translation
+
+```
+Admin creates announcement in default locale
+  → If auto_translate_announcements is On:
+    → System sends content to AI provider for translation
+    → Translations generated for each supported locale
+    → Translations saved as drafts (status: pending_review)
+    → Admin reviews and approves/edits each translation
+    → On publish: announcement delivered in each resident's preferred locale
+  → If auto_translate_announcements is Off:
+    → Admin manually enters translations per locale (tabbed editor)
+```
+
+#### Error Handling
+
+| Scenario | User Experience | System Action |
+|----------|----------------|---------------|
+| Translation API timeout | "Translation could not be generated. You can enter it manually." | Fall back to manual entry, log error |
+| Unsupported locale requested | Serve content in default locale | Log locale miss for analytics |
+| Resident has no locale preference | Serve content in property default locale | -- |
+
+#### Fallback Strategy
+
+Translation is a non-critical integration. If the AI translation fails, the platform serves content in the default locale. Admins can always manually enter translations. The UI never blocks on translation availability.
+
+#### Phase
+
+- **v1**: UI strings for `en-CA` and `fr-CA`. Locale preference in resident profile. Manual translation entry for announcements.
+- **v2**: AI-powered auto-translation. Additional locales (`zh-Hans`, `ko`). Translated notification templates.
+
+---
+
+### 3.15 Real-Time Chat — Staff Messaging (v3+)
+
+#### Purpose
+
+Provide in-app real-time messaging for staff communication. Enables front desk, security, and property management to coordinate without relying on external chat tools.
+
+#### Architecture
+
+WebSocket-based messaging using a dedicated chat service. Messages are persisted and searchable.
+
+#### Scope (v3+)
+
+| Capability | Description |
+|-----------|-------------|
+| **Staff-to-staff messaging** | Direct messages between staff members on duty |
+| **Shift channels** | Auto-created channel per active shift for team coordination |
+| **Property channel** | Persistent channel for building-wide staff announcements |
+| **Message types** | Text, image attachment, event link (deep link to any Concierge event) |
+| **Read receipts** | Sent, delivered, read indicators |
+| **Typing indicators** | Real-time typing status |
+| **Offline queue** | Messages queued when recipient is offline, delivered on next login |
+| **Search** | Full-text search across message history |
+
+#### Configuration Fields
+
+| Field | Type | Max Length | Required | Default | Validation | Error Message |
+|-------|------|-----------|----------|---------|------------|---------------|
+| `chat_enabled` | boolean | -- | No | false | -- | -- |
+| `message_retention_days` | integer | -- | No | 365 | 30--730 | "Retention must be between 30 and 730 days" |
+| `file_attachment_max_size_mb` | integer | -- | No | 5 | 1--10 | "Max attachment size must be between 1 and 10 MB" |
+| `allow_resident_chat` | boolean | -- | No | false | Tooltip: "When enabled, residents can message front desk staff through the portal. Staff-to-staff chat is always available." | -- |
+
+> **Implementation note**: This is a v3+ feature. For v1/v2, staff communication relies on the Shift Log (pass-on notes) and existing notification channels.
 
 ---
 
@@ -1399,7 +1544,7 @@ All inbound webhooks verify the provider's signature before processing.
 | 10 | Outbound webhooks with event subscriptions | Defined | Section 3.9 |
 | 11 | Public RESTful API with API key auth | Defined | Section 3.10 |
 | 12 | CSV/Excel import for bulk data | Defined | Section 3.11 |
-| 13 | PDF/Excel/CSV export for reports and listings | Defined | Section 3.11 |
+| 13 | PDF/Excel/CSV/Word export for reports and listings | Defined | Section 3.11 |
 | 14 | Digital signage for lobby screens | Defined | Section 3.12 |
 | 15 | Weather API for dashboard and AI briefing | Defined | Section 3.13 |
 | 16 | All configuration fields have type, validation, and error messages | Verified | All sections |
@@ -1417,6 +1562,11 @@ All inbound webhooks verify the provider's signature before processing.
 | 28 | No competitor names referenced | Verified | Uses "competitive analysis" and "industry research" |
 | 29 | Multi-channel notification fallback chain documented | Verified | Section 3.3 |
 | 30 | Inbound webhook signature verification | Verified | Section 10.7 |
+| 31 | Backup SMTP provider configuration fields | Defined | Section 3.2 |
+| 32 | Intercom-to-buzzer-code sync (v2+) | Defined | Section 3.8 |
+| 33 | Localization / i18n with locale configuration and AI translation | Defined | Section 3.14 |
+| 34 | Real-time staff chat integration (v3+) | Defined | Section 3.15 |
+| 35 | Word (DOCX) as fourth export format | Defined | Section 3.11 |
 
 ---
 

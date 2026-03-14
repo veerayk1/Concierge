@@ -106,6 +106,8 @@ The command palette is a floating overlay that combines search, navigation, and 
 | **Debounce** | 300ms after last keystroke before triggering search |
 | **Tooltip** | "Search across all modules, jump to pages, or run quick actions" |
 
+**Property scoping**: Command palette results are always scoped to the user's active property. For multi-building properties, results from all buildings within the property are shown. Each result's subtitle includes the building name for disambiguation (e.g., "Unit 1205 -- Tower A"). Users can switch properties via the Property Switcher in the top bar (Section 3.8) before searching.
+
 #### Result Categories
 
 Results are grouped into categories, displayed in this order:
@@ -502,6 +504,18 @@ A fixed horizontal bar at the top of every page.
 | 4 | Notification Bell | Right | Bell icon with unread count badge (see 3.4) |
 | 5 | User Avatar | Far right | Circular avatar with initials fallback. Click opens user menu dropdown. |
 
+**v2 addition -- Quick Contacts icon**: For staff roles (Concierge, Security Guard, Security Supervisor, Maintenance Staff, Property Manager), a phone icon will be added between the Notification Bell and User Avatar. Clicking it opens a dropdown panel showing: management office phone number, emergency contacts for the property, and a searchable list of vendor contacts. This addresses the high-frequency contact lookup task for front desk staff. Deferred to v2 to avoid top bar clutter at launch.
+
+**Interaction patterns**: Each top bar element has a distinct interaction behavior:
+
+| Element | Click Behavior | Interaction Type |
+|---------|---------------|-----------------|
+| Hamburger Menu | Opens the sidebar as a slide-over overlay (mobile/tablet only) | Overlay panel |
+| Property Switcher | Opens a dropdown list of properties | Dropdown |
+| Search Icon | Opens the command palette as a centered modal overlay | Modal overlay |
+| Notification Bell | Opens a dropdown panel anchored to the bell icon, showing recent notifications | Dropdown panel |
+| User Avatar | Opens a dropdown menu anchored to the avatar | Dropdown menu |
+
 #### User Menu Dropdown
 
 | Item | Route | Description |
@@ -510,8 +524,104 @@ A fixed horizontal bar at the top of every page.
 | Notification Preferences | `/account/notifications` | Channel and frequency preferences |
 | Switch Property | (dropdown) | List of properties user has access to (multi-property only) |
 | Keyboard Shortcuts | (modal) | Opens a modal listing all keyboard shortcuts |
-| Help | `/help` | Opens the help panel |
+| Help | `/help` | Opens the help center (see 3.9 Help Center) |
 | Sign Out | `/logout` | Signs the user out and redirects to the login page |
+
+### 3.9 Help Center (`/help`)
+
+The help center is an embedded page within Concierge (not an external link). It provides contextual help, searchable articles, and a path to support.
+
+#### Layout
+
+```
++----------------------------------------------------------------------+
+|  Help Center                                              [X Close]   |
+|                                                                       |
+|  [Search icon] Search help articles...                               |
+|                                                                       |
+|  QUICK LINKS                                                          |
+|  [icon] Getting Started Guide                                         |
+|  [icon] Contact Management Office                                     |
+|  [icon] Submit a Support Request                                      |
+|  [icon] View My Support Cases                                         |
+|                                                                       |
+|  CONTEXTUAL HELP                                                      |
+|  Articles relevant to the current page (auto-detected via route)      |
+|                                                                       |
+|  POPULAR ARTICLES                                                     |
+|  Top 5 most-viewed help articles for this property                    |
++----------------------------------------------------------------------+
+```
+
+#### Help Article Search
+
+| Attribute | Value |
+|-----------|-------|
+| **Field name** | `help_search_query` |
+| **Data type** | String |
+| **Max length** | 200 characters |
+| **Placeholder** | "Search help articles..." |
+| **Debounce** | 300ms |
+| **Results** | Up to 10 matching articles with title and excerpt. Click to open full article. |
+| **Empty results** | "No articles found. Try a different search term or contact management." |
+
+#### Quick Links
+
+| Link | Description | Visibility |
+|------|-------------|-----------|
+| Getting Started Guide | Onboarding walkthrough for the user's role | All roles |
+| Contact Management Office | Shows property management office phone, email, and hours | All roles |
+| Submit a Support Request | Opens a form to create a support ticket (sent to Property Admin) | All roles |
+| View My Support Cases | List of the user's previously submitted support requests with status | All roles |
+| Keyboard Shortcuts | Opens the keyboard shortcuts modal (same as top bar shortcut) | All roles |
+
+#### Contextual Help
+
+The help center detects the user's current page route and displays up to 3 relevant articles. For example, when viewing `/packages`, the contextual section shows articles about package tracking, release procedures, and notification settings.
+
+| Attribute | Value |
+|-----------|-------|
+| **Detection** | Matches current route prefix to article tags (e.g., `/packages` matches articles tagged "packages") |
+| **Max articles** | 3 |
+| **Fallback** | If no contextual articles exist for the current route, this section is hidden |
+
+**v2 note**: Live chat support widget integration is deferred to v2. If live chat is added, it will appear as a floating button on the help center page and optionally on all pages (configurable by Property Admin).
+
+### 3.10 Global Footer
+
+A minimal footer appears at the bottom of every page, below the main content area.
+
+#### Footer Elements
+
+| Element | Position | Description |
+|---------|----------|-------------|
+| Copyright | Left | "(c) {current_year} {property_name}. Powered by Concierge." |
+| Privacy Policy | Center-left | Link to `/legal/privacy`. Opens in the same window. |
+| Terms of Service | Center | Link to `/legal/terms`. Opens in the same window. |
+| System Status | Center-right | Link to `/status`. Shows a green dot when all systems operational, yellow dot for degraded performance, red dot for outage. |
+| Mobile App Downloads | Right | App Store and Google Play badges linking to the Concierge mobile app. Hidden on mobile devices (users are already on the app or mobile web). |
+
+#### Footer Fields
+
+| Field | Data Type | Max Length | Required | Default |
+|-------|-----------|-----------|----------|---------|
+| copyright_text | string | 100 chars | Yes | Auto-generated from property name and current year |
+| privacy_url | string | 255 chars | Yes | `/legal/privacy` |
+| terms_url | string | 255 chars | Yes | `/legal/terms` |
+| status_url | string | 255 chars | Yes | `/status` |
+| ios_app_url | string | 255 chars | No | null (hidden if not configured) |
+| android_app_url | string | 255 chars | No | null (hidden if not configured) |
+
+#### Footer Design Rules
+
+| Rule | Detail |
+|------|--------|
+| **Typography** | 12px regular, #8E8E93 gray |
+| **Background** | White (#FFFFFF), 1px top border #E5E5EA |
+| **Height** | 48px |
+| **Padding** | 16px horizontal |
+| **Sticky** | Not sticky. Appears after page content ends. |
+| **Mobile** | Stack vertically. Copyright on top, links below. App badges hidden. |
 
 ---
 
@@ -713,7 +823,7 @@ SearchIndex
 | Rule | Detail |
 |------|--------|
 | **Typography** | Sidebar labels: 14px medium. Section headers: 11px uppercase semibold, #8E8E93 gray. Badge text: 11px bold white on red circle. |
-| **Colors** | Active nav item: primary blue (#007AFF) icon and label. Inactive: #8E8E93 gray. Badge: #FF3B30 red with white text. Sidebar background: white (#FFFFFF). |
+| **Colors** | Active nav item: primary blue (#007AFF) icon and label with a 3px solid #007AFF left border bar as the active indicator. This left border provides a strong visual signal for users with color vision deficiency. Inactive: #8E8E93 gray, no left border. Badge: #FF3B30 red with white text. Sidebar background: white (#FFFFFF). |
 | **Spacing** | Sidebar items: 40px height, 16px left padding. Section headers: 24px top margin, 8px bottom margin. |
 | **Icons** | 20x20px for sidebar items. Outlined when inactive, filled when active. Consistent icon set across all items. |
 | **Transitions** | Sidebar collapse: 200ms ease-in-out. Command palette open/close: 150ms fade-in. Result highlight: instant (no animation). |

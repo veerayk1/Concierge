@@ -97,7 +97,7 @@ In condo environments, user accounts are tied to physical building access (FOBs,
 | 1 | First Name | String | 50 chars | Yes | -- | Letters, hyphens, apostrophes, spaces only. Min 1 char. | "First name is required" / "First name contains invalid characters" |
 | 2 | Last Name | String | 50 chars | Yes | -- | Letters, hyphens, apostrophes, spaces only. Min 1 char. | "Last name is required" / "Last name contains invalid characters" |
 | 3 | Email Address | String (email) | 254 chars | Yes | -- | Valid RFC 5322 email format. Must be unique across the property. | "Valid email address is required" / "This email is already in use at this property" |
-| 4 | Phone Number | String | 20 chars | No | -- | E.164 format with country code. Digits, +, -, (, ) only. | "Enter a valid phone number with country code" |
+| 4 | Phone Number | String | 20 chars | No | -- | E.164 format with country code. Digits, +, -, (, ) only. This populates `phone_cell` (the primary/cell number). Additional phone types (Home, Work) can be added on the resident profile page (see 07-Unit-Management, section 3.1.5 Tab 1, fields #8-#9). | "Enter a valid phone number with country code" |
 | 5 | Property | UUID (select) | -- | Yes | Current property | Must be a property the admin has access to | "Select a property" |
 | 6 | Role | UUID (select) | -- | Yes | -- | Must be a valid role for the selected property. Cannot exceed admin's own permissions. | "Select a role" |
 | 7 | Unit | UUID (select) | -- | Conditional | -- | Required for resident roles. Optional for staff roles. Must be a valid unit at the selected property. | "Unit is required for resident accounts" |
@@ -175,6 +175,8 @@ In condo environments, user accounts are tied to physical building access (FOBs,
 | **Template location** | Settings > Login Instructions |
 | **Send trigger** | Automatic on account creation (if checkbox enabled) or manual from the user profile |
 | **Resend** | Admin can resend from the user's profile page. "Resend Welcome Email" button. |
+| **Welcome Email Status** | Tracked per user. Values: Never Sent, Sent (with timestamp), Resent (with count and last timestamp). Displayed as a badge on the user's profile header and in the User Directory table on hover. |
+| **Duplicate send safeguard** | When an admin initiates a bulk welcome email send (via the "Send Welcome Email" bulk action on the User Directory), the system warns if any selected users have already received a welcome email: "X of Y selected users have already received a welcome email. Proceed to resend?" with "Send to All" and "Send to Unsent Only" options. |
 
 **Onboarding Flow (User's First Login)**
 
@@ -185,6 +187,20 @@ In condo environments, user accounts are tied to physical building access (FOBs,
 | 3 | Set Notification Preferences | Checkbox grid of notification types organized by module. Smart defaults pre-selected based on role. |
 | 4 | Enable 2FA (Optional) | Prompt to set up TOTP authenticator. "Set Up Now" or "Skip for Now" (skip allowed unless admin enforces 2FA for the role). |
 | 5 | Complete | Dashboard loads. Tooltip tour highlights key features for the user's role. |
+
+**Alternative Onboarding: Registration Codes (v2)**
+
+In addition to the welcome-email-with-setup-link approach (the default onboarding method), Concierge supports registration codes as an alternative for properties where email delivery is unreliable or where admin prefers in-person onboarding.
+
+| Aspect | Detail |
+|--------|--------|
+| **Code format** | 6-character alphanumeric, auto-generated (e.g., "HHXK9T"). Optionally rendered as a QR code for scanning. |
+| **Generation** | Admin generates a code per user from the user's profile page ("Generate Registration Code" button) or in bulk from the User Directory ("Generate Codes" bulk action). |
+| **Delivery** | Admin prints or shares the code in person, on paper, or via a physical welcome packet. |
+| **Expiry** | Codes expire after a configurable period (default: 72 hours). Expired codes show "Expired" status and can be regenerated. |
+| **Status tracking** | Per-code status: Generated, Used, Expired. Displayed on the user's profile. |
+| **Redemption** | Resident visits the property's login page, clicks "I have a registration code", enters the code, and proceeds to the standard onboarding flow (Set Password > Review Profile > Notification Preferences > 2FA). |
+| **Validation** | Code must be valid, unexpired, and unused. Invalid code shows: "This code is invalid or has expired. Contact your property administrator for a new code." |
 
 #### 3.1.4 Password Policy
 
@@ -294,6 +310,18 @@ Users can edit a limited set of their own profile fields. Changes to sensitive f
 | 6 | Language Preference | Yes | No | Yes |
 | 7 | About Me (bio) | Yes | No | Yes |
 | 8 | Profile Photo | Yes | No | Yes |
+| 9 | Default Package Preference | Yes (residents only) | No | Yes |
+
+**Default Package Preference** (Resident roles only)
+
+A standing preference for how packages are handled during normal (non-vacation) operations. This field appears on the resident's self-service profile and is also editable by admin/manager.
+
+| # | Field | Type | Required | Options | Default | Error Message |
+|---|-------|------|----------|---------|---------|---------------|
+| 1 | Default Package Handling | Dropdown | No | Hold at Front Desk, Leave at Door, Notify Only, Custom Instructions | Hold at Front Desk | -- |
+| 2 | Custom Instructions | Textarea | Conditional | 500 chars max. Required when Default Package Handling = "Custom Instructions". | Empty | "Custom instructions are required when 'Custom Instructions' is selected" |
+
+**Behavior**: When a package arrives for this resident, the package intake screen (see 04-Package Management) displays the resident's default package preference as a banner: "Resident preference: {preference}." Staff can override per-package. During vacation periods (see 07-Unit-Management, section 3.2.3), vacation-specific package instructions take precedence over this default preference.
 
 **Read-Only Fields (User Cannot Edit)**
 
@@ -352,11 +380,17 @@ Users configure which notifications they receive and through which channels. Pre
 | 15 | Account | Login from new device | On | On | Off | On | On | Off |
 | 16 | Account | Password changed | On | On | Off | On | On | Off |
 
+**Mute All Toggle**: At the top of the Notification Preferences page, a prominent "Mute All Non-Critical Notifications" toggle allows users to disable all unsubscribable notifications at once. When enabled, all individual toggles below are overridden and grayed out. A yellow info banner appears: "All optional notifications are muted. You will still receive critical security emails (password resets, account lockouts, login alerts)." Toggling off restores all individual preferences to their previous state.
+
 **Tooltip**: Notification preferences only control non-critical notifications. Critical security emails (password resets, account lockouts, 2FA recovery) are always delivered regardless of preferences.
+
+**Unsubscribe link in emails**: All outgoing non-critical emails include an "Unsubscribe" link in the footer per CAN-SPAM and CASL requirements. Clicking the link opens the Notification Preferences page with the relevant toggle pre-highlighted. A one-click "Unsubscribe from this type" action is available without requiring login (via a signed, time-limited token in the URL).
 
 **Save Preferences Behavior**: Auto-save on toggle. No save button needed. A brief "Saved" confirmation appears next to the toggled item for 2 seconds.
 
 **Role-Based Visibility**: Only modules relevant to the user's role are displayed. A resident never sees "Maintenance > Request assigned (staff)" because they do not have staff permissions.
+
+**Custom Distribution Lists**: For targeted communication beyond role-based and module-based preferences, admins can create custom distribution groups using the Resident Groups feature (see 07-Unit-Management, section 3.1.9). These groups serve as audience selectors when composing announcements (see 11-Announcements) or sending bulk notifications (see 09-Notifications). Distribution groups are managed at the property level and are distinct from notification preference categories.
 
 #### 3.1.9 Session Management
 
@@ -397,6 +431,15 @@ Users configure which notifications they receive and through which channels. Pre
 | 5 | Created Date | Date range picker | From / To |
 | 6 | Last Login | Date range picker | From / To |
 | 7 | 2FA Enabled | Toggle | Yes / No / All |
+| 8 | Email Status | Multi-select | Valid / Invalid / Missing |
+
+**Quick Contact Lookup**: The User Directory serves as both the administrative user management tool and the contact directory for front desk staff. A separate "Resident Directory" or "Address Book" is not needed because:
+1. The search bar supports name, email, unit, and role search with 300ms debounce for instant lookup.
+2. The table displays name, email, unit, and role inline -- the most common fields for contact lookup.
+3. Staff roles see a simplified view (no admin actions column) focused on contact information.
+4. Clicking any user row shows a compact profile card with phone numbers and email for quick reference without navigating to the full profile.
+
+For building-wide printed directories, the Export function (CSV/Excel/PDF) filtered by building produces a printable contact list.
 
 **User Directory Table Columns**
 
@@ -412,6 +455,37 @@ Users configure which notifications they receive and through which channels. Pre
 | 8 | Actions | No | -- |
 
 **Actions Column**: Kebab menu (three dots) with options: View Profile, Edit, Change Role, Suspend/Activate, Send Welcome Email, Reset Password, Reset 2FA.
+
+**Data Quality Banner**: Below the filter bar, a collapsible banner shows actionable data quality counts. Visible to Property Admin and Super Admin only. Default: collapsed, showing only a summary line.
+
+| Indicator | Count | Action |
+|-----------|-------|--------|
+| Missing email | "{N} users have no email address" | Click to filter directory to those users |
+| Missing phone | "{N} users have no phone number" | Click to filter directory to those users |
+| Missing emergency contacts | "{N} residents have no emergency contacts" | Click to filter directory to those users |
+| Invalid emails | "{N} users have invalid email addresses (bounced)" | Click to filter directory to those users |
+
+**Summary line** (when collapsed): "Data quality: {N} issues found. [View Details]" -- or "Data quality: All profiles complete" (green checkmark) when no issues exist. The banner is dismissible per session but reappears on next login if issues remain.
+
+**Saved Filter Presets**: Above the filter bar, quick-access buttons for common views:
+
+| # | Preset | Filters Applied | Badge |
+|---|--------|----------------|-------|
+| 1 | All Users | No filters | Total user count |
+| 2 | Staff | Role filter = all staff roles (Property Manager, Front Desk, Security, Maintenance Tech) | Staff count |
+| 3 | Residents | Role filter = all resident roles (Owner, Tenant, Offsite Owner, Family Member) | Resident count |
+| 4 | Pending Activation | Status = Pending Activation | Pending count (amber if > 0) |
+
+**Bulk Actions**: When one or more users are selected via checkboxes in the directory table, a bulk action bar appears above the table:
+
+| # | Action | Available When | Confirmation |
+|---|--------|---------------|-------------|
+| 1 | Send Welcome Email | At least one selected user has status = Pending Activation | "Send welcome emails to {N} users? {M} users have already received a welcome email and will be resent." Options: "Send to All Selected" / "Send to Unsent Only" / "Cancel" |
+| 2 | Change Status | Any selection | "Change status to [dropdown] for {N} users?" |
+| 3 | Export Selected | Any selection | Immediate download, no confirmation needed |
+| 4 | Generate Registration Codes (v2) | At least one selected user has status = Pending Activation | "Generate registration codes for {N} users? Existing unused codes will be replaced." |
+
+**Staff View**: When the "Staff" preset is active, an additional "Currently Active" column appears showing a green dot for staff members with an active session (based on session data from 3.1.9). This helps properties with shift-based security and concierge teams see who is currently logged in. A future integration with the Shift Log module (see 12-Shift-Log) can surface "Staff on shift today" data here.
 
 **Export Button**: "Export" button above the table. Options: CSV, Excel, PDF. Exports the current filtered view.
 
@@ -499,19 +573,28 @@ User
   first_name      VARCHAR(50)   NOT NULL
   last_name       VARCHAR(50)   NOT NULL
   email           VARCHAR(254)  NOT NULL, UNIQUE per property
-  phone           VARCHAR(20)   NULLABLE
+  phone_cell      VARCHAR(20)   NULLABLE (primary phone — populated from "Phone Number" on account creation form)
+  phone_home      VARCHAR(20)   NULLABLE (added via resident profile, see 07-Unit-Management section 3.1.5 Tab 1)
+  phone_work      VARCHAR(20)   NULLABLE (added via resident profile, see 07-Unit-Management section 3.1.5 Tab 1)
   date_of_birth   DATE          NULLABLE
   company_name    VARCHAR(100)  NULLABLE
   language        VARCHAR(5)    DEFAULT 'en'
   about_me        TEXT          NULLABLE, max 500 chars
   profile_photo   VARCHAR(255)  NULLABLE (S3 URL)
   require_assist  BOOLEAN       DEFAULT false
+  default_pkg_pref ENUM         NULLABLE ('hold_at_front_desk', 'leave_at_door', 'notify_only', 'custom')
+  default_pkg_instructions TEXT NULLABLE, max 500 chars (required when default_pkg_pref = 'custom')
   status          ENUM          'pending_activation', 'active', 'suspended', 'deactivated'
   password_hash   VARCHAR(255)  NOT NULL
   password_set_at TIMESTAMP     NOT NULL
   totp_secret     VARCHAR(64)   NULLABLE (encrypted at rest)
   totp_enabled    BOOLEAN       DEFAULT false
   recovery_codes  JSONB         NULLABLE (encrypted, array of hashed codes)
+  welcome_email_status ENUM     DEFAULT 'never_sent' ('never_sent', 'sent', 'resent')
+  welcome_email_sent_at TIMESTAMP NULLABLE
+  welcome_email_count INTEGER   DEFAULT 0
+  email_signature TEXT          NULLABLE, max 2000 chars (rich text, staff roles only)
+  email_signature_enabled BOOLEAN DEFAULT false
   created_at      TIMESTAMP     NOT NULL, auto
   updated_at      TIMESTAMP     NOT NULL, auto
   created_by      UUID          FK -> User (admin who created)
@@ -803,8 +886,37 @@ UserPropertyRole N───1 Unit (optional)
 - "Edit" button opens inline editing on the Profile tab
 - Security tab shows own active sessions and 2FA management
 - Notifications tab shows own preferences with toggles
+- Email Signature tab (staff roles only) for configuring outgoing email signatures
 
 **Mobile**: Tabs become a vertical accordion. Each section expands/collapses on tap.
+
+#### 6.3.1 Email Signature (Staff Only)
+
+**Visible to**: Property Manager, Front Desk, Security, Property Admin
+
+**Description**: Staff members can compose a rich text email signature that is automatically appended to outgoing communications sent through the platform (announcements, maintenance request updates, violation notices, and custom emails).
+
+**Email Signature Fields**
+
+| # | Field | Type | Required | Max Length | Validation | Error Message |
+|---|-------|------|----------|------------|------------|---------------|
+| 1 | Signature Content | Rich text editor | No | 2000 chars | Supports: bold, italic, underline, links, line breaks, and plain text. No images or embedded media. HTML is sanitized on save. | "Signature cannot exceed 2000 characters" |
+| 2 | Signature Enabled | Toggle | No | -- | Boolean. When off, no signature is appended to outgoing emails. Default: Off. | -- |
+
+**Rich text editor toolbar**: Bold, Italic, Underline, Link, Ordered List, Unordered List, Clear Formatting.
+
+**Preview**: Below the editor, a "Preview" section shows how the signature will appear in an outgoing email, rendered within the platform's email template.
+
+**Save Signature Button**
+
+| State | Behavior |
+|-------|----------|
+| **Default** | Label: "Save Signature". Blue filled button. Disabled until content is modified. |
+| **Loading** | Spinner + "Saving..." |
+| **Success** | Toast: "Email signature saved." |
+| **Failure** | Toast (red): "Failed to save signature. Please try again." |
+
+**Applied to**: The signature is appended to all outgoing emails sent by the staff member through the following modules: Announcements (see 11), Maintenance Requests (see 05), Violation Notices (see 03), and any manual email sent via the platform's compose feature. It is not appended to system-generated automated emails (welcome emails, password resets, notification digests).
 
 ### 6.4 Component: Notification Preference Grid
 
@@ -909,6 +1021,9 @@ Three AI capabilities are relevant to User Management. All are defined in the AI
 | 2FA adoption | % of active users with 2FA enabled, broken down by role | Property Admin, Super Admin |
 | Password age distribution | How many users have passwords older than 30/60/90 days | Property Admin, Super Admin |
 | Missing data score | % of profiles with incomplete information (no phone, no emergency contact, etc.) | Property Admin, Super Admin |
+| Missing email count | Count of users with no email address on file, broken down by role category (staff vs. residents) | Property Admin, Super Admin |
+| Missing phone count | Count of users with no phone number on file | Property Admin, Super Admin |
+| Missing emergency contacts | Count of residents with zero emergency contacts | Property Admin, Super Admin |
 
 ### 8.2 Performance Metrics
 

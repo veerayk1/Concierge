@@ -21,6 +21,8 @@ The Community module is the social and informational hub of Concierge. It brings
 | **Surveys / Polls** | Management-created questionnaires distributed to residents with response analytics |
 | **Photo Albums** | Shared photo galleries for building events, renovations, and community moments |
 
+**Intentionally deferred to v3+**: An **Online Store** sub-module for building-managed commerce (laundry cards, parking passes, event tickets, amenity-related products) was identified in industry research but is deferred to v3+. Classified Ads covers resident-to-resident commerce; the Online Store would cover property-managed product sales with cart, checkout, and order tracking. Research data is available in `docs/store.md` for future implementation.
+
 ### Why This Module Exists
 
 Industry research revealed a clear gap: most building management platforms treat community engagement as an afterthought -- a forum tacked onto a package tracker, or a document library with no search. Residents who feel disconnected from their building are less likely to follow rules, attend meetings, or report issues early.
@@ -108,6 +110,9 @@ Concierge treats community as a first-class module because engaged residents mak
 | `contact_phone` | Phone | tel | Conditional | 20 chars | Empty | Required if "Phone" contact method selected. Valid phone format | "Please enter a valid phone number" |
 | `contact_email` | Email | email | Conditional | 254 chars | User's email | Required if "Email" contact method selected. Valid email format | "Please enter a valid email address" |
 | `expiration_date` | Expires On | date | No | -- | Today + 30 days | Must be future date, max 90 days from today | "Expiration date must be within the next 90 days" |
+| `terms_accepted` | Terms Agreement | checkbox | Yes | -- | false | Must be checked to submit | "You must agree to the building's classified ad terms and conditions" |
+
+**Terms and Conditions**: The form displays a required checkbox: "I agree to the building's [classified ad terms and conditions]({link})". The link points to a configurable terms document uploaded by the Property Admin in Settings > Community > Classified Ads. If no terms document is configured, the checkbox is hidden and not required.
 
 **Price Type options**: Fixed Price, Negotiable, Free, Contact for Price
 
@@ -240,7 +245,7 @@ Draft --> Pending Review --> Active (Available) --> Sold
 
 | Feature | Description | Acceptance Criteria |
 |---------|-------------|---------------------|
-| Calendar view | Month/Week/Day view using a calendar grid | Default: Month view. Current date highlighted. Events shown as color-coded blocks |
+| Calendar view | Month/Week/Work Week/Day/Agenda views | Default: Month view. Current date highlighted. Events shown as color-coded blocks. Work Week shows Monday-Friday only. Agenda shows a scrollable list of upcoming events with date headers (no grid). |
 | List view | Chronological event list with details | Toggle between Calendar and List. List shows: title, date/time, location, RSVP count, status badge |
 | Calendar types | Internal (staff) and Public (resident) calendars | Color-coded: Internal = orange, Public = blue. Toggle checkboxes to show/hide each calendar type. Staff see both; residents see only Public |
 | Create Event button | Opens create event form | Visible to: Property Manager, Property Admin, Front Desk (internal only). Residents can request events (goes through approval) |
@@ -253,6 +258,7 @@ Draft --> Pending Review --> Active (Available) --> Sold
 
 | Field | Label | Type | Required | Max Length | Default | Validation | Error Message |
 |-------|-------|------|----------|------------|---------|------------|---------------|
+| `building_id` | Building | select | Yes (multi-building) | -- | User's assigned building | Must select a building. Hidden for single-building properties. | "Please select a building" |
 | `title` | Event Title | text | Yes | 200 chars | Empty | Min 3 chars | "Event title must be at least 3 characters" |
 | `description` | Description | rich text (Markdown) | No | 5,000 chars | Empty | -- | -- |
 | `start_datetime` | Starts | datetime | Yes | -- | Tomorrow at 10:00 AM | Must be future (for new events) | "Start date must be in the future" |
@@ -269,6 +275,21 @@ Draft --> Pending Review --> Active (Available) --> Sold
 | `notify_residents` | Send Notification | toggle | No | -- | false | -- | -- |
 | `target_groups` | Notify Groups | checkbox group | Conditional | -- | All Residents | Required if notify_residents is true | "Select at least one group to notify" |
 | `guard_required` | Security Guard Required | toggle | No | -- | false | Visible to staff only | -- |
+| `category_id` | Category | select | No | -- | "General" | Must select from predefined list | "Please select a category" |
+
+**Event Category options** (admin-configurable, system defaults):
+
+| Category | Color | Icon | Description |
+|----------|-------|------|-------------|
+| General | Gray | calendar | Default category for uncategorized events |
+| Social | Purple | people | Social gatherings, parties, meet-and-greets |
+| Board Meeting | Navy | briefcase | Board of directors meetings |
+| Maintenance | Orange | wrench | Scheduled maintenance, shutdowns, inspections |
+| Health & Safety | Red | shield | Fire drills, safety training, emergency prep |
+| Recreation | Green | dumbbell | Fitness classes, sports, wellness events |
+| Holiday | Gold | star | Holiday celebrations, seasonal events |
+
+Properties can add, rename, reorder, or deactivate categories via Settings > Community > Event Categories. Each category has a name (50 chars), color (hex), icon (from system icon set), and active toggle.
 
 **Location Type options**: On-Site, Off-Site, Virtual (shows URL field when selected), Hybrid (shows URL field + location)
 
@@ -354,6 +375,7 @@ Draft --> Published (Active) --> In Progress --> Completed
 | `folder_name` | Folder Name | text | Yes | 100 chars | Empty | Min 2 chars. No special characters except hyphens and spaces. Unique within parent folder | "Folder name must be 2-100 characters" / "A folder with this name already exists" |
 | `description` | Description | text | No | 300 chars | Empty | -- | -- |
 | `parent_folder_id` | Location | select | Yes | -- | Current folder | Must be a valid folder the user has write access to | "You do not have permission to create folders here" |
+| `building_id` | Building | select | No | -- | All Buildings | For multi-building properties, scopes folder visibility to a specific building. "All Buildings" makes the folder visible property-wide. Hidden for single-building properties. | -- |
 
 **Folder Permissions** (set per folder):
 
@@ -430,6 +452,7 @@ Role-level defaults are configurable by Property Admin. Permissions can be set p
 | Feature | Description | Who Can Access |
 |---------|-------------|----------------|
 | Flagged content list | All AI-flagged and user-reported content in one queue | Property Manager, Property Admin |
+| Content type filter | Filter queue by content type: All, Classified Ads, Forum Posts, Comments, Ideas. Allows property managers to process ad approvals separately from forum moderation. | Property Manager, Property Admin |
 | Bulk actions | Approve, Remove, or Warn on multiple items | Property Manager, Property Admin |
 | Violation types | Categories: Spam, Inappropriate Language, Personal Information Shared, Harassment, Off-Topic, Policy Violation | -- |
 | User history | View a user's moderation history (warnings, removals) from the queue | Property Admin |
@@ -484,9 +507,10 @@ Each question has: question text (required, 500 chars max), type (required), req
 | Element | Description |
 |---------|-------------|
 | Response rate | "32 of 171 units responded (18.7%)" with progress bar |
-| Per-question results | Charts per question type: bar chart for multiple choice/checkbox, average + distribution for rating, word cloud for free text, ranked list for ranking |
-| Individual responses | Expandable table of all responses (hidden if survey is anonymous). Columns: unit number, respondent name, submitted date, response per question |
-| Export | "Export Results" button with format options: CSV, PDF, Excel. CSV includes all response data; PDF includes charts |
+| Segment by | Dropdown: "All Respondents", "Owners Only", "Tenants Only". Filters all charts and metrics below. Default: "All Respondents" |
+| Per-question results | Charts per question type: bar chart for multiple choice/checkbox, average + distribution for rating, word cloud for free text, ranked list for ranking. Each chart respects the active segment filter. |
+| Individual responses | Expandable table of all responses (hidden if survey is anonymous). Columns: unit number, respondent name, respondent type (Owner/Tenant), submitted date, response per question |
+| Export | "Export Results" button with format options: CSV, PDF, Excel. CSV includes all response data with per-question columns and respondent type. PDF includes charts. Export respects the active segment filter -- exporting while "Owners Only" is selected exports only owner responses. |
 | Close survey | "Close Survey" button ends collection early. Confirmation: "This will stop accepting responses. Continue?" |
 
 ### 3.7 Photo Albums
@@ -605,6 +629,7 @@ Unique constraint on `(idea_id, user_id)` -- one vote per user per idea.
 |-------|------|----------|------------|---------|-------------|
 | `id` | UUID | Auto | -- | Generated | Primary key |
 | `property_id` | UUID (FK) | Yes | -- | Context | Links to property |
+| `building_id` | UUID (FK) | No | -- | null | Links to building (for multi-building properties). Null means property-wide. |
 | `created_by` | UUID (FK) | Yes | -- | Auth context | Event creator |
 | `title` | varchar | Yes | 200 | -- | Event title |
 | `description` | text | No | 5,000 | null | Rich text body |
@@ -620,6 +645,7 @@ Unique constraint on `(idea_id, user_id)` -- one vote per user per idea.
 | `rsvp_deadline` | timestamp | No | -- | null | RSVP cutoff time |
 | `status` | enum | Yes | -- | 'draft' | draft, active, in_progress, completed, cancelled, archived |
 | `cover_image_path` | varchar | No | 500 | null | Cover image storage path |
+| `category_id` | UUID (FK) | No | -- | null | Links to EventCategory. Null defaults to "General". |
 | `guard_required` | boolean | Yes | -- | false | Security guard needed |
 | `notify_on_publish` | boolean | Yes | -- | false | Send notification when published |
 | `target_groups` | varchar[] | No | -- | null | Which role groups to notify |
@@ -639,12 +665,26 @@ Unique constraint on `(idea_id, user_id)` -- one vote per user per idea.
 
 Unique constraint on `(event_id, user_id)`.
 
+### 4.6b Event Category
+
+| Field | Type | Required | Max Length | Default | Description |
+|-------|------|----------|------------|---------|-------------|
+| `id` | UUID | Auto | -- | Generated | Primary key |
+| `property_id` | UUID (FK) | No | -- | null | Null for system defaults, set for property-custom categories |
+| `name` | varchar | Yes | 50 | -- | Category name (e.g., "Social", "Board Meeting") |
+| `color` | varchar | Yes | 7 | -- | Hex color code for calendar display |
+| `icon` | varchar | Yes | 30 | -- | Icon name from system icon set |
+| `sort_order` | integer | Yes | -- | 0 | Display order |
+| `active` | boolean | Yes | -- | true | Soft toggle for disabling |
+| `created_at` | timestamp | Auto | -- | now() | -- |
+
 ### 4.7 Library Folder
 
 | Field | Type | Required | Max Length | Default | Description |
 |-------|------|----------|------------|---------|-------------|
 | `id` | UUID | Auto | -- | Generated | Primary key |
 | `property_id` | UUID (FK) | Yes | -- | Context | Links to property |
+| `building_id` | UUID (FK) | No | -- | null | Links to building (for multi-building properties). Null means property-wide. |
 | `parent_folder_id` | UUID (FK) | No | -- | null | Parent folder (null = root) |
 | `name` | varchar | Yes | 100 | -- | Folder name |
 | `description` | varchar | No | 300 | null | Folder description |
@@ -882,7 +922,7 @@ Community
 | Classified Ads | View, Create | View, Moderate | View | View, Create, Moderate | View | Full |
 | Idea Board | View, Vote, Create | View | View | View, Manage, Respond | View | Full |
 | Events | View, RSVP | View, Create (Internal) | View | View, Create, Manage | View | Full |
-| Library | View, Download | View, Download, Upload (if folder permits) | View, Download | View, Upload, Manage | View, Download | Full |
+| Library | View, Download | View, Download, Upload (if folder permits) | View, Download, Upload (if folder permits) | View, Upload, Manage | View, Download | Full |
 | Forum | View, Post, Reply | View, Moderate | View | View, Moderate | View | Full |
 | Surveys | Take, View Results | View Results | -- | Create, Manage, View Results | View Results | Full |
 | Photo Albums | View | View, Create, Upload | View | View, Create, Manage | View | Full |
@@ -1134,6 +1174,7 @@ Six AI capabilities are embedded in the Community module. All are defined in PRD
 | Admin responded to idea | Idea submitter | In-app, Email, Push | "Management responded to your idea '[title]'" |
 | Idea merged | Both idea submitters | In-app, Email | "Your idea was merged with '[surviving title]'" |
 | New event published | Target resident groups | In-app, Email, Push | "New event: '[title]' on [date]" |
+| Event published with security required | Security Supervisor, assigned security staff | In-app, Push | "Security presence required: '[title]' on [date] at [location]" |
 | Event cancelled | All RSVP'd attendees | In-app, Email, Push, SMS | "Event cancelled: '[title]' on [date] has been cancelled" |
 | Event reminder | RSVP'd "Going" attendees | In-app, Push | "Reminder: '[title]' starts in 24 hours" |
 | Event at capacity (waitlist available) | -- | -- | System state change only; no notification |

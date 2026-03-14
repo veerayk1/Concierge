@@ -117,6 +117,7 @@ Industry research across three competing platforms revealed the following patter
 | Schedule Time | Time picker | Conditional | N/A | Empty | Required if "Schedule for Later" is on. | "Please select a scheduled time." |
 | Send Copy to Self | Checkbox | No | N/A | Unchecked | N/A | N/A |
 | Save to Library | Toggle | No | N/A | Off | N/A | N/A |
+| Reply-To Setting | Radio group | No | N/A | "Management Office" | One of: None (no-reply address), Management Office (property's default email), Custom Email (text input appears, must be valid email) | "Please enter a valid email address." |
 
 **Tooltip -- Priority levels**:
 - **Low**: Informational. Delivered on next digest cycle if recipient uses digests.
@@ -303,6 +304,7 @@ Full rendered announcement body with all formatting, embedded images, and videos
 |--------|-------------|
 | Recipient | Resident name and unit number |
 | Channel | Which channel failed (email, SMS, push, voice) |
+| Sender Address | The "from" address used for this delivery attempt (e.g., "noreply@building.com", "office@building.com"). Useful when multiple sending addresses are configured. |
 | Error | Error reason (e.g., "Invalid email address", "SMS undeliverable", "Push token expired") |
 | Timestamp | When the delivery attempt occurred |
 | Retry | "Retry" button to re-attempt delivery on this channel |
@@ -533,6 +535,27 @@ Each resident configures their notification preferences on a per-module, per-cha
 | Save | "Save Preferences" | Save all preference changes | "Saving..." | Toast: "Preferences saved." | Toast: "Failed to save. Please try again." |
 | Reset to Defaults | "Reset to Defaults" | Confirmation: "Reset all notification preferences to their defaults?" then restore defaults | "Resetting..." | Toast: "Preferences reset to defaults." | Toast: "Failed to reset. Please try again." |
 
+#### 3.7.5 Staff Notification Preference Matrix
+
+Staff roles have a separate set of notification categories reflecting operational events. Staff preferences are configured at Settings > Notification Preferences (same page, different section visible only to staff roles).
+
+| Notification Category | Applicable Roles | Email Default | SMS Default | Push Default | Opt-Out Allowed |
+|-----------------------|-----------------|:------------:|:----------:|:----------:|:---------------:|
+| Resident Profile Edits | Property Admin, Property Manager | On | Off | Off | Yes |
+| New Maintenance Request | Property Manager, Maintenance Staff | On | Off | On | Yes |
+| Maintenance Status Change | Property Manager, Maintenance Staff | On | Off | On | Yes |
+| Package Intake (new arrival) | Concierge, Security Guard, Security Supervisor | Off | Off | On | Yes |
+| Parking Violation Created | Security Guard, Security Supervisor, Property Manager | On | Off | On | Yes |
+| Parking Violation Updated | Security Guard, Security Supervisor, Property Manager | On | Off | Off | Yes |
+| Emergency Assistance Trigger | All Staff Roles | On | On | On | No |
+| Shift Handoff Posted | Concierge, Security Guard, Security Supervisor | Off | Off | On | Yes |
+| Amenity Booking Request | Property Manager, Property Admin | On | Off | On | Yes |
+| Vendor Insurance Expiring | Property Manager, Property Admin | On | On | On | No |
+| Announcement Draft Submitted | Property Manager, Property Admin | On | Off | On | Yes |
+| New Resident Registered | Property Admin, Concierge | On | Off | Off | Yes |
+
+**Note**: Staff preferences use the same `NotificationPreference` data model (Section 4.6). The `module` enum is extended with staff-specific values: `staff_maintenance`, `staff_packages`, `staff_security`, `staff_parking`, `staff_amenities`, `staff_admin`. The UI renders the resident matrix or the staff matrix (or both) depending on the authenticated user's role.
+
 ### 3.8 Pinned Announcements
 
 Pinned announcements stick to the top of the resident portal announcement feed and the resident dashboard.
@@ -575,7 +598,13 @@ Announcement
 ├── priority (enum: low, normal, high, urgent)
 ├── status (enum: draft, scheduled, published, expired, rejected)
 ├── audience (JSONB -- targeting criteria, see 4.3)
-├── channels[] (enum array: email, sms, push, voice)
+├── channels[] (enum array: email, sms, push, voice, lobby_display)
+│   NOTE: lobby_display is a v2 channel for digital signage / lobby screens.
+│   When lobby_display is selected, the announcement is pushed to the
+│   property's configured lobby display devices (see 01-Architecture,
+│   Digital Signage integration). Lobby display supports two modes:
+│   static (full announcement card) and ticker (scrolling headline).
+│   The mode is configured per display device in property settings.
 ├── is_pinned (boolean, default false)
 ├── pinned_at (timestamp, nullable)
 ├── pinned_by → User (nullable)
@@ -610,7 +639,8 @@ AnnouncementDelivery
 ├── id (UUID)
 ├── announcement_id → Announcement
 ├── recipient_id → User (resident or staff)
-├── channel (enum: email, sms, push, voice)
+├── channel (enum: email, sms, push, voice, lobby_display)
+├── sender_address (varchar 255, nullable -- the "from" address used for this delivery, applicable to email channel)
 ├── status (enum: queued, sent, delivered, read, failed, bounced)
 ├── sent_at (timestamp, nullable)
 ├── delivered_at (timestamp, nullable)
@@ -674,7 +704,21 @@ AnnouncementCategory
 └── created_at (timestamp)
 ```
 
-**System default categories**: General, Maintenance, Safety, Events, Policy, Financial, Community.
+**System default categories**: General, Maintenance, Safety, Events, Policy, Financial, Community, Regulatory/Legal.
+
+**Regulatory/Legal category special rules**:
+- Announcements created under "Regulatory/Legal" are treated as mandatory notices (e.g., AGM notices, budget ratification, insurance renewal).
+- These announcements are delivered to all owners regardless of individual notification opt-out preferences, similar to emergency broadcasts.
+- Tenants receive Regulatory/Legal notices only when the "Include Tenants" toggle is explicitly enabled by the author.
+- A "Compliance Delivery Report" is automatically generated showing proof of delivery to every owner, with timestamps. This report is downloadable as PDF for regulatory record-keeping.
+- System-provided templates for this category include: AGM Notice, Budget Mailout (pre-set audience: all owners), Special Assessment Notice, Insurance Certificate Update.
+
+**Budget Mailout template (system default)**:
+- Category: Financial
+- Default audience: All Owners (Onsite and Offsite)
+- Default channels: Email + Push
+- Body template includes variables: `{{fiscal_year}}`, `{{budget_total}}`, `{{assessment_change}}`, `{{effective_date}}`
+- Reply-To: Management Office (default)
 
 ### 4.6 NotificationPreference
 
@@ -683,7 +727,7 @@ NotificationPreference
 ├── id (UUID)
 ├── user_id → User (required)
 ├── property_id → Property (required)
-├── module (enum: announcements, packages, maintenance, amenities, community, security, parking)
+├── module (enum: announcements, packages, maintenance, amenities, community, security, parking, staff_maintenance, staff_packages, staff_security, staff_parking, staff_amenities, staff_admin)
 ├── channel (enum: email, sms, push)
 ├── enabled (boolean)
 ├── digest_mode (enum: instant, daily, weekly -- email channel only)
@@ -1053,6 +1097,18 @@ Ten AI capabilities are embedded in the Communication module. Each is optional, 
 | Drafts Pending Review | Count of announcement drafts awaiting manager approval | Real-time |
 | Channel Distribution | Breakdown of deliveries by channel (email, SMS, push, voice) | Daily |
 | Missing Contact Data | Count of residents missing email, phone, or push token | Daily |
+
+**Communication Health Report** (Property Manager+):
+
+Accessible from the Analytics section and optionally surfaced as a dashboard widget (see 14-Dashboard). This report proactively identifies and helps resolve contact data gaps that reduce announcement reach.
+
+| Metric | Description | Action |
+|--------|-------------|--------|
+| Residents Missing Email | Count and list of residents with no email address on file | "View List" link navigates to User Management filtered to `email IS NULL` |
+| Residents Missing Phone | Count and list of residents with no phone number on file | "View List" link navigates to User Management filtered to `phone IS NULL` |
+| Residents Missing Push Token | Count and list of residents who have never installed the mobile app (no push token registered) | "View List" link navigates to User Management filtered to `push_token IS NULL` |
+| Overall Reachability Score | Percentage of residents reachable on at least 2 channels | Displayed as a percentage with color coding: green (>90%), yellow (70-90%), red (<70%) |
+| Channel Coverage Breakdown | Bar chart showing how many residents are reachable per channel (email, SMS, push) | Hover for exact counts |
 
 ### 8.2 Performance Metrics (How Well)
 

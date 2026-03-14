@@ -38,7 +38,7 @@ Every other module in Concierge references units. When a package arrives, staff 
 | Emergency contacts per resident | Maintenance request creation flow (see 05-Maintenance) |
 | Per-unit front desk instructions | Security incident logging (see 03-Security Console) |
 | Custom fields on units and residents | Package intake/release (see 04-Package Management) |
-| Move-in/move-out workflow | Financial/billing management |
+| Move-in/move-out workflow | Financial/billing management (account balances, transaction history — deferred to a future Billing module, v3+) |
 | Occupant history and unit timeline | Board governance |
 
 ---
@@ -162,6 +162,7 @@ Competitive analysis of three production platforms serving 170 to 1,000+ unit pr
 | 9 | Locker | Text input | No | 20 chars | Empty | Alphanumeric + hyphens | "Only letters, numbers, and hyphens allowed" |
 | 10 | Package Email Notification | Toggle | No | -- | On | Boolean | -- |
 | 11 | Comments | Textarea | No | 2000 chars | Empty | Character count shown | "Maximum 2000 characters" |
+| 12 | Key Tag | Text input | No | 50 chars | Empty | Alphanumeric, hyphens. This is a physical label on the unit's key ring, not a trackable access device. | "Only letters, numbers, and hyphens allowed" |
 
 ##### Custom Fields Section
 
@@ -273,6 +274,7 @@ A comprehensive view of a single resident organized across 8 tabs.
 | 4 | Salutation | Dropdown | No | -- | Admin, Manager | Options: Mr., Mrs., Ms., Dr., -- | -- |
 | 5 | Date of Birth | Date picker | No | -- | Admin, Manager | Must be in the past. Age 0-120. | "Date must be in the past" |
 | 6 | Email Address | Email | Yes | 255 | Admin, Manager | Valid email format. Unique across property. | "Valid email address is required" / "This email is already in use" |
+| 6a | Email Status | Badge (read-only) | -- | -- | System-generated | Values: Valid (green), Invalid (red), Missing (gray). Auto-determined: "Valid" if email is present and last delivery succeeded; "Invalid" if last delivery bounced or format validation failed (shown in red text below the email field); "Missing" if email field is empty. | -- |
 | 7 | Phone (Cell) | Phone | No | 20 | Admin, Manager, Self | Digits, +, -, (, ), spaces | "Enter a valid phone number" |
 | 8 | Phone (Home) | Phone | No | 20 | Admin, Manager, Self | Same as above | Same as above |
 | 9 | Phone (Work) | Phone | No | 20 | Admin, Manager, Self | Same as above | Same as above |
@@ -285,14 +287,53 @@ A comprehensive view of a single resident organized across 8 tabs.
 | 16 | About | Textarea | No | 500 | Admin, Manager, Self | Character count shown | -- |
 | 17 | Account Status | Dropdown | Yes | -- | Admin only | Active, Inactive, Suspended | -- |
 
+**Note on resident identification**: Residents are identified in all unit and resident views by their display name (First Name + Last Name) and email address. Usernames (system-generated identifiers defined in 08-User-Management, section 3.1.7) are not displayed in unit management views. URLs use UUIDs, never usernames or sequential IDs.
+
 **Right column widgets** (alongside the fields):
 
 | Widget | Description |
 |--------|-------------|
 | Related Units | Units this resident is linked to. Click to navigate. |
-| Parcel Waivers | Signed waiver documents with dates and attachments. "Add Waiver" button. |
-| Electronic Consent | E-consent document status. |
+| Parcel Waivers | Signed waiver documents with dates and attachments. "Add Waiver" button. See field specs below. |
+| Electronic Consent | E-consent document tracking. See field specs below. |
 | Staff Notes | Staff-only notes invisible to residents. Blue info banner: "Notes are visible only to staff and administrators." |
+
+##### Parcel Waiver Fields
+
+Each parcel waiver record tracks a signed waiver document for package handling policies.
+
+| # | Field | Type | Required | Max Length | Validation | Error Message |
+|---|-------|------|----------|------------|------------|---------------|
+| 1 | Waiver Type | Dropdown | Yes | -- | Options: Standard Parcel Waiver, Extended Absence Waiver, Third-Party Pickup Authorization, Custom. | "Waiver type is required" |
+| 2 | Signed At | Date picker | Yes | -- | Must be in the past or today | "Signed date cannot be in the future" |
+| 3 | Expiry Date | Date picker | No | -- | Must be after Signed At if set | "Expiry date must be after the signed date" |
+| 4 | Attachment | File upload | No | 10 MB | PDF, JPG, PNG. Scanned copy of the signed waiver. | "Maximum file size is 10 MB" / "Accepted formats: PDF, JPG, PNG" |
+| 5 | Notes | Textarea | No | 500 chars | Free text | -- |
+
+**Display**: Each waiver shows as a card with waiver type badge, signed date, expiry status (green "Active" or red "Expired"), and attachment download link. "Add Waiver" button at the bottom.
+
+**Empty state**: "No parcel waivers on file." + "Add Waiver" button.
+
+**Data model**: Parcel waivers are stored as Document records (section 3.1.5, Tab 8) with `document_type = 'Parcel Waiver'` and additional metadata in the JSONB `custom_fields` column: `{ "waiver_type": "...", "signed_at": "...", "expiry_date": "..." }`.
+
+##### Electronic Consent Fields
+
+Tracks e-consent documents that residents have signed electronically (e.g., building rules acknowledgment, privacy policy, data processing consent).
+
+| # | Field | Type | Required | Max Length | Validation | Error Message |
+|---|-------|------|----------|------------|------------|---------------|
+| 1 | Document Title | Text | Yes | 200 chars | Min 3 chars | "Document title is required" |
+| 2 | Document Version | Text | No | 20 chars | Alphanumeric + dots (e.g., "1.0", "2.1") | "Version format: numbers and dots only" |
+| 3 | Signed At | Timestamp (auto) | Yes | -- | Auto-populated when resident signs | -- |
+| 4 | Signature Method | Enum (display only) | Yes | -- | Options: Click-to-Accept, Typed Name, Digital Signature | -- |
+| 5 | Signer | Link (display only) | Yes | -- | Auto-populated with the resident who signed | -- |
+| 6 | IP Address | String (display only) | No | 45 chars | Captured at signing time for legal audit | -- |
+
+**Workflow**: Property Admin creates a consent document in Settings (template with title, version, and body text). When a resident is required to sign, the document appears on their portal dashboard or during onboarding. On signing, the system records the timestamp, method, signer identity, and IP address.
+
+**Display**: Each consent shows as a compact row: document title, version, signed date, and a checkmark icon. If no consent documents have been signed: "No e-consent documents signed." + link to property admin to configure consent documents.
+
+**Note**: Full consent document template management (creation, versioning, distribution) will be specified in a future Legal/Compliance module. This section covers only the per-resident tracking and display of signed consents.
 
 ##### Tab 2: Emergency Contacts
 
@@ -367,12 +408,14 @@ Read-only listing of amenity reservations for this resident.
 
 **Max vehicles**: 5 per resident. "Add Vehicle" button.
 
-**Parking sub-section**: Active parking permits linked to this resident. Read-only with link to Parking Management module.
+**Parking sub-section**: Parking rental status and active parking permits linked to this resident.
 
-| Field | Description |
-|-------|-------------|
-| Renting a parking spot? | Yes/No display |
-| Renting From | Unit number if renting from another unit |
+| # | Field | Type | Required | Max Length | Editable By | Validation | Error Message |
+|---|-------|------|----------|------------|-------------|------------|---------------|
+| 1 | Renting a parking spot? | Toggle | No | -- | Admin, Manager | Boolean | -- |
+| 2 | Renting From | Text input (unit autocomplete) | Conditional | 20 chars | Admin, Manager | Required when "Renting a parking spot" = Yes. Must be a valid unit number at the same property. | "Please enter the unit number you are renting from" / "Unit not found at this property" |
+
+**Active permits**: Below the rental fields, a read-only table lists active parking permits linked to this resident with a "View in Parking Management" link to the Parking Management module (see 10-Parking Management).
 
 ##### Tab 7: Pets
 
@@ -425,7 +468,8 @@ Each unit tracks physical access devices. All devices follow a lifecycle: Issued
 |---|-------|------|----------|------------|---------|------------|---------------|
 | 1 | Code | Text | Yes | 20 | Empty | Alphanumeric + `*#` | "Buzzer code is required" |
 | 2 | Label | Text | No | 100 | Unit number | -- | -- |
-| 3 | Active | Toggle | No | -- | On | Boolean | -- |
+| 3 | Notes | Textarea | No | 500 | Empty | Free text. Additional context such as "Front door", "Side entrance", or special buzzer instructions. | -- |
+| 4 | Active | Toggle | No | -- | On | Boolean | -- |
 
 ##### Garage Clicker Fields
 
@@ -465,6 +509,72 @@ Every time a resident is linked to or unlinked from a unit, a history record is 
 | Notes | Text | Optional notes (e.g., "Lease expired", "Sold unit") |
 
 **Timeline display**: Vertical timeline with the most recent resident at the top. Current occupants are highlighted with a green left border.
+
+#### 3.1.9 Resident Groups
+
+**Description**: Custom grouping system for organizing residents beyond the basic Resident Type (Owner, Tenant, Offsite Owner, Family Member). Groups enable targeted communication, filtered views, and batch operations.
+
+**Note**: Resident Type (section 3.1.5, field #10) is a single-select classification per occupancy. Groups are a separate, multi-membership system. A resident can belong to multiple groups simultaneously (e.g., "Board Members", "Floor 12", "Dog Owners", "Parking Lot B").
+
+##### Group Management
+
+**URL**: `/settings/groups` (Property Admin only)
+
+| # | Field | Type | Required | Max Length | Validation | Error Message |
+|---|-------|------|----------|------------|------------|---------------|
+| 1 | Group Name | Text | Yes | 100 chars | Unique within property. Letters, numbers, spaces, hyphens. | "Group name is required" / "A group with this name already exists" |
+| 2 | Description | Textarea | No | 500 chars | Free text | -- |
+| 3 | Group Type | Dropdown | Yes | -- | Options: Static (manually assigned), Dynamic (rule-based). Default: Static. | "Group type is required" |
+| 4 | Auto-Assign Rule | Rule builder | Conditional | -- | Required when Group Type = Dynamic. Rules based on: Floor, Building, Resident Type, Unit Type, Move-In Date range, Custom Fields. | "At least one rule is required for dynamic groups" |
+| 5 | Color | Color picker | No | -- | Hex color code. Used as badge color in lists. | -- |
+
+**Static groups**: Admin manually adds or removes residents. "Add Members" button opens a multi-select resident search.
+
+**Dynamic groups**: System automatically assigns residents based on rules. Membership updates in real-time as resident data changes (e.g., a new Floor 12 resident is auto-added to the "Floor 12" group).
+
+##### Group Assignment on Resident Profile
+
+On Tab 1 (Personal Information), a "Groups" widget in the right column displays all groups the resident belongs to as color-coded badges. Staff with Admin or Manager role can add or remove group memberships via a multi-select dropdown.
+
+##### Group Filter on Unit List
+
+The Unit Registry (section 3.1.1) includes an additional filter:
+
+| # | Element | Type | Description |
+|---|---------|------|-------------|
+| 11 | Group filter | Multi-select dropdown | Filters units to those containing at least one resident in the selected group(s). Options populated from all groups at the property. Default: "All Groups". |
+
+##### Group-Based Communication
+
+Groups integrate with the Announcements module (see 11-Announcements) and Notification module (see 09-Notifications) as recipient targets. When composing an announcement or notification, staff can select one or more groups as the audience.
+
+##### Group Data Model
+
+```
+ResidentGroup
+├── id (UUID, auto-generated, primary key)
+├── property_id → Property (required)
+├── name (varchar 100, required, unique within property)
+├── description (text, max 500, nullable)
+├── group_type (enum: static, dynamic — default: static)
+├── auto_assign_rules (JSONB, nullable — rule definitions for dynamic groups)
+├── color (varchar 7, nullable — hex color code, e.g., "#3B82F6")
+├── member_count (integer, default: 0 — denormalized for display performance)
+├── created_by → User (required)
+├── created_at (timestamp with timezone)
+├── updated_by → User
+└── updated_at (timestamp with timezone)
+
+ResidentGroupMembership
+├── id (UUID, auto-generated)
+├── group_id → ResidentGroup (required)
+├── user_id → User (required)
+├── assigned_at (timestamp with timezone)
+├── assigned_by → User (nullable — null for dynamic auto-assignments)
+└── UNIQUE(group_id, user_id)
+```
+
+**Indexes**: `(property_id, name)` unique, `(group_id)` for membership lookups, `(user_id)` for reverse lookups.
 
 ### 3.2 Enhanced Features (v2)
 
@@ -586,6 +696,7 @@ Unit
 ├── enter_phone_code (varchar 20, nullable)
 ├── parking_spot (varchar 20, nullable)
 ├── locker (varchar 20, nullable)
+├── key_tag (varchar 50, nullable — physical label on the unit's key ring, distinct from trackable FOB/access devices)
 ├── package_email_notification (boolean, default: true)
 ├── comments (text, max 2000, nullable)
 ├── custom_fields (JSONB, default: {})
@@ -931,6 +1042,8 @@ Unit Management integrates with 5 AI capabilities defined in 19-AI Framework (se
 | Move-ins this month | Count of OccupancyRecords created this month | Single number with MoM comparison |
 | Move-outs this month | Count of OccupancyRecords closed this month | Single number with MoM comparison |
 | Incomplete profiles | Count of residents missing email, phone, or emergency contact | Single number (red if > 0) |
+| Missing emails | Count of residents with no email address on file | Single number with link to filtered User Directory view |
+| Invalid emails | Count of residents whose last email delivery bounced | Single number (red if > 0) with link to filtered view |
 
 ### 8.2 Reportable Dimensions
 

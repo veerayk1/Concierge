@@ -125,6 +125,27 @@ Repeatable contact block (minimum 1, maximum 10):
 - **Success state**: New row appears with empty fields and focus on Contact Name
 - **Failure state**: If at max (10), button is disabled with tooltip "Maximum 10 contacts reached"
 
+#### 3.1.2a Security Provider (Optional)
+
+Configures the security company providing on-site personnel. This branding appears on security reports, printed visitor passes, and the Security Console header.
+
+| Field | Type | Max Length | Required | Default | Validation | Error Message |
+|-------|------|-----------|----------|---------|------------|---------------|
+| Security Company Name | text | 150 chars | No | -- | -- | -- |
+| Security Company Logo | file upload | 2 MB | No | -- | JPG/PNG/SVG, min 100x100px | "Upload a JPG, PNG, or SVG under 2 MB" |
+| Security Company Phone | tel | 20 chars | No | -- | Valid phone format (E.164 accepted) | "Enter a valid phone number" |
+| Security Company Email | email | 254 chars | No | -- | Valid email format | "Enter a valid email address" |
+| Display on Reports | boolean | -- | No | true | -- | -- |
+| Display on Visitor Passes | boolean | -- | No | true | -- | -- |
+
+**Tooltip** (on section header): "Optional. If your building uses a third-party security provider, enter their details here. The company name and logo will appear on security reports and printed visitor passes."
+
+**Security Company Logo Upload Button**:
+- **Action**: Opens file picker (JPG, PNG, SVG, max 2 MB)
+- **Loading state**: Spinner replaces logo preview area
+- **Success state**: New logo renders in preview, toast "Security provider logo updated"
+- **Failure state**: Red inline error with reason (file too large, wrong format)
+
 #### 3.1.3 Operational Toggles
 
 | Toggle | Type | Default | Tooltip |
@@ -135,6 +156,8 @@ Repeatable contact block (minimum 1, maximum 10):
 | Enable visitor self-registration | boolean | Off | "When on, residents can pre-register visitors through the resident portal" |
 | Enable package notifications | boolean | On | "When off, package intake will not send automatic notifications to residents" |
 | Require signature on package release | boolean | Off | "When on, package release requires resident signature on a signature pad or screen" |
+| Signature capture method | dropdown | Touchscreen | Options: Touchscreen (browser-based canvas), Tablet (dedicated tablet input), Topaz Signature Pad (USB hardware). Only visible when "Require signature on package release" is On. | "Select how signatures are captured at the front desk" |
+| Parking pass format | dropdown | Standard | Options: Standard (text-only pass), Formatted (branded pass with property logo, vehicle details, and barcode), None (no printed passes). See PRD 13 for parking pass printing workflow. | "Select the format for printed visitor parking passes" |
 | Enable in-person payments | boolean | Off | "When on, staff can record in-person cash or check payments" |
 | Enable online payments | boolean | Off | "When on, residents can pay for amenity bookings and fees through the portal" |
 | Auto-approve suite entry | boolean | Off | "When on, suite entry requests are automatically approved without staff review" |
@@ -182,6 +205,9 @@ System default groups (cannot be deleted, can be renamed):
 | Expiry Hours | number | -- | No | null | Integer 1-8760 (1 year) or null | "Must be between 1 and 8760 hours" |
 | Custom Fields | field builder | -- | No | [] | See 3.7 Custom Fields | -- |
 | Notification on Create | template picker | -- | No | null | Must reference existing template | -- |
+| Auto-CC Recipients | email[] | 10 max | No | [] | Valid email format per entry, max 10 recipients | "Enter a valid email address" / "Maximum 10 CC recipients allowed" |
+
+> **Tooltip — Auto-CC Recipients**: "These email addresses will be automatically CC'd on every notification sent for events of this type. Use this to keep managers, supervisors, or the security office informed of specific event categories (e.g., CC the property manager on all incident reports)."
 | Notification on Close | template picker | -- | No | null | Must reference existing template | -- |
 | Active | boolean | -- | Yes | true | -- | -- |
 
@@ -277,6 +303,29 @@ Manages message templates for email, SMS, push, and voice notifications. Templat
 - **Loading state**: None (instant render)
 - **Success state**: Modal showing the rendered template
 - **Failure state**: Modal with error highlighting invalid merge fields
+
+#### System Default Templates
+
+The following notification templates are pre-loaded on every new property. They cannot be deleted but can be edited by the admin.
+
+| # | Template Name | Channel | Trigger | Description |
+|---|--------------|---------|---------|-------------|
+| 1 | Welcome / Onboarding Email | Email | User account creation | Sent automatically when a new user account is created. Contains login credentials, portal URL, and getting-started instructions. |
+| 2 | Password Reset | Email | Password reset request | Standard password reset link with 24-hour expiry. |
+| 3 | Package Arrival | Email + Push | Package intake | Notifies resident that a package has been received. |
+| 4 | Maintenance Update | Email + Push | Service request status change | Notifies resident of status changes to their maintenance request. |
+| 5 | Booking Confirmation | Email | Amenity booking confirmed | Confirms amenity reservation with date, time, and cancellation instructions. |
+| 6 | Emergency Broadcast | Email + SMS + Push + Voice | Emergency event created | Multi-channel emergency notification with instructions. |
+
+**Welcome / Onboarding Email Template** (default content):
+
+| Attribute | Detail |
+|-----------|--------|
+| **Subject** | "Welcome to {{property_name}} -- Your Portal Account" |
+| **Body sections** | 1. Greeting ("Welcome, {{resident_name}}!"), 2. Login URL ({{portal_url}}), 3. Temporary password or activation link, 4. Quick-start guide (3 bullet points: update profile, set notification preferences, explore amenity bookings), 5. Contact information ({{primary_contact_name}}, {{primary_contact_email}}) |
+| **Merge fields** | `{{resident_name}}`, `{{unit_number}}`, `{{property_name}}`, `{{portal_url}}`, `{{temporary_password}}`, `{{activation_link}}`, `{{primary_contact_name}}`, `{{primary_contact_email}}` |
+| **Trigger** | Auto-sent on user account creation. Admin can toggle to manual-only in Operational Toggles (3.1.3). |
+| **Editable** | Yes -- admin can customize subject, body, and branding. Cannot delete. |
 
 ---
 
@@ -1194,6 +1243,12 @@ Property Admins can configure which settings-related notifications they receive 
 | 35 | Data model for all new entities | Done | 4 |
 | 36 | User flows for key admin workflows | Done | 5 |
 | 37 | No competitor names referenced | Done | Throughout |
+| 38 | Security provider configuration (name, logo, contact) | Done | 3.1.2a |
+| 39 | Auto-CC recipients per event type | Done | 3.2.2 |
+| 40 | Signature capture method configuration | Done | 3.1.3 |
+| 41 | Parking pass format configuration | Done | 3.1.3 |
+| 42 | System default notification templates (6 pre-loaded) | Done | 3.5 |
+| 43 | Welcome / Onboarding Email template with merge fields | Done | 3.5 |
 
 ---
 

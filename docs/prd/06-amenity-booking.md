@@ -19,7 +19,7 @@ Every condo building has shared spaces that residents want to use. Without a boo
 
 | Attribute | Value |
 |-----------|-------|
-| **User roles** | Resident (book), Front Desk (book on behalf, manage), Property Manager (configure, approve, report), Property Admin (full configuration), Board Member (usage reports read-only) |
+| **User roles** | Resident (book), Front Desk (book on behalf, manage), Property Manager (configure, approve, report), Property Admin (full configuration), Board Member (usage reports read-only). **Offsite owner note**: If 08-User Management defines an "offsite owner" resident sub-type, offsite owners default to read-only access for amenity booking (can view availability and bookings but cannot create bookings). Property Admin can override this per-property to allow offsite owner booking. |
 | **Payment provider** | Stripe (credit/debit cards) + offline methods (cheque, cash, e-transfer) |
 | **Calendar library** | FullCalendar (month, week, day, agenda views) |
 | **Views** | Calendar, List, Card Grid |
@@ -30,7 +30,7 @@ Every condo building has shared spaces that residents want to use. Without a boo
 
 ### Scope
 
-**In scope**: Amenity setup (49+ admin fields), resident and staff booking flows, calendar and list views, Stripe payment integration, approval workflows, terms and conditions, waitlist, recurring bookings, maintenance schedule blocking, capacity management, booking modification and cancellation, deposit tracking, reporting.
+**In scope**: Amenity setup (55+ admin fields across 8 sections), amenity sub-options with per-option pricing, resident and staff booking flows, calendar and list views, Stripe payment integration (including international card surcharge), approval workflows (including conditional approval), terms and conditions, waitlist, recurring bookings, maintenance schedule blocking, capacity management, booking modification with comparison view, cancellation, deposit tracking, reporting.
 
 **Out of scope**: Equipment tracking (see 05-Maintenance), event creation for community events (see 12-Community), digital signage display of amenity schedules (see 20-Innovation).
 
@@ -115,14 +115,27 @@ Property Admin configures each amenity with the following fields, organized into
 | # | Field | Type | Max Length | Required | Default | Validation | Error Message |
 |---|-------|------|-----------|----------|---------|------------|---------------|
 | 11 | Booking Style | select | -- | Yes | "Fixed Slots" | One of: Fixed Slots, Flexible Range, Full Day | "Please select a booking style." |
-| 12 | Operating Hours Start | time picker | -- | Yes | 9:00 AM | Valid time, before end time | "Start time must be before end time." |
-| 13 | Operating Hours End | time picker | -- | Yes | 10:00 PM | Valid time, after start time | "End time must be after start time." |
+| 12 | Operating Hours | per-day schedule (JSONB) | -- | Yes | All days: 9:00 AM - 10:00 PM | At least one day must have hours defined. Start time must be before end time for each day. Days with no hours are treated as closed. | "Start time must be before end time for {day}." / "At least one day must have operating hours." |
+
+The operating hours field is a per-day schedule that allows different hours for each day of the week. The UI presents a 7-row table (one per day), where each row has a toggle (open/closed), a start time picker, and an end time picker. Example configuration: Monday-Friday 9:00 AM - 8:00 PM, Saturday 9:00 AM - 9:00 PM, Sunday closed. When a day is toggled off, the start/end time pickers are disabled and that day shows "Closed." The `days_available` multi-select (field 17) is replaced by this schedule -- a day is available if it has operating hours defined.
+
+| 13 | *(removed -- merged into field 12)* | -- | -- | -- | -- | -- | -- |
 | 14 | Time Slot Duration | select | -- | Conditional | 60 min | Required if Booking Style = Fixed Slots. Options: 30, 60, 90, 120, 180, 240 min | "Please select a slot duration." |
 | 15 | Minimum Booking Duration | select | -- | Conditional | 30 min | Required if Booking Style = Flexible Range. Options: 15, 30, 60, 90, 120 min | "Please select a minimum booking duration." |
 | 16 | Maximum Booking Duration | select | -- | Conditional | 240 min | Required if Booking Style = Flexible Range. Must be >= min duration | "Maximum duration must be at least the minimum duration." |
+| 16a | Time Increment | select | -- | Conditional | 30 min | Required if Booking Style = Flexible Range. Options: 15, 30, 60 min. Controls the granularity of time picker dropdowns. | "Please select a time increment." |
+| 16b | Allow Multi-Day Bookings | toggle | -- | Conditional | false | Shown only if Booking Style = Flexible Range. When enabled, start date and end date can differ (e.g., elevator reservations spanning two days). | -- |
+
+**Booking style UI behavior**:
+
+- **Fixed Slots**: The booking form shows a slot selector (grid or list of available pre-defined slots). No time pickers are shown. Each slot is a clickable card showing the time range and availability status.
+- **Flexible Range**: The booking form shows start time and end time dropdown pickers. The dropdown values snap to the configured time increment (e.g., 15-min increments show 9:00 AM, 9:15 AM, 9:30 AM...). When Allow Multi-Day Bookings is enabled, separate start date and end date pickers appear; otherwise a single date picker is shown.
+- **Full Day**: The booking form shows only a date picker (or date range picker if Allow Multi-Day Bookings is enabled). Time pickers are hidden. The booking spans the full operating hours for the selected day(s).
 | 17 | Days of Week Available | multi-select checkboxes | -- | Yes | All days checked | At least 1 day selected | "Select at least one day of the week." |
 | 18 | Holiday Closures | toggle | -- | No | true (closed on holidays) | -- | -- |
 | 19 | Blocked Hours per Day | repeatable group | 7 entries (per day) | No | -- | Start before end, no overlaps within same day | "Blocked hours overlap on {day}." |
+
+**Blocked Hours UI**: The blocked hours configuration displays as a 7-row table (one row per day of the week). Each row shows the day name and a list of blocked time ranges. Each range has a start time dropdown and end time dropdown (using the same time increments as the booking form). An "Add Range" button on each row allows multiple blocked ranges per day (e.g., Monday: 12:01 AM - 8:59 AM and 8:01 PM - 11:59 PM). Each range has a remove (X) button. Empty rows (no blocked ranges) mean the full operating hours are available. Validation prevents overlapping ranges within the same day.
 | 20 | Buffer Between Bookings | select | -- | No | 0 min | Options: 0, 15, 30, 60 min | -- |
 | 21 | Maximum Concurrent Bookings | number | 3 digits | No | 1 | Integer >= 1. Tooltip: "How many bookings can overlap at the same time. Use for amenities with multiple units (e.g., 3 BBQ stations)." | "Must be at least 1." |
 
@@ -138,6 +151,8 @@ Property Admin configures each amenity with the following fields, organized into
 | 27 | Guest Count Triggers Security | number | 3 digits | No | 0 (disabled) | Integer >= 0. Tooltip: "When guest count exceeds this number, a security guard is automatically added to the booking." | "Must be a positive number." |
 | 28 | Security Guard Rate | currency | -- | Conditional | $0.00 | Required if Guest Count Triggers Security > 0 | "Please enter the security guard hourly rate." |
 | 29 | Security Guard Minimum Hours | number | 2 digits | Conditional | 4 | Required if Guest Count Triggers Security > 0 | "Please enter the minimum security hours." |
+| 29a | Security Guard Late Payment Premium | currency | -- | No | $0.00 | Decimal >= 0. Tooltip: "Additional hourly rate applied when security guard payment is not received within the configured deadline. Leave at $0.00 to disable." | "Premium must be a valid dollar amount." |
+| 29b | Security Late Payment Deadline Hours | number | 3 digits | Conditional | 24 | Required if Security Guard Late Payment Premium > $0.00. Hours before booking start by which security payment must be received. | "Please enter the deadline in hours." |
 | 30 | Allow Recurring Bookings | toggle | -- | No | false | -- | -- |
 | 31 | Max Recurring Weeks | number | 2 digits | Conditional | 12 | Required if Allow Recurring Bookings = true. Range: 1-52 | "Recurring bookings can be set for 1 to 52 weeks." |
 | 32 | Resident Booking Only | toggle | -- | No | true | Tooltip: "When enabled, only residents can book. When disabled, staff can book on behalf of non-residents." | -- |
@@ -174,6 +189,28 @@ Property Admin configures each amenity with the following fields, organized into
 | 48 | Agreement Document Template | file upload | 10 MB | No | -- | PDF only | "Agreement template must be a PDF file." |
 | 49 | Custom Instructions | textarea | 2000 chars | No | -- | Displayed on the booking page below description | -- |
 
+**Section H: Amenity Options (Sub-Options)**
+
+Some amenities require different booking purposes, each with its own fee and deposit. For example, an elevator amenity may offer Move-In, Move-Out, and Delivery as distinct options with different pricing. When options are configured, the booking form shows a radio group requiring the resident to select one.
+
+| # | Field | Type | Max Length | Required | Default | Validation | Error Message |
+|---|-------|------|-----------|----------|---------|------------|---------------|
+| 50 | Enable Options | toggle | -- | No | false | -- | -- |
+| 51 | Options | repeatable group | 20 max | Conditional | -- | Required if Enable Options = true. At least 1 option. Each option requires a name. | "Add at least one option when options are enabled." |
+
+**Each Option entry contains**:
+
+| Sub-Field | Type | Max Length | Required | Default | Validation | Error Message |
+|-----------|------|-----------|----------|---------|------------|---------------|
+| Option Name | text | 100 chars | Yes | -- | Non-empty, unique within this amenity | "Option name is required." / "An option with this name already exists." |
+| Option Description | text | 500 chars | No | -- | -- | -- |
+| Fee Override | currency | -- | No | Inherits amenity fee | Decimal >= 0 | "Fee must be a valid dollar amount." |
+| Deposit Override | currency | -- | No | Inherits amenity deposit | Decimal >= 0 | "Deposit must be a valid dollar amount." |
+| Display Order | number | 2 digits | No | Auto-increment | Integer >= 0 | -- |
+| Active | toggle | -- | No | true | -- | -- |
+
+When a fee or deposit override is left blank, the option inherits the amenity-level fee/deposit from Section E. When an override is set, it replaces the amenity-level value for bookings using that option.
+
 **Buttons on Amenity Setup Form**:
 
 | Button | Action | Success State | Failure State | Loading State |
@@ -186,13 +223,19 @@ Property Admin configures each amenity with the following fields, organized into
 
 #### 3.1.2 Browse Amenities (Resident & Staff)
 
-Residents see a card grid of available amenities for their building. Each card shows:
+Residents see a card grid of available amenities for their building.
+
+**Page Header Action Bar**: Above the card grid, a page header displays the module title ("Amenity Booking") with navigation links on the right: "Calendar" (links to Calendar View, 3.1.5) and "All Bookings" (links to All Bookings List, 3.1.6). These provide quick top-level access to the other primary views without requiring sidebar navigation.
+
+Each card shows:
 
 - **Photo** (primary photo or placeholder with guidance text if none uploaded)
 - **Amenity name** (clickable, links to detail page)
 - **Fee summary** ("No Fee" or "$120.00 / flat rate per reservation")
 - **Availability indicator** (green dot = available today, orange = limited, gray = closed)
 - **Book Now button** (primary action)
+
+**Hero Booking Bar**: Positioned above the card grid and below the page header action bar, the hero booking bar provides a streamlined 3-step inline booking flow for residents who already know what they want. The bar is a single horizontal row containing: (1) Amenity Group dropdown (filters available amenities), (2) Date picker, (3) "See Available Options" button. Clicking "See Available Options" filters the card grid below to show only amenities in the selected group that have availability on the chosen date, with their available time slots displayed directly on each card. On mobile, the hero bar stacks vertically (one field per row). The hero bar is an optional quick-entry shortcut -- residents can still browse the full card grid and book from the amenity detail page.
 
 **Search and Filter Bar**:
 
@@ -262,6 +305,14 @@ If amenity has no fees: show "No Fee" badge. Hide payment methods. Hide deposit.
 - **AI suggestion** (if enabled): "Based on your preferences, try {alternative time 1} or {alternative time 2}."
 - Link: "Join waitlist" (if waitlist is enabled and the slot is full)
 
+**Step 1a: Amenity Option** (shown only if the amenity has options enabled)
+
+| # | Field | Type | Required | Default | Validation | Error Message |
+|---|-------|------|----------|---------|------------|---------------|
+| 4a | Amenity Option | radio group | Yes | -- | Must select one active option. Options display name and description. If an option has a fee/deposit override, the pricing card updates dynamically. | "Please select a booking option." |
+
+When the resident selects an option with fee or deposit overrides, the Pricing Card on the amenity detail page updates immediately to reflect the option-specific pricing.
+
 **Step 2: Guest and Details**
 
 | # | Field | Type | Required | Default | Validation | Error Message |
@@ -285,6 +336,8 @@ If amenity has no fees: show "No Fee" badge. Hide payment methods. Hide deposit.
 | 11 | Payment Method | radio group | Yes | Must select one of the configured methods | "Please select a payment method." |
 | 12 | Credit Card (Stripe Elements) | Stripe card input | Conditional | Required if payment method = Credit Card. Stripe validates card number, expiry, CVC | "Your card was declined. Please try a different payment method." / "Invalid card number." |
 | 13 | Offline Payment Note | info text | Conditional | Shown if method = Cheque/Cash/E-Transfer. Text: "Please bring your {method} to the front desk before {date}." | -- |
+
+**International Card Surcharge Handling**: When the payment method is Credit Card, the system uses Stripe's card metadata to detect international cards (card country differs from the property's country). If an international card is detected, a disclosure alert is shown: "Our system detected an international credit card. Additional processing fees of {surcharge_amount} may apply." A checkbox is displayed: "I understand and want to continue with this card." The surcharge is added as a separate line item in the Order Summary. The booking cannot proceed until the checkbox is accepted.
 
 **Order Summary** (shown before final submit):
 
@@ -329,6 +382,8 @@ Each booking appears as a colored block with:
 - **Click existing event**: Opens booking detail sidebar panel (not a full page navigation)
 - **Click empty slot**: Opens quick booking form pre-filled with that date and time
 - **Hover event**: Tooltip with full details (name, unit, time, status, fee)
+
+**Truncation Behavior**: Month view shows abbreviated text (time + amenity name only, e.g., "9a Party Room"); if the event block is narrower than the text, truncate with ellipsis. Week view shows full text (time range + amenity + name + unit). Day view shows full text with additional details (status, fee). When the calendar cell or event block is too narrow to display the text, truncate with ellipsis and show the full text on hover via tooltip.
 
 **Overflow**: When a day has more events than can display, show "+N more" link that switches to day view.
 
@@ -395,6 +450,7 @@ Full detail page for a single booking. Read-only display with action buttons.
 |---|-------|--------|
 | 1 | Booking Reference | "AMN-2026-00042" |
 | 2 | Amenity | Name with color dot and link to amenity detail |
+| 2a | Amenity Option | Shown only if booking has an option selected. Displays option name (e.g., "Move-In", "Move-Out", "Delivery"). |
 | 3 | Booked By | "First Last (Unit) - Property Name" with link to resident profile |
 | 4 | Email | Resident email |
 | 5 | Phone | Resident phone(s) with type labels |
@@ -415,7 +471,7 @@ Full detail page for a single booking. Read-only display with action buttons.
 
 | Button | Visible To | Action | Success State | Failure State | Loading State |
 |--------|-----------|--------|---------------|---------------|---------------|
-| Edit Booking | Staff, Booking owner (if before cancellation deadline) | Opens edit form for date/time/guests | Toast: "Booking updated." | "Unable to update. The selected time is no longer available." | Spinner on button |
+| Edit Booking | Staff, Booking owner (if before cancellation deadline) | Opens edit form for date/time/guests. When date, time, or payment fields are changed, a side-by-side "Original vs Revised" comparison card appears showing: Amenity, Start Date/Time, End Date/Time, Payment Method, Amenity Fee, Security Deposit, and Total. Changed fields are highlighted. The user must click "Confirm Changes" after reviewing the comparison. Real-time availability is checked on any time change -- if the new time is unavailable, the save is blocked with message "The selected time is no longer available" and a "Check Availability" button allows re-validation. | Toast: "Booking updated." | "Unable to update. The selected time is no longer available." | Spinner on button |
 | Cancel Booking | Staff, Booking owner (if before cancellation deadline) | Expand inline form: reason textarea + Save/Discard buttons | Toast: "Booking cancelled." Refund processed if applicable. | "Unable to cancel booking." | Spinner on button |
 | Approve | Staff with approval permission | Changes status to Approved. Sends notification to resident. | Toast: "Booking approved." | "Unable to approve." | Spinner |
 | Decline | Staff with approval permission | Expand inline form: reason textarea + Decline/Discard buttons | Toast: "Booking declined. Resident has been notified." | "Unable to decline." | Spinner |
@@ -423,6 +479,8 @@ Full detail page for a single booking. Read-only display with action buttons.
 | Record Payment | Staff only | Expand inline form: payment method, cheque number, notes + Save | Toast: "Payment recorded." | "Unable to record payment." | Spinner |
 | Refund Deposit | Staff only | Expand inline form: refund amount (pre-filled with deposit), reason + Refund/Discard | Toast: "Deposit of {amount} refunded." | "Refund failed." | Spinner |
 | Upload Agreement | Booking owner, Staff | File upload: PDF only, 5 MB max | Toast: "Agreement uploaded." | "Upload failed." | Progress bar |
+
+**Action Form Accordion Behavior**: Only one action form can be expanded at a time. Opening a new action (e.g., clicking "Cancel Booking" while "Record Payment" is expanded) collapses the previously open form and discards any unsaved input in it. A brief CSS transition (200ms slide) animates the collapse/expand.
 
 **History / Audit Trail**:
 
@@ -446,6 +504,13 @@ Table below booking information showing every action taken on this booking.
 4. Approver reviews and clicks Approve or Decline.
 5. If approved: status changes, resident notified, payment processed (if credit card).
 6. If declined: status changes, resident notified with reason, any hold on credit card is released.
+
+**Conditional Approval (Approved but Payment Pending)**: A booking can be in the Approved state while its payment status is still "Pending." This occurs when the approval mode is Manager/Admin, the booking is approved, but the resident selected an offline payment method (cheque, cash, e-transfer) that has not yet been received. In this case:
+- The booking detail page displays an "Items Required for Full Approval" section listing the outstanding items (e.g., "Cheque for $250.00").
+- The booking status badge shows "Approved" but a secondary indicator (orange dot or sub-badge) signals "Payment Outstanding."
+- The payment reminder notification flow (Notification #7) is triggered based on the payment due date.
+- Staff can record payment receipt via the "Record Payment" action, which clears the outstanding items.
+- The `approval_status` and `payment_status` are independent fields: `approval_status` tracks the administrative decision, while `payment_status` tracks the financial state. Both must be resolved for a booking to be considered fully confirmed.
 
 **Batch Approval**: Staff can select multiple pending bookings and approve them all at once. Confirmation dialog: "Approve {N} selected bookings?"
 
@@ -529,12 +594,12 @@ Amenity
 ├── color (varchar 7, hex, required)
 ├── icon (varchar 100, nullable)
 ├── booking_style (enum: fixed_slots, flexible_range, full_day)
-├── operating_hours_start (time, required)
-├── operating_hours_end (time, required)
+├── operating_hours (JSONB -- per-day schedule, e.g., {"monday": {"start": "09:00", "end": "20:00"}, "sunday": null})
 ├── slot_duration_minutes (integer, nullable -- for fixed_slots)
 ├── min_booking_minutes (integer, nullable -- for flexible_range)
 ├── max_booking_minutes (integer, nullable -- for flexible_range)
-├── days_available (integer[], bitmask or array of day numbers 0-6)
+├── time_increment_minutes (integer, nullable -- for flexible_range: 15, 30, or 60)
+├── allow_multi_day (boolean, default false -- for flexible_range and full_day)
 ├── holiday_closures (boolean, default true)
 ├── blocked_hours (JSONB -- per-day blocked time windows)
 ├── buffer_minutes (integer, default 0)
@@ -547,6 +612,10 @@ Amenity
 ├── guest_security_threshold (integer, default 0 = disabled)
 ├── security_rate (decimal 10,2, default 0)
 ├── security_min_hours (integer, default 4)
+├── security_late_premium (decimal 10,2, default 0 -- additional hourly rate for late payment)
+├── security_late_deadline_hours (integer, nullable -- hours before booking for payment deadline)
+├── options_enabled (boolean, default false)
+├── options[] → AmenityOption (1:N)
 ├── allow_recurring (boolean, default false)
 ├── max_recurring_weeks (integer, default 12)
 ├── resident_only (boolean, default true)
@@ -592,6 +661,24 @@ AmenityGroup
 
 System default groups: Recreation, Common Areas, Move-In/Out, Guest Accommodations, Sports & Fitness.
 
+### 4.2a AmenityOption
+
+```
+AmenityOption
+├── id (UUID)
+├── amenity_id → Amenity (FK, required)
+├── name (varchar 100, required, unique per amenity)
+├── description (text, 500 chars max, nullable)
+├── fee_override (decimal 10,2, nullable -- null = inherit amenity fee)
+├── deposit_override (decimal 10,2, nullable -- null = inherit amenity deposit)
+├── display_order (integer, default auto-increment)
+├── active (boolean, default true)
+├── created_at (timestamp)
+└── updated_at (timestamp)
+```
+
+When `fee_override` or `deposit_override` is null, the option inherits the amenity-level fee/deposit. When set, it replaces the amenity-level value for bookings using that option.
+
 ### 4.3 Booking
 
 ```
@@ -600,6 +687,7 @@ Booking
 ├── reference_number (varchar 20, auto-generated, unique per property -- format: "AMN-YYYY-NNNNN")
 ├── property_id → Property (FK, required)
 ├── amenity_id → Amenity (FK, required)
+├── amenity_option_id → AmenityOption (FK, nullable -- set when amenity has options enabled)
 ├── unit_id → Unit (FK, required)
 ├── resident_id → User (FK, required -- the person the booking is for)
 ├── created_by → User (FK, required -- may differ from resident if staff books on behalf)
@@ -632,6 +720,7 @@ Booking
 ├── deposit_refunded (boolean, default false)
 ├── deposit_refund_amount (decimal 10,2, default 0)
 ├── deposit_refund_reason (text, 500 chars, nullable)
+├── international_surcharge (decimal 10,2, default 0 -- Stripe international card surcharge)
 ├── agreement_accepted (boolean, default false)
 ├── agreement_method (enum: checkbox, signature, upload, nullable)
 ├── agreement_accepted_at (timestamp, nullable)
@@ -685,10 +774,12 @@ WaitlistEntry
 Property ──1:N──> Amenity
 Property ──1:N──> AmenityGroup
 Amenity  ──N:1──> AmenityGroup
+Amenity  ──1:N──> AmenityOption
 Amenity  ──1:N──> Booking
 Booking  ──N:1──> Unit
 Booking  ──N:1──> User (resident)
 Booking  ──N:1──> User (created_by)
+Booking  ──N:1──> AmenityOption (nullable)
 Booking  ──1:N──> BookingAuditEntry
 Amenity  ──1:N──> WaitlistEntry
 ```
@@ -698,6 +789,7 @@ Amenity  ──1:N──> WaitlistEntry
 | Table | Index | Purpose |
 |-------|-------|---------|
 | Amenity | `(property_id, active)` | Filter active amenities per property |
+| AmenityOption | `(amenity_id, active)` | Filter active options per amenity |
 | Booking | `(amenity_id, start_date, start_time)` | Conflict detection |
 | Booking | `(property_id, status, start_date)` | Calendar and list filtering |
 | Booking | `(unit_id, start_date)` | Per-unit booking limits |
@@ -1122,6 +1214,7 @@ All endpoints require authentication. Responses follow the standard envelope for
 POST /api/v1/bookings
 {
   "amenity_id": "uuid-here",
+  "amenity_option_id": "uuid-or-null",
   "start_date": "2026-03-28",
   "start_time": "18:00",
   "end_date": "2026-03-28",
@@ -1254,10 +1347,26 @@ POST /api/v1/bookings
 | 48 | Reference number auto-generation | Done | 4.3 |
 | 49 | Cancellation with refund processing | Done | 5.4, 3.1.7 |
 | 50 | Future: dynamic pricing, digital signage, guest pre-registration, ratings | Done | 3.3 |
+| 51 | Amenity sub-options with per-option fee/deposit overrides | Done | 3.1.1 (Section H), 4.2a |
+| 52 | Per-day operating hours schedule | Done | 3.1.1 (field 12) |
+| 53 | Booking style UI behavior specification (Fixed/Flexible/Full Day) | Done | 3.1.1 (after field 16b) |
+| 54 | Time increment configuration for Flexible Range | Done | 3.1.1 (field 16a) |
+| 55 | Multi-day booking support for Flexible Range | Done | 3.1.1 (field 16b) |
+| 56 | Hero booking bar on browse page | Done | 3.1.2 |
+| 57 | Page header action bar with Calendar / All Bookings links | Done | 3.1.2 |
+| 58 | International card surcharge handling | Done | 3.1.4 (Step 4) |
+| 59 | Original vs Revised comparison card for booking edits | Done | 3.1.7 (Edit Booking) |
+| 60 | Availability check on booking edits | Done | 3.1.7 (Edit Booking) |
+| 61 | Security guard late-payment premium | Done | 3.1.1 (fields 29a-29b) |
+| 62 | Blocked hours configuration UI specification | Done | 3.1.1 (field 19) |
+| 63 | Calendar event truncation behavior per view | Done | 3.1.5 |
+| 64 | Offsite owner read-only access note | Done | 1 (Key Facts) |
+| 65 | Conditional approval (approved but payment pending) workflow | Done | 3.1.8 |
+| 66 | Action form accordion behavior | Done | 3.1.7 |
 
 ---
 
 *Document: 06-amenity-booking.md*
 *Module: Amenity Booking*
-*Lines: ~750*
+*Lines: ~900*
 *Last updated: 2026-03-14*
