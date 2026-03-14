@@ -1,1283 +1,1581 @@
-# 04 -- Package Management
+# 04 — Package Management
 
 > **Status**: Draft
 > **Last updated**: 2026-03-14
 > **Owner**: Product
-> **Depends on**: 01-Architecture (Unified Event Model), 02-Roles and Permissions, 19-AI Framework (capabilities #13--22)
+> **Depends on**: 01-Architecture, 02-Roles and Permissions, 19-AI Framework
 
 ---
 
 ## 1. Overview
 
-The Package Management module handles the full lifecycle of every parcel, envelope, and delivery that arrives at a building -- from the moment a courier drops it off at the front desk to the moment a resident picks it up and signs for it. It also tracks outgoing packages (items residents leave with staff for courier pickup).
+Package Management is the module responsible for the entire lifecycle of deliveries at a residential building -- from the moment a courier drops off a parcel at the front desk to the moment a resident picks it up (or a staff member returns it). This module is one of the highest-traffic features in any condo management platform. A typical 500-unit building processes 50-200 packages per day, with peaks during holiday seasons reaching 400+.
 
-### Why This Module Exists
+### Why This Module Matters
 
-In a typical 500-unit building, the front desk processes **50--80 packages per day**. During peak seasons (November--December), this can spike to **150+ per day**. Without a dedicated tracking system, packages get lost, residents do not get notified, perishable items spoil, and staff spend time searching for parcels instead of helping residents.
-
-This module solves five problems:
-
-1. **Accountability** -- Every package gets a unique reference number. Staff know who received it, where it is stored, and who released it.
-2. **Notification** -- Residents are told immediately when a package arrives, through their preferred channel (email, SMS, push notification, or automated voice call).
-3. **Speed** -- Batch intake lets staff log 10 packages in under 2 minutes. Courier logo recognition means one tap instead of scrolling a dropdown.
-4. **Escalation** -- Packages sitting uncollected for 24, 48, or 72 hours trigger automatic reminders. Perishable items get priority alerts.
-5. **Analytics** -- Property managers see delivery trends, peak times, courier performance, and storage capacity -- enabling smarter staffing and space decisions.
+- **Liability**: Buildings are responsible for packages once accepted. Proper tracking protects against loss claims.
+- **Resident satisfaction**: Package pickup is the single most frequent reason residents interact with the front desk. A smooth experience builds trust.
+- **Staff efficiency**: During peak delivery windows (10 AM - 2 PM), front desk staff may process 50+ packages in a single hour. Every second saved per package intake adds up.
+- **Storage management**: Physical parcel rooms have finite space. Tracking what is stored where, and escalating uncollected items, prevents overflow.
 
 ### How It Fits in the Platform
 
-Package Management is a specialized view built on top of the Unified Event Model (see 01-Architecture, Section 3). Each package is an **Event** with an Event Type from the **Packages** Event Group. This means packages share the same notification infrastructure, audit logging, search indexing, and AI pipeline as every other event in the system.
+Package Management is built on the Unified Event Model defined in the Architecture specification (PRD 01). Packages are a specialized event group with their own event types (one per courier), lifecycle states, and notification templates. This means packages benefit from the same configurable infrastructure as every other event type -- custom fields, notification routing, audit trails, and analytics -- without being hard-coded.
 
-The module appears as **"Packages"** in the sidebar under the **OPERATIONS** category. It is visible to: Front Desk / Concierge, Security Guard, Property Manager, and Resident (view-only for their own packages).
+### Scope
+
+This module covers:
+
+- Single and batch package intake (logging received packages)
+- Package release with identity verification, signature capture, and photo proof
+- Storage spot tracking and capacity management
+- Perishable and oversized package handling
+- Label printing with reference numbers and barcodes
+- Resident self-service package viewing and notification preferences
+- Courier integration and tracking number management
+- Package analytics and reporting
+- Outgoing package logging
+
+This module does NOT cover:
+
+- Locker system hardware integration (v3+)
+- Courier API real-time tracking webhooks (v3+)
+- Return/RMA processing (v3+)
 
 ---
 
 ## 2. Research Summary
 
-Industry analysis of three production platforms revealed these patterns that directly shaped Concierge's package management design:
+### What Industry Research Revealed
 
-### What the Industry Gets Right
+We analyzed three production platforms serving condominiums across North America. Key findings:
 
-| # | Pattern | How Concierge Uses It |
-|---|---------|----------------------|
-| 1 | **Courier-specific icons and colors** -- Visual courier logos (Amazon, FedEx, UPS) on package cards allow instant recognition without reading text | Concierge ships with 15 pre-configured courier types, each with a branded icon, color, and notification template |
-| 2 | **Batch intake** -- Multi-row forms let staff log several packages in one submission with per-row notification control | Concierge supports batch intake with up to 10 rows, each with independent courier selection and notification settings |
-| 3 | **Auto-generated reference numbers** -- Every package gets a short sequential number for verbal communication ("Your package is reference 7260") | Concierge generates references in the format `PKG-YYYY-NNNNN` (e.g., `PKG-2026-00147`) |
-| 4 | **Physical parcel type categories** -- Categorizing by physical description (white box, brown envelope) helps staff locate packages in storage | Concierge includes 11 default parcel type categories, with the ability to add custom types |
-| 5 | **Storage spot tracking** -- Recording where a package is physically stored (Parcel Room, Security Desk, Shelf A) reduces search time | Concierge supports configurable storage locations with capacity tracking |
-| 6 | **Perishable flagging** -- Marking time-sensitive items (food, medication, flowers) triggers priority handling | Concierge flags perishable items with countdown timers and escalating notifications |
-| 7 | **Multi-channel notifications** -- Email, SMS, and voice call options for package arrival alerts | Concierge supports email, SMS, push notification, and voice call -- respecting each resident's channel preferences |
-| 8 | **Print label integration** -- Physical labels printed on intake for attaching to packages | Concierge generates printable labels with reference number, unit, resident name, date, and barcode |
-| 9 | **Release sub-form with "released to" field** -- Capturing who picked up the package (which may differ from the recipient) | Concierge records release recipient, optional comments, optional signature, and optional photo |
-| 10 | **Send email reminder button** -- Manual trigger for reminder emails on uncollected packages | Concierge supports both manual and automatic reminders at configurable intervals |
+| Area | Best Practice Observed | Gap Identified | Our Decision |
+|------|----------------------|----------------|--------------|
+| **Courier tracking** | One platform uses 15 courier-specific event types with branded icons, colors, and notification templates per courier | Others use a single generic "parcel" type with a text-only courier dropdown | Courier-aware intake with branded icons for visual recognition + an "Other" option for unlisted couriers |
+| **Package types** | One platform defines 11 physical description categories (e.g., "small brown box", "large white package") | No platform combines physical type with courier identity | Both dimensions: courier identity (who delivered) + physical description (what it looks like) |
+| **Batch intake** | One platform offers a 4-row batch form with per-row notification control and print-label toggles | Others have single-package forms only, with a separate "bulk" button | Expandable batch form (1-20 rows) with per-row controls for notifications, labels, and storage |
+| **Notifications** | One platform supports email + voice call + SMS per package event | Others offer email only | Multi-channel from v1: email + SMS + push notification |
+| **Release flow** | One platform shows a dedicated release sub-form with "Released to" name, comments, and a premium signature capture field | Others use a single-click release button with no verification | Two-step release: identity check (name match or ID), then optional signature/photo proof |
+| **Storage tracking** | One platform has a storage spot dropdown during intake | Others do not track physical location | Storage spot selection during intake + capacity tracking + AI-suggested storage |
+| **Perishable handling** | Two platforms offer a perishable checkbox, one has a dedicated "Perishables" courier type with its own notification template | No platform escalates perishable items automatically | Perishable flag with automatic immediate notification + configurable escalation timer |
+| **Reference numbers** | Two platforms auto-generate sequential reference numbers per package | One uses a shared global counter across all event types | Per-property sequential reference numbers with optional barcode encoding |
+| **Label printing** | Two platforms integrate label printing per event during intake | One has no print capability | Label printing with reference number, unit, resident name, courier, barcode, and timestamp |
+| **Resident self-service** | One platform shows packages in a resident portal; others restrict package views to staff only | No platform lets residents initiate self-service release (e.g., authorize a family member to pick up) | Resident portal shows pending packages, notification history, and authorized pickup delegates |
+| **Analytics** | One platform generates weekly delivery pattern reports | No platform forecasts volume or identifies courier performance trends | AI-powered analytics: volume forecasting, courier performance, peak time staffing recommendations |
 
-### What the Industry Gets Wrong
+### Key Differentiators for Concierge
 
-| # | Problem | How Concierge Fixes It |
-|---|---------|----------------------|
-| 1 | **Text-based courier selection** -- Dropdown menus with courier names instead of visual logos | Concierge uses a visual icon grid for courier selection -- one tap on a logo, not scrolling a list |
-| 2 | **Free-text package descriptions** -- Staff type "white package" or "brown box" inconsistently | Concierge uses structured parcel type categories (dropdown) combined with an optional free-text notes field |
-| 3 | **Storage spot only visible in detail dialog** -- Front desk staff cannot see where a package is stored at a glance | Concierge shows storage location as a visible column in the main package list |
-| 4 | **No photo capability on packages** -- Cannot photograph the package on intake for later identification | Concierge supports photo capture on intake (camera or file upload) with AI-powered description generation |
-| 5 | **No escalation for uncollected packages** -- Packages sit for days with no automated follow-up | Concierge has configurable escalation rules: auto-remind at 24h, 48h, 72h; escalate to management at 7 days |
-| 6 | **5 rows per page with no configurable page size** -- Slow navigation on busy days | Concierge defaults to 25 rows per page with options for 10, 25, 50, or 100 |
-| 7 | **No package analytics** -- No visibility into delivery volume trends, peak hours, or courier frequency | Concierge includes a dedicated analytics section with volume charts, courier breakdown, and peak time heatmaps |
-| 8 | **Signature capture gated behind premium tier** -- Basic feature locked behind paywalls | Concierge includes signature capture for all users at no additional cost |
-| 9 | **Released package history limited to 21 days** -- Cannot look up older releases | Concierge retains full release history with date-range filtering (no arbitrary cutoff) |
-| 10 | **No outgoing package tracking** -- Only incoming packages are tracked | Concierge tracks both incoming and outgoing packages with separate tabs |
+1. **AI-native intake**: Camera-based courier logo detection, tracking number OCR, and package description auto-generation reduce data entry to 2-3 taps per package.
+2. **Smart notification batching**: Instead of bombarding a resident with 5 separate emails for 5 Amazon boxes, Concierge batches them into a single notification.
+3. **Proactive escalation**: Perishable items and long-uncollected packages trigger escalation chains automatically -- no manual follow-up needed.
+4. **Storage capacity awareness**: The system knows how full the parcel room is and warns staff when capacity is running low.
+5. **Resident pickup delegation**: Residents can authorize other people (family, dog walker, cleaning service) to pick up packages on their behalf.
 
 ---
 
-## 3. Feature Spec
+## 3. Feature Specification
 
-### 3.1 Courier Types (15 Pre-Configured)
+### 3.1 Core Features (v1)
 
-Each courier type is an Event Type within the **Packages** Event Group (see 01-Architecture, Section 3.2). Property Admins can add, rename, reorder, or deactivate courier types without code changes.
+#### 3.1.1 Single Package Intake
 
-| # | Courier Name | Icon | Color (Hex) | Notification Template (On Create) | Sort Order | Active by Default |
-|---|-------------|------|-------------|-----------------------------------|-----------|-------------------|
-| 1 | Amazon | Amazon logo | `#FF9900` | "An Amazon delivery has arrived for your unit." | 1 | Yes |
-| 2 | FedEx | FedEx logo | `#4D148C` | "A FedEx delivery has arrived for your unit." | 2 | Yes |
-| 3 | UPS | UPS logo | `#351C15` | "A UPS delivery has arrived for your unit." | 3 | Yes |
-| 4 | Canada Post | Canada Post logo | `#E31937` | "A Canada Post delivery has arrived for your unit." | 4 | Yes |
-| 5 | USPS | USPS logo | `#004B87` | "A USPS delivery has arrived for your unit." | 5 | Yes |
-| 6 | DHL | DHL logo | `#D40511` | "A DHL delivery has arrived for your unit." | 6 | Yes |
-| 7 | Purolator | Purolator logo | `#E31937` | "A Purolator delivery has arrived for your unit." | 7 | Yes |
-| 8 | Canpar | Canpar logo | `#003DA5` | "A Canpar delivery has arrived for your unit." | 8 | Yes |
-| 9 | IntelCom | IntelCom logo | `#00AEEF` | "An IntelCom delivery has arrived for your unit." | 9 | Yes |
-| 10 | OnTrac | OnTrac logo | `#00529B` | "An OnTrac delivery has arrived for your unit." | 10 | Yes |
-| 11 | Pharmacy | Pill bottle icon | `#34C759` | "A pharmacy delivery has arrived for your unit." | 11 | Yes |
-| 12 | Flowers | Flower icon | `#FF6B9D` | "A flower delivery has arrived for your unit." | 12 | Yes |
-| 13 | Dry Cleaning / Laundry | Hanger icon | `#AF52DE` | "Your dry cleaning is ready for pickup." | 13 | Yes |
-| 14 | Individual Drop-Off | Person icon | `#6E6E73` | "A personal delivery has arrived for your unit." | 14 | Yes |
-| 15 | Other | Generic box icon | `#8E8E93` | "A delivery has arrived for your unit." | 15 | Yes |
+Staff logs a received package through a quick-entry form.
 
-**Tooltip (on courier grid heading)**: "Select the courier or delivery source. If the courier is not listed, choose 'Other' or ask your administrator to add a custom courier type."
+**Entry points**:
+- Dashboard quick-action button ("+ Package")
+- Package listing page "New Package" button
+- Security Console quick-create icon (package icon)
+- Keyboard shortcut: `Ctrl/Cmd + Shift + P`
 
-**Admin customization**: Property Admins can add custom courier types via Settings > Event Types > Packages group. Each custom type requires: name (varchar 100), icon (upload or select from icon library), color (hex), and notification template.
+**Form fields**:
 
-### 3.2 Parcel Type Categories (11 Default)
+| # | Field | Label | Type | Required | Default | Max Length | Validation | Error Message | Tooltip |
+|---|-------|-------|------|----------|---------|------------|------------|---------------|---------|
+| 1 | `direction` | Direction | Toggle (2 options) | Yes | "Incoming" | -- | Must be "Incoming" or "Outgoing" | -- | "Incoming = received from courier. Outgoing = leaving the building (e.g., return shipment)." |
+| 2 | `building_id` | Building | Dropdown | Yes | Current building (auto) | -- | Must be a valid building in the property | "Please select a building." | Only shown for multi-building properties. |
+| 3 | `reference_number` | Reference # | Read-only text | Auto | Auto-generated | 10 chars | System-generated sequential | -- | "Unique tracking number assigned by the system. Use this when searching for the package." |
+| 4 | `unit_id` | Unit | Autocomplete dropdown | Yes | Empty | -- | Must match a valid unit in the selected building | "Please select a valid unit." | "Start typing a unit number. The system will suggest matches." |
+| 5 | `resident_id` | Recipient | Autocomplete dropdown | Yes | Auto-populated from unit | -- | Must be a resident or occupant of the selected unit | "Please select a valid recipient for this unit." | "The person the package is addressed to. If the name on the label doesn't match any resident, select the closest match and add a note." |
+| 6 | `courier_id` | Courier | Icon grid (15 options) | No | None selected | -- | -- | -- | "Tap the courier logo. If the courier is not listed, select 'Other' and type the name." |
+| 7 | `courier_other_name` | Courier Name | Text input | Cond. (if "Other" selected) | Empty | 100 chars | Min 1 character if "Other" selected | "Please enter the courier name." | Only visible when "Other" is selected from the courier grid. |
+| 8 | `tracking_number` | Tracking # | Text input | No | Empty | 100 chars | Alphanumeric + hyphens only | "Tracking numbers can only contain letters, numbers, and hyphens." | "The tracking number from the shipping label. You can also scan it with your device camera." |
+| 9 | `parcel_category_id` | Package Type | Dropdown | No | None | -- | Must match a configured parcel category | -- | "Describes the physical appearance. Helps residents identify their package at pickup." |
+| 10 | `description` | Description | Text input | No | Empty | 500 chars | -- | -- | "Any additional details: sender name visible, condition notes, special markings." |
+| 11 | `storage_spot_id` | Storage Location | Dropdown | No | Property default | -- | Must match a configured storage spot | -- | "Where you are physically placing this package. Helps colleagues find it during release." |
+| 12 | `is_perishable` | Perishable | Toggle switch | No | Off | -- | -- | -- | "Turn on for food, flowers, medication, or anything that can spoil. The resident will be notified immediately." |
+| 13 | `is_oversized` | Oversized | Toggle switch | No | Off | -- | -- | -- | "Turn on for items that won't fit in standard storage (furniture, appliances, large boxes)." |
+| 14 | `photo` | Photo | Camera/upload button | No | None | 10 MB per photo, max 3 | JPG, PNG, HEIC only | "Photos must be JPG, PNG, or HEIC format and under 10 MB." | "Take a photo of the package for documentation. Useful for damage claims and identification." |
+| 15 | `notify_resident` | Send Notification | Dropdown | No | "Default" | -- | -- | -- | "Choose how to notify the resident. 'Default' uses their preferred channel." |
 
-Parcel types describe the **physical appearance** of the package -- helping staff locate it in storage.
+**Notification dropdown options**:
 
-| # | Parcel Type | Description |
-|---|------------|-------------|
-| 1 | Small White Envelope | Standard letter-size white envelope |
-| 2 | Large White Envelope | Oversized or padded white envelope |
-| 3 | Small Brown Envelope | Standard letter-size brown/kraft envelope |
-| 4 | Small White Box | Shoebox-sized white box |
-| 5 | Small Brown Box | Shoebox-sized brown/cardboard box |
-| 6 | Medium White Box | Mid-size white box (fits in one arm) |
-| 7 | Medium Brown Box | Mid-size brown/cardboard box |
-| 8 | Large White Box | Large box (requires two hands) |
-| 9 | Large Brown Box | Large brown/cardboard box |
-| 10 | Oversized Package | Furniture-sized or irregularly shaped |
-| 11 | Bag / Soft Package | Poly mailer, plastic bag, or soft-wrapped item |
+| Value | Label | Behavior |
+|-------|-------|----------|
+| `default` | Default (use resident preference) | Sends via the channel the resident has configured in their notification settings |
+| `email` | Email only | Sends email notification |
+| `sms` | SMS only | Sends SMS notification |
+| `push` | Push notification only | Sends mobile push notification |
+| `all` | All channels | Sends via email + SMS + push |
+| `none` | Do not notify | No notification sent (useful for packages already handed directly to resident) |
 
-**Tooltip (on parcel type dropdown)**: "Choose the option that best matches the physical appearance of the package. This helps staff find it quickly in storage."
+**Courier icon grid (15 couriers)**:
 
-**Admin customization**: Property Admins can add, rename, or remove parcel types via Packages > Settings > Manage Parcel Types.
+| # | Courier Name | Icon | Color Badge | Notification Template Subject |
+|---|-------------|------|-------------|-------------------------------|
+| 1 | Amazon | Amazon logo | Orange | "Your Amazon delivery has arrived" |
+| 2 | Canada Post | Canada Post logo | Red | "You have a Canada Post delivery" |
+| 3 | Canpar | Canpar logo | Blue | "Your Canpar package has arrived" |
+| 4 | DHL | DHL logo | Yellow | "Your DHL delivery is here" |
+| 5 | FedEx | FedEx logo | Purple | "Your FedEx package has arrived" |
+| 6 | UPS | UPS logo | Brown | "Your UPS delivery is here" |
+| 7 | Purolator | Purolator logo | Red | "Your Purolator package has arrived" |
+| 8 | USPS | USPS logo | Blue | "Your USPS mail has arrived" |
+| 9 | IntelCom | IntelCom logo | Green | "Your IntelCom delivery is here" |
+| 10 | Uber Eats | Uber Eats logo | Black | "Your Uber Eats order is at the front desk" |
+| 11 | DoorDash | DoorDash logo | Red | "Your DoorDash order is at the front desk" |
+| 12 | SkipTheDishes | Skip logo | Orange | "Your SkipTheDishes order is at the front desk" |
+| 13 | Individual Drop-Off | Person icon | Grey | "A personal delivery has arrived for you" |
+| 14 | Property Management | Building icon | Teal | "You have a delivery from property management" |
+| 15 | Other | Ellipsis icon | Grey | "You have a package delivery" |
 
-#### Manage Parcel Types Modal
+**Parcel categories (11 default, configurable by admin)**:
 
-**Trigger**: "Manage Parcel Types" button on the Packages page (visible to Property Manager and Property Admin roles only).
+| # | Category | Description |
+|---|----------|-------------|
+| 1 | Small Envelope | Letter-sized envelope or mailer |
+| 2 | Large Envelope | Padded or oversized envelope |
+| 3 | Small Box | Shoebox size or smaller |
+| 4 | Medium Box | Standard moving box size |
+| 5 | Large Box | Larger than standard box |
+| 6 | Oversized Item | Furniture, appliances, or non-box items |
+| 7 | Bag | Plastic or paper bag delivery |
+| 8 | Tube | Poster tube or cylindrical package |
+| 9 | Perishable Container | Insulated food/medicine packaging |
+| 10 | Flowers | Floral delivery |
+| 11 | Other | Anything not matching above categories |
 
-| Field | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip |
-|-------|-------|------|-----------|----------|---------|------------|---------------|---------|
-| `name` | Parcel Type Name | text input | 60 chars | Yes | Empty | Must be unique (case-insensitive) within property; min 2 chars | "This parcel type name already exists." / "Name must be at least 2 characters." | "Enter a descriptive name for the physical package type." |
+**Button: "Save Package"**
 
-**"Save" button**:
-- **On click**: Validates input, creates new parcel type, adds it to the table below the form.
-- **Success state**: Green toast notification: "Parcel type '[name]' added." Input clears. New row appears in table.
-- **Error state**: Red inline error below the input field with specific message.
-- **Loading state**: Button label replaced with spinner. Button width unchanged. Pointer events disabled.
+| State | Behavior |
+|-------|----------|
+| **Default** | Blue primary button, label "Save Package" |
+| **Loading** | Button disabled, spinner replaces text, label "Saving..." |
+| **Success** | Toast notification: "Package #{reference_number} saved. {Resident name} notified via {channel}." Form resets for next entry. |
+| **Success (no notification)** | Toast: "Package #{reference_number} saved. No notification sent." |
+| **Failure (validation)** | Inline error messages appear below invalid fields. Button remains enabled. |
+| **Failure (server)** | Toast error: "Could not save package. Please try again." Button re-enables. Package data preserved in form. |
 
-**"Delete" button (trash icon per row)**:
-- **On click**: Opens confirmation dialog: "Delete parcel type '[name]'? Existing packages with this type will keep their current type label, but it will no longer be selectable for new packages."
-- **Success state**: Row fades out (150ms). Toast: "Parcel type '[name]' removed."
-- **Error state**: Toast (red): "Could not delete parcel type. Please try again."
-- **Loading state**: Trash icon replaced with spinner.
+**Button: "Save & New"**
 
-### 3.3 Package Intake -- Single Package
+Same behavior as "Save Package" but clears the form and keeps the focus in the form for the next entry. Building, storage location, and notification preference carry over from the previous entry.
 
-The primary workflow for logging a new incoming package.
+**Button: "Cancel"**
 
-**Trigger**: Click the "Log Package" primary button on the Packages page, or click the Package quick-action icon on the Security Console.
+Closes the form. If any fields have been modified, shows a confirmation dialog: "You have unsaved changes. Discard this package entry?" with "Discard" and "Keep Editing" buttons.
 
-**Modal size**: Large (720px). Title: "Log New Package".
+#### 3.1.2 Batch Package Intake
 
-**Tabs**: Two tabs at top of modal:
-- **Incoming** (default, active) -- a package delivered to the building for a resident
-- **Outgoing** -- a package a resident leaves with staff for courier pickup
+For high-volume delivery windows, staff can log multiple packages in a single form.
 
-#### 3.3.1 Incoming Package Form Fields
+**Entry point**: "Batch Intake" button on the Package Intake form (top-right corner, secondary button style).
 
-| # | Field | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip |
-|---|-------|-------|------|-----------|----------|---------|------------|---------------|---------|
-| 1 | `reference_number` | Reference # | Read-only text (monospace) | 16 chars | Auto | Auto-generated (e.g., `PKG-2026-00148`) | N/A | N/A | "Unique reference number for this package. Share this with the resident for pickup." |
-| 2 | `building_id` | Building | Dropdown (select) | N/A | Yes | Current user's assigned building | Must select a valid building | "Please select a building." | "The building where this package was received." |
-| 3 | `unit_id` | Unit | Autocomplete text input | 10 chars | Yes | Empty | Must match a valid unit in the selected building | "No unit found. Please check the unit number." | "Start typing the unit number. Matching units will appear." |
-| 4 | `resident_id` | Recipient | Autocomplete text input | 100 chars | Yes | Auto-populated from unit selection (if single occupant) | Must match a registered resident in the selected unit | "No resident found in this unit. Please check the name." | "The resident this package is addressed to. Start typing their name." |
-| 5 | `courier_type_id` | Courier | Icon grid (single-select) | N/A | Yes | None selected | Must select one courier type | "Please select a courier." | "Tap the logo of the courier who delivered this package." |
-| 6 | `tracking_number` | Tracking # | Text input (monospace) | 50 chars | No | Empty | Alphanumeric, hyphens, and spaces only. Min 6 chars if provided. | "Tracking number must be at least 6 characters and contain only letters, numbers, hyphens, and spaces." | "The tracking number from the shipping label. Leave blank if not visible." |
-| 7 | `parcel_type_id` | Parcel Type | Dropdown (select) | N/A | No | None selected (shows "Select parcel type") | N/A (optional) | N/A | "What does the package physically look like? This helps staff find it later." |
-| 8 | `description` | Notes | Textarea | 500 chars | No | Empty | N/A | N/A | "Any additional details about the package -- e.g., 'heavy', 'fragile sticker', 'addressed to John but unit says Jane'." |
-| 9 | `storage_spot_id` | Storage Location | Dropdown (select) | N/A | Property-configurable (default: No) | First storage location in list, or "Parcel Room" | Must select a valid storage location if field is required | "Please select where this package will be stored." | "Where will this package be physically stored? Choose the shelf, room, or area." |
-| 10 | `is_perishable` | Perishable Item | Toggle (on/off) | N/A | No | Off | N/A | N/A | "Turn this on for food, flowers, medication, or anything that could spoil. This triggers a priority notification to the resident." |
-| 11 | `photo` | Package Photo | File upload / camera | 10 MB max | No | No file selected | Accepted formats: JPG, JPEG, PNG, HEIC, WEBP. Max file size: 10 MB. | "File must be an image (JPG, PNG, HEIC, or WEBP) and under 10 MB." | "Take a photo of the package or shipping label. This helps with identification and AI-powered courier detection." |
-| 12 | `notification_channel` | Notify Resident Via | Dropdown (select) | N/A | No | "Resident's Preferred Channel" | N/A | N/A | "How should the resident be notified? 'Resident's Preferred Channel' uses whatever channel the resident has set in their notification preferences." |
+**Form layout**: A table-style form where each row represents one package. Starts with 4 rows, expandable to 20.
 
-**Notification channel dropdown options**:
+**Per-row fields**:
 
-| Option | Description |
+| # | Field | Type | Required | Description |
+|---|-------|------|----------|-------------|
+| 1 | Unit | Autocomplete | Yes | Unit number |
+| 2 | Recipient | Autocomplete | Yes | Auto-populated from unit |
+| 3 | Courier | Icon selector (compact) | No | Compact courier dropdown with icons |
+| 4 | Tracking # | Text input | No | Tracking number |
+| 5 | Category | Dropdown | No | Parcel category |
+| 6 | Storage | Dropdown | No | Storage location |
+| 7 | Perishable | Checkbox | No | Perishable flag |
+| 8 | Notify | Dropdown | No | Notification channel |
+| 9 | Print Label | Checkbox | No | Print label on save |
+| 10 | Remove | Icon button (trash) | -- | Remove this row |
+
+**Buttons**:
+
+| Button | Style | Action |
+|--------|-------|--------|
+| "+ Add Row" | Text link | Adds a new empty row. Maximum 20 rows. Disabled at 20 with tooltip "Maximum 20 packages per batch." |
+| "Save All ({n})" | Primary | Saves all rows with valid data. `{n}` shows the count of valid rows. Loading state: "Saving {n} packages..." |
+| "Cancel" | Secondary | Closes batch form. Confirmation dialog if any rows have data. |
+
+**Success state**: Toast: "Saved {n} packages. {m} notifications sent. {p} labels queued for printing."
+
+**Partial failure**: If some rows fail validation, valid rows are saved and invalid rows remain in the form with inline errors. Toast: "Saved {x} of {n} packages. {y} packages have errors -- please review."
+
+#### 3.1.3 Package Release Flow
+
+When a resident arrives to pick up a package, staff processes the release.
+
+**Entry points**:
+- "Release" button in the Action column of the package listing table
+- "Release Package" button in the package detail view
+- Quick-release via barcode scan (scan the label, system opens release dialog)
+
+**Step 1 -- Verify Identity**
+
+| # | Field | Label | Type | Required | Default | Validation | Error Message |
+|---|-------|-------|------|----------|---------|------------|---------------|
+| 1 | `released_to_name` | Picked Up By | Text input | Yes | Auto-filled with recipient name | Min 2 characters | "Please enter the name of the person picking up." |
+| 2 | `id_verified` | ID Verified | Checkbox | Configurable (per property setting) | Unchecked | -- | -- |
+| 3 | `is_authorized_delegate` | Authorized Delegate | Checkbox | No | Unchecked | If checked, must match an authorized delegate in the system | "This person is not listed as an authorized delegate for this unit." |
+| 4 | `release_comments` | Comments | Text input | No | Empty | 500 chars max | -- |
+
+**Step 2 -- Capture Proof (configurable per property)**
+
+| # | Field | Label | Type | Required | Default | Validation | Error Message |
+|---|-------|-------|------|----------|---------|------------|---------------|
+| 1 | `signature` | Signature | Signature pad (touch/mouse draw) | Configurable | Empty | If required, must have at least one stroke | "Please provide a signature." |
+| 2 | `release_photo` | Photo | Camera button | Configurable | None | JPG/PNG/HEIC, max 10 MB | "Photo must be JPG, PNG, or HEIC under 10 MB." |
+
+**Button: "Release Package"**
+
+| State | Behavior |
+|-------|----------|
+| **Default** | Green primary button, label "Release Package" |
+| **Loading** | Disabled, spinner, "Releasing..." |
+| **Success** | Toast: "Package #{ref} released to {name}." Package moves from "Unreleased" to "Released" section. |
+| **Failure** | Toast: "Could not release package. Please try again." Form data preserved. |
+
+**Batch release**: When a resident has multiple unreleased packages, the release dialog shows all of them in a checklist. Staff can select individual packages or "Select All" and process a single release with one signature/verification.
+
+| Button | Label | Action |
+|--------|-------|--------|
+| "Release Selected ({n})" | Primary (green) | Releases all checked packages. Single signature covers all. |
+| "Release All ({total})" | Secondary | Selects and releases all unreleased packages for this resident. |
+
+#### 3.1.4 Package Listing and Search
+
+The main Package Management page shows two sections.
+
+**Section 1: Unreleased Packages**
+
+Table showing all packages that have been received but not yet picked up.
+
+| # | Column | Sortable | Default Sort | Description |
+|---|--------|----------|-------------|-------------|
+| 1 | Ref # | Yes | -- | Auto-generated reference number |
+| 2 | Unit | Yes | -- | Unit number |
+| 3 | Recipient | Yes | -- | Resident name |
+| 4 | Courier | Yes | -- | Courier name with icon |
+| 5 | Description | No | -- | Package description or category |
+| 6 | Received | Yes | Descending (newest first) | Date/time package was logged |
+| 7 | Age | Yes | -- | Time since receipt (e.g., "2h", "1d", "3d") with color coding: green (< 24h), yellow (24-72h), red (> 72h) |
+| 8 | Storage | Yes | -- | Storage location |
+| 9 | Perishable | Yes | -- | Perishable badge (red "PERISHABLE" tag) if flagged |
+| 10 | Actions | No | -- | Release, View, Edit, Delete (icon buttons) |
+
+**Default sort**: Perishable packages first, then by received date (newest first).
+
+**Section 2: Released Packages**
+
+Same columns as Section 1, plus:
+
+| # | Additional Column | Description |
+|---|-------------------|-------------|
+| 11 | Released To | Name of person who picked up |
+| 12 | Released At | Date/time of release |
+| 13 | Released By | Staff member who processed release |
+
+**Default date range**: Past 30 days (configurable in property settings).
+
+**Search and Filter Bar**:
+
+| # | Filter | Type | Description |
+|---|--------|------|-------------|
+| 1 | Search | Text input | Searches across: recipient name, reference number, tracking number, description, courier name |
+| 2 | Building | Dropdown | Filter by building (multi-building properties) |
+| 3 | Unit | Autocomplete | Filter by specific unit |
+| 4 | Courier | Multi-select dropdown | Filter by one or more couriers |
+| 5 | Status | Dropdown | "All", "Unreleased", "Released" |
+| 6 | Perishable | Toggle | Show only perishable packages |
+| 7 | Date Range | Date range picker | Start and end date |
+| 8 | Storage Location | Dropdown | Filter by storage spot |
+
+**Buttons on listing page**:
+
+| Button | Label | Action | Permission |
+|--------|-------|--------|------------|
+| "New Package" | Primary | Opens single package intake form | Staff roles |
+| "Batch Intake" | Secondary | Opens batch intake form | Staff roles |
+| "Print Unreleased" | Secondary | Generates printable list of all unreleased packages | Staff roles |
+| "Export" | Secondary | Export to Excel or PDF with current filters applied | Admin, Manager, Supervisor |
+
+**Empty state (no packages)**:
+
+```
++--------------------------------------------------+
+|                                                    |
+|              [Package icon illustration]           |
+|                                                    |
+|          No packages have been logged yet          |
+|                                                    |
+|   Packages will appear here as they are received   |
+|   at the front desk.                               |
+|                                                    |
+|              [+ Log First Package]                 |
+|                                                    |
++--------------------------------------------------+
+```
+
+**Empty state (no search results)**:
+
+```
++--------------------------------------------------+
+|                                                    |
+|              [Search icon illustration]            |
+|                                                    |
+|       No packages match your search filters        |
+|                                                    |
+|   Try adjusting your filters or search terms.      |
+|                                                    |
+|              [Clear All Filters]                   |
+|                                                    |
++--------------------------------------------------+
+```
+
+**Loading state**: Skeleton rows (8 rows) with pulsing animation replacing table content. Filter bar remains interactive during loading.
+
+**Error state**: Inline error banner above the table: "Unable to load packages. Please try again." with a "Retry" button.
+
+#### 3.1.5 Package Detail View
+
+Clicking a package row (or "View" icon) opens the package detail panel.
+
+**Layout**: Slide-out panel from the right (desktop) or full-screen modal (mobile/tablet).
+
+**Sections**:
+
+| Section | Fields Displayed |
+|---------|-----------------|
+| **Header** | Reference #, Status badge (Unreleased / Released), Perishable badge, Oversized badge |
+| **Package Info** | Direction, Courier (with icon), Tracking # (linked to courier tracking page if available), Category, Description, Photo(s) |
+| **Recipient Info** | Unit #, Resident name, Contact phone, Contact email |
+| **Storage** | Storage location, Date received, Age |
+| **Release Info** (if released) | Released to, Released by (staff), Released at (timestamp), Signature image, Release photo, Comments |
+| **History** | Audit trail: Created, Notification sent, Reminder sent, Released -- each with timestamp and actor |
+
+**Action buttons (unreleased packages)**:
+
+| Button | Label | Style | Action |
+|--------|-------|-------|--------|
+| "Release" | Primary (green) | Opens release flow | -- |
+| "Send Reminder" | Secondary | Sends reminder notification to resident | -- |
+| "Edit" | Secondary | Opens edit form | -- |
+| "Print Label" | Secondary | Prints package label | -- |
+| "Delete" | Danger (red text) | Soft-deletes the package with confirmation dialog | -- |
+
+**Send Reminder button states**:
+
+| State | Behavior |
+|-------|----------|
+| **Default** | Secondary button, label "Send Reminder" |
+| **Loading** | Disabled, spinner, "Sending..." |
+| **Success** | Toast: "Reminder sent to {resident_name} via {channel}." Button changes to "Reminder Sent" (disabled) for 5 minutes to prevent spam. |
+| **Failure** | Toast: "Could not send reminder. Please try again." |
+
+**Action buttons (released packages)**: "Print Receipt" only (no editing or deleting released packages).
+
+#### 3.1.6 Reference Number Generation
+
+Every package receives a unique reference number on creation.
+
+| Attribute | Value |
+|-----------|-------|
+| **Format** | `PKG-{PROPERTY_CODE}-{SEQUENTIAL_NUMBER}` |
+| **Example** | `PKG-QPC-004821` |
+| **Property code** | 2-5 uppercase alphanumeric characters, configured in property settings |
+| **Sequential number** | 6-digit zero-padded integer, per property, never reused |
+| **Barcode encoding** | Code 128, printed on package label |
+| **Reset** | Never resets. Continues incrementing indefinitely. |
+
+#### 3.1.7 Label Printing
+
+Staff can print a label to affix to the physical package.
+
+**Label content**:
+
+| Line | Content | Font Size |
+|------|---------|-----------|
+| 1 | Property name | 10pt |
+| 2 | Reference # (human-readable) | 14pt bold |
+| 3 | Barcode (Code 128 of reference #) | -- |
+| 4 | Unit # and Recipient name | 18pt bold |
+| 5 | Courier name | 10pt |
+| 6 | Storage location | 10pt |
+| 7 | Received date/time | 8pt |
+| 8 | "PERISHABLE" (if flagged) | 12pt bold red |
+
+**Label size**: Standard 4" x 2" shipping label (configurable in settings).
+
+**Print trigger**: Per-package "Print Label" button, batch print checkbox during intake, or "Print All Unreleased Labels" from the listing page.
+
+**Print button states**:
+
+| State | Behavior |
+|-------|----------|
+| **Default** | Secondary button with printer icon, label "Print Label" |
+| **Loading** | Disabled, "Sending to printer..." |
+| **Success** | Toast: "Label sent to printer." |
+| **Failure (no printer)** | Toast: "No printer configured. Go to Settings > Packages > Label Printer to set up." |
+| **Failure (printer error)** | Toast: "Printer error. Check the connection and try again." |
+
+#### 3.1.8 Storage Spot Management
+
+Administrators configure available storage locations. Staff assigns packages to spots during intake.
+
+**Storage spot configuration (Settings > Packages > Storage Spots)**:
+
+| # | Field | Type | Required | Max Length | Description |
+|---|-------|------|----------|------------|-------------|
+| 1 | `name` | Text input | Yes | 100 chars | Display name (e.g., "Parcel Room - Shelf A") |
+| 2 | `code` | Text input | Yes | 10 chars | Short code for labels (e.g., "PR-A") |
+| 3 | `capacity` | Number input | No | -- | Max packages this spot can hold (0 = unlimited) |
+| 4 | `is_refrigerated` | Toggle | No | false | Marks spot as refrigerated (for perishable auto-assignment) |
+| 5 | `building_id` | Dropdown | Yes | -- | Which building this spot belongs to |
+| 6 | `sort_order` | Number input | No | 0 | Display order in dropdowns |
+| 7 | `is_active` | Toggle | No | true | Active/inactive toggle |
+
+**Capacity tracking**: When a storage spot has a capacity limit, the system tracks how many unreleased packages are assigned to it. The dropdown shows: "Parcel Room - Shelf A (12/20)" where 12 is current and 20 is capacity.
+
+**Capacity warning**: When a spot reaches 80% capacity, it shows in yellow. At 100%, it shows in red and the system suggests alternative spots.
+
+**Empty state (no storage spots configured)**:
+
+```
++--------------------------------------------------+
+|                                                    |
+|          No storage spots configured yet           |
+|                                                    |
+|   Add storage locations so staff knows where to    |
+|   place incoming packages.                         |
+|                                                    |
+|              [+ Add Storage Spot]                  |
+|                                                    |
++--------------------------------------------------+
+```
+
+#### 3.1.9 Perishable Package Handling
+
+Perishable packages require special attention due to spoilage risk.
+
+**Behavior when `is_perishable` is toggled on**:
+
+1. **Immediate notification**: Resident is notified immediately via all available channels (email + SMS + push), regardless of the notification preference selected on the form. Override message: "You have a perishable delivery that requires prompt pickup."
+2. **Visual flag**: Package appears with a red "PERISHABLE" badge in all views.
+3. **Escalation chain** (configurable in Settings > Packages > Perishable Rules):
+
+| Timer | Action | Default |
+|-------|--------|---------|
+| 0h (intake) | Notify resident via all channels | Always |
+| 4h | Send follow-up reminder | Enabled |
+| 8h | Notify unit's secondary contact (if configured) | Enabled |
+| 24h | Alert shift supervisor / property manager | Enabled |
+| 48h | Flag for management review with disposal recommendation | Enabled |
+
+Each timer is configurable by the Property Admin. Timers pause outside of business hours (configurable).
+
+#### 3.1.10 Resident Self-Service Portal
+
+Residents see their packages through the resident portal.
+
+**What residents see**:
+
+| Section | Content |
+|---------|---------|
+| **My Packages** | List of all packages addressed to them or their unit |
+| **Pending Pickup** | Count badge on dashboard showing unreleased packages |
+| **Package History** | Past 90 days of received and released packages |
+| **Notification Preferences** | Preferred channel (email, SMS, push, all) for package notifications |
+| **Authorized Delegates** | People authorized to pick up on their behalf |
+
+**Authorized delegate management**:
+
+| # | Field | Type | Required | Max Length | Description |
+|---|-------|------|----------|------------|-------------|
+| 1 | `delegate_name` | Text input | Yes | 100 chars | Full name of delegate |
+| 2 | `delegate_phone` | Phone input | No | 20 chars | Contact phone |
+| 3 | `delegate_relationship` | Dropdown | No | -- | Options: Family, Friend, Caregiver, Dog Walker, Cleaning Service, Other |
+| 4 | `valid_from` | Date picker | No | -- | Start date (null = immediately) |
+| 5 | `valid_until` | Date picker | No | -- | End date (null = indefinite) |
+| 6 | `is_active` | Toggle | No | true | Active/inactive |
+
+Maximum 5 authorized delegates per unit.
+
+**Resident cannot**: Initiate a release, edit package details, or delete packages. These actions are staff-only.
+
+**Empty state (resident, no packages)**:
+
+```
++--------------------------------------------------+
+|                                                    |
+|              [Package icon illustration]           |
+|                                                    |
+|        You have no packages at the moment          |
+|                                                    |
+|   When a package arrives for you, it will appear   |
+|   here and you will be notified automatically.     |
+|                                                    |
++--------------------------------------------------+
+```
+
+#### 3.1.11 Outgoing Package Logging
+
+Staff can log packages leaving the building (returns, outgoing shipments).
+
+**Outgoing intake form**: Same form as incoming, but with `direction` set to "Outgoing" and the following differences:
+
+| Difference | Incoming | Outgoing |
+|------------|----------|----------|
+| `courier_id` | Who delivered | Who is picking up |
+| `storage_spot_id` | Where it is stored | Where it is staged for pickup |
+| `is_perishable` | Triggers resident notification | Triggers staff reminder if courier hasn't arrived |
+| Release flow | Resident picks up | Courier picks up |
+
+### 3.2 Enhanced Features (v2)
+
+#### 3.2.1 Courier Tracking Integration
+
+Deep-link to courier tracking pages using the tracking number.
+
+| Courier | Tracking URL Pattern |
+|---------|---------------------|
+| Amazon | `https://track.amazon.com/tracking/{tracking_number}` |
+| Canada Post | `https://www.canadapost-postescanada.ca/track-reperage/en#/search?searchFor={tracking_number}` |
+| FedEx | `https://www.fedex.com/fedextrack/?trknbr={tracking_number}` |
+| UPS | `https://www.ups.com/track?tracknum={tracking_number}` |
+| DHL | `https://www.dhl.com/en/express/tracking.html?AWB={tracking_number}` |
+| Purolator | `https://www.purolator.com/en/shipping/tracker?pin={tracking_number}` |
+| USPS | `https://tools.usps.com/go/TrackConfirmAction?tLabels={tracking_number}` |
+
+Tracking number field in the detail view becomes a clickable link that opens the courier's tracking page in a new tab.
+
+#### 3.2.2 Package Waiver / Parcel Agreement
+
+Residents sign a parcel handling agreement that establishes liability terms.
+
+| # | Field | Type | Description |
+|---|-------|------|-------------|
+| 1 | `waiver_template` | Rich text | Admin-configured waiver text |
+| 2 | `resident_signature` | Signature pad | Digital signature |
+| 3 | `signed_date` | Auto timestamp | When signed |
+| 4 | `ip_address` | Auto captured | For legal record |
+| 5 | `waiver_version` | Auto | Version tracking for template changes |
+
+Residents without a signed waiver see a banner in their portal: "Please review and sign the package handling agreement."
+
+#### 3.2.3 Advanced Storage Management
+
+- **Storage map**: Visual grid or floorplan of the parcel room with package locations marked
+- **Shelf labels**: Printable shelf labels with QR codes for quick storage assignment via scan
+- **Overflow alerts**: Automated notification to property manager when total building storage exceeds configurable threshold
+
+#### 3.2.4 Package Return / Unclaimed Processing
+
+For packages uncollected beyond a configurable period (default: 14 days).
+
+| Step | Action | Trigger |
+|------|--------|---------|
+| 1 | Final notice to resident | 10 days uncollected |
+| 2 | Management notification | 12 days uncollected |
+| 3 | Mark as "Return to Sender" or "Dispose" | Manual action by manager at 14+ days |
+| 4 | Log return/disposal with photo and notes | On action |
+| 5 | Archive from active list | On action |
+
+#### 3.2.5 Configurable Courier Management
+
+Property Admins can customize the courier list in Settings > Packages > Couriers.
+
+| Action | Description |
 |--------|-------------|
-| Resident's Preferred Channel | Uses the resident's notification preferences (default) |
-| Email | Send email notification |
-| SMS | Send text message |
-| Push Notification | Send mobile app push notification |
-| Voice Call | Automated voice call to resident's phone |
-| All Channels | Notify on every available channel |
-| No Notification | Do not notify the resident |
+| **Add courier** | Name, icon upload (SVG/PNG, 100x100px max), color hex, notification subject template, tracking URL template |
+| **Reorder** | Drag-and-drop to change sort order in the icon grid |
+| **Deactivate** | Hide a courier from the grid without deleting (historical data preserved) |
+| **Edit** | Change name, icon, color, templates for existing couriers |
 
-#### 3.3.2 Form Behavior
+System-provided couriers (the 15 defaults) cannot be deleted but can be deactivated.
 
-**Unit and Recipient linking**: When the user types in the Unit field, an autocomplete dropdown shows matching units. Selecting a unit auto-populates the Recipient field if the unit has only one registered occupant. If the unit has multiple occupants, the Recipient field shows a dropdown of all occupants for that unit.
+### 3.3 Future Features (v3+)
 
-**Courier icon grid behavior**: The 15 courier icons display in a 5-column grid (3 rows). Each icon is 64x64px with the courier name below it in Caption text. Clicking an icon highlights it with a 2px accent border and a subtle accent background. Only one icon can be selected at a time. Clicking a selected icon deselects it.
+#### 3.3.1 Smart Locker Integration
 
-**Perishable toggle behavior**: When toggled ON:
-- The toggle turns `--status-error` color (red) instead of the standard accent color
-- A warning banner appears below the toggle: "This package will trigger a priority notification. The resident will be contacted immediately."
-- The notification channel automatically switches to "All Channels" (can be overridden)
+Integration with physical package locker hardware (Luxer One, Parcel Pending, etc.) for buildings with automated locker systems.
 
-**Photo upload behavior**: Accepts drag-and-drop or click-to-browse. On mobile, offers camera capture. When a photo is uploaded:
-- Thumbnail preview (80x80px) appears next to the upload zone
-- If AI capabilities are enabled, the system runs Courier Logo Auto-Detection (#13) and Tracking Number Extraction (#14) in the background
-- If AI detects a courier, the corresponding icon is auto-selected with a subtle "AI suggested" label
-- If AI extracts a tracking number, it is auto-filled in the Tracking # field with a subtle "AI extracted" label
-- The user can override any AI suggestion by manually selecting a different courier or editing the tracking number
+#### 3.3.2 Courier API Webhooks
 
-#### 3.3.3 Form Buttons
+Real-time tracking updates via courier APIs. Package status auto-updates from "In Transit" to "Out for Delivery" to "Delivered" based on webhook data.
 
-**"Save" button (Primary)**:
-- **On click**: Validates all required fields. Creates a new package event. Sends notification to the resident based on the selected channel. Closes the modal.
-- **Success state**: Modal closes. Green toast: "Package PKG-2026-00148 logged for Unit 1205." New package appears at the top of the Non-Released packages list.
-- **Error state**: Modal stays open. Red inline errors appear below each invalid field. Focus moves to the first invalid field.
-- **Loading state**: Button label replaced with spinner. All form fields become read-only. "Cancel" button disabled.
+#### 3.3.3 Predictive Delivery Alerts
 
-**"Save & Log Another" button (Secondary)**:
-- **On click**: Same validation and creation as "Save". After success, resets the form (keeping Building and Storage Location values) instead of closing the modal.
-- **Success state**: Form resets. Green toast: "Package PKG-2026-00148 logged. Ready for next package." Reference number increments.
-- **Error state**: Same as "Save".
-- **Loading state**: Same as "Save".
+"Your Amazon order is likely arriving today" notifications to residents based on tracking data analysis.
 
-**"Cancel" button (Ghost)**:
-- **On click**: If the form has unsaved data, shows a confirmation dialog: "Discard this package? Any entered information will be lost." with "Discard" (Destructive) and "Keep Editing" (Secondary) buttons. If the form is empty, closes the modal immediately.
-- **Success state**: Modal closes. No toast.
+#### 3.3.4 Return/RMA Processing
 
-#### 3.3.4 Outgoing Package Form Fields
+Full return merchandise authorization workflow: resident initiates return, staff stages outgoing package, courier pickup scheduled, return confirmed.
 
-The Outgoing tab is used when a resident leaves a pre-paid package with front desk staff for courier pickup.
+#### 3.3.5 Package Insurance Claims
 
-| # | Field | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip |
-|---|-------|-------|------|-----------|----------|---------|------------|---------------|---------|
-| 1 | `reference_number` | Reference # | Read-only text (monospace) | 16 chars | Auto | Auto-generated (e.g., `PKG-2026-00149`) | N/A | N/A | "Unique reference number for this outgoing package." |
-| 2 | `building_id` | Building | Dropdown (select) | N/A | Yes | Current user's assigned building | Must select a valid building | "Please select a building." | "The building where this package was dropped off for sending." |
-| 3 | `unit_id` | Unit | Autocomplete text input | 10 chars | Yes | Empty | Must match a valid unit | "No unit found." | "The unit of the resident who is sending this package." |
-| 4 | `resident_id` | Sender | Autocomplete text input | 100 chars | Yes | Empty | Must match a registered resident | "No resident found in this unit." | "The resident who dropped off this package for sending." |
-| 5 | `courier_type_id` | Courier | Icon grid (single-select) | N/A | No | None selected | N/A | N/A | "Which courier will pick up this package? Select if known." |
-| 6 | `tracking_number` | Tracking # | Text input (monospace) | 50 chars | No | Empty | Alphanumeric, hyphens, spaces. Min 6 chars if provided. | "Tracking number must be at least 6 characters." | "The tracking number for the outgoing shipment." |
-| 7 | `description` | Notes | Textarea | 500 chars | No | Empty | N/A | N/A | "Any notes about the package -- e.g., 'needs to be picked up by 3 PM', 'fragile'." |
-| 8 | `storage_spot_id` | Storage Location | Dropdown (select) | N/A | No | First storage location in list | N/A | N/A | "Where is this package being held until courier pickup?" |
-| 9 | `photo` | Package Photo | File upload / camera | 10 MB max | No | No file | JPG, PNG, HEIC, WEBP. Max 10 MB. | "File must be an image under 10 MB." | "Photo of the outgoing package for record-keeping." |
-
-### 3.4 Package Intake -- Batch Mode
-
-For high-volume days (e.g., holidays, sale events), staff can log multiple packages in a single submission.
-
-**Trigger**: "Batch Intake" button (Secondary) on the Packages page, or "Log Multiple Packages" link inside the single package modal.
-
-**Modal size**: Full-sheet (90vw x 90vh). Title: "Batch Package Intake".
-
-#### 3.4.1 Batch Form Layout
-
-The batch form displays as a multi-row table. Each row represents one package.
-
-**Default rows**: 4 rows visible on load. Staff can add more rows.
-
-| Column | Type | Width | Required | Default | Tooltip |
-|--------|------|-------|----------|---------|---------|
-| Row # | Read-only number | 40px | Auto | Sequential (1, 2, 3...) | N/A |
-| Ref # | Read-only monospace | 140px | Auto | Auto-generated | "Auto-assigned reference number." |
-| Unit | Autocomplete text | 100px | Yes | Empty | "Type unit number." |
-| Recipient | Autocomplete text | 160px | Yes | Auto-populated from unit if single occupant | "Resident name." |
-| Courier | Mini icon grid (click opens a popover with the full 15-icon grid) | 80px | Yes | None | "Click to select courier." |
-| Tracking # | Text input (monospace) | 160px | No | Empty | "Shipping tracking number." |
-| Parcel Type | Dropdown | 140px | No | None | "Physical package description." |
-| Storage | Dropdown | 120px | No | Building default | "Storage location." |
-| Perishable | Toggle | 60px | No | Off | "Perishable item?" |
-| Notify | Dropdown | 140px | No | "Preferred Channel" | "Notification method." |
-| Print Label | Checkbox | 50px | No | Checked | "Print a label for this package?" |
-| Remove | Icon button (trash) | 40px | N/A | N/A | "Remove this row." |
-
-#### 3.4.2 Batch Form Controls
-
-**"Add Row" button (Ghost, below last row)**:
-- **On click**: Adds a new empty row to the bottom of the table. Reference number auto-generates. Maximum 20 rows per batch.
-- **Error state (at 20 rows)**: Button becomes disabled. Tooltip: "Maximum 20 packages per batch. Save this batch and start a new one."
-
-**"Save All" button (Primary)**:
-- **On click**: Validates all filled rows. Skips completely empty rows. Creates package events for each valid row. Sends notifications per each row's setting. Prints labels for checked rows.
-- **Success state**: Modal closes. Green toast: "8 packages logged successfully." (showing actual count)
-- **Error state**: Invalid rows are highlighted with a red left border. A summary appears: "3 rows have errors. Please fix them before saving." Scrolls to first error row.
-- **Loading state**: "Saving 8 packages..." progress bar appears below the title. All rows become read-only.
-
-**"Cancel" button (Ghost)**:
-- **On click**: If any row has data, confirmation dialog: "Discard all [N] packages? This cannot be undone." Otherwise, closes immediately.
-
-### 3.5 Package Release Flow
-
-The 8-step process for releasing a package to a resident or their authorized representative.
-
-#### Step 1: Locate the Package
-
-Staff finds the package by one of the following methods:
-- Searching by reference number in the search bar
-- Searching by resident name or unit number
-- Browsing the Non-Released packages list
-- Scanning the package label barcode (if printed)
-
-#### Step 2: Initiate Release
-
-Staff clicks the **"Release"** button on the package row (or inside the package detail view).
-
-**"Release" button (in table row)**:
-- **On click**: Opens the Release Package modal (Medium, 560px).
-- **Loading state**: Button shows spinner.
-
-#### Step 3: Release Package Modal
-
-| # | Field | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip |
-|---|-------|-------|------|-----------|----------|---------|------------|---------------|---------|
-| 1 | `released_to` | Released To | Text input | 100 chars | Yes | Pre-filled with recipient name | Min 2 chars | "Please enter the name of the person picking up this package." | "Name of the person picking up the package. This may be the resident or someone they authorized." |
-| 2 | `release_id_type` | ID Presented | Dropdown (select) | N/A | Property-configurable (default: No) | "None" | N/A | N/A | "What type of identification did the person present?" |
-| 3 | `release_comments` | Comments | Textarea | 500 chars | No | Empty | N/A | N/A | "Any notes about the release -- e.g., 'left at unit door per resident request', 'ID verified'." |
-| 4 | `release_signature` | Signature | Signature pad (canvas) | N/A | Property-configurable (default: No) | Empty | If required, signature pad must have content | "Signature is required for package release." | "Ask the person picking up to sign here using their finger or mouse." |
-| 5 | `release_photo` | Pickup Photo | File upload / camera | 10 MB | No | No file | JPG, PNG, HEIC, WEBP. Max 10 MB. | "File must be an image under 10 MB." | "Optional photo of the person picking up or the package being handed over." |
-
-**ID type dropdown options**: None, Driver's License, Passport, Building ID Card, Other.
-
-#### Step 4: Confirm Release
-
-**"Release Package" button (Primary)**:
-- **On click**: Validates required fields. Updates package status to Released. Records release timestamp, released-by staff member, and released-to person.
-- **Success state**: Modal closes. Green toast: "Package PKG-2026-00148 released to John Smith." Package row moves from Non-Released to Released section.
-- **Error state**: Red inline errors on invalid fields.
-- **Loading state**: Button shows spinner. Form fields become read-only.
-
-**"Cancel" button (Ghost)**:
-- **On click**: Closes modal. Package remains in Non-Released status.
-
-#### Step 5: Notification
-
-After successful release, the system:
-- Records the release in the package's audit log
-- Sends a "Package picked up" confirmation to the resident (if enabled in property settings)
-- Updates the package count badge in the sidebar navigation
-
-#### Step 6: Batch Release
-
-For residents picking up multiple packages at once:
-- Staff selects multiple package rows using checkboxes in the Non-Released list
-- Clicks "Release Selected" (button appears in the floating action bar when rows are selected)
-- A single Release Package modal appears with all selected packages listed
-- One signature covers all packages
-- All packages are released simultaneously
-
-#### Step 7: Label and Record
-
-The release event is recorded as a status change on the existing package event. The audit log entry includes:
-- Timestamp of release
-- Staff member who processed the release
-- Person who picked up (released_to)
-- ID type presented (if captured)
-- Signature (if captured)
-- Photo (if captured)
-- Comments (if entered)
-
-#### Step 8: History Update
-
-The package moves from the "Non-Released" section to the "Released" section with the release timestamp visible. The package's full history (Received, Notification Sent, Reminder Sent, Released) is preserved in the detail view.
-
-### 3.6 Reference Number System
-
-Every package receives a unique, human-readable reference number on creation.
-
-**Format**: `PKG-YYYY-NNNNN`
-- `PKG` -- fixed prefix for all packages (configurable per property in Settings)
-- `YYYY` -- four-digit year
-- `NNNNN` -- five-digit zero-padded sequential number, resetting to 00001 on January 1 each year
-
-**Examples**: `PKG-2026-00001`, `PKG-2026-01547`, `PKG-2026-99999`
-
-| Property | Detail |
-|----------|--------|
-| Data type | varchar(16) |
-| Generated | Server-side on event creation |
-| Uniqueness | Unique per property per year |
-| Visible to | All roles who can see the package |
-| Searchable | Yes -- global search, package search, command palette |
-| Printed on labels | Yes -- as text and as Code 128 barcode |
-| Overflow | If sequential number exceeds 99999, format extends to 6 digits (PKG-2026-100000) |
-
-### 3.7 Storage Spot Tracking
-
-Storage locations are physical places in the building where packages are stored while awaiting pickup.
-
-#### Storage Location Configuration
-
-Property Admins configure storage locations via Settings > Packages > Storage Locations.
-
-| Field | Label | Type | Max Length | Required | Default | Validation | Error Message | Tooltip |
-|-------|-------|------|-----------|----------|---------|------------|---------------|---------|
-| `name` | Location Name | Text input | 50 chars | Yes | Empty | Unique within property. Min 2 chars. | "This location name already exists." / "Name must be at least 2 characters." | "A short name for this storage area -- e.g., 'Parcel Room', 'Shelf A', 'Security Desk'." |
-| `capacity` | Capacity | Number input | 4 digits | No | Unlimited (null) | Integer, 1--9999. | "Capacity must be a number between 1 and 9999." | "Maximum number of packages this location can hold. Leave blank for unlimited." |
-| `is_default` | Default Location | Toggle | N/A | No | Off (only one can be on) | Only one location can be default | N/A | "New packages will default to this location if staff does not choose one." |
-| `sort_order` | Display Order | Number input | 3 digits | No | Next available integer | Integer, 1--999. | "Display order must be between 1 and 999." | "Controls the order locations appear in dropdowns. Lower numbers appear first." |
-
-**Default storage locations** (created on property setup):
-
-| # | Name | Default Capacity |
-|---|------|-----------------|
-| 1 | Parcel Room | Unlimited |
-| 2 | Security Desk | 20 |
-| 3 | Concierge Desk | 10 |
-| 4 | Overflow Storage | Unlimited |
-
-#### Storage Capacity Indicators
-
-When capacity is configured, the Packages list and intake form show a visual indicator:
-
-| Capacity Used | Color | Icon | Label |
-|--------------|-------|------|-------|
-| 0--74% | `--status-success` (green) | Circle | "Available" |
-| 75--94% | `--status-warning` (orange) | Triangle | "Filling Up" |
-| 95--100% | `--status-error` (red) | Exclamation | "Nearly Full" |
-| >100% | `--status-error` (red, pulsing) | Exclamation (filled) | "Over Capacity" |
-
-### 3.8 Perishable Package Handling
-
-Perishable items (food, flowers, medication, temperature-sensitive materials) receive priority handling to minimize spoilage risk.
-
-#### Perishable Indicators
-
-When a package is flagged as perishable:
-
-| Location | Indicator |
-|----------|-----------|
-| Non-Released list (table row) | Red snowflake icon before the package description. Row has a subtle `--status-error-bg` background. |
-| Package detail view | Red "Perishable" badge next to the reference number. Countdown timer shows time since intake. |
-| Sidebar badge | Perishable packages are counted separately: badge shows "3 (1 perishable)" |
-| Dashboard KPI card | "Perishable Packages" stat card appears when any perishable packages are unreleased |
-
-#### Perishable Escalation Timeline
-
-| Time Since Intake | Action | Notification Channel |
-|------------------|--------|---------------------|
-| 0 minutes | Initial notification sent via ALL channels (overrides resident preference) | Email + SMS + Push + Voice |
-| 2 hours | First reminder: "Your perishable package (Ref: PKG-2026-00148) has been here for 2 hours." | SMS + Push |
-| 6 hours | Second reminder + staff alert: "Perishable package for Unit 1205 has been uncollected for 6 hours." | SMS + Push (resident) + Dashboard alert (staff) |
-| 12 hours | Escalation to Property Manager: "Perishable package for Unit 1205 uncollected for 12 hours. Consider contacting the resident directly." | Email (Property Manager) |
-| 24 hours | Final escalation: "Perishable package for Unit 1205 uncollected for 24 hours. Package may need to be disposed of per building policy." | Email (Property Manager + Resident) |
-
-### 3.9 Print Label Integration
-
-Concierge generates printable labels that staff can attach to packages for easy identification and scanning.
-
-#### Label Contents
-
-| Element | Content | Font/Style |
-|---------|---------|-----------|
-| Building name | Property name | Headline (17px, 600 weight) |
-| Reference number (text) | `PKG-2026-00148` | Title 3 (20px, 600 weight, monospace) |
-| Reference number (barcode) | Code 128 barcode encoding the reference number | 40px height |
-| Unit number | `Unit 1205` | Title 2 (22px, 600 weight) |
-| Resident name | `John Smith` | Body (15px, 400 weight) |
-| Courier | Courier name + small logo | Callout (14px) |
-| Date received | `Mar 14, 2026 at 10:32 AM` | Caption (12px) |
-| Storage location | `Parcel Room` | Caption (12px) |
-| Perishable flag | "PERISHABLE" in red (only if perishable) | Overline (11px, 600 weight, uppercase, `--status-error`) |
-
-#### Label Size Options
-
-| Size | Dimensions | Use Case |
-|------|-----------|----------|
-| Standard | 4" x 2" (101mm x 51mm) | Default. Fits most label printers. |
-| Large | 4" x 4" (101mm x 101mm) | For oversized packages. Larger barcode. |
-| Receipt | 3.15" x variable (80mm thermal) | Thermal receipt printers. |
-
-**"Print Label" button (in package detail and intake form)**:
-- **On click**: Opens the browser print dialog with the label formatted for the selected printer size. Label size defaults to "Standard" but can be changed in Settings > Packages > Label Settings.
-- **Success state**: Print dialog opens. No state change in the app.
-- **Error state**: Toast (red): "Unable to generate label. Please try again."
-- **Loading state**: Button shows spinner while label is rendered (typically under 1 second).
-
-### 3.10 Multi-Channel Notifications
-
-Package notifications use the platform's unified notification system (see 09-Communication). Each notification event is triggered at specific points in the package lifecycle.
-
-#### Notification Triggers
-
-| Trigger | When | Default Template | Channels Available |
-|---------|------|------------------|--------------------|
-| Package Received | On successful intake | "[Courier] delivery has arrived for your unit. Reference: [ref#]. Pick up at [storage location]." | Email, SMS, Push, Voice |
-| Perishable Alert | On intake of perishable package | "URGENT: A perishable delivery has arrived for your unit. Reference: [ref#]. Please pick up as soon as possible." | Email, SMS, Push, Voice (all channels simultaneously) |
-| Uncollected Reminder (24h) | 24 hours after intake, if not released | "Reminder: You have a package (Ref: [ref#]) waiting at [storage location] since [date]. Please pick up at your earliest convenience." | Resident's preferred channel |
-| Uncollected Reminder (48h) | 48 hours after intake, if not released | "Second reminder: Your package (Ref: [ref#]) has been waiting for 2 days. The front desk holds packages for [N] days." | Resident's preferred channel |
-| Uncollected Reminder (72h) | 72 hours after intake, if not released | "Final reminder: Your package (Ref: [ref#]) has been waiting for 3 days. Please pick up or contact the front desk." | SMS + Push |
-| Package Released | On successful release | "Your package (Ref: [ref#]) has been picked up by [released_to] on [date]." | Resident's preferred channel |
-| Management Escalation | 7 days after intake, if not released | "Package for Unit [unit] (Ref: [ref#]) has been unreleased for 7 days. Resident: [name]." | Email (Property Manager) |
-
-#### Notification Settings (Property-Level)
-
-| Setting | Type | Default | Tooltip |
-|---------|------|---------|---------|
-| Send notification on package intake | Toggle | On | "Notify the resident when a new package is logged for their unit." |
-| Send release confirmation | Toggle | On | "Notify the resident when their package has been picked up." |
-| Enable automatic reminders | Toggle | On | "Send automatic reminders for uncollected packages at 24, 48, and 72 hours." |
-| Reminder intervals (hours) | Multi-number input | 24, 48, 72 | "Hours after intake when reminders are sent. Separate values with commas." |
-| Escalate to management after (days) | Number input | 7 | "Number of days after which unreleased packages are escalated to the Property Manager." |
-| Allow staff to override notification channel | Toggle | On | "Let front desk staff choose a different notification channel when logging a package." |
-| Residents can opt out of package notifications | Toggle | No | "Allow residents to disable package notifications. Not recommended -- residents may miss important deliveries." |
-
-### 3.11 Courier Label OCR (AI)
-
-When a staff member uploads a photo of a shipping label during package intake, the AI system can automatically extract information to speed up the logging process.
-
-This maps to AI Framework capabilities #13 (Courier Logo Auto-Detection) and #14 (Tracking Number Extraction).
-
-#### How It Works
-
-1. Staff uploads or captures a photo of the shipping label
-2. The system sends the image to the AI vision model (default: OpenAI GPT-4o for image analysis)
-3. The AI returns: detected courier name, extracted tracking number, and optionally a description of the package
-4. Results are auto-filled into the form fields with an "AI suggested" label
-5. Staff can accept, modify, or reject each suggestion
-
-#### AI Detection Fields
-
-| Field Detected | Form Field Auto-Filled | Confidence Display | Override Behavior |
-|---------------|----------------------|-------------------|-------------------|
-| Courier name | Courier icon auto-selected | Green checkmark if confidence > 85%. Yellow if 50--85%. Not shown if < 50%. | Staff taps a different courier icon. AI label disappears. |
-| Tracking number | Tracking # field | Extracted text shown with "Verify" link | Staff edits the field. AI label disappears. |
-| Package description | Notes field (appended, not replaced) | Plain text suggestion | Staff edits or deletes the text. |
-
-#### Graceful Degradation
-
-If AI is disabled, unavailable, or the photo is unreadable:
-- No auto-fill occurs
-- The photo is still attached to the package record
-- Staff manually selects the courier and enters the tracking number
-- No error is shown -- the photo upload succeeds regardless of AI availability
-
-#### Cost and Performance
-
-| Metric | Value |
-|--------|-------|
-| Estimated cost per scan | $0.005 |
-| Response time target | Under 3 seconds |
-| Daily volume (500-unit building) | ~50 scans |
-| Monthly cost estimate | ~$7.50 |
-| Model | OpenAI GPT-4o (Vision) or equivalent |
-
-### 3.12 Unreleased Package Escalation
-
-Packages that remain uncollected follow a configurable escalation path.
-
-#### Escalation Stages
-
-| Stage | Time Since Intake | Visual Indicator | System Action |
-|-------|------------------|------------------|---------------|
-| Normal | 0--24 hours | No special indicator | Standard notification on intake |
-| Reminder 1 | 24 hours | Yellow dot on package row | Auto-send reminder (if enabled) |
-| Reminder 2 | 48 hours | Orange dot on package row | Auto-send second reminder |
-| Urgent | 72 hours | Red dot on package row | Auto-send final reminder |
-| Overdue | 7+ days | Red pulsing dot. Row highlighted with `--status-error-bg` | Escalation email to Property Manager. Package appears on manager's dashboard as action item. |
-| Disposal Review | 14+ days (configurable) | Red badge: "Disposal Review" | Prompt Property Manager to take action: contact resident, return to sender, or dispose per building policy. |
-
-#### Escalation Settings (Property Admin)
-
-| Setting | Type | Default | Validation | Tooltip |
-|---------|------|---------|------------|---------|
-| Reminder 1 after (hours) | Number input | 24 | Integer, 1--168 | "Hours after intake for the first reminder. Set to 0 to disable." |
-| Reminder 2 after (hours) | Number input | 48 | Integer, must be > Reminder 1 | "Hours after intake for the second reminder." |
-| Final reminder after (hours) | Number input | 72 | Integer, must be > Reminder 2 | "Hours after intake for the final reminder." |
-| Escalate to management after (days) | Number input | 7 | Integer, 1--30 | "Days before an unreleased package is flagged for management review." |
-| Disposal review after (days) | Number input | 14 | Integer, must be > management escalation | "Days before the system suggests disposal or return to sender." |
-
-### 3.13 Parcel Waivers
-
-Some properties require residents to sign a parcel waiver -- a legal document that defines the building's liability and handling policies for packages.
-
-#### Waiver Configuration
-
-| Setting | Type | Default | Tooltip |
-|---------|------|---------|---------|
-| Require parcel waiver | Toggle | Off | "When enabled, residents must accept the building's package handling policy before the front desk can receive packages for their unit." |
-| Waiver document | File upload (PDF) | None | "Upload the building's parcel waiver document. Residents will see this and must accept it." |
-| Waiver expiry (months) | Number input | 12 | "How often residents must re-accept the waiver. Set to 0 for one-time acceptance." |
-
-#### Waiver Enforcement
-
-When a staff member logs a package for a resident who has not signed the current waiver:
-- A yellow warning banner appears in the intake form: "[Resident Name] has not signed the current parcel waiver. The package can still be logged, but please inform the resident."
-- The package is logged normally (staff can still accept it -- the waiver is informational, not blocking)
-- A "Waiver Pending" badge appears on the resident's profile and on the package detail view
-- The resident sees a prompt to review and accept the waiver when they next log in to the resident portal
+For damaged or lost packages, a claims workflow that documents evidence, notifies the courier, and tracks resolution.
 
 ---
 
 ## 4. Data Model
 
-### 4.1 Package (Extension of Event)
-
-A Package is an Event with `event_group = 'packages'`. The package-specific data lives in the Event's `custom_fields` (JSONB) column.
+### 4.1 Package Entity
 
 ```
-Package (Event with event_group = 'packages')
-├── id (UUID, inherited from Event)
-├── event_type_id → EventType (courier type, e.g., "Amazon", "FedEx")
-├── event_group_id → EventGroup ('packages')
-├── property_id → Property
-├── unit_id → Unit (required for packages)
-├── resident_id → Resident (required for incoming; sender for outgoing)
-├── status (enum: open = unreleased, closed = released)
-├── priority (enum: normal, high = perishable)
-├── reference_number (varchar 16, e.g., "PKG-2026-00148")
-├── created_by → User (staff who logged the package)
-├── created_at (timestamp with timezone)
-├── closed_by → User (staff who released the package)
-├── closed_at (timestamp with timezone, = release timestamp)
-├── title (auto-generated: "[Courier] package for [Resident] ([Unit])")
-├── description (varchar 500, staff notes)
-├── location (varchar 50, storage spot name)
-├── notification_sent (boolean)
-├── notification_channels[] (enum array: email, sms, push, voice)
-├── label_printed (boolean)
-├── signature (binary, capture on release)
-├── photo (binary, intake photo)
-├── custom_fields (JSONB):
-│   ├── package_direction (enum: "incoming", "outgoing")
-│   ├── courier_name (varchar 100, denormalized from event type)
-│   ├── tracking_number (varchar 50, nullable)
-│   ├── parcel_type_id → ParcelType (nullable)
-│   ├── parcel_type_name (varchar 60, denormalized)
-│   ├── storage_spot_id → StorageLocation (nullable)
-│   ├── storage_spot_name (varchar 50, denormalized)
-│   ├── is_perishable (boolean, default false)
-│   ├── released_to (varchar 100, name of person who picked up)
-│   ├── release_id_type (varchar 30, nullable)
-│   ├── release_comments (varchar 500, nullable)
-│   ├── release_photo (binary, nullable)
-│   ├── ai_detected_courier (varchar 100, nullable)
-│   ├── ai_detected_tracking (varchar 50, nullable)
-│   ├── ai_courier_confidence (float 0-1, nullable)
-│   ├── ai_description (varchar 500, nullable)
-│   ├── reminder_1_sent_at (timestamp, nullable)
-│   ├── reminder_2_sent_at (timestamp, nullable)
-│   ├── reminder_3_sent_at (timestamp, nullable)
-│   └── management_escalation_sent_at (timestamp, nullable)
-├── ai_metadata (JSONB):
-│   ├── ocr_result (object: raw OCR output)
-│   ├── courier_detection_result (object: model, confidence, alternatives)
-│   ├── damage_detection (object: is_damaged, description, confidence)
-│   ├── storage_suggestion (object: suggested_location, reason)
-│   └── notification_optimization (object: best_channel, best_time, reasoning)
-└── audit_log[] → AuditEntry
+Package
+ |-- id                    UUID, primary key
+ |-- property_id           UUID, FK -> Property (required, indexed)
+ |-- building_id           UUID, FK -> Building (required, indexed)
+ |-- unit_id               UUID, FK -> Unit (required, indexed)
+ |-- resident_id           UUID, FK -> Resident (required, indexed)
+ |-- reference_number      VARCHAR(20), unique per property, indexed
+ |-- direction             ENUM('incoming', 'outgoing'), default 'incoming'
+ |-- status                ENUM('unreleased', 'released', 'returned', 'disposed'), default 'unreleased'
+ |-- courier_id            UUID, FK -> Courier (nullable)
+ |-- courier_other_name    VARCHAR(100), nullable (when courier_id is "Other")
+ |-- tracking_number       VARCHAR(100), nullable, indexed
+ |-- parcel_category_id    UUID, FK -> ParcelCategory (nullable)
+ |-- description           VARCHAR(500), nullable
+ |-- storage_spot_id       UUID, FK -> StorageSpot (nullable)
+ |-- is_perishable         BOOLEAN, default false
+ |-- is_oversized          BOOLEAN, default false
+ |-- notify_channel        ENUM('default','email','sms','push','all','none'), default 'default'
+ |-- created_by            UUID, FK -> User (staff who logged it)
+ |-- created_at            TIMESTAMPTZ, auto, indexed
+ |-- released_to_name      VARCHAR(200), nullable
+ |-- released_by           UUID, FK -> User (nullable)
+ |-- released_at           TIMESTAMPTZ, nullable, indexed
+ |-- id_verified           BOOLEAN, default false
+ |-- release_comments      VARCHAR(500), nullable
+ |-- is_authorized_delegate BOOLEAN, default false
+ |-- deleted_at            TIMESTAMPTZ, nullable (soft delete)
+ |-- updated_at            TIMESTAMPTZ, auto
 ```
 
-### 4.2 ParcelType
+### 4.2 Supporting Entities
 
 ```
-ParcelType
-├── id (UUID)
-├── property_id → Property
-├── name (varchar 60)
-├── sort_order (integer)
-├── active (boolean, default true)
-├── created_at (timestamp)
-└── updated_at (timestamp)
+PackagePhoto
+ |-- id                    UUID, primary key
+ |-- package_id            UUID, FK -> Package (indexed)
+ |-- photo_type            ENUM('intake', 'release', 'damage')
+ |-- file_url              VARCHAR(500)
+ |-- file_size_bytes       INTEGER
+ |-- uploaded_by           UUID, FK -> User
+ |-- uploaded_at           TIMESTAMPTZ
+
+PackageSignature
+ |-- id                    UUID, primary key
+ |-- package_id            UUID, FK -> Package (indexed)
+ |-- signature_data        BYTEA (SVG or PNG blob)
+ |-- signed_by_name        VARCHAR(200)
+ |-- captured_at           TIMESTAMPTZ
+ |-- captured_by           UUID, FK -> User (staff)
+
+Courier
+ |-- id                    UUID, primary key
+ |-- property_id           UUID, FK -> Property (nullable; null = global/system courier)
+ |-- name                  VARCHAR(100)
+ |-- icon_url              VARCHAR(500)
+ |-- color_hex             VARCHAR(7)
+ |-- tracking_url_template VARCHAR(500), nullable
+ |-- notification_subject  VARCHAR(200)
+ |-- sort_order            INTEGER
+ |-- is_system             BOOLEAN (system couriers can't be deleted)
+ |-- is_active             BOOLEAN, default true
+
+ParcelCategory
+ |-- id                    UUID, primary key
+ |-- property_id           UUID, FK -> Property
+ |-- name                  VARCHAR(100)
+ |-- sort_order            INTEGER
+ |-- is_active             BOOLEAN, default true
+
+StorageSpot
+ |-- id                    UUID, primary key
+ |-- property_id           UUID, FK -> Property
+ |-- building_id           UUID, FK -> Building
+ |-- name                  VARCHAR(100)
+ |-- code                  VARCHAR(10)
+ |-- capacity              INTEGER, default 0 (0 = unlimited)
+ |-- is_refrigerated       BOOLEAN, default false
+ |-- sort_order            INTEGER
+ |-- is_active             BOOLEAN, default true
+
+AuthorizedDelegate
+ |-- id                    UUID, primary key
+ |-- unit_id               UUID, FK -> Unit (indexed)
+ |-- delegate_name         VARCHAR(100)
+ |-- delegate_phone        VARCHAR(20), nullable
+ |-- relationship          VARCHAR(50), nullable
+ |-- valid_from            DATE, nullable
+ |-- valid_until           DATE, nullable
+ |-- is_active             BOOLEAN, default true
+ |-- created_by            UUID, FK -> User
+ |-- created_at            TIMESTAMPTZ
+
+PackageHistory
+ |-- id                    UUID, primary key
+ |-- package_id            UUID, FK -> Package (indexed)
+ |-- action                ENUM('created','notification_sent','reminder_sent',
+ |                              'released','edited','deleted','escalated',
+ |                              'returned','disposed')
+ |-- actor_id              UUID, FK -> User
+ |-- actor_name            VARCHAR(200)
+ |-- details               TEXT, nullable
+ |-- channel               VARCHAR(20), nullable (for notification actions)
+ |-- created_at            TIMESTAMPTZ
+
+PackageWaiver (v2)
+ |-- id                    UUID, primary key
+ |-- property_id           UUID, FK -> Property
+ |-- resident_id           UUID, FK -> Resident
+ |-- waiver_version        INTEGER
+ |-- signature_data        BYTEA
+ |-- signed_at             TIMESTAMPTZ
+ |-- ip_address            INET
 ```
 
-### 4.3 StorageLocation
+### 4.3 Indexes
 
-```
-StorageLocation
-├── id (UUID)
-├── property_id → Property
-├── name (varchar 50)
-├── capacity (integer, nullable = unlimited)
-├── is_default (boolean, default false)
-├── sort_order (integer)
-├── active (boolean, default true)
-├── created_at (timestamp)
-└── updated_at (timestamp)
-```
-
-### 4.4 ParcelWaiver
-
-```
-ParcelWaiver
-├── id (UUID)
-├── property_id → Property
-├── document_url (varchar 500)
-├── version (integer, auto-increment)
-├── active (boolean)
-├── created_at (timestamp)
-└── updated_at (timestamp)
-```
-
-### 4.5 ParcelWaiverAcceptance
-
-```
-ParcelWaiverAcceptance
-├── id (UUID)
-├── waiver_id → ParcelWaiver
-├── resident_id → Resident
-├── accepted_at (timestamp)
-├── ip_address (varchar 45)
-├── user_agent (varchar 500)
-└── expires_at (timestamp, nullable)
-```
+| Table | Index | Columns | Purpose |
+|-------|-------|---------|---------|
+| Package | `idx_pkg_property_status` | `property_id, status` | Unreleased package queries |
+| Package | `idx_pkg_unit_status` | `unit_id, status` | Resident portal queries |
+| Package | `idx_pkg_reference` | `property_id, reference_number` | Reference number lookup |
+| Package | `idx_pkg_tracking` | `tracking_number` | Tracking number search |
+| Package | `idx_pkg_created` | `property_id, created_at DESC` | Chronological listing |
+| Package | `idx_pkg_released` | `property_id, released_at DESC` | Released package history |
+| Package | `idx_pkg_perishable` | `property_id, is_perishable, status` | Perishable escalation queries |
+| Package | `idx_pkg_building` | `building_id, status, created_at DESC` | Per-building listing |
 
 ---
 
 ## 5. User Flows
 
-### 5.1 Front Desk / Concierge: Log a Single Package
+### 5.1 Standard Package Intake (Single Package)
 
 ```
-1. Staff clicks "Log Package" button on Packages page
-   └─ Modal opens: "Log New Package" (Incoming tab active)
-
-2. Staff types unit number in the Unit field
-   └─ Autocomplete suggests matching units
-   └─ Staff selects "1205"
-   └─ Recipient auto-fills: "John Smith" (single occupant)
-
-3. Staff taps the Amazon icon in the courier grid
-   └─ Amazon icon highlights with accent border
-
-4. Staff enters tracking number: "1Z999AA10123456784"
-   └─ Field validates on blur (alphanumeric check passes)
-
-5. Staff selects parcel type: "Medium Brown Box"
-
-6. Staff selects storage: "Parcel Room"
-
-7. Staff clicks "Save"
-   └─ Validation passes
-   └─ Package PKG-2026-00148 created
-   └─ Notification sent to John Smith via his preferred channel (SMS)
-   └─ Toast: "Package PKG-2026-00148 logged for Unit 1205."
-   └─ Modal closes
-   └─ Package appears at top of Non-Released list
+Courier arrives at front desk
+       |
+       v
+Staff clicks "+ Package" (dashboard or listing page)
+       |
+       v
+Intake form opens
+       |
+       v
+Staff selects Unit (autocomplete) --> Recipient auto-populates
+       |
+       v
+Staff taps Courier icon --> (Optional: AI detects courier from photo)
+       |
+       v
+Staff enters Tracking # --> (Optional: scan barcode with camera)
+       |
+       v
+Staff selects Storage Location --> (Optional: AI suggests based on size/capacity)
+       |
+       v
+Staff toggles Perishable if applicable
+       |
+       v
+Staff clicks "Save Package"
+       |
+       v
+System generates reference number
+       |
+       v
+System sends notification to resident (per preference)
+       |
+       v
+System prints label (if configured for auto-print)
+       |
+       v
+Staff affixes label and stores package
 ```
 
-### 5.2 Front Desk / Concierge: Batch Intake
+**Time target**: Under 15 seconds for a standard package with known unit and courier.
+
+### 5.2 Package Release (Walk-in Pickup)
 
 ```
-1. Courier drops off 6 Amazon packages at once
-2. Staff clicks "Batch Intake"
-   └─ Full-sheet modal opens with 4 empty rows
-
-3. Staff fills Row 1: Unit 1205, auto-fills John Smith, taps Amazon, enters tracking #
-4. Staff fills Row 2: Unit 807, selects Jane Doe from 3 occupants, taps Amazon, enters tracking #
-5. Staff fills Row 3: Unit 1304, auto-fills Mike Johnson, taps Amazon, enters tracking #
-6. Staff fills Row 4: Unit 502, auto-fills Sarah Chen, taps Amazon, enters tracking #
-7. Staff clicks "Add Row" twice for rows 5 and 6
-8. Staff fills rows 5 and 6
-
-9. Staff clicks "Save All"
-   └─ All 6 rows validate successfully
-   └─ 6 package events created
-   └─ 6 notifications sent (each to resident's preferred channel)
-   └─ 6 labels queued for printing (if label checkbox was checked)
-   └─ Toast: "6 packages logged successfully."
-   └─ Modal closes
+Resident arrives at front desk
+       |
+       v
+Staff searches by unit # or resident name
+       |
+       v
+System shows all unreleased packages for that unit
+       |
+       v
+Staff selects package(s) to release
+       |
+       v
+Release dialog opens with resident name pre-filled
+       |
+       v
+Staff verifies identity (name match, optional ID check)
+       |
+       v
+Staff captures signature (if required by property)
+       |
+       v
+Staff clicks "Release Package"
+       |
+       v
+System records release (who, when, by whom)
+       |
+       v
+Package moves to Released section
+       |
+       v
+Staff hands package(s) to resident
 ```
 
-### 5.3 Front Desk / Concierge: Release a Package
+**Time target**: Under 20 seconds for a single-package release with signature.
+
+### 5.3 Perishable Escalation Flow
 
 ```
-1. Resident arrives: "I'm John Smith, Unit 1205. I have a package."
-
-2. Staff types "1205" in the package search bar
-   └─ Non-Released packages for Unit 1205 appear
-   └─ PKG-2026-00148 (Amazon, Medium Brown Box, Parcel Room)
-
-3. Staff clicks "Release" on the package row
-   └─ Release modal opens
-   └─ "Released To" pre-filled: "John Smith"
-
-4. Staff confirms name, optionally captures signature
-
-5. Staff clicks "Release Package"
-   └─ Package status changes to Released
-   └─ Release timestamp recorded
-   └─ Toast: "Package PKG-2026-00148 released to John Smith."
-   └─ Package moves from Non-Released to Released section
+Package logged with perishable flag
+       |
+       v
+Immediate: Notify resident via ALL channels
+       |
+       v
++4 hours: Auto-send follow-up reminder
+       |
+       v
++8 hours: Notify secondary contact for unit
+       |
+       v
++24 hours: Alert shift supervisor / property manager
+       |
+       v
++48 hours: Flag for management review
+       |           - Disposal recommendation
+       |           - Photo documentation required
+       v
+Manager decides: Return to Sender | Dispose | Hold
+       |
+       v
+Action logged with timestamp and notes
 ```
 
-### 5.4 Resident: View Their Packages
+### 5.4 Resident Self-Service Flow
 
 ```
-1. Resident logs into the resident portal
-2. Dashboard shows: "You have 2 packages waiting for pickup"
-3. Resident clicks "View Packages"
-   └─ Packages page shows only their packages
-   └─ Non-Released section: 2 packages with reference #, courier, date received
-   └─ Released section: Recent pickups with release date
-
-4. Resident can see:
-   ├─ Reference number
-   ├─ Courier name and logo
-   ├─ Date received
-   ├─ Storage location
-   └─ Status (Awaiting Pickup / Released)
-
-5. Resident CANNOT:
-   ├─ Release packages
-   ├─ Edit package details
-   ├─ See other residents' packages
-   └─ Access package settings
+Resident receives notification: "You have a package"
+       |
+       v
+Resident opens Concierge app or portal
+       |
+       v
+Dashboard shows badge: "2 packages waiting"
+       |
+       v
+Resident taps "My Packages"
+       |
+       v
+Sees list of unreleased packages with details:
+  - Courier, Category, Storage Location
+  - Received date and age
+  - "Visit the front desk to pick up"
+       |
+       v
+Resident visits front desk
+       |
+       v
+Staff processes normal release flow
 ```
 
-### 5.5 Property Manager: Handle Escalated Package
+### 5.5 Batch Intake Flow (Holiday Peak)
 
 ```
-1. Manager receives email: "Package PKG-2026-00141 for Unit 502 unreleased for 7 days."
+Courier delivers 15 Amazon packages
+       |
+       v
+Staff clicks "Batch Intake"
+       |
+       v
+Batch form opens with 4 rows (expandable)
+       |
+       v
+Staff enters Unit in Row 1 --> Recipient auto-fills
+Staff taps Amazon courier icon --> applies to Row 1
+Staff clicks "+" to add rows as needed
+       |
+       v
+For each row: Unit + Courier (minimum)
+       |
+       v
+Staff checks "Print Label" for all rows
+       |
+       v
+Staff clicks "Save All (15)"
+       |
+       v
+System creates 15 packages with sequential reference numbers
+       |
+       v
+System batches notifications: residents with multiple packages
+get ONE notification listing all packages (if batching enabled)
+       |
+       v
+Printer queues 15 labels
+       |
+       v
+Staff affixes labels and stores packages
+```
 
-2. Manager opens Packages page, filtered to "Overdue" status
-   └─ Package row has red pulsing dot and "Overdue" badge
+### 5.6 Authorized Delegate Pickup Flow
 
-3. Manager clicks on the package to view details
-   └─ Audit log shows: Received (7 days ago), 3 reminders sent, no response
-
-4. Manager clicks "Log Call" to record a phone call to the resident
-   └─ After call: resident says they are on vacation, will pick up when back
-
-5. Manager adds a comment: "Resident on vacation until March 25. Will pick up on return."
-   └─ Escalation timer pauses (manual override)
+```
+Delegate arrives at front desk: "I'm picking up for Unit 1205"
+       |
+       v
+Staff searches by unit number
+       |
+       v
+System shows unreleased packages for Unit 1205
+       |
+       v
+Staff asks for delegate's name
+       |
+       v
+Staff enters name in "Picked Up By" field
+       |
+       v
+Staff checks "Authorized Delegate" checkbox
+       |
+       v
+System validates name against authorized delegates for unit:
+  - MATCH: Green checkmark, proceed
+  - NO MATCH: Warning -- "This person is not listed as an
+    authorized delegate. Continue anyway?" (requires manager override
+    or resident phone confirmation)
+       |
+       v
+Staff completes release with signature/photo
+       |
+       v
+System logs delegate pickup in history
 ```
 
 ---
 
 ## 6. UI/UX
 
-### 6.1 Packages Page Layout
+### 6.1 Desktop Layout (1280px+)
 
-The Packages page follows the standard Concierge layout: sidebar + content area with a 12-column grid.
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  Packages                              [Search...] [Batch Intake]   │
-│                                                    [+ Log Package]  │
-│                                                                     │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐          │
-│  │Unreleased │  │Released   │  │Perishable │  │Avg Pickup │          │
-│  │Packages   │  │Today      │  │Waiting    │  │Time       │          │
-│  │  47    ↑  │  │  23       │  │   2    !  │  │  4.2h  ↓  │          │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘          │
-│                                                                     │
-│  FILTERS                                                            │
-│  [Building ▾] [Unit ▾] [Courier ▾] [Status ▾] [Date Range]  [Clear]│
-│                                                                     │
-│  ── NON-RELEASED PACKAGES (47) ──────────────────────────────────  │
-│  ☑ Ref #       Unit  Recipient     Courier   Received    Storage   │
-│  ─────────────────────────────────────────────────────────────────  │
-│  ☐ PKG-..148  1205  John Smith    [Amazon]  10:32 AM    Parcel Rm │
-│  ☐ PKG-..147  807   Jane Doe      [FedEx]   10:15 AM    Shelf A   │
-│  ☐ PKG-..146  1304  Mike Johnson  [UPS]     9:48 AM     Parcel Rm │
-│  ... (25 rows default)                                              │
-│  Showing 1-25 of 47                                    ◀ 1 2 ▶     │
-│                                                                     │
-│  ── RELEASED PACKAGES ───────────────────────────────────────────  │
-│  Ref #       Unit  Recipient     Courier   Received    Released     │
-│  PKG-..140  502   Sarah Chen    [DHL]     Yesterday   Today 9:15   │
-│  ... (collapsible, 10 rows default)                                 │
-│  Showing 1-10 of 23 released today              [View All Released] │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### 6.2 KPI Cards (Top of Page)
-
-Four stat cards spanning the full width in a 4-column layout.
-
-| Card | Metric | Source | Trend Calculation | Status Color |
-|------|--------|--------|-------------------|-------------|
-| Unreleased Packages | Count of packages with status = open | Real-time query | Compared to same day last week | Red if > 50, green if trending down |
-| Released Today | Count of packages released today | Real-time query | Compared to yesterday | Always neutral (info) |
-| Perishable Waiting | Count of unreleased perishable packages | Real-time query | N/A | Red if > 0, green if 0 |
-| Avg Pickup Time | Average hours between intake and release (last 30 days) | Calculated daily | Compared to previous 30-day window | Red if > 8h, green if < 4h |
-
-### 6.3 Filter Bar
-
-Horizontal filter bar below KPI cards. Filters apply to both Non-Released and Released sections.
-
-| Filter | Type | Options | Default | Behavior |
-|--------|------|---------|---------|----------|
-| Building | Dropdown | All buildings the user has access to | "All Buildings" | Filters by building |
-| Unit | Autocomplete text | All units | Empty (all units) | Filters by unit number |
-| Courier | Multi-select dropdown with courier icons | All active courier types | All selected | Shows only packages from selected couriers |
-| Status | Dropdown | All, Unreleased, Released, Perishable, Overdue | "Unreleased" | Filters by package status |
-| Date Range | Date range picker | Custom range | Last 90 days | Filters by package creation date |
-| Clear Filters | Ghost button | N/A | N/A | Resets all filters to defaults |
-
-### 6.4 Non-Released Packages Table
-
-| Column | Width | Sortable | Content |
-|--------|-------|----------|---------|
-| Checkbox | 40px | No | Row selection for batch release |
-| Ref # | 140px | Yes | Reference number in monospace. Clicking opens package detail. |
-| Unit | 80px | Yes | Unit number in monospace |
-| Recipient | 160px | Yes | Resident full name |
-| Courier | 100px | Yes | Courier logo (24px) + name |
-| Parcel Type | 120px | Yes | Physical type name |
-| Received | 120px | Yes (default, newest first) | Relative time ("10 min ago", "2 hours ago", "Yesterday"). Full timestamp on hover. |
-| Storage | 100px | Yes | Storage location name |
-| Perishable | 40px | Yes | Snowflake icon if perishable; empty if not |
-| Age | 80px | Yes | Time since intake. Color-coded: green (< 24h), yellow (24--72h), red (> 72h) |
-| Actions | 120px | No | "Release" primary button. Overflow menu (three dots) with: View, Edit, Print Label, Send Reminder, Delete |
-
-**Row height**: 56px.
-**Hover**: Row background changes to `--bg-secondary`.
-**Selection**: Checking one or more rows reveals a floating action bar at the bottom: "Release Selected ([N])" primary button + "Print Labels" secondary button.
-**Empty state**: Centered illustration of an empty shelf. Text: "No unreleased packages." Subtext: "All packages have been picked up. Nice work!" No action button.
-
-### 6.5 Released Packages Section
-
-Identical table structure to Non-Released, with these differences:
-- No checkbox column (cannot perform actions on released packages)
-- No "Release" button in Actions column
-- Additional "Released" column showing release timestamp
-- Additional "Released To" column showing who picked up
-- Actions overflow menu only contains: View, Print Label
-
-**Default view**: Collapsed to show 10 most recent releases. "View All Released" link expands to full paginated list.
-
-### 6.6 Package Detail View
-
-Opened by clicking a reference number in the table. Opens as a **slide-over panel** (480px wide, from the right side of the screen) so the main list remains visible.
+**Package listing page**:
 
 ```
-┌───────────────────────────────────────┐
-│  ← Back            PKG-2026-00148  ✕  │
-│  ──────────────────────────────────── │
-│                                       │
-│  [Amazon logo]  Amazon Package        │
-│  Status: ● Awaiting Pickup            │
-│  ──────────────────────────────────── │
-│                                       │
-│  RECIPIENT                            │
-│  John Smith · Unit 1205               │
-│                                       │
-│  DETAILS                              │
-│  Courier:     Amazon                  │
-│  Tracking #:  1Z999AA10123456784      │
-│  Parcel Type: Medium Brown Box        │
-│  Storage:     Parcel Room             │
-│  Perishable:  No                      │
-│  ──────────────────────────────────── │
-│                                       │
-│  PHOTO                                │
-│  [Package photo thumbnail, click to   │
-│   expand to full-size lightbox]       │
-│  ──────────────────────────────────── │
-│                                       │
-│  HISTORY                              │
-│  ● Mar 14, 10:32 AM — Received       │
-│    by Sarah (Front Desk)              │
-│  ● Mar 14, 10:32 AM — SMS sent       │
-│    to John Smith                      │
-│  ──────────────────────────────────── │
-│                                       │
-│  [Send Reminder]  [Print Label]       │
-│                          [Release ▶]  │
-└───────────────────────────────────────┘
++------------------------------------------------------------+
+| PACKAGES                         [Batch Intake] [+ Package] |
++------------------------------------------------------------+
+| Search: [_____________] Building: [All v]  Unit: [___]      |
+| Courier: [All v]  Status: [Unreleased v]  Perishable: [ ]  |
+| Date: [Start] - [End]   Storage: [All v]  [Clear Filters]  |
++------------------------------------------------------------+
+|                                                              |
+| UNRELEASED (47)                    [Print Unreleased] [Export]|
+| +----------------------------------------------------------+|
+| | Ref #    | Unit | Recipient  | Courier | Age  | Storage  ||
+| |----------|------|------------|---------|------|----------- |
+| | PKG-4821 | 1205 | J. Smith   | [amz]   | 2h   | PR-A    ||
+| | PKG-4820 | 0803 | M. Chen    | [fedx]  | 5h   | PR-B    ||
+| | PKG-4819 | 1401 | S. Patel   | [ups]   | 1d   | PR-A    ||
+| +----------------------------------------------------------+|
+|                         < 1 2 3 ... 5 >                     |
+|                                                              |
+| RELEASED (Past 30 days)                                      |
+| +----------------------------------------------------------+|
+| | Ref #    | Unit | Recipient  | Released To | Released At  ||
+| |----------|------|------------|-------------|-------------- |
+| | PKG-4818 | 0506 | R. Kim     | R. Kim      | Today 2:15p ||
+| +----------------------------------------------------------+|
++------------------------------------------------------------+
 ```
 
-### 6.7 Responsive Behavior
-
-| Breakpoint | Layout Changes |
-|-----------|---------------|
-| Desktop XL (1440px+) | Full layout as shown above. Slide-over panel for detail. |
-| Desktop (1280--1439px) | KPI cards shrink. Table columns may truncate courier name (icon only). |
-| Tablet (768--1279px) | KPI cards: 2x2 grid. Filters collapse into a "Filters" button that opens a dropdown. Table scrolls horizontally. |
-| Mobile (<768px) | KPI cards: single column stack. Table switches to card view (one card per package). Detail opens as full-screen modal instead of slide-over. |
-
-### 6.8 Mobile Card View (< 768px)
-
-Each package renders as a card instead of a table row:
+**Package detail panel (slide-out, right side, 480px wide)**:
 
 ```
-┌─────────────────────────────────────┐
-│  [Amazon logo]  PKG-2026-00148      │
-│  John Smith · Unit 1205             │
-│  Medium Brown Box · Parcel Room     │
-│  Received 10 min ago                │
-│                        [Release ▶]  │
-└─────────────────────────────────────┘
++--------------------------------------+
+| < Back    Package #PKG-QPC-004821    |
+|                                      |
+| [UNRELEASED]  [PERISHABLE]           |
+|                                      |
+| PACKAGE INFO                         |
+| Courier:    [Amazon icon] Amazon     |
+| Tracking:   TBA123456789  [link]     |
+| Category:   Medium Box              |
+| Description: Brown box, sender       |
+|              "Best Buy" visible       |
+| Photo:      [thumbnail] [thumbnail]  |
+|                                      |
+| RECIPIENT                            |
+| Unit:       1205                     |
+| Resident:   Janet Smith             |
+| Phone:      416-555-0123            |
+|                                      |
+| STORAGE                             |
+| Location:   Parcel Room - Shelf A    |
+| Received:   Mar 14, 2026 10:32 AM   |
+| Age:        2 hours                  |
+|                                      |
+| HISTORY                             |
+| 10:32 AM  Package received          |
+|           by Front Desk (J. Lee)     |
+| 10:32 AM  Email notification sent   |
+|           to janet.smith@email.com   |
+|                                      |
+| [Release]  [Send Reminder] [Edit]    |
+|            [Print Label]   [Delete]  |
++--------------------------------------+
 ```
+
+### 6.2 Tablet Layout (768px - 1279px)
+
+- Listing table drops Description and Storage columns; available via row expansion (tap row to reveal)
+- Detail view opens as a full-width modal instead of slide-out panel
+- Batch intake shows 2 visible fields per row; remaining fields available via row expansion
+- Courier icon grid wraps to 3 rows of 5
+- Filter bar collapses into a "Filters" button with a dropdown panel
+
+### 6.3 Mobile Layout (< 768px)
+
+- Listing switches from table to card layout:
+
+```
++--------------------------------------+
+| [Amazon icon]  PKG-4821             |
+| Unit 1205 - Janet Smith              |
+| Medium Box - Parcel Room A           |
+| Received 2h ago                      |
+|                      [Release] [...]  |
++--------------------------------------+
+```
+
+- Intake form becomes single-column, full-screen
+- Courier icon grid becomes a 3x5 scrollable grid
+- Batch intake is not available on mobile (too complex for small screens). Toast message: "Batch intake is available on tablet or desktop."
+- Detail view is full-screen with sticky action buttons at the bottom
+- Search is a single text field with a "Filters" icon button that opens a full-screen filter panel
+
+### 6.4 Accessibility
+
+| Requirement | Implementation |
+|-------------|---------------|
+| Keyboard navigation | All form fields, buttons, and table rows are focusable and operable via keyboard. Tab order follows visual layout. |
+| Screen reader | All courier icons have `aria-label` (e.g., "Amazon courier"). Status badges have `aria-label` (e.g., "Status: Unreleased"). Age column includes full text (e.g., "2 hours ago"). |
+| Color independence | Age column uses both color AND text labels. Perishable badge uses text + icon, not just red color. Capacity indicators use text percentages alongside color. |
+| Touch targets | All buttons and interactive elements are minimum 44x44px |
+| Focus management | After saving a package, focus returns to the form (for Save & New) or the listing (for Save). After release, focus returns to the listing. |
+| Reduced motion | Loading skeletons use opacity fade instead of animation when `prefers-reduced-motion` is set |
 
 ---
 
 ## 7. AI Integration
 
-Package Management integrates with 10 AI capabilities from the AI Framework (capabilities #13--#22). Each capability enhances the module while remaining optional and non-blocking.
+Ten AI capabilities enhance Package Management. Each can be independently toggled by the Super Admin in Settings > AI Configuration. Every capability has a manual fallback -- the module works fully without AI.
 
-| # | Capability | Trigger Point | What the User Sees | Manual Fallback |
-|---|-----------|--------------|-------------------|-----------------|
-| 13 | Courier Logo Auto-Detection | Photo uploaded during intake | Courier icon auto-selected with "AI suggested" label | Staff manually selects courier from the icon grid |
-| 14 | Tracking Number Extraction (OCR) | Photo uploaded during intake | Tracking # field auto-filled with "AI extracted" label | Staff manually types the tracking number |
-| 15 | Smart Unit Matching | Typing in Unit or Recipient field | Top 3 suggested matches appear in autocomplete with confidence indicators | Standard autocomplete without confidence scoring |
-| 16 | Package Volume Forecasting | Daily scheduled (6:00 AM) | "Expected Deliveries Today" card on dashboard with predicted count | No forecast card; reactive staffing |
-| 17 | Unclaimed Package Reminders | Scheduled at configured intervals | Personalized reminder messages (not generic templates) sent to residents | Generic template-based reminders |
-| 18 | Package Description Generation | Photo uploaded during intake | Notes field auto-filled with description ("Large brown box, Amazon branding visible, slight dent on corner") | Staff writes their own notes |
-| 19 | Delivery Pattern Analysis | Weekly scheduled (Monday 3:00 AM) | Analytics tab shows AI-generated insights: peak hours, top couriers, volume trends | Basic charts without AI commentary |
-| 20 | Damaged Package Detection | Photo uploaded during intake | Warning banner: "Possible damage detected: [description]. Consider noting this in the package record." | Staff visually inspects and notes damage manually |
-| 21 | Storage Location Suggestion | On package intake (after courier and parcel type selected) | Storage dropdown pre-selects the AI-suggested location with "Suggested" label | Staff selects storage location manually |
-| 22 | Resident Notification Optimization | On package intake | Notification channel set to the AI-recommended channel and time | Default channel (resident's preference) and immediate send |
+### 7.1 Courier Label OCR (AI-13 in AI Framework: Courier Logo Auto-Detection)
 
-### AI Feedback Loop
+| Attribute | Detail |
+|-----------|--------|
+| **What it does** | When staff takes a photo of a package during intake, AI analyzes the image to identify the courier logo and automatically selects the correct courier from the icon grid |
+| **Trigger** | Photo upload during package intake |
+| **Model** | Vision (GPT-4o) + Haiku for classification |
+| **Estimated cost** | $0.005 per call |
+| **Input** | Package label photo |
+| **Output** | Courier name + confidence score. If confidence > 80%, auto-selects courier. If 50-80%, suggests with "Did you mean {courier}?" prompt. If < 50%, no suggestion. |
+| **Graceful degradation** | Staff manually selects courier from icon grid |
+| **Default state** | Enabled |
+| **Privacy** | Photo is processed for courier identification only. No resident data is extracted or stored by the AI provider. |
 
-Each AI suggestion includes a small "thumbs up / thumbs down" feedback control. This data is used to improve suggestion quality over time.
+### 7.2 Tracking Number Extraction -- OCR (AI-14)
 
-| Feedback Data Collected | Purpose |
-|------------------------|---------|
-| Suggestion accepted (thumbs up) | Train acceptance rate metrics |
-| Suggestion rejected (thumbs down) | Flag for model review |
-| Suggestion overridden (user changed to different value) | Compare AI vs human decision |
-| Time to override (how long user spent before changing) | Measure AI distraction cost |
+| Attribute | Detail |
+|-----------|--------|
+| **What it does** | Extracts the tracking number from a photo of the shipping label and auto-fills the tracking number field |
+| **Trigger** | Photo upload during intake, or dedicated "Scan" button next to tracking number field |
+| **Model** | Vision (GPT-4o) |
+| **Estimated cost** | $0.005 per call |
+| **Input** | Shipping label photo |
+| **Output** | Extracted tracking number string + identified courier (if not already selected) |
+| **Graceful degradation** | Staff types tracking number manually |
+| **Default state** | Enabled |
+| **UX detail** | Extracted number appears in the field with a brief highlight animation. A small "AI" indicator appears next to the field for 3 seconds, then fades. Staff can edit the extracted value. |
+
+### 7.3 Delivery Time Prediction (AI-16: Package Volume Forecasting)
+
+| Attribute | Detail |
+|-----------|--------|
+| **What it does** | Predicts daily package volume for the next 7 days based on historical delivery patterns, day of week, holidays, and known sale events (Prime Day, Black Friday, etc.) |
+| **Trigger** | Daily scheduled job at 6:00 AM |
+| **Model** | Sonnet |
+| **Estimated cost** | $0.005 per daily run |
+| **Input** | 90 days of package history + calendar data (holidays, events) |
+| **Output** | Forecast table: date, predicted volume (low/mid/high estimate), confidence level |
+| **Where displayed** | Dashboard widget for Property Manager and Concierge roles: "Expected deliveries today: ~85 packages (based on patterns)" |
+| **Graceful degradation** | No forecast shown. Staff plans based on experience. |
+| **Default state** | Disabled (opt-in) |
+
+### 7.4 Peak Time Staffing Recommendations (derived from AI-16)
+
+| Attribute | Detail |
+|-----------|--------|
+| **What it does** | Analyzes historical delivery patterns to identify peak hours and recommends optimal front desk staffing levels |
+| **Trigger** | Weekly scheduled job (Monday 3:00 AM) |
+| **Model** | Sonnet |
+| **Estimated cost** | $0.01 per weekly run |
+| **Input** | 30-day package intake timestamps + staffing data |
+| **Output** | Heatmap of deliveries by hour and day of week + staffing recommendation (e.g., "Consider 2 staff members on Wednesday 11 AM - 2 PM based on 3-week trend of 40+ packages in that window") |
+| **Where displayed** | Reports > Package Analytics > Staffing tab |
+| **Graceful degradation** | No staffing recommendations. Manager reviews raw data. |
+| **Default state** | Disabled |
+
+### 7.5 Smart Notification Batching (AI-22: Resident Notification Optimization)
+
+| Attribute | Detail |
+|-----------|--------|
+| **What it does** | Instead of sending 5 separate notifications for 5 Amazon boxes, batches them into a single notification: "You have 5 packages waiting (3 Amazon, 1 FedEx, 1 Canada Post)" |
+| **Trigger** | On package intake, system waits a configurable window (default 30 minutes) before sending |
+| **Model** | Haiku |
+| **Estimated cost** | $0.001 per batch |
+| **Input** | Pending unsent notifications for the same resident + time window |
+| **Output** | Single consolidated notification message |
+| **Graceful degradation** | Each package triggers its own individual notification immediately |
+| **Default state** | Disabled (can be disruptive if residents expect immediate notification) |
+| **Configuration** | Batch window: 15/30/60 minutes. Perishable packages always send immediately and are never batched. |
+
+### 7.6 Courier Performance Analytics (AI-19: Delivery Pattern Analysis)
+
+| Attribute | Detail |
+|-----------|--------|
+| **What it does** | Analyzes delivery data to generate insights: which couriers deliver most, average delivery times by courier, damage rates, peak delivery hours per courier |
+| **Trigger** | Weekly scheduled job (Monday 3:00 AM) |
+| **Model** | Sonnet |
+| **Estimated cost** | $0.01 per weekly run |
+| **Input** | All package data for past 30 days |
+| **Output** | Analytics report with charts: courier volume breakdown, delivery hour heatmap, damage flag correlation |
+| **Where displayed** | Reports > Package Analytics > Courier Performance tab |
+| **Graceful degradation** | No automated analysis. Raw data available for manual export. |
+| **Default state** | Enabled |
+
+### 7.7 Anomaly Detection (derived from Security Console AI-5)
+
+| Attribute | Detail |
+|-----------|--------|
+| **What it does** | Flags unusual package activity: unexpected volume spikes, packages for vacant units, multiple packages to same unit from uncommon couriers, packages arriving outside normal delivery hours |
+| **Trigger** | On each package creation |
+| **Model** | Haiku |
+| **Estimated cost** | $0.002 per check |
+| **Input** | Current package details + 90-day historical norms for the property |
+| **Output** | Alert (if anomalous) with explanation, or silent pass |
+| **Where displayed** | Inline alert on the package listing page: "Unusual activity: 12 packages received for Unit 0803 today (average is 1.2)." Alert is dismissible. |
+| **Graceful degradation** | No anomaly detection. Staff relies on visual observation. |
+| **Default state** | Enabled |
+
+### 7.8 Smart Storage Suggestion (AI-21)
+
+| Attribute | Detail |
+|-----------|--------|
+| **What it does** | Suggests the optimal storage location based on package size/type, current storage capacity, and perishable status (suggests refrigerated spot for perishable items) |
+| **Trigger** | On package intake, after parcel category is selected |
+| **Model** | Haiku |
+| **Estimated cost** | $0.001 per suggestion |
+| **Input** | Package category + perishable flag + current storage spot occupancy |
+| **Output** | Suggested storage spot with reasoning (e.g., "Shelf B has 8/20 capacity. Shelf A is at 19/20.") |
+| **UX detail** | Storage dropdown auto-selects the suggested spot with a subtle highlight. Staff can change it. A small tooltip explains: "Suggested based on current capacity." |
+| **Graceful degradation** | Storage dropdown defaults to the property-level default spot |
+| **Default state** | Enabled |
+
+### 7.9 Auto-Courier Detection from Tracking Number (AI-13 variant)
+
+| Attribute | Detail |
+|-----------|--------|
+| **What it does** | Identifies the courier from the format of the tracking number (e.g., "1Z" prefix = UPS, "94" prefix = USPS, etc.) and auto-selects the courier icon |
+| **Trigger** | On tracking number field blur (after user types or pastes a number) |
+| **Model** | Rule-based (no AI call needed) + Haiku fallback for ambiguous formats |
+| **Estimated cost** | $0.00 (rule-based) or $0.001 (Haiku fallback) |
+| **Input** | Tracking number string |
+| **Output** | Courier identification |
+| **Known patterns** | `1Z[A-Z0-9]{16}` = UPS, `94[0-9]{20}` = USPS, `[0-9]{12,22}` with Amazon order = Amazon, `[0-9]{16}` = FedEx |
+| **Graceful degradation** | Staff manually selects courier |
+| **Default state** | Enabled |
+
+### 7.10 Unreleased Package Escalation Intelligence (AI-17)
+
+| Attribute | Detail |
+|-----------|--------|
+| **What it does** | Generates personalized, contextual reminder messages for unclaimed packages. Considers the resident's pickup patterns, communication preferences, and package age. |
+| **Trigger** | Configurable timers: 24h, 48h, 72h after intake (default) |
+| **Model** | Haiku |
+| **Estimated cost** | $0.001 per reminder |
+| **Input** | Package details + resident contact preferences + past pickup behavior |
+| **Output** | Personalized reminder message (e.g., "Hi Janet, you have a FedEx package (medium box) waiting at Parcel Room A since yesterday. The front desk is open until 10 PM tonight.") |
+| **Graceful degradation** | Generic template-based reminder: "You have a package waiting at the front desk." |
+| **Default state** | Enabled |
 
 ---
 
 ## 8. Analytics
 
-The Packages module includes three layers of analytics, accessible from the "Analytics" tab on the Packages page.
+### 8.1 Dashboard Widgets
 
-### 8.1 Operational Metrics (Real-Time)
+| Widget | Roles That See It | Data |
+|--------|-------------------|------|
+| **Unreleased Package Count** | Concierge, Security Guard, Security Supervisor, Property Manager, Property Admin | Total unreleased packages, with perishable count highlighted in red |
+| **Today's Intake** | Concierge, Property Manager | Packages received today vs. same day last week |
+| **Average Pickup Time** | Property Manager, Property Admin | Mean time from intake to release (current week vs. previous week) |
+| **Storage Capacity** | Concierge, Property Manager | Bar chart of storage spot utilization with color coding |
+| **AI Forecast** (if enabled) | Concierge, Property Manager | "Expected deliveries today: ~{n}" |
 
-| Metric | Description | Visualization | Data Source |
-|--------|-------------|---------------|-------------|
-| Unreleased count | Total packages awaiting pickup right now | Single number (KPI card) | Count of events where status = open and event_group = packages |
-| Released today | Packages released in the current calendar day | Single number (KPI card) | Count of events closed today |
-| Average pickup time | Mean hours between event created_at and closed_at (last 30 days) | Single number with trend arrow | Calculated from closed events |
-| Perishable count | Unreleased perishable packages | Single number with red alert if > 0 | Count of open events where is_perishable = true |
-| Storage utilization | Percentage of each storage location's capacity used | Horizontal bar chart per location | Count of open events per storage_spot_id vs StorageLocation.capacity |
+### 8.2 Package Analytics Reports
 
-### 8.2 Performance Metrics (Daily/Weekly)
+Available under Reports > Package Analytics. Accessible to Property Admin, Property Manager, and Security Supervisor.
 
-| Metric | Description | Visualization | Update Frequency |
-|--------|-------------|---------------|-----------------|
-| Daily volume | Packages received per day over the last 30 days | Line chart | Updated hourly |
-| Volume by courier | Breakdown of packages by courier type | Horizontal bar chart (sorted by count) | Updated daily |
-| Volume by day of week | Average packages received per day of week | Bar chart (Mon--Sun) | Updated weekly |
-| Peak hours heatmap | Packages received by hour of day | Heatmap (24 columns x 7 rows for each day of week) | Updated weekly |
-| Pickup time distribution | Distribution of hours between intake and release | Histogram (0--2h, 2--4h, 4--8h, 8--24h, 24--48h, 48h+) | Updated daily |
-| Courier reliability | Average delivery count and time of day per courier | Table sorted by volume | Updated weekly |
+| Report | Description | Filters | Export Formats |
+|--------|-------------|---------|---------------|
+| **Volume by Date** | Package intake volume by day/week/month with trend line | Date range, building, courier | Excel, PDF, CSV |
+| **Volume by Courier** | Breakdown of packages per courier with percentages and pie chart | Date range, building | Excel, PDF |
+| **Average Pickup Time** | Mean and median time from intake to release, by day/week with trend | Date range, building, unit | Excel, PDF |
+| **Unreleased Aging** | Current unreleased packages grouped by age bucket (< 24h, 1-3d, 3-7d, 7+ days) | Building, storage spot | Excel, PDF |
+| **Peak Delivery Hours** | Heatmap of intake volume by hour of day and day of week | Date range (min 7 days), building | Excel, PDF |
+| **Storage Utilization** | Average and peak capacity usage per storage spot over time | Date range, building, storage spot | Excel, PDF |
+| **Perishable Summary** | Perishable packages: count, average pickup time, escalation rate | Date range | Excel, PDF |
+| **Staff Performance** | Packages processed per staff member (intake count, release count, avg processing time) | Date range, staff member | Excel, PDF |
+| **Courier Performance** | Volume trends per courier, average packages per day, delivery hour distribution | Date range | Excel, PDF |
 
-### 8.3 AI Insights (Weekly)
+### 8.3 KPIs Tracked
 
-Generated by AI capability #19 (Delivery Pattern Analysis).
-
-| Insight Type | Example | Frequency |
-|-------------|---------|-----------|
-| Volume anomaly | "Package volume is 40% higher than the same week last year. Consider adding storage capacity." | Weekly |
-| Courier trend | "Amazon deliveries have increased 25% month-over-month and now account for 62% of all packages." | Weekly |
-| Staffing recommendation | "Tuesdays and Thursdays have 30% more deliveries than other weekdays. Consider additional front desk coverage." | Weekly |
-| Pickup behavior | "15% of packages take more than 48 hours to be picked up. Units 502, 1205, and 807 are the most frequent late pickups." | Weekly |
-| Storage optimization | "Shelf A is consistently at 90%+ capacity while Overflow Storage is at 20%. Consider redistributing." | Weekly |
-
-### 8.4 Report Export
-
-All analytics views include an export function.
-
-**"Export" button (Secondary, top-right of analytics section)**:
-- **On click**: Opens dropdown with options: "Export as Excel (.xlsx)", "Export as PDF", "Export as CSV"
-- **Success state**: File downloads to the user's browser. Toast: "Report exported."
-- **Error state**: Toast (red): "Export failed. Please try again."
-- **Loading state**: Button shows spinner. "Generating report..."
+| KPI | Calculation | Target | Alert Threshold |
+|-----|-------------|--------|-----------------|
+| Average intake time | Mean time from form open to save | < 15 seconds | > 30 seconds |
+| Average release time | Mean time from release dialog open to confirmation | < 20 seconds | > 45 seconds |
+| Average pickup time | Mean elapsed time from package creation to release | < 24 hours | > 48 hours |
+| Perishable pickup rate | % of perishable packages picked up within 4 hours | > 80% | < 60% |
+| Notification delivery rate | % of package notifications successfully delivered | > 99% | < 95% |
+| Label print success rate | % of print jobs completed without error | > 95% | < 85% |
+| Storage utilization | Average % of configured capacity used across all spots | < 80% | > 90% |
+| Unclaimed rate (7+ days) | % of packages uncollected after 7 days | < 5% | > 10% |
 
 ---
 
 ## 9. Notifications
 
-### 9.1 Notification Channel Support
+### 9.1 Resident Notifications
 
-| Channel | Provider | Message Limit | Delivery Speed | Cost Per Message |
-|---------|----------|--------------|----------------|-----------------|
-| Email | SendGrid | 10,000 chars | 1--5 seconds | ~$0.001 |
-| SMS | Twilio | 160 chars (auto-splits longer) | 1--3 seconds | ~$0.01 |
-| Push Notification | Firebase Cloud Messaging | 4,096 bytes | Under 1 second | Free |
-| Voice Call | Twilio | 30-second automated voice message | 5--15 seconds to connect | ~$0.02 |
+| Event | Channel | Timing | Template | Configurable |
+|-------|---------|--------|----------|-------------|
+| **Package received** | Per resident preference (email/SMS/push/all) | Immediate (or batched, see AI 7.5) | "Hi {first_name}, you have a {courier} delivery ({category}) waiting at {storage_location}. Ref: {reference_number}." | Subject line, body text, sender name |
+| **Package received (perishable)** | All channels | Immediate (never batched) | "URGENT: You have a perishable delivery at the front desk. Please pick up as soon as possible. Ref: {reference_number}." | Body text |
+| **Reminder (unclaimed)** | Per resident preference | 24h / 48h / 72h (configurable) | "Reminder: You have {count} package(s) waiting since {date}. Please visit the front desk to collect." | Timing intervals, body text |
+| **Final notice** | All channels | Configurable (default 10 days) | "Final notice: Your package (Ref: {reference_number}) has been waiting since {date}. If uncollected within {days} days, it may be returned to sender." | Timing, body text |
+| **Package released** | Push only | Immediate | "Your package (Ref: {reference_number}) was picked up by {released_to_name} on {date}." | Enabled/disabled per property |
 
-### 9.2 Notification Templates
+### 9.2 Staff Notifications
 
-Each notification trigger has templates for each channel. Templates support variable substitution.
+| Event | Recipients | Channel | Template |
+|-------|------------|---------|----------|
+| **Perishable escalation (4h)** | On-shift concierge/security | In-app alert | "Perishable package for Unit {unit} has been waiting {hours} hours." |
+| **Perishable escalation (24h)** | Shift supervisor, Property Manager | Email + in-app | "Perishable package for Unit {unit} uncollected for 24 hours. Action required." |
+| **Storage capacity warning (80%)** | On-shift staff | In-app alert | "{spot_name} is at {percent}% capacity ({current}/{max} packages)." |
+| **Storage capacity full (100%)** | Property Manager | Email + in-app | "{spot_name} is full. {overflow_count} packages need alternate storage." |
+| **Anomaly detected** | On-shift staff | In-app alert | "Unusual package activity detected: {anomaly_description}." |
+| **Daily volume forecast** | Concierge, Property Manager | In-app (dashboard widget) | "Expected deliveries today: ~{forecast} packages." |
+| **Weekly analytics ready** | Property Manager | Email | "Your weekly package analytics report is ready. [View Report]" |
 
-#### Available Variables
+### 9.3 Notification Settings (Property Admin)
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `{resident_name}` | Resident's full name | John Smith |
-| `{unit_number}` | Unit number | 1205 |
-| `{reference_number}` | Package reference | PKG-2026-00148 |
-| `{courier_name}` | Courier type name | Amazon |
-| `{storage_location}` | Where the package is stored | Parcel Room |
-| `{building_name}` | Property name | Bond Building |
-| `{received_date}` | Date package was received | March 14, 2026 |
-| `{received_time}` | Time package was received | 10:32 AM |
-| `{released_to}` | Name of person who picked up | John Smith |
-| `{days_waiting}` | Days since intake (for reminders) | 3 |
-
-#### Package Received -- Email Template (Default)
-
-**Subject**: "Package delivery for Unit {unit_number} -- {building_name}"
-
-**Body**:
-```
-Hi {resident_name},
-
-A {courier_name} delivery has arrived for your unit.
-
-Reference: {reference_number}
-Location: {storage_location}
-Received: {received_date} at {received_time}
-
-Please visit the front desk to pick up your package.
-
--- {building_name} Management
-```
-
-#### Package Received -- SMS Template (Default)
-
-```
-{building_name}: A {courier_name} delivery (Ref: {reference_number}) is waiting for you at {storage_location}. Please pick up at the front desk.
-```
-
-#### Package Received -- Voice Call Script (Default)
-
-```
-Hello {resident_name}. This is an automated message from {building_name}. A package from {courier_name} has been delivered for your unit. It is stored at {storage_location}. The reference number is {reference_number}. Please visit the front desk to pick up your package. Thank you.
-```
-
-### 9.3 Resident Notification Preferences
-
-Residents control their package notification preferences from their profile (My Account > Notification Preferences > Packages).
-
-| Setting | Type | Default | Tooltip |
-|---------|------|---------|---------|
-| Package arrival notifications | Toggle | On | "Get notified when a package arrives for your unit." |
-| Preferred channel | Dropdown: Email, SMS, Push, All | Email | "How would you like to be notified about packages?" |
-| Reminder notifications | Toggle | On | "Get reminders for uncollected packages." |
-| Release confirmation | Toggle | On | "Get notified when your package has been picked up." |
-| Quiet hours | Time range picker | 10:00 PM -- 7:00 AM | "Notifications will be held during these hours and sent when quiet hours end. Does not apply to perishable alerts." |
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `package_notification_enabled` | Toggle | On | Global toggle for all package notifications |
+| `notification_sender_name` | Text input (200 chars) | Property name | From name on email notifications |
+| `notification_sender_email` | Email input | `packages@{property_domain}` | From address for emails |
+| `batch_notifications` | Toggle | Off | Enable notification batching (see AI 7.5) |
+| `batch_window_minutes` | Dropdown (15/30/60) | 30 | Batching time window |
+| `reminder_intervals` | Multi-select checkboxes | 24h, 48h, 72h | When to send unclaimed reminders |
+| `perishable_escalation_enabled` | Toggle | On | Enable perishable escalation chain |
+| `perishable_timers` | Number inputs (4 fields) | 4h, 8h, 24h, 48h | Escalation timer intervals |
+| `perishable_pause_outside_hours` | Toggle | On | Pause escalation timers outside business hours |
+| `business_hours_start` | Time picker | 7:00 AM | Business hours start (for timer pausing) |
+| `business_hours_end` | Time picker | 11:00 PM | Business hours end |
+| `final_notice_days` | Number input | 10 | Days before final notice |
+| `return_to_sender_days` | Number input | 14 | Days before eligible for return |
+| `release_notification_enabled` | Toggle | Off | Notify resident when package is released |
+| `require_signature` | Toggle | Off | Require signature on package release |
+| `require_id_verification` | Toggle | Off | Require ID verification checkbox on release |
 
 ---
 
 ## 10. API
 
-### 10.1 Endpoints
+### 10.1 REST Endpoints
 
-| Method | Path | Description | Auth | Rate Limit |
-|--------|------|-------------|------|------------|
-| `POST` | `/api/v1/packages` | Create a new package (single intake) | Staff roles | 60/min |
-| `POST` | `/api/v1/packages/batch` | Create multiple packages (batch intake) | Staff roles | 10/min |
-| `GET` | `/api/v1/packages` | List packages with filters and pagination | All authenticated | 120/min |
-| `GET` | `/api/v1/packages/{id}` | Get package detail | All authenticated (scoped) | 120/min |
-| `PATCH` | `/api/v1/packages/{id}` | Update package details | Staff roles | 60/min |
-| `POST` | `/api/v1/packages/{id}/release` | Release a package | Staff roles | 60/min |
-| `POST` | `/api/v1/packages/batch-release` | Release multiple packages | Staff roles | 10/min |
-| `POST` | `/api/v1/packages/{id}/remind` | Send reminder notification | Staff roles | 10/min |
-| `DELETE` | `/api/v1/packages/{id}` | Delete a package (soft delete) | Property Manager+ | 10/min |
-| `GET` | `/api/v1/packages/analytics` | Get package analytics data | Property Manager+ | 30/min |
-| `GET` | `/api/v1/packages/storage-locations` | List storage locations | Staff roles | 120/min |
-| `POST` | `/api/v1/packages/storage-locations` | Create storage location | Property Admin | 30/min |
-| `GET` | `/api/v1/packages/parcel-types` | List parcel types | Staff roles | 120/min |
-| `POST` | `/api/v1/packages/parcel-types` | Create parcel type | Property Admin | 30/min |
-| `POST` | `/api/v1/packages/{id}/label` | Generate printable label | Staff roles | 60/min |
+| Method | Endpoint | Description | Auth Roles |
+|--------|----------|-------------|------------|
+| `POST` | `/api/v1/packages` | Create a new package | Concierge, Security Guard, Security Supervisor, Property Manager, Property Admin, Super Admin |
+| `POST` | `/api/v1/packages/batch` | Create multiple packages (max 20) | Same as above |
+| `GET` | `/api/v1/packages` | List packages with filters and pagination | Staff roles: all packages. Resident roles: own packages only. |
+| `GET` | `/api/v1/packages/:id` | Get package details including history | Staff: any package. Resident: own only. |
+| `PATCH` | `/api/v1/packages/:id` | Update package details | Concierge, Security Guard (own only), Security Supervisor, Property Manager, Property Admin, Super Admin |
+| `POST` | `/api/v1/packages/:id/release` | Release a single package | Concierge, Security Guard, Security Supervisor, Property Manager, Property Admin, Super Admin |
+| `POST` | `/api/v1/packages/release-batch` | Release multiple packages for same unit | Same as above |
+| `DELETE` | `/api/v1/packages/:id` | Soft-delete a package (unreleased only) | Property Manager, Property Admin, Super Admin |
+| `POST` | `/api/v1/packages/:id/notify` | Send reminder notification | Concierge, Security Guard, Security Supervisor, Property Manager, Property Admin, Super Admin |
+| `GET` | `/api/v1/packages/:id/history` | Get package audit trail | Staff roles |
+| `POST` | `/api/v1/packages/:id/photos` | Upload package photo (max 3) | Staff roles |
+| `DELETE` | `/api/v1/packages/:id/photos/:photo_id` | Delete a package photo | Property Manager, Property Admin, Super Admin |
+| `GET` | `/api/v1/packages/:id/label` | Generate label PDF for printing | Staff roles |
+| `GET` | `/api/v1/packages/analytics/volume` | Package volume analytics | Property Manager, Property Admin, Security Supervisor |
+| `GET` | `/api/v1/packages/analytics/courier` | Courier performance analytics | Property Manager, Property Admin |
+| `GET` | `/api/v1/packages/analytics/storage` | Storage utilization data | Property Manager, Property Admin, Concierge |
+| `GET` | `/api/v1/packages/export` | Export packages (Excel/PDF/CSV) | Property Manager, Property Admin, Security Supervisor |
+| `GET` | `/api/v1/couriers` | List available couriers for property | All authenticated users |
+| `GET` | `/api/v1/parcel-categories` | List parcel categories for property | All authenticated users |
+| `GET` | `/api/v1/storage-spots` | List storage spots with capacity | Staff roles |
+| `GET` | `/api/v1/units/:unit_id/delegates` | List authorized delegates for a unit | Staff roles, unit residents |
+| `POST` | `/api/v1/units/:unit_id/delegates` | Add authorized delegate | Unit owner, unit tenant, Property Admin |
+| `DELETE` | `/api/v1/units/:unit_id/delegates/:id` | Remove authorized delegate | Unit owner, unit tenant, Property Admin |
 
-### 10.2 Create Package -- Request Payload
+### 10.2 Query Parameters for `GET /api/v1/packages`
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `status` | String | `unreleased`, `released`, `returned`, `disposed`, `all` | `unreleased` |
+| `building_id` | UUID | Filter by building | All buildings |
+| `unit_id` | UUID | Filter by unit | All units |
+| `courier_id` | UUID (comma-separated for multiple) | Filter by courier(s) | All couriers |
+| `is_perishable` | Boolean | Filter perishable packages | All |
+| `storage_spot_id` | UUID | Filter by storage spot | All spots |
+| `search` | String | Full-text search across recipient, reference #, tracking #, description | None |
+| `date_from` | ISO date | Start date for created_at range | 90 days ago |
+| `date_to` | ISO date | End date for created_at range | Today |
+| `sort_by` | String | `created_at`, `released_at`, `reference_number`, `unit`, `age` | `created_at` |
+| `sort_order` | String | `asc`, `desc` | `desc` |
+| `page` | Integer (min 1) | Page number | 1 |
+| `per_page` | Integer (min 1, max 100) | Items per page | 25 |
+
+### 10.3 Request Body for `POST /api/v1/packages`
 
 ```json
 {
   "building_id": "uuid",
   "unit_id": "uuid",
   "resident_id": "uuid",
-  "courier_type_id": "uuid",
   "direction": "incoming",
-  "tracking_number": "1Z999AA10123456784",
-  "parcel_type_id": "uuid",
-  "description": "Medium brown box, Amazon branding",
-  "storage_spot_id": "uuid",
+  "courier_id": "uuid | null",
+  "courier_other_name": "string (required if courier is 'Other')",
+  "tracking_number": "string | null",
+  "parcel_category_id": "uuid | null",
+  "description": "string | null",
+  "storage_spot_id": "uuid | null",
   "is_perishable": false,
-  "notification_channel": "preferred",
-  "print_label": true
+  "is_oversized": false,
+  "notify_channel": "default"
 }
 ```
 
-### 10.3 Create Package -- Response Payload
+**Response (201 Created)**:
 
 ```json
 {
   "id": "uuid",
-  "reference_number": "PKG-2026-00148",
-  "status": "open",
-  "building": { "id": "uuid", "name": "Bond Building" },
-  "unit": { "id": "uuid", "number": "1205" },
-  "resident": { "id": "uuid", "name": "John Smith" },
-  "courier": { "id": "uuid", "name": "Amazon", "icon": "amazon", "color": "#FF9900" },
-  "direction": "incoming",
-  "tracking_number": "1Z999AA10123456784",
-  "parcel_type": { "id": "uuid", "name": "Medium Brown Box" },
-  "storage_location": { "id": "uuid", "name": "Parcel Room" },
-  "is_perishable": false,
+  "reference_number": "PKG-QPC-004821",
+  "status": "unreleased",
+  "created_at": "2026-03-14T10:32:00Z",
+  "created_by": { "id": "uuid", "name": "J. Lee" },
   "notification_sent": true,
-  "notification_channels": ["sms"],
-  "label_printed": true,
-  "created_by": { "id": "uuid", "name": "Sarah Chen" },
-  "created_at": "2026-03-14T10:32:00-05:00",
-  "closed_at": null,
-  "ai_metadata": {
-    "courier_detection": { "detected": "Amazon", "confidence": 0.97 },
-    "tracking_extraction": { "extracted": "1Z999AA10123456784", "confidence": 0.92 }
-  }
+  "notification_channel": "email",
+  "label_url": "/api/v1/packages/{id}/label"
 }
 ```
 
-### 10.4 Release Package -- Request Payload
+**Error responses**:
+
+| Status | Body | Cause |
+|--------|------|-------|
+| 400 | `{ "error": "validation_error", "fields": { "unit_id": "Please select a valid unit." } }` | Invalid input |
+| 401 | `{ "error": "unauthorized" }` | Not logged in |
+| 403 | `{ "error": "forbidden", "message": "You do not have permission to create packages." }` | Insufficient role |
+| 404 | `{ "error": "not_found", "message": "Unit not found." }` | Invalid reference |
+| 429 | `{ "error": "rate_limited", "message": "Too many requests. Try again in {n} seconds." }` | Rate limit exceeded |
+| 500 | `{ "error": "internal", "message": "An unexpected error occurred." }` | Server error |
+
+### 10.4 Request Body for `POST /api/v1/packages/:id/release`
 
 ```json
 {
-  "released_to": "John Smith",
-  "release_id_type": "drivers_license",
-  "release_comments": "ID verified. Resident picked up in person.",
-  "release_signature": "base64_encoded_signature_data",
-  "release_photo": "base64_encoded_photo_data"
+  "released_to_name": "string (required)",
+  "id_verified": true,
+  "is_authorized_delegate": false,
+  "release_comments": "string | null",
+  "signature_data": "base64 encoded PNG (optional)",
+  "release_photo": "multipart file (optional)"
 }
 ```
 
-### 10.5 List Packages -- Query Parameters
+**Response (200 OK)**:
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `building_id` | UUID | User's assigned building | Filter by building |
-| `unit_id` | UUID | None | Filter by unit |
-| `resident_id` | UUID | None | Filter by resident (auto-applied for resident role) |
-| `status` | enum: open, closed, all | open | Filter by release status |
-| `courier_type_id` | UUID (comma-separated for multiple) | None | Filter by courier type |
-| `is_perishable` | boolean | None | Filter perishable only |
-| `direction` | enum: incoming, outgoing, all | all | Filter by package direction |
-| `date_from` | ISO 8601 date | 90 days ago | Start of date range |
-| `date_to` | ISO 8601 date | Today + 1 day | End of date range |
-| `search` | string | None | Full-text search across reference #, resident name, tracking #, notes |
-| `sort_by` | string | created_at | Sort column |
-| `sort_order` | enum: asc, desc | desc | Sort direction |
-| `page` | integer | 1 | Page number |
-| `per_page` | integer | 25 | Results per page (10, 25, 50, 100) |
+```json
+{
+  "id": "uuid",
+  "reference_number": "PKG-QPC-004821",
+  "status": "released",
+  "released_to_name": "Janet Smith",
+  "released_by": { "id": "uuid", "name": "J. Lee" },
+  "released_at": "2026-03-14T14:15:00Z"
+}
+```
 
-### 10.6 Authentication and Scoping
+### 10.5 Request Body for `POST /api/v1/packages/batch`
 
-All endpoints require a valid JWT token. Data is automatically scoped:
+```json
+{
+  "packages": [
+    {
+      "building_id": "uuid",
+      "unit_id": "uuid",
+      "resident_id": "uuid",
+      "direction": "incoming",
+      "courier_id": "uuid",
+      "tracking_number": "string | null",
+      "parcel_category_id": "uuid | null",
+      "storage_spot_id": "uuid | null",
+      "is_perishable": false,
+      "notify_channel": "default",
+      "print_label": true
+    }
+  ]
+}
+```
 
-| Role | Scope |
-|------|-------|
-| Resident | Can only see their own packages (resident_id filter auto-applied) |
-| Front Desk / Concierge | All packages for their assigned building(s) |
-| Security Guard | All packages for their assigned building(s) |
-| Property Manager | All packages for their assigned property |
-| Property Admin | All packages for their assigned property + settings access |
-| Super Admin | All packages across all properties |
+**Response (207 Multi-Status)**:
+
+```json
+{
+  "total": 15,
+  "succeeded": 14,
+  "failed": 1,
+  "results": [
+    { "index": 0, "status": "created", "id": "uuid", "reference_number": "PKG-QPC-004821" },
+    { "index": 1, "status": "error", "error": "Unit not found." }
+  ],
+  "notifications_sent": 12,
+  "labels_queued": 14
+}
+```
+
+### 10.6 WebSocket Events
+
+Real-time updates for staff working the same shift. Events are scoped to the current property.
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `package.created` | `{ id, reference_number, unit, resident, courier, is_perishable, storage_spot, created_by }` | New package logged by any staff |
+| `package.released` | `{ id, reference_number, released_to, released_by, released_at }` | Package released by any staff |
+| `package.deleted` | `{ id, reference_number, deleted_by }` | Package soft-deleted |
+| `package.edited` | `{ id, reference_number, changed_fields, edited_by }` | Package details updated |
+| `package.reminder_sent` | `{ id, reference_number, channel, sent_to }` | Reminder notification sent |
+| `package.escalation` | `{ id, reference_number, escalation_level, message }` | Perishable escalation triggered |
+| `storage.capacity_warning` | `{ spot_id, spot_name, current, capacity, percent }` | Storage spot capacity threshold reached |
 
 ---
 
 ## 11. Completeness Checklist
 
-| # | Requirement | Section | Status |
-|---|------------|---------|--------|
-| 1 | 15 courier types with branded icons and colors defined | 3.1 | Complete |
-| 2 | 11 physical parcel type categories defined | 3.2 | Complete |
-| 3 | Single package intake flow with all fields specified | 3.3 | Complete |
-| 4 | Batch package intake flow (up to 20 rows) | 3.4 | Complete |
-| 5 | Package release flow (8 steps) | 3.5 | Complete |
-| 6 | Auto-generated reference number system (PKG-YYYY-NNNNN) | 3.6 | Complete |
-| 7 | Storage spot tracking with capacity indicators | 3.7 | Complete |
-| 8 | Perishable flagging with priority alerts and escalation timeline | 3.8 | Complete |
-| 9 | Print label integration with 3 size options | 3.9 | Complete |
-| 10 | Multi-channel notifications (email, SMS, push, voice) | 3.10 | Complete |
-| 11 | Courier label OCR via AI (capabilities #13--#14) | 3.11 | Complete |
-| 12 | Package analytics (volume trends, courier performance, peak times) | 8 | Complete |
-| 13 | Unreleased package escalation (5 stages) | 3.12 | Complete |
-| 14 | Non-Released vs Released sections in UI | 6.1, 6.4, 6.5 | Complete |
-| 15 | Parcel waivers (configuration and enforcement) | 3.13 | Complete |
-| 16 | Delivery date filtering (date range filter) | 6.3 | Complete |
-| 17 | Outgoing package tracking | 3.3.4 | Complete |
-| 18 | All form fields specify: data type, max length, required/optional, default, validation, error message | 3.3--3.5 | Complete |
-| 19 | All buttons specify: click action, success state, error state, loading state | 3.2--3.5, 3.9 | Complete |
-| 20 | Tooltips on all complex features | All form fields | Complete |
-| 21 | Role-based access control (5 roles with scoped views) | 5.1--5.5, 10.6 | Complete |
-| 22 | 10 AI capabilities integrated (#13--#22) | 7 | Complete |
-| 23 | Three-layer analytics (operational, performance, AI insights) | 8 | Complete |
-| 24 | API endpoints with payloads, auth, and rate limits | 10 | Complete |
-| 25 | Data model with all entities and relationships | 4 | Complete |
-| 26 | Responsive design (desktop, tablet, mobile) with mobile card view | 6.7, 6.8 | Complete |
-| 27 | Resident self-service view (read-only package list) | 5.4 | Complete |
-| 28 | Notification templates for all channels with variable substitution | 9.2 | Complete |
-| 29 | Resident notification preferences | 9.3 | Complete |
-| 30 | Export capability (Excel, PDF, CSV) for all analytics | 8.4 | Complete |
+### Functional Coverage
+
+| # | Requirement | Status | Section |
+|---|-------------|--------|---------|
+| 1 | Single package intake with all 15 fields | Covered | 3.1.1 |
+| 2 | 15 courier types with branded icons | Covered | 3.1.1 (Courier icon grid) |
+| 3 | 11 parcel categories (configurable) | Covered | 3.1.1 (Parcel categories) |
+| 4 | Batch intake (1-20 rows) | Covered | 3.1.2 |
+| 5 | Release flow with identity verification | Covered | 3.1.3 |
+| 6 | Signature capture on release | Covered | 3.1.3 (Step 2) |
+| 7 | Photo capture on release | Covered | 3.1.3 (Step 2) |
+| 8 | Storage spot tracking with capacity | Covered | 3.1.8 |
+| 9 | Perishable handling with escalation chain | Covered | 3.1.9 |
+| 10 | Label printing with barcode | Covered | 3.1.7 |
+| 11 | Reference number auto-generation | Covered | 3.1.6 |
+| 12 | Resident self-service portal | Covered | 3.1.10 |
+| 13 | Authorized pickup delegates | Covered | 3.1.10 |
+| 14 | Outgoing package logging | Covered | 3.1.11 |
+| 15 | Courier tracking integration (v2) | Covered | 3.2.1 |
+| 16 | Package waiver/agreement (v2) | Covered | 3.2.2 |
+| 17 | Unclaimed package processing (v2) | Covered | 3.2.4 |
+| 18 | Configurable courier management (v2) | Covered | 3.2.5 |
+
+### AI Coverage
+
+| # | AI Capability | Status | Section |
+|---|---------------|--------|---------|
+| 1 | Courier Label OCR | Covered | 7.1 |
+| 2 | Tracking Number Extraction (OCR) | Covered | 7.2 |
+| 3 | Delivery Time Prediction / Volume Forecasting | Covered | 7.3 |
+| 4 | Peak Time Staffing Recommendations | Covered | 7.4 |
+| 5 | Smart Notification Batching | Covered | 7.5 |
+| 6 | Courier Performance Analytics | Covered | 7.6 |
+| 7 | Anomaly Detection | Covered | 7.7 |
+| 8 | Smart Storage Suggestion | Covered | 7.8 |
+| 9 | Auto-Courier Detection from Tracking # | Covered | 7.9 |
+| 10 | Unreleased Package Escalation Intelligence | Covered | 7.10 |
+
+### UX Coverage
+
+| # | Requirement | Status | Section |
+|---|-------------|--------|---------|
+| 1 | Desktop layout (1280px+) | Covered | 6.1 |
+| 2 | Tablet layout (768px-1279px) | Covered | 6.2 |
+| 3 | Mobile layout (< 768px) | Covered | 6.3 |
+| 4 | Empty state (no packages) | Covered | 3.1.4 |
+| 5 | Empty state (no search results) | Covered | 3.1.4 |
+| 6 | Empty state (resident, no packages) | Covered | 3.1.10 |
+| 7 | Empty state (no storage spots) | Covered | 3.1.8 |
+| 8 | Loading state | Covered | 3.1.4 |
+| 9 | Error state | Covered | 3.1.4 |
+| 10 | Button states (default, loading, success, failure) | Covered | 3.1.1, 3.1.3, 3.1.5, 3.1.7 |
+| 11 | Tooltips for complex fields | Covered | 3.1.1 (all 15 form fields) |
+| 12 | Progressive disclosure (batch intake, advanced filters, delegate management) | Covered | 3.1.2, 3.1.4, 3.1.10 |
+| 13 | Accessibility (keyboard, screen reader, color independence, touch targets) | Covered | 6.4 |
+
+### Data Coverage
+
+| # | Requirement | Status | Section |
+|---|-------------|--------|---------|
+| 1 | All fields: data type, max length, required/optional, default, validation, error messages | Covered | 3.1.1, 4.1 |
+| 2 | Data model with relationships and foreign keys | Covered | 4.1, 4.2 |
+| 3 | Indexes for query performance | Covered | 4.3 |
+| 4 | Soft delete support | Covered | 4.1 (`deleted_at`) |
+| 5 | Audit trail (PackageHistory) | Covered | 4.2 |
+
+### Integration Coverage
+
+| # | Requirement | Status | Section |
+|---|-------------|--------|---------|
+| 1 | REST API with all CRUD operations | Covered | 10.1 |
+| 2 | Query parameters for filtering and pagination | Covered | 10.2 |
+| 3 | Request/response bodies with examples | Covered | 10.3, 10.4, 10.5 |
+| 4 | Error response formats | Covered | 10.3 |
+| 5 | WebSocket real-time events | Covered | 10.6 |
+| 6 | Role-based API authorization | Covered | 10.1 (Auth Roles column) |
+| 7 | Notification system integration | Covered | 9.1, 9.2 |
+| 8 | Analytics and reporting | Covered | 8.1, 8.2, 8.3 |
+| 9 | Export (Excel/PDF/CSV) | Covered | 8.2 |
 
 ---
 
-*Document: 04-package-management.md*
-*Lines: 700+*
-*Last updated: 2026-03-14*
+*End of document.*
