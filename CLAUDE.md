@@ -7,7 +7,7 @@
 
 ## What Is This Project?
 
-**Concierge** is a next-generation condo/building management portal designed to replace platforms like Aquarius (ICON) and BuildingLink. The goal is to combine the best features from both platforms with an Apple-grade design system, role-aware interfaces, and modern architecture.
+**Concierge** is a next-generation condo/building management portal designed to replace platforms like Aquarius (ICON), BuildingLink, and Condo Control. The goal is to combine the best features from all three platforms with an Apple-grade design system, role-aware interfaces, and modern architecture.
 
 ### The Thesis
 
@@ -17,7 +17,7 @@
 
 ## Research Completed
 
-We've reverse-engineered two live production platforms:
+We've reverse-engineered three live production platforms:
 
 ### Platform 1: Aquarius (ICON Condo Management)
 - **Property**: ~500+ units observed
@@ -33,9 +33,19 @@ We've reverse-engineered two live production platforms:
 - **Strengths**: Maintenance depth (7 sub-modules), unified event model, multi-channel communication, alteration tracking, equipment lifecycle, vendor compliance
 - **Weaknesses**: Inconsistent UI (half modern, half legacy ASP.NET), feature bloat, hostile premium gating, no design system
 
+### Platform 3: Condo Control
+- **Property**: M.T.C.C. 872 (Toronto, ON)
+- **Documentation**: 16 files (15 deep-dives + README), 5,649 lines
+- **Location**: `docs/platform-3/`
+- **Role Observed**: Security & Concierge ("Temp Concierge", Royal Concierge and Security)
+- **Architecture**: Modern SPA (React-based) with legacy ASP.NET WebForms pages for account management
+- **Strengths**: Training/LMS module (unique across all 3 platforms), community features (Classified Ads, Idea Board), clean modern UI, unified security console with 7 entry types, rich amenity booking with payment integration, 2FA support, login audit trail
+- **Weaknesses**: Mixed architecture (SPA + legacy .aspx pages), role-gated features with visible-but-broken links (Package Preferences UX bug), no self-service profile editing, no maintenance module visible to Security role, Store and Survey modules non-functional, no vendor management observed
+- **Role Limitation**: Security & Concierge role cannot access admin/settings, user management, maintenance module, vendor management, parking management, or financial settings — these features may exist but are undocumented
+
 ### Platform Comparison: `docs/PLATFORM-COMPARISON.md`
-- **Score**: Aquarius wins 11 features, BuildingLink wins 60, Tie 8
-- BuildingLink is broader but Aquarius is deeper in security/access management
+- **Three-way comparison**: Aquarius vs BuildingLink vs Condo Control across 79+ features
+- BuildingLink is broadest, Aquarius is deepest in security/access, Condo Control is most modern UI with unique training features
 
 ---
 
@@ -101,6 +111,11 @@ This is our key differentiator that NEITHER platform does:
 7. **Parking permit system** — Full permit lifecycle with types, areas, printing
 8. **Reports & analytics** — Exportable reports with Excel/PDF generation
 
+#### Must-Have for v2 (continued, from Platform 3)
+9. **Training/LMS module** — Staff training with quizzes and pass/fail tracking (from Condo Control, unique feature)
+10. **Classified Ads** — Resident marketplace for community engagement (from Condo Control)
+11. **Login audit trail** — Recent Account Activity with device, IP, status tracking (from Condo Control)
+
 #### Nice-to-Have (v3+)
 1. Know your residents (gamified staff training)
 2. Public display/digital signage
@@ -110,6 +125,8 @@ This is our key differentiator that NEITHER platform does:
 6. Asset manager
 7. Resident passports & ID cards
 8. Building directory
+9. Idea Board (crowdsourced feature requests from residents, from Condo Control)
+10. Discussion Forum (threaded resident discussions, from Condo Control)
 
 ---
 
@@ -141,6 +158,25 @@ This is our key differentiator that NEITHER platform does:
 6. **Welcome email system** — Configurable onboarding templates. First impression matters.
 7. **Auto-generated reference numbers** — Every package gets a trackable reference.
 8. **Storage spot tracking** — Where physically is this package stored? Dropdown selection.
+
+### What Condo Control Gets Right (Steal These)
+1. **Training/LMS module** — Built-in staff training with quizzes, pass/fail tracking, and course management. Neither Aquarius nor BuildingLink has this. Essential for high-turnover concierge teams.
+2. **Unified security console with 7 entry types** — Parcels, Visitors, Incidents, Keys, Pass-On Log, Cleaning, Notes all in one interface with color-coded cards. Best implementation of the unified event model concept.
+3. **Login audit trail** — Recent Account Activity shows every login with device, IP, and status. Essential security feature for condo environments.
+4. **Classified Ads** — Community marketplace for residents. Builds engagement. Neither competitor has this.
+5. **Idea Board** — "Post Idea" / "Browse Ideas" from the help button. Crowdsourced feature requests from residents. Smart engagement tool.
+6. **Module-organized email preferences** — 12 notification types organized by module (Amenity, Announcements, Events, etc.) is clearer than flat checkbox lists.
+7. **Buzzer code management** — Dedicated admin page for building-wide buzzer directory with multi-field search, CSV export, and edit-in-place.
+8. **Report builder with 23 report types** — Comprehensive reporting across all modules with date filtering, CSV/Excel/PDF export.
+
+### What Condo Control Gets Wrong (Avoid These)
+1. **Mixed architecture** — Modern SPA pages alongside legacy ASP.NET WebForms (.aspx). Change Password and Email Preferences feel like a different product. Pick one stack.
+2. **Role-gated features with broken links** — Package Preferences sidebar link visible but tab hidden for Security role. Link should be hidden too. Silent failures are hostile UX.
+3. **No self-service profile editing** — Users can't update their own name, email, or phone. Admin dependency for basic info changes.
+4. **Empty states with no actions** — Emergency Contacts shows "no records" with no Add button. Phone numbers the same. If a section is empty, provide a way to populate it.
+5. **Non-functional modules shipped** — Store page shows "No items" with no way to add. Survey page nearly empty. Don't ship broken modules.
+6. **No password complexity feedback** — Change Password page doesn't show requirements. Users guess and fail.
+7. **Training module lacks content management** — Good concept but the quiz builder and content authoring tools feel limited compared to dedicated LMS platforms.
 
 ### What Aquarius Gets Wrong (Fix These)
 1. **6 rigid log types** — Can't add new types without code changes. Inflexible.
@@ -287,8 +323,28 @@ Full workflow chains are documented in `docs/DESIGN-SYSTEM.md` Section 20.3, inc
 | `manage-and-communicate.md` | 23 sub-sections across Manage and Communicate |
 | `unique-features.md` | 23 features not found in Aquarius |
 
+### `docs/platform-3/` — Platform 3 (Condo Control) Documentation
+| File | Content | Lines |
+|------|---------|-------|
+| `README.md` | Platform overview, navigation structure, strengths/weaknesses | 192 |
+| `deep-dive-dashboard.md` | Dashboard widgets, quick actions, weather | 340 |
+| `deep-dive-my-account.md` | 6 tabs + Change Password + Email Preferences | 436 |
+| `deep-dive-amenity-booking.md` | Calendar/list views, payment, approval workflows | 739 |
+| `deep-dive-announcements.md` | Announcement creation and distribution | 249 |
+| `deep-dive-classified-ads.md` | Community marketplace (unique to P3) | 269 |
+| `deep-dive-events.md` | Community events module | 280 |
+| `deep-dive-library.md` | File library with categories | 340 |
+| `deep-dive-reports.md` | 23 report types with export | 374 |
+| `deep-dive-security-concierge.md` | 7 entry types, unified console (largest file) | 863 |
+| `deep-dive-sidebar-navigation.md` | 14 sidebar items, collapsible nav | 220 |
+| `deep-dive-store.md` | Store module (non-functional) | 98 |
+| `deep-dive-survey.md` | Survey module (nearly empty) | 115 |
+| `deep-dive-training.md` | LMS/Training module (unique to P3) | 389 |
+| `deep-dive-unit-file.md` | Unit management, resident profiles | 349 |
+| `deep-dive-buzzer-codes.md` | Buzzer code admin directory | 217 |
+
 ### `docs/PLATFORM-COMPARISON.md`
-Feature matrix: 79 features compared, Concierge decisions for each.
+Three-way feature matrix: 79+ features compared across all 3 platforms, Concierge decisions for each.
 
 ---
 
@@ -299,7 +355,8 @@ Feature matrix: 79 features compared, Concierge decisions for each.
 2. **PLATFORM-COMPARISON.md** — For the "Concierge Decision" column on that feature
 3. **The relevant Aquarius doc** — For field-level detail
 4. **The relevant BuildingLink doc** — For what they added beyond Aquarius
-5. **This file's "Critical Design Insights"** — For what to steal vs avoid
+5. **The relevant Condo Control doc** — For modern UI patterns and unique features
+6. **This file's "Critical Design Insights"** — For what to steal vs avoid from ALL 3 platforms
 
 ### Design Non-Negotiables
 - White backgrounds. No dark sidebars, no gradient headers.
@@ -318,6 +375,6 @@ Feature matrix: 79 features compared, Concierge decisions for each.
 
 ---
 
-*Last updated: 2026-03-13*
-*Platforms researched: 2 (Aquarius, BuildingLink)*
-*Total documentation: 30 files, ~4,000 lines, 500+ fields documented*
+*Last updated: 2026-03-14*
+*Platforms researched: 3 (Aquarius, BuildingLink, Condo Control)*
+*Total documentation: 46 files, ~10,000 lines, 800+ fields documented*
