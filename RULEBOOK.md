@@ -258,6 +258,187 @@ This platform must be designed and built to satisfy **all** of the following com
 
 ---
 
+## Rule 13: Unit & Component Testing — 95%+ Coverage
+
+**Why:** Untested code is broken code waiting to break in production. In a multi-tenant condo platform handling security incidents, access codes, and financial data, a single uncaught bug can cascade across properties. 95% coverage is not aspirational — it is the minimum acceptable standard.
+
+**Requirements:**
+- 95% minimum **line AND branch coverage** for ALL code — backend, frontend, shared libraries, utilities
+- New code introduced in any pull request must have **100% coverage** — zero untested new code ships
+- CI/CD pipeline **hard-fails** if overall coverage drops below 95% — no overrides, no exceptions
+- Every UI component tested for: correct rendering, all user interactions (click, hover, focus, blur, keyboard), all error states, loading states, empty states, and boundary conditions
+- Every API function tested for: valid inputs, invalid inputs, missing inputs, null/undefined values, boundary values, and type coercion edge cases
+- **Mutation testing** with a minimum 80% mutation score — tests must catch real bugs, not just execute code paths
+- No test that only asserts "it rendered" or "it did not throw" — every test must verify **observable behavior** (output values, DOM changes, API responses, state transitions)
+- Coverage reports generated on every PR and visible in the PR review interface
+- Flaky tests are treated as P2 bugs — identified, tracked, and fixed within 24 hours
+
+**Verification:** Is the overall test coverage at or above 95% for both lines and branches, and does every new line of code in this PR have a corresponding test that verifies behavior (not just execution)?
+
+---
+
+## Rule 14: Integration Testing
+
+**Why:** Unit tests prove individual pieces work. Integration tests prove the system works as a whole. In a multi-tenant platform where a package arrival triggers notifications across channels and appears in a resident's portal, a failure at any integration point means a broken user experience.
+
+**Requirements:**
+- Every API endpoint tested for **every HTTP method it supports** and **every possible status code**: 200 (success), 201 (created), 400 (bad request), 401 (unauthorized), 403 (forbidden), 404 (not found), 409 (conflict), 422 (unprocessable), 429 (rate limited), 500 (server error)
+- **Multi-tenant isolation tests**: automated tests that prove Property A's users, API keys, and queries cannot access, modify, or even detect the existence of Property B's data — tested for every data-accessing endpoint
+- **RBAC matrix coverage**: every role (Super Admin, Property Admin, Property Manager, Front Desk, Security, Resident, Board Member) tested against every endpoint — verified that permitted actions succeed AND forbidden actions return 403
+- **Cross-module workflow tests** covering end-to-end flows: package arrival → event creation → notification dispatch → resident portal display; maintenance request → vendor assignment → status updates → resident notification; amenity booking → approval → calendar update → reminder notification
+- **Third-party integration tests**: mocked integration tests run on every PR; live sandbox integration tests run nightly against actual third-party APIs (payment processors, SMS providers, push notification services, email services)
+- **Database migration tests**: every migration tested both UP and DOWN — verify data integrity is preserved in both directions, verify rollback does not lose data
+- **Contract tests** between frontend and backend — API contract changes detected before they break consumers
+- Integration test suite must complete in under 15 minutes — parallelize aggressively
+
+**Verification:** For this feature, are all API endpoints tested across all status codes, all roles verified in the RBAC matrix, multi-tenant isolation proven, and end-to-end workflows validated from trigger to final user-visible outcome?
+
+---
+
+## Rule 15: Accessibility Testing
+
+**Why:** Condo buildings are home to residents of all abilities — elderly residents, residents with visual impairments, residents with motor disabilities. Accessibility is not a nice-to-have. It is a legal requirement in many jurisdictions and a moral obligation. An inaccessible portal excludes the people who need building services the most.
+
+**Requirements:**
+- **WCAG 2.2 Level AA compliance is mandatory** — not optional, not aspirational, not "we'll fix it later"
+- **Automated accessibility scan runs on every PR** — PR cannot be merged if any WCAG AA violations are detected
+- Every interactive element (buttons, links, inputs, dropdowns, modals, tabs, accordions, date pickers) must be **fully operable via keyboard alone** using Tab, Shift+Tab, Enter, Space, Escape, and Arrow keys
+- **Color contrast minimum**: 4.5:1 ratio for normal text (under 18pt), 3:1 ratio for large text (18pt+ or 14pt+ bold), 3:1 ratio for UI components and graphical objects
+- **Screen reader compatibility**: all images have meaningful alt text (or aria-hidden if decorative), all form inputs have associated labels, all regions have ARIA landmarks, dynamic content changes announced via aria-live regions, all custom components have appropriate ARIA roles and states
+- **Focus management**: visible focus indicators on all interactive elements, logical focus order matching visual layout, focus trapped inside open modals, focus returned to trigger element when modal closes
+- No information conveyed by **color alone** — always pair color with text, icons, or patterns (critical for status indicators and error states)
+- **Annual manual accessibility audit** conducted with real assistive technology users (screen reader users, keyboard-only users, switch device users) — findings tracked as P2 bugs with 24-hour fix SLA for critical barriers
+- All video and audio content must have captions and transcripts
+
+**Verification:** Does this feature pass automated WCAG 2.2 AA scanning with zero violations, and can a keyboard-only user and a screen reader user complete every workflow without barriers?
+
+---
+
+## Rule 16: Code Quality Standards
+
+**Why:** Code quality is not about aesthetics — it is about maintainability, debuggability, and long-term velocity. Sloppy code creates compounding technical debt that slows every future feature. In a platform that must serve properties for years, every file must be clean enough for a new developer to understand without asking questions.
+
+**Requirements:**
+- **TypeScript strict mode enabled globally** — `strict: true` in tsconfig, no `any` types anywhere (use `unknown` + type guards), strict null checks enforced, no implicit returns, no unused variables or parameters
+- **Maximum cyclomatic complexity: 10 per function** — enforced by linter, no exceptions
+- **Maximum function length: 50 lines** — if a function exceeds 50 lines, it must be decomposed
+- **Maximum file length: 400 lines** — if a file exceeds 400 lines, it must be split into focused modules
+- **Linting (ESLint) and formatting (Prettier) enforced in CI** — zero warnings, zero errors, no `eslint-disable` comments without a linked ticket explaining why
+- Every pull request requires **minimum 2 code reviewers** who have approved — no self-merges, no single-reviewer merges
+- **No dead code** — unused functions, unused imports, unused variables, unreachable code blocks are CI failures
+- **No commented-out code** — if code is not needed, delete it (git preserves history)
+- **No TODO/FIXME/HACK comments without a linked ticket** — every TODO must reference a tracked issue (e.g., `// TODO(CONC-1234): Implement retry logic`)
+- Consistent naming conventions enforced: camelCase for variables/functions, PascalCase for components/classes/types, SCREAMING_SNAKE_CASE for constants, kebab-case for file names
+- All magic numbers and magic strings extracted into named constants with explanatory names
+
+**Verification:** Does this code pass all linting and formatting checks with zero warnings, contain no `any` types, have no function exceeding 50 lines or 10 cyclomatic complexity, and has every TODO linked to a tracked ticket?
+
+---
+
+## Rule 17: Documentation & Knowledge Transfer
+
+**Why:** If the original developer leaves and no one can understand the code, the project is dead. Documentation is not extra work — it is insurance against knowledge loss. Every decision, every API, every component must be documented well enough that a new developer can be productive within their first week.
+
+**Requirements:**
+- Every public function, method, and exported module has **JSDoc/TSDoc documentation** — description, parameters with types, return value, thrown exceptions, and a usage example for complex functions
+- **API documentation auto-generated from code** using OpenAPI/Swagger spec — every endpoint, every request/response schema, every error code documented and always in sync with the implementation
+- **Architecture Decision Records (ADR)** written for every significant technical decision — what was decided, what alternatives were considered, why this option was chosen, what trade-offs were accepted
+- Every module directory contains a **README.md** explaining: module purpose, directory structure, key files, dependencies, how to run tests, and important design decisions
+- **Storybook stories for every UI component** showing: default state, all variants/sizes, loading state, error state, empty state, disabled state, interactive state, and edge cases (long text, missing data)
+- **Runbook for every production operation** — deployment, rollback, database migration, cache clearing, log investigation, incident escalation, backup restoration, tenant provisioning, tenant offboarding
+- **New developer onboarding guide** — maintained, tested by having a team member follow it quarterly, updated immediately when any step is outdated
+- Changelog maintained for every release — what changed, what was fixed, what was added, what was deprecated
+
+**Verification:** Can a new developer who has never seen this codebase understand this module's purpose, run its tests, and make a change within one day using only the documentation provided?
+
+---
+
+## Rule 18: Acceptance & Audit Rights
+
+**Why:** Shipping a feature that has not been formally accepted is shipping a guess. In a platform managing security, access control, and financial data for condo properties, guesses are unacceptable. Every feature must pass formal acceptance, and every client must have the right to audit how their data is handled.
+
+**Requirements:**
+- **User Acceptance Testing (UAT) required for every feature** before production deployment — no feature goes live without sign-off from a designated tester or product owner
+- **UAT environment must be identical to production** — same infrastructure, same configuration, same data volume characteristics, same third-party integrations (sandbox mode)
+- **Release acceptance criteria checklist with 12+ gates** that must ALL pass before deployment: (1) all tests pass, (2) coverage thresholds met, (3) accessibility scan clean, (4) SAST scan clean, (5) DAST scan clean, (6) performance benchmarks met, (7) UAT sign-off obtained, (8) documentation updated, (9) runbook reviewed, (10) rollback plan documented, (11) monitoring alerts configured, (12) feature flags configured for gradual rollout
+- **Client audit rights**: property management companies can request and receive a detailed report of how their data is stored, accessed, encrypted, backed up, and retained — within 5 business days of request
+- **Third-party auditor access**: SOC 2 and ISO auditors receive defined read-only access to audit logs, security configurations, and compliance evidence — scoped to prevent data exposure
+- **Bug SLAs enforced and tracked**:
+  - P1 (system down / data breach): response within 15 minutes, fix within 4 hours
+  - P2 (major feature broken / security vulnerability): response within 1 hour, fix within 24 hours
+  - P3 (minor feature broken / UX issue): response within 4 hours, fix within 1 week
+  - P4 (cosmetic / enhancement): response within 24 hours, fix within 1 sprint
+- **Feature flags mandatory for all new features** — gradual rollout (1% → 10% → 50% → 100%), no big-bang releases that affect all properties simultaneously
+- **Automated rollback**: if error rate exceeds 1% threshold within 10 minutes of deployment, system automatically rolls back to previous version within 5 minutes — no human intervention required
+
+**Verification:** Has this feature passed all 12 release gates, been formally accepted in UAT, and been configured for gradual rollout with automated rollback?
+
+---
+
+## Rule 19: Security Testing
+
+**Why:** Concierge handles building access codes, resident PII, security incident reports, and financial data across multiple properties. A single security vulnerability — cross-tenant data leak, privilege escalation, injection attack — could expose hundreds of residents' data and destroy the company. Security testing is not a phase — it is a permanent, continuous requirement.
+
+**Requirements:**
+- **Authentication testing**: brute force protection verified (account lockout after 5 failed attempts), session management tested (sessions expire after inactivity, sessions invalidated on password change), token expiry enforced (access tokens max 15 minutes, refresh tokens max 7 days), multi-factor authentication flows tested for all bypass scenarios
+- **Authorization testing**: horizontal escalation tests (User A cannot access User B's data within the same role), vertical escalation tests (Resident cannot access Admin endpoints), cross-tenant escalation tests (Property A staff cannot access Property B data) — automated for every endpoint
+- **Input validation testing**: SQL injection (parameterized queries verified), XSS (reflected, stored, and DOM-based), CSRF (token validation on every state-changing request), command injection, path traversal, SSRF, XML/JSON injection — ALL attack vectors tested and blocked with automated test suites
+- **PII exposure testing**: automated scans confirming PII NEVER appears in application logs, URL parameters, query strings, error messages, client-side JavaScript variables, browser localStorage/sessionStorage, or network responses to unauthorized roles
+- **Regression tests for every fixed vulnerability**: when a security bug is fixed, a permanent automated test is added that specifically reproduces the original attack — this test must never be deleted
+- **Quarterly penetration testing** by an independent third-party security firm — scope includes all API endpoints, web application, mobile application, infrastructure, and social engineering
+- **Critical and High severity findings block deployment** until resolved and verified — no exceptions, no risk acceptance for Critical findings
+- **Security headers enforced**: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Strict-Transport-Security, Referrer-Policy, Permissions-Policy — tested on every response
+
+**Verification:** Have all authentication, authorization, and input validation attack vectors been tested? Is there a regression test for every previously fixed vulnerability? Are the latest penetration test findings all resolved?
+
+---
+
+## Rule 20: Static Application Security Testing (SAST)
+
+**Why:** Security vulnerabilities caught in code review cost 10x less to fix than those found in production. SAST analyzes source code for vulnerabilities before the code ever runs. In a platform handling PII and access credentials, every line of code must be scanned before it reaches any environment.
+
+**Requirements:**
+- **SAST runs on EVERY pull request** — Critical and High severity findings block merge, no exceptions
+- **Nightly full SAST scan on the main branch** — results reviewed by the security lead within 24 hours every business day
+- **Custom SAST rules for Concierge-specific patterns**: PII handling without encryption, multi-tenant data queries without tenant_id filter, direct database access bypassing the data access layer, encryption key handling outside KMS, hardcoded configuration values
+- **Remediation SLAs enforced and tracked**:
+  - Critical: remediated within 24 hours of detection
+  - High: remediated within 72 hours of detection
+  - Medium: remediated within 1 week of detection
+  - Low: remediated within 1 sprint of detection
+- **Secrets scanning on every commit and across full git history** — zero tolerance for hardcoded API keys, database passwords, encryption keys, tokens, or certificates in source code — pre-commit hooks block commits containing secrets
+- **License compliance scanning for all dependencies** — no GPL-licensed dependencies in proprietary code, no dependencies with known vulnerabilities (CVE), automated alerts when dependency licenses change
+- **Developers must have SAST tooling in their IDE** (shift-left security) — vulnerabilities flagged in real-time as code is written, before it even reaches a pull request
+- SAST tool configuration stored in version control and reviewed as part of security audits
+- False positive rate tracked — if SAST false positive rate exceeds 20%, rules must be tuned within 1 week
+
+**Verification:** Has SAST been run on this code with zero Critical or High findings, are all secrets scanning checks passing, and are all dependency licenses compliant?
+
+---
+
+## Rule 21: Dynamic Application Security Testing (DAST)
+
+**Why:** SAST finds vulnerabilities in code. DAST finds vulnerabilities in the running application — misconfigurations, authentication bypasses, injection flaws that only manifest at runtime. In a multi-tenant platform, DAST is the last automated line of defense before a vulnerability reaches real users and real data.
+
+**Requirements:**
+- **DAST runs against the staging environment on every release candidate** — Critical and High findings block promotion to production
+- **Weekly scheduled DAST scan** against the staging environment — results reviewed within 24 hours every business day
+- **Authenticated scans for EVERY user role**: Super Admin, Property Admin, Property Manager, Front Desk/Concierge, Security Guard, Resident, Board Member — each role scanned separately to detect role-specific vulnerabilities and privilege escalation paths
+- **Cross-tenant DAST**: automated scan attempts to access other tenants' data using valid credentials from a different tenant — any successful cross-tenant data access is treated as a P1 Critical incident
+- **API fuzzing against all endpoints** using the OpenAPI specification — random, malformed, oversized, and boundary-value inputs sent to every parameter of every endpoint, with responses validated against expected error handling
+- **Remediation SLAs identical to SAST**:
+  - Critical: remediated within 24 hours of detection
+  - High: remediated within 72 hours of detection
+  - Medium: remediated within 1 week of detection
+  - Low: remediated within 1 sprint of detection
+- **DAST findings correlated with SAST findings** in a unified security dashboard — deduplicated, prioritized, and tracked through resolution with full audit trail
+- **Zero false-negative tolerance for OWASP Top 10** — DAST configuration must be validated quarterly to ensure it detects all OWASP Top 10 vulnerability categories
+- DAST scan results archived for 2 years for compliance audit purposes
+
+**Verification:** Has DAST been run against this release candidate with authenticated scans for every role, cross-tenant isolation validated, API fuzzing completed, and all Critical/High findings resolved before production deployment?
+
+---
+
 ## Verification Checklist — Run Before Completing ANY Work
 
 Before marking any task as done, verify:
@@ -274,10 +455,19 @@ Before marking any task as done, verify:
 - [ ] **Rule 10**: Three analytics layers defined with specific charts and KPIs?
 - [ ] **Rule 11**: Multi-channel notifications with resident preferences?
 - [ ] **Rule 12**: Data security, PII encryption, backup/DR, and multi-framework compliance (PIPEDA, GDPR, SOC 2, ISO 27001, ISO 27701, ISO 27017, ISO 9001, HIPAA)?
+- [ ] **Rule 13**: Unit & component test coverage at 95%+ (lines AND branches), 100% for new code, mutation score 80%+?
+- [ ] **Rule 14**: Integration tests covering all endpoints × all status codes × all roles, multi-tenant isolation proven, cross-module workflows validated?
+- [ ] **Rule 15**: WCAG 2.2 Level AA compliant, keyboard accessible, screen reader compatible, color contrast verified?
+- [ ] **Rule 16**: TypeScript strict mode, no `any` types, cyclomatic complexity ≤10, functions ≤50 lines, files ≤400 lines, 2 reviewers, zero dead code?
+- [ ] **Rule 17**: JSDoc on all public functions, OpenAPI spec current, ADRs written, Storybook stories for all components, runbooks for all operations?
+- [ ] **Rule 18**: UAT passed, all 12 release gates cleared, feature flags configured, automated rollback in place, bug SLAs defined?
+- [ ] **Rule 19**: Authentication, authorization, and injection testing complete, PII exposure verified clean, penetration test findings resolved?
+- [ ] **Rule 20**: SAST passed with zero Critical/High findings, secrets scan clean, dependency licenses compliant?
+- [ ] **Rule 21**: DAST passed for all roles, cross-tenant isolation validated, API fuzzing complete, findings correlated with SAST in unified dashboard?
 
 ---
 
 *This rulebook is a living document. Every instruction from the product owner gets added here as a new rule. Every rule applies to every piece of work — past, present, and future.*
 
 *Last updated: 2026-03-14*
-*Rules: 12*
+*Rules: 21*

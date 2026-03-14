@@ -2165,6 +2165,1696 @@ FailoverEvent
 
 ---
 
+## 14. Quality Assurance, Testing & Code Quality Standards
+
+This section defines the quality requirements that every piece of code, every feature, and every deployment in Concierge must meet. These requirements are non-negotiable. No code merges to the main branch, and no release reaches production, unless every standard in this section is satisfied.
+
+Concierge handles sensitive personal information (PII) for thousands of residents across multiple properties. A single quality failure — a missed edge case, an untested role boundary, an accessibility gap — can cause data leaks, legal liability, or loss of property management contracts. These standards exist to prevent that.
+
+Every requirement in this section is **specific and measurable**. "Good enough" is not a metric. Every threshold has a number. Every process has an owner. Every failure has a consequence.
+
+---
+
+### 14.1 Unit & Component Testing
+
+#### 14.1.1 Coverage Requirements
+
+| Module Type | Minimum Line Coverage | Minimum Branch Coverage | Rationale |
+|---|---|---|---|
+| API route handlers | 95% | 95% | Every endpoint is a potential attack surface |
+| Business logic (services, helpers, validators) | 98% | 95% | Core logic errors cascade to every consumer |
+| UI components (React/equivalent) | 90% | 85% | Visual regressions caught by snapshot + interaction tests |
+| Utility functions | 100% | 100% | Pure functions have no excuse for missing coverage |
+| Middleware (auth, RLS, rate limiting) | 98% | 98% | Security-critical path — zero gaps allowed |
+| Database models and queries | 95% | 90% | Data integrity depends on correct query behavior |
+| WebSocket event handlers | 95% | 90% | Real-time updates must never send wrong data to wrong user |
+| AI service integrations | 90% | 85% | AI outputs are non-deterministic — test the wrapping logic rigorously |
+
+**Overall project minimum**: 95% line coverage AND 92% branch coverage. No module may fall below its threshold listed above.
+
+#### 14.1.2 What Counts Toward Coverage
+
+**Counted**:
+- Application source code (all TypeScript/JavaScript files in `src/`)
+- Database migration scripts (tested via rollback tests)
+- Configuration validation logic
+- Custom middleware
+
+**Not counted** (excluded from coverage calculation):
+- Auto-generated code (OpenAPI client stubs, GraphQL type definitions, Prisma client)
+- Type definition files (`.d.ts`)
+- Test files themselves
+- Build configuration files (webpack, vite, esbuild configs)
+- Seed scripts (covered by integration tests instead)
+- Third-party library wrappers that are thin pass-throughs (must be explicitly marked with `/* istanbul ignore file — thin wrapper */` and reviewed in PR)
+
+#### 14.1.3 Coverage Enforcement in CI/CD
+
+- Every pull request runs the full unit test suite.
+- The CI pipeline **fails the build** if coverage drops below the thresholds defined in 14.1.1.
+- Coverage reports are generated in both HTML (for developer review) and JSON (for dashboard ingestion) formats.
+- Coverage results are posted as a comment on every pull request, showing:
+  - Overall project coverage (line and branch)
+  - Per-file coverage for changed files
+  - Coverage delta compared to the target branch
+  - Any files that dropped below their module threshold
+- A coverage dashboard (accessible to all developers and Super Admins) displays:
+  - Current coverage by module
+  - Coverage trend over the past 90 days
+  - Files with the lowest coverage (bottom 10)
+  - Modules approaching their threshold (within 2%)
+
+#### 14.1.4 Per-PR Coverage Delta Requirements
+
+- New code introduced in a pull request must have **98% line coverage and 95% branch coverage** or higher.
+- If a PR reduces overall project coverage by more than **0.5%**, the build fails.
+- If a PR reduces any module's coverage by more than **1.0%**, the build fails.
+- Exceptions require written justification in the PR description AND approval from the Tech Lead.
+
+#### 14.1.5 Mutation Testing
+
+- Mutation testing runs nightly on the main branch using a mutation testing framework (e.g., Stryker for TypeScript).
+- **Minimum mutation score**: 80% across the project.
+- **Business logic modules**: minimum 85% mutation score.
+- **Security-critical modules** (authentication, authorization, RLS, encryption): minimum 90% mutation score.
+- Mutation testing results are tracked on the quality dashboard with weekly trend reports.
+- Any module whose mutation score drops below its threshold generates an alert to the Tech Lead.
+- Mutation testing is NOT required to pass on every PR (due to runtime cost), but the nightly run is a blocking gate for the next release candidate.
+
+#### 14.1.6 Test Naming Conventions
+
+All test names must follow this pattern:
+
+```
+[unit under test] — [scenario] — [expected outcome]
+```
+
+Examples:
+- `createEvent — when event type is disabled — throws EventTypeDisabledError`
+- `PackageCard — when status is "picked up" — renders green checkmark icon`
+- `validateEmail — when input contains unicode characters — returns validation error`
+- `applyRLS — when user belongs to Property A — excludes all Property B records`
+
+Rules:
+- Test names must describe behavior, not implementation.
+- Test names must be readable as a sentence by a non-developer.
+- Do not use "should" — use declarative present tense ("renders", "throws", "returns").
+- Group related tests using `describe` blocks named after the unit under test.
+- Nest `describe` blocks for sub-scenarios (e.g., `describe("when user is Security Guard")`).
+
+#### 14.1.7 Mocking and Stubbing Rules
+
+**When to mock**:
+- External API calls (email provider, SMS provider, push notification service, AI providers)
+- System clock (use a deterministic clock for all time-dependent tests)
+- File system operations
+- Environment variables
+- Third-party SDKs (payment processors, analytics)
+
+**When NOT to mock**:
+- Database queries — use a test database with real schema (see 14.2 for integration test database strategy)
+- Internal service calls between modules — test the real integration
+- Validation logic — test the actual validators, not mocked versions
+- Authorization checks — never mock the RLS or role-checking layer
+
+**Mocking rules**:
+- Every mock must be explicitly set up in the test — no global mocks that apply across test files.
+- Mocks must verify they were called with expected arguments (not just that they were called).
+- Mocks must be reset between tests (`beforeEach` / `afterEach`) to prevent test pollution.
+- If a test file has more than 10 mocks, it is a code smell — refactor the code under test to reduce dependencies.
+
+#### 14.1.8 Snapshot Testing Rules
+
+- Snapshot tests are required for every UI component that renders visible output.
+- Snapshots must be reviewed in every PR — changes to snapshots require explicit approval from a reviewer.
+- Snapshots must NOT include dynamic data (timestamps, random IDs, user-specific content). Use deterministic test data.
+- Snapshot files must be committed alongside the component code, never in a separate directory.
+- If a snapshot is larger than 200 lines, the component is too complex — break it into smaller components and snapshot each one.
+- Snapshot tests are a supplement, not a replacement, for behavioral tests. Every component with a snapshot must also have at least one behavioral test (click handler, conditional rendering, etc.).
+
+#### 14.1.9 Test Data Management
+
+**Factories**:
+- Every database model must have a corresponding test factory that generates valid instances with sensible defaults.
+- Factories must support override of any field (e.g., `createEvent({ status: "closed" })`).
+- Factories must generate unique values for unique fields (sequential IDs, unique email addresses).
+- Factories must respect foreign key relationships (creating an Event automatically creates the associated Property and EventType if not provided).
+
+**Fixtures**:
+- Static test fixtures (JSON files representing API responses, file uploads, etc.) are stored in a `__fixtures__/` directory next to the test file.
+- Fixtures must be realistic — use production-like data structures, not simplified versions.
+- Fixtures must not contain real PII — use generated fake data.
+
+**Seeds**:
+- Seed data for local development and staging environments is maintained in version-controlled seed scripts.
+- Seed scripts generate a minimum of: 3 properties, 5 roles, 50 units, 200 residents, 1,000 events, 50 maintenance requests, 20 amenity bookings.
+- Seed data must cover edge cases: units with no residents, residents with no email, events with maximum-length text fields, events with Unicode/emoji content.
+
+#### 14.1.10 Edge Case Requirements
+
+Every unit test suite must include explicit tests for the following edge cases where applicable:
+
+| Edge Case Category | Specific Tests Required |
+|---|---|
+| **Null and undefined** | null input, undefined input, null nested fields, optional fields omitted |
+| **Empty values** | Empty string `""`, empty array `[]`, empty object `{}`, whitespace-only string `"   "` |
+| **Boundary values** | Field at minimum length, field at maximum length, field one character over maximum, integer at min/max for its type |
+| **Timezone handling** | UTC midnight, timezone boundary crossings (11:59 PM → 12:00 AM in user's timezone vs UTC), daylight saving time transitions, dates in UTC-12 and UTC+14 |
+| **Unicode and internationalization** | Emoji in text fields (👋🏽), CJK characters, right-to-left text (Arabic, Hebrew), combining diacritical marks, zero-width characters |
+| **Numeric edge cases** | Zero, negative numbers (where applicable), very large numbers, floating-point precision (0.1 + 0.2), NaN, Infinity |
+| **Date edge cases** | Leap year dates (Feb 29), end of month (Jan 31 → Feb), year boundaries (Dec 31 → Jan 1), dates far in the past (1900-01-01), dates far in the future (2099-12-31) |
+| **Concurrent access** | Two users updating the same record simultaneously, optimistic locking conflicts |
+| **Maximum field lengths** | Event description at 4,000 characters, unit number at maximum length, resident name at maximum length |
+
+#### 14.1.11 Accessibility Component Testing
+
+- Every interactive component (button, link, input, select, checkbox, radio, dialog, menu, tab, accordion, tooltip) must have unit tests verifying:
+  - It is reachable via `Tab` key navigation
+  - It responds to `Enter` and/or `Space` key activation (as appropriate for the element type)
+  - It has an accessible name (via visible label, `aria-label`, or `aria-labelledby`)
+  - It announces its role to assistive technology (correct ARIA role)
+  - If it has a disabled state, `aria-disabled="true"` is set
+  - If it has an expanded/collapsed state, `aria-expanded` toggles correctly
+  - If it is a form input, it is linked to its error message via `aria-describedby`
+- Use a testing library that supports accessibility queries (e.g., Testing Library's `getByRole`, `getByLabelText`).
+- Every new component must pass `axe-core` automated checks within its test suite (zero violations).
+
+---
+
+### 14.2 Integration Testing
+
+#### 14.2.1 API Endpoint Testing
+
+Every API endpoint must have integration tests covering:
+
+| Test Category | Requirement |
+|---|---|
+| **Happy path** | Valid request with valid authentication returns expected response body and status code |
+| **Authentication** | Request without token returns `401`. Request with expired token returns `401`. Request with invalid token returns `401`. |
+| **Authorization** | Request with valid token but insufficient role returns `403`. Test every role that should be denied. |
+| **Validation** | Request with missing required fields returns `422` with field-specific error messages. Request with invalid field types returns `422`. |
+| **Not found** | Request for non-existent resource returns `404`. Request for resource in different property returns `404` (not `403` — prevent enumeration). |
+| **Conflict** | Request that violates a uniqueness constraint returns `409` with clear error message. |
+| **Rate limiting** | Exceeding rate limit returns `429` with `Retry-After` header. |
+| **Method not allowed** | Using an unsupported HTTP method returns `405`. |
+| **Pagination** | Page 1 returns correct count. Last page returns partial results. Page beyond range returns empty array (not error). |
+| **Filtering and sorting** | Each supported filter parameter returns correct subset. Sort order is correct ascending and descending. |
+| **Response format** | Response includes all required fields. Response excludes fields not visible to the requesting role. Dates are ISO 8601. IDs are consistent format. |
+
+**Minimum integration test count per module**: 50 tests per API module (e.g., Events, Units, Residents, Maintenance). Modules with fewer than 10 endpoints may have fewer tests, but must still cover every category above for every endpoint.
+
+#### 14.2.2 Database Integration Tests
+
+- **Migration tests**: Every migration runs forward successfully. Every migration rolls back successfully. Running all migrations from zero results in identical schema to running the latest snapshot.
+- **Data integrity tests**: Foreign key constraints are enforced. Unique constraints are enforced. Check constraints (e.g., status must be one of a defined set) are enforced. Cascade deletes work correctly. Soft deletes do not break foreign key relationships.
+- **RLS (Row-Level Security) enforcement tests**: A query executed in the context of Property A returns zero rows from Property B. This must be tested for every table that contains property-scoped data. At minimum, test: events, units, residents, maintenance_requests, amenity_bookings, announcements, packages, documents, audit_logs.
+- **Index performance tests**: Queries used in list/search endpoints execute within 50ms on a dataset of 100,000 rows (measured via `EXPLAIN ANALYZE`).
+- **Transaction tests**: Operations that span multiple tables either all succeed or all rollback. No partial state is ever persisted.
+
+#### 14.2.3 Third-Party Service Integration Tests
+
+| Service | Test Requirements |
+|---|---|
+| **Email provider** | Send test email, verify delivery via provider API or test mailbox. Test HTML and plain-text variants. Test attachment handling. Test bounce handling. Test rate limit behavior. |
+| **SMS provider** | Send test SMS, verify delivery status callback. Test opt-out handling. Test international number formatting. Test message length limits (160 chars / concatenation). |
+| **Push notification service** | Send test push, verify receipt on test device or emulator. Test payload formatting. Test badge count updates. Test silent push for background sync. |
+| **AI providers** | Test prompt submission and response parsing. Test timeout handling (AI provider takes >30 seconds). Test fallback when primary provider is unavailable. Test response validation (AI returns unexpected format). Test cost tracking per request. |
+| **File storage** | Upload file, verify retrieval. Test signed URL generation and expiry. Test file deletion. Test storage quota enforcement. |
+| **Virus scanning** | Submit clean file — passes. Submit EICAR test file — rejected with correct error message. Test timeout when scanner is slow. |
+
+- Third-party integration tests run against **sandbox/test environments** of each provider, never against production APIs.
+- If a provider does not offer a sandbox, use a contract test with recorded responses (Pact or equivalent).
+
+#### 14.2.4 Multi-Tenant Isolation Testing
+
+This is the most critical category of integration tests. A multi-tenant isolation failure is a **P1 security incident**.
+
+**Mandatory tests** (run on every PR):
+1. Create Event in Property A. Query Events as Property B user. Result: zero events returned.
+2. Create Resident in Property A. Search for resident by name as Property B user. Result: not found.
+3. Create Maintenance Request in Property A. Attempt to update it as Property B Property Manager. Result: `404` (not `403`).
+4. Upload Document to Property A. Attempt to download via signed URL as Property B user. Result: `404` or `403`.
+5. Create Announcement in Property A. Verify it does not appear in Property B's announcement feed.
+6. Generate Report for Property A. Verify it contains zero data from Property B.
+7. List Units as Property A admin. Verify zero Property B units in the response.
+8. Access Audit Log as Property A admin. Verify zero Property B audit entries.
+9. Perform Global Search as Property A user. Verify zero Property B results across all indexed entities.
+10. WebSocket subscription for Property A events. Publish event in Property B. Verify Property A client does NOT receive it.
+
+**Stress tests** (run nightly):
+- Create 100 properties with 1,000 events each. Run isolation queries for every property pair. Zero cross-contamination allowed.
+- Simulate concurrent requests from 50 different properties hitting the same API endpoint. Verify every response contains only the requesting property's data.
+
+#### 14.2.5 Role-Based Access Testing
+
+Maintain a **role × endpoint access matrix** as a test configuration file. This matrix defines, for every API endpoint, which roles should receive `200`/`201`/`204` and which roles should receive `403`.
+
+**Matrix dimensions**:
+- Roles: Super Admin, Property Admin, Property Manager, Front Desk / Concierge, Security Guard, Maintenance Staff, Board Member, Resident, Unauthenticated
+- Endpoints: Every API endpoint in the system (minimum 150+ endpoints at full build)
+
+**Requirements**:
+- The matrix must be machine-readable (YAML or JSON) and used as the source of truth for auto-generated role tests.
+- Every cell in the matrix has an explicit test: either "allowed" (test returns expected success status) or "denied" (test returns `403`).
+- The matrix must be updated with every PR that adds or modifies an endpoint.
+- A CI check verifies that every endpoint in the OpenAPI spec has a corresponding entry in the matrix. Missing entries fail the build.
+- Quarterly manual audit compares the matrix to the product requirements to catch role creep.
+
+#### 14.2.6 Webhook and Event System Testing
+
+- Every internal event (e.g., `event.created`, `package.picked_up`, `maintenance.assigned`) must be tested for:
+  - Correct payload structure (all required fields present, correct types)
+  - Delivery to all registered subscribers
+  - Idempotency (delivering the same event twice does not cause duplicate side effects)
+  - Ordering guarantees (events for the same entity are processed in order)
+  - Dead letter queue behavior (failed deliveries are retried 3 times, then moved to dead letter queue with alert)
+- External webhook tests:
+  - Test webhook delivery to a mock endpoint
+  - Test webhook retry logic (3 retries with exponential backoff: 1s, 5s, 30s)
+  - Test webhook signature verification (HMAC-SHA256)
+  - Test webhook payload does not include PII beyond what the subscriber is authorized to access
+
+#### 14.2.7 File Upload and Download Testing
+
+| Test Case | Expected Behavior |
+|---|---|
+| Upload JPEG under 4MB | Succeeds, file stored, thumbnail generated |
+| Upload PNG under 4MB | Succeeds, file stored, thumbnail generated |
+| Upload PDF under 10MB | Succeeds, file stored, preview generated |
+| Upload file at exact size limit | Succeeds |
+| Upload file 1 byte over size limit | Rejected with `413` and clear error message |
+| Upload with wrong MIME type (e.g., `.exe` renamed to `.jpg`) | Rejected with `422` — MIME type validated by file header, not extension |
+| Upload with no file extension | Rejected with `422` |
+| Upload zero-byte file | Rejected with `422` |
+| Upload file with filename containing special characters (`../`, `<script>`, null bytes) | Filename sanitized, file stored safely |
+| Download file with valid signed URL | Succeeds, correct content-type header, content-disposition header |
+| Download file with expired signed URL | Returns `403` |
+| Download file belonging to different property | Returns `404` |
+| Concurrent upload of 10 files to the same entity | All succeed, all files associated correctly |
+
+#### 14.2.8 Search Integration Testing
+
+- Full-text search returns results within **200ms** for a dataset of 500,000 indexed documents.
+- Search respects RLS — Property A user searching "fire" finds only Property A incidents, never Property B.
+- Search respects role permissions — a Resident searching "maintenance" finds only their own requests, not all property requests.
+- Search handles: partial matches, typos (fuzzy matching), quoted exact phrases, special characters, Unicode content.
+- Search index stays in sync with the database — create a record, wait max 2 seconds, search finds it.
+- Search index correctly removes deleted/soft-deleted records within 2 seconds.
+- Search results include the correct highlight/snippet showing where the match occurred.
+- Empty search returns helpful suggestion, not an error.
+
+#### 14.2.9 Cache Invalidation Testing
+
+- When a record is updated in the database, the corresponding cache entry is invalidated within **1 second**.
+- After cache invalidation, the next read returns the updated data (not stale data).
+- Cache keys include the property ID — Property A's cache never serves data to Property B.
+- Cache keys include the user's role — a cached response for a Property Manager does not get served to a Resident.
+- Test cache stampede protection: when 100 concurrent requests arrive for an expired cache key, only 1 database query is executed (the rest wait for the cache to be repopulated).
+- Test cache failure gracefully: when the cache service is unavailable, the application falls back to direct database queries with no user-visible error (degraded performance only).
+
+#### 14.2.10 Rate Limiting Testing
+
+| Scenario | Expected Behavior |
+|---|---|
+| Normal usage (under limit) | All requests succeed with `200` |
+| Exactly at rate limit | Last request within window succeeds |
+| One request over rate limit | Returns `429` with `Retry-After` header |
+| Burst of 100 requests in 1 second | Only the allowed number succeed; rest get `429` |
+| Different users hitting same endpoint | Each user has independent rate limit counters |
+| Rate limit resets after window expires | Requests succeed again without manual intervention |
+| Login endpoint rate limiting | After 5 failed attempts in 15 minutes, account is temporarily locked with `429` and lockout message |
+| API key rate limiting | Per-API-key limits enforced independently from per-user limits |
+
+#### 14.2.11 Notification Delivery Testing
+
+Test notification delivery across all 4 channels for every notification event:
+
+| Channel | Test Requirements |
+|---|---|
+| **Email** | Correct recipient. Correct subject line. Correct body content (HTML and plain text). Correct sender address. Unsubscribe link works. Attachment included when applicable. Template renders correctly with all variable combinations. |
+| **SMS** | Correct phone number. Message within 160 chars (or correctly concatenated). Opt-out reply ("STOP") processed. Delivery status callback received and logged. |
+| **Push notification** | Correct device token. Correct title and body. Deep link opens correct screen. Badge count updated. Notification grouped correctly (by property, by type). |
+| **In-app notification** | Notification appears in notification center within 2 seconds. Read/unread status toggles correctly. Clicking notification navigates to correct entity. Notification count in header badge updates in real time. |
+
+- Test notification preferences: if a resident has disabled email notifications for package events, they must NOT receive an email when a package arrives (but should still receive push if push is enabled).
+- Test notification throttling: if 50 events fire in 1 minute for the same resident, notifications are batched into a digest, not sent individually.
+- Test notification failure: if email delivery fails, the system retries 3 times, then logs the failure and alerts the admin.
+
+#### 14.2.12 Real-Time Collaboration Testing (WebSocket)
+
+- When Staff A creates an event, Staff B (same property, same shift) sees it within **1 second** without refreshing.
+- When Staff A updates an event, Staff B's view updates live.
+- When Staff A is editing a record, Staff B sees a "currently being edited by [Staff A]" indicator.
+- WebSocket connections reconnect automatically after network interruption (test by dropping connection for 5 seconds, then restoring).
+- WebSocket messages include property ID and are filtered server-side — a client subscribed to Property A never receives Property B messages.
+- Test 100 concurrent WebSocket connections to the same property — all receive broadcast messages within 2 seconds.
+- WebSocket authentication: expired tokens cause disconnection with a clear re-authentication prompt.
+
+#### 14.2.13 Cross-Module Workflow Testing
+
+Test complete end-to-end workflows that span multiple modules:
+
+| Workflow | Steps to Test |
+|---|---|
+| **Package arrival to pickup** | Front desk creates package event → notification sent to resident (all channels per preferences) → resident sees package in portal → resident confirms pickup → front desk marks as picked up → event closed → audit log entry created |
+| **Maintenance request lifecycle** | Resident submits request with photos → Property Manager receives notification → PM assigns to vendor → vendor receives notification → vendor updates status → resident receives update notification → PM closes request → satisfaction survey sent |
+| **Amenity booking with approval** | Resident books amenity → approval-required flag triggers admin review → admin approves → resident notified → calendar updated → reminder sent 24hrs before → resident checks in → booking marked as used |
+| **Security incident escalation** | Security guard logs incident → classified as high severity → automatic escalation to Property Manager → PM notified via SMS and push → PM acknowledges → follow-up task created → incident closed with resolution notes |
+| **Resident onboarding** | Admin creates resident → welcome email sent → resident activates account → resident completes profile → FOB assigned → unit instructions visible → resident can book amenities and submit maintenance requests |
+
+Each workflow must be tested as a single integration test that runs all steps sequentially, verifying state changes and notifications at each step.
+
+#### 14.2.14 Test Environment Requirements
+
+- **Staging environment** must be identical to production in: infrastructure configuration, database engine and version, cache engine and version, search engine and version, environment variable structure (with test values), SSL/TLS configuration, and CORS policies.
+- Staging database is seeded with production-representative data volumes: at least 10 properties, 500 units, 2,000 residents, 50,000 events, 5,000 maintenance requests.
+- Staging is rebuilt from scratch every 2 weeks (automated teardown and re-provision) to prevent environment drift.
+- Developers cannot access production databases. All debugging is done against staging.
+
+#### 14.2.15 Data Seeding Strategy
+
+- Seed scripts are version-controlled and run in CI for integration tests.
+- Seed data includes at least 3 properties with distinct configurations (different event types, different custom fields, different amenity rules) to catch property-specific logic errors.
+- Seed data includes at least one instance of every edge case: resident with no email, unit with no residents, event with maximum-length text, event with emoji content, resident with accessibility preferences, booking with a conflict, expired vendor insurance.
+- Seed data is deterministic — running the same seed script twice produces identical data (use fixed seeds for random generators).
+
+---
+
+### 14.3 Accessibility Testing
+
+#### 14.3.1 Compliance Standard
+
+Concierge must meet **WCAG 2.2 Level AA** compliance. This is a mandatory requirement, not a stretch goal. Failure to meet Level AA is treated as a **P2 bug** and blocks release.
+
+Specific WCAG 2.2 success criteria that are especially important for Concierge:
+
+| Success Criterion | ID | Why It Matters for Concierge |
+|---|---|---|
+| Non-text Content | 1.1.1 | Package photos, floor plans, uploaded documents must have alt text |
+| Info and Relationships | 1.3.1 | Data tables (event logs, resident lists) must use proper `<th>` and `<td>` markup |
+| Meaningful Sequence | 1.3.2 | Dashboard widgets must have a logical reading order regardless of visual layout |
+| Use of Color | 1.4.1 | Status indicators (open/closed, compliant/expired) must not rely on color alone — add text labels or icons |
+| Contrast (Minimum) | 1.4.3 | Normal text: 4.5:1 contrast ratio minimum. Large text (18px+ or 14px+ bold): 3:1 minimum |
+| Resize Text | 1.4.4 | All content readable at 200% zoom without horizontal scrolling |
+| Keyboard | 2.1.1 | Every function available via keyboard. No keyboard traps. |
+| Focus Visible | 2.4.7 | Custom focus indicator: 2px solid ring, offset by 2px, using the brand accent color |
+| Target Size (Minimum) | 2.5.8 | All interactive targets are at least 24x24 CSS pixels (Concierge standard: 44x44px on touch devices) |
+| Error Identification | 3.3.1 | All form errors identified in text (not just red borders) |
+| Labels or Instructions | 3.3.2 | Every form input has a visible label — no placeholder-only inputs |
+| Status Messages | 4.1.3 | Toast notifications and live updates announced to screen readers via `role="status"` or `aria-live="polite"` |
+
+#### 14.3.2 Automated Accessibility Testing
+
+- **axe-core** (or equivalent automated scanner) runs on every pull request as part of the CI pipeline.
+- Zero violations at "critical" or "serious" severity. Build fails on any critical or serious violation.
+- "Moderate" violations must be resolved within 1 sprint of detection.
+- "Minor" violations tracked in backlog with a 2-sprint SLA.
+- Automated scans run against every page/route in the application (minimum 50 routes at full build).
+- Automated scans run with at least 3 viewport sizes: 1920x1080 (desktop monitor), 1280x800 (laptop), 375x812 (mobile).
+
+#### 14.3.3 Manual Accessibility Audit
+
+- **Quarterly** manual audit by a trained accessibility specialist (internal team member with IAAP certification or external consultancy).
+- Audit covers the top 20 user flows (package logging, maintenance requests, amenity booking, event creation, resident onboarding, search, navigation, form submission, notification review, report generation, settings modification, unit file review, announcement creation, shift log, login, password reset, profile editing, role switching, document upload, dashboard interaction).
+- Audit results documented as accessibility tickets with severity, affected user population estimate, and remediation steps.
+- All "critical" audit findings remediated within 2 sprints. All "major" findings within 4 sprints.
+
+#### 14.3.4 Screen Reader Testing
+
+- Test with **3 screen readers** on critical flows (login, dashboard, event creation, search, navigation):
+  - NVDA on Windows with Chrome
+  - VoiceOver on macOS with Safari
+  - VoiceOver on iOS with Safari (mobile)
+- Screen reader testing performed at minimum **twice per release cycle** (before staging deployment and before production deployment).
+- Documented pass/fail results for each flow with each screen reader, stored in the test management system.
+
+#### 14.3.5 Keyboard Navigation Testing
+
+- Every interactive element is reachable via the `Tab` key (or `Shift+Tab` for reverse).
+- Every interactive element is activatable via `Enter` key, `Space` key, or both (as appropriate).
+- Focus order follows the visual order of the page (left-to-right, top-to-bottom for LTR layouts).
+- Modal dialogs trap focus — `Tab` from the last element returns to the first element within the modal, not the page behind it.
+- Closing a modal restores focus to the element that triggered it.
+- Dropdown menus support `Arrow Up` / `Arrow Down` navigation, `Escape` to close, and `Enter` to select.
+- Data tables support `Arrow` key navigation between cells when in focus mode.
+- Skip navigation link is the first focusable element on every page, linking to `#main-content`.
+- Custom keyboard shortcuts (if any) are documented, do not conflict with screen reader shortcuts, and can be disabled in user preferences.
+
+#### 14.3.6 Focus Management Rules
+
+| Scenario | Focus Behavior |
+|---|---|
+| Modal opens | Focus moves to the first interactive element inside the modal (or the modal heading if no interactive element) |
+| Modal closes | Focus returns to the trigger element |
+| Toast notification appears | Focus stays where it is — toast is announced via `aria-live` |
+| Inline form error | Focus moves to the first field with an error |
+| Page navigation (SPA) | Focus moves to the page heading (`<h1>`) or skip-nav target |
+| Accordion section expands | Focus stays on the trigger button |
+| Dropdown menu opens | Focus moves to the first menu item |
+| Search results update | Focus stays in the search input — results announced via `aria-live` |
+| Record deleted from table | Focus moves to the next row (or previous if last row was deleted) |
+| Tab panel switches | Focus moves to the tab panel content area |
+
+#### 14.3.7 Color and Contrast Requirements
+
+- All text meets AA contrast ratios: 4.5:1 for normal text, 3:1 for large text (18px+ regular weight or 14px+ bold).
+- Non-text UI elements (icons, borders, form field outlines) must have at least 3:1 contrast against their background.
+- Status indicators must not rely on color alone. Every color-coded status must also have: a text label, or a distinct icon shape, or a pattern/texture.
+- Charts and graphs must use patterns or textures in addition to colors. Data series must be distinguishable without color.
+- Focus indicators must have at least 3:1 contrast against the background.
+- The application must be fully usable in Windows High Contrast Mode.
+
+#### 14.3.8 Motion and Animation
+
+- All animations respect the `prefers-reduced-motion` media query.
+- When `prefers-reduced-motion: reduce` is active: all decorative animations are disabled, transitions complete instantly (or within 100ms), auto-playing carousels or slideshows stop, parallax scrolling is disabled.
+- No content flashes more than 3 times per second (WCAG 2.3.1).
+- Loading spinners are announced to screen readers (via `aria-live` or `role="status"`).
+
+#### 14.3.9 Form Accessibility Requirements
+
+- Every form input has a visible `<label>` element associated via `htmlFor`/`id` pairing or wrapping.
+- Placeholder text is never used as a substitute for a label.
+- Required fields are indicated with both a visual marker (asterisk) and `aria-required="true"`.
+- Error messages are displayed below the field, styled in red with an error icon, and linked to the field via `aria-describedby`.
+- Error summary appears at the top of the form listing all errors with links to the corresponding fields.
+- Form submission errors move focus to the error summary.
+- Help text and instructions are linked via `aria-describedby` (separate from error messages, both can coexist).
+- Character count for text areas (e.g., "150 / 4000 characters") is announced to screen readers on value change.
+- Multi-step forms display progress indicator with current step announced (e.g., "Step 2 of 4").
+
+#### 14.3.10 Responsive Text and Zoom
+
+- At 200% browser zoom on a 1920x1080 display, all content remains readable and functional with no horizontal scrollbar.
+- At 400% zoom, core content is still accessible (navigation and primary content — secondary widgets may reflow).
+- Text is sized in `rem` units, never `px`, to respect user font size preferences.
+- Line height is at least 1.5x the font size for body text.
+- Paragraph spacing is at least 2x the font size.
+
+#### 14.3.11 Alt Text and Media
+
+- Every non-decorative image has descriptive `alt` text.
+- Decorative images have `alt=""` (empty alt) and `aria-hidden="true"`.
+- Icon-only buttons have `aria-label` describing the action (e.g., `aria-label="Delete event"`).
+- SVG icons have `role="img"` and `aria-label` or `<title>` element.
+- Uploaded photos (package photos, incident photos) have auto-generated alt text via AI service, editable by the user.
+- Video content (if any) must have captions and audio descriptions.
+
+#### 14.3.12 Live Regions and Dynamic Content
+
+- Toast notifications use `role="status"` with `aria-live="polite"`.
+- Urgent alerts (security incidents, emergency broadcasts) use `aria-live="assertive"`.
+- Real-time event feed updates use `aria-live="polite"` with `aria-atomic="false"` (announce only new items, not the entire list).
+- Loading states use `aria-busy="true"` on the container and announce "Loading" to screen readers.
+- Record counts that update dynamically (e.g., "Showing 1-25 of 342 events") announce changes via `aria-live`.
+
+#### 14.3.13 Accessibility Statement
+
+- An accessibility statement page is available from the footer of every page.
+- The statement includes: compliance standard (WCAG 2.2 AA), known limitations (if any), contact information for accessibility feedback, date of last audit.
+- The accessibility statement page itself must be accessible.
+
+#### 14.3.14 Assistive Technology User Testing
+
+- **Annual** testing session with at least 3 users who rely on assistive technology (screen readers, switch devices, voice control).
+- Test the top 5 user flows during each session.
+- Findings documented and prioritized as accessibility bugs.
+- All critical findings remediated within 2 sprints.
+
+---
+
+### 14.4 Code Quality Standards
+
+#### 14.4.1 Linting
+
+- **Frontend**: ESLint with the following rule sets enabled and enforced:
+  - `eslint:recommended`
+  - `@typescript-eslint/strict-type-checked`
+  - `eslint-plugin-react/recommended` (or framework equivalent)
+  - `eslint-plugin-react-hooks/recommended`
+  - `eslint-plugin-jsx-a11y/recommended`
+  - `eslint-plugin-import/recommended` (enforce consistent import ordering)
+  - `eslint-plugin-security/recommended`
+- **Backend**: ESLint (if Node.js) or equivalent linter for the backend language, with:
+  - `@typescript-eslint/strict-type-checked`
+  - `eslint-plugin-security/recommended`
+  - `eslint-plugin-no-unsanitized`
+  - SQL injection detection rules
+- All lint rules are enforced in CI — zero warnings allowed. Warnings are treated as errors.
+- Lint configuration is committed to the repository and identical for all developers.
+- No inline `eslint-disable` comments without a preceding comment explaining why the disable is necessary. PRs with unexplained disables are rejected.
+
+#### 14.4.2 Code Formatting
+
+- **Prettier** (or equivalent) enforces consistent formatting across the entire codebase.
+- Formatting is checked in CI — unformatted code fails the build.
+- Format-on-save is configured in the project's editor settings (`.editorconfig`, `.vscode/settings.json`).
+- Formatting rules include:
+  - Print width: 100 characters
+  - Tab width: 2 spaces (no tabs)
+  - Semicolons: required
+  - Single quotes for strings
+  - Trailing commas: `all`
+  - Bracket spacing: `true`
+  - JSX bracket same line: `false`
+- No formatting debates in code reviews — the formatter's output is final.
+
+#### 14.4.3 Complexity Limits
+
+| Metric | Maximum Allowed | Enforcement |
+|---|---|---|
+| Cyclomatic complexity per function | 10 | ESLint `complexity` rule — build fails |
+| Cognitive complexity per function | 15 | SonarQube or equivalent — build fails |
+| Lines per function (excluding comments and blank lines) | 50 | ESLint `max-lines-per-function` — build fails |
+| Lines per file (excluding comments and blank lines) | 400 | ESLint `max-lines` — build fails |
+| Parameters per function | 4 | ESLint `max-params` — warning, enforced in review |
+| Depth of nesting | 4 levels | ESLint `max-depth` — build fails |
+| Classes per file | 1 | Convention enforced in review |
+| Imports per file | 25 | ESLint custom rule — warning, enforced in review |
+
+When a function or file exceeds these limits, it must be refactored — not have an exception added. The only exception process is a written Tech Lead approval in the PR with a linked follow-up ticket to refactor within 2 sprints.
+
+#### 14.4.4 Naming Conventions
+
+| Item | Convention | Example |
+|---|---|---|
+| Files (components) | PascalCase | `EventCard.tsx`, `PackageForm.tsx` |
+| Files (utilities, hooks, services) | camelCase | `useEventList.ts`, `formatDate.ts`, `eventService.ts` |
+| Files (test files) | Same as source + `.test` | `EventCard.test.tsx`, `eventService.test.ts` |
+| Files (styles) | Same as component + `.module` | `EventCard.module.css` |
+| Variables and functions | camelCase | `eventCount`, `getActiveEvents()` |
+| Constants (true constants) | SCREAMING_SNAKE_CASE | `MAX_FILE_SIZE`, `DEFAULT_PAGE_SIZE` |
+| React components | PascalCase | `EventCard`, `MainDashboard` |
+| React hooks | camelCase prefixed with `use` | `useEventList`, `useAuth` |
+| TypeScript interfaces | PascalCase prefixed with nothing | `Event`, `CreateEventInput` (no `I` prefix) |
+| TypeScript types | PascalCase | `EventStatus`, `UserRole` |
+| TypeScript enums | PascalCase with PascalCase members | `EventStatus.InProgress` |
+| API endpoints | kebab-case, plural nouns | `/api/v1/events`, `/api/v1/maintenance-requests` |
+| Database tables | snake_case, plural | `events`, `maintenance_requests` |
+| Database columns | snake_case | `created_at`, `event_type_id` |
+| Environment variables | SCREAMING_SNAKE_CASE | `DATABASE_URL`, `SMTP_HOST` |
+| CSS classes (modules) | camelCase | `.eventCard`, `.statusBadge` |
+| Feature flags | kebab-case | `enable-ai-suggestions`, `new-dashboard-layout` |
+
+#### 14.4.5 TypeScript Strict Mode
+
+The following TypeScript compiler options are mandatory and must be enabled in `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+```
+
+- Use of `any` type is prohibited. Use `unknown` for truly unknown types and narrow with type guards.
+- Use of `@ts-ignore` is prohibited. Use `@ts-expect-error` only when accompanied by a comment explaining the error and a linked issue for the fix.
+- Use of type assertions (`as Type`) is limited to test files and framework-specific boundary code. Production code must use type guards.
+- All function parameters and return types must be explicitly typed (no inferred return types for exported functions).
+
+#### 14.4.6 Code Review Requirements
+
+- **Minimum reviewers**: 2 approvals required for any PR to merge.
+- **Security-critical PRs** (authentication, authorization, RLS, encryption, PII handling): 3 approvals required, including at least 1 from the Security Champion or Tech Lead.
+- **Maximum PR size**: 400 lines of changed code (excluding auto-generated files, test fixtures, and migration files). PRs exceeding this limit must be split.
+- **Review turnaround SLA**: First review within 4 business hours of PR submission. Final approval within 8 business hours.
+- **Review checklist** (every reviewer must verify):
+  - [ ] Tests are present and meaningful (not just for coverage)
+  - [ ] No PII in logs, error messages, or comments
+  - [ ] No hardcoded secrets or credentials
+  - [ ] New endpoints have corresponding role-access matrix entries
+  - [ ] Database queries avoid N+1 patterns
+  - [ ] Error handling is explicit (no swallowed exceptions)
+  - [ ] Accessibility requirements met for UI changes
+  - [ ] API response does not leak data from other properties
+  - [ ] TypeScript types are correct and specific (no `any`)
+  - [ ] Naming conventions followed
+  - [ ] Feature flag added for new features (if applicable)
+- **Blocking conditions** (any of these prevents merge):
+  - Failing CI pipeline (any stage)
+  - Unresolved reviewer comments marked as "blocking"
+  - Missing tests for new functionality
+  - Coverage below thresholds
+  - Lint or formatting violations
+  - Any `eslint-disable` without justification
+
+#### 14.4.7 Technical Debt Tracking
+
+- Every instance of technical debt is tracked as a ticket labeled `tech-debt` in the project management system.
+- Technical debt tickets must include: description of the debt, reason it was incurred, impact if not resolved, and estimated effort to resolve.
+- **SLA for resolution**:
+  - Critical debt (security risk, data integrity risk): resolved within 1 sprint
+  - High debt (performance impact, maintainability risk): resolved within 2 sprints
+  - Medium debt (code quality, readability): resolved within 4 sprints
+  - Low debt (style, convenience): resolved within 8 sprints
+- Technical debt backlog is reviewed weekly by the Tech Lead.
+- No more than 15% of the codebase may be flagged as technical debt at any time (measured by file count with `tech-debt` TODO comments). If this threshold is exceeded, 50% of the next sprint is allocated to debt reduction.
+
+#### 14.4.8 Dead Code Detection and Removal
+
+- Dead code detection runs in CI using a tool such as `ts-prune`, `knip`, or equivalent.
+- Unreachable code, unused exports, unused variables, and unused dependencies fail the build.
+- Exception: deprecated API endpoints that are past their sunset date but still have active clients — these must be tracked with a removal ticket.
+- Quarterly dead code audit: manual review of code paths that automated tools cannot detect (e.g., feature flags that are always on/off).
+
+#### 14.4.9 Dependency Management
+
+- Automated vulnerability scanning runs daily using `npm audit`, Snyk, or Dependabot.
+- **Critical vulnerabilities**: block merge, must be resolved within 24 hours.
+- **High vulnerabilities**: block merge, must be resolved within 72 hours.
+- **Medium vulnerabilities**: do not block merge, must be resolved within 1 sprint.
+- **Low vulnerabilities**: tracked, resolved at the team's discretion.
+- Dependency updates are applied weekly (automated PRs via Dependabot or Renovate).
+- Major version updates require manual review and testing before merge.
+- No dependencies with licenses incompatible with commercial SaaS distribution (GPL, AGPL). Allowed licenses: MIT, Apache 2.0, BSD, ISC, 0BSD.
+- New dependencies require Tech Lead approval — the PR must justify why the dependency is needed and why an existing solution cannot suffice.
+- Maximum 200 production dependencies (not counting dev dependencies). Exceeding this triggers a consolidation review.
+
+#### 14.4.10 Performance Budgets
+
+| Metric | Budget | Measurement Method |
+|---|---|---|
+| Initial JavaScript bundle (compressed) | < 250 KB | Build output, checked in CI |
+| Per-route JavaScript chunk (compressed) | < 80 KB | Build output, checked in CI |
+| Largest Contentful Paint (LCP) | < 1.5 seconds | Lighthouse CI on staging |
+| First Input Delay (FID) | < 50 ms | Lighthouse CI on staging |
+| Cumulative Layout Shift (CLS) | < 0.05 | Lighthouse CI on staging |
+| Time to Interactive (TTI) | < 2.0 seconds | Lighthouse CI on staging |
+| Lighthouse Performance Score | > 90 | Lighthouse CI on staging |
+| Lighthouse Accessibility Score | > 95 | Lighthouse CI on staging |
+| Lighthouse Best Practices Score | > 95 | Lighthouse CI on staging |
+| API response time (simple CRUD) | < 100 ms (p95) | Load test on staging |
+| API response time (complex queries/reports) | < 500 ms (p95) | Load test on staging |
+| API response time (search) | < 200 ms (p95) | Load test on staging |
+| API response time (AI-powered features) | < 5,000 ms (p95) | Load test on staging |
+| Database query time (single record) | < 10 ms (p95) | Query monitoring |
+| Database query time (list with pagination) | < 50 ms (p95) | Query monitoring |
+| WebSocket message delivery | < 500 ms (p95) | Real-time monitoring |
+| Image/thumbnail loading | < 300 ms (p95) | CDN monitoring |
+
+- Performance budgets are enforced in CI — builds that exceed budgets fail.
+- Performance regression testing runs nightly against staging with production-like data volumes.
+
+#### 14.4.11 Database Query Standards
+
+- **N+1 detection**: All ORM queries are analyzed for N+1 patterns. Tools like `pg-query-analyzer` or ORM-specific N+1 detectors run in development and CI. Any detected N+1 fails the build.
+- **Query plan review**: Any query that joins 3+ tables or scans more than 10,000 rows must have an `EXPLAIN ANALYZE` review documented in the PR.
+- **Index requirements**: Every foreign key column must have an index. Every column used in a `WHERE` clause on a table with more than 10,000 expected rows must have an index. Index decisions are documented in migration files.
+- **Query timeout**: All database queries have a 5-second timeout. Queries that hit the timeout are logged as warnings and investigated.
+- **Connection pooling**: Minimum 10 connections per pool, maximum 50. Connection pool exhaustion triggers an alert.
+- **Read replica usage**: All read-heavy operations (reports, search, dashboards) are directed to read replicas. Write operations always use the primary.
+
+#### 14.4.12 Error Handling Standards
+
+- **No swallowed exceptions**: Every `catch` block must either rethrow the error, log it and return an error response, or explicitly document why it is safe to ignore.
+- **Structured error objects**: All API errors return a JSON body with the following structure:
+  ```json
+  {
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Human-readable error description",
+      "details": [
+        {
+          "field": "email",
+          "message": "Email address is not valid",
+          "code": "INVALID_FORMAT"
+        }
+      ],
+      "requestId": "req_abc123",
+      "timestamp": "2026-03-14T10:30:00.000Z"
+    }
+  }
+  ```
+- **Error codes are enumerated**: A central error code registry defines every error code, its HTTP status, and its default message. No ad-hoc error strings.
+- **Client-facing error messages**: Must be clear, actionable, and free of technical jargon. "An unexpected error occurred" is not acceptable — provide the user with a next step.
+- **Error boundary components**: Every major page section has an error boundary that catches rendering errors and displays a graceful fallback UI (not a white screen).
+- **Unhandled rejection tracking**: All unhandled promise rejections are captured, logged, and reported to the error monitoring service.
+
+#### 14.4.13 Logging Standards
+
+- **Format**: Structured JSON logs with fields: `timestamp`, `level`, `message`, `service`, `requestId`, `propertyId`, `userId`, `traceId`, `spanId`.
+- **Levels**: `debug`, `info`, `warn`, `error`, `fatal`. Production minimum level: `info`.
+- **What to log**: API request/response metadata (method, path, status code, duration), authentication events (login, logout, token refresh), authorization failures, database query durations (warn if > 1s), external service calls (provider, duration, status), job queue operations, cache hits/misses, feature flag evaluations.
+- **What NOT to log**: Passwords, API keys, tokens, session IDs, PII (names, emails, phone numbers, addresses, unit numbers), request/response bodies (except in debug mode on non-production environments), database query parameters that contain PII.
+- **PII scrubbing**: A log sanitization layer runs on all log output and redacts any field matching PII patterns (email regex, phone regex, names from a known-fields list). This layer is tested with unit tests.
+- **Log retention**: 90 days in hot storage (searchable), 1 year in cold storage (archived), 7 years for audit logs (compliance requirement).
+
+---
+
+### 14.5 Documentation & Knowledge Transfer
+
+#### 14.5.1 Inline Code Documentation
+
+- Every exported function, class, interface, and type must have a JSDoc/TSDoc comment block.
+- JSDoc must include: `@description` (what the function does), `@param` (every parameter with type and description), `@returns` (return type and description), `@throws` (every exception the function may throw), `@example` (at least one usage example for complex functions).
+- React components must have a TSDoc comment describing: what the component renders, required vs optional props, and any side effects (API calls, state changes).
+- Private functions do not require JSDoc but must have a brief inline comment if the purpose is not obvious from the name.
+- CI enforces JSDoc presence on exported members — missing JSDoc on exported functions fails the build.
+
+#### 14.5.2 API Documentation
+
+- OpenAPI 3.1 specification is the single source of truth for API documentation.
+- The OpenAPI spec is auto-generated from code annotations or maintained alongside route definitions.
+- The spec must be updated in the same PR that modifies an endpoint — stale API docs fail code review.
+- Interactive API documentation (Swagger UI or Redoc) is deployed at `/api/docs` on staging and production.
+- Every endpoint in the spec includes: summary, description, request body schema with examples, response schemas for every status code, authentication requirements, rate limiting details, and role requirements.
+- The OpenAPI spec is validated in CI — invalid spec fails the build.
+
+#### 14.5.3 Architecture Decision Records (ADR)
+
+- Every significant technical decision is documented as an ADR in `docs/adr/` using the format:
+  - **Title**: Short decision description
+  - **Status**: Proposed / Accepted / Deprecated / Superseded
+  - **Context**: Why this decision needed to be made
+  - **Decision**: What was decided
+  - **Consequences**: What changes as a result (positive and negative)
+  - **Alternatives Considered**: What other options were evaluated and why they were rejected
+- "Significant" means: new technology adoption, architectural pattern change, database schema design, security model change, third-party service selection, or any decision affecting more than 3 modules.
+- ADRs are numbered sequentially (`0001-use-postgresql.md`, `0002-event-model-design.md`).
+- ADRs are never deleted — superseded ADRs link to their replacement.
+
+#### 14.5.4 Runbooks
+
+Every production operation must have a runbook in `docs/runbooks/`:
+
+| Runbook | Contents |
+|---|---|
+| `deployment.md` | Step-by-step deployment process, environment variables to verify, health check URLs, rollback procedure |
+| `rollback.md` | How to rollback to previous version, database migration rollback steps, cache invalidation steps |
+| `scaling.md` | How to scale horizontally (add instances), vertically (resize), database scaling, cache scaling |
+| `incident-response.md` | Severity classification, escalation chain, communication templates, post-mortem template |
+| `database-maintenance.md` | Backup verification, vacuum/analyze schedule, index maintenance, slow query investigation |
+| `disaster-recovery.md` | RPO and RTO targets, recovery procedures for: database failure, cache failure, file storage failure, complete region failure |
+| `security-incident.md` | Steps for: data breach, unauthorized access, DDoS, compromised credentials |
+| `on-call-guide.md` | Alert categories, triage process, common issues and their resolutions, escalation contacts |
+
+- Runbooks are reviewed and updated every quarter.
+- Every runbook is tested annually via tabletop exercise or live drill.
+
+#### 14.5.5 Developer Onboarding
+
+- `docs/onboarding/` contains a step-by-step guide for new developers:
+  - Environment setup (prerequisites, installation, configuration)
+  - Architecture overview (10-minute read covering the major systems)
+  - Coding standards summary (link to this section)
+  - First contribution guide (how to pick a ticket, branch naming, PR process)
+  - Testing guide (how to run tests, how to write tests, test data setup)
+  - Deployment guide (how code gets to production)
+- Onboarding documentation is updated with every major architectural change.
+- Target: a new developer can set up the project, run tests, and submit a PR within **4 hours** of starting.
+
+#### 14.5.6 Module Documentation
+
+- Every module directory contains a `README.md` with:
+  - Module purpose (1-2 sentences)
+  - Key entities and their relationships
+  - API endpoints provided by this module
+  - Events published and consumed by this module
+  - Configuration options
+  - Dependencies on other modules
+  - Testing instructions specific to this module
+
+#### 14.5.7 Changelog
+
+- A `CHANGELOG.md` is maintained at the repository root following the [Keep a Changelog](https://keepachangelog.com) format.
+- Every PR must include a changelog entry under the `[Unreleased]` section.
+- Changelog categories: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
+- On release, `[Unreleased]` is renamed to the version number with the release date.
+- CI checks that every PR has modified `CHANGELOG.md` — PRs without changelog entries fail (with an override label `skip-changelog` for infrastructure-only changes).
+
+#### 14.5.8 Database Schema Documentation
+
+- An Entity-Relationship Diagram (ERD) is auto-generated from the current database schema on every merge to main.
+- ERD is published to the internal documentation site and linked from the architecture overview.
+- Every migration file includes a comment block describing: what changed, why it changed, and the PR that introduced it.
+- Migration history is browsable in the documentation site with diffs between versions.
+
+#### 14.5.9 Environment Variable Documentation
+
+- A file `docs/env-vars.md` documents every environment variable with:
+
+| Variable | Type | Required | Default | Purpose | Example |
+|---|---|---|---|---|---|
+| `DATABASE_URL` | string | Yes | — | PostgreSQL connection string | `postgresql://user:pass@host:5432/concierge` |
+| `SMTP_HOST` | string | Yes | — | Email provider hostname | `smtp.sendgrid.net` |
+| `AI_PROVIDER_API_KEY` | string | Yes | — | Primary AI provider API key | `sk-...` |
+| ... | ... | ... | ... | ... | ... |
+
+- This file is updated in the same PR that adds, removes, or changes an environment variable.
+- CI validates that every environment variable referenced in code has a corresponding entry in `docs/env-vars.md`.
+- A `.env.example` file is maintained with all variables (using placeholder values, never real credentials).
+
+#### 14.5.10 UI Component Library (Storybook)
+
+- Every reusable UI component has a Storybook story file.
+- Each story demonstrates: default state, loading state, error state, empty state, disabled state, all size variants, all color variants, responsive behavior, dark mode (if supported), keyboard interaction, and screen reader behavior notes.
+- Storybook is deployed to an internal URL on every merge to main.
+- Storybook is the single source of truth for component appearance — design reviews reference Storybook, not the running application.
+- New components that lack a Storybook story fail code review.
+
+#### 14.5.11 API Testing Collection
+
+- A Postman or Insomnia collection is maintained covering every API endpoint.
+- The collection is organized by module (Events, Units, Residents, Maintenance, etc.).
+- Each request includes: valid example request body, expected response, authentication headers, and environment variable references.
+- The collection is updated in the same PR that modifies an endpoint.
+- The collection is tested nightly against staging to catch drift between docs and implementation.
+
+#### 14.5.12 Disaster Recovery Runbook
+
+- Step-by-step recovery procedures for every failure scenario:
+  - Primary database failure: failover to replica, verify data integrity, notify users
+  - Cache service failure: graceful degradation, automatic fallback to database, performance impact assessment
+  - File storage failure: CDN cache serves existing files, upload queue holds new files, switchover to backup storage
+  - Search service failure: disable search UI, show fallback "search unavailable" message, queue indexing operations
+  - Complete region failure: DNS failover to secondary region, database replication catch-up, health check verification
+  - AI provider failure: fallback to secondary provider, disable AI features with graceful degradation messages
+- Each procedure lists: trigger condition, estimated recovery time, responsible person/role, verification steps.
+
+#### 14.5.13 Knowledge Base
+
+- A `docs/troubleshooting/` directory contains solutions for common development and operational issues.
+- Format: problem description, root cause, solution steps, prevention measures.
+- Updated whenever a new issue is encountered and resolved.
+- Reviewed quarterly for accuracy and relevance.
+
+#### 14.5.14 Documentation Review Cycle
+
+- All documentation is reviewed quarterly for accuracy.
+- Stale documentation (not updated in 6+ months and referencing changed systems) is flagged for update.
+- Documentation review is a standing agenda item in quarterly planning.
+
+---
+
+### 14.6 Acceptance & Audit Rights
+
+#### 14.6.1 User Acceptance Testing (UAT) Process
+
+- Every feature release goes through UAT before production deployment.
+- UAT is performed in a dedicated UAT environment that mirrors production in every way: same infrastructure, same database engine version, same third-party service integrations, same data volumes (seeded with production-representative data).
+- UAT test cases are written by the Product Owner or QA Lead, not by the developer who built the feature.
+- UAT test cases cover: happy path, edge cases, error handling, role-based access, performance under load, accessibility, and multi-tenant isolation.
+- UAT duration: minimum 2 business days for minor features, 5 business days for major features, 10 business days for platform-level changes.
+
+#### 14.6.2 UAT Sign-Off Requirements
+
+| Feature Type | Required Sign-Offs | Sign-Off Criteria |
+|---|---|---|
+| UI changes (visual only) | Product Owner, QA Lead | Matches design spec, responsive, accessible |
+| API changes | QA Lead, Tech Lead | All endpoints tested, documentation updated, backward-compatible |
+| New module | Product Owner, QA Lead, Tech Lead, Security Champion | Full feature coverage, security review passed, performance benchmarks met |
+| Security-sensitive changes (auth, RLS, encryption) | QA Lead, Tech Lead, Security Champion, CTO/VP Engineering | Penetration test passed, multi-tenant isolation verified, audit trail verified |
+| Data migration | QA Lead, Tech Lead, DBA | Data integrity verified, rollback tested, performance impact assessed |
+| Third-party integration | QA Lead, Tech Lead | Contract tests passing, error handling verified, fallback behavior tested |
+
+- All sign-offs are recorded in the release management system with timestamp, name, and approval/rejection notes.
+- A single rejection from any required signer blocks the release until the issue is resolved and re-tested.
+
+#### 14.6.3 Client Audit Rights
+
+- Property management companies that are Concierge clients have the right to audit their data handling practices.
+- Audit scope includes: what data is stored, where it is stored, who has access, how it is encrypted, how long it is retained, and how it is deleted.
+- Audit requests must be responded to within 10 business days with a written report.
+- Clients can request a copy of their data in machine-readable format (JSON or CSV) within 15 business days.
+- Clients can request deletion of their data upon contract termination, with confirmation of deletion provided within 30 business days.
+
+#### 14.6.4 Third-Party Audit Support
+
+- Concierge must support audits from third-party auditors for:
+  - **SOC 2 Type II**: Auditors receive read-only access to: security policies, access control logs, change management records, incident response records, and infrastructure configuration documentation.
+  - **ISO 27001 / 27701**: Auditors receive access to: information security management system (ISMS) documentation, risk assessments, treatment plans, internal audit records, and management review minutes.
+  - **PIPEDA / GDPR**: Auditors receive access to: data processing records, consent management logs, data subject request records, breach notification records, and data protection impact assessments.
+- Auditor access is provisioned via time-limited, read-only accounts with full audit trail of auditor actions.
+- Evidence collection is automated where possible — audit reports are generated from system data, not manually compiled.
+
+#### 14.6.5 Audit Trail Requirements
+
+Every data mutation in Concierge is logged in the audit trail with the following fields:
+
+| Field | Description | Example |
+|---|---|---|
+| `audit_id` | Unique identifier | `aud_8f3k2j` |
+| `timestamp` | When it happened (UTC, microsecond precision) | `2026-03-14T10:30:00.123456Z` |
+| `actor_id` | Who did it (user ID or system service name) | `usr_abc123` or `system:notification-service` |
+| `actor_role` | Role of the actor at the time of action | `property_manager` |
+| `property_id` | Which property's data was affected | `prop_xyz789` |
+| `entity_type` | What kind of record was changed | `event`, `resident`, `maintenance_request` |
+| `entity_id` | Identifier of the changed record | `evt_def456` |
+| `action` | What happened | `create`, `update`, `delete`, `archive`, `export`, `view` |
+| `changes` | Before/after values for updates | `{ "status": { "from": "open", "to": "closed" } }` |
+| `ip_address` | IP address of the actor | `192.168.1.100` |
+| `user_agent` | Browser/device information | `Mozilla/5.0 ...` |
+| `request_id` | Correlation ID for the HTTP request | `req_ghi789` |
+| `reason` | Optional reason for the change (required for sensitive operations) | `"Resident requested account deletion"` |
+
+- Audit logs are append-only — they cannot be modified or deleted by any user, including Super Admins.
+- Audit logs are stored in a separate database or partition from application data.
+- Audit log retention: 7 years minimum (compliance requirement).
+- Audit logs are searchable by: actor, property, entity, action, and date range.
+- Audit logs are exportable in CSV and JSON formats for compliance reporting.
+
+#### 14.6.6 Data Integrity Audits
+
+- **Daily**: Automated reconciliation between cache and database for critical counters (event counts, unread notification counts, package counts).
+- **Weekly**: Automated check for orphaned records (records with broken foreign key references due to soft deletes or failed transactions).
+- **Monthly**: Full data integrity scan comparing row counts and checksums between primary database and read replicas.
+- **Quarterly**: Manual review of a random sample of 100 audit log entries to verify they accurately reflect system behavior.
+- Discrepancies found during any audit trigger a **P2 incident** and are investigated within 24 hours.
+
+#### 14.6.7 Performance Audit
+
+- **Monthly** load testing against staging environment with production-representative data:
+  - Simulate 500 concurrent users across 10 properties
+  - Simulate peak traffic patterns (Monday 9 AM, package delivery surge at 3 PM)
+  - Measure: API response times (p50, p95, p99), error rate, database connection pool usage, memory usage, CPU usage
+  - Compare results against baselines from previous month
+  - Performance degradation of more than 10% triggers investigation
+- **Quarterly**: Full performance audit including database query analysis, index review, and caching effectiveness review.
+
+#### 14.6.8 Compliance Audit Automation
+
+Automated compliance checks run on every release candidate:
+
+| Framework | Automated Checks |
+|---|---|
+| **PIPEDA** | Consent collection verified for all PII fields, data retention policies enforced, breach notification process tested, data export functionality verified |
+| **GDPR** | Right to erasure verified, data portability verified, consent management verified, DPA templates available, cross-border transfer controls verified |
+| **SOC 2** | Access controls enforced, encryption at rest and in transit verified, audit logging active, change management process followed, incident response plan current |
+| **ISO 27001** | Asset inventory current, risk register updated, access review completed, vulnerability scan results reviewed |
+| **ISO 27701** | PII inventory current, processing purposes documented, data subject rights verified, privacy impact assessment completed |
+| **ISO 27017** | Cloud security controls verified, shared responsibility documentation current |
+| **ISO 9001** | Quality objectives measured, nonconformity tracking active, corrective actions verified |
+| **HIPAA** (if applicable) | PHI identified and protected, minimum necessary standard enforced, BAA in place for sub-processors |
+
+- Compliance check results are logged and available for auditor review.
+- Any failed compliance check blocks the release.
+
+#### 14.6.9 Penetration Testing
+
+- **Frequency**: Full penetration test every 6 months by an independent third-party firm.
+- **Scope**: All API endpoints, web application, mobile application, infrastructure, third-party integrations.
+- **Focus areas**: Multi-tenant isolation, authentication/authorization bypass, injection attacks, PII exposure, session management.
+- **Remediation SLAs**:
+  - Critical findings: 24 hours
+  - High findings: 72 hours
+  - Medium findings: 2 weeks
+  - Low findings: 1 sprint
+  - Informational: tracked, addressed at team discretion
+- Penetration test reports are stored securely and available to auditors.
+- Every finding that is fixed must have a corresponding regression test added to the automated security test suite.
+
+#### 14.6.10 Bug Classification and SLA Matrix
+
+| Priority | Definition | Response Time | Resolution Time | Examples |
+|---|---|---|---|---|
+| **P1 — Critical** | System down, data loss, security breach, multi-tenant leak | 15 minutes | 4 hours | Database unavailable, PII exposed to wrong property, auth bypass |
+| **P2 — High** | Major feature broken for all users, data integrity risk | 1 hour | 24 hours | Event creation failing, notifications not delivering, search returning wrong results |
+| **P3 — Medium** | Feature partially broken, workaround available | 4 hours | 1 week | Report export missing columns, filter not working on one field, slow page load |
+| **P4 — Low** | Minor issue, cosmetic, edge case | Next business day | 2 sprints | Typo in UI text, alignment off by 2px, tooltip missing on one button |
+
+- P1 and P2 bugs trigger immediate notification to the on-call engineer via PagerDuty or equivalent.
+- P1 bugs trigger an incident channel with mandatory post-mortem within 48 hours.
+- All bugs are tracked in the project management system with timestamps for detection, acknowledgment, and resolution.
+- SLA compliance is measured monthly and reported on the quality dashboard.
+
+#### 14.6.11 Release Acceptance Criteria
+
+Before any release is deployed to production, ALL of the following must be true:
+
+- [ ] All unit tests pass (100% green)
+- [ ] All integration tests pass (100% green)
+- [ ] Code coverage meets or exceeds thresholds (14.1.1)
+- [ ] SAST scan shows zero critical or high findings
+- [ ] DAST scan shows zero critical or high findings
+- [ ] Accessibility scan shows zero critical or serious violations
+- [ ] Performance budgets met (14.4.10)
+- [ ] All required UAT sign-offs obtained (14.6.2)
+- [ ] Changelog updated
+- [ ] API documentation updated
+- [ ] Database migrations tested (forward and rollback)
+- [ ] Feature flags configured for new features
+- [ ] Rollback plan documented and tested
+- [ ] On-call engineer identified and briefed
+- [ ] Zero open P1 or P2 bugs
+- [ ] Compliance checks pass (14.6.8)
+- [ ] Multi-tenant isolation tests pass (14.2.4)
+
+Any single failing criterion blocks the release. No exceptions without written CTO approval.
+
+#### 14.6.12 Rollback Criteria and Procedure
+
+**When to rollback** (any one of these triggers automatic rollback):
+- Error rate exceeds 1% of requests within 10 minutes of deployment
+- API response time (p95) exceeds 2x the pre-deployment baseline
+- Any P1 bug reported within 30 minutes of deployment
+- Health check endpoint returns unhealthy
+- Multi-tenant isolation check fails
+
+**Who decides**: The on-call engineer can trigger rollback unilaterally. No approval chain needed for rollback.
+
+**How fast**: Rollback must complete within **5 minutes** of the decision.
+
+**Procedure**:
+1. Trigger rollback via deployment pipeline (one-command rollback)
+2. Verify previous version is serving traffic (health check)
+3. Verify database migration rollback (if applicable)
+4. Invalidate CDN cache for static assets
+5. Notify all stakeholders via incident channel
+6. Begin investigation into the failure
+7. Document findings in post-mortem
+
+#### 14.6.13 Feature Flag Requirements
+
+- Every new user-facing feature must be wrapped in a feature flag.
+- Feature flags are managed via a feature flag service (LaunchDarkly, Unleash, or equivalent), not environment variables.
+- Feature flag naming: `kebab-case` with module prefix (e.g., `events-ai-suggestions`, `maintenance-photo-upload`).
+- Feature flags support targeting by: property, user role, user ID, percentage rollout, and environment.
+- Feature flags have an expiry date — flags older than 90 days trigger a cleanup alert.
+- Removing a feature flag (when the feature is fully rolled out) requires a PR that removes all flag checks and the flag definition.
+- Feature flag changes are logged in the audit trail.
+
+#### 14.6.14 Canary Deployment Requirements
+
+- New releases are deployed to a canary group (5% of traffic) before full rollout.
+- Canary runs for a minimum of **30 minutes** while monitoring:
+  - Error rate (must remain below 0.5%)
+  - Response time (must remain within 10% of baseline)
+  - Resource utilization (CPU and memory must not spike more than 20%)
+- If canary metrics are healthy after 30 minutes, traffic is gradually increased: 25% → 50% → 100% over 1 hour.
+- If any metric breaches its threshold during canary, automatic rollback is triggered.
+- Canary metrics are displayed on the deployment dashboard in real time.
+
+#### 14.6.15 Post-Deployment Verification
+
+After every production deployment, the following automated checks run:
+
+- [ ] Health check endpoints return `200` for all services
+- [ ] Database connection pool is healthy
+- [ ] Cache service is responding
+- [ ] Search service is responding
+- [ ] WebSocket connections can be established
+- [ ] Email test message sends successfully
+- [ ] SMS test message sends successfully
+- [ ] Push notification test sends successfully
+- [ ] AI provider is responding
+- [ ] File upload/download works
+- [ ] Multi-tenant isolation spot check passes (create record in Property A, verify absence in Property B)
+- [ ] Login flow completes successfully
+- [ ] Critical API endpoints respond within budget
+
+Results are logged and any failure triggers an automatic alert.
+
+---
+
+### 14.7 Security Testing
+
+#### 14.7.1 Authentication Testing
+
+| Test Category | Specific Tests |
+|---|---|
+| **Brute force** | After 5 failed login attempts in 15 minutes, account is locked for 30 minutes. Locked account returns generic error (not "account locked" — prevent enumeration). |
+| **Session fixation** | Session ID changes on login. Old session IDs are invalid after login. |
+| **Credential stuffing** | Rate limiting on login endpoint (max 10 attempts per IP per minute). CAPTCHA triggered after 3 failed attempts from same IP. |
+| **Token expiry** | Access tokens expire after 15 minutes. Refresh tokens expire after 7 days. Expired tokens are rejected with `401`. |
+| **Token refresh** | Refresh token rotation — used refresh token is invalidated. Attempting to reuse a refresh token invalidates all tokens for that user (theft detection). |
+| **Password reset** | Reset token expires after 1 hour. Reset token is single-use. Reset link does not reveal whether email exists in system. |
+| **Multi-device sessions** | User can view all active sessions. User can revoke individual sessions. User can revoke all other sessions ("log out everywhere"). |
+| **Concurrent session limits** | Configurable per-property limit (default: 5 concurrent sessions per user). New login beyond limit terminates oldest session. |
+
+#### 14.7.2 Authorization Testing
+
+| Test Category | Specific Tests |
+|---|---|
+| **Horizontal privilege escalation (cross-property)** | Property A admin cannot access, modify, or delete any resource belonging to Property B. Tested for every API endpoint. Returns `404` (not `403`). |
+| **Vertical privilege escalation (cross-role)** | Resident cannot access admin endpoints. Security Guard cannot access Property Manager endpoints. Test for every role combination. |
+| **IDOR (Insecure Direct Object Reference)** | Changing an entity ID in the URL does not grant access to another user's resource. Test with: sequential IDs, UUID guessing, previous resource IDs. |
+| **Mass assignment** | Sending unexpected fields in API requests does not modify protected attributes (e.g., sending `role: "admin"` in a profile update). |
+| **Function-level access** | Admin-only functions (user creation, property config, role assignment) are not accessible by non-admin roles. |
+| **Record-level access** | Resident can only see their own maintenance requests, packages, and bookings. Staff can only see data for properties they are assigned to. |
+
+#### 14.7.3 Multi-Tenant Isolation Penetration Testing
+
+This is the most critical security test category. Run quarterly, minimum.
+
+- Attempt to access Property B data by manipulating: URL parameters, request body fields (`propertyId`), HTTP headers, JWT claims, WebSocket channel subscriptions, GraphQL queries (if applicable), search queries, file download URLs, export/report parameters.
+- Attempt to access Property B data via: SQL injection in filter parameters, NoSQL injection, LDAP injection, ORM manipulation, GraphQL introspection.
+- Attempt cross-tenant data access via: timing attacks (response time differences between "not found" and "forbidden"), error message differences, cache poisoning (requesting Property A data with Property B's cache key).
+- Every attempt must fail with `404` (not `403`) to prevent tenant enumeration.
+- Results documented in a penetration test report with proof-of-concept for any finding.
+
+#### 14.7.4 Input Validation Testing
+
+| Attack Type | Test Details |
+|---|---|
+| **SQL injection** | Test all input fields with: `' OR '1'='1`, `'; DROP TABLE events; --`, union-based injection, blind injection (time-based and boolean-based). All queries must use parameterized statements. |
+| **XSS (Cross-Site Scripting)** | Test: `<script>alert('xss')</script>`, event handlers (`onerror`, `onload`), SVG injection, CSS injection, DOM-based XSS via URL fragments. All output must be contextually encoded. |
+| **CSRF (Cross-Site Request Forgery)** | All state-changing endpoints require a CSRF token. Token is validated server-side. Token is rotated per session. |
+| **Command injection** | Test any input that reaches a shell command (e.g., file processing): `; ls -la`, `| cat /etc/passwd`, backtick injection. All inputs must be sanitized or avoided entirely. |
+| **Path traversal** | Test file upload/download paths: `../../etc/passwd`, `%2e%2e%2f`, null byte injection. File paths must be resolved and validated against an allowlist. |
+| **XML/XXE injection** | If XML parsing is used: test external entity expansion, billion laughs attack, SSRF via DTD. Use secure XML parser with external entities disabled. |
+| **SSRF (Server-Side Request Forgery)** | Test any endpoint that accepts a URL: internal network scanning, cloud metadata endpoint access (`169.254.169.254`). URL inputs must validate against an allowlist of permitted domains. |
+
+#### 14.7.5 File Upload Security Testing
+
+- Upload executable file disguised as image → rejected (validate by file header magic bytes, not extension).
+- Upload file with embedded malware → detected and rejected by virus scanner.
+- Upload polyglot file (valid JPEG that is also valid JavaScript) → virus scanner detects and rejects.
+- Upload file with null byte in filename (`photo.jpg%00.exe`) → rejected.
+- Upload file exceeding size limit → rejected with clear error (no partial file stored).
+- Upload to another property's storage path → rejected (storage paths include property ID).
+- Direct access to uploaded file via guessed URL → rejected (signed URLs required).
+
+#### 14.7.6 API Security Testing
+
+- All API endpoints require authentication (except: login, password reset, public health check).
+- All API endpoints enforce authorization (role check + property check).
+- All API endpoints enforce rate limiting.
+- All API endpoints validate Content-Type header.
+- All API endpoints reject requests with unexpected query parameters (strict parameter validation).
+- All API endpoints return consistent error format (14.4.12).
+- API versioning prevents breaking changes from affecting existing clients.
+- GraphQL endpoints (if applicable): introspection disabled in production, query depth limited to 10, query complexity limited to 1000.
+
+#### 14.7.7 PII Exposure Testing
+
+Verify that PII is NOT present in:
+- Server logs (checked by log scrubbing layer tests — 14.4.13)
+- Error messages returned to clients
+- URL parameters or query strings
+- API responses beyond what the requesting role is authorized to see
+- Browser console output
+- Exported reports for unauthorized roles
+- WebSocket broadcast messages to unauthorized subscribers
+- Search index metadata (only searchable by authorized users)
+- Cache keys (keys may contain entity IDs but not PII values)
+- Third-party analytics payloads
+- Client-side state management stores (Redux, Zustand, etc.) for data not visible to the current user
+
+#### 14.7.8 Encryption Verification
+
+| Layer | Requirement | Verification Method |
+|---|---|---|
+| **In transit** | TLS 1.2 minimum (TLS 1.3 preferred). No SSL 3.0, TLS 1.0, or TLS 1.1. | SSL Labs test (grade A or A+). Certificate expiry monitoring. |
+| **At rest (database)** | AES-256 encryption for the database volume | Cloud provider configuration audit. Encryption key rotation verified. |
+| **At rest (file storage)** | AES-256 encryption for stored files | Cloud provider configuration audit. |
+| **At rest (backups)** | AES-256 encryption for all backups | Backup restoration test verifies encryption. |
+| **Application-level** | Sensitive fields (SSN, government ID if stored) encrypted with application-level encryption before database storage | Unit tests verify encrypted storage and correct decryption. |
+| **Key management** | Encryption keys stored in a dedicated key management service (AWS KMS, GCP KMS, or equivalent). No keys in source code, environment variables, or config files. | Automated scan for key material in source code. Key rotation tested quarterly. |
+
+#### 14.7.9 Session Management Testing
+
+- Session timeout: 30 minutes of inactivity (configurable per property, minimum 15 minutes, maximum 8 hours).
+- Session invalidation on password change (all sessions for the user are invalidated).
+- Session invalidation on role change (user must re-authenticate to receive new role permissions).
+- Session cookie attributes: `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/`.
+- Session ID entropy: minimum 128 bits of randomness.
+- Session storage: server-side only (no session data in cookies).
+
+#### 14.7.10 Dependency Vulnerability Scanning
+
+- Automated scanning runs on every PR and nightly on main branch.
+- **Critical** vulnerability in any dependency: blocks merge, must be resolved within 24 hours (upgrade, patch, or remove dependency).
+- **High** vulnerability: blocks merge, must be resolved within 72 hours.
+- **Medium** vulnerability: does not block merge, tracked with 1-sprint SLA.
+- **Low** vulnerability: tracked, resolved at team discretion.
+- Scanning covers: direct dependencies, transitive dependencies, OS-level packages in Docker images, infrastructure-as-code templates.
+- Results are aggregated on the security dashboard with trend charts.
+
+#### 14.7.11 Secret Management Testing
+
+- No secrets in source code (scanned by automated secret detection tool — e.g., GitLeaks, TruffleHog).
+- No secrets in commit history (scan entire Git history monthly).
+- No secrets in logs (verified by log scrubbing tests — 14.4.13).
+- No secrets in environment variable values committed to source control (`.env` files are in `.gitignore`).
+- Secrets are stored in a dedicated secret management service (AWS Secrets Manager, HashiCorp Vault, or equivalent).
+- Secret rotation is automated: API keys rotated every 90 days, database passwords rotated every 30 days.
+- Secret access is logged — who accessed which secret, when, from where.
+
+#### 14.7.12 Security Headers
+
+Every HTTP response must include:
+
+| Header | Value | Purpose |
+|---|---|---|
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` | Enforce HTTPS |
+| `X-Content-Type-Options` | `nosniff` | Prevent MIME sniffing |
+| `X-Frame-Options` | `DENY` | Prevent clickjacking |
+| `X-XSS-Protection` | `0` (rely on CSP instead) | Disable legacy XSS filter |
+| `Content-Security-Policy` | Strict CSP with nonce-based script allowlist | Prevent XSS |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Limit referrer information |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=()` | Disable unused browser features |
+| `Cache-Control` | `no-store` for API responses with PII; appropriate caching for static assets | Prevent caching of sensitive data |
+
+- Security headers are verified by automated tests on every deployment.
+- CORS is configured to allow only the application's own domains — no wildcards (`*`).
+
+#### 14.7.13 Security Regression Testing
+
+- Every security vulnerability that is fixed must have a corresponding automated test that verifies the fix.
+- This test is added to the security regression test suite and runs on every PR.
+- The security regression test suite is a permanent, growing body of tests — tests are never removed.
+- The suite is organized by vulnerability category (injection, authentication, authorization, etc.).
+- Quarterly review ensures all fixed vulnerabilities have regression tests.
+
+---
+
+### 14.8 Static Application Security Testing (SAST)
+
+#### 14.8.1 Required SAST Tools
+
+Two categories of SAST tools are required:
+
+| Category | Purpose | Recommended Tools (or equivalent) |
+|---|---|---|
+| **Code-level SAST** | Analyze source code for vulnerabilities (injection, insecure patterns, logic errors) | Semgrep, SonarQube, CodeQL |
+| **Dependency-level SAST** | Analyze third-party dependencies for known vulnerabilities | Snyk, npm audit, Dependabot |
+
+- At least one tool from each category must be active and enforced in CI.
+- Both tools must support TypeScript and SQL analysis.
+
+#### 14.8.2 SAST in CI Pipeline
+
+- SAST runs on every pull request. Results are posted as PR comments.
+- **Critical severity findings**: block merge. No exceptions.
+- **High severity findings**: block merge. Override requires Security Champion approval with documented justification.
+- **Medium severity findings**: do not block merge. Must be resolved within 1 week.
+- **Low severity findings**: do not block merge. Must be resolved within 1 sprint.
+
+#### 14.8.3 Nightly SAST
+
+- Full SAST scan runs nightly on the main branch.
+- Nightly scan catches issues that per-PR scans might miss (cross-file analysis, deep dataflow analysis).
+- Nightly scan results are reviewed by the Security Champion every morning.
+- Any new critical or high finding triggers an immediate alert.
+
+#### 14.8.4 Custom SAST Rules
+
+Custom rules are required for Concierge-specific patterns:
+
+| Rule | What It Detects |
+|---|---|
+| **PII logging** | Any log statement that includes variables named `email`, `phone`, `name`, `address`, `ssn`, or similar PII field names |
+| **Missing RLS check** | Database queries in API handlers that do not include a `property_id` filter |
+| **Direct database access** | API handlers that bypass the service layer and query the database directly |
+| **Hardcoded property ID** | Any property ID literal in source code (must always come from auth context) |
+| **Unvalidated file path** | File system operations that use user-supplied input without path validation |
+| **Missing rate limit** | New API endpoints without rate limiting middleware |
+| **Insecure random** | Use of `Math.random()` for security-sensitive operations (tokens, IDs) |
+| **Missing audit log** | State-changing operations (create, update, delete) without an audit log entry |
+
+- Custom rules are maintained in the repository alongside the application code.
+- Custom rules have their own tests to prevent false positives.
+
+#### 14.8.5 Remediation SLAs
+
+| Severity | Response Time | Resolution Time |
+|---|---|---|
+| **Critical** | Acknowledged within 1 hour | Fixed within 24 hours |
+| **High** | Acknowledged within 4 hours | Fixed within 72 hours |
+| **Medium** | Acknowledged within 1 business day | Fixed within 1 week |
+| **Low** | Acknowledged within 2 business days | Fixed within 1 sprint |
+
+- SLA clock starts when the finding is reported (not when it is triaged).
+- SLA compliance is tracked on the security dashboard.
+
+#### 14.8.6 False Positive Management
+
+- False positives are marked in the SAST tool with a justification comment.
+- False positive markings require Security Champion approval.
+- False positives are reviewed quarterly — patterns of false positives trigger custom rule refinement.
+- A maximum of 5% of total findings may be marked as false positives. Exceeding this threshold triggers a tool configuration review.
+
+#### 14.8.7 SAST Dashboard
+
+The SAST dashboard (accessible to Tech Lead, Security Champion, and Super Admin) displays:
+- Total open findings by severity
+- Findings trend over the past 90 days (new vs resolved)
+- Top 10 most common vulnerability types
+- Mean time to resolve by severity
+- Modules with the most findings
+- SLA compliance rate
+- False positive rate
+
+#### 14.8.8 Language-Specific SAST Configuration
+
+| Language/Technology | Specific Configuration |
+|---|---|
+| **TypeScript** | Taint analysis for user inputs → database queries, template injection detection, prototype pollution detection |
+| **SQL** | Injection detection in raw queries, privilege escalation patterns, unsafe dynamic query construction |
+| **Infrastructure-as-Code** | Terraform/CloudFormation misconfiguration detection: open security groups, unencrypted resources, overly permissive IAM policies |
+| **Docker** | Dockerfile best practices: no root user, minimal base images, no secrets in build args |
+| **CI/CD configuration** | Pipeline injection detection, secret exposure in pipeline logs |
+
+#### 14.8.9 Secrets Scanning
+
+- Secrets scanning runs on every PR and on every commit to main.
+- Scanned patterns include: API keys, OAuth tokens, database connection strings, private keys, certificates, AWS/GCP/Azure credentials, generic passwords.
+- Scanning includes the full Git history (not just the current diff) — run monthly on complete history.
+- Any detected secret triggers an immediate alert and the secret is considered compromised (rotated immediately, regardless of whether it was exposed publicly).
+
+#### 14.8.10 License Compliance Scanning
+
+- Every dependency's license is scanned on every PR.
+- **Blocked licenses**: GPL, AGPL, SSPL, Commons Clause, any license that requires source disclosure or restricts commercial use.
+- **Allowed licenses**: MIT, Apache 2.0, BSD (2-clause and 3-clause), ISC, 0BSD, Unlicense, CC0.
+- **Review-required licenses**: MPL, LGPL, EUPL — these require legal review before adoption.
+- New dependencies with blocked licenses fail the build.
+- License compliance report is generated monthly and stored for audit.
+
+#### 14.8.11 IDE Integration
+
+- SAST tools must have IDE plugins (VS Code, JetBrains) installed and configured for all developers.
+- IDE plugins show SAST findings inline (in the code editor) as developers write code.
+- IDE plugin configuration is standardized via project configuration files committed to the repository.
+- This "shift-left" approach catches issues before they reach CI, reducing feedback loop time.
+
+---
+
+### 14.9 Dynamic Application Security Testing (DAST)
+
+#### 14.9.1 Required DAST Tools
+
+- At least one DAST tool is required (e.g., OWASP ZAP, Burp Suite Enterprise, Nuclei, or equivalent).
+- The DAST tool must support: authenticated scanning, API scanning (OpenAPI-driven), and scheduled scans.
+
+#### 14.9.2 DAST on Release Candidates
+
+- Every release candidate is scanned by DAST against the staging environment before production deployment.
+- DAST scan must complete before the release candidate is approved.
+- **Critical findings**: block release. Must be fixed and re-scanned.
+- **High findings**: block release. Must be fixed and re-scanned.
+- **Medium findings**: do not block release if acknowledged by Security Champion. Must be fixed within 1 week.
+- **Low findings**: tracked, resolved within 1 sprint.
+
+#### 14.9.3 Scheduled DAST
+
+- Full DAST scan runs weekly against staging (Sundays at 2 AM local time).
+- Scheduled scan results are reviewed by the Security Champion on Monday morning.
+- Scheduled scans use the latest staging deployment (may include unreleased features behind feature flags).
+
+#### 14.9.4 Authenticated DAST Scans
+
+- DAST scans run with credentials for every user role:
+  - Super Admin
+  - Property Admin
+  - Property Manager
+  - Front Desk / Concierge
+  - Security Guard
+  - Maintenance Staff
+  - Board Member
+  - Resident
+- Each role's scan verifies that the role cannot access resources beyond its authorization.
+- Authenticated scans include: session management testing, privilege escalation testing, and IDOR testing.
+
+#### 14.9.5 DAST Scope
+
+| Target | What Is Scanned |
+|---|---|
+| **API endpoints** | Every endpoint defined in the OpenAPI spec, including: all HTTP methods, all parameter combinations, error responses |
+| **Web pages** | Every route in the SPA, including: all interactive elements, all form submissions, all navigation flows |
+| **File operations** | Upload and download endpoints with various file types and sizes |
+| **Authentication flows** | Login, logout, password reset, token refresh, session management |
+| **WebSocket endpoints** | Connection establishment, message handling, authentication |
+
+#### 14.9.6 API-Specific DAST (Fuzzing)
+
+- OpenAPI-driven fuzzing generates random inputs for every endpoint based on the schema definition.
+- Fuzzing covers: boundary values, unexpected types, oversized payloads, malformed JSON, nested objects at extreme depth, special characters in every field.
+- Fuzzing runs a minimum of 10,000 requests per endpoint per scan.
+- Any unhandled exception (500 response) during fuzzing is treated as a **High** severity finding.
+- Any information disclosure in error responses during fuzzing is treated as a **Medium** severity finding.
+
+#### 14.9.7 Cross-Tenant DAST Testing
+
+- Automated DAST tests that attempt to access one tenant's data from another tenant's session.
+- These tests run against every API endpoint with two different tenant sessions.
+- Test methodology:
+  1. Authenticate as Tenant A
+  2. Capture Tenant A's resource IDs from normal API responses
+  3. Authenticate as Tenant B
+  4. Attempt to access Tenant A's resource IDs using Tenant B's session
+  5. Verify every attempt returns `404` (not `403`, not `200`)
+- Any cross-tenant data access is treated as a **Critical** finding (24-hour resolution SLA).
+
+#### 14.9.8 DAST for Mobile-Responsive Views
+
+- DAST scans include testing at mobile viewport sizes (375px width) to catch security issues specific to mobile layouts (e.g., hidden form fields that bypass validation, mobile-specific routes that lack authentication).
+- Mobile-responsive testing verifies that no security controls are bypassed by viewport changes.
+
+#### 14.9.9 DAST Reporting
+
+- DAST results are integrated into the security dashboard alongside SAST results.
+- Reports include: finding severity, affected URL/endpoint, proof-of-concept request/response, remediation guidance.
+- Trend charts show: total findings over time, mean time to resolve, most commonly found vulnerability types.
+
+#### 14.9.10 Runtime Protection Rules
+
+- Findings from DAST inform Web Application Firewall (WAF) rules.
+- When a new attack pattern is discovered via DAST, a corresponding WAF rule is added to block that pattern in production.
+- WAF rules are tested against the DAST tool to verify they block the attack without causing false positives for legitimate requests.
+
+#### 14.9.11 SAST-DAST Correlation
+
+- Findings from SAST and DAST are correlated to identify vulnerabilities that appear in both analyses.
+- Correlated findings are prioritized higher — a vulnerability confirmed by both static and dynamic analysis is promoted by one severity level (e.g., Medium becomes High).
+- Correlation is performed by the Security Champion during weekly security review.
+- Uncorrelated findings (found by only one tool) are still tracked and resolved according to their individual severity SLAs.
+
+---
+
+### 14.10 Quality Gates — CI/CD Pipeline Enforcement
+
+#### 14.10.1 Pipeline Stages
+
+Every code change passes through the following pipeline stages in order. Each stage must pass before the next begins.
+
+```
+Stage 1: Lint & Format
+    ↓ (pass)
+Stage 2: Type Check
+    ↓ (pass)
+Stage 3: Unit Tests + Coverage
+    ↓ (pass)
+Stage 4: Build
+    ↓ (pass)
+Stage 5: Integration Tests
+    ↓ (pass)
+Stage 6: SAST Scan
+    ↓ (pass)
+Stage 7: Accessibility Scan
+    ↓ (pass)
+Stage 8: Deploy to Staging
+    ↓ (pass)
+Stage 9: DAST Scan (on staging)
+    ↓ (pass)
+Stage 10: Performance Tests (on staging)
+    ↓ (pass)
+Stage 11: UAT Sign-Off (manual gate)
+    ↓ (approved)
+Stage 12: Canary Deploy to Production (5%)
+    ↓ (metrics healthy for 30 min)
+Stage 13: Full Production Deploy (25% → 50% → 100%)
+    ↓ (complete)
+Stage 14: Post-Deployment Verification
+```
+
+#### 14.10.2 Quality Gates Definition
+
+| Gate | Criteria to Pass | What Happens on Failure |
+|---|---|---|
+| **G1: Lint & Format** | Zero lint errors, zero formatting differences | Build fails. Developer must fix locally. |
+| **G2: Type Check** | Zero TypeScript errors | Build fails. Developer must fix locally. |
+| **G3: Unit Tests** | All tests pass. Coverage meets thresholds (14.1.1). New code coverage meets delta thresholds (14.1.4). | Build fails. PR cannot merge. |
+| **G4: Build** | Application builds without errors. Bundle size within budget. | Build fails. PR cannot merge. |
+| **G5: Integration Tests** | All integration tests pass. Multi-tenant isolation tests pass. | Build fails. PR cannot merge. |
+| **G6: SAST** | Zero critical or high findings. | Build fails. PR cannot merge (overridable by Security Champion for high only). |
+| **G7: Accessibility** | Zero critical or serious axe-core violations. | Build fails. PR cannot merge. |
+| **G8: Staging Deploy** | Deployment succeeds. Health checks pass. | Deployment rolled back. Team investigates. |
+| **G9: DAST** | Zero critical findings. Zero high findings. | Release candidate rejected. Findings must be fixed. |
+| **G10: Performance** | All performance budgets met (14.4.10). | Release candidate rejected. Optimization required. |
+| **G11: UAT** | All required sign-offs obtained (14.6.2). | Release blocked until sign-offs obtained. |
+| **G12: Canary** | Error rate < 0.5%. Response time within 10% of baseline. | Automatic rollback. |
+| **G13: Full Deploy** | Gradual rollout completes without metric breaches. | Automatic rollback to canary or previous version. |
+| **G14: Post-Deploy** | All verification checks pass (14.6.15). | Alert triggered. Investigation begins. Rollback if P1 issue found. |
+
+#### 14.10.3 Gate Override Policy
+
+| Gate | Who Can Override | Override Condition |
+|---|---|---|
+| G1 (Lint) | Nobody | No overrides — fix the code. |
+| G2 (Type Check) | Nobody | No overrides — fix the code. |
+| G3 (Unit Tests) | Tech Lead | Only for known flaky tests with a linked fix ticket. |
+| G4 (Build) | Nobody | No overrides — fix the build. |
+| G5 (Integration) | Tech Lead | Only for known environment issues with a linked fix ticket. |
+| G6 (SAST) | Security Champion | Only for high severity (not critical). Must document justification and link remediation ticket. |
+| G7 (Accessibility) | Nobody | No overrides — fix the violation. |
+| G8 (Staging Deploy) | Nobody | No overrides — fix the deployment. |
+| G9 (DAST) | CTO | Only in an emergency with a public incident timeline for remediation. |
+| G10 (Performance) | Tech Lead + Product Owner | Only if degradation is expected and documented (e.g., new feature adds necessary weight). |
+| G11 (UAT) | Product Owner | Can defer non-blocking UAT findings to a follow-up release with documented acceptance. |
+| G12 (Canary) | Nobody | Automatic rollback — no human override during canary. |
+| G13 (Full Deploy) | Nobody | Automatic rollback — no human override during rollout. |
+| G14 (Post-Deploy) | On-call Engineer | Can acknowledge non-critical findings. P1 findings trigger mandatory rollback. |
+
+- Every override is logged in the audit trail with: who overrode, which gate, justification, and linked remediation ticket.
+- More than 3 overrides in a single release triggers a mandatory retrospective.
+
+#### 14.10.4 Environment Promotion Criteria
+
+| Environment | Promoted From | Criteria |
+|---|---|---|
+| **Development** | Local | Code compiles. Unit tests pass. |
+| **Staging** | Development | Gates G1-G7 pass. |
+| **UAT** | Staging | Gates G1-G9 pass. UAT test cases prepared. |
+| **Production** | UAT | Gates G1-G14 pass. All sign-offs obtained. |
+
+- No environment may be skipped — code always flows through all environments in order.
+- Hotfixes follow an accelerated pipeline but still pass through all gates (with expedited UAT, minimum 4 hours).
+
+#### 14.10.5 Automated Rollback Triggers
+
+The following conditions trigger an **automatic rollback** in production without human intervention:
+
+| Trigger | Threshold | Measurement Window |
+|---|---|---|
+| Error rate spike | > 1% of requests return 5xx | 5-minute rolling window |
+| Response time degradation | p95 response time > 2x pre-deployment baseline | 5-minute rolling window |
+| Health check failure | Any service health check returns unhealthy | 2 consecutive failures (30 seconds apart) |
+| Memory leak detection | Memory usage growing > 5% per minute with no plateau | 10-minute window |
+| Database connection exhaustion | Connection pool utilization > 90% | Any single measurement |
+| Multi-tenant isolation failure | Any cross-tenant data access detected | Immediate (single occurrence) |
+
+- After automatic rollback, an incident is created automatically and the on-call engineer is paged.
+- Automatic rollback completes within 5 minutes.
+- The rolled-back version is the last known-good deployment (verified by deployment history).
+
+---
+
+### 14.11 Quality Metrics Dashboard (Super Admin)
+
+#### 14.11.1 Dashboard Overview
+
+Super Admins have access to a real-time quality health dashboard that provides visibility into the overall quality posture of the platform. This dashboard is accessible from the Super Admin navigation under "System Health > Quality Metrics."
+
+#### 14.11.2 Metrics Displayed
+
+| Metric | Display Format | Data Source | Refresh Interval |
+|---|---|---|---|
+| **Test coverage (line %)** | Gauge with threshold indicator (green > 95%, yellow 90-95%, red < 90%) | CI pipeline coverage reports | On every merge to main |
+| **Test coverage (branch %)** | Gauge with threshold indicator (green > 92%, yellow 88-92%, red < 88%) | CI pipeline coverage reports | On every merge to main |
+| **Build success rate** | Percentage over trailing 30 days. Trend line showing daily rate. | CI pipeline results | Hourly |
+| **Open security vulnerabilities** | Count by severity (critical, high, medium, low). Bar chart with trend. | SAST + DAST aggregated results | Real-time |
+| **Accessibility score** | Lighthouse accessibility score (latest and 30-day trend) | Lighthouse CI results | On every merge to main |
+| **Mean time to resolve bugs** | Average days from bug creation to resolution, broken down by priority (P1-P4) | Issue tracker | Daily |
+| **Deployment frequency** | Deployments per week (trailing 4 weeks). Trend line. | Deployment pipeline | Real-time |
+| **Change failure rate** | Percentage of deployments that triggered rollback (trailing 30 days) | Deployment pipeline | Real-time |
+| **Lead time for changes** | Average time from PR creation to production deployment (trailing 30 days) | CI/CD pipeline + deployment logs | Daily |
+| **Open technical debt items** | Count by severity. Percentage of codebase flagged as tech debt. | Issue tracker + codebase scan | Daily |
+| **SLA compliance rate** | Percentage of bugs resolved within their SLA (trailing 30 days), broken down by priority | Issue tracker | Daily |
+| **MTTR (Mean Time to Recovery)** | Average time from incident detection to resolution (trailing 90 days) | Incident management system | Daily |
+| **Uptime** | 30-day and 90-day uptime percentage. Target: 99.95%. | Health check monitoring | Real-time |
+| **Dependency vulnerability age** | Average age of open dependency vulnerabilities (in days) | Dependency scanning tool | Daily |
+| **Test suite execution time** | Average CI pipeline duration (trailing 7 days). Trend line. | CI pipeline | Hourly |
+
+#### 14.11.3 Alert Thresholds
+
+The dashboard generates alerts when quality metrics degrade:
+
+| Metric | Warning Threshold | Critical Threshold | Alert Channel |
+|---|---|---|---|
+| Test coverage (line) | < 95% | < 92% | Email to Tech Lead |
+| Build success rate (7-day) | < 95% | < 90% | Slack to engineering channel |
+| Open critical vulnerabilities | > 0 for more than 24 hours | > 0 for more than 48 hours | PagerDuty to Security Champion |
+| Open high vulnerabilities | > 3 | > 5 | Email to Security Champion |
+| Mean time to resolve P1 bugs | > 4 hours | > 8 hours | PagerDuty to Tech Lead |
+| Change failure rate (30-day) | > 5% | > 10% | Email to Tech Lead + CTO |
+| Uptime (30-day) | < 99.95% | < 99.9% | PagerDuty to on-call engineer |
+| Tech debt percentage | > 10% | > 15% | Email to Tech Lead |
+| Dependency vuln age (avg) | > 7 days | > 14 days | Email to Security Champion |
+
+#### 14.11.4 Historical Trend Charts
+
+- All metrics have historical trend charts showing data over: 7 days, 30 days, 90 days, and 1 year.
+- Charts support comparison between time periods (e.g., this month vs last month).
+- Charts display key events (deployments, incidents, major releases) as annotations on the timeline.
+- Trend data is retained for 2 years.
+
+#### 14.11.5 Export Capability
+
+- All dashboard data is exportable in CSV, Excel, and PDF formats.
+- Exports include: raw metric data, trend charts (as images in PDF), and summary statistics.
+- Automated weekly quality report is emailed to the Tech Lead and CTO every Monday at 9 AM.
+- Automated monthly quality report is emailed to all stakeholders on the 1st of each month.
+
+---
+
+### 14.12 Completeness Checklist
+
+Before marking this section as complete for any release, verify every item:
+
+1. **Unit test coverage meets all thresholds** defined in 14.1.1 for every module type.
+2. **Branch coverage meets all thresholds** defined in 14.1.1.
+3. **Mutation testing score meets minimum** (80% project, 85% business logic, 90% security modules) per 14.1.5.
+4. **Edge case tests exist** for all categories listed in 14.1.10.
+5. **Accessibility component tests exist** for every interactive component per 14.1.11.
+6. **Every API endpoint has integration tests** covering all categories in 14.2.1.
+7. **Multi-tenant isolation tests pass** for all 10 mandatory scenarios in 14.2.4.
+8. **Role × endpoint access matrix is complete** with zero missing entries per 14.2.5.
+9. **Cross-module workflow tests exist** for all 5 workflows in 14.2.13.
+10. **WCAG 2.2 AA compliance verified** via automated scan (zero critical/serious violations) per 14.3.2.
+11. **Manual accessibility audit completed** within the last quarter per 14.3.3.
+12. **Screen reader testing completed** with 3 screen readers per 14.3.4.
+13. **Keyboard navigation tested** for every interactive element per 14.3.5.
+14. **ESLint runs with zero warnings** per 14.4.1.
+15. **Prettier formatting enforced** with zero differences per 14.4.2.
+16. **Cyclomatic complexity within limits** (max 10 per function) per 14.4.3.
+17. **TypeScript strict mode enabled** with all flags per 14.4.5.
+18. **Code review checklist completed** for every PR per 14.4.6.
+19. **Performance budgets met** for all metrics in 14.4.10.
+20. **No N+1 queries** detected per 14.4.11.
+21. **No PII in logs** verified per 14.4.13.
+22. **OpenAPI spec up-to-date** and valid per 14.5.2.
+23. **Storybook stories exist** for every reusable component per 14.5.10.
+24. **UAT sign-offs obtained** per 14.6.2.
+25. **Audit trail captures all mutations** per 14.6.5.
+26. **Data integrity audit passing** per 14.6.6.
+27. **Performance audit completed** within the last month per 14.6.7.
+28. **Compliance checks passing** for all frameworks per 14.6.8.
+29. **Penetration test completed** within the last 6 months per 14.6.9.
+30. **Zero open P1 or P2 bugs** per 14.6.11.
+31. **Release acceptance criteria satisfied** (all items checked) per 14.6.11.
+32. **Authentication tests passing** for all scenarios in 14.7.1.
+33. **Authorization tests passing** for all role/endpoint combinations per 14.7.2.
+34. **Input validation tests passing** for all attack types in 14.7.4.
+35. **Security headers verified** per 14.7.12.
+36. **SAST scan clean** (zero critical/high) per 14.8.2.
+37. **Custom SAST rules active** for all patterns in 14.8.4.
+38. **Secrets scan clean** per 14.8.9.
+39. **License compliance verified** per 14.8.10.
+40. **DAST scan clean** (zero critical/high) per 14.9.2.
+41. **Cross-tenant DAST tests passing** per 14.9.7.
+42. **All CI/CD quality gates passing** per 14.10.2.
+43. **Quality metrics dashboard operational** with all metrics reporting per 14.11.2.
+44. **Alert thresholds configured** per 14.11.3.
+45. **Weekly quality report generating** per 14.11.5.
+
+---
+
 ## Appendix A: Cross-Cutting Concerns
 
 ### Data Export
