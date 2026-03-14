@@ -474,11 +474,132 @@ Opens from "Check Combined Calendar" button on the amenities listing page. Full-
 
 ---
 
-## 9. Create New Amenity
+## 9. Create New Amenity (`/new-amenity`)
 
-Accessible via the sidebar "Amenities" link which points to `/new-amenity`.
+Admin form for creating a new amenity. Accessible via the sidebar "Amenities" link. Contains **49 fields** across 7 sections, plus conditional fields that appear based on checkbox toggles.
 
-**Note**: This page was not explored in detail in this session. The URL suggests a form for creating new amenities, likely mirroring the fields in the View/Edit Amenity Information page (Section 3).
+### 9.1 Section: General Amenity Introduction
+
+| # | Field Label | Type | Default | Notes |
+|---|-------------|------|---------|-------|
+| 1 | Building Search | text | "" | Placeholder: "Type and press enter to search" — part of multi-select building picker |
+| 2 | Select Building | multi-select dropdown | — | Label: "Select Building:" — assigns amenity to one or more buildings |
+| 3 | Is Amenity Active? | checkbox | ✅ ON | Toggle to enable/disable amenity |
+| 4 | Amenity Image | file (drag-drop) | — | "Drop Image" — drag-and-drop image upload area |
+| 5 | Amenity Name | text | "" | Placeholder: "Amenity Name" |
+| 6 | Rules Document | file (drag-drop) | — | "Drag 'n' drop some files here, or click to select files" |
+| 7 | Instruction Message | textarea | Pre-filled template: "Please check instructions attached before making a..." | Placeholder: "Instruction Message" |
+
+### 9.2 Section: Price Related Information
+
+| # | Field Label | Type | Default | Notes |
+|---|-------------|------|---------|-------|
+| 8 | Damage Deposit | number | 0 | Currency field ($) |
+| 9 | Unit Price | number | 0 | Currency field ($). Helper text: "Unit fee and Damage deposit will be set to 0 automatically in case the amenity is an elevator. Please provide separate unit fee and damage deposit fee under elevator section if that is the case" |
+| 10 | Select Amenity Price Type | select dropdown | "flat" | Only observed value: "flat". Other types may exist (hourly? per-person?) but were not observed |
+| 11 | Is Booking Allowed on Stat Holidays? | checkbox | ❌ OFF | |
+| 12 | Is this an elevator? | checkbox | ❌ OFF | Full label: "Is this an elevator? (Damage deposit and Unit fee set above will be set to 0 in case this is checked)" — **triggers conditional elevator fields** (see Section 9.8) |
+| 13 | Is this a Guest Suite? | checkbox | ❌ OFF | |
+| 14 | Percent Tax on Fees | number | 0 | Percentage field |
+
+### 9.3 Section: Booking Related Information
+
+| # | Field Label | Type | Default | Notes |
+|---|-------------|------|---------|-------|
+| 15 | Property Manager Approval Required for confirmed bookings? | checkbox | ✅ ON | |
+| 16 | Site Supervisor Approval Required for confirmed bookings? | checkbox | ❌ OFF | |
+| 17 | Default Booking Duration (In Minutes) | number | 60 | 1 hour default |
+| 18 | Maximum Booking Duration (In Minutes) | number | 0 | 0 = no maximum / unconfigured |
+| 19 | Warning Time Before Cancellation (In Minutes) | number | 2880 | = 48 hours |
+| 20 | Warning Text | textarea | "Please pay the deposit by the cancellation time to keep your reservation." | Auto-cancellation warning shown to residents |
+| 21 | Cancellation Time (In Minutes) | number | 1440 | = 24 hours |
+| 22 | Cancellation Text | textarea | "Please be advised the booking has been automatically cancelled since the payments were not received." | Shown after auto-cancellation |
+| 23 | Time under which resident/tenant has to make a payment in case booking is made under 44 hours or less (In Hours) | number | 2 | Helper: "for e.g for 2 Hours just enter 2" |
+| 24 | Preauthorization time (In Minutes) | number | 5760 | = 4 days. Long helper text: "This is the time which stipulates how long before the booking starts should an email go out to resident that he/she can now make a damage deposit payment. In case online payments work then residents will be able to make damage deposit payment, only these many minutes before the booking start date as mentioned. Necessary because in case of online payments we can only hold onto payments for 4 days therefore if a booking is made 10 days in advance, the damage deposit of the resident would have been re-deposited to resident's account after 4 days. Don't add or delete in case you don't know the intended purpose for this setting." |
+| 25 | Preauthorization Text | textarea | "Please be advised that you can now make damage deposit payments." | Sent to resident when payment window opens |
+| 26 | Online Payments are allowed? | checkbox | ❌ OFF | **Triggers conditional Stripe fields** (see Section 9.8) |
+| 27 | Allow Manual Fee Recording | checkbox | ✅ ON | Allows staff to manually record payments |
+| 28 | Disable Reminder Emails? | checkbox | ✅ ON | Suppresses automated booking reminders |
+| 29 | Allow Multiple Bookings per day | checkbox | ✅ ON | |
+| 30 | Reverse meaning of expiry? | checkbox | ❌ OFF | Label warns: "(Don't change unless you know what you are doing)" |
+| 31 | Maximum Advance Booking (In Minutes) | number | 524160 | ≈ 364 days (nearly 1 year) |
+
+### 9.4 Section: Time Related Information
+
+| # | Field Label | Type | Default | Notes |
+|---|-------------|------|---------|-------|
+| 32 | Fixed Start and End Time | checkbox | ✅ ON | When ON, amenity has a single fixed time slot |
+| 33 | Fixed Start Time | time picker | "" | Appears when Fixed Start and End Time is ON |
+| 34 | Fixed End Time | time picker | "" | Appears when Fixed Start and End Time is ON |
+| 35 | Block Monday? | checkbox | ❌ OFF | Prevents bookings on this day |
+| 36 | Block Tuesday? | checkbox | ❌ OFF | |
+| 37 | Block Wednesday? | checkbox | ❌ OFF | |
+| 38 | Block Thursday? | checkbox | ❌ OFF | |
+| 39 | Block Friday? | checkbox | ❌ OFF | |
+| 40 | Block Saturday? | checkbox | ❌ OFF | |
+| 41 | Block Sunday? | checkbox | ❌ OFF | |
+| 42 | Flexible Start and End Time | checkbox | ❌ OFF | Label: "Flexible Start and End Time (Note: End time will be calculated based on max duration. Only use it for single day bookings with multiple time slots. e.g Elevator)" |
+
+### 9.5 Section: Extra Guard Related Information
+
+| # | Field Label | Type | Default | Notes |
+|---|-------------|------|---------|-------|
+| 43 | Ask if Alcohol will be served? | checkbox | ❌ OFF | Label: "Useful if the amenity is a party room" |
+| 44 | Ask if Kitchen should be reserved? | checkbox | ❌ OFF | Label: "Useful if the amenity is a party room" |
+| 45 | Extra Guard May be Required? | checkbox | ❌ OFF | Label: "Specifically helpful in relation to party room bookings" — **triggers conditional guard fields** (see Section 9.8) |
+
+### 9.6 Section: Comments
+
+| # | Field Label | Type | Default | Notes |
+|---|-------------|------|---------|-------|
+| 46 | Comments | textarea | "" | Free-text admin comments about the amenity |
+
+### 9.7 Section: COVID / Miscellaneous Settings
+
+| # | Field Label | Type | Default | Notes |
+|---|-------------|------|---------|-------|
+| 47 | Do you want residents to submit a covid form for this amenity reservation | checkbox | ❌ OFF | Legacy COVID-era feature still present |
+| 48 | Is this a frequently booked amenity? | checkbox | ❌ OFF | Section header: "Covid appropriate frequently booked amenity?" |
+
+### 9.8 Conditional Fields (appear based on checkbox toggles)
+
+These fields were NOT captured on the `/new-amenity` page because their parent checkboxes were OFF, but they are documented from the View/Edit Amenity pages (Section 3):
+
+**When "Is this an elevator?" is ON:**
+- Move-In Fee, Move-Out Fee, Delivery Fee (separate from Unit Price)
+- Elevator-specific damage deposit
+
+**When "Extra Guard May be Required?" is ON:**
+- Guest Threshold (number above which guard is required)
+- Guard Fee ($)
+- Tax on Guard Fee (%)
+- Statutory Fee Percent (%)
+- Additional Guard Hours
+
+**When "Online Payments are allowed?" is ON:**
+- Stripe Public Key
+- Stripe Private Key
+- Who Pays Transaction Fee (dropdown)
+- Optionally: Guard fee payment Stripe keys (separate key pair)
+
+### 9.9 Form Action
+
+| Button | Action |
+|--------|--------|
+| **Save** | Creates the amenity and redirects to amenity listing |
+
+### 9.10 Key Observations
+
+1. **49 visible fields** across 7 sections — the most complex admin form in the entire Aquarius platform
+2. **Preauthorization logic is complex** — 4-day Stripe hold limit drives the entire payment timing architecture
+3. **COVID form toggle still present** — legacy feature not removed, suggests no cleanup process
+4. **"Reverse meaning of expiry"** — cryptic label with explicit warning. Likely inverts the cancellation/payment deadline logic
+5. **Elevator gets special treatment** — dedicated checkbox that zeroes out standard pricing and adds elevator-specific fee fields
+6. **Day-blocking is per-checkbox, not a multi-select** — 7 individual checkboxes for each day of the week
+7. **Building assignment is multi-select** — one amenity definition can serve multiple buildings
+8. **Approval is two-tier** — Property Manager AND Site Supervisor can each independently require approval
+9. **Maximum Advance Booking defaults to ~1 year** (524,160 minutes) — effectively unlimited by default
+10. **No minimum booking lead time field** — residents can theoretically book same-day unless blocked by cancellation time logic
 
 ---
 
