@@ -20,6 +20,7 @@
 We've reverse-engineered three live production platforms:
 
 ### Platform 1: Aquarius (ICON Condo Management)
+
 - **Property**: ~500+ units observed
 - **Documentation**: 24 files, 500+ fields, 2,200+ line design system
 - **Location**: `docs/` (root-level files)
@@ -27,6 +28,7 @@ We've reverse-engineered three live production platforms:
 - **Weaknesses**: Dated UI, single-channel notifications, no equipment/inspection tracking, rigid 6-log-type architecture
 
 ### Platform 2: BuildingLink
+
 - **Property**: Queensway Park Condos - TSCC 2934 (171 units, Duka Property Management)
 - **Documentation**: 5 files + comparison matrix
 - **Location**: `docs/platform-2/`
@@ -34,6 +36,7 @@ We've reverse-engineered three live production platforms:
 - **Weaknesses**: Inconsistent UI (half modern, half legacy ASP.NET), feature bloat, hostile premium gating, no design system
 
 ### Platform 3: Condo Control
+
 - **Property**: M.T.C.C. 872 (Toronto, ON)
 - **Documentation**: 16 files (15 deep-dives + README), 5,649 lines
 - **Location**: `docs/platform-3/`
@@ -44,6 +47,7 @@ We've reverse-engineered three live production platforms:
 - **Role Limitation**: Security & Concierge role cannot access admin/settings, user management, maintenance module, vendor management, parking management, or financial settings — these features may exist but are undocumented
 
 ### Platform Comparison: `docs/PLATFORM-COMPARISON.md`
+
 - **Three-way comparison**: Aquarius vs BuildingLink vs Condo Control across 79+ features
 - BuildingLink is broadest, Aquarius is deepest in security/access, Condo Control is most modern UI with unique training features
 
@@ -54,6 +58,7 @@ We've reverse-engineered three live production platforms:
 ### 1. Architecture: Unified Event Model (from BuildingLink)
 
 **DO NOT** build 6 hardcoded log types like Aquarius. Instead:
+
 - Everything is an "Event" with configurable Event Types grouped into Event Groups
 - Properties can add/remove/customize event types without code changes
 - Each event type gets: icon, color, notification template, display settings
@@ -62,6 +67,7 @@ We've reverse-engineered three live production platforms:
 ### 2. Design: Apple-Grade Minimalism (our own)
 
 The full design system is at `docs/DESIGN-SYSTEM.md` (2,243 lines). Key principles:
+
 - White backgrounds, clean typography, no gradients or decoration
 - Color is ONLY for status and actions
 - Role-aware: different roles see different dashboards
@@ -79,17 +85,18 @@ The full design system is at `docs/DESIGN-SYSTEM.md` (2,243 lines). Key principl
 
 This is our key differentiator that NEITHER platform does:
 
-| Role | Primary View | What They See | What's Hidden |
-|------|-------------|---------------|---------------|
-| **Front Desk / Concierge** | Event grid + quick actions | Package intake, visitor log, shift notes, unit instructions | Alteration projects, financial reports, board governance |
-| **Security Guard** | Security dashboard | Incident log, parking violations, FOB tracking, emergency contacts, camera feeds | Maintenance requests, purchase orders, surveys |
-| **Property Manager** | Management dashboard | All maintenance, vendor compliance, alteration tracking, reports, financials | Batch package entry, shift log |
-| **Board Member** | Governance view | Reports, financials, alteration approvals, building analytics | Operational details, individual unit data |
-| **Resident** | Resident portal | Their packages, maintenance requests, bookings, announcements | Everything else |
+| Role                       | Primary View               | What They See                                                                    | What's Hidden                                            |
+| -------------------------- | -------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **Front Desk / Concierge** | Event grid + quick actions | Package intake, visitor log, shift notes, unit instructions                      | Alteration projects, financial reports, board governance |
+| **Security Guard**         | Security dashboard         | Incident log, parking violations, FOB tracking, emergency contacts, camera feeds | Maintenance requests, purchase orders, surveys           |
+| **Property Manager**       | Management dashboard       | All maintenance, vendor compliance, alteration tracking, reports, financials     | Batch package entry, shift log                           |
+| **Board Member**           | Governance view            | Reports, financials, alteration approvals, building analytics                    | Operational details, individual unit data                |
+| **Resident**               | Resident portal            | Their packages, maintenance requests, bookings, announcements                    | Everything else                                          |
 
 ### 5. Feature Prioritization
 
 #### Must-Have for v1 (from BOTH platforms)
+
 1. **Unified event logging** — Configurable event types with courier-specific package tracking
 2. **Maintenance requests** — Rich form with photo/document uploads, vendor assignment, equipment linkage
 3. **Unit management** — Modular overview with custom fields, per-unit instructions
@@ -101,7 +108,19 @@ This is our key differentiator that NEITHER platform does:
 9. **Shift log** — Always-accessible staff handoff notes
 10. **Search** — Global search across all modules
 
+#### Must-Have for v1 (Business Operations)
+
+11. **Demo environment** — Sales demo with mock data + training sandbox for new staff (PRD 21)
+12. **Marketing website** — Landing page, login routing, vanity URLs per property (PRD 22)
+13. **Onboarding wizard** — 8-step guided property setup, under 30 minutes to go-live (PRD 23)
+14. **Billing & subscription** — Stripe integration, 3 tiers, invoicing, dunning (PRD 24)
+15. **Help center** — In-app contextual help, knowledge base, support tickets (PRD 25)
+16. **Developer portal & API** — REST API, webhooks, API keys, SDKs (PRD 26)
+17. **Data migration** — Import/export, CSV mapping, DSAR compliance, competitor migration (PRD 27)
+18. **Compliance reports** — 8 report types, monitoring dashboards, audit automation (PRD 28)
+
 #### Must-Have for v2
+
 1. **Equipment tracking** — Lifecycle management with categories and replacement reports
 2. **Inspections** — Mobile-first with checklists, GPS verification
 3. **Recurring tasks** — Preventive maintenance scheduler with forecasting
@@ -112,11 +131,13 @@ This is our key differentiator that NEITHER platform does:
 8. **Reports & analytics** — Exportable reports with Excel/PDF generation
 
 #### Must-Have for v2 (continued, from Platform 3)
+
 9. **Training/LMS module** — Staff training with quizzes and pass/fail tracking (from Condo Control, unique feature)
 10. **Classified Ads** — Resident marketplace for community engagement (from Condo Control)
 11. **Login audit trail** — Recent Account Activity with device, IP, status tracking (from Condo Control)
 
 #### Nice-to-Have (v3+)
+
 1. Know your residents (gamified staff training)
 2. Public display/digital signage
 3. Photo albums
@@ -133,6 +154,7 @@ This is our key differentiator that NEITHER platform does:
 ## Critical Design Insights from Research
 
 ### What BuildingLink Gets Right (Steal These)
+
 1. **Courier-specific package icons** — Amazon/FedEx/UPS logos on cards. Instant visual recognition.
 2. **Vendor insurance compliance dashboard** — 5-status cards (compliant/not/expiring/expired/not tracking). Proactive.
 3. **Modular unit overview** — Drag-reorderable widget sections. Staff customizes their view.
@@ -143,6 +165,7 @@ This is our key differentiator that NEITHER platform does:
 8. **Per-unit front desk instructions** — Unit 815 has a dog that bites. Unit 302 is deaf, use the doorbell twice. Critical context.
 
 ### What BuildingLink Gets Wrong (Avoid These)
+
 1. **Inconsistent UI** — Modern pages mixed with 2008-era ASP.NET. Pick one design language and stick to it.
 2. **Feature gating by showing disabled fields** — Signature, Photo, Driver's License visible but greyed out. This is hostile UX. Don't show what users can't use.
 3. **Feature bloat in navigation** — 60+ menu items overwhelm. Use role-aware nav to show only relevant items.
@@ -150,6 +173,7 @@ This is our key differentiator that NEITHER platform does:
 5. **Game inside a management tool** — "Know Your Residents" is fun but doesn't belong in primary navigation. If we build it, make it a training module, not a sidebar item.
 
 ### What Aquarius Gets Right (Keep These)
+
 1. **FOB/key management with serial numbers** — 6 FOB slots, 2 buzzer codes, 2 garage clickers per user. Physical security matters.
 2. **Dedicated security menu** — Security isn't just another event type. It deserves its own workflow.
 3. **Emergency contacts prominently featured** — Dedicated tab on every resident. 2 clicks to find next-of-kin.
@@ -160,6 +184,7 @@ This is our key differentiator that NEITHER platform does:
 8. **Storage spot tracking** — Where physically is this package stored? Dropdown selection.
 
 ### What Condo Control Gets Right (Steal These)
+
 1. **Training/LMS module** — Built-in staff training with quizzes, pass/fail tracking, and course management. Neither Aquarius nor BuildingLink has this. Essential for high-turnover concierge teams.
 2. **Unified security console with 7 entry types** — Parcels, Visitors, Incidents, Keys, Pass-On Log, Cleaning, Notes all in one interface with color-coded cards. Best implementation of the unified event model concept.
 3. **Login audit trail** — Recent Account Activity shows every login with device, IP, and status. Essential security feature for condo environments.
@@ -170,6 +195,7 @@ This is our key differentiator that NEITHER platform does:
 8. **Report builder with 23 report types** — Comprehensive reporting across all modules with date filtering, CSV/Excel/PDF export.
 
 ### What Condo Control Gets Wrong (Avoid These)
+
 1. **Mixed architecture** — Modern SPA pages alongside legacy ASP.NET WebForms (.aspx). Change Password and Email Preferences feel like a different product. Pick one stack.
 2. **Role-gated features with broken links** — Package Preferences sidebar link visible but tab hidden for Security role. Link should be hidden too. Silent failures are hostile UX.
 3. **No self-service profile editing** — Users can't update their own name, email, or phone. Admin dependency for basic info changes.
@@ -179,6 +205,7 @@ This is our key differentiator that NEITHER platform does:
 7. **Training module lacks content management** — Good concept but the quiz builder and content authoring tools feel limited compared to dedicated LMS platforms.
 
 ### What Aquarius Gets Wrong (Fix These)
+
 1. **6 rigid log types** — Can't add new types without code changes. Inflexible.
 2. **Table-only display** — No card view, no visual scanning for front desk.
 3. **Email-only notifications** — No SMS, no push, no voice. It's 2026.
@@ -192,11 +219,13 @@ This is our key differentiator that NEITHER platform does:
 ## Technical Architecture Notes
 
 ### URL Structure (from Aquarius research)
+
 Complete URL map at `docs/url-map.md` — 41 routes documented.
 
 ### Data Model Insights
 
 #### Events (unified model)
+
 ```
 Event
 ├── id (auto-generated)
@@ -220,6 +249,7 @@ Event
 ```
 
 #### Unit (modular overview)
+
 ```
 Unit
 ├── id, number, floor, building
@@ -240,6 +270,7 @@ Unit
 ```
 
 #### Maintenance Request (rich model)
+
 ```
 MaintenanceRequest
 ├── id, unit_id, description (4000 char)
@@ -266,6 +297,7 @@ MaintenanceRequest
 ## Deduced Workflows (from observation, not documentation)
 
 Full workflow chains are documented in `docs/DESIGN-SYSTEM.md` Section 20.3, including:
+
 1. Package Release Flow (8 steps)
 2. Group Permission Editing (5 steps)
 3. Resident Onboarding Workflow (7 steps)
@@ -280,70 +312,98 @@ Full workflow chains are documented in `docs/DESIGN-SYSTEM.md` Section 20.3, inc
 ## File Inventory
 
 ### Root
-| File | Purpose |
-|------|---------|
+
+| File        | Purpose                                                |
+| ----------- | ------------------------------------------------------ |
 | `CLAUDE.md` | **This file** — project intelligence for every session |
 
 ### `docs/` — Platform 1 (Aquarius) Documentation
-| File | Content | Fields |
-|------|---------|--------|
-| `DESIGN-SYSTEM.md` | Complete design system + workflows | 2,243 lines |
-| `README.md` | Documentation overview | — |
-| `dashboard.md` | Dashboard layout and widgets | ~20 |
-| `unit-file.md` | Unit management fields | ~25 |
-| `amenities.md` | Amenity booking system | ~15 |
-| `search.md` | Global search system | ~6 |
-| `emergency.md` | Emergency contacts | ~8 |
-| `top-navigation.md` | Top nav and search | ~12 |
-| `security-menu.md` | Security features | ~15 |
-| `announcement.md` | Announcement system | ~8 |
-| `advertisement.md` | Advertisement management | ~5 |
-| `maintenance.md` | Maintenance requests | ~15 |
-| `contractors.md` | Contractor directory | ~6 |
-| `survey.md` | Survey builder | ~10 |
-| `library.md` | Document library | ~8 |
-| `store.md` | Online store | ~10 |
-| `events.md` | Community events | ~12 |
-| `reports.md` | Report generation | ~8 |
-| `logs.md` | 6 log types with form specs | ~85 |
-| `settings.md` | 8 settings tabs | ~120 |
-| `packages.md` | Package lifecycle | ~30 |
-| `user-profile.md` | 6 profile tabs | ~40 |
-| `user-management.md` | User management | ~5 |
-| `create-unit.md` | Unit creation | ~20 |
-| `preferences.md` | Notification preferences | ~10 |
-| `url-map.md` | Complete URL routing (41 routes) | — |
+
+| File                 | Content                            | Fields      |
+| -------------------- | ---------------------------------- | ----------- |
+| `DESIGN-SYSTEM.md`   | Complete design system + workflows | 2,243 lines |
+| `README.md`          | Documentation overview             | —           |
+| `dashboard.md`       | Dashboard layout and widgets       | ~20         |
+| `unit-file.md`       | Unit management fields             | ~25         |
+| `amenities.md`       | Amenity booking system             | ~15         |
+| `search.md`          | Global search system               | ~6          |
+| `emergency.md`       | Emergency contacts                 | ~8          |
+| `top-navigation.md`  | Top nav and search                 | ~12         |
+| `security-menu.md`   | Security features                  | ~15         |
+| `announcement.md`    | Announcement system                | ~8          |
+| `advertisement.md`   | Advertisement management           | ~5          |
+| `maintenance.md`     | Maintenance requests               | ~15         |
+| `contractors.md`     | Contractor directory               | ~6          |
+| `survey.md`          | Survey builder                     | ~10         |
+| `library.md`         | Document library                   | ~8          |
+| `store.md`           | Online store                       | ~10         |
+| `events.md`          | Community events                   | ~12         |
+| `reports.md`         | Report generation                  | ~8          |
+| `logs.md`            | 6 log types with form specs        | ~85         |
+| `settings.md`        | 8 settings tabs                    | ~120        |
+| `packages.md`        | Package lifecycle                  | ~30         |
+| `user-profile.md`    | 6 profile tabs                     | ~40         |
+| `user-management.md` | User management                    | ~5          |
+| `create-unit.md`     | Unit creation                      | ~20         |
+| `preferences.md`     | Notification preferences           | ~10         |
+| `url-map.md`         | Complete URL routing (41 routes)   | —           |
 
 ### `docs/platform-2/` — Platform 2 (BuildingLink) Documentation
-| File | Content |
-|------|---------|
-| `README.md` | Full platform overview, navigation structure, 23 differentiators |
-| `event-log.md` | Event type system, card grid, batch creation, general settings |
-| `maintenance.md` | 7 maintenance sub-modules with field-level documentation |
-| `manage-and-communicate.md` | 23 sub-sections across Manage and Communicate |
-| `unique-features.md` | 23 features not found in Aquarius |
+
+| File                        | Content                                                          |
+| --------------------------- | ---------------------------------------------------------------- |
+| `README.md`                 | Full platform overview, navigation structure, 23 differentiators |
+| `event-log.md`              | Event type system, card grid, batch creation, general settings   |
+| `maintenance.md`            | 7 maintenance sub-modules with field-level documentation         |
+| `manage-and-communicate.md` | 23 sub-sections across Manage and Communicate                    |
+| `unique-features.md`        | 23 features not found in Aquarius                                |
 
 ### `docs/platform-3/` — Platform 3 (Condo Control) Documentation
-| File | Content | Lines |
-|------|---------|-------|
-| `README.md` | Platform overview, navigation structure, strengths/weaknesses | 192 |
-| `deep-dive-dashboard.md` | Dashboard widgets, quick actions, weather | 340 |
-| `deep-dive-my-account.md` | 6 tabs + Change Password + Email Preferences | 436 |
-| `deep-dive-amenity-booking.md` | Calendar/list views, payment, approval workflows | 739 |
-| `deep-dive-announcements.md` | Announcement creation and distribution | 249 |
-| `deep-dive-classified-ads.md` | Community marketplace (unique to P3) | 269 |
-| `deep-dive-events.md` | Community events module | 280 |
-| `deep-dive-library.md` | File library with categories | 340 |
-| `deep-dive-reports.md` | 23 report types with export | 374 |
-| `deep-dive-security-concierge.md` | 7 entry types, unified console (largest file) | 863 |
-| `deep-dive-sidebar-navigation.md` | 14 sidebar items, collapsible nav | 220 |
-| `deep-dive-store.md` | Store module (non-functional) | 98 |
-| `deep-dive-survey.md` | Survey module (nearly empty) | 115 |
-| `deep-dive-training.md` | LMS/Training module (unique to P3) | 389 |
-| `deep-dive-unit-file.md` | Unit management, resident profiles | 349 |
-| `deep-dive-buzzer-codes.md` | Buzzer code admin directory | 217 |
+
+| File                              | Content                                                       | Lines |
+| --------------------------------- | ------------------------------------------------------------- | ----- |
+| `README.md`                       | Platform overview, navigation structure, strengths/weaknesses | 192   |
+| `deep-dive-dashboard.md`          | Dashboard widgets, quick actions, weather                     | 340   |
+| `deep-dive-my-account.md`         | 6 tabs + Change Password + Email Preferences                  | 436   |
+| `deep-dive-amenity-booking.md`    | Calendar/list views, payment, approval workflows              | 739   |
+| `deep-dive-announcements.md`      | Announcement creation and distribution                        | 249   |
+| `deep-dive-classified-ads.md`     | Community marketplace (unique to P3)                          | 269   |
+| `deep-dive-events.md`             | Community events module                                       | 280   |
+| `deep-dive-library.md`            | File library with categories                                  | 340   |
+| `deep-dive-reports.md`            | 23 report types with export                                   | 374   |
+| `deep-dive-security-concierge.md` | 7 entry types, unified console (largest file)                 | 863   |
+| `deep-dive-sidebar-navigation.md` | 14 sidebar items, collapsible nav                             | 220   |
+| `deep-dive-store.md`              | Store module (non-functional)                                 | 98    |
+| `deep-dive-survey.md`             | Survey module (nearly empty)                                  | 115   |
+| `deep-dive-training.md`           | LMS/Training module (unique to P3)                            | 389   |
+| `deep-dive-unit-file.md`          | Unit management, resident profiles                            | 349   |
+| `deep-dive-buzzer-codes.md`       | Buzzer code admin directory                                   | 217   |
+
+### `docs/prd/` — Product Requirements Documents (PRDs 21-28: Business Operations)
+
+| File                         | Module                                                                  | Lines  |
+| ---------------------------- | ----------------------------------------------------------------------- | ------ |
+| `21-demo-environment.md`     | Demo Environment — Sales demo + training sandbox system                 | ~950   |
+| `22-marketing-website.md`    | Marketing Website — Customer-facing website, login routing, vanity URLs | ~1,000 |
+| `23-onboarding-wizard.md`    | Onboarding Wizard — 8-step guided property setup                        | ~750   |
+| `24-billing-subscription.md` | Billing & Subscription — Stripe integration, tiers, invoicing, dunning  | ~780   |
+| `25-help-center.md`          | Help Center — In-app help, knowledge base, support tickets              | ~600   |
+| `26-developer-portal-api.md` | Developer Portal & API — REST API, webhooks, API keys, SDKs             | ~760   |
+| `27-data-migration.md`       | Data Migration — Import/export, CSV mapping, DSAR, competitor migration | ~1,290 |
+| `28-compliance-reports.md`   | Compliance Reports — 8 compliance reports, monitoring, audit automation | ~1,400 |
+
+### `docs/tech/` — Technical Documentation
+
+| File                      | Content                                          |
+| ------------------------- | ------------------------------------------------ |
+| `INTERNATIONALIZATION.md` | i18n strategy (en + fr-CA)                       |
+| `FEATURE-FLAGS.md`        | Per-property feature flag system                 |
+| `ANALYTICS-FRAMEWORK.md`  | Privacy-respecting product analytics             |
+| `DATA-QUALITY.md`         | Validation, duplicate detection, quality scoring |
+| `TESTING-STRATEGY.md`     | Testing pyramid, CI/CD, security testing         |
 
 ### `docs/PLATFORM-COMPARISON.md`
+
 Three-way feature matrix: 79+ features compared across all 3 platforms, Concierge decisions for each.
 
 ---
@@ -351,6 +411,7 @@ Three-way feature matrix: 79+ features compared across all 3 platforms, Concierg
 ## Development Reminders
 
 ### When building any feature, check:
+
 1. **DESIGN-SYSTEM.md** — For component specs, colors, typography, spacing
 2. **PLATFORM-COMPARISON.md** — For the "Concierge Decision" column on that feature
 3. **The relevant Aquarius doc** — For field-level detail
@@ -359,6 +420,7 @@ Three-way feature matrix: 79+ features compared across all 3 platforms, Concierg
 6. **This file's "Critical Design Insights"** — For what to steal vs avoid from ALL 3 platforms
 
 ### Design Non-Negotiables
+
 - White backgrounds. No dark sidebars, no gradient headers.
 - Role-aware navigation. Don't show 60 menu items to everyone.
 - Progressive disclosure. Advanced features hide until needed.
@@ -366,6 +428,7 @@ Three-way feature matrix: 79+ features compared across all 3 platforms, Concierg
 - Every field must earn its place. If it's not used 80% of the time, hide it.
 
 ### Technical Non-Negotiables
+
 - Unified event model with configurable types. NOT hardcoded log types.
 - Multi-channel notifications from day one. Email + SMS + Push.
 - Custom fields as JSONB, not schema changes per property.
@@ -375,6 +438,12 @@ Three-way feature matrix: 79+ features compared across all 3 platforms, Concierg
 
 ---
 
-*Last updated: 2026-03-14*
-*Platforms researched: 3 (Aquarius, BuildingLink, Condo Control)*
-*Total documentation: 46 files, ~10,000 lines, 800+ fields documented*
+### Business Operations
+
+- **BUSINESS-OPERATIONS.md** — Demo environments, customer-facing website, onboarding wizard, multi-property management, white-label branding, billing, help center, status page, developer portal, data import/export, compliance reports
+
+---
+
+_Last updated: 2026-03-16_
+_Platforms researched: 3 (Aquarius, BuildingLink, Condo Control)_
+_Total documentation: 60+ files, ~20,000 lines, 800+ fields documented_

@@ -50,13 +50,13 @@ Every row of data belongs to a property. Management companies oversee multiple p
 
 The same API endpoint returns different data shapes and action sets based on the authenticated user's role. This is not simple permission gating — it is a fundamentally different experience per role:
 
-| Role | Primary View | Core Actions | Hidden From |
-|------|-------------|-------------|-------------|
-| **Front Desk / Concierge** | Event grid + quick actions | Package intake, visitor log, shift notes, unit instructions | Alteration projects, financial reports, board governance |
-| **Security Guard** | Security dashboard | Incident log, parking violations, FOB tracking, emergency contacts, camera feeds | Maintenance requests, purchase orders, surveys |
-| **Property Manager** | Management dashboard | All maintenance, vendor compliance, alteration tracking, reports, financials | Batch package entry, shift log |
-| **Board Member** | Governance view | Reports, financials, alteration approvals, building analytics | Operational details, individual unit data |
-| **Resident** | Resident portal | Their packages, maintenance requests, bookings, announcements | All staff and administrative functions |
+| Role                       | Primary View               | Core Actions                                                                     | Hidden From                                              |
+| -------------------------- | -------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **Front Desk / Concierge** | Event grid + quick actions | Package intake, visitor log, shift notes, unit instructions                      | Alteration projects, financial reports, board governance |
+| **Security Guard**         | Security dashboard         | Incident log, parking violations, FOB tracking, emergency contacts, camera feeds | Maintenance requests, purchase orders, surveys           |
+| **Property Manager**       | Management dashboard       | All maintenance, vendor compliance, alteration tracking, reports, financials     | Batch package entry, shift log                           |
+| **Board Member**           | Governance view            | Reports, financials, alteration approvals, building analytics                    | Operational details, individual unit data                |
+| **Resident**               | Resident portal            | Their packages, maintenance requests, bookings, announcements                    | All staff and administrative functions                   |
 
 Navigation menus, dashboard widgets, available actions, and even the data columns in tables adapt per role. Features a user cannot access must be completely invisible — never shown in a disabled or grayed-out state.
 
@@ -77,6 +77,7 @@ AI capabilities are exposed through an internal gateway service that any module 
 WebSocket connections deliver live updates for collaborative staff scenarios. When one concierge logs a package, every other staff member viewing the package list sees the new entry appear without refreshing.
 
 Real-time updates apply to:
+
 - Event creation, status changes, and closures
 - Maintenance request updates
 - Shift log entries
@@ -86,6 +87,7 @@ Real-time updates apply to:
 ### 2.6 Offline-First Mobile
 
 Mobile clients must function during network interruptions:
+
 - All read data is cached locally
 - Create and update operations are queued with timestamps
 - On reconnect, queued operations sync with conflict detection
@@ -95,19 +97,19 @@ Mobile clients must function during network interruptions:
 
 The following must be configurable by Super Admin or Property Admin without code changes:
 
-| Configurable Element | Scope | Who Configures |
-|---------------------|-------|---------------|
-| Event Types and Event Groups | Per property (with system defaults) | Property Admin |
-| Custom fields on any entity | Per property, per entity type | Property Admin |
-| Notification templates | Per property, per event type, per channel | Property Admin |
-| Roles and permissions | Per property (with system defaults) | Super Admin |
-| Maintenance categories | Per property | Property Admin |
-| Amenity rules and pricing | Per amenity | Property Admin |
-| Report definitions | Per property | Property Admin |
-| Dashboard widget layout | Per user | Individual user |
-| Branding (logo, colors) | Per property | Property Admin |
-| Translation overrides | Per property, per locale | Property Admin |
-| Supported locales | Per property | Property Admin |
+| Configurable Element         | Scope                                     | Who Configures  |
+| ---------------------------- | ----------------------------------------- | --------------- |
+| Event Types and Event Groups | Per property (with system defaults)       | Property Admin  |
+| Custom fields on any entity  | Per property, per entity type             | Property Admin  |
+| Notification templates       | Per property, per event type, per channel | Property Admin  |
+| Roles and permissions        | Per property (with system defaults)       | Super Admin     |
+| Maintenance categories       | Per property                              | Property Admin  |
+| Amenity rules and pricing    | Per amenity                               | Property Admin  |
+| Report definitions           | Per property                              | Property Admin  |
+| Dashboard widget layout      | Per user                                  | Individual user |
+| Branding (logo, colors)      | Per property                              | Property Admin  |
+| Translation overrides        | Per property, per locale                  | Property Admin  |
+| Supported locales            | Per property                              | Property Admin  |
 
 ---
 
@@ -150,6 +152,7 @@ Event
 ```
 
 **Key design decisions**:
+
 - `custom_fields` as JSONB allows each event type to define its own data shape without schema migrations. A "Package" event type might require `courier`, `tracking_number`, `storage_spot`. A "Noise Complaint" event type might require `noise_type`, `duration`, `decibel_estimate`.
 - `ai_metadata` is a separate JSONB column so AI-generated data never contaminates human-entered data and can be independently cleared or regenerated.
 - `reference_number` is auto-generated per property (e.g., `PKG-2026-00147`) for verbal communication — staff and residents refer to events by reference number, not UUID.
@@ -189,16 +192,16 @@ EventType
 
 **Examples of event types a property might configure**:
 
-| Event Type | Group | Icon | Color | Auto-Notify | Fields |
-|-----------|-------|------|-------|------------|--------|
-| Amazon Package | Packages | Amazon logo | `#FF9900` | Yes | courier, tracking_number, storage_spot, perishable |
-| FedEx Package | Packages | FedEx logo | `#4D148C` | Yes | courier, tracking_number, storage_spot |
-| Noise Complaint | Security Incidents | Alert icon | `#FF3B30` | No | noise_type, duration, floor_affected |
-| Fire Alarm | Security Incidents | Fire icon | `#FF3B30` | No | alarm_zone, false_alarm, fire_dept_called |
-| Visitor Check-In | Visitors | Person icon | `#5AC8FA` | Yes | visitor_name, visiting_unit, id_type, vehicle_plate |
-| Cleaning Completed | Cleaning | Sparkle icon | `#34C759` | No | area_cleaned, cleaning_type |
-| Shift Note | Shift Log | Note icon | `#6E6E73` | No | note_category, priority_for_next_shift |
-| Key Checkout | Key Management | Key icon | `#FF9500` | No | key_type, checkout_reason, id_verified |
+| Event Type         | Group              | Icon         | Color     | Auto-Notify | Fields                                              |
+| ------------------ | ------------------ | ------------ | --------- | ----------- | --------------------------------------------------- |
+| Amazon Package     | Packages           | Amazon logo  | `#FF9900` | Yes         | courier, tracking_number, storage_spot, perishable  |
+| FedEx Package      | Packages           | FedEx logo   | `#4D148C` | Yes         | courier, tracking_number, storage_spot              |
+| Noise Complaint    | Security Incidents | Alert icon   | `#FF3B30` | No          | noise_type, duration, floor_affected                |
+| Fire Alarm         | Security Incidents | Fire icon    | `#FF3B30` | No          | alarm_zone, false_alarm, fire_dept_called           |
+| Visitor Check-In   | Visitors           | Person icon  | `#5AC8FA` | Yes         | visitor_name, visiting_unit, id_type, vehicle_plate |
+| Cleaning Completed | Cleaning           | Sparkle icon | `#34C759` | No          | area_cleaned, cleaning_type                         |
+| Shift Note         | Shift Log          | Note icon    | `#6E6E73` | No          | note_category, priority_for_next_shift              |
+| Key Checkout       | Key Management     | Key icon     | `#FF9500` | No          | key_type, checkout_reason, id_verified              |
 
 ### 3.3 EventGroup
 
@@ -222,14 +225,14 @@ EventGroup
 
 The Unified Event Model is not a generic logging system — it is the operational backbone. Other modules extend or specialize it:
 
-| Module | Relationship to Events |
-|--------|----------------------|
-| **Packages** | Package intake creates an Event of a package-type EventType. Package release closes the event. The package module provides a specialized UI (courier icons, label printing, batch intake) but the underlying data is an Event. |
-| **Security** | Incidents, parking violations, key checkouts, and authorized entries are all Events with security-group EventTypes. The security module provides a dedicated dashboard with filtering and escalation workflows. |
-| **Visitor Management** | Visitor check-ins and check-outs are Events. Pre-authorized visitors create draft Events that are confirmed on arrival. |
-| **Shift Log** | Shift notes are Events in the "Shift Log" group. They are always accessible from a persistent UI element (not buried in navigation). |
-| **Cleaning** | Cleaning log entries are Events. Checklists attach as structured custom_fields. |
-| **Maintenance** | Maintenance requests have their own entity (see Section 4) because they require a richer data model (vendor assignment, equipment linkage, work orders). However, creating a maintenance request also generates a correlated Event for the unified timeline. |
+| Module                 | Relationship to Events                                                                                                                                                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Packages**           | Package intake creates an Event of a package-type EventType. Package release closes the event. The package module provides a specialized UI (courier icons, label printing, batch intake) but the underlying data is an Event.                               |
+| **Security**           | Incidents, parking violations, key checkouts, and authorized entries are all Events with security-group EventTypes. The security module provides a dedicated dashboard with filtering and escalation workflows.                                              |
+| **Visitor Management** | Visitor check-ins and check-outs are Events. Pre-authorized visitors create draft Events that are confirmed on arrival.                                                                                                                                      |
+| **Shift Log**          | Shift notes are Events in the "Shift Log" group. They are always accessible from a persistent UI element (not buried in navigation).                                                                                                                         |
+| **Cleaning**           | Cleaning log entries are Events. Checklists attach as structured custom_fields.                                                                                                                                                                              |
+| **Maintenance**        | Maintenance requests have their own entity (see Section 4) because they require a richer data model (vendor assignment, equipment linkage, work orders). However, creating a maintenance request also generates a correlated Event for the unified timeline. |
 
 ---
 
@@ -400,6 +403,7 @@ Role
 **System default roles**: Super Admin, Property Admin, Property Manager, Front Desk / Concierge, Security Guard, Maintenance Staff, Board Member, Resident, Owner, Tenant.
 
 **Permission structure** (within the JSONB `permissions` field):
+
 ```
 {
   "events": { "create": true, "read": true, "update": true, "delete": false, "batch_create": true },
@@ -549,6 +553,7 @@ NotificationPreference
 ```
 
 **Preference structure**:
+
 ```
 {
   "packages": { "email": true, "sms": true, "push": true },
@@ -916,21 +921,21 @@ CustomFieldDefinition
 
 ### 5.4 Supported Field Types
 
-| Field Type | Input Component | Storage Format | Searchable | Filterable |
-|-----------|----------------|---------------|:----------:|:----------:|
-| text | Text input (single line) | String | Yes | Yes (contains) |
-| textarea | Multi-line text area | String | Yes | No |
-| number | Number input (integer) | Integer | Yes | Yes (range) |
-| decimal | Number input (2 decimal places) | Decimal | Yes | Yes (range) |
-| date | Date picker | ISO 8601 date | Yes | Yes (range) |
-| datetime | Date + time picker | ISO 8601 datetime | Yes | Yes (range) |
-| dropdown | Select menu | String (selected value) | Yes | Yes (exact) |
-| multi_select | Multi-select checkboxes | Array of strings | Yes | Yes (contains any) |
-| checkbox | Single checkbox | Boolean | No | Yes (true/false) |
-| file | File upload | Attachment ID reference | No | No |
-| url | URL input with validation | String | No | No |
-| email | Email input with validation | String | Yes | No |
-| phone | Phone input with formatting | String | Yes | No |
+| Field Type   | Input Component                 | Storage Format          | Searchable |     Filterable     |
+| ------------ | ------------------------------- | ----------------------- | :--------: | :----------------: |
+| text         | Text input (single line)        | String                  |    Yes     |   Yes (contains)   |
+| textarea     | Multi-line text area            | String                  |    Yes     |         No         |
+| number       | Number input (integer)          | Integer                 |    Yes     |    Yes (range)     |
+| decimal      | Number input (2 decimal places) | Decimal                 |    Yes     |    Yes (range)     |
+| date         | Date picker                     | ISO 8601 date           |    Yes     |    Yes (range)     |
+| datetime     | Date + time picker              | ISO 8601 datetime       |    Yes     |    Yes (range)     |
+| dropdown     | Select menu                     | String (selected value) |    Yes     |    Yes (exact)     |
+| multi_select | Multi-select checkboxes         | Array of strings        |    Yes     | Yes (contains any) |
+| checkbox     | Single checkbox                 | Boolean                 |     No     |  Yes (true/false)  |
+| file         | File upload                     | Attachment ID reference |     No     |         No         |
+| url          | URL input with validation       | String                  |     No     |         No         |
+| email        | Email input with validation     | String                  |    Yes     |         No         |
+| phone        | Phone input with formatting     | String                  |    Yes     |         No         |
 
 ---
 
@@ -940,12 +945,12 @@ CustomFieldDefinition
 
 Concierge supports four notification channels from day one:
 
-| Channel | Use Cases | Delivery Speed | Cost |
-|---------|----------|:-------------:|:----:|
-| **Email** | Detailed notifications, documents, receipts | Minutes | Low |
-| **SMS** | Time-sensitive alerts, confirmations | Seconds | Medium |
-| **Push** | Real-time updates, reminders | Seconds | Free |
-| **Voice** | Emergency broadcasts, critical escalations | Seconds | High |
+| Channel   | Use Cases                                   | Delivery Speed |  Cost  |
+| --------- | ------------------------------------------- | :------------: | :----: |
+| **Email** | Detailed notifications, documents, receipts |    Minutes     |  Low   |
+| **SMS**   | Time-sensitive alerts, confirmations        |    Seconds     | Medium |
+| **Push**  | Real-time updates, reminders                |    Seconds     |  Free  |
+| **Voice** | Emergency broadcasts, critical escalations  |    Seconds     |  High  |
 
 ### 6.2 Notification Flow
 
@@ -989,6 +994,7 @@ Notification Service
 ### 6.5 Emergency Override
 
 Notifications classified as `emergency` bypass all user preferences and are sent on every available channel. This is used for:
+
 - Fire alarms
 - Building evacuations
 - Security threats
@@ -999,6 +1005,7 @@ Emergency broadcasts cascade through channels: Push (instant) → SMS (seconds) 
 ### 6.6 Smart Batching
 
 The AI service layer can group related notifications to prevent notification fatigue:
+
 - If 5 packages arrive for the same unit within 10 minutes, send one notification listing all 5
 - If a maintenance request is updated 3 times in an hour, batch into a single "status update" notification
 - Batching rules are configurable per property and per event type
@@ -1038,6 +1045,7 @@ AI Gateway
 ### 7.3 Privacy and PII
 
 Before any data leaves the platform for an AI API call:
+
 - PII fields (names, phone numbers, email addresses, unit numbers) are detected and replaced with anonymous tokens
 - AI responses are de-tokenized before being stored or displayed
 - Properties can opt out of AI features entirely
@@ -1054,13 +1062,13 @@ Before any data leaves the platform for an AI API call:
 
 Every feature that uses AI must define a non-AI fallback:
 
-| AI Feature | What It Does | Fallback Without AI |
-|-----------|-------------|-------------------|
-| Event classification | Suggests event type from description | Manual selection from dropdown |
-| Priority recommendation | Suggests priority level | Default priority from event type |
-| Smart search | Semantic search across entities | Full-text keyword search |
-| Notification batching | Groups related notifications | Time-based batching (configurable window) |
-| Report insights | Natural language summary of trends | Raw data tables and charts |
+| AI Feature              | What It Does                         | Fallback Without AI                       |
+| ----------------------- | ------------------------------------ | ----------------------------------------- |
+| Event classification    | Suggests event type from description | Manual selection from dropdown            |
+| Priority recommendation | Suggests priority level              | Default priority from event type          |
+| Smart search            | Semantic search across entities      | Full-text keyword search                  |
+| Notification batching   | Groups related notifications         | Time-based batching (configurable window) |
+| Report insights         | Natural language summary of trends   | Raw data tables and charts                |
 
 ### 7.6 Prompt Library
 
@@ -1081,18 +1089,18 @@ The platform provides a unified search experience accessible from any page via k
 
 Global search spans all modules and entity types:
 
-| Searchable Entity | Indexed Fields | Example Query |
-|------------------|---------------|--------------|
-| Unit | number, floor, building name, custom fields | "Unit 1205" |
-| User / Resident | first_name, last_name, email, phone | "Sarah Chen" |
-| Event | title, description, reference_number, custom fields | "PKG-2026-00147" |
-| MaintenanceRequest | title, description, reference_number, category | "leaking faucet" |
-| Amenity | name, description, location | "party room" |
-| Announcement | title, body | "holiday hours" |
-| Document | title, description, category | "fire safety plan" |
-| Vendor | company_name, contact_name, specialty | "ABC Plumbing" |
-| Equipment | name, serial_number, model | "elevator motor" |
-| TrainingCourse | title, description | "fire safety training" |
+| Searchable Entity  | Indexed Fields                                      | Example Query          |
+| ------------------ | --------------------------------------------------- | ---------------------- |
+| Unit               | number, floor, building name, custom fields         | "Unit 1205"            |
+| User / Resident    | first_name, last_name, email, phone                 | "Sarah Chen"           |
+| Event              | title, description, reference_number, custom fields | "PKG-2026-00147"       |
+| MaintenanceRequest | title, description, reference_number, category      | "leaking faucet"       |
+| Amenity            | name, description, location                         | "party room"           |
+| Announcement       | title, body                                         | "holiday hours"        |
+| Document           | title, description, category                        | "fire safety plan"     |
+| Vendor             | company_name, contact_name, specialty               | "ABC Plumbing"         |
+| Equipment          | name, serial_number, model                          | "elevator motor"       |
+| TrainingCourse     | title, description                                  | "fire safety training" |
 
 ### 8.3 Search Capabilities
 
@@ -1138,19 +1146,20 @@ AuditEntry
 
 ### 9.2 What Is Audited
 
-| Category | Events Logged |
-|----------|-------------|
-| **Authentication** | Login (success/failure), logout, password change, 2FA enable/disable |
-| **Data changes** | Every create, update, delete on any entity — with old and new values |
-| **Access** | Who viewed which resident's data, which unit file was opened |
-| **Exports** | Who exported what data, in what format, how many records |
-| **Permissions** | Role assignments, permission changes, user status changes |
-| **Notifications** | What was sent, to whom, on which channel, delivery status |
+| Category            | Events Logged                                                          |
+| ------------------- | ---------------------------------------------------------------------- |
+| **Authentication**  | Login (success/failure), logout, password change, 2FA enable/disable   |
+| **Data changes**    | Every create, update, delete on any entity — with old and new values   |
+| **Access**          | Who viewed which resident's data, which unit file was opened           |
+| **Exports**         | Who exported what data, in what format, how many records               |
+| **Permissions**     | Role assignments, permission changes, user status changes              |
+| **Notifications**   | What was sent, to whom, on which channel, delivery status              |
 | **AI interactions** | Which AI features were invoked, by whom (prompt content is not stored) |
 
 ### 9.3 Login Audit Trail
 
 A dedicated view shows recent account activity per user:
+
 - Timestamp of every login and logout
 - IP address and geolocation (city/country)
 - Device and browser information
@@ -1180,16 +1189,17 @@ A dedicated view shows recent account activity per user:
 
 Management companies with multiple properties see a portfolio-level dashboard:
 
-| Widget | Content |
-|--------|---------|
-| Property overview cards | Key metrics per property (open events, pending maintenance, occupancy) |
-| Cross-property alerts | Vendor insurance expiring, equipment due for replacement, training overdue |
-| Aggregated reports | Combined metrics across all properties with drill-down |
-| Staff allocation | Which staff are assigned to which properties, shift coverage |
+| Widget                  | Content                                                                    |
+| ----------------------- | -------------------------------------------------------------------------- |
+| Property overview cards | Key metrics per property (open events, pending maintenance, occupancy)     |
+| Cross-property alerts   | Vendor insurance expiring, equipment due for replacement, training overdue |
+| Aggregated reports      | Combined metrics across all properties with drill-down                     |
+| Staff allocation        | Which staff are assigned to which properties, shift coverage               |
 
 ### 10.3 Shared Configuration
 
 Management companies can create shared templates that properties inherit:
+
 - Event Types (e.g., a standard set of package courier types)
 - Notification Templates
 - Training Courses and Learning Paths
@@ -1209,47 +1219,47 @@ Properties can use shared templates as-is or clone and customize them.
 
 ## 11. Data Model Summary Table
 
-| Entity | Primary Fields (Top 5) | Owned By Module | Key Relationships |
-|--------|----------------------|----------------|-------------------|
-| **Property** | name, address, timezone, default_locale, supported_locales[] | Core | → ManagementCompany, → Buildings[], → Users[] |
-| **ManagementCompany** | name, properties[], admins[] | Core | → Properties[], → Users[] |
-| **Building** | name, address, total_floors, total_units | Core | → Property, → Units[] |
-| **Unit** | number, floor, unit_type, status, square_footage | Core | → Building, → Users[], → Events[], → FOBs[] |
-| **UnitInstruction** | instruction_text, priority, visible_to_roles[], active | Core | → Unit |
-| **User** | email, first_name, last_name, role_id, preferred_locale | Core | → Role, → Unit, → Properties[] |
-| **Role** | name, permissions, visible_modules[], hierarchy_level | Core | → Users[] |
-| **Event** | title, status, priority, event_type_id, reference_number | Events | → EventType, → Property, → Unit, → User |
-| **EventType** | name, icon, color, default_priority, group_id | Events | → EventGroup, → Property, → NotificationTemplates |
-| **EventGroup** | name, icon, color, visible_to_roles[] | Events | → EventTypes[], → Property |
-| **MaintenanceRequest** | title, description, status, priority, category_id | Maintenance | → Property, → Unit, → User, → Vendor, → Equipment |
-| **Amenity** | name, capacity, requires_approval, price_per_slot | Amenities | → Property, → Reservations[] |
-| **AmenityReservation** | start_time, end_time, status, payment_status | Amenities | → Amenity, → Unit, → User |
-| **Announcement** | title, body, type, distribution_channels[], published_at | Communication | → Property, → User (author) |
-| **Notification** | channel, subject, body, status, sent_at | Communication | → User, → NotificationTemplate |
-| **NotificationPreference** | preferences (JSONB per module per channel) | Communication | → User, → Property |
-| **NotificationTemplate** | name, channel, subject_template, body_template | Communication | → Property |
-| **TrainingCourse** | title, description, passing_score, estimated_duration | Training | → Property, → Quiz, → LearningPath |
-| **LearningPath** | name, courses[], required_for_roles[], deadline_days | Training | → Property, → TrainingCourses[] |
-| **Quiz** | questions[], passing_score, max_attempts | Training | → TrainingCourse |
-| **UserCourseProgress** | status, score, attempts, completed_at | Training | → User, → TrainingCourse |
-| **ClassifiedAd** | title, description, category, price, status | Community | → Property, → User, → Unit |
-| **Idea** | title, description, status, upvotes | Community | → Property, → User |
-| **ParkingPermit** | permit_type_id, parking_area, spot_number, valid_until | Parking | → Property, → Unit, → User, → Vehicle |
-| **ParkingViolation** | violation_type, license_plate, status, location | Parking | → Property, → Event |
-| **Vendor** | company_name, specialty, insurance_status, insurance_expiry | Vendors | → Property, → MaintenanceRequests[] |
-| **Equipment** | name, category_id, serial_number, status, location | Equipment | → Property, → MaintenanceRequests[] |
-| **Attachment** | file_name, file_type, file_size, storage_url | Core | Polymorphic → any entity |
-| **Document** | title, category, visible_to_roles[], published | Library | → Property, → Attachment |
-| **ShiftLog** | content, shift_date, shift_period, priority_for_next_shift | Operations | → Property, → Event, → User |
-| **EmergencyContact** | contact_name, relationship, phone_primary | Core | → User, → Unit |
-| **FOB** | serial_number, fob_type, status, issued_date | Security | → Property, → Unit, → User |
-| **BuzzerCode** | code, label, active | Security | → Property, → Unit |
-| **GarageClicker** | serial_number, status, issued_date | Security | → Property, → Unit, → User |
-| **Vehicle** | make, model, license_plate, color, year | Core | → User, → Unit |
-| **Pet** | name, species, breed, weight | Core | → User, → Unit |
-| **AuditEntry** | action, actor_id, entity_type, changes, ip_address | Audit | → Property, → User |
-| **TranslationOverride** | locale, namespace, key, value | i18n | → Property, → User (created_by) |
-| **CustomFieldDefinition** | field_key, field_label, field_type, entity_type | Core | → Property, → EventType |
+| Entity                     | Primary Fields (Top 5)                                       | Owned By Module | Key Relationships                                 |
+| -------------------------- | ------------------------------------------------------------ | --------------- | ------------------------------------------------- |
+| **Property**               | name, address, timezone, default_locale, supported_locales[] | Core            | → ManagementCompany, → Buildings[], → Users[]     |
+| **ManagementCompany**      | name, properties[], admins[]                                 | Core            | → Properties[], → Users[]                         |
+| **Building**               | name, address, total_floors, total_units                     | Core            | → Property, → Units[]                             |
+| **Unit**                   | number, floor, unit_type, status, square_footage             | Core            | → Building, → Users[], → Events[], → FOBs[]       |
+| **UnitInstruction**        | instruction_text, priority, visible_to_roles[], active       | Core            | → Unit                                            |
+| **User**                   | email, first_name, last_name, role_id, preferred_locale      | Core            | → Role, → Unit, → Properties[]                    |
+| **Role**                   | name, permissions, visible_modules[], hierarchy_level        | Core            | → Users[]                                         |
+| **Event**                  | title, status, priority, event_type_id, reference_number     | Events          | → EventType, → Property, → Unit, → User           |
+| **EventType**              | name, icon, color, default_priority, group_id                | Events          | → EventGroup, → Property, → NotificationTemplates |
+| **EventGroup**             | name, icon, color, visible_to_roles[]                        | Events          | → EventTypes[], → Property                        |
+| **MaintenanceRequest**     | title, description, status, priority, category_id            | Maintenance     | → Property, → Unit, → User, → Vendor, → Equipment |
+| **Amenity**                | name, capacity, requires_approval, price_per_slot            | Amenities       | → Property, → Reservations[]                      |
+| **AmenityReservation**     | start_time, end_time, status, payment_status                 | Amenities       | → Amenity, → Unit, → User                         |
+| **Announcement**           | title, body, type, distribution_channels[], published_at     | Communication   | → Property, → User (author)                       |
+| **Notification**           | channel, subject, body, status, sent_at                      | Communication   | → User, → NotificationTemplate                    |
+| **NotificationPreference** | preferences (JSONB per module per channel)                   | Communication   | → User, → Property                                |
+| **NotificationTemplate**   | name, channel, subject_template, body_template               | Communication   | → Property                                        |
+| **TrainingCourse**         | title, description, passing_score, estimated_duration        | Training        | → Property, → Quiz, → LearningPath                |
+| **LearningPath**           | name, courses[], required_for_roles[], deadline_days         | Training        | → Property, → TrainingCourses[]                   |
+| **Quiz**                   | questions[], passing_score, max_attempts                     | Training        | → TrainingCourse                                  |
+| **UserCourseProgress**     | status, score, attempts, completed_at                        | Training        | → User, → TrainingCourse                          |
+| **ClassifiedAd**           | title, description, category, price, status                  | Community       | → Property, → User, → Unit                        |
+| **Idea**                   | title, description, status, upvotes                          | Community       | → Property, → User                                |
+| **ParkingPermit**          | permit_type_id, parking_area, spot_number, valid_until       | Parking         | → Property, → Unit, → User, → Vehicle             |
+| **ParkingViolation**       | violation_type, license_plate, status, location              | Parking         | → Property, → Event                               |
+| **Vendor**                 | company_name, specialty, insurance_status, insurance_expiry  | Vendors         | → Property, → MaintenanceRequests[]               |
+| **Equipment**              | name, category_id, serial_number, status, location           | Equipment       | → Property, → MaintenanceRequests[]               |
+| **Attachment**             | file_name, file_type, file_size, storage_url                 | Core            | Polymorphic → any entity                          |
+| **Document**               | title, category, visible_to_roles[], published               | Library         | → Property, → Attachment                          |
+| **ShiftLog**               | content, shift_date, shift_period, priority_for_next_shift   | Operations      | → Property, → Event, → User                       |
+| **EmergencyContact**       | contact_name, relationship, phone_primary                    | Core            | → User, → Unit                                    |
+| **FOB**                    | serial_number, fob_type, status, issued_date                 | Security        | → Property, → Unit, → User                        |
+| **BuzzerCode**             | code, label, active                                          | Security        | → Property, → Unit                                |
+| **GarageClicker**          | serial_number, status, issued_date                           | Security        | → Property, → Unit, → User                        |
+| **Vehicle**                | make, model, license_plate, color, year                      | Core            | → User, → Unit                                    |
+| **Pet**                    | name, species, breed, weight                                 | Core            | → User, → Unit                                    |
+| **AuditEntry**             | action, actor_id, entity_type, changes, ip_address           | Audit           | → Property, → User                                |
+| **TranslationOverride**    | locale, namespace, key, value                                | i18n            | → Property, → User (created_by)                   |
+| **CustomFieldDefinition**  | field_key, field_label, field_type, entity_type              | Core            | → Property, → EventType                           |
 
 ---
 
@@ -1289,11 +1299,11 @@ This means a property can enable French without translating every custom string.
 
 ### 12.2 Supported Languages at Launch
 
-| Locale Code | Language | Reason |
-|------------|----------|--------|
-| `en-US` | English (US) | System default and base language |
-| `en-CA` | English (Canadian) | Canadian spelling and date formats (e.g., "colour", dd/mm/yyyy) |
-| `fr-CA` | French (Canadian) | Required for Quebec properties and bilingual Ontario buildings |
+| Locale Code | Language           | Reason                                                          |
+| ----------- | ------------------ | --------------------------------------------------------------- |
+| `en-US`     | English (US)       | System default and base language                                |
+| `en-CA`     | English (Canadian) | Canadian spelling and date formats (e.g., "colour", dd/mm/yyyy) |
+| `fr-CA`     | French (Canadian)  | Required for Quebec properties and bilingual Ontario buildings  |
 
 Additional locales can be added post-launch without code changes — only new translation JSON files are needed.
 
@@ -1316,6 +1326,7 @@ TranslationOverride
 ```
 
 **Use cases for overrides**:
+
 - A property calls its amenity "Party Suite" instead of the default "Party Room"
 - A property uses industry-specific terminology in French that differs from the system default
 - Custom event type names need translated labels
@@ -1327,11 +1338,13 @@ TranslationOverride
 There are two categories of text in Concierge, and each is handled differently:
 
 **System UI strings** (labels, buttons, menus, error messages, status names):
+
 - Translated via the translation file system described above
 - Every key has a professional translation in all launch locales
 - Rendered in the viewer's preferred locale
 
 **User-generated content** (announcements, classified ads, event descriptions, maintenance notes):
+
 - Stored in the language the author wrote it in
 - **AI auto-translation**: When a property has multiple supported locales, the AI service layer (via the AI Gateway — see Section 7) can auto-translate user-generated content on demand. For example, a Property Manager writes an announcement in English and the system generates a French version for `fr-CA` residents. This is capability #45 as defined in PRD 09 (Announcements & Communication).
 - Auto-translated content is clearly labeled as machine-translated so readers know it was not written by the author
@@ -1351,14 +1364,15 @@ Full RTL layout support for languages like Arabic and Hebrew is a **future consi
 
 All dates, times, numbers, and currencies are formatted using **locale-aware formatting** (via the `Intl` API on the client and equivalent libraries server-side). Nothing is hardcoded to a single format.
 
-| Data Type | en-US | en-CA | fr-CA |
-|-----------|-------|-------|-------|
-| Date | 03/14/2026 | 2026-03-14 | 2026-03-14 |
-| Time | 2:30 PM | 2:30 p.m. | 14 h 30 |
-| Currency | $1,250.00 | $1,250.00 | 1 250,00 $ |
-| Numbers | 1,250.50 | 1,250.50 | 1 250,50 |
+| Data Type | en-US      | en-CA      | fr-CA      |
+| --------- | ---------- | ---------- | ---------- |
+| Date      | 03/14/2026 | 2026-03-14 | 2026-03-14 |
+| Time      | 2:30 PM    | 2:30 p.m.  | 14 h 30    |
+| Currency  | $1,250.00  | $1,250.00  | 1 250,00 $ |
+| Numbers   | 1,250.50   | 1,250.50   | 1 250,50   |
 
 **Rules**:
+
 - The property's timezone (`Property.timezone`) governs time display. Users always see times in the building's local timezone, regardless of their browser timezone.
 - Currency symbol and format follow the active locale
 - Relative timestamps ("5 minutes ago", "il y a 5 minutes") are locale-aware
@@ -1369,11 +1383,11 @@ All dates, times, numbers, and currencies are formatted using **locale-aware for
 
 Three fields across two entities support the i18n system:
 
-| Entity | Field | Type | Purpose |
-|--------|-------|------|---------|
-| `User` | `preferred_locale` | varchar 10, nullable | The user's chosen language. When null, falls back to the property default. |
-| `Property` | `default_locale` | varchar 10, default `"en-US"` | The property's primary language for all UI and notifications. |
-| `Property` | `supported_locales[]` | varchar 10 array | All locales enabled for this property. Controls which languages appear in the user language picker and which notification template translations are required. |
+| Entity     | Field                 | Type                          | Purpose                                                                                                                                                       |
+| ---------- | --------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `User`     | `preferred_locale`    | varchar 10, nullable          | The user's chosen language. When null, falls back to the property default.                                                                                    |
+| `Property` | `default_locale`      | varchar 10, default `"en-US"` | The property's primary language for all UI and notifications.                                                                                                 |
+| `Property` | `supported_locales[]` | varchar 10 array              | All locales enabled for this property. Controls which languages appear in the user language picker and which notification template translations are required. |
 
 **Locale picker**: Users see a language selector in their profile settings. The options come from `Property.supported_locales[]`. Changing the locale immediately re-renders the entire UI — no page reload is needed.
 
@@ -1404,21 +1418,21 @@ All data is encrypted twice: once by the storage layer (at rest) and once by the
 
 #### At-Rest Encryption
 
-| Aspect | Specification |
-|--------|--------------|
-| **Algorithm** | AES-256 (Advanced Encryption Standard, 256-bit keys) |
-| **Scope** | All databases, file storage buckets, backup archives, log archives, search indexes |
+| Aspect             | Specification                                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| **Algorithm**      | AES-256 (Advanced Encryption Standard, 256-bit keys)                                                                |
+| **Scope**          | All databases, file storage buckets, backup archives, log archives, search indexes                                  |
 | **Implementation** | Storage-layer encryption enabled on every volume and bucket -- no unencrypted storage exists anywhere in the system |
-| **Key storage** | Keys are never stored alongside the data they protect |
+| **Key storage**    | Keys are never stored alongside the data they protect                                                               |
 
 #### In-Transit Encryption
 
-| Aspect | Specification |
-|--------|--------------|
-| **Protocol** | TLS 1.3 minimum for all connections (client-to-server, server-to-server, server-to-database, server-to-cache) |
-| **Older protocols** | TLS 1.0 and 1.1 are rejected. TLS 1.2 is accepted only as a fallback for legacy integrations and must be approved per-integration. |
-| **Certificate management** | Automated certificate provisioning and renewal (no manual certificate rotation) |
-| **Internal traffic** | All internal service-to-service communication uses mutual TLS (mTLS) -- even within the same data center |
+| Aspect                     | Specification                                                                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Protocol**               | TLS 1.3 minimum for all connections (client-to-server, server-to-server, server-to-database, server-to-cache)                      |
+| **Older protocols**        | TLS 1.0 and 1.1 are rejected. TLS 1.2 is accepted only as a fallback for legacy integrations and must be approved per-integration. |
+| **Certificate management** | Automated certificate provisioning and renewal (no manual certificate rotation)                                                    |
+| **Internal traffic**       | All internal service-to-service communication uses mutual TLS (mTLS) -- even within the same data center                           |
 
 #### Application-Level PII Encryption (Double Encryption Layer)
 
@@ -1426,15 +1440,15 @@ Sensitive PII fields are encrypted by the application before being written to th
 
 **Fields with application-level encryption**:
 
-| Entity | Field | Data Type | Why It Needs Double Encryption |
-|--------|-------|-----------|-------------------------------|
-| `Resident` | `email` | varchar 320 (encrypted blob up to 1024 bytes) | Primary contact, identity anchor |
-| `Resident` | `phone` | varchar 20 (encrypted blob up to 512 bytes) | Personal contact number |
-| `Resident` | `emergency_contacts` | JSONB (encrypted blob up to 4096 bytes) | Contains names, phones, and relationships of third parties who did not consent to the platform |
-| `Incident` | `description` | text (encrypted blob up to 16384 bytes) | May contain witness names, suspect descriptions, medical details |
-| `Incident` | `suspect_info` | text (encrypted blob up to 8192 bytes) | Physical descriptions, identifying information |
-| `Package` | `signature` | bytea (encrypted blob up to 65536 bytes) | Biometric-adjacent data (handwriting pattern) |
-| `MaintenanceRequest` | `entry_instructions` | text (encrypted blob up to 4096 bytes) | May contain alarm codes, key locations, access details |
+| Entity               | Field                | Data Type                                     | Why It Needs Double Encryption                                                                 |
+| -------------------- | -------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `Resident`           | `email`              | varchar 320 (encrypted blob up to 1024 bytes) | Primary contact, identity anchor                                                               |
+| `Resident`           | `phone`              | varchar 20 (encrypted blob up to 512 bytes)   | Personal contact number                                                                        |
+| `Resident`           | `emergency_contacts` | JSONB (encrypted blob up to 4096 bytes)       | Contains names, phones, and relationships of third parties who did not consent to the platform |
+| `Incident`           | `description`        | text (encrypted blob up to 16384 bytes)       | May contain witness names, suspect descriptions, medical details                               |
+| `Incident`           | `suspect_info`       | text (encrypted blob up to 8192 bytes)        | Physical descriptions, identifying information                                                 |
+| `Package`            | `signature`          | bytea (encrypted blob up to 65536 bytes)      | Biometric-adjacent data (handwriting pattern)                                                  |
+| `MaintenanceRequest` | `entry_instructions` | text (encrypted blob up to 4096 bytes)        | May contain alarm codes, key locations, access details                                         |
 
 **How it works**:
 
@@ -1447,15 +1461,15 @@ Sensitive PII fields are encrypted by the application before being written to th
 
 #### Encryption Key Management
 
-| Aspect | Specification |
-|--------|--------------|
-| **Key Management Service (KMS)** | Dedicated KMS (cloud-provider-managed or HashiCorp Vault). No keys stored in application code, environment variables, or config files. |
-| **Key hierarchy** | Master key (KMS-managed, never exported) > Property-level data encryption keys (DEKs) > wrapped with the master key |
-| **Key rotation** | Every 90 days (quarterly) for property-level DEKs. Master key rotated annually. |
-| **Rotation process** | New key encrypts new writes. Background job re-encrypts existing data with the new key within 72 hours. Old key retained in retired state until re-encryption completes. |
-| **Per-property keys (Premium tier)** | Each property gets its own DEK. Standard tier shares a DEK across properties but still has full row-level isolation. |
-| **Key access audit** | Every key usage (encrypt/decrypt) is logged with timestamp, user ID, and target field |
-| **Key compromise procedure** | If a key is suspected compromised: (1) generate new key immediately, (2) re-encrypt all data within 24 hours, (3) retire old key, (4) notify affected properties, (5) log incident in BreachIncident table |
+| Aspect                               | Specification                                                                                                                                                                                              |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Key Management Service (KMS)**     | Dedicated KMS (cloud-provider-managed or HashiCorp Vault). No keys stored in application code, environment variables, or config files.                                                                     |
+| **Key hierarchy**                    | Master key (KMS-managed, never exported) > Property-level data encryption keys (DEKs) > wrapped with the master key                                                                                        |
+| **Key rotation**                     | Every 90 days (quarterly) for property-level DEKs. Master key rotated annually.                                                                                                                            |
+| **Rotation process**                 | New key encrypts new writes. Background job re-encrypts existing data with the new key within 72 hours. Old key retained in retired state until re-encryption completes.                                   |
+| **Per-property keys (Premium tier)** | Each property gets its own DEK. Standard tier shares a DEK across properties but still has full row-level isolation.                                                                                       |
+| **Key access audit**                 | Every key usage (encrypt/decrypt) is logged with timestamp, user ID, and target field                                                                                                                      |
+| **Key compromise procedure**         | If a key is suspected compromised: (1) generate new key immediately, (2) re-encrypt all data within 24 hours, (3) retire old key, (4) notify affected properties, (5) log incident in BreachIncident table |
 
 ---
 
@@ -1463,22 +1477,23 @@ Sensitive PII fields are encrypted by the application before being written to th
 
 Backups run continuously and automatically. No human action is needed for routine backups. The system takes multiple backup types at different frequencies to balance recovery speed against storage cost.
 
-| Backup Type | Frequency | Description |
-|-------------|-----------|-------------|
-| **Point-in-time recovery (PITR)** | Continuous (every transaction) | Write-ahead log (WAL) streaming. Allows restoring the database to any second within the retention window. |
-| **Daily full snapshot** | Every 24 hours at 03:00 property-local-time | Complete database dump plus file storage snapshot. Taken during lowest-traffic window. |
-| **File/document replication** | Continuous | Photos, PDFs, signatures, and all uploaded files replicated to secondary storage with versioning enabled (last 30 versions retained per file). |
+| Backup Type                       | Frequency                                   | Description                                                                                                                                    |
+| --------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Point-in-time recovery (PITR)** | Continuous (every transaction)              | Write-ahead log (WAL) streaming. Allows restoring the database to any second within the retention window.                                      |
+| **Daily full snapshot**           | Every 24 hours at 03:00 property-local-time | Complete database dump plus file storage snapshot. Taken during lowest-traffic window.                                                         |
+| **File/document replication**     | Continuous                                  | Photos, PDFs, signatures, and all uploaded files replicated to secondary storage with versioning enabled (last 30 versions retained per file). |
 
 **Backup encryption**: Every backup is encrypted with AES-256 before it leaves the primary server. Backups at rest in secondary storage are encrypted with a separate backup-specific encryption key (not the same key as the production data).
 
 **Geographic redundancy**:
 
-| Location | Role | Purpose |
-|----------|------|---------|
-| **Primary** | Toronto (ca-central-1) | All production traffic, primary database, primary file storage |
-| **Secondary** | Montreal (ca-central-1b) or separate Canadian region | Backup storage, standby replica, failover target |
+| Location      | Role                                                 | Purpose                                                        |
+| ------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
+| **Primary**   | Toronto (ca-central-1)                               | All production traffic, primary database, primary file storage |
+| **Secondary** | Montreal (ca-central-1b) or separate Canadian region | Backup storage, standby replica, failover target               |
 
 **Rules**:
+
 - Minimum 2 copies of every backup in geographically separate locations (minimum 250 km apart)
 - Both locations must be within Canada (data residency requirement)
 - Secondary receives backup data within 15 minutes of creation
@@ -1490,27 +1505,28 @@ Backups run continuously and automatically. No human action is needed for routin
 
 Different backup types are retained for different periods based on recovery needs and compliance requirements.
 
-| Backup Type | Retention Period | Automated Deletion |
-|-------------|-----------------|-------------------|
-| Point-in-time recovery (PITR) | 7 days (continuous, rolling) | Oldest WAL segments purged as new ones arrive |
-| Daily snapshots | 30 days | Snapshot deleted on day 31 |
-| Weekly snapshots | 90 days | One snapshot per week promoted from daily; deleted after 90 days |
-| Monthly snapshots | 1 year (12 months) | One snapshot per month promoted from weekly; deleted after 12 months |
-| Annual snapshots | 7 years | One snapshot per year promoted from monthly; deleted after 7 years |
+| Backup Type                   | Retention Period             | Automated Deletion                                                   |
+| ----------------------------- | ---------------------------- | -------------------------------------------------------------------- |
+| Point-in-time recovery (PITR) | 7 days (continuous, rolling) | Oldest WAL segments purged as new ones arrive                        |
+| Daily snapshots               | 30 days                      | Snapshot deleted on day 31                                           |
+| Weekly snapshots              | 90 days                      | One snapshot per week promoted from daily; deleted after 90 days     |
+| Monthly snapshots             | 1 year (12 months)           | One snapshot per month promoted from weekly; deleted after 12 months |
+| Annual snapshots              | 7 years                      | One snapshot per year promoted from monthly; deleted after 7 years   |
 
 **Configurable retention**:
 
-| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
-|-------|-----------|-----------|----------|---------|------------|---------------|
-| `pitr_retention_days` | integer | -- | Yes | `7` | Min: 3, Max: 30 | "PITR retention must be between 3 and 30 days." |
-| `daily_retention_days` | integer | -- | Yes | `30` | Min: 7, Max: 90 | "Daily snapshot retention must be between 7 and 90 days." |
-| `weekly_retention_days` | integer | -- | Yes | `90` | Min: 30, Max: 365 | "Weekly snapshot retention must be between 30 and 365 days." |
-| `monthly_retention_months` | integer | -- | Yes | `12` | Min: 6, Max: 84 (7 years) | "Monthly snapshot retention must be between 6 and 84 months." |
-| `annual_retention_years` | integer | -- | Yes | `7` | Min: 1, Max: 25 | "Annual snapshot retention must be between 1 and 25 years." |
+| Field                      | Data Type | Max Length | Required | Default | Validation                | Error Message                                                 |
+| -------------------------- | --------- | ---------- | -------- | ------- | ------------------------- | ------------------------------------------------------------- |
+| `pitr_retention_days`      | integer   | --         | Yes      | `7`     | Min: 3, Max: 30           | "PITR retention must be between 3 and 30 days."               |
+| `daily_retention_days`     | integer   | --         | Yes      | `30`    | Min: 7, Max: 90           | "Daily snapshot retention must be between 7 and 90 days."     |
+| `weekly_retention_days`    | integer   | --         | Yes      | `90`    | Min: 30, Max: 365         | "Weekly snapshot retention must be between 30 and 365 days."  |
+| `monthly_retention_months` | integer   | --         | Yes      | `12`    | Min: 6, Max: 84 (7 years) | "Monthly snapshot retention must be between 6 and 84 months." |
+| `annual_retention_years`   | integer   | --         | Yes      | `7`     | Min: 1, Max: 25           | "Annual snapshot retention must be between 1 and 25 years."   |
 
 Properties in jurisdictions with longer legal retention requirements (e.g., Quebec condos under certain regulations) can extend any retention period up to the maximum.
 
 **Automated deletion**:
+
 - Expired backups are deleted automatically by a daily cleanup job running at 04:00 UTC
 - Every deletion is logged in the audit trail with: backup ID, backup type, original creation date, deletion reason ("retention expired"), and the retention policy that triggered it
 - Deletion audit entries are retained for 7 years (they are never auto-deleted)
@@ -1523,15 +1539,15 @@ Backups are useless if they are corrupted or incomplete. The system automaticall
 
 #### Automated Weekly Verification
 
-| Step | Action | Pass Criteria |
-|------|--------|--------------|
-| 1 | Restore the latest daily snapshot to an isolated environment | Restore completes without errors |
-| 2 | Compare database record counts against production | Counts match within 0.1% (accounts for records created during restore) |
-| 3 | Verify file checksums (random sample of 1000 files) | All checksums match |
-| 4 | Boot the application against the restored database | Application starts and responds to health-check endpoint within 60 seconds |
-| 5 | Run a read-only smoke test (query each table, load one record from each module) | All queries return results |
-| 6 | Log results to `BackupVerification` table | -- |
-| 7 | Tear down the isolated environment | -- |
+| Step | Action                                                                          | Pass Criteria                                                              |
+| ---- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 1    | Restore the latest daily snapshot to an isolated environment                    | Restore completes without errors                                           |
+| 2    | Compare database record counts against production                               | Counts match within 0.1% (accounts for records created during restore)     |
+| 3    | Verify file checksums (random sample of 1000 files)                             | All checksums match                                                        |
+| 4    | Boot the application against the restored database                              | Application starts and responds to health-check endpoint within 60 seconds |
+| 5    | Run a read-only smoke test (query each table, load one record from each module) | All queries return results                                                 |
+| 6    | Log results to `BackupVerification` table                                       | --                                                                         |
+| 7    | Tear down the isolated environment                                              | --                                                                         |
 
 #### Monthly Full Restore Drill
 
@@ -1542,22 +1558,22 @@ Backups are useless if they are corrupted or incomplete. The system automaticall
 
 #### Verification Alerts
 
-| Condition | Alert Channel | Recipients |
-|-----------|--------------|------------|
-| Weekly verification fails | Email + SMS | Super Admin |
-| Monthly drill exceeds RTO target (4 hours) | Email + SMS | Super Admin |
-| Checksum mismatch detected | Email + SMS + Push | Super Admin |
-| Verification has not run in 10+ days | Email | Super Admin |
+| Condition                                  | Alert Channel      | Recipients  |
+| ------------------------------------------ | ------------------ | ----------- |
+| Weekly verification fails                  | Email + SMS        | Super Admin |
+| Monthly drill exceeds RTO target (4 hours) | Email + SMS        | Super Admin |
+| Checksum mismatch detected                 | Email + SMS + Push | Super Admin |
+| Verification has not run in 10+ days       | Email              | Super Admin |
 
 #### Verification Result Fields
 
-| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
-|-------|-----------|-----------|----------|---------|------------|---------------|
-| `record_count_match` | boolean | -- | Yes | -- | Must be true or false | "Record count match status is required." |
-| `checksum_match` | boolean | -- | Yes | -- | Must be true or false | "Checksum match status is required." |
-| `boot_test_passed` | boolean | -- | Yes | -- | Must be true or false | "Boot test status is required." |
-| `duration_seconds` | integer | -- | Yes | -- | Min: 1, Max: 86400 | "Verification duration must be between 1 and 86400 seconds." |
-| `notes` | text | 2000 chars | No | `null` | Max length: 2000 | "Verification notes must not exceed 2000 characters." |
+| Field                | Data Type | Max Length | Required | Default | Validation            | Error Message                                                |
+| -------------------- | --------- | ---------- | -------- | ------- | --------------------- | ------------------------------------------------------------ |
+| `record_count_match` | boolean   | --         | Yes      | --      | Must be true or false | "Record count match status is required."                     |
+| `checksum_match`     | boolean   | --         | Yes      | --      | Must be true or false | "Checksum match status is required."                         |
+| `boot_test_passed`   | boolean   | --         | Yes      | --      | Must be true or false | "Boot test status is required."                              |
+| `duration_seconds`   | integer   | --         | Yes      | --      | Min: 1, Max: 86400    | "Verification duration must be between 1 and 86400 seconds." |
+| `notes`              | text      | 2000 chars | No       | `null`  | Max length: 2000      | "Verification notes must not exceed 2000 characters."        |
 
 ---
 
@@ -1567,25 +1583,25 @@ A disaster is any event that makes the primary region unable to serve production
 
 #### Recovery Objectives
 
-| Metric | Target | Meaning |
-|--------|--------|---------|
-| **RPO** (Recovery Point Objective) | 1 hour | Maximum acceptable data loss. In a worst-case scenario, at most 1 hour of data may be lost. In practice, PITR reduces this to seconds for most failures. |
-| **RTO** (Recovery Time Objective) | 4 hours | Maximum time from failure detection to full service restoration. Target is under 1 hour for automated failover scenarios. |
+| Metric                             | Target  | Meaning                                                                                                                                                  |
+| ---------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **RPO** (Recovery Point Objective) | 1 hour  | Maximum acceptable data loss. In a worst-case scenario, at most 1 hour of data may be lost. In practice, PITR reduces this to seconds for most failures. |
+| **RTO** (Recovery Time Objective)  | 4 hours | Maximum time from failure detection to full service restoration. Target is under 1 hour for automated failover scenarios.                                |
 
 #### Automated Failover Procedure
 
 This is the step-by-step process that runs when the primary region fails. It is designed to work without human intervention, though a Super Admin can trigger it manually at any time.
 
-| Step | What Happens | Timing |
-|------|-------------|--------|
-| 1 | **Detection**: Health-check probes (running every 10 seconds) detect that the primary region is not responding. | 0:00 |
-| 2 | **Confirmation**: System waits for 3 consecutive health-check failures, 30 seconds apart, to rule out transient network blips. | 0:00 -- 1:30 |
-| 3 | **DNS failover**: Automated DNS update routes all traffic from the primary region to the secondary region. DNS TTL is set to 60 seconds so clients pick up the change quickly. | 1:30 -- 3:00 |
-| 4 | **Database promotion**: The secondary (read-replica) database is promoted to become the new primary database. It accepts reads and writes. | 3:00 -- 5:00 |
-| 5 | **File storage switch**: Application switches to the secondary file storage replica. Uploads and downloads work against the secondary copy. | 5:00 -- 6:00 |
-| 6 | **Application servers start serving**: Application servers in the secondary region begin handling production traffic. | 6:00 -- 8:00 |
-| 7 | **Notification**: Super Admin receives SMS + email + push notification: "Automated failover complete. Primary region [name] is down. Secondary region [name] is now serving traffic." | 8:00 |
-| 8 | **Failback** (after primary recovers): Once the primary region is healthy again, data is synced from secondary back to primary. Failback is scheduled during a maintenance window to avoid disrupting users. | Manual |
+| Step | What Happens                                                                                                                                                                                                 | Timing       |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
+| 1    | **Detection**: Health-check probes (running every 10 seconds) detect that the primary region is not responding.                                                                                              | 0:00         |
+| 2    | **Confirmation**: System waits for 3 consecutive health-check failures, 30 seconds apart, to rule out transient network blips.                                                                               | 0:00 -- 1:30 |
+| 3    | **DNS failover**: Automated DNS update routes all traffic from the primary region to the secondary region. DNS TTL is set to 60 seconds so clients pick up the change quickly.                               | 1:30 -- 3:00 |
+| 4    | **Database promotion**: The secondary (read-replica) database is promoted to become the new primary database. It accepts reads and writes.                                                                   | 3:00 -- 5:00 |
+| 5    | **File storage switch**: Application switches to the secondary file storage replica. Uploads and downloads work against the secondary copy.                                                                  | 5:00 -- 6:00 |
+| 6    | **Application servers start serving**: Application servers in the secondary region begin handling production traffic.                                                                                        | 6:00 -- 8:00 |
+| 7    | **Notification**: Super Admin receives SMS + email + push notification: "Automated failover complete. Primary region [name] is down. Secondary region [name] is now serving traffic."                        | 8:00         |
+| 8    | **Failback** (after primary recovers): Once the primary region is healthy again, data is synced from secondary back to primary. Failback is scheduled during a maintenance window to avoid disrupting users. | Manual       |
 
 **Total automated failover time**: Under 10 minutes for most scenarios. The 4-hour RTO target accounts for worst-case scenarios requiring manual intervention.
 
@@ -1593,25 +1609,25 @@ This is the step-by-step process that runs when the primary region fails. It is 
 
 Super Admins can trigger failover manually from the Backup & Recovery Dashboard (PRD 16, Section 3.16.5):
 
-| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
-|-------|-----------|-----------|----------|---------|------------|---------------|
-| `confirmation_text` | varchar | 8 chars | Yes | -- | Must exactly equal `FAILOVER` (case-sensitive) | "Type FAILOVER to confirm. This action routes all traffic to the backup region." |
-| `reason` | text | 500 chars | Yes | -- | Min length: 10, Max length: 500 | "Please provide a reason for manual failover (10-500 characters)." |
+| Field               | Data Type | Max Length | Required | Default | Validation                                     | Error Message                                                                    |
+| ------------------- | --------- | ---------- | -------- | ------- | ---------------------------------------------- | -------------------------------------------------------------------------------- |
+| `confirmation_text` | varchar   | 8 chars    | Yes      | --      | Must exactly equal `FAILOVER` (case-sensitive) | "Type FAILOVER to confirm. This action routes all traffic to the backup region." |
+| `reason`            | text      | 500 chars  | Yes      | --      | Min length: 10, Max length: 500                | "Please provide a reason for manual failover (10-500 characters)."               |
 
 #### Failover History Fields
 
-| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
-|-------|-----------|-----------|----------|---------|------------|---------------|
-| `trigger_type` | enum | -- | Yes | -- | One of: `automated`, `manual` | "Trigger type must be automated or manual." |
-| `triggered_by` | UUID | -- | No | `null` (system for automated) | Valid user UUID if manual | "Invalid user ID for manual failover trigger." |
-| `source_region` | varchar | 50 chars | Yes | -- | Non-empty, valid region identifier | "Source region is required." |
-| `target_region` | varchar | 50 chars | Yes | -- | Non-empty, valid region identifier | "Target region is required." |
-| `started_at` | timestamp with timezone | -- | Yes | -- | Must be a valid ISO 8601 timestamp | "Valid start timestamp is required." |
-| `completed_at` | timestamp with timezone | -- | No | `null` | Must be after `started_at` | "Completion time must be after start time." |
-| `duration_seconds` | integer | -- | No | `null` | Min: 0, Max: 86400 | "Failover duration must be between 0 and 86400 seconds." |
-| `status` | enum | -- | Yes | `in_progress` | One of: `in_progress`, `completed`, `failed`, `rolled_back` | "Status must be one of: in_progress, completed, failed, rolled_back." |
-| `reason` | text | 500 chars | No | `null` | Max length: 500 | "Failover reason must not exceed 500 characters." |
-| `data_loss_seconds` | integer | -- | No | `null` | Min: 0 | "Data loss estimate cannot be negative." |
+| Field               | Data Type               | Max Length | Required | Default                       | Validation                                                  | Error Message                                                         |
+| ------------------- | ----------------------- | ---------- | -------- | ----------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| `trigger_type`      | enum                    | --         | Yes      | --                            | One of: `automated`, `manual`                               | "Trigger type must be automated or manual."                           |
+| `triggered_by`      | UUID                    | --         | No       | `null` (system for automated) | Valid user UUID if manual                                   | "Invalid user ID for manual failover trigger."                        |
+| `source_region`     | varchar                 | 50 chars   | Yes      | --                            | Non-empty, valid region identifier                          | "Source region is required."                                          |
+| `target_region`     | varchar                 | 50 chars   | Yes      | --                            | Non-empty, valid region identifier                          | "Target region is required."                                          |
+| `started_at`        | timestamp with timezone | --         | Yes      | --                            | Must be a valid ISO 8601 timestamp                          | "Valid start timestamp is required."                                  |
+| `completed_at`      | timestamp with timezone | --         | No       | `null`                        | Must be after `started_at`                                  | "Completion time must be after start time."                           |
+| `duration_seconds`  | integer                 | --         | No       | `null`                        | Min: 0, Max: 86400                                          | "Failover duration must be between 0 and 86400 seconds."              |
+| `status`            | enum                    | --         | Yes      | `in_progress`                 | One of: `in_progress`, `completed`, `failed`, `rolled_back` | "Status must be one of: in_progress, completed, failed, rolled_back." |
+| `reason`            | text                    | 500 chars  | No       | `null`                        | Max length: 500                                             | "Failover reason must not exceed 500 characters."                     |
+| `data_loss_seconds` | integer                 | --         | No       | `null`                        | Min: 0                                                      | "Data loss estimate cannot be negative."                              |
 
 ---
 
@@ -1621,26 +1637,27 @@ Every property's data is isolated from every other property's data. This is enfo
 
 #### Isolation Layers
 
-| Layer | Mechanism | What It Prevents |
-|-------|-----------|-----------------|
-| **Database (Row-Level Security)** | Every table includes a `property_id` column. PostgreSQL RLS policies ensure that every query is automatically scoped to the authenticated user's `property_id`. Even raw SQL run against the database cannot return rows from another property. | Database-level cross-property access |
-| **API layer** | The authentication token includes `property_id`. Every API handler extracts and enforces this value. There is no API endpoint that accepts a `property_id` as a user-supplied parameter (it always comes from the token). | Application-level cross-property access |
-| **Application logic** | All ORM queries include an automatic `.where(property_id = context.property_id)` scope. Developers cannot accidentally omit this -- it is injected by middleware. | Developer error |
-| **Search index** | Search indexes are partitioned by `property_id`. A search query for "John" in Property A never returns results from Property B. | Cross-property search leakage |
-| **File storage** | Uploaded files are stored in property-scoped paths (`/properties/{property_id}/files/`). Bucket policies prevent cross-path access. | Cross-property file access |
+| Layer                             | Mechanism                                                                                                                                                                                                                                       | What It Prevents                        |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| **Database (Row-Level Security)** | Every table includes a `property_id` column. PostgreSQL RLS policies ensure that every query is automatically scoped to the authenticated user's `property_id`. Even raw SQL run against the database cannot return rows from another property. | Database-level cross-property access    |
+| **API layer**                     | The authentication token includes `property_id`. Every API handler extracts and enforces this value. There is no API endpoint that accepts a `property_id` as a user-supplied parameter (it always comes from the token).                       | Application-level cross-property access |
+| **Application logic**             | All ORM queries include an automatic `.where(property_id = context.property_id)` scope. Developers cannot accidentally omit this -- it is injected by middleware.                                                                               | Developer error                         |
+| **Search index**                  | Search indexes are partitioned by `property_id`. A search query for "John" in Property A never returns results from Property B.                                                                                                                 | Cross-property search leakage           |
+| **File storage**                  | Uploaded files are stored in property-scoped paths (`/properties/{property_id}/files/`). Bucket policies prevent cross-path access.                                                                                                             | Cross-property file access              |
 
 #### Access Matrix
 
-| Role | Cross-Property Access | Audited |
-|------|----------------------|---------|
+| Role                         | Cross-Property Access                                          | Audited                                                     |
+| ---------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
 | Super Admin (platform level) | Yes -- can access all properties through the property switcher | Every access logged with property ID, timestamp, and action |
-| Property Admin | Only their assigned properties (1 or more) | Yes |
-| Property Manager | Only their assigned property (exactly 1) | Yes |
-| All other roles | Only their property (exactly 1) | Yes |
+| Property Admin               | Only their assigned properties (1 or more)                     | Yes                                                         |
+| Property Manager             | Only their assigned property (exactly 1)                       | Yes                                                         |
+| All other roles              | Only their property (exactly 1)                                | Yes                                                         |
 
 #### Premium Tier: Dedicated Connection Pools
 
 Properties on the premium tier get dedicated database connection pools. This provides:
+
 - Performance isolation: a traffic spike on Property A does not slow down Property B's queries
 - Enhanced security: connection credentials are unique per property
 - Easier compliance: connection logs can be filtered to a single property
@@ -1648,6 +1665,7 @@ Properties on the premium tier get dedicated database connection pools. This pro
 #### Breach Containment
 
 If one property's data is compromised:
+
 - Only that property's encryption key (DEK) is affected
 - All other properties use different DEKs and are not impacted
 - The compromised property's DEK is rotated immediately
@@ -1662,47 +1680,47 @@ Every field in the system is classified into one of three categories. This class
 
 #### Classification Tiers
 
-| Tier | Definition | Encryption | Access Logging | Examples |
-|------|-----------|------------|---------------|----------|
-| **Sensitive PII** | Data that could cause significant harm if exposed -- financial, medical, biometric-adjacent, or government-issued identifiers | Double encryption (application + storage layer) | Every read and write logged | Medical info in incident reports, photos of people, package signatures, suspect descriptions |
-| **PII** | Data that identifies a specific individual but is commonly shared (business cards, email signatures, etc.) | Standard encryption (storage layer) + application-level encryption for fields listed in Section 13.1 | Every write logged; reads logged for bulk access (export, search result sets > 50) | Name, email, phone, address, emergency contacts, vehicle license plates, FOB serial numbers |
-| **Non-PII** | Data that does not identify an individual, even when combined with other non-PII fields | Standard encryption (storage layer only) | Standard audit trail (no field-level logging) | Event counts, timestamps, configuration settings, anonymized analytics, system health metrics |
+| Tier              | Definition                                                                                                                    | Encryption                                                                                           | Access Logging                                                                     | Examples                                                                                      |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Sensitive PII** | Data that could cause significant harm if exposed -- financial, medical, biometric-adjacent, or government-issued identifiers | Double encryption (application + storage layer)                                                      | Every read and write logged                                                        | Medical info in incident reports, photos of people, package signatures, suspect descriptions  |
+| **PII**           | Data that identifies a specific individual but is commonly shared (business cards, email signatures, etc.)                    | Standard encryption (storage layer) + application-level encryption for fields listed in Section 13.1 | Every write logged; reads logged for bulk access (export, search result sets > 50) | Name, email, phone, address, emergency contacts, vehicle license plates, FOB serial numbers   |
+| **Non-PII**       | Data that does not identify an individual, even when combined with other non-PII fields                                       | Standard encryption (storage layer only)                                                             | Standard audit trail (no field-level logging)                                      | Event counts, timestamps, configuration settings, anonymized analytics, system health metrics |
 
 #### PII Field Inventory
 
-| Entity | Field | Classification | Encrypted at App Level | Max Length |
-|--------|-------|---------------|----------------------|-----------|
-| `Resident` | `first_name` | PII | No (standard encryption) | 100 chars |
-| `Resident` | `last_name` | PII | No (standard encryption) | 100 chars |
-| `Resident` | `email` | PII | Yes | 320 chars |
-| `Resident` | `phone` | PII | Yes | 20 chars |
-| `Resident` | `emergency_contacts` | PII | Yes | JSONB, 4096 bytes encrypted |
-| `Resident` | `profile_photo` | Sensitive PII | Yes (file encrypted before storage) | 10 MB |
-| `Unit` | `buzzer_code` | PII | No (standard encryption) | 20 chars |
-| `Vehicle` | `license_plate` | PII | No (standard encryption) | 15 chars |
-| `Incident` | `description` | Sensitive PII | Yes | 4000 chars |
-| `Incident` | `suspect_info` | Sensitive PII | Yes | 2000 chars |
-| `Incident` | `photos` | Sensitive PII | Yes (file encrypted before storage) | 10 MB per photo |
-| `Package` | `signature` | Sensitive PII | Yes | 64 KB |
-| `MaintenanceRequest` | `entry_instructions` | PII | Yes | 1000 chars |
-| `FOB` | `serial_number` | PII | No (standard encryption) | 50 chars |
+| Entity               | Field                | Classification | Encrypted at App Level              | Max Length                  |
+| -------------------- | -------------------- | -------------- | ----------------------------------- | --------------------------- |
+| `Resident`           | `first_name`         | PII            | No (standard encryption)            | 100 chars                   |
+| `Resident`           | `last_name`          | PII            | No (standard encryption)            | 100 chars                   |
+| `Resident`           | `email`              | PII            | Yes                                 | 320 chars                   |
+| `Resident`           | `phone`              | PII            | Yes                                 | 20 chars                    |
+| `Resident`           | `emergency_contacts` | PII            | Yes                                 | JSONB, 4096 bytes encrypted |
+| `Resident`           | `profile_photo`      | Sensitive PII  | Yes (file encrypted before storage) | 10 MB                       |
+| `Unit`               | `buzzer_code`        | PII            | No (standard encryption)            | 20 chars                    |
+| `Vehicle`            | `license_plate`      | PII            | No (standard encryption)            | 15 chars                    |
+| `Incident`           | `description`        | Sensitive PII  | Yes                                 | 4000 chars                  |
+| `Incident`           | `suspect_info`       | Sensitive PII  | Yes                                 | 2000 chars                  |
+| `Incident`           | `photos`             | Sensitive PII  | Yes (file encrypted before storage) | 10 MB per photo             |
+| `Package`            | `signature`          | Sensitive PII  | Yes                                 | 64 KB                       |
+| `MaintenanceRequest` | `entry_instructions` | PII            | Yes                                 | 1000 chars                  |
+| `FOB`                | `serial_number`      | PII            | No (standard encryption)            | 50 chars                    |
 
 #### PII Access Logging
 
 Every access to a PII or Sensitive PII field is logged in the `DataAccessLog` table:
 
-| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
-|-------|-----------|-----------|----------|---------|------------|---------------|
-| `id` | UUID | -- | Yes | Auto-generated | Valid UUID v4 | -- |
-| `user_id` | UUID | -- | Yes | -- | Valid user UUID, must exist | "User ID is required for PII access logging." |
-| `property_id` | UUID | -- | Yes | -- | Valid property UUID, must exist | "Property ID is required for PII access logging." |
-| `table_name` | varchar | 100 chars | Yes | -- | Non-empty, must match a known table | "Table name is required and must be a valid entity table." |
-| `record_id` | UUID | -- | Yes | -- | Valid UUID | "Record ID is required." |
-| `field_name` | varchar | 100 chars | Yes | -- | Non-empty, must match a known PII field | "Field name is required and must be a recognized PII field." |
-| `access_type` | enum | -- | Yes | -- | One of: `read`, `write`, `delete`, `export` | "Access type must be one of: read, write, delete, export." |
-| `timestamp` | timestamp with timezone | -- | Yes | `now()` | Must be a valid timestamp | "Valid timestamp is required." |
-| `ip_address` | varchar | 45 chars | Yes | -- | Valid IPv4 or IPv6 address | "A valid IP address is required." |
-| `user_agent` | varchar | 500 chars | No | `null` | Max length: 500 | "User agent must not exceed 500 characters." |
+| Field         | Data Type               | Max Length | Required | Default        | Validation                                  | Error Message                                                |
+| ------------- | ----------------------- | ---------- | -------- | -------------- | ------------------------------------------- | ------------------------------------------------------------ |
+| `id`          | UUID                    | --         | Yes      | Auto-generated | Valid UUID v4                               | --                                                           |
+| `user_id`     | UUID                    | --         | Yes      | --             | Valid user UUID, must exist                 | "User ID is required for PII access logging."                |
+| `property_id` | UUID                    | --         | Yes      | --             | Valid property UUID, must exist             | "Property ID is required for PII access logging."            |
+| `table_name`  | varchar                 | 100 chars  | Yes      | --             | Non-empty, must match a known table         | "Table name is required and must be a valid entity table."   |
+| `record_id`   | UUID                    | --         | Yes      | --             | Valid UUID                                  | "Record ID is required."                                     |
+| `field_name`  | varchar                 | 100 chars  | Yes      | --             | Non-empty, must match a known PII field     | "Field name is required and must be a recognized PII field." |
+| `access_type` | enum                    | --         | Yes      | --             | One of: `read`, `write`, `delete`, `export` | "Access type must be one of: read, write, delete, export."   |
+| `timestamp`   | timestamp with timezone | --         | Yes      | `now()`        | Must be a valid timestamp                   | "Valid timestamp is required."                               |
+| `ip_address`  | varchar                 | 45 chars   | Yes      | --             | Valid IPv4 or IPv6 address                  | "A valid IP address is required."                            |
+| `user_agent`  | varchar                 | 500 chars  | No       | `null`         | Max length: 500                             | "User agent must not exceed 500 characters."                 |
 
 **Retention for access logs**: PII access logs are retained for 2 years. They are never auto-deleted before that period.
 
@@ -1719,18 +1737,18 @@ A resident can request that all their PII be permanently removed from the system
 
 **Deletion request fields**:
 
-| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
-|-------|-----------|-----------|----------|---------|------------|---------------|
-| `id` | UUID | -- | Yes | Auto-generated | Valid UUID v4 | -- |
-| `resident_id` | UUID | -- | Yes | -- | Valid resident UUID, must exist | "Resident ID is required." |
-| `property_id` | UUID | -- | Yes | -- | Valid property UUID, must exist | "Property ID is required." |
-| `requested_at` | timestamp with timezone | -- | Yes | `now()` | Valid timestamp | "Valid request timestamp is required." |
-| `requested_by` | enum | -- | Yes | -- | One of: `resident`, `property_admin`, `super_admin` | "Requester must be one of: resident, property_admin, super_admin." |
-| `status` | enum | -- | Yes | `pending` | One of: `pending`, `in_progress`, `completed`, `rejected` | "Status must be one of: pending, in_progress, completed, rejected." |
-| `completed_at` | timestamp with timezone | -- | No | `null` | Must be after `requested_at` if present | "Completion time must be after request time." |
-| `rejection_reason` | text | 500 chars | No | `null` | Required if status is `rejected`; max 500 chars | "Rejection reason is required when rejecting a deletion request (max 500 characters)." |
-| `fields_deleted` | JSONB | -- | No | `null` | Array of field names that were purged | "Fields deleted must be a valid JSON array." |
-| `audit_note` | text | 1000 chars | No | `null` | Max length: 1000 | "Audit note must not exceed 1000 characters." |
+| Field              | Data Type               | Max Length | Required | Default        | Validation                                                | Error Message                                                                          |
+| ------------------ | ----------------------- | ---------- | -------- | -------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `id`               | UUID                    | --         | Yes      | Auto-generated | Valid UUID v4                                             | --                                                                                     |
+| `resident_id`      | UUID                    | --         | Yes      | --             | Valid resident UUID, must exist                           | "Resident ID is required."                                                             |
+| `property_id`      | UUID                    | --         | Yes      | --             | Valid property UUID, must exist                           | "Property ID is required."                                                             |
+| `requested_at`     | timestamp with timezone | --         | Yes      | `now()`        | Valid timestamp                                           | "Valid request timestamp is required."                                                 |
+| `requested_by`     | enum                    | --         | Yes      | --             | One of: `resident`, `property_admin`, `super_admin`       | "Requester must be one of: resident, property_admin, super_admin."                     |
+| `status`           | enum                    | --         | Yes      | `pending`      | One of: `pending`, `in_progress`, `completed`, `rejected` | "Status must be one of: pending, in_progress, completed, rejected."                    |
+| `completed_at`     | timestamp with timezone | --         | No       | `null`         | Must be after `requested_at` if present                   | "Completion time must be after request time."                                          |
+| `rejection_reason` | text                    | 500 chars  | No       | `null`         | Required if status is `rejected`; max 500 chars           | "Rejection reason is required when rejecting a deletion request (max 500 characters)." |
+| `fields_deleted`   | JSONB                   | --         | No       | `null`         | Array of field names that were purged                     | "Fields deleted must be a valid JSON array."                                           |
+| `audit_note`       | text                    | 1000 chars | No       | `null`         | Max length: 1000                                          | "Audit note must not exceed 1000 characters."                                          |
 
 **Deletion process**:
 
@@ -1749,17 +1767,17 @@ A resident can request that all their PII be permanently removed from the system
 
 A resident can request a machine-readable copy of all their data stored in the system.
 
-| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
-|-------|-----------|-----------|----------|---------|------------|---------------|
-| `id` | UUID | -- | Yes | Auto-generated | Valid UUID v4 | -- |
-| `resident_id` | UUID | -- | Yes | -- | Valid resident UUID, must exist | "Resident ID is required." |
-| `property_id` | UUID | -- | Yes | -- | Valid property UUID, must exist | "Property ID is required." |
-| `requested_at` | timestamp with timezone | -- | Yes | `now()` | Valid timestamp | "Valid request timestamp is required." |
-| `format` | enum | -- | Yes | `json` | One of: `json`, `csv` | "Export format must be json or csv." |
-| `status` | enum | -- | Yes | `pending` | One of: `pending`, `generating`, `ready`, `downloaded`, `expired` | "Status must be one of: pending, generating, ready, downloaded, expired." |
-| `download_url` | varchar | 500 chars | No | `null` | Valid URL, must be a signed/temporary URL | "Download URL must be a valid temporary URL." |
-| `expires_at` | timestamp with timezone | -- | No | `null` | Must be after `requested_at` | "Expiry must be after request time." |
-| `file_size_bytes` | bigint | -- | No | `null` | Min: 0 | "File size cannot be negative." |
+| Field             | Data Type               | Max Length | Required | Default        | Validation                                                        | Error Message                                                             |
+| ----------------- | ----------------------- | ---------- | -------- | -------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `id`              | UUID                    | --         | Yes      | Auto-generated | Valid UUID v4                                                     | --                                                                        |
+| `resident_id`     | UUID                    | --         | Yes      | --             | Valid resident UUID, must exist                                   | "Resident ID is required."                                                |
+| `property_id`     | UUID                    | --         | Yes      | --             | Valid property UUID, must exist                                   | "Property ID is required."                                                |
+| `requested_at`    | timestamp with timezone | --         | Yes      | `now()`        | Valid timestamp                                                   | "Valid request timestamp is required."                                    |
+| `format`          | enum                    | --         | Yes      | `json`         | One of: `json`, `csv`                                             | "Export format must be json or csv."                                      |
+| `status`          | enum                    | --         | Yes      | `pending`      | One of: `pending`, `generating`, `ready`, `downloaded`, `expired` | "Status must be one of: pending, generating, ready, downloaded, expired." |
+| `download_url`    | varchar                 | 500 chars  | No       | `null`         | Valid URL, must be a signed/temporary URL                         | "Download URL must be a valid temporary URL."                             |
+| `expires_at`      | timestamp with timezone | --         | No       | `null`         | Must be after `requested_at`                                      | "Expiry must be after request time."                                      |
+| `file_size_bytes` | bigint                  | --         | No       | `null`         | Min: 0                                                            | "File size cannot be negative."                                           |
 
 **Export includes**: All data associated with the resident -- profile fields, event history, package history, maintenance requests, amenity bookings, notification preferences, and login history. Files (photos, documents) are included as attachments in a ZIP archive.
 
@@ -1775,37 +1793,38 @@ Concierge is built for the Canadian market first, with architecture that support
 
 #### PIPEDA (Personal Information Protection and Electronic Documents Act) -- Canada
 
-| Requirement | How Concierge Meets It |
-|-------------|----------------------|
-| **Data residency** | All primary and backup data stored in Canadian data centers (Toronto and Montreal) |
-| **Consent** | Residents explicitly consent to data collection during onboarding. Consent is recorded with timestamp and version. |
-| **Purpose limitation** | Each data field has a documented purpose. Data is not used beyond that purpose. |
-| **Right to access** | Residents can export all their data via the Data Export feature (Section 13.7) |
-| **Right to deletion** | Residents can request PII deletion via the Right to Deletion process (Section 13.7) |
-| **Breach notification** | Automated system notifies affected properties within 72 hours of breach detection (see below) |
-| **Accountability** | Data Protection Officer (DPO) designated. Privacy Impact Assessments conducted for new features. |
+| Requirement             | How Concierge Meets It                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Data residency**      | All primary and backup data stored in Canadian data centers (Toronto and Montreal)                                 |
+| **Consent**             | Residents explicitly consent to data collection during onboarding. Consent is recorded with timestamp and version. |
+| **Purpose limitation**  | Each data field has a documented purpose. Data is not used beyond that purpose.                                    |
+| **Right to access**     | Residents can export all their data via the Data Export feature (Section 13.7)                                     |
+| **Right to deletion**   | Residents can request PII deletion via the Right to Deletion process (Section 13.7)                                |
+| **Breach notification** | Automated system notifies affected properties within 72 hours of breach detection (see below)                      |
+| **Accountability**      | Data Protection Officer (DPO) designated. Privacy Impact Assessments conducted for new features.                   |
 
 #### GDPR (General Data Protection Regulation) -- EU
 
-| Requirement | Status |
-|-------------|--------|
-| **Data portability** | Ready -- Data Export in machine-readable format (JSON/CSV) |
-| **Right to be forgotten** | Ready -- Right to Deletion process |
-| **Consent management** | Ready -- Granular consent tracking |
-| **Data Protection Officer** | Ready -- DPO role defined |
-| **Data Processing Agreements** | Future -- Required when expanding to EU market |
+| Requirement                    | Status                                                     |
+| ------------------------------ | ---------------------------------------------------------- |
+| **Data portability**           | Ready -- Data Export in machine-readable format (JSON/CSV) |
+| **Right to be forgotten**      | Ready -- Right to Deletion process                         |
+| **Consent management**         | Ready -- Granular consent tracking                         |
+| **Data Protection Officer**    | Ready -- DPO role defined                                  |
+| **Data Processing Agreements** | Future -- Required when expanding to EU market             |
 
 #### SOC 2 Type II
 
-| Principle | How Concierge Meets It | Target Timeline |
-|-----------|----------------------|----------------|
-| **Security** | Role-based access controls (RBAC) with 12 roles, per-property isolation via RLS, AES-256 encryption at rest, TLS 1.3 in transit, application-level PII double encryption, quarterly key rotation, automated vulnerability scanning, annual penetration testing | Year 2 certification target |
-| **Availability** | Geographic redundancy (Toronto primary, Montreal secondary, Calgary cold), automated failover with 30-minute RTO for regional outage, 99.9% uptime SLA, continuous health monitoring with automated alerts | Year 2 certification target |
-| **Confidentiality** | Per-property encryption keys, PII tiered classification (Critical/Sensitive/Standard), access logging for all Tier 1/2 PII reads, PII stripped from application logs and AI prompts, data residency enforced in Canada | Year 2 certification target |
-| **Processing integrity** | Immutable audit trail for all data modifications with before/after diffs, input validation on every field, database constraints and referential integrity, automated backup integrity verification (weekly checksum, monthly restore test) | Year 3 |
-| **Privacy** | Granular consent tracking with timestamp and version, right to access (data export), right to deletion (PII erasure workflow), purpose limitation per data field, privacy impact assessments for new features, DPO role designated | Year 3 |
+| Principle                | How Concierge Meets It                                                                                                                                                                                                                                         | Target Timeline             |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| **Security**             | Role-based access controls (RBAC) with 12 roles, per-property isolation via RLS, AES-256 encryption at rest, TLS 1.3 in transit, application-level PII double encryption, quarterly key rotation, automated vulnerability scanning, annual penetration testing | Year 2 certification target |
+| **Availability**         | Geographic redundancy (Toronto primary, Montreal secondary, Calgary cold), automated failover with 30-minute RTO for regional outage, 99.9% uptime SLA, continuous health monitoring with automated alerts                                                     | Year 2 certification target |
+| **Confidentiality**      | Per-property encryption keys, PII tiered classification (Critical/Sensitive/Standard), access logging for all Tier 1/2 PII reads, PII stripped from application logs and AI prompts, data residency enforced in Canada                                         | Year 2 certification target |
+| **Processing integrity** | Immutable audit trail for all data modifications with before/after diffs, input validation on every field, database constraints and referential integrity, automated backup integrity verification (weekly checksum, monthly restore test)                     | Year 3                      |
+| **Privacy**              | Granular consent tracking with timestamp and version, right to access (data export), right to deletion (PII erasure workflow), purpose limitation per data field, privacy impact assessments for new features, DPO role designated                             | Year 3                      |
 
 **SOC 2 Type II Audit Requirements**:
+
 - **Evidence collection**: Automated collection of access logs, change logs, incident records, and configuration snapshots
 - **Continuous monitoring**: Real-time dashboards for all 5 trust principles with threshold-based alerts
 - **Annual audit**: Third-party auditor engagement with 90-day observation window
@@ -1813,20 +1832,20 @@ Concierge is built for the Canadian market first, with architecture that support
 
 #### ISO 27001 -- Information Security Management System (ISMS)
 
-| Control Area | How Concierge Meets It |
-|-------------|----------------------|
-| **Risk assessment** | Formal risk register maintained. Each module has documented threats, vulnerabilities, and mitigations. Risk assessment reviewed quarterly and after any security incident. |
-| **Security policies** | Written policies for: access control, encryption, backup, incident response, acceptable use, change management, vendor management. Reviewed annually. All staff must acknowledge. |
-| **Asset inventory** | All data assets classified by sensitivity tier (Critical/Sensitive/Standard). Infrastructure assets tracked in configuration management database. Software dependencies scanned every build. |
-| **Access control** | Least-privilege principle enforced via RBAC. 12 predefined roles with granular permissions. Custom roles supported. Access reviews conducted quarterly. Inactive accounts auto-disabled after 90 days. |
-| **Cryptography** | AES-256 at rest, TLS 1.3 in transit. Per-property encryption keys. Key lifecycle management via cloud KMS. Quarterly key rotation. Certificate monitoring with 30-day expiry alerts. |
-| **Physical security** | Cloud provider (Canadian data centers) handles physical security. SOC 2 / ISO 27001 certification required from cloud provider. Data center access audited. |
-| **Operations security** | Change management process for all production deployments. Separation of development, staging, and production environments. Malware protection via container scanning and dependency auditing. |
-| **Communications security** | All API traffic encrypted. Webhook payloads signed with HMAC. Internal service-to-service communication uses mTLS. Network segmentation between tenant data stores. |
-| **Supplier relationships** | All third-party vendors (AI providers, payment processor, notification services) assessed for security compliance. Vendor register maintained with contract review dates. |
-| **Incident management** | P1-P4 incident classification with defined SLAs (see Section 13.9). Incident response team defined. Post-incident reviews mandatory. Lessons learned documented and tracked. |
-| **Business continuity** | RPO: 1 hour, RTO: 4 hours. Geographic redundancy. Quarterly disaster recovery drills. Recovery runbook maintained. Communication templates for stakeholder notification. |
-| **Compliance** | Regular internal audits against ISO 27001 controls. External audit annually. Non-conformities tracked to resolution. Regulatory changes monitored and assessed for impact. |
+| Control Area                | How Concierge Meets It                                                                                                                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Risk assessment**         | Formal risk register maintained. Each module has documented threats, vulnerabilities, and mitigations. Risk assessment reviewed quarterly and after any security incident.                             |
+| **Security policies**       | Written policies for: access control, encryption, backup, incident response, acceptable use, change management, vendor management. Reviewed annually. All staff must acknowledge.                      |
+| **Asset inventory**         | All data assets classified by sensitivity tier (Critical/Sensitive/Standard). Infrastructure assets tracked in configuration management database. Software dependencies scanned every build.           |
+| **Access control**          | Least-privilege principle enforced via RBAC. 12 predefined roles with granular permissions. Custom roles supported. Access reviews conducted quarterly. Inactive accounts auto-disabled after 90 days. |
+| **Cryptography**            | AES-256 at rest, TLS 1.3 in transit. Per-property encryption keys. Key lifecycle management via cloud KMS. Quarterly key rotation. Certificate monitoring with 30-day expiry alerts.                   |
+| **Physical security**       | Cloud provider (Canadian data centers) handles physical security. SOC 2 / ISO 27001 certification required from cloud provider. Data center access audited.                                            |
+| **Operations security**     | Change management process for all production deployments. Separation of development, staging, and production environments. Malware protection via container scanning and dependency auditing.          |
+| **Communications security** | All API traffic encrypted. Webhook payloads signed with HMAC. Internal service-to-service communication uses mTLS. Network segmentation between tenant data stores.                                    |
+| **Supplier relationships**  | All third-party vendors (AI providers, payment processor, notification services) assessed for security compliance. Vendor register maintained with contract review dates.                              |
+| **Incident management**     | P1-P4 incident classification with defined SLAs (see Section 13.9). Incident response team defined. Post-incident reviews mandatory. Lessons learned documented and tracked.                           |
+| **Business continuity**     | RPO: 1 hour, RTO: 4 hours. Geographic redundancy. Quarterly disaster recovery drills. Recovery runbook maintained. Communication templates for stakeholder notification.                               |
+| **Compliance**              | Regular internal audits against ISO 27001 controls. External audit annually. Non-conformities tracked to resolution. Regulatory changes monitored and assessed for impact.                             |
 
 **Certification timeline**: Year 2 -- Gap assessment and remediation. Year 3 -- Stage 1 and Stage 2 certification audit.
 
@@ -1834,16 +1853,16 @@ Concierge is built for the Canadian market first, with architecture that support
 
 ISO 27701 extends ISO 27001 specifically for privacy management. It defines requirements for PII controllers and PII processors.
 
-| Requirement | How Concierge Meets It |
-|-------------|----------------------|
-| **PII controller obligations** | Concierge acts as PII processor. Property management companies are PII controllers. Roles and responsibilities documented in Data Processing Agreements (DPAs) with each property. |
-| **Lawful basis for processing** | Each data field has a documented processing purpose and lawful basis (consent, contract, legitimate interest). Tracked in a Record of Processing Activities (ROPA). |
-| **Privacy impact assessments** | Privacy Impact Assessment (PIA) conducted before launching any new feature that handles PII. PIA template standardized. Results reviewed by DPO. |
-| **Data subject rights** | Right to access: Data Export feature (Section 13.7). Right to correction: Residents and admins can update profile data. Right to deletion: Right to Deletion workflow (Section 13.7) with 30-day completion SLA. Right to restrict processing: Admin can disable specific data processing per resident. Right to data portability: JSON/CSV export in machine-readable format. |
-| **Cross-border data transfers** | All data stored in Canada. No cross-border transfer by default. If future expansion requires transfer, Standard Contractual Clauses (SCCs) or adequacy decisions will be used. |
-| **Privacy by design** | Privacy considerations embedded in development lifecycle. Default settings favor privacy (opt-in, not opt-out). Data minimization: only collect what is needed. Anonymization used for analytics. |
-| **Breach management** | Breach notification within 72 hours (PIPEDA) or 60 days (HIPAA for health data). Breach severity assessment automated. Affected data subjects identified via access logs. |
-| **Training and awareness** | All development staff complete annual privacy training. Privacy awareness included in LMS module for property staff. |
+| Requirement                     | How Concierge Meets It                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **PII controller obligations**  | Concierge acts as PII processor. Property management companies are PII controllers. Roles and responsibilities documented in Data Processing Agreements (DPAs) with each property.                                                                                                                                                                                             |
+| **Lawful basis for processing** | Each data field has a documented processing purpose and lawful basis (consent, contract, legitimate interest). Tracked in a Record of Processing Activities (ROPA).                                                                                                                                                                                                            |
+| **Privacy impact assessments**  | Privacy Impact Assessment (PIA) conducted before launching any new feature that handles PII. PIA template standardized. Results reviewed by DPO.                                                                                                                                                                                                                               |
+| **Data subject rights**         | Right to access: Data Export feature (Section 13.7). Right to correction: Residents and admins can update profile data. Right to deletion: Right to Deletion workflow (Section 13.7) with 30-day completion SLA. Right to restrict processing: Admin can disable specific data processing per resident. Right to data portability: JSON/CSV export in machine-readable format. |
+| **Cross-border data transfers** | All data stored in Canada. No cross-border transfer by default. If future expansion requires transfer, Standard Contractual Clauses (SCCs) or adequacy decisions will be used.                                                                                                                                                                                                 |
+| **Privacy by design**           | Privacy considerations embedded in development lifecycle. Default settings favor privacy (opt-in, not opt-out). Data minimization: only collect what is needed. Anonymization used for analytics.                                                                                                                                                                              |
+| **Breach management**           | Breach notification within 72 hours (PIPEDA) or 60 days (HIPAA for health data). Breach severity assessment automated. Affected data subjects identified via access logs.                                                                                                                                                                                                      |
+| **Training and awareness**      | All development staff complete annual privacy training. Privacy awareness included in LMS module for property staff.                                                                                                                                                                                                                                                           |
 
 **Certification timeline**: After ISO 27001 certification -- ISO 27701 extends the same audit framework.
 
@@ -1851,29 +1870,29 @@ ISO 27701 extends ISO 27001 specifically for privacy management. It defines requ
 
 ISO 27017 provides cloud-specific security guidance for multi-tenant SaaS platforms.
 
-| Control | How Concierge Meets It |
-|---------|----------------------|
-| **Multi-tenant isolation** | Row-Level Security (RLS) at database level. Per-property encryption keys. API middleware validates tenant context on every request. Search indexes partitioned by property. File storage uses separate prefixes per property. |
-| **Shared responsibility model** | Documented matrix showing: what the cloud provider is responsible for (physical security, network infrastructure, hypervisor), what Concierge is responsible for (application security, data encryption, access control), what the property admin is responsible for (user management, password policies, data accuracy). |
-| **Virtual resource hardening** | Container images scanned for vulnerabilities before deployment. Base images updated monthly. No root access in containers. Read-only file systems where possible. Resource limits enforced (CPU, memory, storage). |
-| **Cloud service customer data protection** | Customer data never leaves Canadian data centers. Data encrypted at rest and in transit. Logical deletion followed by cryptographic erasure when tenants leave. Backup data follows same geographic and encryption policies. |
-| **Secure data deletion** | When a property terminates service: all live data deleted within 30 days, per-property encryption keys destroyed (rendering backup data unrecoverable), deletion confirmation provided to property admin, deletion logged in immutable audit trail. |
-| **Cloud service monitoring** | Cloud infrastructure monitored 24/7 for availability, performance, and security anomalies. Super Admin dashboard shows system health, uptime, and resource utilization. |
-| **Audit logging for cloud operations** | All cloud infrastructure changes logged (deployments, scaling events, configuration changes). Logs retained for 2 years. Accessible to auditors on request. |
+| Control                                    | How Concierge Meets It                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Multi-tenant isolation**                 | Row-Level Security (RLS) at database level. Per-property encryption keys. API middleware validates tenant context on every request. Search indexes partitioned by property. File storage uses separate prefixes per property.                                                                                             |
+| **Shared responsibility model**            | Documented matrix showing: what the cloud provider is responsible for (physical security, network infrastructure, hypervisor), what Concierge is responsible for (application security, data encryption, access control), what the property admin is responsible for (user management, password policies, data accuracy). |
+| **Virtual resource hardening**             | Container images scanned for vulnerabilities before deployment. Base images updated monthly. No root access in containers. Read-only file systems where possible. Resource limits enforced (CPU, memory, storage).                                                                                                        |
+| **Cloud service customer data protection** | Customer data never leaves Canadian data centers. Data encrypted at rest and in transit. Logical deletion followed by cryptographic erasure when tenants leave. Backup data follows same geographic and encryption policies.                                                                                              |
+| **Secure data deletion**                   | When a property terminates service: all live data deleted within 30 days, per-property encryption keys destroyed (rendering backup data unrecoverable), deletion confirmation provided to property admin, deletion logged in immutable audit trail.                                                                       |
+| **Cloud service monitoring**               | Cloud infrastructure monitored 24/7 for availability, performance, and security anomalies. Super Admin dashboard shows system health, uptime, and resource utilization.                                                                                                                                                   |
+| **Audit logging for cloud operations**     | All cloud infrastructure changes logged (deployments, scaling events, configuration changes). Logs retained for 2 years. Accessible to auditors on request.                                                                                                                                                               |
 
 #### ISO 9001 -- Quality Management System (QMS)
 
 ISO 9001 ensures consistent quality in operations and continuous improvement.
 
-| Principle | How Concierge Meets It |
-|-----------|----------------------|
-| **Customer focus** | Admin experience is paramount (Rule 3). UX priority hierarchy ensures the buyer always has the best experience. Feature requests tracked and prioritized. Customer satisfaction measured via in-app feedback and NPS surveys. |
-| **Leadership** | Product vision and quality standards documented in RULEBOOK.md. 12 mandatory rules applied to every feature. Quality objectives reviewed quarterly. |
-| **Engagement of people** | Staff training via built-in LMS module. Role-specific onboarding flows. Clear documentation for every feature. Tooltips and contextual help throughout the interface. |
-| **Process approach** | Every critical operation has a documented process: property onboarding (8-step wizard), incident response (P1-P4 classification), backup verification (weekly/monthly/quarterly), resident data deletion (8-step process). |
-| **Improvement** | Continuous improvement cycle (Plan-Do-Check-Act): Plan -- PRD defines requirements. Do -- Development implements. Check -- Automated testing, security scanning, backup verification. Act -- Post-incident reviews, audit findings, customer feedback drive improvements. |
-| **Evidence-based decision making** | Three analytics layers per module (Operational, Performance, AI Insights). 52 report types. AI-powered anomaly detection. All decisions backed by data from dashboards and reports. |
-| **Relationship management** | Vendor scorecard for third-party service providers. Integration health monitoring. Cloud provider SLA tracking. Property admin communication during incidents and maintenance. |
+| Principle                          | How Concierge Meets It                                                                                                                                                                                                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Customer focus**                 | Admin experience is paramount (Rule 3). UX priority hierarchy ensures the buyer always has the best experience. Feature requests tracked and prioritized. Customer satisfaction measured via in-app feedback and NPS surveys.                                             |
+| **Leadership**                     | Product vision and quality standards documented in RULEBOOK.md. 12 mandatory rules applied to every feature. Quality objectives reviewed quarterly.                                                                                                                       |
+| **Engagement of people**           | Staff training via built-in LMS module. Role-specific onboarding flows. Clear documentation for every feature. Tooltips and contextual help throughout the interface.                                                                                                     |
+| **Process approach**               | Every critical operation has a documented process: property onboarding (8-step wizard), incident response (P1-P4 classification), backup verification (weekly/monthly/quarterly), resident data deletion (8-step process).                                                |
+| **Improvement**                    | Continuous improvement cycle (Plan-Do-Check-Act): Plan -- PRD defines requirements. Do -- Development implements. Check -- Automated testing, security scanning, backup verification. Act -- Post-incident reviews, audit findings, customer feedback drive improvements. |
+| **Evidence-based decision making** | Three analytics layers per module (Operational, Performance, AI Insights). 52 report types. AI-powered anomaly detection. All decisions backed by data from dashboards and reports.                                                                                       |
+| **Relationship management**        | Vendor scorecard for third-party service providers. Integration health monitoring. Cloud provider SLA tracking. Property admin communication during incidents and maintenance.                                                                                            |
 
 **Internal audits**: Quarterly self-assessment against ISO 9001 processes. Annual review of quality objectives and metrics.
 
@@ -1881,65 +1900,65 @@ ISO 9001 ensures consistent quality in operations and continuous improvement.
 
 HIPAA compliance is required because resident profiles may store Protected Health Information (PHI): medical conditions, accessibility needs, emergency medical information, allergies, and medications.
 
-| Requirement | How Concierge Meets It |
-|-------------|----------------------|
-| **PHI identification** | The following fields are classified as PHI: `medical_conditions`, `accessibility_needs`, `emergency_medical_info`, `allergies`, `medications`, `hearing_impaired`, `vision_impaired`, `mobility_impaired`, `cognitive_impaired` on resident and emergency contact records. |
-| **Encryption** | All PHI fields receive Tier 1 (Critical) encryption: AES-256 at database level PLUS application-level encryption before database storage. Decryption requires authenticated session with appropriate role. |
-| **Minimum necessary standard** | PHI is only displayed to roles that need it: Security Guard sees accessibility flags (hearing/vision/mobility) for emergency response, but NOT full medical history. Property Admin sees all PHI for unit management. Resident sees their own PHI only. Board Members, Contractors, and other roles see NO PHI. |
-| **Access controls** | PHI access requires: authenticated session, role with PHI permission, active property context, valid reason (screen/feature that legitimately needs PHI). |
-| **Access logging** | Every read, write, or export of PHI is logged in `DataAccessLog` with: user ID, timestamp, IP address, field accessed, access type (read/write/export), session ID. PHI access logs retained for **6 years** (HIPAA requirement -- longer than the standard 2-year PII log retention). |
-| **Business Associate Agreements (BAA)** | Required with every third party that could access PHI: Cloud hosting provider (data at rest), AI providers (if PHI were ever sent -- but our architecture strips PII/PHI before AI processing, so BAA may not be required for AI providers), Backup storage provider, Customer support tools (if agents can view resident data). BAA register maintained with renewal dates. |
-| **Breach notification** | PHI breaches must be reported within **60 days** to affected individuals (stricter than PIPEDA's 72-hour requirement for the notification itself, but PIPEDA requires faster initial reporting). If breach affects 500+ individuals, must also notify HHS (U.S. Department of Health and Human Services) and media. Breach notification includes: description of breach, types of PHI involved, steps individuals should take, what Concierge is doing to investigate and mitigate. |
-| **PHI in AI processing** | PHI is NEVER sent to AI providers. Before any AI API call, PHI fields are stripped and replaced with anonymized placeholders: "Resident has [MEDICAL_CONDITION]" not "Resident has diabetes." AI responses are cached without PHI. |
-| **PHI in notifications** | Notifications NEVER include PHI. Emergency notifications say "Unit 302 has a medical alert on file" not "Resident in 302 has a pacemaker and is diabetic." |
-| **PHI in exports** | Exporting data containing PHI requires: role with PHI export permission, confirmation dialog: "This export contains sensitive health information. Proceed?", export event logged with all PHI field names included in the log. |
-| **PHI disposal** | When a resident moves out: PHI is archived encrypted for the retention period (configurable, default 7 years for HIPAA). After retention: PHI fields replaced with `[DELETED]`, encryption key for those records destroyed. Disposal logged in audit trail. |
-| **Training** | All staff with PHI access must complete HIPAA awareness training via the LMS module. Training completion tracked. Annual recertification required. |
-| **Risk analysis** | Annual HIPAA risk analysis covering: administrative safeguards (policies, training, access management), physical safeguards (cloud provider's responsibility, verified via their SOC 2/ISO 27001), technical safeguards (encryption, access controls, audit logs, transmission security). |
+| Requirement                             | How Concierge Meets It                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **PHI identification**                  | The following fields are classified as PHI: `medical_conditions`, `accessibility_needs`, `emergency_medical_info`, `allergies`, `medications`, `hearing_impaired`, `vision_impaired`, `mobility_impaired`, `cognitive_impaired` on resident and emergency contact records.                                                                                                                                                                                                          |
+| **Encryption**                          | All PHI fields receive Tier 1 (Critical) encryption: AES-256 at database level PLUS application-level encryption before database storage. Decryption requires authenticated session with appropriate role.                                                                                                                                                                                                                                                                          |
+| **Minimum necessary standard**          | PHI is only displayed to roles that need it: Security Guard sees accessibility flags (hearing/vision/mobility) for emergency response, but NOT full medical history. Property Admin sees all PHI for unit management. Resident sees their own PHI only. Board Members, Contractors, and other roles see NO PHI.                                                                                                                                                                     |
+| **Access controls**                     | PHI access requires: authenticated session, role with PHI permission, active property context, valid reason (screen/feature that legitimately needs PHI).                                                                                                                                                                                                                                                                                                                           |
+| **Access logging**                      | Every read, write, or export of PHI is logged in `DataAccessLog` with: user ID, timestamp, IP address, field accessed, access type (read/write/export), session ID. PHI access logs retained for **6 years** (HIPAA requirement -- longer than the standard 2-year PII log retention).                                                                                                                                                                                              |
+| **Business Associate Agreements (BAA)** | Required with every third party that could access PHI: Cloud hosting provider (data at rest), AI providers (if PHI were ever sent -- but our architecture strips PII/PHI before AI processing, so BAA may not be required for AI providers), Backup storage provider, Customer support tools (if agents can view resident data). BAA register maintained with renewal dates.                                                                                                        |
+| **Breach notification**                 | PHI breaches must be reported within **60 days** to affected individuals (stricter than PIPEDA's 72-hour requirement for the notification itself, but PIPEDA requires faster initial reporting). If breach affects 500+ individuals, must also notify HHS (U.S. Department of Health and Human Services) and media. Breach notification includes: description of breach, types of PHI involved, steps individuals should take, what Concierge is doing to investigate and mitigate. |
+| **PHI in AI processing**                | PHI is NEVER sent to AI providers. Before any AI API call, PHI fields are stripped and replaced with anonymized placeholders: "Resident has [MEDICAL_CONDITION]" not "Resident has diabetes." AI responses are cached without PHI.                                                                                                                                                                                                                                                  |
+| **PHI in notifications**                | Notifications NEVER include PHI. Emergency notifications say "Unit 302 has a medical alert on file" not "Resident in 302 has a pacemaker and is diabetic."                                                                                                                                                                                                                                                                                                                          |
+| **PHI in exports**                      | Exporting data containing PHI requires: role with PHI export permission, confirmation dialog: "This export contains sensitive health information. Proceed?", export event logged with all PHI field names included in the log.                                                                                                                                                                                                                                                      |
+| **PHI disposal**                        | When a resident moves out: PHI is archived encrypted for the retention period (configurable, default 7 years for HIPAA). After retention: PHI fields replaced with `[DELETED]`, encryption key for those records destroyed. Disposal logged in audit trail.                                                                                                                                                                                                                         |
+| **Training**                            | All staff with PHI access must complete HIPAA awareness training via the LMS module. Training completion tracked. Annual recertification required.                                                                                                                                                                                                                                                                                                                                  |
+| **Risk analysis**                       | Annual HIPAA risk analysis covering: administrative safeguards (policies, training, access management), physical safeguards (cloud provider's responsibility, verified via their SOC 2/ISO 27001), technical safeguards (encryption, access controls, audit logs, transmission security).                                                                                                                                                                                           |
 
 **HIPAA compliance note**: While HIPAA is a U.S. regulation, Concierge implements these controls because: (1) Canadian buildings may have U.S. residents whose health data is protected, (2) future U.S. market expansion requires readiness, (3) HIPAA standards represent best-in-class PHI protection that exceeds PIPEDA requirements for health data.
 
 #### Security Testing
 
-| Test Type | Frequency | Scope |
-|-----------|-----------|-------|
-| Automated vulnerability scanning | Weekly | All public-facing endpoints, dependencies, container images |
-| Automated penetration testing | Quarterly | OWASP Top 10 attacks against API and web application |
-| Manual penetration testing | Annually | Full-scope engagement by third-party security firm |
-| Security audit | Annually | Code review, architecture review, access controls, encryption verification |
-| Dependency scanning | Every build | Check all packages for known CVEs; block deployment if critical/high CVE found |
+| Test Type                        | Frequency   | Scope                                                                          |
+| -------------------------------- | ----------- | ------------------------------------------------------------------------------ |
+| Automated vulnerability scanning | Weekly      | All public-facing endpoints, dependencies, container images                    |
+| Automated penetration testing    | Quarterly   | OWASP Top 10 attacks against API and web application                           |
+| Manual penetration testing       | Annually    | Full-scope engagement by third-party security firm                             |
+| Security audit                   | Annually    | Code review, architecture review, access controls, encryption verification     |
+| Dependency scanning              | Every build | Check all packages for known CVEs; block deployment if critical/high CVE found |
 
 #### Breach Notification System
 
 When a data breach is detected (or suspected), the system follows this automated process:
 
-| Step | Action | Timing |
-|------|--------|--------|
-| 1 | Security team creates a `BreachIncident` record | Immediately upon detection |
-| 2 | Affected properties identified automatically (from data access logs) | Within 1 hour |
-| 3 | Super Admin notified via SMS + email + push | Within 1 hour |
-| 4 | Affected Property Admins notified via email + push | Within 24 hours |
-| 5 | Affected residents notified via email (if PII was exposed) | Within 72 hours |
-| 6 | Privacy Commissioner of Canada notified (if breach meets PIPEDA threshold) | Within 72 hours |
-| 7 | Incident resolved and resolution documented | As soon as possible |
+| Step | Action                                                                     | Timing                     |
+| ---- | -------------------------------------------------------------------------- | -------------------------- |
+| 1    | Security team creates a `BreachIncident` record                            | Immediately upon detection |
+| 2    | Affected properties identified automatically (from data access logs)       | Within 1 hour              |
+| 3    | Super Admin notified via SMS + email + push                                | Within 1 hour              |
+| 4    | Affected Property Admins notified via email + push                         | Within 24 hours            |
+| 5    | Affected residents notified via email (if PII was exposed)                 | Within 72 hours            |
+| 6    | Privacy Commissioner of Canada notified (if breach meets PIPEDA threshold) | Within 72 hours            |
+| 7    | Incident resolved and resolution documented                                | As soon as possible        |
 
 #### Breach Incident Fields
 
-| Field | Data Type | Max Length | Required | Default | Validation | Error Message |
-|-------|-----------|-----------|----------|---------|------------|---------------|
-| `id` | UUID | -- | Yes | Auto-generated | Valid UUID v4 | -- |
-| `detected_at` | timestamp with timezone | -- | Yes | `now()` | Valid timestamp | "Detection timestamp is required." |
-| `severity` | enum | -- | Yes | -- | One of: `low`, `medium`, `high`, `critical` | "Severity must be one of: low, medium, high, critical." |
-| `affected_properties` | JSONB | -- | Yes | `[]` | Array of valid property UUIDs | "Affected properties must be a valid JSON array of property IDs." |
-| `affected_records_count` | integer | -- | Yes | `0` | Min: 0 | "Affected records count cannot be negative." |
-| `affected_data_types` | JSONB | -- | Yes | `[]` | Array of strings (e.g., `["email", "phone", "name"]`) | "Affected data types must be a valid JSON array of field names." |
-| `description` | text | 4000 chars | Yes | -- | Min length: 20, Max length: 4000 | "Description is required (20-4000 characters)." |
-| `root_cause` | text | 2000 chars | No | `null` | Max length: 2000 | "Root cause must not exceed 2000 characters." |
-| `notification_sent_at` | timestamp with timezone | -- | No | `null` | Must be after `detected_at` | "Notification time must be after detection time." |
-| `resolved_at` | timestamp with timezone | -- | No | `null` | Must be after `detected_at` | "Resolution time must be after detection time." |
-| `resolution_notes` | text | 4000 chars | No | `null` | Max length: 4000 | "Resolution notes must not exceed 4000 characters." |
-| `status` | enum | -- | Yes | `detected` | One of: `detected`, `investigating`, `contained`, `resolved`, `closed` | "Status must be one of: detected, investigating, contained, resolved, closed." |
-| `reported_to_commissioner` | boolean | -- | Yes | `false` | Must be true or false | "Commissioner reporting status is required." |
+| Field                      | Data Type               | Max Length | Required | Default        | Validation                                                             | Error Message                                                                  |
+| -------------------------- | ----------------------- | ---------- | -------- | -------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `id`                       | UUID                    | --         | Yes      | Auto-generated | Valid UUID v4                                                          | --                                                                             |
+| `detected_at`              | timestamp with timezone | --         | Yes      | `now()`        | Valid timestamp                                                        | "Detection timestamp is required."                                             |
+| `severity`                 | enum                    | --         | Yes      | --             | One of: `low`, `medium`, `high`, `critical`                            | "Severity must be one of: low, medium, high, critical."                        |
+| `affected_properties`      | JSONB                   | --         | Yes      | `[]`           | Array of valid property UUIDs                                          | "Affected properties must be a valid JSON array of property IDs."              |
+| `affected_records_count`   | integer                 | --         | Yes      | `0`            | Min: 0                                                                 | "Affected records count cannot be negative."                                   |
+| `affected_data_types`      | JSONB                   | --         | Yes      | `[]`           | Array of strings (e.g., `["email", "phone", "name"]`)                  | "Affected data types must be a valid JSON array of field names."               |
+| `description`              | text                    | 4000 chars | Yes      | --             | Min length: 20, Max length: 4000                                       | "Description is required (20-4000 characters)."                                |
+| `root_cause`               | text                    | 2000 chars | No       | `null`         | Max length: 2000                                                       | "Root cause must not exceed 2000 characters."                                  |
+| `notification_sent_at`     | timestamp with timezone | --         | No       | `null`         | Must be after `detected_at`                                            | "Notification time must be after detection time."                              |
+| `resolved_at`              | timestamp with timezone | --         | No       | `null`         | Must be after `detected_at`                                            | "Resolution time must be after detection time."                                |
+| `resolution_notes`         | text                    | 4000 chars | No       | `null`         | Max length: 4000                                                       | "Resolution notes must not exceed 4000 characters."                            |
+| `status`                   | enum                    | --         | Yes      | `detected`     | One of: `detected`, `investigating`, `contained`, `resolved`, `closed` | "Status must be one of: detected, investigating, contained, resolved, closed." |
+| `reported_to_commissioner` | boolean                 | --         | Yes      | `false`        | Must be true or false                                                  | "Commissioner reporting status is required."                                   |
 
 ---
 
@@ -2070,6 +2089,7 @@ DataAccessLog
 ```
 
 **Index requirements**:
+
 - `DataAccessLog`: composite index on `(property_id, timestamp)` for time-range queries
 - `DataAccessLog`: composite index on `(user_id, timestamp)` for per-user audit queries
 - `DataAccessLog`: composite index on `(table_name, record_id)` for per-record audit queries
@@ -2179,28 +2199,30 @@ Every requirement in this section is **specific and measurable**. "Good enough" 
 
 #### 14.1.1 Coverage Requirements
 
-| Module Type | Minimum Line Coverage | Minimum Branch Coverage | Rationale |
-|---|---|---|---|
-| API route handlers | 95% | 95% | Every endpoint is a potential attack surface |
-| Business logic (services, helpers, validators) | 98% | 95% | Core logic errors cascade to every consumer |
-| UI components (React/equivalent) | 90% | 85% | Visual regressions caught by snapshot + interaction tests |
-| Utility functions | 100% | 100% | Pure functions have no excuse for missing coverage |
-| Middleware (auth, RLS, rate limiting) | 98% | 98% | Security-critical path — zero gaps allowed |
-| Database models and queries | 95% | 90% | Data integrity depends on correct query behavior |
-| WebSocket event handlers | 95% | 90% | Real-time updates must never send wrong data to wrong user |
-| AI service integrations | 90% | 85% | AI outputs are non-deterministic — test the wrapping logic rigorously |
+| Module Type                                    | Minimum Line Coverage | Minimum Branch Coverage | Rationale                                                             |
+| ---------------------------------------------- | --------------------- | ----------------------- | --------------------------------------------------------------------- |
+| API route handlers                             | 95%                   | 95%                     | Every endpoint is a potential attack surface                          |
+| Business logic (services, helpers, validators) | 98%                   | 95%                     | Core logic errors cascade to every consumer                           |
+| UI components (React/equivalent)               | 90%                   | 85%                     | Visual regressions caught by snapshot + interaction tests             |
+| Utility functions                              | 100%                  | 100%                    | Pure functions have no excuse for missing coverage                    |
+| Middleware (auth, RLS, rate limiting)          | 98%                   | 98%                     | Security-critical path — zero gaps allowed                            |
+| Database models and queries                    | 95%                   | 90%                     | Data integrity depends on correct query behavior                      |
+| WebSocket event handlers                       | 95%                   | 90%                     | Real-time updates must never send wrong data to wrong user            |
+| AI service integrations                        | 90%                   | 85%                     | AI outputs are non-deterministic — test the wrapping logic rigorously |
 
 **Overall project minimum**: 95% line coverage AND 92% branch coverage. No module may fall below its threshold listed above.
 
 #### 14.1.2 What Counts Toward Coverage
 
 **Counted**:
+
 - Application source code (all TypeScript/JavaScript files in `src/`)
 - Database migration scripts (tested via rollback tests)
 - Configuration validation logic
 - Custom middleware
 
 **Not counted** (excluded from coverage calculation):
+
 - Auto-generated code (OpenAPI client stubs, GraphQL type definitions, Prisma client)
 - Type definition files (`.d.ts`)
 - Test files themselves
@@ -2250,12 +2272,14 @@ All test names must follow this pattern:
 ```
 
 Examples:
+
 - `createEvent — when event type is disabled — throws EventTypeDisabledError`
 - `PackageCard — when status is "picked up" — renders green checkmark icon`
 - `validateEmail — when input contains unicode characters — returns validation error`
 - `applyRLS — when user belongs to Property A — excludes all Property B records`
 
 Rules:
+
 - Test names must describe behavior, not implementation.
 - Test names must be readable as a sentence by a non-developer.
 - Do not use "should" — use declarative present tense ("renders", "throws", "returns").
@@ -2265,6 +2289,7 @@ Rules:
 #### 14.1.7 Mocking and Stubbing Rules
 
 **When to mock**:
+
 - External API calls (email provider, SMS provider, push notification service, AI providers)
 - System clock (use a deterministic clock for all time-dependent tests)
 - File system operations
@@ -2272,12 +2297,14 @@ Rules:
 - Third-party SDKs (payment processors, analytics)
 
 **When NOT to mock**:
+
 - Database queries — use a test database with real schema (see 14.2 for integration test database strategy)
 - Internal service calls between modules — test the real integration
 - Validation logic — test the actual validators, not mocked versions
 - Authorization checks — never mock the RLS or role-checking layer
 
 **Mocking rules**:
+
 - Every mock must be explicitly set up in the test — no global mocks that apply across test files.
 - Mocks must verify they were called with expected arguments (not just that they were called).
 - Mocks must be reset between tests (`beforeEach` / `afterEach`) to prevent test pollution.
@@ -2295,17 +2322,20 @@ Rules:
 #### 14.1.9 Test Data Management
 
 **Factories**:
+
 - Every database model must have a corresponding test factory that generates valid instances with sensible defaults.
 - Factories must support override of any field (e.g., `createEvent({ status: "closed" })`).
 - Factories must generate unique values for unique fields (sequential IDs, unique email addresses).
 - Factories must respect foreign key relationships (creating an Event automatically creates the associated Property and EventType if not provided).
 
 **Fixtures**:
+
 - Static test fixtures (JSON files representing API responses, file uploads, etc.) are stored in a `__fixtures__/` directory next to the test file.
 - Fixtures must be realistic — use production-like data structures, not simplified versions.
 - Fixtures must not contain real PII — use generated fake data.
 
 **Seeds**:
+
 - Seed data for local development and staging environments is maintained in version-controlled seed scripts.
 - Seed scripts generate a minimum of: 3 properties, 5 roles, 50 units, 200 residents, 1,000 events, 50 maintenance requests, 20 amenity bookings.
 - Seed data must cover edge cases: units with no residents, residents with no email, events with maximum-length text fields, events with Unicode/emoji content.
@@ -2314,17 +2344,17 @@ Rules:
 
 Every unit test suite must include explicit tests for the following edge cases where applicable:
 
-| Edge Case Category | Specific Tests Required |
-|---|---|
-| **Null and undefined** | null input, undefined input, null nested fields, optional fields omitted |
-| **Empty values** | Empty string `""`, empty array `[]`, empty object `{}`, whitespace-only string `"   "` |
-| **Boundary values** | Field at minimum length, field at maximum length, field one character over maximum, integer at min/max for its type |
-| **Timezone handling** | UTC midnight, timezone boundary crossings (11:59 PM → 12:00 AM in user's timezone vs UTC), daylight saving time transitions, dates in UTC-12 and UTC+14 |
-| **Unicode and internationalization** | Emoji in text fields (👋🏽), CJK characters, right-to-left text (Arabic, Hebrew), combining diacritical marks, zero-width characters |
-| **Numeric edge cases** | Zero, negative numbers (where applicable), very large numbers, floating-point precision (0.1 + 0.2), NaN, Infinity |
-| **Date edge cases** | Leap year dates (Feb 29), end of month (Jan 31 → Feb), year boundaries (Dec 31 → Jan 1), dates far in the past (1900-01-01), dates far in the future (2099-12-31) |
-| **Concurrent access** | Two users updating the same record simultaneously, optimistic locking conflicts |
-| **Maximum field lengths** | Event description at 4,000 characters, unit number at maximum length, resident name at maximum length |
+| Edge Case Category                   | Specific Tests Required                                                                                                                                           |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Null and undefined**               | null input, undefined input, null nested fields, optional fields omitted                                                                                          |
+| **Empty values**                     | Empty string `""`, empty array `[]`, empty object `{}`, whitespace-only string `"   "`                                                                            |
+| **Boundary values**                  | Field at minimum length, field at maximum length, field one character over maximum, integer at min/max for its type                                               |
+| **Timezone handling**                | UTC midnight, timezone boundary crossings (11:59 PM → 12:00 AM in user's timezone vs UTC), daylight saving time transitions, dates in UTC-12 and UTC+14           |
+| **Unicode and internationalization** | Emoji in text fields (👋🏽), CJK characters, right-to-left text (Arabic, Hebrew), combining diacritical marks, zero-width characters                                |
+| **Numeric edge cases**               | Zero, negative numbers (where applicable), very large numbers, floating-point precision (0.1 + 0.2), NaN, Infinity                                                |
+| **Date edge cases**                  | Leap year dates (Feb 29), end of month (Jan 31 → Feb), year boundaries (Dec 31 → Jan 1), dates far in the past (1900-01-01), dates far in the future (2099-12-31) |
+| **Concurrent access**                | Two users updating the same record simultaneously, optimistic locking conflicts                                                                                   |
+| **Maximum field lengths**            | Event description at 4,000 characters, unit number at maximum length, resident name at maximum length                                                             |
 
 #### 14.1.11 Accessibility Component Testing
 
@@ -2347,19 +2377,19 @@ Every unit test suite must include explicit tests for the following edge cases w
 
 Every API endpoint must have integration tests covering:
 
-| Test Category | Requirement |
-|---|---|
-| **Happy path** | Valid request with valid authentication returns expected response body and status code |
-| **Authentication** | Request without token returns `401`. Request with expired token returns `401`. Request with invalid token returns `401`. |
-| **Authorization** | Request with valid token but insufficient role returns `403`. Test every role that should be denied. |
-| **Validation** | Request with missing required fields returns `422` with field-specific error messages. Request with invalid field types returns `422`. |
-| **Not found** | Request for non-existent resource returns `404`. Request for resource in different property returns `404` (not `403` — prevent enumeration). |
-| **Conflict** | Request that violates a uniqueness constraint returns `409` with clear error message. |
-| **Rate limiting** | Exceeding rate limit returns `429` with `Retry-After` header. |
-| **Method not allowed** | Using an unsupported HTTP method returns `405`. |
-| **Pagination** | Page 1 returns correct count. Last page returns partial results. Page beyond range returns empty array (not error). |
-| **Filtering and sorting** | Each supported filter parameter returns correct subset. Sort order is correct ascending and descending. |
-| **Response format** | Response includes all required fields. Response excludes fields not visible to the requesting role. Dates are ISO 8601. IDs are consistent format. |
+| Test Category             | Requirement                                                                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Happy path**            | Valid request with valid authentication returns expected response body and status code                                                             |
+| **Authentication**        | Request without token returns `401`. Request with expired token returns `401`. Request with invalid token returns `401`.                           |
+| **Authorization**         | Request with valid token but insufficient role returns `403`. Test every role that should be denied.                                               |
+| **Validation**            | Request with missing required fields returns `422` with field-specific error messages. Request with invalid field types returns `422`.             |
+| **Not found**             | Request for non-existent resource returns `404`. Request for resource in different property returns `404` (not `403` — prevent enumeration).       |
+| **Conflict**              | Request that violates a uniqueness constraint returns `409` with clear error message.                                                              |
+| **Rate limiting**         | Exceeding rate limit returns `429` with `Retry-After` header.                                                                                      |
+| **Method not allowed**    | Using an unsupported HTTP method returns `405`.                                                                                                    |
+| **Pagination**            | Page 1 returns correct count. Last page returns partial results. Page beyond range returns empty array (not error).                                |
+| **Filtering and sorting** | Each supported filter parameter returns correct subset. Sort order is correct ascending and descending.                                            |
+| **Response format**       | Response includes all required fields. Response excludes fields not visible to the requesting role. Dates are ISO 8601. IDs are consistent format. |
 
 **Minimum integration test count per module**: 50 tests per API module (e.g., Events, Units, Residents, Maintenance). Modules with fewer than 10 endpoints may have fewer tests, but must still cover every category above for every endpoint.
 
@@ -2373,14 +2403,14 @@ Every API endpoint must have integration tests covering:
 
 #### 14.2.3 Third-Party Service Integration Tests
 
-| Service | Test Requirements |
-|---|---|
-| **Email provider** | Send test email, verify delivery via provider API or test mailbox. Test HTML and plain-text variants. Test attachment handling. Test bounce handling. Test rate limit behavior. |
-| **SMS provider** | Send test SMS, verify delivery status callback. Test opt-out handling. Test international number formatting. Test message length limits (160 chars / concatenation). |
-| **Push notification service** | Send test push, verify receipt on test device or emulator. Test payload formatting. Test badge count updates. Test silent push for background sync. |
-| **AI providers** | Test prompt submission and response parsing. Test timeout handling (AI provider takes >30 seconds). Test fallback when primary provider is unavailable. Test response validation (AI returns unexpected format). Test cost tracking per request. |
-| **File storage** | Upload file, verify retrieval. Test signed URL generation and expiry. Test file deletion. Test storage quota enforcement. |
-| **Virus scanning** | Submit clean file — passes. Submit EICAR test file — rejected with correct error message. Test timeout when scanner is slow. |
+| Service                       | Test Requirements                                                                                                                                                                                                                                |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Email provider**            | Send test email, verify delivery via provider API or test mailbox. Test HTML and plain-text variants. Test attachment handling. Test bounce handling. Test rate limit behavior.                                                                  |
+| **SMS provider**              | Send test SMS, verify delivery status callback. Test opt-out handling. Test international number formatting. Test message length limits (160 chars / concatenation).                                                                             |
+| **Push notification service** | Send test push, verify receipt on test device or emulator. Test payload formatting. Test badge count updates. Test silent push for background sync.                                                                                              |
+| **AI providers**              | Test prompt submission and response parsing. Test timeout handling (AI provider takes >30 seconds). Test fallback when primary provider is unavailable. Test response validation (AI returns unexpected format). Test cost tracking per request. |
+| **File storage**              | Upload file, verify retrieval. Test signed URL generation and expiry. Test file deletion. Test storage quota enforcement.                                                                                                                        |
+| **Virus scanning**            | Submit clean file — passes. Submit EICAR test file — rejected with correct error message. Test timeout when scanner is slow.                                                                                                                     |
 
 - Third-party integration tests run against **sandbox/test environments** of each provider, never against production APIs.
 - If a provider does not offer a sandbox, use a contract test with recorded responses (Pact or equivalent).
@@ -2390,6 +2420,7 @@ Every API endpoint must have integration tests covering:
 This is the most critical category of integration tests. A multi-tenant isolation failure is a **P1 security incident**.
 
 **Mandatory tests** (run on every PR):
+
 1. Create Event in Property A. Query Events as Property B user. Result: zero events returned.
 2. Create Resident in Property A. Search for resident by name as Property B user. Result: not found.
 3. Create Maintenance Request in Property A. Attempt to update it as Property B Property Manager. Result: `404` (not `403`).
@@ -2402,6 +2433,7 @@ This is the most critical category of integration tests. A multi-tenant isolatio
 10. WebSocket subscription for Property A events. Publish event in Property B. Verify Property A client does NOT receive it.
 
 **Stress tests** (run nightly):
+
 - Create 100 properties with 1,000 events each. Run isolation queries for every property pair. Zero cross-contamination allowed.
 - Simulate concurrent requests from 50 different properties hitting the same API endpoint. Verify every response contains only the requesting property's data.
 
@@ -2410,10 +2442,12 @@ This is the most critical category of integration tests. A multi-tenant isolatio
 Maintain a **role × endpoint access matrix** as a test configuration file. This matrix defines, for every API endpoint, which roles should receive `200`/`201`/`204` and which roles should receive `403`.
 
 **Matrix dimensions**:
+
 - Roles: Super Admin, Property Admin, Property Manager, Front Desk / Concierge, Security Guard, Maintenance Staff, Board Member, Resident, Unauthenticated
 - Endpoints: Every API endpoint in the system (minimum 150+ endpoints at full build)
 
 **Requirements**:
+
 - The matrix must be machine-readable (YAML or JSON) and used as the source of truth for auto-generated role tests.
 - Every cell in the matrix has an explicit test: either "allowed" (test returns expected success status) or "denied" (test returns `403`).
 - The matrix must be updated with every PR that adds or modifies an endpoint.
@@ -2436,21 +2470,21 @@ Maintain a **role × endpoint access matrix** as a test configuration file. This
 
 #### 14.2.7 File Upload and Download Testing
 
-| Test Case | Expected Behavior |
-|---|---|
-| Upload JPEG under 4MB | Succeeds, file stored, thumbnail generated |
-| Upload PNG under 4MB | Succeeds, file stored, thumbnail generated |
-| Upload PDF under 10MB | Succeeds, file stored, preview generated |
-| Upload file at exact size limit | Succeeds |
-| Upload file 1 byte over size limit | Rejected with `413` and clear error message |
-| Upload with wrong MIME type (e.g., `.exe` renamed to `.jpg`) | Rejected with `422` — MIME type validated by file header, not extension |
-| Upload with no file extension | Rejected with `422` |
-| Upload zero-byte file | Rejected with `422` |
-| Upload file with filename containing special characters (`../`, `<script>`, null bytes) | Filename sanitized, file stored safely |
-| Download file with valid signed URL | Succeeds, correct content-type header, content-disposition header |
-| Download file with expired signed URL | Returns `403` |
-| Download file belonging to different property | Returns `404` |
-| Concurrent upload of 10 files to the same entity | All succeed, all files associated correctly |
+| Test Case                                                                               | Expected Behavior                                                       |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Upload JPEG under 4MB                                                                   | Succeeds, file stored, thumbnail generated                              |
+| Upload PNG under 4MB                                                                    | Succeeds, file stored, thumbnail generated                              |
+| Upload PDF under 10MB                                                                   | Succeeds, file stored, preview generated                                |
+| Upload file at exact size limit                                                         | Succeeds                                                                |
+| Upload file 1 byte over size limit                                                      | Rejected with `413` and clear error message                             |
+| Upload with wrong MIME type (e.g., `.exe` renamed to `.jpg`)                            | Rejected with `422` — MIME type validated by file header, not extension |
+| Upload with no file extension                                                           | Rejected with `422`                                                     |
+| Upload zero-byte file                                                                   | Rejected with `422`                                                     |
+| Upload file with filename containing special characters (`../`, `<script>`, null bytes) | Filename sanitized, file stored safely                                  |
+| Download file with valid signed URL                                                     | Succeeds, correct content-type header, content-disposition header       |
+| Download file with expired signed URL                                                   | Returns `403`                                                           |
+| Download file belonging to different property                                           | Returns `404`                                                           |
+| Concurrent upload of 10 files to the same entity                                        | All succeed, all files associated correctly                             |
 
 #### 14.2.8 Search Integration Testing
 
@@ -2474,27 +2508,27 @@ Maintain a **role × endpoint access matrix** as a test configuration file. This
 
 #### 14.2.10 Rate Limiting Testing
 
-| Scenario | Expected Behavior |
-|---|---|
-| Normal usage (under limit) | All requests succeed with `200` |
-| Exactly at rate limit | Last request within window succeeds |
-| One request over rate limit | Returns `429` with `Retry-After` header |
-| Burst of 100 requests in 1 second | Only the allowed number succeed; rest get `429` |
-| Different users hitting same endpoint | Each user has independent rate limit counters |
-| Rate limit resets after window expires | Requests succeed again without manual intervention |
-| Login endpoint rate limiting | After 5 failed attempts in 15 minutes, account is temporarily locked with `429` and lockout message |
-| API key rate limiting | Per-API-key limits enforced independently from per-user limits |
+| Scenario                               | Expected Behavior                                                                                   |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Normal usage (under limit)             | All requests succeed with `200`                                                                     |
+| Exactly at rate limit                  | Last request within window succeeds                                                                 |
+| One request over rate limit            | Returns `429` with `Retry-After` header                                                             |
+| Burst of 100 requests in 1 second      | Only the allowed number succeed; rest get `429`                                                     |
+| Different users hitting same endpoint  | Each user has independent rate limit counters                                                       |
+| Rate limit resets after window expires | Requests succeed again without manual intervention                                                  |
+| Login endpoint rate limiting           | After 5 failed attempts in 15 minutes, account is temporarily locked with `429` and lockout message |
+| API key rate limiting                  | Per-API-key limits enforced independently from per-user limits                                      |
 
 #### 14.2.11 Notification Delivery Testing
 
 Test notification delivery across all 4 channels for every notification event:
 
-| Channel | Test Requirements |
-|---|---|
-| **Email** | Correct recipient. Correct subject line. Correct body content (HTML and plain text). Correct sender address. Unsubscribe link works. Attachment included when applicable. Template renders correctly with all variable combinations. |
-| **SMS** | Correct phone number. Message within 160 chars (or correctly concatenated). Opt-out reply ("STOP") processed. Delivery status callback received and logged. |
-| **Push notification** | Correct device token. Correct title and body. Deep link opens correct screen. Badge count updated. Notification grouped correctly (by property, by type). |
-| **In-app notification** | Notification appears in notification center within 2 seconds. Read/unread status toggles correctly. Clicking notification navigates to correct entity. Notification count in header badge updates in real time. |
+| Channel                 | Test Requirements                                                                                                                                                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Email**               | Correct recipient. Correct subject line. Correct body content (HTML and plain text). Correct sender address. Unsubscribe link works. Attachment included when applicable. Template renders correctly with all variable combinations. |
+| **SMS**                 | Correct phone number. Message within 160 chars (or correctly concatenated). Opt-out reply ("STOP") processed. Delivery status callback received and logged.                                                                          |
+| **Push notification**   | Correct device token. Correct title and body. Deep link opens correct screen. Badge count updated. Notification grouped correctly (by property, by type).                                                                            |
+| **In-app notification** | Notification appears in notification center within 2 seconds. Read/unread status toggles correctly. Clicking notification navigates to correct entity. Notification count in header badge updates in real time.                      |
 
 - Test notification preferences: if a resident has disabled email notifications for package events, they must NOT receive an email when a package arrives (but should still receive push if push is enabled).
 - Test notification throttling: if 50 events fire in 1 minute for the same resident, notifications are batched into a digest, not sent individually.
@@ -2514,13 +2548,13 @@ Test notification delivery across all 4 channels for every notification event:
 
 Test complete end-to-end workflows that span multiple modules:
 
-| Workflow | Steps to Test |
-|---|---|
-| **Package arrival to pickup** | Front desk creates package event → notification sent to resident (all channels per preferences) → resident sees package in portal → resident confirms pickup → front desk marks as picked up → event closed → audit log entry created |
+| Workflow                          | Steps to Test                                                                                                                                                                                                                                      |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Package arrival to pickup**     | Front desk creates package event → notification sent to resident (all channels per preferences) → resident sees package in portal → resident confirms pickup → front desk marks as picked up → event closed → audit log entry created              |
 | **Maintenance request lifecycle** | Resident submits request with photos → Property Manager receives notification → PM assigns to vendor → vendor receives notification → vendor updates status → resident receives update notification → PM closes request → satisfaction survey sent |
-| **Amenity booking with approval** | Resident books amenity → approval-required flag triggers admin review → admin approves → resident notified → calendar updated → reminder sent 24hrs before → resident checks in → booking marked as used |
-| **Security incident escalation** | Security guard logs incident → classified as high severity → automatic escalation to Property Manager → PM notified via SMS and push → PM acknowledges → follow-up task created → incident closed with resolution notes |
-| **Resident onboarding** | Admin creates resident → welcome email sent → resident activates account → resident completes profile → FOB assigned → unit instructions visible → resident can book amenities and submit maintenance requests |
+| **Amenity booking with approval** | Resident books amenity → approval-required flag triggers admin review → admin approves → resident notified → calendar updated → reminder sent 24hrs before → resident checks in → booking marked as used                                           |
+| **Security incident escalation**  | Security guard logs incident → classified as high severity → automatic escalation to Property Manager → PM notified via SMS and push → PM acknowledges → follow-up task created → incident closed with resolution notes                            |
+| **Resident onboarding**           | Admin creates resident → welcome email sent → resident activates account → resident completes profile → FOB assigned → unit instructions visible → resident can book amenities and submit maintenance requests                                     |
 
 Each workflow must be tested as a single integration test that runs all steps sequentially, verifying state changes and notifications at each step.
 
@@ -2548,20 +2582,20 @@ Concierge must meet **WCAG 2.2 Level AA** compliance. This is a mandatory requir
 
 Specific WCAG 2.2 success criteria that are especially important for Concierge:
 
-| Success Criterion | ID | Why It Matters for Concierge |
-|---|---|---|
-| Non-text Content | 1.1.1 | Package photos, floor plans, uploaded documents must have alt text |
-| Info and Relationships | 1.3.1 | Data tables (event logs, resident lists) must use proper `<th>` and `<td>` markup |
-| Meaningful Sequence | 1.3.2 | Dashboard widgets must have a logical reading order regardless of visual layout |
-| Use of Color | 1.4.1 | Status indicators (open/closed, compliant/expired) must not rely on color alone — add text labels or icons |
-| Contrast (Minimum) | 1.4.3 | Normal text: 4.5:1 contrast ratio minimum. Large text (18px+ or 14px+ bold): 3:1 minimum |
-| Resize Text | 1.4.4 | All content readable at 200% zoom without horizontal scrolling |
-| Keyboard | 2.1.1 | Every function available via keyboard. No keyboard traps. |
-| Focus Visible | 2.4.7 | Custom focus indicator: 2px solid ring, offset by 2px, using the brand accent color |
-| Target Size (Minimum) | 2.5.8 | All interactive targets are at least 24x24 CSS pixels (Concierge standard: 44x44px on touch devices) |
-| Error Identification | 3.3.1 | All form errors identified in text (not just red borders) |
-| Labels or Instructions | 3.3.2 | Every form input has a visible label — no placeholder-only inputs |
-| Status Messages | 4.1.3 | Toast notifications and live updates announced to screen readers via `role="status"` or `aria-live="polite"` |
+| Success Criterion      | ID    | Why It Matters for Concierge                                                                                 |
+| ---------------------- | ----- | ------------------------------------------------------------------------------------------------------------ |
+| Non-text Content       | 1.1.1 | Package photos, floor plans, uploaded documents must have alt text                                           |
+| Info and Relationships | 1.3.1 | Data tables (event logs, resident lists) must use proper `<th>` and `<td>` markup                            |
+| Meaningful Sequence    | 1.3.2 | Dashboard widgets must have a logical reading order regardless of visual layout                              |
+| Use of Color           | 1.4.1 | Status indicators (open/closed, compliant/expired) must not rely on color alone — add text labels or icons   |
+| Contrast (Minimum)     | 1.4.3 | Normal text: 4.5:1 contrast ratio minimum. Large text (18px+ or 14px+ bold): 3:1 minimum                     |
+| Resize Text            | 1.4.4 | All content readable at 200% zoom without horizontal scrolling                                               |
+| Keyboard               | 2.1.1 | Every function available via keyboard. No keyboard traps.                                                    |
+| Focus Visible          | 2.4.7 | Custom focus indicator: 2px solid ring, offset by 2px, using the brand accent color                          |
+| Target Size (Minimum)  | 2.5.8 | All interactive targets are at least 24x24 CSS pixels (Concierge standard: 44x44px on touch devices)         |
+| Error Identification   | 3.3.1 | All form errors identified in text (not just red borders)                                                    |
+| Labels or Instructions | 3.3.2 | Every form input has a visible label — no placeholder-only inputs                                            |
+| Status Messages        | 4.1.3 | Toast notifications and live updates announced to screen readers via `role="status"` or `aria-live="polite"` |
 
 #### 14.3.2 Automated Accessibility Testing
 
@@ -2602,18 +2636,18 @@ Specific WCAG 2.2 success criteria that are especially important for Concierge:
 
 #### 14.3.6 Focus Management Rules
 
-| Scenario | Focus Behavior |
-|---|---|
-| Modal opens | Focus moves to the first interactive element inside the modal (or the modal heading if no interactive element) |
-| Modal closes | Focus returns to the trigger element |
-| Toast notification appears | Focus stays where it is — toast is announced via `aria-live` |
-| Inline form error | Focus moves to the first field with an error |
-| Page navigation (SPA) | Focus moves to the page heading (`<h1>`) or skip-nav target |
-| Accordion section expands | Focus stays on the trigger button |
-| Dropdown menu opens | Focus moves to the first menu item |
-| Search results update | Focus stays in the search input — results announced via `aria-live` |
-| Record deleted from table | Focus moves to the next row (or previous if last row was deleted) |
-| Tab panel switches | Focus moves to the tab panel content area |
+| Scenario                   | Focus Behavior                                                                                                 |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Modal opens                | Focus moves to the first interactive element inside the modal (or the modal heading if no interactive element) |
+| Modal closes               | Focus returns to the trigger element                                                                           |
+| Toast notification appears | Focus stays where it is — toast is announced via `aria-live`                                                   |
+| Inline form error          | Focus moves to the first field with an error                                                                   |
+| Page navigation (SPA)      | Focus moves to the page heading (`<h1>`) or skip-nav target                                                    |
+| Accordion section expands  | Focus stays on the trigger button                                                                              |
+| Dropdown menu opens        | Focus moves to the first menu item                                                                             |
+| Search results update      | Focus stays in the search input — results announced via `aria-live`                                            |
+| Record deleted from table  | Focus moves to the next row (or previous if last row was deleted)                                              |
+| Tab panel switches         | Focus moves to the tab panel content area                                                                      |
 
 #### 14.3.7 Color and Contrast Requirements
 
@@ -2721,40 +2755,40 @@ Specific WCAG 2.2 success criteria that are especially important for Concierge:
 
 #### 14.4.3 Complexity Limits
 
-| Metric | Maximum Allowed | Enforcement |
-|---|---|---|
-| Cyclomatic complexity per function | 10 | ESLint `complexity` rule — build fails |
-| Cognitive complexity per function | 15 | SonarQube or equivalent — build fails |
-| Lines per function (excluding comments and blank lines) | 50 | ESLint `max-lines-per-function` — build fails |
-| Lines per file (excluding comments and blank lines) | 400 | ESLint `max-lines` — build fails |
-| Parameters per function | 4 | ESLint `max-params` — warning, enforced in review |
-| Depth of nesting | 4 levels | ESLint `max-depth` — build fails |
-| Classes per file | 1 | Convention enforced in review |
-| Imports per file | 25 | ESLint custom rule — warning, enforced in review |
+| Metric                                                  | Maximum Allowed | Enforcement                                       |
+| ------------------------------------------------------- | --------------- | ------------------------------------------------- |
+| Cyclomatic complexity per function                      | 10              | ESLint `complexity` rule — build fails            |
+| Cognitive complexity per function                       | 15              | SonarQube or equivalent — build fails             |
+| Lines per function (excluding comments and blank lines) | 50              | ESLint `max-lines-per-function` — build fails     |
+| Lines per file (excluding comments and blank lines)     | 400             | ESLint `max-lines` — build fails                  |
+| Parameters per function                                 | 4               | ESLint `max-params` — warning, enforced in review |
+| Depth of nesting                                        | 4 levels        | ESLint `max-depth` — build fails                  |
+| Classes per file                                        | 1               | Convention enforced in review                     |
+| Imports per file                                        | 25              | ESLint custom rule — warning, enforced in review  |
 
 When a function or file exceeds these limits, it must be refactored — not have an exception added. The only exception process is a written Tech Lead approval in the PR with a linked follow-up ticket to refactor within 2 sprints.
 
 #### 14.4.4 Naming Conventions
 
-| Item | Convention | Example |
-|---|---|---|
-| Files (components) | PascalCase | `EventCard.tsx`, `PackageForm.tsx` |
-| Files (utilities, hooks, services) | camelCase | `useEventList.ts`, `formatDate.ts`, `eventService.ts` |
-| Files (test files) | Same as source + `.test` | `EventCard.test.tsx`, `eventService.test.ts` |
-| Files (styles) | Same as component + `.module` | `EventCard.module.css` |
-| Variables and functions | camelCase | `eventCount`, `getActiveEvents()` |
-| Constants (true constants) | SCREAMING_SNAKE_CASE | `MAX_FILE_SIZE`, `DEFAULT_PAGE_SIZE` |
-| React components | PascalCase | `EventCard`, `MainDashboard` |
-| React hooks | camelCase prefixed with `use` | `useEventList`, `useAuth` |
-| TypeScript interfaces | PascalCase prefixed with nothing | `Event`, `CreateEventInput` (no `I` prefix) |
-| TypeScript types | PascalCase | `EventStatus`, `UserRole` |
-| TypeScript enums | PascalCase with PascalCase members | `EventStatus.InProgress` |
-| API endpoints | kebab-case, plural nouns | `/api/v1/events`, `/api/v1/maintenance-requests` |
-| Database tables | snake_case, plural | `events`, `maintenance_requests` |
-| Database columns | snake_case | `created_at`, `event_type_id` |
-| Environment variables | SCREAMING_SNAKE_CASE | `DATABASE_URL`, `SMTP_HOST` |
-| CSS classes (modules) | camelCase | `.eventCard`, `.statusBadge` |
-| Feature flags | kebab-case | `enable-ai-suggestions`, `new-dashboard-layout` |
+| Item                               | Convention                         | Example                                               |
+| ---------------------------------- | ---------------------------------- | ----------------------------------------------------- |
+| Files (components)                 | PascalCase                         | `EventCard.tsx`, `PackageForm.tsx`                    |
+| Files (utilities, hooks, services) | camelCase                          | `useEventList.ts`, `formatDate.ts`, `eventService.ts` |
+| Files (test files)                 | Same as source + `.test`           | `EventCard.test.tsx`, `eventService.test.ts`          |
+| Files (styles)                     | Same as component + `.module`      | `EventCard.module.css`                                |
+| Variables and functions            | camelCase                          | `eventCount`, `getActiveEvents()`                     |
+| Constants (true constants)         | SCREAMING_SNAKE_CASE               | `MAX_FILE_SIZE`, `DEFAULT_PAGE_SIZE`                  |
+| React components                   | PascalCase                         | `EventCard`, `MainDashboard`                          |
+| React hooks                        | camelCase prefixed with `use`      | `useEventList`, `useAuth`                             |
+| TypeScript interfaces              | PascalCase prefixed with nothing   | `Event`, `CreateEventInput` (no `I` prefix)           |
+| TypeScript types                   | PascalCase                         | `EventStatus`, `UserRole`                             |
+| TypeScript enums                   | PascalCase with PascalCase members | `EventStatus.InProgress`                              |
+| API endpoints                      | kebab-case, plural nouns           | `/api/v1/events`, `/api/v1/maintenance-requests`      |
+| Database tables                    | snake_case, plural                 | `events`, `maintenance_requests`                      |
+| Database columns                   | snake_case                         | `created_at`, `event_type_id`                         |
+| Environment variables              | SCREAMING_SNAKE_CASE               | `DATABASE_URL`, `SMTP_HOST`                           |
+| CSS classes (modules)              | camelCase                          | `.eventCard`, `.statusBadge`                          |
+| Feature flags                      | kebab-case                         | `enable-ai-suggestions`, `new-dashboard-layout`       |
 
 #### 14.4.5 TypeScript Strict Mode
 
@@ -2847,25 +2881,25 @@ The following TypeScript compiler options are mandatory and must be enabled in `
 
 #### 14.4.10 Performance Budgets
 
-| Metric | Budget | Measurement Method |
-|---|---|---|
-| Initial JavaScript bundle (compressed) | < 250 KB | Build output, checked in CI |
-| Per-route JavaScript chunk (compressed) | < 80 KB | Build output, checked in CI |
-| Largest Contentful Paint (LCP) | < 1.5 seconds | Lighthouse CI on staging |
-| First Input Delay (FID) | < 50 ms | Lighthouse CI on staging |
-| Cumulative Layout Shift (CLS) | < 0.05 | Lighthouse CI on staging |
-| Time to Interactive (TTI) | < 2.0 seconds | Lighthouse CI on staging |
-| Lighthouse Performance Score | > 90 | Lighthouse CI on staging |
-| Lighthouse Accessibility Score | > 95 | Lighthouse CI on staging |
-| Lighthouse Best Practices Score | > 95 | Lighthouse CI on staging |
-| API response time (simple CRUD) | < 100 ms (p95) | Load test on staging |
-| API response time (complex queries/reports) | < 500 ms (p95) | Load test on staging |
-| API response time (search) | < 200 ms (p95) | Load test on staging |
-| API response time (AI-powered features) | < 5,000 ms (p95) | Load test on staging |
-| Database query time (single record) | < 10 ms (p95) | Query monitoring |
-| Database query time (list with pagination) | < 50 ms (p95) | Query monitoring |
-| WebSocket message delivery | < 500 ms (p95) | Real-time monitoring |
-| Image/thumbnail loading | < 300 ms (p95) | CDN monitoring |
+| Metric                                      | Budget           | Measurement Method          |
+| ------------------------------------------- | ---------------- | --------------------------- |
+| Initial JavaScript bundle (compressed)      | < 250 KB         | Build output, checked in CI |
+| Per-route JavaScript chunk (compressed)     | < 80 KB          | Build output, checked in CI |
+| Largest Contentful Paint (LCP)              | < 1.5 seconds    | Lighthouse CI on staging    |
+| First Input Delay (FID)                     | < 50 ms          | Lighthouse CI on staging    |
+| Cumulative Layout Shift (CLS)               | < 0.05           | Lighthouse CI on staging    |
+| Time to Interactive (TTI)                   | < 2.0 seconds    | Lighthouse CI on staging    |
+| Lighthouse Performance Score                | > 90             | Lighthouse CI on staging    |
+| Lighthouse Accessibility Score              | > 95             | Lighthouse CI on staging    |
+| Lighthouse Best Practices Score             | > 95             | Lighthouse CI on staging    |
+| API response time (simple CRUD)             | < 100 ms (p95)   | Load test on staging        |
+| API response time (complex queries/reports) | < 500 ms (p95)   | Load test on staging        |
+| API response time (search)                  | < 200 ms (p95)   | Load test on staging        |
+| API response time (AI-powered features)     | < 5,000 ms (p95) | Load test on staging        |
+| Database query time (single record)         | < 10 ms (p95)    | Query monitoring            |
+| Database query time (list with pagination)  | < 50 ms (p95)    | Query monitoring            |
+| WebSocket message delivery                  | < 500 ms (p95)   | Real-time monitoring        |
+| Image/thumbnail loading                     | < 300 ms (p95)   | CDN monitoring              |
 
 - Performance budgets are enforced in CI — builds that exceed budgets fail.
 - Performance regression testing runs nightly against staging with production-like data volumes.
@@ -2952,16 +2986,16 @@ The following TypeScript compiler options are mandatory and must be enabled in `
 
 Every production operation must have a runbook in `docs/runbooks/`:
 
-| Runbook | Contents |
-|---|---|
-| `deployment.md` | Step-by-step deployment process, environment variables to verify, health check URLs, rollback procedure |
-| `rollback.md` | How to rollback to previous version, database migration rollback steps, cache invalidation steps |
-| `scaling.md` | How to scale horizontally (add instances), vertically (resize), database scaling, cache scaling |
-| `incident-response.md` | Severity classification, escalation chain, communication templates, post-mortem template |
-| `database-maintenance.md` | Backup verification, vacuum/analyze schedule, index maintenance, slow query investigation |
-| `disaster-recovery.md` | RPO and RTO targets, recovery procedures for: database failure, cache failure, file storage failure, complete region failure |
-| `security-incident.md` | Steps for: data breach, unauthorized access, DDoS, compromised credentials |
-| `on-call-guide.md` | Alert categories, triage process, common issues and their resolutions, escalation contacts |
+| Runbook                   | Contents                                                                                                                     |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `deployment.md`           | Step-by-step deployment process, environment variables to verify, health check URLs, rollback procedure                      |
+| `rollback.md`             | How to rollback to previous version, database migration rollback steps, cache invalidation steps                             |
+| `scaling.md`              | How to scale horizontally (add instances), vertically (resize), database scaling, cache scaling                              |
+| `incident-response.md`    | Severity classification, escalation chain, communication templates, post-mortem template                                     |
+| `database-maintenance.md` | Backup verification, vacuum/analyze schedule, index maintenance, slow query investigation                                    |
+| `disaster-recovery.md`    | RPO and RTO targets, recovery procedures for: database failure, cache failure, file storage failure, complete region failure |
+| `security-incident.md`    | Steps for: data breach, unauthorized access, DDoS, compromised credentials                                                   |
+| `on-call-guide.md`        | Alert categories, triage process, common issues and their resolutions, escalation contacts                                   |
 
 - Runbooks are reviewed and updated every quarter.
 - Every runbook is tested annually via tabletop exercise or live drill.
@@ -3008,12 +3042,12 @@ Every production operation must have a runbook in `docs/runbooks/`:
 
 - A file `docs/env-vars.md` documents every environment variable with:
 
-| Variable | Type | Required | Default | Purpose | Example |
-|---|---|---|---|---|---|
-| `DATABASE_URL` | string | Yes | — | PostgreSQL connection string | `postgresql://user:pass@host:5432/concierge` |
-| `SMTP_HOST` | string | Yes | — | Email provider hostname | `smtp.sendgrid.net` |
-| `AI_PROVIDER_API_KEY` | string | Yes | — | Primary AI provider API key | `sk-...` |
-| ... | ... | ... | ... | ... | ... |
+| Variable              | Type   | Required | Default | Purpose                      | Example                                      |
+| --------------------- | ------ | -------- | ------- | ---------------------------- | -------------------------------------------- |
+| `DATABASE_URL`        | string | Yes      | —       | PostgreSQL connection string | `postgresql://user:pass@host:5432/concierge` |
+| `SMTP_HOST`           | string | Yes      | —       | Email provider hostname      | `smtp.sendgrid.net`                          |
+| `AI_PROVIDER_API_KEY` | string | Yes      | —       | Primary AI provider API key  | `sk-...`                                     |
+| ...                   | ...    | ...      | ...     | ...                          | ...                                          |
 
 - This file is updated in the same PR that adds, removes, or changes an environment variable.
 - CI validates that every environment variable referenced in code has a corresponding entry in `docs/env-vars.md`.
@@ -3073,14 +3107,14 @@ Every production operation must have a runbook in `docs/runbooks/`:
 
 #### 14.6.2 UAT Sign-Off Requirements
 
-| Feature Type | Required Sign-Offs | Sign-Off Criteria |
-|---|---|---|
-| UI changes (visual only) | Product Owner, QA Lead | Matches design spec, responsive, accessible |
-| API changes | QA Lead, Tech Lead | All endpoints tested, documentation updated, backward-compatible |
-| New module | Product Owner, QA Lead, Tech Lead, Security Champion | Full feature coverage, security review passed, performance benchmarks met |
+| Feature Type                                       | Required Sign-Offs                                        | Sign-Off Criteria                                                              |
+| -------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| UI changes (visual only)                           | Product Owner, QA Lead                                    | Matches design spec, responsive, accessible                                    |
+| API changes                                        | QA Lead, Tech Lead                                        | All endpoints tested, documentation updated, backward-compatible               |
+| New module                                         | Product Owner, QA Lead, Tech Lead, Security Champion      | Full feature coverage, security review passed, performance benchmarks met      |
 | Security-sensitive changes (auth, RLS, encryption) | QA Lead, Tech Lead, Security Champion, CTO/VP Engineering | Penetration test passed, multi-tenant isolation verified, audit trail verified |
-| Data migration | QA Lead, Tech Lead, DBA | Data integrity verified, rollback tested, performance impact assessed |
-| Third-party integration | QA Lead, Tech Lead | Contract tests passing, error handling verified, fallback behavior tested |
+| Data migration                                     | QA Lead, Tech Lead, DBA                                   | Data integrity verified, rollback tested, performance impact assessed          |
+| Third-party integration                            | QA Lead, Tech Lead                                        | Contract tests passing, error handling verified, fallback behavior tested      |
 
 - All sign-offs are recorded in the release management system with timestamp, name, and approval/rejection notes.
 - A single rejection from any required signer blocks the release until the issue is resolved and re-tested.
@@ -3106,21 +3140,21 @@ Every production operation must have a runbook in `docs/runbooks/`:
 
 Every data mutation in Concierge is logged in the audit trail with the following fields:
 
-| Field | Description | Example |
-|---|---|---|
-| `audit_id` | Unique identifier | `aud_8f3k2j` |
-| `timestamp` | When it happened (UTC, microsecond precision) | `2026-03-14T10:30:00.123456Z` |
-| `actor_id` | Who did it (user ID or system service name) | `usr_abc123` or `system:notification-service` |
-| `actor_role` | Role of the actor at the time of action | `property_manager` |
-| `property_id` | Which property's data was affected | `prop_xyz789` |
-| `entity_type` | What kind of record was changed | `event`, `resident`, `maintenance_request` |
-| `entity_id` | Identifier of the changed record | `evt_def456` |
-| `action` | What happened | `create`, `update`, `delete`, `archive`, `export`, `view` |
-| `changes` | Before/after values for updates | `{ "status": { "from": "open", "to": "closed" } }` |
-| `ip_address` | IP address of the actor | `192.168.1.100` |
-| `user_agent` | Browser/device information | `Mozilla/5.0 ...` |
-| `request_id` | Correlation ID for the HTTP request | `req_ghi789` |
-| `reason` | Optional reason for the change (required for sensitive operations) | `"Resident requested account deletion"` |
+| Field         | Description                                                        | Example                                                   |
+| ------------- | ------------------------------------------------------------------ | --------------------------------------------------------- |
+| `audit_id`    | Unique identifier                                                  | `aud_8f3k2j`                                              |
+| `timestamp`   | When it happened (UTC, microsecond precision)                      | `2026-03-14T10:30:00.123456Z`                             |
+| `actor_id`    | Who did it (user ID or system service name)                        | `usr_abc123` or `system:notification-service`             |
+| `actor_role`  | Role of the actor at the time of action                            | `property_manager`                                        |
+| `property_id` | Which property's data was affected                                 | `prop_xyz789`                                             |
+| `entity_type` | What kind of record was changed                                    | `event`, `resident`, `maintenance_request`                |
+| `entity_id`   | Identifier of the changed record                                   | `evt_def456`                                              |
+| `action`      | What happened                                                      | `create`, `update`, `delete`, `archive`, `export`, `view` |
+| `changes`     | Before/after values for updates                                    | `{ "status": { "from": "open", "to": "closed" } }`        |
+| `ip_address`  | IP address of the actor                                            | `192.168.1.100`                                           |
+| `user_agent`  | Browser/device information                                         | `Mozilla/5.0 ...`                                         |
+| `request_id`  | Correlation ID for the HTTP request                                | `req_ghi789`                                              |
+| `reason`      | Optional reason for the change (required for sensitive operations) | `"Resident requested account deletion"`                   |
 
 - Audit logs are append-only — they cannot be modified or deleted by any user, including Super Admins.
 - Audit logs are stored in a separate database or partition from application data.
@@ -3150,16 +3184,16 @@ Every data mutation in Concierge is logged in the audit trail with the following
 
 Automated compliance checks run on every release candidate:
 
-| Framework | Automated Checks |
-|---|---|
-| **PIPEDA** | Consent collection verified for all PII fields, data retention policies enforced, breach notification process tested, data export functionality verified |
-| **GDPR** | Right to erasure verified, data portability verified, consent management verified, DPA templates available, cross-border transfer controls verified |
-| **SOC 2** | Access controls enforced, encryption at rest and in transit verified, audit logging active, change management process followed, incident response plan current |
-| **ISO 27001** | Asset inventory current, risk register updated, access review completed, vulnerability scan results reviewed |
-| **ISO 27701** | PII inventory current, processing purposes documented, data subject rights verified, privacy impact assessment completed |
-| **ISO 27017** | Cloud security controls verified, shared responsibility documentation current |
-| **ISO 9001** | Quality objectives measured, nonconformity tracking active, corrective actions verified |
-| **HIPAA** (if applicable) | PHI identified and protected, minimum necessary standard enforced, BAA in place for sub-processors |
+| Framework                 | Automated Checks                                                                                                                                               |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **PIPEDA**                | Consent collection verified for all PII fields, data retention policies enforced, breach notification process tested, data export functionality verified       |
+| **GDPR**                  | Right to erasure verified, data portability verified, consent management verified, DPA templates available, cross-border transfer controls verified            |
+| **SOC 2**                 | Access controls enforced, encryption at rest and in transit verified, audit logging active, change management process followed, incident response plan current |
+| **ISO 27001**             | Asset inventory current, risk register updated, access review completed, vulnerability scan results reviewed                                                   |
+| **ISO 27701**             | PII inventory current, processing purposes documented, data subject rights verified, privacy impact assessment completed                                       |
+| **ISO 27017**             | Cloud security controls verified, shared responsibility documentation current                                                                                  |
+| **ISO 9001**              | Quality objectives measured, nonconformity tracking active, corrective actions verified                                                                        |
+| **HIPAA** (if applicable) | PHI identified and protected, minimum necessary standard enforced, BAA in place for sub-processors                                                             |
 
 - Compliance check results are logged and available for auditor review.
 - Any failed compliance check blocks the release.
@@ -3180,12 +3214,12 @@ Automated compliance checks run on every release candidate:
 
 #### 14.6.10 Bug Classification and SLA Matrix
 
-| Priority | Definition | Response Time | Resolution Time | Examples |
-|---|---|---|---|---|
-| **P1 — Critical** | System down, data loss, security breach, multi-tenant leak | 15 minutes | 4 hours | Database unavailable, PII exposed to wrong property, auth bypass |
-| **P2 — High** | Major feature broken for all users, data integrity risk | 1 hour | 24 hours | Event creation failing, notifications not delivering, search returning wrong results |
-| **P3 — Medium** | Feature partially broken, workaround available | 4 hours | 1 week | Report export missing columns, filter not working on one field, slow page load |
-| **P4 — Low** | Minor issue, cosmetic, edge case | Next business day | 2 sprints | Typo in UI text, alignment off by 2px, tooltip missing on one button |
+| Priority          | Definition                                                 | Response Time     | Resolution Time | Examples                                                                             |
+| ----------------- | ---------------------------------------------------------- | ----------------- | --------------- | ------------------------------------------------------------------------------------ |
+| **P1 — Critical** | System down, data loss, security breach, multi-tenant leak | 15 minutes        | 4 hours         | Database unavailable, PII exposed to wrong property, auth bypass                     |
+| **P2 — High**     | Major feature broken for all users, data integrity risk    | 1 hour            | 24 hours        | Event creation failing, notifications not delivering, search returning wrong results |
+| **P3 — Medium**   | Feature partially broken, workaround available             | 4 hours           | 1 week          | Report export missing columns, filter not working on one field, slow page load       |
+| **P4 — Low**      | Minor issue, cosmetic, edge case                           | Next business day | 2 sprints       | Typo in UI text, alignment off by 2px, tooltip missing on one button                 |
 
 - P1 and P2 bugs trigger immediate notification to the on-call engineer via PagerDuty or equivalent.
 - P1 bugs trigger an incident channel with mandatory post-mortem within 48 hours.
@@ -3219,6 +3253,7 @@ Any single failing criterion blocks the release. No exceptions without written C
 #### 14.6.12 Rollback Criteria and Procedure
 
 **When to rollback** (any one of these triggers automatic rollback):
+
 - Error rate exceeds 1% of requests within 10 minutes of deployment
 - API response time (p95) exceeds 2x the pre-deployment baseline
 - Any P1 bug reported within 30 minutes of deployment
@@ -3230,6 +3265,7 @@ Any single failing criterion blocks the release. No exceptions without written C
 **How fast**: Rollback must complete within **5 minutes** of the decision.
 
 **Procedure**:
+
 1. Trigger rollback via deployment pipeline (one-command rollback)
 2. Verify previous version is serving traffic (health check)
 3. Verify database migration rollback (if applicable)
@@ -3285,27 +3321,27 @@ Results are logged and any failure triggers an automatic alert.
 
 #### 14.7.1 Authentication Testing
 
-| Test Category | Specific Tests |
-|---|---|
-| **Brute force** | After 5 failed login attempts in 15 minutes, account is locked for 30 minutes. Locked account returns generic error (not "account locked" — prevent enumeration). |
-| **Session fixation** | Session ID changes on login. Old session IDs are invalid after login. |
-| **Credential stuffing** | Rate limiting on login endpoint (max 10 attempts per IP per minute). CAPTCHA triggered after 3 failed attempts from same IP. |
-| **Token expiry** | Access tokens expire after 15 minutes. Refresh tokens expire after 7 days. Expired tokens are rejected with `401`. |
-| **Token refresh** | Refresh token rotation — used refresh token is invalidated. Attempting to reuse a refresh token invalidates all tokens for that user (theft detection). |
-| **Password reset** | Reset token expires after 1 hour. Reset token is single-use. Reset link does not reveal whether email exists in system. |
-| **Multi-device sessions** | User can view all active sessions. User can revoke individual sessions. User can revoke all other sessions ("log out everywhere"). |
-| **Concurrent session limits** | Configurable per-property limit (default: 5 concurrent sessions per user). New login beyond limit terminates oldest session. |
+| Test Category                 | Specific Tests                                                                                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Brute force**               | After 5 failed login attempts in 15 minutes, account is locked for 30 minutes. Locked account returns generic error (not "account locked" — prevent enumeration). |
+| **Session fixation**          | Session ID changes on login. Old session IDs are invalid after login.                                                                                             |
+| **Credential stuffing**       | Rate limiting on login endpoint (max 10 attempts per IP per minute). CAPTCHA triggered after 3 failed attempts from same IP.                                      |
+| **Token expiry**              | Access tokens expire after 15 minutes. Refresh tokens expire after 7 days. Expired tokens are rejected with `401`.                                                |
+| **Token refresh**             | Refresh token rotation — used refresh token is invalidated. Attempting to reuse a refresh token invalidates all tokens for that user (theft detection).           |
+| **Password reset**            | Reset token expires after 1 hour. Reset token is single-use. Reset link does not reveal whether email exists in system.                                           |
+| **Multi-device sessions**     | User can view all active sessions. User can revoke individual sessions. User can revoke all other sessions ("log out everywhere").                                |
+| **Concurrent session limits** | Configurable per-property limit (default: 5 concurrent sessions per user). New login beyond limit terminates oldest session.                                      |
 
 #### 14.7.2 Authorization Testing
 
-| Test Category | Specific Tests |
-|---|---|
-| **Horizontal privilege escalation (cross-property)** | Property A admin cannot access, modify, or delete any resource belonging to Property B. Tested for every API endpoint. Returns `404` (not `403`). |
-| **Vertical privilege escalation (cross-role)** | Resident cannot access admin endpoints. Security Guard cannot access Property Manager endpoints. Test for every role combination. |
-| **IDOR (Insecure Direct Object Reference)** | Changing an entity ID in the URL does not grant access to another user's resource. Test with: sequential IDs, UUID guessing, previous resource IDs. |
-| **Mass assignment** | Sending unexpected fields in API requests does not modify protected attributes (e.g., sending `role: "admin"` in a profile update). |
-| **Function-level access** | Admin-only functions (user creation, property config, role assignment) are not accessible by non-admin roles. |
-| **Record-level access** | Resident can only see their own maintenance requests, packages, and bookings. Staff can only see data for properties they are assigned to. |
+| Test Category                                        | Specific Tests                                                                                                                                      |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Horizontal privilege escalation (cross-property)** | Property A admin cannot access, modify, or delete any resource belonging to Property B. Tested for every API endpoint. Returns `404` (not `403`).   |
+| **Vertical privilege escalation (cross-role)**       | Resident cannot access admin endpoints. Security Guard cannot access Property Manager endpoints. Test for every role combination.                   |
+| **IDOR (Insecure Direct Object Reference)**          | Changing an entity ID in the URL does not grant access to another user's resource. Test with: sequential IDs, UUID guessing, previous resource IDs. |
+| **Mass assignment**                                  | Sending unexpected fields in API requests does not modify protected attributes (e.g., sending `role: "admin"` in a profile update).                 |
+| **Function-level access**                            | Admin-only functions (user creation, property config, role assignment) are not accessible by non-admin roles.                                       |
+| **Record-level access**                              | Resident can only see their own maintenance requests, packages, and bookings. Staff can only see data for properties they are assigned to.          |
 
 #### 14.7.3 Multi-Tenant Isolation Penetration Testing
 
@@ -3319,15 +3355,15 @@ This is the most critical security test category. Run quarterly, minimum.
 
 #### 14.7.4 Input Validation Testing
 
-| Attack Type | Test Details |
-|---|---|
-| **SQL injection** | Test all input fields with: `' OR '1'='1`, `'; DROP TABLE events; --`, union-based injection, blind injection (time-based and boolean-based). All queries must use parameterized statements. |
-| **XSS (Cross-Site Scripting)** | Test: `<script>alert('xss')</script>`, event handlers (`onerror`, `onload`), SVG injection, CSS injection, DOM-based XSS via URL fragments. All output must be contextually encoded. |
-| **CSRF (Cross-Site Request Forgery)** | All state-changing endpoints require a CSRF token. Token is validated server-side. Token is rotated per session. |
-| **Command injection** | Test any input that reaches a shell command (e.g., file processing): `; ls -la`, `| cat /etc/passwd`, backtick injection. All inputs must be sanitized or avoided entirely. |
-| **Path traversal** | Test file upload/download paths: `../../etc/passwd`, `%2e%2e%2f`, null byte injection. File paths must be resolved and validated against an allowlist. |
-| **XML/XXE injection** | If XML parsing is used: test external entity expansion, billion laughs attack, SSRF via DTD. Use secure XML parser with external entities disabled. |
-| **SSRF (Server-Side Request Forgery)** | Test any endpoint that accepts a URL: internal network scanning, cloud metadata endpoint access (`169.254.169.254`). URL inputs must validate against an allowlist of permitted domains. |
+| Attack Type                            | Test Details                                                                                                                                                                                 |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **SQL injection**                      | Test all input fields with: `' OR '1'='1`, `'; DROP TABLE events; --`, union-based injection, blind injection (time-based and boolean-based). All queries must use parameterized statements. |
+| **XSS (Cross-Site Scripting)**         | Test: `<script>alert('xss')</script>`, event handlers (`onerror`, `onload`), SVG injection, CSS injection, DOM-based XSS via URL fragments. All output must be contextually encoded.         |
+| **CSRF (Cross-Site Request Forgery)**  | All state-changing endpoints require a CSRF token. Token is validated server-side. Token is rotated per session.                                                                             |
+| **Command injection**                  | Test any input that reaches a shell command (e.g., file processing): `; ls -la`, `                                                                                                           | cat /etc/passwd`, backtick injection. All inputs must be sanitized or avoided entirely. |
+| **Path traversal**                     | Test file upload/download paths: `../../etc/passwd`, `%2e%2e%2f`, null byte injection. File paths must be resolved and validated against an allowlist.                                       |
+| **XML/XXE injection**                  | If XML parsing is used: test external entity expansion, billion laughs attack, SSRF via DTD. Use secure XML parser with external entities disabled.                                          |
+| **SSRF (Server-Side Request Forgery)** | Test any endpoint that accepts a URL: internal network scanning, cloud metadata endpoint access (`169.254.169.254`). URL inputs must validate against an allowlist of permitted domains.     |
 
 #### 14.7.5 File Upload Security Testing
 
@@ -3353,6 +3389,7 @@ This is the most critical security test category. Run quarterly, minimum.
 #### 14.7.7 PII Exposure Testing
 
 Verify that PII is NOT present in:
+
 - Server logs (checked by log scrubbing layer tests — 14.4.13)
 - Error messages returned to clients
 - URL parameters or query strings
@@ -3367,14 +3404,14 @@ Verify that PII is NOT present in:
 
 #### 14.7.8 Encryption Verification
 
-| Layer | Requirement | Verification Method |
-|---|---|---|
-| **In transit** | TLS 1.2 minimum (TLS 1.3 preferred). No SSL 3.0, TLS 1.0, or TLS 1.1. | SSL Labs test (grade A or A+). Certificate expiry monitoring. |
-| **At rest (database)** | AES-256 encryption for the database volume | Cloud provider configuration audit. Encryption key rotation verified. |
-| **At rest (file storage)** | AES-256 encryption for stored files | Cloud provider configuration audit. |
-| **At rest (backups)** | AES-256 encryption for all backups | Backup restoration test verifies encryption. |
-| **Application-level** | Sensitive fields (SSN, government ID if stored) encrypted with application-level encryption before database storage | Unit tests verify encrypted storage and correct decryption. |
-| **Key management** | Encryption keys stored in a dedicated key management service (AWS KMS, GCP KMS, or equivalent). No keys in source code, environment variables, or config files. | Automated scan for key material in source code. Key rotation tested quarterly. |
+| Layer                      | Requirement                                                                                                                                                     | Verification Method                                                            |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| **In transit**             | TLS 1.2 minimum (TLS 1.3 preferred). No SSL 3.0, TLS 1.0, or TLS 1.1.                                                                                           | SSL Labs test (grade A or A+). Certificate expiry monitoring.                  |
+| **At rest (database)**     | AES-256 encryption for the database volume                                                                                                                      | Cloud provider configuration audit. Encryption key rotation verified.          |
+| **At rest (file storage)** | AES-256 encryption for stored files                                                                                                                             | Cloud provider configuration audit.                                            |
+| **At rest (backups)**      | AES-256 encryption for all backups                                                                                                                              | Backup restoration test verifies encryption.                                   |
+| **Application-level**      | Sensitive fields (SSN, government ID if stored) encrypted with application-level encryption before database storage                                             | Unit tests verify encrypted storage and correct decryption.                    |
+| **Key management**         | Encryption keys stored in a dedicated key management service (AWS KMS, GCP KMS, or equivalent). No keys in source code, environment variables, or config files. | Automated scan for key material in source code. Key rotation tested quarterly. |
 
 #### 14.7.9 Session Management Testing
 
@@ -3409,16 +3446,16 @@ Verify that PII is NOT present in:
 
 Every HTTP response must include:
 
-| Header | Value | Purpose |
-|---|---|---|
-| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` | Enforce HTTPS |
-| `X-Content-Type-Options` | `nosniff` | Prevent MIME sniffing |
-| `X-Frame-Options` | `DENY` | Prevent clickjacking |
-| `X-XSS-Protection` | `0` (rely on CSP instead) | Disable legacy XSS filter |
-| `Content-Security-Policy` | Strict CSP with nonce-based script allowlist | Prevent XSS |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` | Limit referrer information |
-| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=()` | Disable unused browser features |
-| `Cache-Control` | `no-store` for API responses with PII; appropriate caching for static assets | Prevent caching of sensitive data |
+| Header                      | Value                                                                        | Purpose                           |
+| --------------------------- | ---------------------------------------------------------------------------- | --------------------------------- |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload`                               | Enforce HTTPS                     |
+| `X-Content-Type-Options`    | `nosniff`                                                                    | Prevent MIME sniffing             |
+| `X-Frame-Options`           | `DENY`                                                                       | Prevent clickjacking              |
+| `X-XSS-Protection`          | `0` (rely on CSP instead)                                                    | Disable legacy XSS filter         |
+| `Content-Security-Policy`   | Strict CSP with nonce-based script allowlist                                 | Prevent XSS                       |
+| `Referrer-Policy`           | `strict-origin-when-cross-origin`                                            | Limit referrer information        |
+| `Permissions-Policy`        | `camera=(), microphone=(), geolocation=(), payment=()`                       | Disable unused browser features   |
+| `Cache-Control`             | `no-store` for API responses with PII; appropriate caching for static assets | Prevent caching of sensitive data |
 
 - Security headers are verified by automated tests on every deployment.
 - CORS is configured to allow only the application's own domains — no wildcards (`*`).
@@ -3439,10 +3476,10 @@ Every HTTP response must include:
 
 Two categories of SAST tools are required:
 
-| Category | Purpose | Recommended Tools (or equivalent) |
-|---|---|---|
-| **Code-level SAST** | Analyze source code for vulnerabilities (injection, insecure patterns, logic errors) | Semgrep, SonarQube, CodeQL |
-| **Dependency-level SAST** | Analyze third-party dependencies for known vulnerabilities | Snyk, npm audit, Dependabot |
+| Category                  | Purpose                                                                              | Recommended Tools (or equivalent) |
+| ------------------------- | ------------------------------------------------------------------------------------ | --------------------------------- |
+| **Code-level SAST**       | Analyze source code for vulnerabilities (injection, insecure patterns, logic errors) | Semgrep, SonarQube, CodeQL        |
+| **Dependency-level SAST** | Analyze third-party dependencies for known vulnerabilities                           | Snyk, npm audit, Dependabot       |
 
 - At least one tool from each category must be active and enforced in CI.
 - Both tools must support TypeScript and SQL analysis.
@@ -3466,28 +3503,28 @@ Two categories of SAST tools are required:
 
 Custom rules are required for Concierge-specific patterns:
 
-| Rule | What It Detects |
-|---|---|
-| **PII logging** | Any log statement that includes variables named `email`, `phone`, `name`, `address`, `ssn`, or similar PII field names |
-| **Missing RLS check** | Database queries in API handlers that do not include a `property_id` filter |
-| **Direct database access** | API handlers that bypass the service layer and query the database directly |
-| **Hardcoded property ID** | Any property ID literal in source code (must always come from auth context) |
-| **Unvalidated file path** | File system operations that use user-supplied input without path validation |
-| **Missing rate limit** | New API endpoints without rate limiting middleware |
-| **Insecure random** | Use of `Math.random()` for security-sensitive operations (tokens, IDs) |
-| **Missing audit log** | State-changing operations (create, update, delete) without an audit log entry |
+| Rule                       | What It Detects                                                                                                        |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **PII logging**            | Any log statement that includes variables named `email`, `phone`, `name`, `address`, `ssn`, or similar PII field names |
+| **Missing RLS check**      | Database queries in API handlers that do not include a `property_id` filter                                            |
+| **Direct database access** | API handlers that bypass the service layer and query the database directly                                             |
+| **Hardcoded property ID**  | Any property ID literal in source code (must always come from auth context)                                            |
+| **Unvalidated file path**  | File system operations that use user-supplied input without path validation                                            |
+| **Missing rate limit**     | New API endpoints without rate limiting middleware                                                                     |
+| **Insecure random**        | Use of `Math.random()` for security-sensitive operations (tokens, IDs)                                                 |
+| **Missing audit log**      | State-changing operations (create, update, delete) without an audit log entry                                          |
 
 - Custom rules are maintained in the repository alongside the application code.
 - Custom rules have their own tests to prevent false positives.
 
 #### 14.8.5 Remediation SLAs
 
-| Severity | Response Time | Resolution Time |
-|---|---|---|
-| **Critical** | Acknowledged within 1 hour | Fixed within 24 hours |
-| **High** | Acknowledged within 4 hours | Fixed within 72 hours |
-| **Medium** | Acknowledged within 1 business day | Fixed within 1 week |
-| **Low** | Acknowledged within 2 business days | Fixed within 1 sprint |
+| Severity     | Response Time                       | Resolution Time       |
+| ------------ | ----------------------------------- | --------------------- |
+| **Critical** | Acknowledged within 1 hour          | Fixed within 24 hours |
+| **High**     | Acknowledged within 4 hours         | Fixed within 72 hours |
+| **Medium**   | Acknowledged within 1 business day  | Fixed within 1 week   |
+| **Low**      | Acknowledged within 2 business days | Fixed within 1 sprint |
 
 - SLA clock starts when the finding is reported (not when it is triaged).
 - SLA compliance is tracked on the security dashboard.
@@ -3502,6 +3539,7 @@ Custom rules are required for Concierge-specific patterns:
 #### 14.8.7 SAST Dashboard
 
 The SAST dashboard (accessible to Tech Lead, Security Champion, and Super Admin) displays:
+
 - Total open findings by severity
 - Findings trend over the past 90 days (new vs resolved)
 - Top 10 most common vulnerability types
@@ -3512,13 +3550,13 @@ The SAST dashboard (accessible to Tech Lead, Security Champion, and Super Admin)
 
 #### 14.8.8 Language-Specific SAST Configuration
 
-| Language/Technology | Specific Configuration |
-|---|---|
-| **TypeScript** | Taint analysis for user inputs → database queries, template injection detection, prototype pollution detection |
-| **SQL** | Injection detection in raw queries, privilege escalation patterns, unsafe dynamic query construction |
+| Language/Technology        | Specific Configuration                                                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **TypeScript**             | Taint analysis for user inputs → database queries, template injection detection, prototype pollution detection                   |
+| **SQL**                    | Injection detection in raw queries, privilege escalation patterns, unsafe dynamic query construction                             |
 | **Infrastructure-as-Code** | Terraform/CloudFormation misconfiguration detection: open security groups, unencrypted resources, overly permissive IAM policies |
-| **Docker** | Dockerfile best practices: no root user, minimal base images, no secrets in build args |
-| **CI/CD configuration** | Pipeline injection detection, secret exposure in pipeline logs |
+| **Docker**                 | Dockerfile best practices: no root user, minimal base images, no secrets in build args                                           |
+| **CI/CD configuration**    | Pipeline injection detection, secret exposure in pipeline logs                                                                   |
 
 #### 14.8.9 Secrets Scanning
 
@@ -3583,13 +3621,13 @@ The SAST dashboard (accessible to Tech Lead, Security Champion, and Super Admin)
 
 #### 14.9.5 DAST Scope
 
-| Target | What Is Scanned |
-|---|---|
-| **API endpoints** | Every endpoint defined in the OpenAPI spec, including: all HTTP methods, all parameter combinations, error responses |
-| **Web pages** | Every route in the SPA, including: all interactive elements, all form submissions, all navigation flows |
-| **File operations** | Upload and download endpoints with various file types and sizes |
-| **Authentication flows** | Login, logout, password reset, token refresh, session management |
-| **WebSocket endpoints** | Connection establishment, message handling, authentication |
+| Target                   | What Is Scanned                                                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| **API endpoints**        | Every endpoint defined in the OpenAPI spec, including: all HTTP methods, all parameter combinations, error responses |
+| **Web pages**            | Every route in the SPA, including: all interactive elements, all form submissions, all navigation flows              |
+| **File operations**      | Upload and download endpoints with various file types and sizes                                                      |
+| **Authentication flows** | Login, logout, password reset, token refresh, session management                                                     |
+| **WebSocket endpoints**  | Connection establishment, message handling, authentication                                                           |
 
 #### 14.9.6 API-Specific DAST (Fuzzing)
 
@@ -3675,53 +3713,53 @@ Stage 14: Post-Deployment Verification
 
 #### 14.10.2 Quality Gates Definition
 
-| Gate | Criteria to Pass | What Happens on Failure |
-|---|---|---|
-| **G1: Lint & Format** | Zero lint errors, zero formatting differences | Build fails. Developer must fix locally. |
-| **G2: Type Check** | Zero TypeScript errors | Build fails. Developer must fix locally. |
-| **G3: Unit Tests** | All tests pass. Coverage meets thresholds (14.1.1). New code coverage meets delta thresholds (14.1.4). | Build fails. PR cannot merge. |
-| **G4: Build** | Application builds without errors. Bundle size within budget. | Build fails. PR cannot merge. |
-| **G5: Integration Tests** | All integration tests pass. Multi-tenant isolation tests pass. | Build fails. PR cannot merge. |
-| **G6: SAST** | Zero critical or high findings. | Build fails. PR cannot merge (overridable by Security Champion for high only). |
-| **G7: Accessibility** | Zero critical or serious axe-core violations. | Build fails. PR cannot merge. |
-| **G8: Staging Deploy** | Deployment succeeds. Health checks pass. | Deployment rolled back. Team investigates. |
-| **G9: DAST** | Zero critical findings. Zero high findings. | Release candidate rejected. Findings must be fixed. |
-| **G10: Performance** | All performance budgets met (14.4.10). | Release candidate rejected. Optimization required. |
-| **G11: UAT** | All required sign-offs obtained (14.6.2). | Release blocked until sign-offs obtained. |
-| **G12: Canary** | Error rate < 0.5%. Response time within 10% of baseline. | Automatic rollback. |
-| **G13: Full Deploy** | Gradual rollout completes without metric breaches. | Automatic rollback to canary or previous version. |
-| **G14: Post-Deploy** | All verification checks pass (14.6.15). | Alert triggered. Investigation begins. Rollback if P1 issue found. |
+| Gate                      | Criteria to Pass                                                                                       | What Happens on Failure                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| **G1: Lint & Format**     | Zero lint errors, zero formatting differences                                                          | Build fails. Developer must fix locally.                                       |
+| **G2: Type Check**        | Zero TypeScript errors                                                                                 | Build fails. Developer must fix locally.                                       |
+| **G3: Unit Tests**        | All tests pass. Coverage meets thresholds (14.1.1). New code coverage meets delta thresholds (14.1.4). | Build fails. PR cannot merge.                                                  |
+| **G4: Build**             | Application builds without errors. Bundle size within budget.                                          | Build fails. PR cannot merge.                                                  |
+| **G5: Integration Tests** | All integration tests pass. Multi-tenant isolation tests pass.                                         | Build fails. PR cannot merge.                                                  |
+| **G6: SAST**              | Zero critical or high findings.                                                                        | Build fails. PR cannot merge (overridable by Security Champion for high only). |
+| **G7: Accessibility**     | Zero critical or serious axe-core violations.                                                          | Build fails. PR cannot merge.                                                  |
+| **G8: Staging Deploy**    | Deployment succeeds. Health checks pass.                                                               | Deployment rolled back. Team investigates.                                     |
+| **G9: DAST**              | Zero critical findings. Zero high findings.                                                            | Release candidate rejected. Findings must be fixed.                            |
+| **G10: Performance**      | All performance budgets met (14.4.10).                                                                 | Release candidate rejected. Optimization required.                             |
+| **G11: UAT**              | All required sign-offs obtained (14.6.2).                                                              | Release blocked until sign-offs obtained.                                      |
+| **G12: Canary**           | Error rate < 0.5%. Response time within 10% of baseline.                                               | Automatic rollback.                                                            |
+| **G13: Full Deploy**      | Gradual rollout completes without metric breaches.                                                     | Automatic rollback to canary or previous version.                              |
+| **G14: Post-Deploy**      | All verification checks pass (14.6.15).                                                                | Alert triggered. Investigation begins. Rollback if P1 issue found.             |
 
 #### 14.10.3 Gate Override Policy
 
-| Gate | Who Can Override | Override Condition |
-|---|---|---|
-| G1 (Lint) | Nobody | No overrides — fix the code. |
-| G2 (Type Check) | Nobody | No overrides — fix the code. |
-| G3 (Unit Tests) | Tech Lead | Only for known flaky tests with a linked fix ticket. |
-| G4 (Build) | Nobody | No overrides — fix the build. |
-| G5 (Integration) | Tech Lead | Only for known environment issues with a linked fix ticket. |
-| G6 (SAST) | Security Champion | Only for high severity (not critical). Must document justification and link remediation ticket. |
-| G7 (Accessibility) | Nobody | No overrides — fix the violation. |
-| G8 (Staging Deploy) | Nobody | No overrides — fix the deployment. |
-| G9 (DAST) | CTO | Only in an emergency with a public incident timeline for remediation. |
-| G10 (Performance) | Tech Lead + Product Owner | Only if degradation is expected and documented (e.g., new feature adds necessary weight). |
-| G11 (UAT) | Product Owner | Can defer non-blocking UAT findings to a follow-up release with documented acceptance. |
-| G12 (Canary) | Nobody | Automatic rollback — no human override during canary. |
-| G13 (Full Deploy) | Nobody | Automatic rollback — no human override during rollout. |
-| G14 (Post-Deploy) | On-call Engineer | Can acknowledge non-critical findings. P1 findings trigger mandatory rollback. |
+| Gate                | Who Can Override          | Override Condition                                                                              |
+| ------------------- | ------------------------- | ----------------------------------------------------------------------------------------------- |
+| G1 (Lint)           | Nobody                    | No overrides — fix the code.                                                                    |
+| G2 (Type Check)     | Nobody                    | No overrides — fix the code.                                                                    |
+| G3 (Unit Tests)     | Tech Lead                 | Only for known flaky tests with a linked fix ticket.                                            |
+| G4 (Build)          | Nobody                    | No overrides — fix the build.                                                                   |
+| G5 (Integration)    | Tech Lead                 | Only for known environment issues with a linked fix ticket.                                     |
+| G6 (SAST)           | Security Champion         | Only for high severity (not critical). Must document justification and link remediation ticket. |
+| G7 (Accessibility)  | Nobody                    | No overrides — fix the violation.                                                               |
+| G8 (Staging Deploy) | Nobody                    | No overrides — fix the deployment.                                                              |
+| G9 (DAST)           | CTO                       | Only in an emergency with a public incident timeline for remediation.                           |
+| G10 (Performance)   | Tech Lead + Product Owner | Only if degradation is expected and documented (e.g., new feature adds necessary weight).       |
+| G11 (UAT)           | Product Owner             | Can defer non-blocking UAT findings to a follow-up release with documented acceptance.          |
+| G12 (Canary)        | Nobody                    | Automatic rollback — no human override during canary.                                           |
+| G13 (Full Deploy)   | Nobody                    | Automatic rollback — no human override during rollout.                                          |
+| G14 (Post-Deploy)   | On-call Engineer          | Can acknowledge non-critical findings. P1 findings trigger mandatory rollback.                  |
 
 - Every override is logged in the audit trail with: who overrode, which gate, justification, and linked remediation ticket.
 - More than 3 overrides in a single release triggers a mandatory retrospective.
 
 #### 14.10.4 Environment Promotion Criteria
 
-| Environment | Promoted From | Criteria |
-|---|---|---|
-| **Development** | Local | Code compiles. Unit tests pass. |
-| **Staging** | Development | Gates G1-G7 pass. |
-| **UAT** | Staging | Gates G1-G9 pass. UAT test cases prepared. |
-| **Production** | UAT | Gates G1-G14 pass. All sign-offs obtained. |
+| Environment     | Promoted From | Criteria                                   |
+| --------------- | ------------- | ------------------------------------------ |
+| **Development** | Local         | Code compiles. Unit tests pass.            |
+| **Staging**     | Development   | Gates G1-G7 pass.                          |
+| **UAT**         | Staging       | Gates G1-G9 pass. UAT test cases prepared. |
+| **Production**  | UAT           | Gates G1-G14 pass. All sign-offs obtained. |
 
 - No environment may be skipped — code always flows through all environments in order.
 - Hotfixes follow an accelerated pipeline but still pass through all gates (with expedited UAT, minimum 4 hours).
@@ -3730,14 +3768,14 @@ Stage 14: Post-Deployment Verification
 
 The following conditions trigger an **automatic rollback** in production without human intervention:
 
-| Trigger | Threshold | Measurement Window |
-|---|---|---|
-| Error rate spike | > 1% of requests return 5xx | 5-minute rolling window |
-| Response time degradation | p95 response time > 2x pre-deployment baseline | 5-minute rolling window |
-| Health check failure | Any service health check returns unhealthy | 2 consecutive failures (30 seconds apart) |
-| Memory leak detection | Memory usage growing > 5% per minute with no plateau | 10-minute window |
-| Database connection exhaustion | Connection pool utilization > 90% | Any single measurement |
-| Multi-tenant isolation failure | Any cross-tenant data access detected | Immediate (single occurrence) |
+| Trigger                        | Threshold                                            | Measurement Window                        |
+| ------------------------------ | ---------------------------------------------------- | ----------------------------------------- |
+| Error rate spike               | > 1% of requests return 5xx                          | 5-minute rolling window                   |
+| Response time degradation      | p95 response time > 2x pre-deployment baseline       | 5-minute rolling window                   |
+| Health check failure           | Any service health check returns unhealthy           | 2 consecutive failures (30 seconds apart) |
+| Memory leak detection          | Memory usage growing > 5% per minute with no plateau | 10-minute window                          |
+| Database connection exhaustion | Connection pool utilization > 90%                    | Any single measurement                    |
+| Multi-tenant isolation failure | Any cross-tenant data access detected                | Immediate (single occurrence)             |
 
 - After automatic rollback, an incident is created automatically and the on-call engineer is paged.
 - Automatic rollback completes within 5 minutes.
@@ -3753,39 +3791,39 @@ Super Admins have access to a real-time quality health dashboard that provides v
 
 #### 14.11.2 Metrics Displayed
 
-| Metric | Display Format | Data Source | Refresh Interval |
-|---|---|---|---|
-| **Test coverage (line %)** | Gauge with threshold indicator (green > 95%, yellow 90-95%, red < 90%) | CI pipeline coverage reports | On every merge to main |
-| **Test coverage (branch %)** | Gauge with threshold indicator (green > 92%, yellow 88-92%, red < 88%) | CI pipeline coverage reports | On every merge to main |
-| **Build success rate** | Percentage over trailing 30 days. Trend line showing daily rate. | CI pipeline results | Hourly |
-| **Open security vulnerabilities** | Count by severity (critical, high, medium, low). Bar chart with trend. | SAST + DAST aggregated results | Real-time |
-| **Accessibility score** | Lighthouse accessibility score (latest and 30-day trend) | Lighthouse CI results | On every merge to main |
-| **Mean time to resolve bugs** | Average days from bug creation to resolution, broken down by priority (P1-P4) | Issue tracker | Daily |
-| **Deployment frequency** | Deployments per week (trailing 4 weeks). Trend line. | Deployment pipeline | Real-time |
-| **Change failure rate** | Percentage of deployments that triggered rollback (trailing 30 days) | Deployment pipeline | Real-time |
-| **Lead time for changes** | Average time from PR creation to production deployment (trailing 30 days) | CI/CD pipeline + deployment logs | Daily |
-| **Open technical debt items** | Count by severity. Percentage of codebase flagged as tech debt. | Issue tracker + codebase scan | Daily |
-| **SLA compliance rate** | Percentage of bugs resolved within their SLA (trailing 30 days), broken down by priority | Issue tracker | Daily |
-| **MTTR (Mean Time to Recovery)** | Average time from incident detection to resolution (trailing 90 days) | Incident management system | Daily |
-| **Uptime** | 30-day and 90-day uptime percentage. Target: 99.95%. | Health check monitoring | Real-time |
-| **Dependency vulnerability age** | Average age of open dependency vulnerabilities (in days) | Dependency scanning tool | Daily |
-| **Test suite execution time** | Average CI pipeline duration (trailing 7 days). Trend line. | CI pipeline | Hourly |
+| Metric                            | Display Format                                                                           | Data Source                      | Refresh Interval       |
+| --------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------- | ---------------------- |
+| **Test coverage (line %)**        | Gauge with threshold indicator (green > 95%, yellow 90-95%, red < 90%)                   | CI pipeline coverage reports     | On every merge to main |
+| **Test coverage (branch %)**      | Gauge with threshold indicator (green > 92%, yellow 88-92%, red < 88%)                   | CI pipeline coverage reports     | On every merge to main |
+| **Build success rate**            | Percentage over trailing 30 days. Trend line showing daily rate.                         | CI pipeline results              | Hourly                 |
+| **Open security vulnerabilities** | Count by severity (critical, high, medium, low). Bar chart with trend.                   | SAST + DAST aggregated results   | Real-time              |
+| **Accessibility score**           | Lighthouse accessibility score (latest and 30-day trend)                                 | Lighthouse CI results            | On every merge to main |
+| **Mean time to resolve bugs**     | Average days from bug creation to resolution, broken down by priority (P1-P4)            | Issue tracker                    | Daily                  |
+| **Deployment frequency**          | Deployments per week (trailing 4 weeks). Trend line.                                     | Deployment pipeline              | Real-time              |
+| **Change failure rate**           | Percentage of deployments that triggered rollback (trailing 30 days)                     | Deployment pipeline              | Real-time              |
+| **Lead time for changes**         | Average time from PR creation to production deployment (trailing 30 days)                | CI/CD pipeline + deployment logs | Daily                  |
+| **Open technical debt items**     | Count by severity. Percentage of codebase flagged as tech debt.                          | Issue tracker + codebase scan    | Daily                  |
+| **SLA compliance rate**           | Percentage of bugs resolved within their SLA (trailing 30 days), broken down by priority | Issue tracker                    | Daily                  |
+| **MTTR (Mean Time to Recovery)**  | Average time from incident detection to resolution (trailing 90 days)                    | Incident management system       | Daily                  |
+| **Uptime**                        | 30-day and 90-day uptime percentage. Target: 99.95%.                                     | Health check monitoring          | Real-time              |
+| **Dependency vulnerability age**  | Average age of open dependency vulnerabilities (in days)                                 | Dependency scanning tool         | Daily                  |
+| **Test suite execution time**     | Average CI pipeline duration (trailing 7 days). Trend line.                              | CI pipeline                      | Hourly                 |
 
 #### 14.11.3 Alert Thresholds
 
 The dashboard generates alerts when quality metrics degrade:
 
-| Metric | Warning Threshold | Critical Threshold | Alert Channel |
-|---|---|---|---|
-| Test coverage (line) | < 95% | < 92% | Email to Tech Lead |
-| Build success rate (7-day) | < 95% | < 90% | Slack to engineering channel |
+| Metric                        | Warning Threshold          | Critical Threshold         | Alert Channel                  |
+| ----------------------------- | -------------------------- | -------------------------- | ------------------------------ |
+| Test coverage (line)          | < 95%                      | < 92%                      | Email to Tech Lead             |
+| Build success rate (7-day)    | < 95%                      | < 90%                      | Slack to engineering channel   |
 | Open critical vulnerabilities | > 0 for more than 24 hours | > 0 for more than 48 hours | PagerDuty to Security Champion |
-| Open high vulnerabilities | > 3 | > 5 | Email to Security Champion |
-| Mean time to resolve P1 bugs | > 4 hours | > 8 hours | PagerDuty to Tech Lead |
-| Change failure rate (30-day) | > 5% | > 10% | Email to Tech Lead + CTO |
-| Uptime (30-day) | < 99.95% | < 99.9% | PagerDuty to on-call engineer |
-| Tech debt percentage | > 10% | > 15% | Email to Tech Lead |
-| Dependency vuln age (avg) | > 7 days | > 14 days | Email to Security Champion |
+| Open high vulnerabilities     | > 3                        | > 5                        | Email to Security Champion     |
+| Mean time to resolve P1 bugs  | > 4 hours                  | > 8 hours                  | PagerDuty to Tech Lead         |
+| Change failure rate (30-day)  | > 5%                       | > 10%                      | Email to Tech Lead + CTO       |
+| Uptime (30-day)               | < 99.95%                   | < 99.9%                    | PagerDuty to on-call engineer  |
+| Tech debt percentage          | > 10%                      | > 15%                      | Email to Tech Lead             |
+| Dependency vuln age (avg)     | > 7 days                   | > 14 days                  | Email to Security Champion     |
 
 #### 14.11.4 Historical Trend Charts
 
@@ -3880,4 +3918,80 @@ Before marking this section as complete for any release, verify every item:
 
 ---
 
-*This document is referenced by all module PRDs (02 through 19). Changes to this architecture specification must be reviewed for downstream impact.*
+## Marketing & Public Routes
+
+### Route Group: `(marketing)`
+
+Concierge serves public-facing pages -- landing page, feature overview, pricing, blog, and authentication screens -- through a dedicated `(marketing)` route group. These pages are accessible without authentication and use a completely different layout from the authenticated portal.
+
+### Marketing Layout
+
+| Aspect                   | Detail                                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Sidebar**              | None. Marketing pages have no sidebar navigation.                                                                                                            |
+| **Navigation**           | Public navigation bar at the top: Logo, Features, Pricing, Blog, Login, "Get Started" CTA.                                                                   |
+| **Footer**               | Standard marketing footer: links (About, Contact, Privacy Policy, Terms of Service, Status Page), social media icons, copyright.                             |
+| **Authentication state** | If a user is already logged in and visits a marketing page, the Login button changes to "Go to Dashboard" and redirects to their role-appropriate dashboard. |
+
+### Rendering Strategy
+
+| Page Type                              | Strategy                         | Rationale                                                                                                                                                                             |
+| -------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Landing page, Features, Pricing, About | **Static Site Generation (SSG)** | These pages change infrequently. Build at deploy time for maximum performance. Rebuild on content update via ISR (Incremental Static Regeneration) with a 1-hour revalidation window. |
+| Blog posts, Changelog                  | **SSG with ISR**                 | Generated at build time, revalidated on demand when new posts are published.                                                                                                          |
+| Login, Forgot Password                 | **Server-Side Rendering (SSR)**  | Login must check session state server-side. If already authenticated, redirect to dashboard. CSRF token generation requires server rendering.                                         |
+| Property vanity URL pages              | **SSR with caching**             | Dynamic route that loads property-specific branding. Cached at the edge (CDN) with a 15-minute TTL, purged on branding change.                                                        |
+
+### Property Type Enum
+
+The `Property` model includes a `property_type` enum that determines behavioral flags across the platform:
+
+| Value        | Description                                 | Behavioral Differences                                                                                                                                                   |
+| ------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PRODUCTION` | Live property with real residents and staff | Full notification delivery, billing active, audit logging enforced, data retention policies apply                                                                        |
+| `DEMO`       | Sales demonstration property with seed data | Notifications suppressed (logged but not delivered), billing inactive, watermark "DEMO" on all screens, auto-expires after 30 days (configurable), role switcher enabled |
+| `TRAINING`   | Staff training environment                  | Notifications suppressed, billing inactive, watermark "TRAINING" on all screens, no expiry, training-specific analytics tracked separately                               |
+
+**Database impact**: Demo and training properties use the same multi-tenant database and schema as production properties. They are logically separated by the `property_type` field. All queries that touch production analytics, billing, or aggregate reporting filter out `DEMO` and `TRAINING` properties automatically.
+
+### Vanity URL Routing
+
+Properties can be accessed via branded vanity URLs: `concierge.com/[property-slug]`.
+
+| Aspect              | Detail                                                                                                                                                                                                                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Route**           | `/(marketing)/[property-slug]` -- dynamic route segment                                                                                                                                                                                                                                        |
+| **Slug format**     | Lowercase letters, numbers, and hyphens. Max 30 characters. Must be unique across all properties.                                                                                                                                                                                              |
+| **Resolution**      | On request, the server looks up the slug in the `Property` table. If found, renders a branded login/welcome page with the property's logo, primary color, welcome message, and name. If not found, returns a 404 page with a "Property not found" message and a link to the main landing page. |
+| **Branding loaded** | Property logo, primary brand color (maps to `--concierge-color-primary-*` tokens), welcome message, and custom favicon.                                                                                                                                                                        |
+| **SEO**             | Vanity URL pages are not indexed (`noindex` meta tag). They are private entry points for property residents, not public marketing pages.                                                                                                                                                       |
+| **Caching**         | Edge-cached (CDN) with a 15-minute TTL. Cache is purged when a property updates its branding settings (see PRD 16, Branding & White-Label tab).                                                                                                                                                |
+
+### Demo Property Data Flow
+
+```
+Super Admin creates a Demo property
+  → property_type set to DEMO
+  → Seed data template applied (units, sample residents, sample events, sample packages)
+  → Demo watermark badge injected into layout
+  → Notification service checks property_type: DEMO → log but do not deliver
+  → Role Switcher component enabled in the top bar
+  → All data isolated within standard multi-tenant boundaries
+  → Auto-expiry job checks daily: if demo is older than expiry_days → deactivate
+  → Deactivated demos: data retained for 30 days, then purged
+```
+
+Training properties follow the same flow except: no auto-expiry, training completion metrics are tracked (linked to the Training/LMS module in PRD 12), and the watermark reads "TRAINING" instead of "DEMO".
+
+### Route Group Summary
+
+| Route Group   | Purpose                                                                                    | Layout                                                         | Auth Required                                | Rendering                                                   |
+| ------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------- |
+| `(auth)`      | Login, forgot password, reset password, set initial password                               | Minimal centered layout, no sidebar, no nav                    | No (redirects to dashboard if authenticated) | SSR                                                         |
+| `(portal)`    | Resident-facing authenticated pages (dashboard, packages, requests, bookings, community)   | Sidebar + top bar, role-aware navigation                       | Yes                                          | SSR with client-side hydration                              |
+| `(admin)`     | Staff and admin authenticated pages (security console, user management, settings, reports) | Sidebar + top bar, role-aware navigation, admin-specific tools | Yes (staff/admin roles only)                 | SSR with client-side hydration                              |
+| `(marketing)` | Public pages (landing, features, pricing, blog, property vanity URLs)                      | Public nav bar + footer, no sidebar                            | No                                           | SSG for static pages, SSR for vanity URLs and login routing |
+
+---
+
+_This document is referenced by all module PRDs (02 through 19). Changes to this architecture specification must be reviewed for downstream impact._

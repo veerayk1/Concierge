@@ -36,6 +36,14 @@ model Property {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  // Business Operations fields
+  type              PropertyType       @default(PRODUCTION)
+  slug              String?            @unique
+  branding          Json?              @db.JsonB
+  subscriptionTier  SubscriptionTier?  @map("subscription_tier")
+  expiresAt         DateTime?          @map("expires_at")
+  parentPropertyId  String?            @map("parent_property_id") @db.Uuid
+
   // Relations
   userProperties UserProperty[]
   roles          Role[]
@@ -45,6 +53,7 @@ model Property {
   units          Unit[]
   announcements  Announcement[]
   auditEntries   AuditEntry[]
+  subscriptions  Subscription[]
 
   @@map("properties")
 }
@@ -348,4 +357,253 @@ model Announcement {
 
   @@index([propertyId, publishedAt])
   @@map("announcements")
+}
+
+// ============================================
+// Business Operations Models (Phase 4)
+// ============================================
+
+enum PropertyType {
+  PRODUCTION
+  DEMO
+  TRAINING
+}
+
+enum SubscriptionTier {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+model Subscription {
+  id                  String             @id @default(uuid()) @db.Uuid
+  propertyId          String             @map("property_id") @db.Uuid
+  property            Property           @relation(fields: [propertyId], references: [id])
+  tier                SubscriptionTier
+  status              SubscriptionStatus @default(TRIAL)
+  stripeCustomerId    String?            @map("stripe_customer_id")
+  stripeSubscriptionId String?           @map("stripe_subscription_id")
+  billingCycle        String             @default("monthly") // monthly | annual
+  trialEndsAt         DateTime?          @map("trial_ends_at")
+  currentPeriodStart  DateTime?          @map("current_period_start")
+  currentPeriodEnd    DateTime?          @map("current_period_end")
+  canceledAt          DateTime?          @map("canceled_at")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+  invoices            Invoice[]
+
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id               String   @id @default(uuid()) @db.Uuid
+  subscriptionId   String   @map("subscription_id") @db.Uuid
+  subscription     Subscription @relation(fields: [subscriptionId], references: [id])
+  propertyId       String   @map("property_id") @db.Uuid
+  stripeInvoiceId  String?  @map("stripe_invoice_id")
+  amount           Int      // in cents
+  tax              Int      @default(0) // in cents
+  currency         String   @default("cad")
+  status           String   @default("draft") // draft | open | paid | void | uncollectible
+  pdfUrl           String?  @map("pdf_url")
+  periodStart      DateTime @map("period_start")
+  periodEnd        DateTime @map("period_end")
+  paidAt           DateTime? @map("paid_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([propertyId])
+  @@index([subscriptionId])
+  @@map("invoices")
+}
+
+model ApiKey {
+  id           String    @id @default(uuid()) @db.Uuid
+  propertyId   String    @map("property_id") @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  name         String
+  keyPrefix    String    @map("key_prefix") // conc_live_ or conc_test_
+  keyHash      String    @map("key_hash") // Argon2id hash of full key
+  permissions  Json      @default("{}") @db.JsonB
+  rateLimit    Int       @default(1000) @map("rate_limit") // calls per hour
+  expiresAt    DateTime? @map("expires_at")
+  lastUsedAt   DateTime? @map("last_used_at")
+  revokedAt    DateTime? @map("revoked_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([propertyId])
+  @@index([keyPrefix])
+  @@map("api_keys")
+}
+
+model Webhook {
+  id            String   @id @default(uuid()) @db.Uuid
+  propertyId    String   @map("property_id") @db.Uuid
+  url           String
+  events        String[] // array of event type strings
+  secretHash    String   @map("secret_hash")
+  status        String   @default("active") // active | paused | failed
+  lastDeliveryAt DateTime? @map("last_delivery_at")
+  failureCount  Int      @default(0) @map("failure_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  deliveries    WebhookDelivery[]
+
+  @@index([propertyId])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id           String   @id @default(uuid()) @db.Uuid
+  webhookId    String   @map("webhook_id") @db.Uuid
+  webhook      Webhook  @relation(fields: [webhookId], references: [id])
+  eventType    String   @map("event_type")
+  payload      Json     @db.JsonB
+  statusCode   Int?     @map("status_code")
+  responseTime Int?     @map("response_time") // milliseconds
+  attempt      Int      @default(1)
+  success      Boolean  @default(false)
+  error        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([webhookId])
+  @@index([eventType])
+  @@map("webhook_deliveries")
+}
+
+model HelpArticle {
+  id             String   @id @default(uuid()) @db.Uuid
+  title          String
+  slug           String   @unique
+  body           String   // MDX content
+  category       String
+  tags           String[]
+  roleVisibility String[] @map("role_visibility") // which roles can see this
+  locale         String   @default("en")
+  status         String   @default("draft") // draft | in_review | published | archived
+  version        Int      @default(1)
+  authorId       String?  @map("author_id") @db.Uuid
+  publishedAt    DateTime? @map("published_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([category])
+  @@index([status])
+  @@map("help_articles")
+}
+
+model FeatureFlag {
+  id                String   @id @default(uuid()) @db.Uuid
+  key               String   @unique
+  description       String?
+  defaultValue      Boolean  @default(false) @map("default_value")
+  propertyOverrides Json     @default("{}") @map("property_overrides") @db.JsonB
+  tierRequirement   SubscriptionTier? @map("tier_requirement")
+  rolloutPercentage Int?     @map("rollout_percentage") // 0-100, null = boolean flag
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("feature_flags")
+}
+
+model ImportJob {
+  id            String   @id @default(uuid()) @db.Uuid
+  propertyId    String   @map("property_id") @db.Uuid
+  type          String   // units | residents | packages | maintenance | fobs | emergency_contacts
+  fileName      String   @map("file_name")
+  status        String   @default("pending") // pending | validating | importing | completed | failed
+  totalRows     Int      @default(0) @map("total_rows")
+  processedRows Int      @default(0) @map("processed_rows")
+  errorCount    Int      @default(0) @map("error_count")
+  errorLog      Json?    @map("error_log") @db.JsonB
+  mappings      Json?    @db.JsonB // column mappings
+  createdBy     String   @map("created_by") @db.Uuid
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([propertyId])
+  @@index([status])
+  @@map("import_jobs")
+}
+
+model DataExportRequest {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  propertyId  String   @map("property_id") @db.Uuid
+  type        String   // personal_data | property_data | audit_log | full_backup
+  status      String   @default("pending") // pending | processing | completed | failed | expired
+  fileUrl     String?  @map("file_url")
+  expiresAt   DateTime? @map("expires_at")
+  processedAt DateTime? @map("processed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([propertyId])
+  @@map("data_export_requests")
+}
+
+model DemoTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  dataSpec    Json     @map("data_spec") @db.JsonB // specification of what data to generate
+  version     Int      @default(1)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("demo_templates")
+}
+
+model ComplianceReport {
+  id           String   @id @default(uuid()) @db.Uuid
+  propertyId   String   @map("property_id") @db.Uuid
+  type         String   // access_audit | login_activity | data_retention | privacy_impact | incident_response | consent | dsar | vendor_compliance
+  parameters   Json     @default("{}") @db.JsonB
+  status       String   @default("generating") // generating | completed | failed
+  fileUrl      String?  @map("file_url")
+  generatedBy  String   @map("generated_by") @db.Uuid
+  generatedAt  DateTime @default(now()) @map("generated_at")
+
+  @@index([propertyId])
+  @@index([type])
+  @@map("compliance_reports")
+}
+
+model ConsentRecord {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  propertyId  String    @map("property_id") @db.Uuid
+  consentType String    @map("consent_type") // tos | privacy_policy | notifications | data_sharing
+  granted     Boolean
+  version     String    // version of the policy consented to
+  grantedAt   DateTime? @map("granted_at")
+  revokedAt   DateTime? @map("revoked_at")
+  ipAddress   String?   @map("ip_address")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([propertyId])
+  @@map("consent_records")
+}
+
+model OnboardingProgress {
+  id             String   @id @default(uuid()) @db.Uuid
+  propertyId     String   @unique @map("property_id") @db.Uuid
+  currentStep    Int      @default(1) @map("current_step")
+  completedSteps Int[]    @map("completed_steps")
+  stepData       Json     @default("{}") @map("step_data") @db.JsonB
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("onboarding_progress")
 }
