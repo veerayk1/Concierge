@@ -29,6 +29,12 @@
 14. [Search](#14-search)
 15. [Notification Center](#15-notification-center)
 16. [Shift Log](#16-shift-log)
+17. [Marketing Pages](#17-marketing-pages)
+18. [Login & Property Routing](#18-login--property-routing)
+19. [Onboarding Wizard](#19-onboarding-wizard)
+20. [Demo & Training Mode](#20-demo--training-mode)
+21. [Billing Dashboard](#21-billing-dashboard)
+22. [Help Center](#22-help-center)
 
 ---
 
@@ -68,6 +74,7 @@ Every empty state follows this structure:
 ```
 
 **Illustration Style**:
+
 - Line-art only. Stroke weight: 1.5px.
 - Primary color: `--text-tertiary` (#AEAEB2) for outlines.
 - Accent color: `--accent` (#0071E3) for one focal detail per illustration (e.g., a package ribbon, a calendar dot, a shield check mark).
@@ -76,6 +83,7 @@ Every empty state follows this structure:
 - Maximum 3 objects per illustration. Simplicity is mandatory.
 
 **Copy Rules**:
+
 - Headline: 3-6 words. Describes what will appear here, not what is missing. Use positive framing.
   - GOOD: "Your package log starts here"
   - BAD: "No packages found"
@@ -84,11 +92,13 @@ Every empty state follows this structure:
 - Never use: "Oops", "Uh oh", "Nothing here", "Empty", exclamation marks.
 
 **Animation**:
+
 - Illustration fades in: opacity 0 to 1, 400ms, ease-out.
 - Text fades in: 200ms delay after illustration, opacity 0 to 1, 300ms, ease-out.
 - Button fades in: 100ms delay after text, opacity 0 to 1, 300ms, ease-out.
 
 **Accessibility**:
+
 - Illustration has `role="img"` with `aria-label` describing the scene (e.g., "Line drawing of a mailbox").
 - Headline is an `<h2>` element.
 - CTA button has `aria-label` matching visible text.
@@ -102,6 +112,7 @@ Every empty state follows this structure:
 layout of the loaded state. Users should recognize what screen they are on before data arrives.
 
 **Shimmer Animation**:
+
 - Direction: left-to-right.
 - Duration: 1.5 seconds per cycle.
 - Easing: ease-in-out.
@@ -111,21 +122,22 @@ layout of the loaded state. Users should recognize what screen they are on befor
 
 **Skeleton Shape Definitions**:
 
-| Layout Element | Skeleton Shape | Dimensions |
-|----------------|---------------|------------|
-| KPI card | Rounded rect | Full card width, 96px height, 12px border-radius |
-| Table row | 4-5 horizontal bars | 60% / 20% / 10% / 10% width, 14px height, 4px radius |
-| Card in grid | Rounded rect | Full card width, 180px height, 12px border-radius |
-| Avatar | Circle | 40px diameter |
-| Page title | Horizontal bar | 200px width, 28px height, 6px radius |
-| Body text line | Horizontal bar | 80% width (first), 60% width (second), 14px height, 4px radius |
-| Button | Rounded rect | 120px width, 44px height, 10px radius |
-| Chart area | Rounded rect | Full width, 240px height, 12px radius |
-| Sidebar item | Horizontal bar with circle | 20px circle + 120px bar, 16px height |
-| Tab bar | Row of bars | 4 bars, 80px each, 14px height, spaced 24px apart |
-| Filter bar | Row of rounded rects | 3 rects, 100px each, 36px height, 8px radius |
+| Layout Element | Skeleton Shape             | Dimensions                                                     |
+| -------------- | -------------------------- | -------------------------------------------------------------- |
+| KPI card       | Rounded rect               | Full card width, 96px height, 12px border-radius               |
+| Table row      | 4-5 horizontal bars        | 60% / 20% / 10% / 10% width, 14px height, 4px radius           |
+| Card in grid   | Rounded rect               | Full card width, 180px height, 12px border-radius              |
+| Avatar         | Circle                     | 40px diameter                                                  |
+| Page title     | Horizontal bar             | 200px width, 28px height, 6px radius                           |
+| Body text line | Horizontal bar             | 80% width (first), 60% width (second), 14px height, 4px radius |
+| Button         | Rounded rect               | 120px width, 44px height, 10px radius                          |
+| Chart area     | Rounded rect               | Full width, 240px height, 12px radius                          |
+| Sidebar item   | Horizontal bar with circle | 20px circle + 120px bar, 16px height                           |
+| Tab bar        | Row of bars                | 4 bars, 80px each, 14px height, spaced 24px apart              |
+| Filter bar     | Row of rounded rects       | 3 rects, 100px each, 36px height, 8px radius                   |
 
 **Skeleton Layout — Data Table Page**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  ████████████ (page title)     ░░░░░░ (button)   │
@@ -146,6 +158,7 @@ layout of the loaded state. Users should recognize what screen they are on befor
 ```
 
 **Skeleton Layout — Dashboard**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  ████████████ (greeting)                           │
@@ -172,6 +185,7 @@ layout of the loaded state. Users should recognize what screen they are on befor
 ```
 
 **Skeleton Layout — Detail/Form Page**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  ← ████████████ (back + title)                    │
@@ -193,6 +207,7 @@ layout of the loaded state. Users should recognize what screen they are on befor
 ```
 
 **Accessibility**:
+
 - Container has `aria-busy="true"` and `aria-label="Loading [page name]"`.
 - Screen reader announcement: "Loading [page name], please wait."
 - Skeleton elements are hidden from screen readers with `aria-hidden="true"`.
@@ -203,6 +218,7 @@ layout of the loaded state. Users should recognize what screen they are on befor
 ### 1.3 Error State Pattern
 
 **Structure**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │                                                    │
@@ -230,6 +246,7 @@ layout of the loaded state. Users should recognize what screen they are on befor
 ```
 
 **Expanded Technical Details**:
+
 ```
 │       ▾ Hide technical details                     │
 │       ┌──────────────────────────────────────┐    │
@@ -244,21 +261,23 @@ layout of the loaded state. Users should recognize what screen they are on befor
 
 **Error Copy by Type**:
 
-| Error Type | Headline | Description |
-|------------|----------|-------------|
-| Network / timeout | "Could not connect to the server" | "This is usually a temporary connection issue. Check your internet and try again." |
-| Server error (5xx) | "Something went wrong on our end" | "Our team has been notified. This is usually resolved quickly — try again in a few minutes." |
-| Not found (404) | "This page does not exist" | "The item may have been removed, or the link may be incorrect. Go back to [parent page]." |
-| Forbidden (403) | "You do not have access to this page" | "Your current role does not include permission for this feature. Contact your property administrator." |
-| Validation error | "Some fields need attention" | Inline field-level errors. No full-page error state — form stays visible with errors highlighted. |
-| Rate limit (429) | "Too many requests" | "Please wait a moment before trying again. This limit protects the system for all users." |
-| Session expired (401) | "Your session has expired" | "For security, sessions expire after 30 minutes of inactivity. Sign in to continue." |
+| Error Type            | Headline                              | Description                                                                                            |
+| --------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Network / timeout     | "Could not connect to the server"     | "This is usually a temporary connection issue. Check your internet and try again."                     |
+| Server error (5xx)    | "Something went wrong on our end"     | "Our team has been notified. This is usually resolved quickly — try again in a few minutes."           |
+| Not found (404)       | "This page does not exist"            | "The item may have been removed, or the link may be incorrect. Go back to [parent page]."              |
+| Forbidden (403)       | "You do not have access to this page" | "Your current role does not include permission for this feature. Contact your property administrator." |
+| Validation error      | "Some fields need attention"          | Inline field-level errors. No full-page error state — form stays visible with errors highlighted.      |
+| Rate limit (429)      | "Too many requests"                   | "Please wait a moment before trying again. This limit protects the system for all users."              |
+| Session expired (401) | "Your session has expired"            | "For security, sessions expire after 30 minutes of inactivity. Sign in to continue."                   |
 
 **Animation**:
+
 - Error illustration fades in with a subtle 10px upward translate: 400ms, ease-out.
 - Illustration has a single-pulse scale animation on the accent element (1.0 to 1.05 to 1.0, 600ms).
 
 **Accessibility**:
+
 - Error container has `role="alert"` and `aria-live="assertive"`.
 - Screen reader announcement: "Error loading [page name]. [Headline]. [Description]. Try again button available."
 - Technical details section uses `aria-expanded="false/true"` with `aria-controls`.
@@ -271,12 +290,14 @@ layout of the loaded state. Users should recognize what screen they are on befor
 **Types**:
 
 **A. Toast Notification (Minor Actions)**
+
 ```
 ┌─────────────────────────────────────────┐
 │  ✓  Package logged successfully    ✕    │
 │     Reference: PKG-20260316-0042        │
 └─────────────────────────────────────────┘
 ```
+
 - Position: top-right, 24px from edges, stacks downward.
 - Background: `--bg-primary` with `--border-subtle` border and `box-shadow: 0 4px 12px rgba(0,0,0,0.10)`.
 - Left accent bar: 3px, `--status-success`.
@@ -289,6 +310,7 @@ layout of the loaded state. Users should recognize what screen they are on befor
 - Animation out: fade + slide right 8px, 200ms, ease-in.
 
 **B. Inline Confirmation (Major Actions)**
+
 ```
 ┌──────────────────────────────────────────────────┐
 │                                                    │
@@ -309,23 +331,27 @@ layout of the loaded state. Users should recognize what screen they are on befor
 │                                                    │
 └──────────────────────────────────────────────────┘
 ```
+
 - Persistent — does not auto-dismiss. User navigates away.
 - Animated checkmark: SVG path draws in, 600ms, ease-out. Circle draws first (400ms), then check stroke (200ms).
 - Circle color: `--status-success`.
 - Content fades in 200ms after checkmark completes.
 
 **C. Inline Success Banner (Contextual)**
+
 ```
 ┌──────────────────────────────────────────────────┐
 │ ✓  Changes saved                            ✕    │
 └──────────────────────────────────────────────────┘
 ```
+
 - Appears at top of form/section that was modified.
 - Background: `--status-success-bg`.
 - Auto-dismiss: 3 seconds.
 - Used for: settings saved, profile updated, preferences changed.
 
 **Accessibility**:
+
 - Toast has `role="status"` and `aria-live="polite"`.
 - Screen reader announcement: "[Action] successful. [Summary detail if applicable]."
 - Inline confirmation heading is focused automatically for screen reader users.
@@ -357,6 +383,7 @@ When some data loads but other widgets or sections fail:
 ```
 
 **Rules**:
+
 - Successfully loaded sections render normally.
 - Failed sections show inline error within their container — same dimensions as the loaded state.
 - Each failed section gets its own "Retry" button that only reloads that section.
@@ -368,10 +395,12 @@ When some data loads but other widgets or sections fail:
 - Border: 1px dashed `--border-subtle`.
 
 **Animation**:
+
 - Failed section fades in with dashed border pulse (opacity 0.5 to 1.0, 1s, once).
 - On retry: section shows skeleton shimmer, then loads or re-displays error.
 
 **Accessibility**:
+
 - Failed section has `role="alert"` with `aria-live="polite"` (not assertive — partial failure is not critical).
 - Screen reader: "Dashboard loaded. 2 of 5 sections could not load. [Section name] failed to load. Retry button available."
 - Retry button: `aria-label="Retry loading [section name]"`.
@@ -381,11 +410,13 @@ When some data loads but other widgets or sections fail:
 ### 1.6 Offline State Pattern
 
 **Banner**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  ⚡ You are offline. Showing cached data.  [i]   │
 └──────────────────────────────────────────────────┘
 ```
+
 - Position: fixed top, full-width, above header. 40px height.
 - Background: `--status-warning-bg`.
 - Text: `--status-warning` (dark orange), Caption size (12px), 500 weight.
@@ -395,11 +426,13 @@ When some data loads but other widgets or sections fail:
 - Animation out: slide up, 200ms, ease-in.
 
 **Cached Data Indicators**:
+
 - Every data element shows with reduced opacity: 0.7.
 - Timestamp shown below data: "Last updated 4 minutes ago" in Caption, `--text-tertiary`.
 - Stale data (>15 minutes): additional warning: "This data may be outdated."
 
 **Action Queue**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  Queued Actions (3)                          ▾    │
@@ -411,18 +444,21 @@ When some data loads but other widgets or sections fail:
 │  These will send automatically when you reconnect.│
 └──────────────────────────────────────────────────┘
 ```
+
 - Queue indicator: persistent floating pill in bottom-right. "3 queued" with `--status-warning` dot.
 - Click expands to show queue list.
 - Each item: description + "Queued" badge (`--status-warning-bg`).
 - On reconnect: items send sequentially. Badge updates: "Syncing 1/3..." then "All synced" with success animation.
 
 **Disabled Actions While Offline**:
+
 - Actions that require server validation are disabled (greyed out, cursor: not-allowed).
 - Disabled actions show tooltip: "This action requires an internet connection."
 - Actions that can work offline: creating events, logging packages, adding shift notes.
 - Actions that cannot: releasing packages (requires signature), sending announcements, user management.
 
 **Accessibility**:
+
 - Offline banner: `role="alert"`, `aria-live="assertive"`.
 - Screen reader: "You are offline. Showing cached data. Changes will be saved when you reconnect."
 - Queued actions panel: `aria-label="Queued offline actions"` with count.
@@ -437,6 +473,7 @@ When some data loads but other widgets or sections fail:
 ### 2.1 Login Screen
 
 **Layout**:
+
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                                                                │
@@ -474,6 +511,7 @@ When some data loads but other widgets or sections fail:
 **States**:
 
 **EMPTY (Initial Load)**:
+
 - Left panel: Line-art illustration of a modern building facade with a welcoming open door. Accent blue on the door handle.
 - Right panel: Form with empty fields. Email field auto-focused with blue focus ring (`--border-focus`).
 - Placeholders: "name@building.com" / "Enter your password".
@@ -481,6 +519,7 @@ When some data loads but other widgets or sections fail:
 - Accessibility: `aria-label="Sign in to Concierge"` on form. Email input has `aria-required="true"`.
 
 **LOADING (Signing In)**:
+
 - "Sign In" button transitions to loading state: text fades to "Signing in..." with a small spinner (16px) replacing the text.
 - Button is disabled (`aria-busy="true"`), background dims to `--accent-pressed`.
 - Form fields are disabled (no interaction).
@@ -488,6 +527,7 @@ When some data loads but other widgets or sections fail:
 - Accessibility: `aria-live="polite"` region announces "Signing in, please wait."
 
 **ERROR — Invalid Credentials**:
+
 - Shake animation on the form card: translate-x 0 to -8px to 8px to -4px to 4px to 0, 400ms.
 - Error banner appears above email field:
   ```
@@ -504,12 +544,14 @@ When some data loads but other widgets or sections fail:
 - Accessibility: `role="alert"`, `aria-live="assertive"`. Announcement: "Sign in failed. Incorrect email or password. Email field is focused."
 
 **ERROR — Network**:
+
 - Error banner: "Could not connect. Check your internet connection and try again."
 - Button returns to "Sign In" state, enabled.
 - No field clearing — all entered data preserved.
 - Accessibility: same alert pattern.
 
 **SUCCESS**:
+
 - Button text changes to "Signed in" with animated checkmark (draw-in, 400ms).
 - Button background transitions to `--status-success`, 200ms.
 - Pause 600ms, then redirect to dashboard.
@@ -519,6 +561,7 @@ When some data loads but other widgets or sections fail:
 **PARTIAL**: Not applicable — login is all-or-nothing.
 
 **OFFLINE**:
+
 - Form renders but "Sign In" button is disabled.
 - Message below button: "You are offline. Sign in requires an internet connection."
 - If user was previously signed in and session is cached: auto-redirect to cached dashboard with offline banner.
@@ -529,6 +572,7 @@ When some data loads but other widgets or sections fail:
 ### 2.2 Two-Factor Authentication (2FA) Screen
 
 **Layout**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │                                                    │
@@ -558,16 +602,19 @@ When some data loads but other widgets or sections fail:
 ```
 
 **EMPTY (Initial)**:
+
 - 6 code input boxes, first box auto-focused with `--border-focus` ring.
 - Inputs accept numbers only. Auto-advance to next box on digit entry.
 - Paste support: pasting 6 digits fills all boxes simultaneously.
 - Accessibility: `aria-label="Verification code digit [1-6]"` on each input. Group has `role="group"` with `aria-label="6-digit verification code"`.
 
 **LOADING (Verifying)**:
+
 - All inputs disabled. "Verify" button shows spinner + "Verifying...".
 - Accessibility: "Verifying code, please wait."
 
 **ERROR — Wrong Code**:
+
 - All 6 boxes flash `--status-error` border, shake animation (same as login), then clear.
 - First box receives focus.
 - Error text: "That code is incorrect. Please try again."
@@ -575,11 +622,13 @@ When some data loads but other widgets or sections fail:
 - Accessibility: `role="alert"`. "Verification failed. Incorrect code. First digit field is focused."
 
 **ERROR — Expired Code**:
+
 - Error text: "That code has expired. Enter a new code from your authenticator app."
 - All boxes clear, first box focused.
 - Accessibility: same pattern.
 
 **SUCCESS**:
+
 - All boxes turn `--status-success` border.
 - Animated checkmark replaces the code boxes (draws in, 400ms).
 - Redirect to dashboard after 600ms.
@@ -588,6 +637,7 @@ When some data loads but other widgets or sections fail:
 **PARTIAL**: Not applicable.
 
 **OFFLINE**:
+
 - "Verify" button disabled.
 - Message: "Verification requires an internet connection."
 - Note: TOTP codes are generated offline, but verification requires the server.
@@ -597,6 +647,7 @@ When some data loads but other widgets or sections fail:
 ### 2.3 Forgot Password Screen
 
 **Layout**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │                                                    │
@@ -631,6 +682,7 @@ When some data loads but other widgets or sections fail:
 **ERROR — Network**: Banner: "Could not send reset link. Check your connection and try again."
 
 **SUCCESS**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │                                                    │
@@ -655,6 +707,7 @@ When some data loads but other widgets or sections fail:
 │                                                    │
 └──────────────────────────────────────────────────┘
 ```
+
 - Email is partially masked for security.
 - Resend button disabled for 60 seconds with visible countdown: "Resend in 47s".
 - Accessibility: "Reset link sent to your email. Check your inbox."
@@ -668,6 +721,7 @@ When some data loads but other widgets or sections fail:
 ### 2.4 Reset Password Screen
 
 **Layout**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │              ◉ Concierge                           │
@@ -717,6 +771,7 @@ When some data loads but other widgets or sections fail:
 ### 2.5 Account Locked Screen
 
 **Layout**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │              ◉ Concierge                           │
@@ -749,6 +804,7 @@ When some data loads but other widgets or sections fail:
 ```
 
 **States**: This screen is itself an error state. No separate loading/error/success states — only:
+
 - **Active lockout**: Countdown timer visible, decrementing every second.
 - **Lockout expired**: Timer replaced with "You can now try again." CTA becomes "Back to Sign In."
 - **Accessibility**: `role="alert"`. Timer has `aria-live="off"` (do not announce every second). When timer reaches 0: `aria-live="polite"` announcement "Account unlocked. You can now sign in."
@@ -764,6 +820,7 @@ When some data loads but other widgets or sections fail:
 **EMPTY**: Not applicable — sidebar always has navigation items.
 
 **LOADING (Initial App Load)**:
+
 ```
 ┌─────────────────────┐
 │  ◉ Concierge        │
@@ -784,11 +841,13 @@ When some data loads but other widgets or sections fail:
 │  ░░░░░░░░░░░░░░░░  │
 └─────────────────────┘
 ```
+
 - Logo renders immediately (not a skeleton).
 - Menu items show as shimmer bars matching expected layout.
 - User profile section at bottom shows avatar circle + name bar shimmer.
 
 **ERROR**: Sidebar fails to load menu items:
+
 - Logo still visible.
 - Single error message in sidebar body: "Menu unavailable. Refresh the page."
 - Retry link below.
@@ -800,6 +859,7 @@ When some data loads but other widgets or sections fail:
 **OFFLINE**: Sidebar renders from cache. All navigation works (routes load cached pages). Badge counts show last-known values with `--text-tertiary` color.
 
 **Collapsed State (64px)**:
+
 ```
 ┌──────┐
 │  ◉   │
@@ -814,12 +874,14 @@ When some data loads but other widgets or sections fail:
 │  👤  │
 └──────┘
 ```
+
 - Tooltip: appears after 300ms hover delay, positioned to the right of the icon.
 - Tooltip style: `--bg-primary` background, `--border-subtle` border, 8px padding, Caption text.
 - Transition between collapsed/expanded: width animates 200ms ease-in-out. Labels fade in/out independently.
 - Keyboard: `[` toggles. Focus trap maintained within sidebar. `Tab` moves between items.
 
 **Accessibility**:
+
 - `<nav aria-label="Main navigation">`.
 - Each item: `role="link"` or `role="button"`, `aria-current="page"` for active item.
 - Collapsed: `aria-label` on each icon includes full label text ("Packages, 3 new").
@@ -831,6 +893,7 @@ When some data loads but other widgets or sections fail:
 ### 3.2 Header
 
 **LOADING**:
+
 - Page title: shimmer bar, 200px x 28px.
 - Greeting: shimmer bar, 300px x 14px.
 - Notification bell: renders immediately with no badge until count loads.
@@ -843,6 +906,7 @@ When some data loads but other widgets or sections fail:
 **OFFLINE**: Header renders from cache. Notification badge shows last-known count in `--text-tertiary`. Search still opens command palette (searches cached data only).
 
 **Accessibility**:
+
 - Header: `role="banner"`.
 - Page title: `<h1>`.
 - Search trigger: `aria-label="Search, keyboard shortcut Command K"`.
@@ -854,6 +918,7 @@ When some data loads but other widgets or sections fail:
 ### 3.3 Command Palette
 
 **EMPTY (Just Opened, No Query)**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  🔍  Search pages, units, residents, actions...   │
@@ -869,6 +934,7 @@ When some data loads but other widgets or sections fail:
 │                                                    │
 └──────────────────────────────────────────────────┘
 ```
+
 - Overlay: full-screen backdrop (`rgba(0,0,0,0.4)`), palette centered vertically in top third.
 - Input auto-focused. Cursor blinking.
 - Recent items: last 5 searches/navigations.
@@ -876,15 +942,18 @@ When some data loads but other widgets or sections fail:
 - Animation in: backdrop fades 200ms, palette scales from 0.95 to 1.0 + fades in, 200ms, ease-out.
 
 **LOADING (Search In Progress)**:
+
 - Spinner (16px) appears at right end of input field after 300ms of typing pause.
 - Results area shows skeleton: 3 shimmer bars (text lines).
 - Debounce: 300ms after last keystroke before querying.
 
 **ERROR (Search Failed)**:
+
 - Inline message below input: "Search is temporarily unavailable. Try again."
 - Recent and suggested items still shown if cached.
 
 **SUCCESS (Results Found)**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  🔍  unit 12                                      │
@@ -904,12 +973,14 @@ When some data loads but other widgets or sections fail:
 │  ↵ Enter to select  ↑↓ Navigate  Esc Close       │
 └──────────────────────────────────────────────────┘
 ```
+
 - Results grouped by category with overline headers.
 - Active result: `--accent-subtle` background. Arrow keys navigate.
 - Enter selects and navigates. Esc closes palette.
 - Maximum 10 results shown. "View all results" link at bottom if more exist.
 
 **EMPTY (No Results)**:
+
 ```
 │  🔍  xyzabc123                                    │
 │                                                    │
@@ -923,6 +994,7 @@ When some data loads but other widgets or sections fail:
 **OFFLINE**: Searches cached data only. "Searching cached data — some results may be missing." shown as subtitle in `--text-tertiary`.
 
 **Accessibility**:
+
 - Palette: `role="dialog"`, `aria-label="Search"`, `aria-modal="true"`.
 - Input: `role="combobox"`, `aria-expanded="true"`, `aria-controls="search-results"`, `aria-activedescendant` tracks focused result.
 - Results list: `role="listbox"`. Each result: `role="option"`.
@@ -946,6 +1018,7 @@ screen-specific content is listed per dashboard.
 **LOADING**: Full dashboard skeleton (see Section 1.2 "Skeleton Layout — Dashboard"). All widgets shimmer simultaneously.
 
 **ERROR (Full Page)**:
+
 - Shown only if the dashboard data endpoint itself fails (not individual widgets).
 - Full-page error pattern (Section 1.3).
 - Headline: "Could not load your dashboard"
@@ -961,6 +1034,7 @@ screen-specific content is listed per dashboard.
 ### 4.2 System Dashboard (Super Admin)
 
 **Unique Widgets**:
+
 - Property Overview (total properties, total units, total users)
 - System Health (API response time, error rate, uptime)
 - Recent Activity (cross-property event feed)
@@ -969,13 +1043,13 @@ screen-specific content is listed per dashboard.
 
 **Widget Empty States**:
 
-| Widget | Empty Headline | Empty Description | Empty CTA |
-|--------|----------------|-------------------|-----------|
-| Property Overview | "Add your first property" | "Properties are the foundation of Concierge. Start by adding a building." | "Add Property" |
-| System Health | (never empty — always has metrics) | — | — |
-| Recent Activity | "No recent activity" | "Activity from all properties will appear here as users start working." | — |
-| Storage Usage | (never empty — shows 0 / limit) | — | — |
-| License Utilization | (never empty — shows 0 / limit) | — | — |
+| Widget              | Empty Headline                     | Empty Description                                                         | Empty CTA      |
+| ------------------- | ---------------------------------- | ------------------------------------------------------------------------- | -------------- |
+| Property Overview   | "Add your first property"          | "Properties are the foundation of Concierge. Start by adding a building." | "Add Property" |
+| System Health       | (never empty — always has metrics) | —                                                                         | —              |
+| Recent Activity     | "No recent activity"               | "Activity from all properties will appear here as users start working."   | —              |
+| Storage Usage       | (never empty — shows 0 / limit)    | —                                                                         | —              |
+| License Utilization | (never empty — shows 0 / limit)    | —                                                                         | —              |
 
 **Accessibility**: Dashboard has `aria-label="System administration dashboard"`. Each widget: `role="region"` with `aria-label="[Widget name]"`.
 
@@ -984,6 +1058,7 @@ screen-specific content is listed per dashboard.
 ### 4.3 Management Dashboard (Property Admin)
 
 **Unique Widgets**:
+
 - Building Stats (units, occupancy rate, open issues)
 - Compliance Summary (vendor insurance, certifications due)
 - Financial Summary (fees collected, outstanding, overdue)
@@ -993,20 +1068,21 @@ screen-specific content is listed per dashboard.
 
 **Widget Empty States**:
 
-| Widget | Empty Headline | Empty Description | Empty CTA |
-|--------|----------------|-------------------|-----------|
-| Building Stats | (never empty — always shows unit count) | — | — |
-| Compliance Summary | "All vendors compliant" | "No compliance items need attention right now." | — |
-| Financial Summary | "No financial data yet" | "Financial summaries will appear as transactions are processed." | — |
-| Staff Online | "No staff currently online" | "Staff sessions will appear here when team members sign in." | — |
-| Pending Approvals | "No pending approvals" | "You are all caught up. Approval requests will appear here." | — |
-| Open Maintenance | "No open requests" | "All maintenance requests are resolved. New requests will appear here." | — |
+| Widget             | Empty Headline                          | Empty Description                                                       | Empty CTA |
+| ------------------ | --------------------------------------- | ----------------------------------------------------------------------- | --------- |
+| Building Stats     | (never empty — always shows unit count) | —                                                                       | —         |
+| Compliance Summary | "All vendors compliant"                 | "No compliance items need attention right now."                         | —         |
+| Financial Summary  | "No financial data yet"                 | "Financial summaries will appear as transactions are processed."        | —         |
+| Staff Online       | "No staff currently online"             | "Staff sessions will appear here when team members sign in."            | —         |
+| Pending Approvals  | "No pending approvals"                  | "You are all caught up. Approval requests will appear here."            | —         |
+| Open Maintenance   | "No open requests"                      | "All maintenance requests are resolved. New requests will appear here." | —         |
 
 ---
 
 ### 4.4 Operations Dashboard (Property Manager)
 
 **Unique Widgets**:
+
 - Today's Activity (events logged today)
 - Task Summary (open tasks, overdue, due today)
 - Recent Events Feed (scrollable cards)
@@ -1016,20 +1092,21 @@ screen-specific content is listed per dashboard.
 
 **Widget Empty States**:
 
-| Widget | Empty Headline | Empty Description | Empty CTA |
-|--------|----------------|-------------------|-----------|
-| Today's Activity | "Quiet day so far" | "Events will appear as they are logged throughout the day." | — |
-| Task Summary | "No tasks assigned" | "Tasks assigned to you will appear here." | — |
-| Recent Events | "No recent events" | "Events from the last 24 hours will show here." | "Create Event" |
-| Quick Actions | (never empty — always shows action buttons) | — | — |
-| Upcoming Bookings | "No upcoming bookings" | "Amenity reservations for the next 24 hours will appear here." | — |
-| Shift Notes | "No shift notes yet" | "Leave a note for the next shift." | "Add Shift Note" |
+| Widget            | Empty Headline                              | Empty Description                                              | Empty CTA        |
+| ----------------- | ------------------------------------------- | -------------------------------------------------------------- | ---------------- |
+| Today's Activity  | "Quiet day so far"                          | "Events will appear as they are logged throughout the day."    | —                |
+| Task Summary      | "No tasks assigned"                         | "Tasks assigned to you will appear here."                      | —                |
+| Recent Events     | "No recent events"                          | "Events from the last 24 hours will show here."                | "Create Event"   |
+| Quick Actions     | (never empty — always shows action buttons) | —                                                              | —                |
+| Upcoming Bookings | "No upcoming bookings"                      | "Amenity reservations for the next 24 hours will appear here." | —                |
+| Shift Notes       | "No shift notes yet"                        | "Leave a note for the next shift."                             | "Add Shift Note" |
 
 ---
 
 ### 4.5 Security Analytics Dashboard
 
 **Unique Widgets**:
+
 - Incident Trend (line chart, 30 days)
 - Active Visitors (count + list)
 - FOB Status Summary (active / inactive / lost / total)
@@ -1039,20 +1116,21 @@ screen-specific content is listed per dashboard.
 
 **Widget Empty States**:
 
-| Widget | Empty Headline | Empty Description | Empty CTA |
-|--------|----------------|-------------------|-----------|
-| Incident Trend | "No incidents recorded" | "Incident data will populate as reports are filed." | — |
-| Active Visitors | "No visitors on-site" | "Visitor check-ins will appear here in real time." | — |
-| FOB Status | "No FOBs registered" | "FOB assignments will appear once access devices are added to units." | "Manage FOBs" |
-| Parking Violations | "No open violations" | "Parking violations will appear here when reported." | — |
-| Camera Status | "No cameras configured" | "Camera integrations will display connection status here." | "Configure Cameras" |
-| Recent Incidents | "No incidents to report" | "Incident reports from the last 7 days will show here." | "File Incident" |
+| Widget             | Empty Headline           | Empty Description                                                     | Empty CTA           |
+| ------------------ | ------------------------ | --------------------------------------------------------------------- | ------------------- |
+| Incident Trend     | "No incidents recorded"  | "Incident data will populate as reports are filed."                   | —                   |
+| Active Visitors    | "No visitors on-site"    | "Visitor check-ins will appear here in real time."                    | —                   |
+| FOB Status         | "No FOBs registered"     | "FOB assignments will appear once access devices are added to units." | "Manage FOBs"       |
+| Parking Violations | "No open violations"     | "Parking violations will appear here when reported."                  | —                   |
+| Camera Status      | "No cameras configured"  | "Camera integrations will display connection status here."            | "Configure Cameras" |
+| Recent Incidents   | "No incidents to report" | "Incident reports from the last 7 days will show here."               | "File Incident"     |
 
 ---
 
 ### 4.6 Security Action Dashboard
 
 **Unique Widgets**:
+
 - Visitor Queue (visitors waiting for check-in)
 - Pass-On Items (flagged items from previous shift)
 - Quick Actions (Log Visitor, Log Incident, Parking Violation, Key Sign-Out)
@@ -1061,19 +1139,20 @@ screen-specific content is listed per dashboard.
 
 **Widget Empty States**:
 
-| Widget | Empty Headline | Empty Description | Empty CTA |
-|--------|----------------|-------------------|-----------|
-| Visitor Queue | "No visitors waiting" | "Expected and walk-in visitors will appear here." | "Log Visitor" |
-| Pass-On Items | "No pass-on items" | "Nothing flagged from the previous shift." | — |
-| Quick Actions | (never empty) | — | — |
-| Unit Alerts | "No active unit alerts" | "Units with special instructions or flags will appear here." | — |
-| Recent Log | "No entries today" | "Security log entries will appear here as they are created." | "Create Entry" |
+| Widget        | Empty Headline          | Empty Description                                            | Empty CTA      |
+| ------------- | ----------------------- | ------------------------------------------------------------ | -------------- |
+| Visitor Queue | "No visitors waiting"   | "Expected and walk-in visitors will appear here."            | "Log Visitor"  |
+| Pass-On Items | "No pass-on items"      | "Nothing flagged from the previous shift."                   | —              |
+| Quick Actions | (never empty)           | —                                                            | —              |
+| Unit Alerts   | "No active unit alerts" | "Units with special instructions or flags will appear here." | —              |
+| Recent Log    | "No entries today"      | "Security log entries will appear here as they are created." | "Create Entry" |
 
 ---
 
 ### 4.7 Concierge Dashboard
 
 **Unique Widgets**:
+
 - Package Counter (received today / awaiting release / overdue)
 - Visitor Count (on-site / expected)
 - Quick Actions (Log Package, Log Visitor, Release Package, Shift Note)
@@ -1083,20 +1162,21 @@ screen-specific content is listed per dashboard.
 
 **Widget Empty States**:
 
-| Widget | Empty Headline | Empty Description | Empty CTA |
-|--------|----------------|-------------------|-----------|
-| Package Counter | "No packages today" | "Package counts will update as deliveries arrive." | "Log Package" |
-| Visitor Count | "No visitors on-site" | "Visitor activity will appear here." | "Log Visitor" |
-| Quick Actions | (never empty) | — | — |
-| Recent Packages | "No recent packages" | "Packages logged in the last 24 hours will appear here." | "Log Package" |
-| Expected Deliveries | "No expected deliveries" | "Scheduled deliveries will appear here." | — |
-| Shift Handoff | "No handoff notes" | "Notes from the outgoing shift will appear here." | "Add Shift Note" |
+| Widget              | Empty Headline           | Empty Description                                        | Empty CTA        |
+| ------------------- | ------------------------ | -------------------------------------------------------- | ---------------- |
+| Package Counter     | "No packages today"      | "Package counts will update as deliveries arrive."       | "Log Package"    |
+| Visitor Count       | "No visitors on-site"    | "Visitor activity will appear here."                     | "Log Visitor"    |
+| Quick Actions       | (never empty)            | —                                                        | —                |
+| Recent Packages     | "No recent packages"     | "Packages logged in the last 24 hours will appear here." | "Log Package"    |
+| Expected Deliveries | "No expected deliveries" | "Scheduled deliveries will appear here."                 | —                |
+| Shift Handoff       | "No handoff notes"       | "Notes from the outgoing shift will appear here."        | "Add Shift Note" |
 
 ---
 
 ### 4.8 Maintenance Dashboard
 
 **Unique Widgets**:
+
 - Open Requests by Priority (stacked bar or cards: critical, high, medium, low)
 - Overdue Requests (count + list)
 - Vendor Assignment (requests with/without vendor)
@@ -1106,20 +1186,21 @@ screen-specific content is listed per dashboard.
 
 **Widget Empty States**:
 
-| Widget | Empty Headline | Empty Description | Empty CTA |
-|--------|----------------|-------------------|-----------|
-| Open Requests | "No open requests" | "Maintenance requests will appear as they are submitted." | "Create Request" |
-| Overdue Requests | "Nothing overdue" | "All requests are within their expected timeframes." | — |
-| Vendor Assignment | "No vendor assignments" | "Requests with vendor assignments will be tracked here." | — |
-| Work Order Status | "No active work orders" | "Work orders will appear as requests are assigned and actioned." | — |
-| Equipment Alerts | "All equipment current" | "Equipment service reminders will appear here when due." | "Manage Equipment" |
-| Recent Completions | "No recent completions" | "Completed maintenance requests will show here." | — |
+| Widget             | Empty Headline          | Empty Description                                                | Empty CTA          |
+| ------------------ | ----------------------- | ---------------------------------------------------------------- | ------------------ |
+| Open Requests      | "No open requests"      | "Maintenance requests will appear as they are submitted."        | "Create Request"   |
+| Overdue Requests   | "Nothing overdue"       | "All requests are within their expected timeframes."             | —                  |
+| Vendor Assignment  | "No vendor assignments" | "Requests with vendor assignments will be tracked here."         | —                  |
+| Work Order Status  | "No active work orders" | "Work orders will appear as requests are assigned and actioned." | —                  |
+| Equipment Alerts   | "All equipment current" | "Equipment service reminders will appear here when due."         | "Manage Equipment" |
+| Recent Completions | "No recent completions" | "Completed maintenance requests will show here."                 | —                  |
 
 ---
 
 ### 4.9 Governance Dashboard (Board Member)
 
 **Unique Widgets**:
+
 - Financial Overview (budget vs. actual, reserve fund)
 - Pending Board Actions (items requiring vote or review)
 - Building Performance (occupancy, satisfaction, maintenance KPIs)
@@ -1129,20 +1210,21 @@ screen-specific content is listed per dashboard.
 
 **Widget Empty States**:
 
-| Widget | Empty Headline | Empty Description | Empty CTA |
-|--------|----------------|-------------------|-----------|
-| Financial Overview | "No financial reports yet" | "Budget and financial data will appear as reports are generated." | — |
-| Pending Board Actions | "No actions pending" | "Items requiring board review will appear here." | — |
-| Building Performance | "Performance data loading" | "Building metrics will populate as data is collected." | — |
-| Upcoming Meetings | "No meetings scheduled" | "Board meetings will appear here when scheduled." | — |
-| Recent Reports | "No reports published" | "Published reports for board review will appear here." | — |
-| Alteration Requests | "No pending alterations" | "Alteration requests requiring approval will appear here." | — |
+| Widget                | Empty Headline             | Empty Description                                                 | Empty CTA |
+| --------------------- | -------------------------- | ----------------------------------------------------------------- | --------- |
+| Financial Overview    | "No financial reports yet" | "Budget and financial data will appear as reports are generated." | —         |
+| Pending Board Actions | "No actions pending"       | "Items requiring board review will appear here."                  | —         |
+| Building Performance  | "Performance data loading" | "Building metrics will populate as data is collected."            | —         |
+| Upcoming Meetings     | "No meetings scheduled"    | "Board meetings will appear here when scheduled."                 | —         |
+| Recent Reports        | "No reports published"     | "Published reports for board review will appear here."            | —         |
+| Alteration Requests   | "No pending alterations"   | "Alteration requests requiring approval will appear here."        | —         |
 
 ---
 
 ### 4.10 Resident Portal Dashboard
 
 **Unique Widgets**:
+
 - My Packages (pending pickup)
 - My Requests (open maintenance requests)
 - My Bookings (upcoming amenity reservations)
@@ -1152,14 +1234,14 @@ screen-specific content is listed per dashboard.
 
 **Widget Empty States**:
 
-| Widget | Empty Headline | Empty Description | Empty CTA |
-|--------|----------------|-------------------|-----------|
-| My Packages | "No packages waiting" | "You will be notified when a package arrives for you." | — |
-| My Requests | "No open requests" | "Submit a maintenance request when something needs fixing." | "Request Maintenance" |
-| My Bookings | "No upcoming bookings" | "Reserve amenities like the party room or gym." | "Book an Amenity" |
-| Announcements | "No announcements" | "Building announcements will appear here." | — |
-| Quick Actions | (never empty) | — | — |
-| Community | "Nothing new in the community" | "Classified ads and events will appear here." | "Browse Community" |
+| Widget        | Empty Headline                 | Empty Description                                           | Empty CTA             |
+| ------------- | ------------------------------ | ----------------------------------------------------------- | --------------------- |
+| My Packages   | "No packages waiting"          | "You will be notified when a package arrives for you."      | —                     |
+| My Requests   | "No open requests"             | "Submit a maintenance request when something needs fixing." | "Request Maintenance" |
+| My Bookings   | "No upcoming bookings"         | "Reserve amenities like the party room or gym."             | "Book an Amenity"     |
+| Announcements | "No announcements"             | "Building announcements will appear here."                  | —                     |
+| Quick Actions | (never empty)                  | —                                                           | —                     |
+| Community     | "Nothing new in the community" | "Classified ads and events will appear here."               | "Browse Community"    |
 
 ---
 
@@ -1172,6 +1254,7 @@ screen-specific content is listed per dashboard.
 **Layout**: Full-width data table with filter bar, search, and card/table view toggle.
 
 **EMPTY**:
+
 - Illustration: Line-art clipboard with a single checkmark, accent blue on the checkmark.
 - Headline: "Your event log starts here"
 - Description: "Events capture everything that happens in your building — packages, visitors, incidents, and more. Create your first event to get started."
@@ -1181,6 +1264,7 @@ screen-specific content is listed per dashboard.
 **LOADING**: Skeleton table with 8 rows. Filter bar renders immediately (static controls). Column headers render immediately with shimmer in data cells.
 
 **ERROR**:
+
 - Headline: "Could not load events"
 - Description: "We are having trouble loading the event feed. This is usually temporary."
 - CTA: "Try Again"
@@ -1216,6 +1300,7 @@ screen-specific content is listed per dashboard.
 **Layout**: Form page — single column, max-width 640px centered.
 
 **EMPTY (Fresh Form)**:
+
 - All fields empty. Event Type dropdown focused.
 - Required fields marked with `*` (Event Type, Unit, Description).
 - Form section: Event Type, Unit, Description, Notes, Notification toggle, Attachments.
@@ -1245,6 +1330,7 @@ screen-specific content is listed per dashboard.
 **LOADING**: "Create All" button shows "Creating 4 events..." with progress: "1 of 4...". Each row updates as it submits: shimmer while pending, checkmark when done.
 
 **ERROR (Partial Batch Failure)**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  Batch Results                                     │
@@ -1259,6 +1345,7 @@ screen-specific content is listed per dashboard.
 │  [ Retry Failed ]    [ Done ]                      │
 └──────────────────────────────────────────────────┘
 ```
+
 - Failed rows highlighted with `--status-error-bg` background.
 - "Retry Failed" re-submits only failed rows.
 - Accessibility: "Batch creation complete. 3 events created. 1 event failed. Retry failed button available."
@@ -1278,6 +1365,7 @@ screen-specific content is listed per dashboard.
 ### 6.1 Package Feed
 
 **EMPTY**:
+
 - Illustration: Line-art mailbox with an open door, accent blue on a small package peeking out.
 - Headline: "Your package log starts here"
 - Description: "Track every delivery from arrival to pickup. Log your first package to see it here."
@@ -1301,6 +1389,7 @@ screen-specific content is listed per dashboard.
 **Layout**: Form — optimized for speed. Fields laid out for quick entry with keyboard shortcuts.
 
 **EMPTY (Fresh Form)**:
+
 - Courier dropdown focused (most common first action).
 - Fields: Courier (with logo icons), Unit (searchable dropdown), Recipient (auto-populated from unit), Description, Storage Location (dropdown), Notify Resident (toggle, on by default), Print Label (toggle).
 - Reference number shown as auto-generated preview: "PKG-20260316-XXXX".
@@ -1414,6 +1503,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 **Layout**: Data table with real-time status indicators (Active / Checked Out). Filter tabs: All, Active, Expected, Checked Out. Search by visitor name or unit.
 
 **EMPTY**:
+
 - Illustration: Line-art building entrance with a person approaching, accent blue on the door.
 - Headline: "Track visitors as they arrive"
 - Description: "Log every visitor for building security. Expected visitors, walk-ins, and deliveries all appear here."
@@ -1424,6 +1514,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 **LOADING**: Skeleton table with columns: Visitor Name, Unit Visiting, Check-in Time, Status, Checked Out. Filter tabs render immediately. Active visitor count in tab badge shows skeleton circle.
 
 **ERROR**: Standard error. "Could not load visitor log."
+
 - Headline: "Could not load visitor log"
 - Description: "The visitor records are temporarily unavailable. Active visitors may still be on-site."
 - CTA: "Try Again"
@@ -1440,6 +1531,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 **OFFLINE**: Cached visitor log. "Log Visitor" works offline (queued). "Check Out" works offline (queued). Active visitors list may be stale — banner: "Visitor status may not reflect recent changes."
 
 **Log Visitor Form (Modal)**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  Log Visitor                              ✕       │
@@ -1473,6 +1565,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 │         [ Cancel ]    [ Log Visitor ]              │
 └──────────────────────────────────────────────────┘
 ```
+
 - Visitor Name focused on open. Required fields: Name, Unit.
 - Unit dropdown auto-populates resident name when unit selected.
 - Accessibility: modal has `role="dialog"`, `aria-label="Log visitor form"`, `aria-modal="true"`.
@@ -1484,6 +1577,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 **Layout**: Card grid view (default) or table view. Cards show severity color strip on left edge (red = critical, orange = urgent, yellow = moderate, grey = minor). Filter by severity, status, date range.
 
 **EMPTY**:
+
 - Illustration: Line-art shield with a checkmark, accent blue on the check.
 - Headline: "No incidents to report"
 - Description: "Incident reports document security events, property damage, and policy violations. File a report when something happens."
@@ -1503,6 +1597,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 **OFFLINE**: Cached reports shown. "File Incident Report" works offline (queued). "Photos and attachments will upload when you reconnect." Severity filters work on cached data.
 
 **File Incident Report Form**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  ← File Incident Report                           │
@@ -1551,6 +1646,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 │         [ Cancel ]    [ File Report ]              │
 └──────────────────────────────────────────────────┘
 ```
+
 - Severity selection required before other fields enabled.
 - "Notify property manager" auto-checked for Critical and Urgent severities.
 - Accessibility: severity cards are `role="radiogroup"`. Each card: `role="radio"` with `aria-label="[Severity] — [color description]"`.
@@ -1560,6 +1656,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 ### 7.4 Key/FOB Log
 
 **EMPTY**:
+
 - Illustration: Line-art key ring with two keys, accent blue on one key.
 - Headline: "Track building access devices"
 - Description: "Manage FOBs, keys, and garage clickers. Sign-outs and returns are logged here."
@@ -1582,6 +1679,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 ### 7.5 Pass-On Log
 
 **EMPTY**:
+
 - Illustration: Line-art notepad with a pen, accent blue on the pen tip.
 - Headline: "Pass-on notes keep every shift informed"
 - Description: "Leave notes for the next shift about ongoing situations, special instructions, or items needing follow-up."
@@ -1602,6 +1700,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 ### 7.6 Cleaning Log
 
 **EMPTY**:
+
 - Illustration: Line-art spray bottle, accent blue on the spray mist.
 - Headline: "Track cleaning and sanitation"
 - Description: "Document cleaning activities across common areas, amenities, and units."
@@ -1622,6 +1721,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 ### 7.7 Notes
 
 **EMPTY**:
+
 - Illustration: Line-art sticky note, accent blue on a corner fold.
 - Headline: "General notes for your team"
 - Description: "Quick notes that do not fit a specific category. Visible to all security and concierge staff."
@@ -1642,6 +1742,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 ### 7.8 Parking Violations
 
 **EMPTY**:
+
 - Illustration: Line-art car with a parking sign, accent blue on the P sign.
 - Headline: "No parking violations reported"
 - Description: "Report unauthorized parking, expired permits, and parking infractions. Violations are tracked through resolution."
@@ -1668,6 +1769,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 ### 8.1 Request List
 
 **EMPTY**:
+
 - Illustration: Line-art wrench and screwdriver crossed, accent blue on a bolt.
 - Headline: "Maintenance requests start here"
 - Description: "Track repairs, inspections, and service requests from submission through completion."
@@ -1690,6 +1792,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 **Layout**: Rich form, max-width 720px. Photo upload area, category selection, priority, description (4000 char), permission to enter, entry instructions, contact info.
 
 **EMPTY (Fresh Form)**:
+
 - Category dropdown focused.
 - Photo upload area: dashed border box, "Drag photos here or click to browse. JPG, PNG, HEIC up to 4MB."
 - Permission to enter: radio buttons (Yes / No), neither selected.
@@ -1757,6 +1860,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 **Layout**: Full-width monthly/weekly/daily calendar grid with amenity filter sidebar.
 
 **EMPTY**:
+
 - Calendar grid renders with empty days. No illustration overlay — the calendar itself is the visual.
 - Inline message in the calendar body: "No reservations yet. Book an amenity to see it on the calendar."
 - CTA button in top-right (standard page action position): "Book Amenity"
@@ -1777,6 +1881,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 ### 9.2 List View
 
 **EMPTY**:
+
 - Illustration: Line-art calendar with a clock, accent blue on the clock hands.
 - Headline: "No reservations to show"
 - Description: "Book amenities like the party room, gym, or guest suite. All reservations appear here."
@@ -1799,6 +1904,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 **Layout**: Multi-step form. Step 1: Select Amenity. Step 2: Select Date/Time. Step 3: Review and Confirm.
 
 **EMPTY (Step 1)**:
+
 - Grid of amenity cards with photos, names, capacity, and hourly rate.
 - No amenity selected. Instruction: "Select an amenity to check availability."
 - If no amenities configured (admin has not set up): illustration + "No amenities available yet. Your property administrator will set these up."
@@ -1842,6 +1948,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 ### 10.1 Announcement List
 
 **EMPTY**:
+
 - Illustration: Line-art megaphone, accent blue on sound waves.
 - Headline: "Keep your community informed"
 - Description: "Announcements reach residents via email, push notification, and the portal. Create your first announcement."
@@ -1864,6 +1971,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 **Layout**: Rich form with title, body (rich text editor), target audience selector, distribution channels (email, push, portal), scheduling (now or later).
 
 **EMPTY (Fresh Form)**:
+
 - Title field focused. Rich text editor below with toolbar (bold, italic, link, image, list).
 - Audience: default "All Residents". Expandable to filter by floor, unit type, role.
 - Channels: all three checked by default (Email, Push, Portal).
@@ -1930,6 +2038,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 ```
 
 **EMPTY (Fresh Form)**:
+
 - Severity cards unselected. Subject and Message empty.
 - Warning banner prominent at top (always visible, not dismissable).
 - Channel checkboxes locked-on — all four channels always enabled for emergency broadcasts.
@@ -1937,6 +2046,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 - Accessibility: Page has `role="alert"` context. Form: `aria-label="Emergency broadcast form"`. Severity cards: `role="radiogroup"`, `aria-label="Broadcast severity"`.
 
 **Confirmation Modal (After Submit Click)**:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  ⚠ Confirm Emergency Broadcast              ✕    │
@@ -1956,12 +2066,14 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 │                    (--status-error, pulsing border) │
 └──────────────────────────────────────────────────┘
 ```
+
 - "Confirm and Send" button has subtle pulsing border animation (opacity 0.7 to 1.0, 1s loop) to draw attention.
 - "Go Back" returns to form with all data preserved.
 - No auto-dismiss, no timeout. User must explicitly choose.
 - Accessibility: `role="alertdialog"`, `aria-label="Confirm emergency broadcast"`. Focus on "Go Back" button (safer default).
 
 **LOADING**: "Sending broadcast..." with real-time per-channel progress:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  Sending emergency broadcast...                    │
@@ -1974,12 +2086,14 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 │  Do not close this page until sending completes.   │
 └──────────────────────────────────────────────────┘
 ```
+
 - Progress bars: `--status-error` color (consistent with emergency theme).
 - Completed channels show green checkmark.
 - Page navigation blocked during send (beforeunload warning).
 - Accessibility: each progress bar has `role="progressbar"`, `aria-valuenow`, `aria-valuemax`. Status updates announced via `aria-live="polite"` region: "Email: 312 of 342 sent. SMS: 200 of 298 sent."
 
 **ERROR**: "Broadcast partially sent. [X] of [Y] residents reached. [Retry for remaining]." Per-channel failure detail:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  ⚠ Broadcast partially sent                       │
@@ -1992,11 +2106,13 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 │  [ Retry Failed Channels ]    [ View Full Status ] │
 └──────────────────────────────────────────────────┘
 ```
+
 - Failed channels shown with `--status-error` icon and count.
 - "Retry Failed Channels" only re-sends to residents who did not receive.
 - Accessibility: `role="alert"`. "Emergency broadcast partially sent. Email complete. SMS 48 failed. Push complete. Voice 242 failed. Retry button available."
 
 **SUCCESS**: Major success with urgency styling:
+
 ```
 ┌──────────────────────────────────────────────────┐
 │                                                    │
@@ -2018,6 +2134,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 │                                                    │
 └──────────────────────────────────────────────────┘
 ```
+
 - Checkmark circle uses `--status-error` (red, not green — maintaining emergency visual context).
 - "Send Update" pre-populates a follow-up broadcast referencing the original.
 - Timestamp is monospace, prominent.
@@ -2036,6 +2153,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 ### 11.1 Unit List
 
 **EMPTY**:
+
 - Illustration: Line-art apartment building with numbered doors, accent blue on door 101.
 - Headline: "Add your building's units"
 - Description: "Units are the foundation of your property. Add units to start managing residents, packages, and maintenance."
@@ -2060,15 +2178,15 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 
 **EMPTY (Per Tab)**:
 
-| Tab | Empty Headline | Empty Description | Empty CTA |
-|-----|----------------|-------------------|-----------|
-| Overview | (never empty — shows unit metadata) | — | — |
-| Residents | "No residents in this unit" | "Add residents to this unit to track occupancy and contacts." | "Add Resident" |
-| Packages | "No packages for this unit" | "Package history will appear as deliveries are logged." | — |
-| Maintenance | "No maintenance requests" | "Maintenance requests for this unit will appear here." | "Create Request" |
-| Access | "No access devices assigned" | "FOBs, keys, and clickers assigned to this unit appear here." | "Assign Device" |
-| Documents | "No documents uploaded" | "Unit-specific documents like leases and agreements go here." | "Upload Document" |
-| Instructions | "No front desk instructions" | "Add instructions that front desk staff will see when this unit is involved in any event." | "Add Instruction" |
+| Tab          | Empty Headline                      | Empty Description                                                                          | Empty CTA         |
+| ------------ | ----------------------------------- | ------------------------------------------------------------------------------------------ | ----------------- |
+| Overview     | (never empty — shows unit metadata) | —                                                                                          | —                 |
+| Residents    | "No residents in this unit"         | "Add residents to this unit to track occupancy and contacts."                              | "Add Resident"    |
+| Packages     | "No packages for this unit"         | "Package history will appear as deliveries are logged."                                    | —                 |
+| Maintenance  | "No maintenance requests"           | "Maintenance requests for this unit will appear here."                                     | "Create Request"  |
+| Access       | "No access devices assigned"        | "FOBs, keys, and clickers assigned to this unit appear here."                              | "Assign Device"   |
+| Documents    | "No documents uploaded"             | "Unit-specific documents like leases and agreements go here."                              | "Upload Document" |
+| Instructions | "No front desk instructions"        | "Add instructions that front desk staff will see when this unit is involved in any event." | "Add Instruction" |
 
 **LOADING**: Tab bar renders immediately. Active tab content shows skeleton matching that tab's layout.
 
@@ -2087,6 +2205,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 **Layout**: Form — unit number, floor, building (if multi-building), type (studio/1BR/2BR/3BR/penthouse), status (active/vacant/under renovation), custom fields.
 
 **EMPTY (Create)**:
+
 - Unit Number field focused.
 - Building dropdown (if multi-building) pre-filled with current building.
 - Custom fields section: dynamically rendered from property settings.
@@ -2116,14 +2235,14 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 
 **EMPTY (Per Tab)**:
 
-| Tab | Empty Headline | Empty Description | Empty CTA |
-|-----|----------------|-------------------|-----------|
-| Overview | (never empty — shows profile info) | — | — |
-| Emergency Contacts | "No emergency contacts" | "Emergency contacts are critical for building safety. Add at least one." | "Add Contact" |
-| Vehicles | "No vehicles registered" | "Register vehicles for parking management." | "Add Vehicle" |
-| Pets | "No pets registered" | "Pet registration helps with building policy compliance." | "Add Pet" |
-| Preferences | (never empty — shows notification toggles) | — | — |
-| Activity | "No recent activity" | "Activity for this resident will appear as they interact with the building." | — |
+| Tab                | Empty Headline                             | Empty Description                                                            | Empty CTA     |
+| ------------------ | ------------------------------------------ | ---------------------------------------------------------------------------- | ------------- |
+| Overview           | (never empty — shows profile info)         | —                                                                            | —             |
+| Emergency Contacts | "No emergency contacts"                    | "Emergency contacts are critical for building safety. Add at least one."     | "Add Contact" |
+| Vehicles           | "No vehicles registered"                   | "Register vehicles for parking management."                                  | "Add Vehicle" |
+| Pets               | "No pets registered"                       | "Pet registration helps with building policy compliance."                    | "Add Pet"     |
+| Preferences        | (never empty — shows notification toggles) | —                                                                            | —             |
+| Activity           | "No recent activity"                       | "Activity for this resident will appear as they interact with the building." | —             |
 
 **LOADING**: Profile header skeleton + active tab skeleton.
 
@@ -2144,6 +2263,7 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 ### 12.1 User List
 
 **EMPTY**:
+
 - Illustration: Line-art group of 3 people silhouettes, accent blue on a badge/ID card.
 - Headline: "Add your team and residents"
 - Description: "Create user accounts for staff, property managers, board members, and residents. Each user gets role-based access."
@@ -2190,12 +2310,12 @@ See Section 4.5 (Security Analytics) and Section 4.6 (Security Action) for dashb
 
 **EMPTY (Per Tab)**:
 
-| Tab | Empty Headline | Empty Description |
-|-----|----------------|-------------------|
-| Profile | (never empty) | — |
-| Permissions | (never empty — shows role-based defaults) | — |
-| Activity Log | "No activity recorded" | "User activity will appear as this person uses the platform." |
-| Sessions | "No sessions recorded" | "Login sessions will appear here." |
+| Tab          | Empty Headline                            | Empty Description                                             |
+| ------------ | ----------------------------------------- | ------------------------------------------------------------- |
+| Profile      | (never empty)                             | —                                                             |
+| Permissions  | (never empty — shows role-based defaults) | —                                                             |
+| Activity Log | "No activity recorded"                    | "User activity will appear as this person uses the platform." |
+| Sessions     | "No sessions recorded"                    | "Login sessions will appear here."                            |
 
 **LOADING**: Standard tab skeleton.
 
@@ -2253,24 +2373,24 @@ All 16 settings tabs follow the same state pattern. Defined once, then tab-speci
 
 ### 13.2 Settings Tabs
 
-| Tab | Key Fields | First-Use Guidance |
-|-----|-----------|-------------------|
-| **General** | Property name, address, timezone, logo upload | "Configure your property's basic information." |
-| **Units** | Unit types, floor configuration, custom fields | "Define the unit types and custom fields for your property." |
-| **Event Types** | Configurable event type list with icons, colors, notifications | "Customize event types to match your building's needs." |
-| **Package Settings** | Couriers, storage locations, label format, notification templates | "Set up courier options and label printing preferences." |
-| **Amenities** | Amenity list, booking rules, pricing, availability hours | "Configure bookable amenities and their rules." |
-| **Security** | FOB types, parking zones, incident categories, camera integrations | "Set up security device types and incident categories." |
-| **Maintenance** | Categories, priority levels, SLA targets, auto-assignment rules | "Configure maintenance categories and response targets." |
-| **Communication** | Email templates, SMS settings, push notification config, announcement defaults | "Set up notification channels and message templates." |
-| **Roles & Permissions** | Role definitions, granular permission toggles per role | "Define what each role can see and do." |
-| **Branding** | Logo, colors (limited customization within design system), welcome message | "Customize the look of your resident portal." |
-| **Integrations** | API keys, webhook URLs, third-party connections | "Connect external services and configure APIs." |
-| **Billing** | Subscription tier, payment method, invoice history | "Manage your subscription and billing details." |
-| **Notifications** | Global notification rules, quiet hours, escalation chains | "Configure when and how notifications are sent." |
-| **Data & Privacy** | Data retention policies, export data, GDPR/PIPEDA settings | "Manage data retention and privacy compliance." |
-| **Audit Log** | Read-only log of all setting changes with timestamp and user | "Review who changed what and when." |
-| **Access Control** | IP allowlisting, session timeout, 2FA enforcement, password policies | "Configure security policies for user access." |
+| Tab                     | Key Fields                                                                     | First-Use Guidance                                           |
+| ----------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| **General**             | Property name, address, timezone, logo upload                                  | "Configure your property's basic information."               |
+| **Units**               | Unit types, floor configuration, custom fields                                 | "Define the unit types and custom fields for your property." |
+| **Event Types**         | Configurable event type list with icons, colors, notifications                 | "Customize event types to match your building's needs."      |
+| **Package Settings**    | Couriers, storage locations, label format, notification templates              | "Set up courier options and label printing preferences."     |
+| **Amenities**           | Amenity list, booking rules, pricing, availability hours                       | "Configure bookable amenities and their rules."              |
+| **Security**            | FOB types, parking zones, incident categories, camera integrations             | "Set up security device types and incident categories."      |
+| **Maintenance**         | Categories, priority levels, SLA targets, auto-assignment rules                | "Configure maintenance categories and response targets."     |
+| **Communication**       | Email templates, SMS settings, push notification config, announcement defaults | "Set up notification channels and message templates."        |
+| **Roles & Permissions** | Role definitions, granular permission toggles per role                         | "Define what each role can see and do."                      |
+| **Branding**            | Logo, colors (limited customization within design system), welcome message     | "Customize the look of your resident portal."                |
+| **Integrations**        | API keys, webhook URLs, third-party connections                                | "Connect external services and configure APIs."              |
+| **Billing**             | Subscription tier, payment method, invoice history                             | "Manage your subscription and billing details."              |
+| **Notifications**       | Global notification rules, quiet hours, escalation chains                      | "Configure when and how notifications are sent."             |
+| **Data & Privacy**      | Data retention policies, export data, GDPR/PIPEDA settings                     | "Manage data retention and privacy compliance."              |
+| **Audit Log**           | Read-only log of all setting changes with timestamp and user                   | "Review who changed what and when."                          |
+| **Access Control**      | IP allowlisting, session timeout, 2FA enforcement, password policies           | "Configure security policies for user access."               |
 
 **Per-Tab Empty State Pattern**: Each tab shows its form fields with defaults pre-populated. A subtle info banner at the top (first visit only): "These defaults work for most properties. Adjust as needed."
 
@@ -2291,10 +2411,12 @@ See Section 3.3 for full state definitions.
 **Layout**: Full page with search input at top, results grouped by category below, faceted filters on left sidebar.
 
 **EMPTY (No Query)**:
+
 - Search input focused. Recent searches shown below.
 - Popular searches: "Units", "Open Packages", "Today's Events".
 
 **EMPTY (No Results)**:
+
 - Illustration: Line-art magnifying glass over empty page, accent blue on the glass lens.
 - Headline: "No results for '[query]'"
 - Description: "Try different keywords, check your spelling, or broaden your search."
@@ -2321,6 +2443,7 @@ See Section 3.3 for full state definitions.
 **Layout**: Slide-out panel from the right (400px wide) triggered by bell icon.
 
 **EMPTY**:
+
 - No illustration (panel is compact).
 - Centered text: "You are all caught up"
 - Subtitle: "Notifications will appear here as things happen."
@@ -2373,6 +2496,7 @@ See Section 3.3 for full state definitions.
 **Layout**: Chronological note feed with shift dividers (showing shift start/end times and staff names).
 
 **EMPTY**:
+
 - Illustration: Line-art clipboard with a clock, accent blue on the clock.
 - Headline: "Start your shift log"
 - Description: "Shift notes keep every shift informed about what happened, what is ongoing, and what needs attention next."
@@ -2438,6 +2562,7 @@ See Section 3.3 for full state definitions.
 ```
 
 **EMPTY**:
+
 - Shift summary stats show zeros.
 - Flagged section: "Nothing to hand off."
 - Pass-on notes section: "No notes this shift."
@@ -2462,15 +2587,15 @@ See Section 3.3 for full state definitions.
 
 Quick reference showing which transitions are possible between states:
 
-| From → To | Loading | Empty | Loaded | Error | Partial | Offline |
-|-----------|:-------:|:-----:|:------:|:-----:|:-------:|:-------:|
-| **Initial** | Yes | — | — | — | — | Yes* |
-| **Loading** | — | Yes | Yes | Yes | Yes | Yes |
-| **Empty** | Yes** | — | Yes** | — | — | Yes |
-| **Loaded** | Yes** | Yes*** | — | Yes | Yes | Yes |
-| **Error** | Yes (retry) | — | — | — | — | Yes |
-| **Partial** | Yes (retry) | — | Yes | Yes | — | Yes |
-| **Offline** | Yes (reconnect) | — | — | — | — | — |
+| From → To   |     Loading     |   Empty   | Loaded  | Error | Partial | Offline |
+| ----------- | :-------------: | :-------: | :-----: | :---: | :-----: | :-----: |
+| **Initial** |       Yes       |     —     |    —    |   —   |    —    |  Yes\*  |
+| **Loading** |        —        |    Yes    |   Yes   |  Yes  |   Yes   |   Yes   |
+| **Empty**   |     Yes\*\*     |     —     | Yes\*\* |   —   |    —    |   Yes   |
+| **Loaded**  |     Yes\*\*     | Yes\*\*\* |    —    |  Yes  |   Yes   |   Yes   |
+| **Error**   |   Yes (retry)   |     —     |    —    |   —   |    —    |   Yes   |
+| **Partial** |   Yes (retry)   |     —     |   Yes   |  Yes  |    —    |   Yes   |
+| **Offline** | Yes (reconnect) |     —     |    —    |   —   |    —    |    —    |
 
 `*` If offline detected before first load, go directly to offline state.
 `**` Reload triggered (refresh, navigation, or filter change).
@@ -2480,24 +2605,24 @@ Quick reference showing which transitions are possible between states:
 
 ## Appendix B: Animation Timing Reference
 
-| Animation | Duration | Easing | Delay |
-|-----------|----------|--------|-------|
-| Skeleton shimmer | 1500ms (loop) | ease-in-out | 0 |
-| Fade in (content) | 300ms | ease-out | 0 |
-| Fade in (sequential: illustration → text → button) | 400ms / 300ms / 300ms | ease-out | 0 / 200ms / 300ms |
-| Toast slide-in | 300ms | ease-out | 0 |
-| Toast slide-out | 200ms | ease-in | 0 (or auto-dismiss timer) |
-| Shake (error) | 400ms | ease-out | 0 |
-| Checkmark draw-in | 600ms | ease-out | 0 |
-| Panel slide (notification) | 250ms | ease-out | 0 |
-| Status badge color transition | 200ms | ease-in-out | 0 |
-| Offline banner slide | 300ms | ease-out | 0 |
-| Sidebar collapse/expand | 200ms | ease-in-out | 0 |
-| Command palette scale-in | 200ms | ease-out | 0 |
-| Card hover elevation | 150ms | ease | 0 |
-| Tab content crossfade | 200ms | ease-in-out | 0 |
-| Button disabled → enabled | 150ms | ease | 0 |
-| Progress bar | continuous | linear | 0 |
+| Animation                                          | Duration              | Easing      | Delay                     |
+| -------------------------------------------------- | --------------------- | ----------- | ------------------------- |
+| Skeleton shimmer                                   | 1500ms (loop)         | ease-in-out | 0                         |
+| Fade in (content)                                  | 300ms                 | ease-out    | 0                         |
+| Fade in (sequential: illustration → text → button) | 400ms / 300ms / 300ms | ease-out    | 0 / 200ms / 300ms         |
+| Toast slide-in                                     | 300ms                 | ease-out    | 0                         |
+| Toast slide-out                                    | 200ms                 | ease-in     | 0 (or auto-dismiss timer) |
+| Shake (error)                                      | 400ms                 | ease-out    | 0                         |
+| Checkmark draw-in                                  | 600ms                 | ease-out    | 0                         |
+| Panel slide (notification)                         | 250ms                 | ease-out    | 0                         |
+| Status badge color transition                      | 200ms                 | ease-in-out | 0                         |
+| Offline banner slide                               | 300ms                 | ease-out    | 0                         |
+| Sidebar collapse/expand                            | 200ms                 | ease-in-out | 0                         |
+| Command palette scale-in                           | 200ms                 | ease-out    | 0                         |
+| Card hover elevation                               | 150ms                 | ease        | 0                         |
+| Tab content crossfade                              | 200ms                 | ease-in-out | 0                         |
+| Button disabled → enabled                          | 150ms                 | ease        | 0                         |
+| Progress bar                                       | continuous            | linear      | 0                         |
 
 ---
 
@@ -2506,18 +2631,21 @@ Quick reference showing which transitions are possible between states:
 Every screen state implementation must satisfy:
 
 ### Empty State
+
 - [ ] Illustration has `role="img"` and descriptive `aria-label`
 - [ ] Headline is `<h2>` (page title is `<h1>`)
 - [ ] CTA button is keyboard focusable and has descriptive `aria-label`
 - [ ] Screen reader announces: page context + empty status + available action
 
 ### Loading State
+
 - [ ] Container has `aria-busy="true"`
 - [ ] Screen reader announces "Loading [page name]"
 - [ ] Skeleton elements have `aria-hidden="true"`
 - [ ] On load complete: `aria-busy` removed, content announced
 
 ### Error State
+
 - [ ] Error container has `role="alert"` and `aria-live="assertive"`
 - [ ] Error message is plain language (no codes)
 - [ ] Retry button has `aria-label="Retry loading [page name]"`
@@ -2525,17 +2653,20 @@ Every screen state implementation must satisfy:
 - [ ] Focus moves to error message or retry button
 
 ### Success State
+
 - [ ] Toast has `role="status"` and `aria-live="polite"`
 - [ ] Major success heading receives focus
 - [ ] Dismiss button has `aria-label="Dismiss notification"`
 - [ ] Auto-dismiss respects `prefers-reduced-motion`
 
 ### Partial State
+
 - [ ] Failed sections have `role="alert"` and `aria-live="polite"`
 - [ ] Each failed section has independent retry with descriptive `aria-label`
 - [ ] Screen reader announces count of failed vs. loaded sections
 
 ### Offline State
+
 - [ ] Banner has `role="alert"` and `aria-live="assertive"` (first appearance only)
 - [ ] Disabled actions have `aria-disabled="true"` with `aria-describedby` tooltip
 - [ ] Queued action count announced on change
@@ -2547,18 +2678,18 @@ Every screen state implementation must satisfy:
 
 When `prefers-reduced-motion: reduce` is active:
 
-| Standard Animation | Reduced Motion Alternative |
-|-------------------|---------------------------|
-| Skeleton shimmer (moving gradient) | Static `--bg-secondary` fill, no animation |
-| Fade in (content, sequential) | Instant appear, no fade |
-| Shake (error) | Red border flash (opacity 0.5 to 1.0, 200ms) |
-| Checkmark draw-in | Instant checkmark appear |
-| Toast slide-in/out | Instant appear/disappear |
-| Panel slide | Instant appear/disappear |
-| Status badge color transition | Instant color change |
-| Sidebar collapse/expand | Instant width change |
-| Card hover elevation | No elevation change, background color only |
-| Offline banner slide | Instant appear |
+| Standard Animation                 | Reduced Motion Alternative                   |
+| ---------------------------------- | -------------------------------------------- |
+| Skeleton shimmer (moving gradient) | Static `--bg-secondary` fill, no animation   |
+| Fade in (content, sequential)      | Instant appear, no fade                      |
+| Shake (error)                      | Red border flash (opacity 0.5 to 1.0, 200ms) |
+| Checkmark draw-in                  | Instant checkmark appear                     |
+| Toast slide-in/out                 | Instant appear/disappear                     |
+| Panel slide                        | Instant appear/disappear                     |
+| Status badge color transition      | Instant color change                         |
+| Sidebar collapse/expand            | Instant width change                         |
+| Card hover elevation               | No elevation change, background color only   |
+| Offline banner slide               | Instant appear                               |
 
 **Rule**: No animation exceeds 200ms in reduced motion mode. Most are replaced with instant state changes.
 
@@ -2574,23 +2705,27 @@ reference these patterns by name.
 ### E.1 Field-Level Validation States
 
 **Untouched (Default)**:
+
 - Border: `--border-subtle` (1px solid #E5E5EA).
 - Label: `--text-primary`, Headline weight (17px, 600).
 - No helper text visible unless field has permanent helper (e.g., character count).
 - Accessibility: `aria-invalid="false"` (implicit). `aria-required="true"` if required.
 
 **Focused**:
+
 - Border: `--border-focus` (2px solid #0071E3). Transition: 150ms ease.
 - Label: `--accent` color.
 - Cursor active in field.
 - Accessibility: field name announced, required status announced.
 
 **Valid (After Blur)**:
+
 - Border returns to `--border-subtle`.
 - Optional: subtle green checkmark (16px) at right edge of field for critical fields (email, password).
 - No additional helper text — absence of error IS the success signal.
 
 **Error (After Blur or Submit)**:
+
 ```
   Email *
   ┌──────────────────────────────────────┐
@@ -2598,6 +2733,7 @@ reference these patterns by name.
   └──────────────────────────────────────┘
   ✕ Enter a valid email address
 ```
+
 - Border: `--status-error` (2px solid #FF3B30). Transition: 150ms ease.
 - Error text: below field, `--status-error` color, Callout size (14px).
 - Error icon: `--status-error`, 14px, inline before error text.
@@ -2606,6 +2742,7 @@ reference these patterns by name.
   Screen reader announces: "[Field name], invalid. [Error message]."
 
 **Disabled**:
+
 - Background: `--bg-tertiary` (#E8E8ED).
 - Text: `--text-tertiary` (#AEAEB2).
 - Border: none.
@@ -2614,6 +2751,7 @@ reference these patterns by name.
 - Tooltip on hover (optional): explains why disabled (e.g., "This field is managed by your administrator").
 
 **Read-Only**:
+
 - Background: `--bg-secondary` (#F5F5F7).
 - Text: `--text-primary` (full opacity, readable).
 - Border: none.
@@ -2626,23 +2764,27 @@ reference these patterns by name.
 ### E.2 Field Type Specific States
 
 **Text Input**:
+
 - Character count (when limited): "42 / 4,000" — positioned at bottom-right of field.
 - At 90% of limit: count turns `--status-warning`.
 - At 100%: count turns `--status-error`. No more typing allowed. Announcement: "Character limit reached."
 
 **Dropdown / Select**:
+
 - Empty: placeholder text in `--text-tertiary`. "Select a category..."
 - Loading options: "Loading..." with inline spinner inside dropdown.
 - No matches (searchable dropdown): "No results for '[query]'. Try different keywords."
 - Error: same border treatment as text fields.
 
 **Date Picker**:
+
 - Empty: placeholder "Select a date" in `--text-tertiary`.
 - Invalid date range: "Select a date after [min date]." Red border.
 - Past date when future required: "Select a future date."
 - Calendar popover: current month visible, today highlighted with `--accent` dot.
 
 **File Upload**:
+
 ```
   ┌──────────────────────────────────────────────────┐
   │                                                    │
@@ -2652,6 +2794,7 @@ reference these patterns by name.
   │                                                    │
   └──────────────────────────────────────────────────┘
 ```
+
 - Default: dashed border, `--border-subtle`, 2px dashed.
 - Drag hover: border becomes `--accent`, background becomes `--accent-subtle`. "Drop to upload" text.
 - Uploading: progress bar per file. Filename + percentage. Cancel button per file.
@@ -2663,6 +2806,7 @@ reference these patterns by name.
   Progress: `role="progressbar"`, `aria-valuenow="64"`, `aria-valuemin="0"`, `aria-valuemax="100"`.
 
 **Toggle Switch**:
+
 - Off: track is `--bg-tertiary`. Thumb is white.
 - On: track is `--accent`. Thumb is white, shifted right.
 - Transition: 200ms ease.
@@ -2670,12 +2814,14 @@ reference these patterns by name.
 - Accessibility: `role="switch"`, `aria-checked="true/false"`.
 
 **Radio Group**:
+
 - Unselected: 20px circle, `--border-subtle` border, white fill.
 - Selected: 20px circle, `--accent` border, `--accent` inner dot (8px).
 - Disabled: reduced opacity (0.5).
 - Accessibility: `role="radiogroup"` on container, `role="radio"` on each option.
 
 **Checkbox**:
+
 - Unchecked: 18px square, `--border-subtle` border, white fill, 4px radius.
 - Checked: 18px square, `--accent` fill, white checkmark stroke.
 - Indeterminate (for "select all" with partial selection): `--accent` fill, white dash.
@@ -2683,6 +2829,7 @@ reference these patterns by name.
 - Accessibility: `role="checkbox"`, `aria-checked="true/false/mixed"`.
 
 **Rich Text Editor**:
+
 - Empty: "Start typing..." placeholder in body area.
 - Focused: toolbar becomes fully opaque (from 0.8 to 1.0). Border: `--border-focus`.
 - Character count in footer bar.
@@ -2695,6 +2842,7 @@ reference these patterns by name.
 ### E.3 Form-Level Validation Patterns
 
 **Submit Attempt with Errors**:
+
 1. Button shows brief loading (200ms), then returns to default state.
 2. Error summary banner appears at top of form:
    ```
@@ -2713,12 +2861,14 @@ reference these patterns by name.
    Announcement: "Form has 3 errors. [First error]. [Error field] is focused."
 
 **Progressive Validation**:
+
 - Required fields: validated on blur (when user leaves the field).
 - Format fields (email, phone): validated on blur with debounce (500ms after typing stops).
 - Cross-field validation (password match, date range): validated on blur of second field.
 - Server-side validation (duplicate check): validated on blur with loading indicator in field.
 
 **Unsaved Changes Warning**:
+
 - If user navigates away from a form with unsaved changes:
   ```
   ┌──────────────────────────────────────────────────┐
@@ -2741,10 +2891,12 @@ reference these patterns by name.
 Used by: Book Amenity (3 steps), Create User (if wizard mode), Emergency Broadcast (2 steps).
 
 **Step Indicator**:
+
 ```
   ● Select Amenity ─── ○ Choose Time ─── ○ Confirm
   (completed: accent)  (current: accent)  (pending: tertiary)
 ```
+
 - Completed steps: `--accent` filled circle + `--accent` label.
 - Current step: `--accent` outlined circle + `--text-primary` label (bold).
 - Pending steps: `--text-tertiary` outlined circle + `--text-tertiary` label.
@@ -2753,11 +2905,13 @@ Used by: Book Amenity (3 steps), Create User (if wizard mode), Emergency Broadca
   Screen reader: "Step 2 of 3: Choose Time."
 
 **Step Navigation**:
+
 - "Back" button (left, text link): returns to previous step. Data preserved.
 - "Continue" button (right, primary): advances to next step. Validates current step first.
 - "Cancel" button (text link, `--text-secondary`): triggers unsaved changes warning if data entered.
 
 **Step Loading (Server Validation Between Steps)**:
+
 - "Continue" button shows spinner + "Checking...".
 - Current step content slightly dims (opacity 0.8).
 - Error: returns to current step with error message. Content restores full opacity.
@@ -2769,52 +2923,53 @@ Used by: Book Amenity (3 steps), Create User (if wizard mode), Emergency Broadca
 Every empty state has a unique illustration. This catalog ensures no duplicates and maintains
 visual consistency across the platform.
 
-| Screen | Illustration Subject | Accent Detail |
-|--------|---------------------|---------------|
-| Event Feed | Clipboard with checkmark | Blue checkmark |
-| Package Feed | Mailbox with open door | Blue package peeking out |
-| Visitor Log | Building entrance with approaching person | Blue door |
-| Incident Reports | Shield with checkmark | Blue checkmark |
-| Key/FOB Log | Key ring with two keys | Blue key |
-| Pass-On Log | Notepad with pen | Blue pen tip |
-| Cleaning Log | Spray bottle | Blue spray mist |
-| Notes | Sticky note | Blue corner fold |
-| Parking Violations | Car with parking sign | Blue P sign |
-| Maintenance Request List | Crossed wrench and screwdriver | Blue bolt |
-| Amenity List View | Calendar with clock | Blue clock hands |
-| Announcement List | Megaphone | Blue sound waves |
-| Unit List | Apartment building with doors | Blue door 101 |
-| User List | Group of 3 silhouettes | Blue ID badge |
-| Shift Notes | Clipboard with clock | Blue clock |
-| Search No Results | Magnifying glass over page | Blue lens |
-| Notification Panel | (text only, no illustration) | — |
-| Forgot Password Success | Envelope with check | Blue check |
-| Account Locked | Lock | Blue keyhole |
-| Unit — Residents Tab | Single person outline | Blue name badge |
-| Unit — Packages Tab | Small box | Blue ribbon |
-| Unit — Maintenance Tab | Wrench | Blue handle |
-| Unit — Access Tab | FOB card | Blue indicator light |
-| Unit — Documents Tab | Folder with papers | Blue folder tab |
-| Unit — Instructions Tab | Speech bubble with info "i" | Blue info icon |
-| Resident — Emergency Contacts | Phone with heart | Blue heart |
-| Resident — Vehicles | Car outline | Blue windshield |
-| Resident — Pets | Paw print | Blue pad |
-| Resident — Activity | Timeline with dots | Blue recent dot |
-| User — Activity Log | Clock with checkmarks | Blue recent check |
-| User — Sessions | Computer screen | Blue power dot |
-| Resident Portal — My Packages | Mailbox (closed) | Blue flag up |
-| Resident Portal — My Requests | Wrench with speech bubble | Blue bubble |
-| Resident Portal — My Bookings | Calendar with star | Blue star |
-| Resident Portal — Community | People with speech bubbles | Blue bubbles |
-| Calendar View | (no illustration — empty calendar grid itself) | — |
-| Handoff | Relay baton being passed | Blue baton |
-| Governance — Pending Actions | Checkmark list | Blue top checkmark |
-| Governance — Upcoming Meetings | Table with chairs | Blue chair |
-| Governance — Recent Reports | Document stack | Blue top document |
-| System Dashboard — Properties | Building outline | Blue roof |
-| System Dashboard — Activity | Activity pulse line | Blue pulse |
+| Screen                         | Illustration Subject                           | Accent Detail            |
+| ------------------------------ | ---------------------------------------------- | ------------------------ |
+| Event Feed                     | Clipboard with checkmark                       | Blue checkmark           |
+| Package Feed                   | Mailbox with open door                         | Blue package peeking out |
+| Visitor Log                    | Building entrance with approaching person      | Blue door                |
+| Incident Reports               | Shield with checkmark                          | Blue checkmark           |
+| Key/FOB Log                    | Key ring with two keys                         | Blue key                 |
+| Pass-On Log                    | Notepad with pen                               | Blue pen tip             |
+| Cleaning Log                   | Spray bottle                                   | Blue spray mist          |
+| Notes                          | Sticky note                                    | Blue corner fold         |
+| Parking Violations             | Car with parking sign                          | Blue P sign              |
+| Maintenance Request List       | Crossed wrench and screwdriver                 | Blue bolt                |
+| Amenity List View              | Calendar with clock                            | Blue clock hands         |
+| Announcement List              | Megaphone                                      | Blue sound waves         |
+| Unit List                      | Apartment building with doors                  | Blue door 101            |
+| User List                      | Group of 3 silhouettes                         | Blue ID badge            |
+| Shift Notes                    | Clipboard with clock                           | Blue clock               |
+| Search No Results              | Magnifying glass over page                     | Blue lens                |
+| Notification Panel             | (text only, no illustration)                   | —                        |
+| Forgot Password Success        | Envelope with check                            | Blue check               |
+| Account Locked                 | Lock                                           | Blue keyhole             |
+| Unit — Residents Tab           | Single person outline                          | Blue name badge          |
+| Unit — Packages Tab            | Small box                                      | Blue ribbon              |
+| Unit — Maintenance Tab         | Wrench                                         | Blue handle              |
+| Unit — Access Tab              | FOB card                                       | Blue indicator light     |
+| Unit — Documents Tab           | Folder with papers                             | Blue folder tab          |
+| Unit — Instructions Tab        | Speech bubble with info "i"                    | Blue info icon           |
+| Resident — Emergency Contacts  | Phone with heart                               | Blue heart               |
+| Resident — Vehicles            | Car outline                                    | Blue windshield          |
+| Resident — Pets                | Paw print                                      | Blue pad                 |
+| Resident — Activity            | Timeline with dots                             | Blue recent dot          |
+| User — Activity Log            | Clock with checkmarks                          | Blue recent check        |
+| User — Sessions                | Computer screen                                | Blue power dot           |
+| Resident Portal — My Packages  | Mailbox (closed)                               | Blue flag up             |
+| Resident Portal — My Requests  | Wrench with speech bubble                      | Blue bubble              |
+| Resident Portal — My Bookings  | Calendar with star                             | Blue star                |
+| Resident Portal — Community    | People with speech bubbles                     | Blue bubbles             |
+| Calendar View                  | (no illustration — empty calendar grid itself) | —                        |
+| Handoff                        | Relay baton being passed                       | Blue baton               |
+| Governance — Pending Actions   | Checkmark list                                 | Blue top checkmark       |
+| Governance — Upcoming Meetings | Table with chairs                              | Blue chair               |
+| Governance — Recent Reports    | Document stack                                 | Blue top document        |
+| System Dashboard — Properties  | Building outline                               | Blue roof                |
+| System Dashboard — Activity    | Activity pulse line                            | Blue pulse               |
 
 **Illustration Production Rules**:
+
 - Vector SVG only. No raster images.
 - Artboard: 120x120px.
 - Stroke only — no fills except the single accent detail.
@@ -2834,51 +2989,51 @@ Defines which actions work offline and which require connectivity, organized by 
 
 ### Read Operations (Cached Data)
 
-| Module | Offline Readable | Cache Duration | Stale Warning |
-|--------|:----------------:|:--------------:|:-------------:|
-| Dashboard widgets | Yes | 15 min | After 15 min |
-| Event feed | Yes | 30 min | After 15 min |
-| Package feed | Yes | 30 min | After 15 min |
-| Visitor log | Yes | 15 min | After 5 min |
-| Incident reports | Yes | 60 min | After 30 min |
-| Key/FOB log | Yes | 60 min | After 30 min |
-| Maintenance requests | Yes | 30 min | After 15 min |
-| Amenity calendar | Yes | 30 min | After 15 min |
-| Announcements | Yes | 60 min | After 30 min |
-| Unit list/detail | Yes | 60 min | After 30 min |
-| User list/detail | Yes | 60 min | After 30 min |
-| Shift notes | Yes | 15 min | After 5 min |
-| Notification panel | Yes | 15 min | After 5 min |
-| Settings | Yes | 24 hr | After 1 hr |
-| Search | Cached only | 30 min | Always shown |
+| Module               | Offline Readable | Cache Duration | Stale Warning |
+| -------------------- | :--------------: | :------------: | :-----------: |
+| Dashboard widgets    |       Yes        |     15 min     | After 15 min  |
+| Event feed           |       Yes        |     30 min     | After 15 min  |
+| Package feed         |       Yes        |     30 min     | After 15 min  |
+| Visitor log          |       Yes        |     15 min     |  After 5 min  |
+| Incident reports     |       Yes        |     60 min     | After 30 min  |
+| Key/FOB log          |       Yes        |     60 min     | After 30 min  |
+| Maintenance requests |       Yes        |     30 min     | After 15 min  |
+| Amenity calendar     |       Yes        |     30 min     | After 15 min  |
+| Announcements        |       Yes        |     60 min     | After 30 min  |
+| Unit list/detail     |       Yes        |     60 min     | After 30 min  |
+| User list/detail     |       Yes        |     60 min     | After 30 min  |
+| Shift notes          |       Yes        |     15 min     |  After 5 min  |
+| Notification panel   |       Yes        |     15 min     |  After 5 min  |
+| Settings             |       Yes        |     24 hr      |  After 1 hr   |
+| Search               |   Cached only    |     30 min     | Always shown  |
 
 ### Write Operations (Queueable vs. Blocked)
 
-| Action | Offline Queue | Reason if Blocked |
-|--------|:------------:|-------------------|
-| Create event | Yes | — |
-| Log package | Yes | — |
-| Release package | No | Requires server-side confirmation and signature verification |
-| Log visitor | Yes | — |
-| Check out visitor | Yes | — |
-| File incident report | Yes | (photos deferred) |
-| Sign out key/FOB | Yes | (serial validation deferred) |
-| Return key/FOB | Yes | — |
-| Add pass-on note | Yes | — |
-| Log cleaning | Yes | — |
-| Add note | Yes | — |
-| Report parking violation | Yes | — |
-| Create maintenance request | Yes | (photos deferred) |
-| Update maintenance status | Yes | — |
-| Book amenity | Yes | (availability unconfirmed) |
-| Cancel amenity booking | Yes | — |
-| Create announcement | No | Requires multi-channel delivery infrastructure |
-| Send emergency broadcast | No | Critical safety — must confirm delivery |
-| Create user | No | Requires email validation and welcome email |
-| Modify user role | No | Security-critical — requires server authorization |
-| Update settings | No | Affects all users — must propagate immediately |
-| Add shift note | Yes | — |
-| Start/end shift | Yes | — |
+| Action                     | Offline Queue | Reason if Blocked                                            |
+| -------------------------- | :-----------: | ------------------------------------------------------------ |
+| Create event               |      Yes      | —                                                            |
+| Log package                |      Yes      | —                                                            |
+| Release package            |      No       | Requires server-side confirmation and signature verification |
+| Log visitor                |      Yes      | —                                                            |
+| Check out visitor          |      Yes      | —                                                            |
+| File incident report       |      Yes      | (photos deferred)                                            |
+| Sign out key/FOB           |      Yes      | (serial validation deferred)                                 |
+| Return key/FOB             |      Yes      | —                                                            |
+| Add pass-on note           |      Yes      | —                                                            |
+| Log cleaning               |      Yes      | —                                                            |
+| Add note                   |      Yes      | —                                                            |
+| Report parking violation   |      Yes      | —                                                            |
+| Create maintenance request |      Yes      | (photos deferred)                                            |
+| Update maintenance status  |      Yes      | —                                                            |
+| Book amenity               |      Yes      | (availability unconfirmed)                                   |
+| Cancel amenity booking     |      Yes      | —                                                            |
+| Create announcement        |      No       | Requires multi-channel delivery infrastructure               |
+| Send emergency broadcast   |      No       | Critical safety — must confirm delivery                      |
+| Create user                |      No       | Requires email validation and welcome email                  |
+| Modify user role           |      No       | Security-critical — requires server authorization            |
+| Update settings            |      No       | Affects all users — must propagate immediately               |
+| Add shift note             |      Yes      | —                                                            |
+| Start/end shift            |      Yes      | —                                                            |
 
 ### Queue Behavior
 
@@ -2896,41 +3051,41 @@ Complete list of screen reader announcements for every state transition, organiz
 
 ### Page Load Announcements
 
-| Page | Announcement |
-|------|-------------|
-| Login | "Sign in to Concierge" |
-| 2FA | "Verify your identity. Enter 6-digit code." |
-| Forgot Password | "Reset your password. Enter your email." |
-| Reset Password | "Create a new password." |
-| Account Locked | "Account temporarily locked. Try again in [time]." |
-| Dashboard | "[Role] dashboard loaded. [X] items need attention." |
-| Event Feed | "Event feed. [X] events." / "Event feed. No events recorded." |
-| Package Feed | "Package feed. [X] packages." / "Package feed. No packages recorded." |
-| Any Create Form | "[Create/Log] [item type] form. [X] required fields." |
-| Any Detail Page | "[Item type] detail. [Title/Reference]. Status: [status]." |
-| Any List Page | "[Item type] list. [X] items." / "[Item type] list. No items." |
-| Settings | "Settings. [Tab name] tab active." |
-| Search Results | "Search results for '[query]'. [X] results in [Y] categories." |
-| Notification Panel | "Notifications. [X] unread." |
+| Page               | Announcement                                                          |
+| ------------------ | --------------------------------------------------------------------- |
+| Login              | "Sign in to Concierge"                                                |
+| 2FA                | "Verify your identity. Enter 6-digit code."                           |
+| Forgot Password    | "Reset your password. Enter your email."                              |
+| Reset Password     | "Create a new password."                                              |
+| Account Locked     | "Account temporarily locked. Try again in [time]."                    |
+| Dashboard          | "[Role] dashboard loaded. [X] items need attention."                  |
+| Event Feed         | "Event feed. [X] events." / "Event feed. No events recorded."         |
+| Package Feed       | "Package feed. [X] packages." / "Package feed. No packages recorded." |
+| Any Create Form    | "[Create/Log] [item type] form. [X] required fields."                 |
+| Any Detail Page    | "[Item type] detail. [Title/Reference]. Status: [status]."            |
+| Any List Page      | "[Item type] list. [X] items." / "[Item type] list. No items."        |
+| Settings           | "Settings. [Tab name] tab active."                                    |
+| Search Results     | "Search results for '[query]'. [X] results in [Y] categories."        |
+| Notification Panel | "Notifications. [X] unread."                                          |
 
 ### State Transition Announcements
 
-| Transition | Announcement |
-|------------|-------------|
-| Loading started | "Loading [page name], please wait." |
-| Loading complete | "[Page name] loaded. [Context-specific summary]." |
-| Error occurred | "Error. [Plain language description]. [Available action]." |
-| Toast success | "[Action] successful. [Summary]." |
-| Major success | "[Action] complete. [Summary]. [Available next actions]." |
-| Partial load | "[Page name] loaded. [X] of [Y] sections unavailable." |
-| Gone offline | "You are offline. Showing cached data." |
-| Back online | "Back online. Syncing [X] queued actions." |
-| Action queued | "[Action] queued. Will sync when you reconnect." |
-| Queue synced | "All queued actions synced successfully." |
-| Queue item failed | "Queued action failed: [description]. Retry available." |
-| Form validation error | "[X] errors found. [First error]. [Field name] is focused." |
-| Field validation error | "[Field name], invalid. [Error message]." |
-| Unsaved changes | "Warning: unsaved changes. Discard or keep editing?" |
+| Transition             | Announcement                                                |
+| ---------------------- | ----------------------------------------------------------- |
+| Loading started        | "Loading [page name], please wait."                         |
+| Loading complete       | "[Page name] loaded. [Context-specific summary]."           |
+| Error occurred         | "Error. [Plain language description]. [Available action]."  |
+| Toast success          | "[Action] successful. [Summary]."                           |
+| Major success          | "[Action] complete. [Summary]. [Available next actions]."   |
+| Partial load           | "[Page name] loaded. [X] of [Y] sections unavailable."      |
+| Gone offline           | "You are offline. Showing cached data."                     |
+| Back online            | "Back online. Syncing [X] queued actions."                  |
+| Action queued          | "[Action] queued. Will sync when you reconnect."            |
+| Queue synced           | "All queued actions synced successfully."                   |
+| Queue item failed      | "Queued action failed: [description]. Retry available."     |
+| Form validation error  | "[X] errors found. [First error]. [Field name] is focused." |
+| Field validation error | "[Field name], invalid. [Error message]."                   |
+| Unsaved changes        | "Warning: unsaved changes. Discard or keep editing?"        |
 
 ---
 
@@ -2965,12 +3120,12 @@ When multiple toasts fire simultaneously or in rapid succession:
 
 ### Priority Levels
 
-| Priority | Left Accent Color | Auto-Dismiss | Sound |
-|----------|-------------------|:------------:|:-----:|
-| Error | `--status-error` | No (persistent until dismissed) | Error chime (optional, user preference) |
-| Warning | `--status-warning` | 5 seconds | None |
-| Success | `--status-success` | 3 seconds | None |
-| Info | `--accent` | 3 seconds | None |
+| Priority | Left Accent Color  |          Auto-Dismiss           |                  Sound                  |
+| -------- | ------------------ | :-----------------------------: | :-------------------------------------: |
+| Error    | `--status-error`   | No (persistent until dismissed) | Error chime (optional, user preference) |
+| Warning  | `--status-warning` |            5 seconds            |                  None                   |
+| Success  | `--status-success` |            3 seconds            |                  None                   |
+| Info     | `--accent`         |            3 seconds            |                  None                   |
 
 - Error toasts always appear on top of the stack, regardless of timing.
 - Error toasts push other toasts down.
@@ -3074,8 +3229,1131 @@ Used for: deleting users, sending emergency broadcasts, bulk operations.
 
 ---
 
-*Document version: 1.0*
-*Last updated: 2026-03-16*
-*Total screens covered: 65+*
-*Total states defined: 390+*
-*Total appendices: 10*
+## 17. Marketing Pages
+
+---
+
+### 17.1 Landing Page
+
+**Layout**: Full-width sections stacked vertically — Hero, Features Grid, Testimonials, Pricing Preview, CTA. No sidebar. Top nav is transparent over hero, switching to white on scroll. Max content width: 1200px centered.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  [Logo]                    Features  Pricing  Login  [CTA]   │
+│  (transparent nav, becomes white + shadow on scroll)         │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│         Building management,                                 │
+│         reimagined.                                          │
+│         (Title 1, 56px, 700, --text-primary)                 │
+│                                                              │
+│         Everything your front desk, security team,           │
+│         and residents need — in one place.                   │
+│         (Body, 20px, 400, --text-secondary)                  │
+│                                                              │
+│         [ Start Free Trial ]    [ Book a Demo ]              │
+│         (--accent, 52px h)      (outline, 52px h)            │
+│                                                              │
+│         ┌────────────────────────────────────────┐           │
+│         │       Product screenshot / hero         │           │
+│         │       image (lazy-loaded, WebP)         │           │
+│         └────────────────────────────────────────┘           │
+│                                                              │
+├──────────────────────────────────────────────────────────────┤
+│  FEATURES GRID (3 columns, 24px gap)                         │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                   │
+│  │ Icon     │  │ Icon     │  │ Icon     │                   │
+│  │ Title    │  │ Title    │  │ Title    │                   │
+│  │ Desc     │  │ Desc     │  │ Desc     │                   │
+│  └──────────┘  └──────────┘  └──────────┘                   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                   │
+│  │ Icon     │  │ Icon     │  │ Icon     │                   │
+│  │ Title    │  │ Title    │  │ Title    │                   │
+│  │ Desc     │  │ Desc     │  │ Desc     │                   │
+│  └──────────┘  └──────────┘  └──────────┘                   │
+├──────────────────────────────────────────────────────────────┤
+│  TESTIMONIALS (carousel, 3 cards visible)                    │
+│  ◀  "Quote text..." — Name, Property  │  ...  │  ...   ▶   │
+├──────────────────────────────────────────────────────────────┤
+│  FINAL CTA                                                   │
+│         Ready to modernize your building?                    │
+│         [ Start Free Trial ]                                 │
+├──────────────────────────────────────────────────────────────┤
+│  Footer: Links │ Legal │ Social │ © 2026                     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**DEFAULT**: All sections visible. Hero image lazy-loads with a blurred placeholder (LQIP). Testimonial carousel auto-advances every 6s (paused on hover or focus). Nav CTA uses `--accent` background.
+
+**MOBILE RESPONSIVE** (< 768px):
+
+- Nav collapses to hamburger menu. CTA button remains visible outside hamburger.
+- Hero headline drops to 36px. Subheadline to 16px.
+- Features grid: 1 column. Each card is full-width stacked.
+- Testimonials: 1 card visible, swipe-enabled, dot indicators below.
+- Pricing preview: cards stack vertically. Toggle remains above cards.
+- Accessibility: hamburger button has `aria-expanded`, `aria-controls="mobile-nav"`. Carousel has `role="region"`, `aria-label="Customer testimonials"`, `aria-roledescription="carousel"`.
+
+**REDUCED MOTION** (`prefers-reduced-motion: reduce`):
+
+- Testimonial auto-advance disabled. Manual navigation only.
+- Hero image loads without blur-up transition — instant swap.
+- Scroll animations (feature card fade-in on scroll) disabled — all cards visible immediately.
+- Nav background change on scroll is instant (no transition).
+
+**i18n (fr-CA)**:
+
+- All static strings loaded from locale file. Hero headline, subheadline, CTAs, feature titles/descriptions, footer links.
+- `lang="fr-CA"` on `<html>`. Font: same family, no font swap needed.
+- Button text may be longer (French is ~20% longer) — buttons use `min-width` not fixed `width`.
+- Testimonials load locale-appropriate quotes. Fallback: English quotes with "(Translated)" badge.
+- Date formats: `DD MMMM YYYY`. Currency: `$X,XX` with space before dollar sign.
+- Accessibility: `aria-label` values localized. Screen reader announces language context.
+
+---
+
+### 17.2 Pricing Page
+
+**Layout**: Page header, Monthly/Annual toggle, 3-tier comparison cards (Starter / Professional / Enterprise), feature checklist below.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Simple, transparent pricing                                 │
+│  (Title 2, 32px, 600, --text-primary, centered)              │
+│                                                              │
+│          [ Monthly ]  ●───○  [ Annual — Save 20% ]           │
+│          (toggle, --accent active side)                      │
+│                                                              │
+│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐ │
+│  │   STARTER      │  │  PROFESSIONAL  │  │   ENTERPRISE   │ │
+│  │                │  │  ★ Most Popular│  │                │ │
+│  │   $X/unit/mo   │  │  $X/unit/mo    │  │  Custom        │ │
+│  │                │  │                │  │                │ │
+│  │  ✓ Feature A   │  │  ✓ Feature A   │  │  ✓ Everything  │ │
+│  │  ✓ Feature B   │  │  ✓ Feature B   │  │  ✓ Dedicated   │ │
+│  │  ✕ Feature C   │  │  ✓ Feature C   │  │    support     │ │
+│  │  ✕ Feature D   │  │  ✓ Feature D   │  │  ✓ Custom SLA  │ │
+│  │                │  │                │  │                │ │
+│  │ [Start Trial]  │  │ [Start Trial]  │  │ [Contact Us]   │ │
+│  └────────────────┘  └────────────────┘  └────────────────┘ │
+│                                                              │
+│  FEATURE COMPARISON TABLE                                    │
+│  ┌──────────────┬──────┬──────┬──────┐                      │
+│  │ Feature      │Start │ Pro  │ Ent  │                      │
+│  ├──────────────┼──────┼──────┼──────┤                      │
+│  │ Units        │ 100  │ 500  │  ∞   │                      │
+│  │ Storage      │ 5GB  │ 50GB │  ∞   │                      │
+│  │ API Access   │  ✕   │  ✓   │  ✓   │                      │
+│  └──────────────┴──────┴──────┴──────┘                      │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**DEFAULT**: Annual toggle selected by default (shows savings). Professional card has `--accent` top border (4px) and "Most Popular" badge. Enterprise shows "Contact Us" instead of price.
+
+**MOBILE RESPONSIVE** (< 768px):
+
+- Cards stack vertically: Professional first (most popular), then Starter, then Enterprise.
+- Feature comparison table becomes a card-per-plan layout — each plan's features listed as a checklist card.
+- Toggle remains sticky at top of pricing section.
+
+**REDUCED MOTION**: Toggle switch snaps instantly (no slide animation). Card hover elevation change is instant.
+
+**i18n (fr-CA)**: Prices formatted as `X $/unit/mois`. Feature labels and plan names from locale file. "Most Popular" becomes "Le plus populaire". CTA labels localized.
+
+**Accessibility**: Toggle has `role="switch"`, `aria-checked`, `aria-label="Billing period. Currently [monthly/annual]."`. Plan cards use `role="region"`, `aria-labelledby` linking to plan name heading. Included features: `aria-label="Included"`. Excluded features: `aria-label="Not included"`. Feature comparison table has proper `<th>` headers with `scope="col"`.
+
+---
+
+### 17.3 Features Page
+
+**Layout**: Tab bar showing 5 role personas (Concierge, Security, Manager, Resident, Board). Each tab reveals a role-specific feature showcase with screenshots and descriptions.
+
+**DEFAULT**: First tab (Concierge) active. Each tab panel shows: hero screenshot, 4-6 feature cards with icons, descriptions, and mini-screenshots. Tab bar is sticky below the nav on scroll.
+
+**MOBILE RESPONSIVE** (< 768px):
+
+- Tab bar becomes a horizontal scroll with pill buttons. Active pill has `--accent` background.
+- Feature cards stack in a single column.
+
+**REDUCED MOTION**: Tab content swap is instant (no crossfade). Screenshot carousels disabled.
+
+**i18n (fr-CA)**: Tab labels, feature titles, descriptions from locale file. Screenshots can optionally be locale-specific (French UI screenshots if available; English fallback acceptable).
+
+**Accessibility**: Tab bar uses `role="tablist"`. Each tab: `role="tab"`, `aria-selected`, `aria-controls`. Tab panels: `role="tabpanel"`, `aria-labelledby`. Arrow keys navigate between tabs. Tab content announced on selection change via `aria-live="polite"` region.
+
+---
+
+## 18. Login & Property Routing
+
+---
+
+### 18.1 Email-First Login
+
+**Layout**: Centered card (440px wide, vertically centered) on a white page. Property logo above the card (if arriving via vanity URL). Progressive steps within the same card — no page reload between steps.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                                                              │
+│                    ┌──────────────────┐                      │
+│                    │  [Concierge Logo]│                      │
+│                    └──────────────────┘                      │
+│                                                              │
+│              ┌────────────────────────────┐                  │
+│              │  Sign in                   │                  │
+│              │                            │                  │
+│              │  Email address             │                  │
+│              │  ┌──────────────────────┐  │                  │
+│              │  │                      │  │                  │
+│              │  └──────────────────────┘  │                  │
+│              │                            │                  │
+│              │  [ Continue ]              │                  │
+│              │  (--accent, full width)    │                  │
+│              │                            │                  │
+│              │  Don't have an account?    │                  │
+│              │  Contact your property     │                  │
+│              │  manager.                  │                  │
+│              └────────────────────────────┘                  │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Step 1 — Email Entry**:
+
+- **EMPTY**: Email field focused on page load. "Continue" button disabled until valid email format entered.
+- **LOADING**: "Continue" button shows spinner + "Checking...". Email field becomes read-only.
+- **ERROR (Invalid Email)**: Inline error below field: "Enter a valid email address." Field border: `--status-error`. Shake animation (400ms).
+- **ERROR (No Account)**: "We could not find an account with this email. Contact your property manager to get set up."
+- **SUCCESS**: Transitions to Step 2 (property picker or password, depending on account).
+
+**Step 2 — Property Picker** (multi-property users only):
+
+```
+┌────────────────────────────────┐
+│  Select a property             │
+│  jane@email.com                │
+│  (--text-secondary, 14px)      │
+│                                │
+│  ┌──────────────────────────┐  │
+│  │ 🏢 Waterfront Towers    │  │
+│  │    123 Lakeshore Blvd    │  │
+│  ├──────────────────────────┤  │
+│  │ 🏢 Parkview Condos      │  │
+│  │    456 Queen St W        │  │
+│  ├──────────────────────────┤  │
+│  │ 🏢 Riverside Place      │  │
+│  │    789 King St E         │  │
+│  └──────────────────────────┘  │
+│                                │
+│  ◀ Use a different email       │
+└────────────────────────────────┘
+```
+
+- Each property is a clickable card. Hover: `--bg-secondary`. Selected: `--accent` left border.
+- Selecting a property transitions to Step 3 (password).
+- Accessibility: property list uses `role="listbox"`, each property `role="option"`. Arrow keys navigate. Enter selects.
+
+**Step 3 — Password**:
+
+- **EMPTY**: Password field focused. "Sign In" disabled until password entered. "Forgot password?" link below.
+- **LOADING**: "Sign In" shows spinner. Fields read-only.
+- **ERROR (Wrong Password)**: "Incorrect password. Try again or reset your password." Attempt counter shown after 3 failures: "2 attempts remaining before account lock."
+- **ERROR (Account Locked)**: Card content replaced with lock icon. "Account locked. Too many failed attempts. Check your email for unlock instructions or contact your property manager." No retry button — must use email link. Accessibility: `role="alert"`, message announced immediately.
+- **SUCCESS**: Transitions to Step 4 (2FA) or directly to dashboard.
+
+**Step 4 — Two-Factor Authentication**:
+
+```
+┌────────────────────────────────┐
+│  Two-factor authentication     │
+│                                │
+│  Enter the 6-digit code from   │
+│  your authenticator app.       │
+│                                │
+│  ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐│
+│  │  │ │  │ │  │ │  │ │  │ │  ││
+│  └──┘ └──┘ └──┘ └──┘ └──┘ └──┘│
+│  (6 individual digit inputs)   │
+│                                │
+│  [ Verify ]                    │
+│                                │
+│  Lost access? Use a backup     │
+│  code instead.                 │
+└────────────────────────────────┘
+```
+
+- **EMPTY**: First digit input focused. Digits auto-advance on entry. Paste support for all 6 digits.
+- **LOADING**: "Verify" shows spinner. Inputs become read-only.
+- **ERROR (Invalid Code)**: Inputs shake (400ms). Clear all fields. Re-focus first input. "Invalid code. Try again." shown below inputs in `--status-error`.
+- **ERROR (Expired Session)**: "Your session has expired. Please sign in again." CTA: "Start Over". Redirects to Step 1.
+- **SUCCESS**: Redirect to dashboard with fade transition.
+- Accessibility: digit group has `role="group"`, `aria-label="6-digit verification code"`. Each input: `aria-label="Digit [N] of 6"`. `inputmode="numeric"`, `autocomplete="one-time-code"`.
+
+**OFFLINE**: "Sign in requires an internet connection." All fields disabled. Retry checks connectivity every 10s. Banner at top: `--status-warning` background.
+
+---
+
+### 18.2 Property Code Entry
+
+**Layout**: Centered card. Used when a user arrives at the generic login page without a vanity URL and does not know their email. 6-character alphanumeric code input.
+
+```
+┌────────────────────────────────┐
+│  Enter your property code      │
+│                                │
+│  Your property manager         │
+│  provided a 6-character code.  │
+│                                │
+│  ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐│
+│  │  │ │  │ │  │ │  │ │  │ │  ││
+│  └──┘ └──┘ └──┘ └──┘ └──┘ └──┘│
+│  (uppercase, alphanumeric)     │
+│                                │
+│  [ Continue ]                  │
+│                                │
+│  Don't have a code?            │
+│  Sign in with email instead.   │
+└────────────────────────────────┘
+```
+
+- **EMPTY**: First character input focused. Auto-uppercase. Auto-advance on entry.
+- **LOADING**: "Continue" shows spinner. Inputs read-only.
+- **ERROR (Invalid Code)**: "Property code not found. Check the code and try again." Inputs shake, clear, re-focus first.
+- **SUCCESS**: Redirects to vanity login page for that property (logo, colors applied).
+- **OFFLINE**: Same as 18.1 offline state.
+- Accessibility: input group `role="group"`, `aria-label="6-character property code"`. Each input: `aria-label="Character [N] of 6"`. `autocomplete="off"`.
+
+---
+
+### 18.3 Vanity URL Login
+
+**Layout**: Same centered card as 18.1, but with property branding: property logo replaces Concierge logo, optional background color or image behind the card (set by property admin).
+
+**DEFAULT**: Property name shown as heading. "Powered by Concierge" small text at card footer. Login flow is identical to 18.1 Steps 1-4 but skips property picker (property already determined by URL).
+
+**ERROR (Invalid Vanity URL)**: If `propertyname.concierge.app` does not resolve to a property: "This property page does not exist. Check the URL or sign in at the main page." CTA: "Go to Concierge Login". Concierge logo shown (not property logo).
+
+**ERROR (Property Deactivated)**: "This property's account is no longer active. Contact your property manager." No login form shown. Concierge logo. `--status-warning` banner.
+
+**Accessibility**: Property logo has `alt="[Property Name] logo"`. If custom background color is used, contrast ratio of card text against background is enforced server-side (minimum 4.5:1).
+
+---
+
+## 19. Onboarding Wizard
+
+---
+
+### 19.1 Horizontal Stepper
+
+**Layout**: Full-page wizard. Top section: 8-step horizontal stepper. Below: step content area. Bottom: navigation buttons (Back / Continue / Skip).
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Set up your property                                        │
+│  Step 3 of 8: Add Units                                      │
+│                                                              │
+│  ● ─── ● ─── ◉ ─── ○ ─── ○ ─── ○ ─── ○ ─── ○               │
+│  Prop   Roles  Units  Resid  Amenity Access  Comms  Go-Live  │
+│  (done) (done) (curr) (pend) (pend)  (pend)  (pend) (pend)  │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │                                                      │    │
+│  │          [ Step Content Area ]                       │    │
+│  │          (varies per step — see 19.2-19.5)           │    │
+│  │                                                      │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                                                              │
+│  [ ◀ Back ]                  [ Skip ]    [ Continue ▶ ]      │
+│  (text link)                (secondary)  (--accent, primary) │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Step States**:
+
+| State            | Visual       | Stepper Icon                  | Label Style                                  |
+| ---------------- | ------------ | ----------------------------- | -------------------------------------------- |
+| Complete         | Green check  | `●` filled `--status-success` | `--text-primary`, 500 weight                 |
+| In Progress      | Accent ring  | `◉` ring `--accent`           | `--text-primary`, 600 weight                 |
+| Validation Error | Red ring     | `◉` ring `--status-error`     | `--status-error`, 600 weight                 |
+| Pending          | Grey outline | `○` outline `--text-tertiary` | `--text-tertiary`, 400 weight                |
+| Skipped          | Grey dash    | `–` `--text-tertiary`         | `--text-tertiary`, 400 weight, strikethrough |
+
+**EMPTY (First Visit)**: Step 1 is In Progress. Steps 2-8 are Pending. "Back" hidden on Step 1. Progress: "0% complete" shown below stepper as subtle text.
+
+**LOADING (Step Transition)**: "Continue" shows spinner (300ms max). Step content area crossfades (200ms). New step content fades in.
+
+**ERROR (Validation)**: Step icon turns red ring. Error banner at top of step content: "[N] fields need attention." Fields with errors highlighted. "Continue" remains enabled but re-validates on click. Accessibility: `role="alert"` on error banner. Focus moves to first error field.
+
+**SUCCESS (Step Complete)**: Step icon transitions to green check (200ms). Connecting line fills with `--accent`. Next step becomes In Progress. Progress percentage updates.
+
+**PARTIAL (Some Steps Skipped)**: Skipped steps show dash icon. Summary on Go-Live step shows which steps were skipped with "Complete now" links.
+
+**OFFLINE**: "Continue" disabled. "This step requires an internet connection." Data entered in forms is preserved locally. On reconnect, form data restored.
+
+**Accessibility**: Stepper uses `role="list"`. Each step: `role="listitem"` with `aria-current="step"` on active. Screen reader: "Step 3 of 8, Add Units. Steps 1 and 2 complete. Steps 4 through 8 pending." Navigation buttons: "Go back to Roles", "Skip Add Units", "Continue to Residents."
+
+---
+
+### 19.2 CSV Import (within Onboarding Steps)
+
+**Layout**: Used in Units and Residents steps. File upload zone, validation preview table, import progress.
+
+**FILE UPLOAD**:
+
+```
+┌──────────────────────────────────────────────────┐
+│                                                    │
+│         ┌──────────────────────┐                   │
+│         │    ↑                  │                   │
+│         │  Drop CSV file here   │                   │
+│         │  or click to browse   │                   │
+│         │                       │                   │
+│         │  (.csv, max 10MB)     │                   │
+│         └──────────────────────┘                   │
+│         (dashed border, --border-subtle)            │
+│                                                    │
+│  [ Download Template ]  (text link, --accent)       │
+│                                                    │
+│  Or: [ Add Manually ] to enter one by one           │
+│                                                    │
+└──────────────────────────────────────────────────┘
+```
+
+- **EMPTY**: Drop zone with dashed border. Template download link. Manual entry fallback link.
+- **LOADING (File Selected)**: Drop zone shows file name + spinner. "Validating 342 rows..."
+- **DRAG OVER**: Drop zone border becomes solid `--accent`. Background: `--bg-secondary`. Icon arrows animate upward.
+
+**VALIDATING**:
+
+- Progress bar: "Validating row 150 of 342..."
+- Cancel link available: "Cancel validation".
+
+**VALIDATION ERRORS**:
+
+```
+┌──────────────────────────────────────────────────┐
+│  Validation complete: 12 errors in 342 rows       │
+│                                                    │
+│  ┌──────┬──────────┬───────────────────────────┐  │
+│  │ Row  │ Field    │ Error                     │  │
+│  ├──────┼──────────┼───────────────────────────┤  │
+│  │  15  │ Unit #   │ Duplicate: "101" already  │  │
+│  │      │          │ exists                     │  │
+│  │  23  │ Email    │ Invalid format             │  │
+│  │  47  │ Floor    │ Required field is empty     │  │
+│  │  ... │          │                            │  │
+│  └──────┴──────────┴───────────────────────────┘  │
+│                                                    │
+│  [ Download Error Report ]   [ Import Valid Rows ] │
+│  (CSV with errors only)      (330 of 342 rows)     │
+│                                                    │
+│  Or: [ Upload Corrected File ]                     │
+└──────────────────────────────────────────────────┘
+```
+
+- Error table sortable by row number. Each error links to the specific row.
+- "Import Valid Rows" imports only passing rows. "Download Error Report" gives a CSV of failed rows with error descriptions.
+- Accessibility: error table has `role="table"`, `aria-label="CSV validation errors, 12 errors found"`. Each row: `role="row"`. Summary announced: "12 errors found in 342 rows. 330 rows are valid."
+
+**IMPORT PROGRESS**:
+
+- Progress bar: "Importing 150 of 330 units..."
+- Items appear in a live feed below as they import.
+- Cancel not available during import (data integrity).
+
+**IMPORT COMPLETE**:
+
+- Success banner: "330 units imported successfully. 12 rows skipped due to errors."
+- CTA: "Review Imported Data" or "Continue to Next Step".
+- Accessibility: `role="status"`, announced: "Import complete. 330 units imported. 12 skipped."
+
+**OFFLINE**: File selection works. Validation works locally for format checks. Server-side validation (duplicate checks) deferred. "Some validations require an internet connection and will run when you continue."
+
+---
+
+### 19.3 Auto-Generate Units
+
+**Layout**: Alternative to CSV import for the Units step. Input parameters form, preview grid, confirm button.
+
+```
+┌──────────────────────────────────────────────────┐
+│  Auto-generate units                              │
+│                                                    │
+│  Floors    ┌──────┐  to  ┌──────┐                 │
+│            │  1   │      │  30  │                  │
+│            └──────┘      └──────┘                  │
+│  Units per floor  ┌──────┐                         │
+│                   │  12  │                          │
+│                   └──────┘                          │
+│  Numbering:  ○ Sequential (101, 102...)             │
+│              ● Floor-based (101, 102... 201, 202...)│
+│  Include:    ☑ Parking levels  ☑ Penthouse level    │
+│                                                    │
+│  Preview: 360 units will be created                 │
+│  ┌──────────────────────────────────────────────┐  │
+│  │ 101 102 103 104 105 106 107 108 109 110 111 112│ │
+│  │ 201 202 203 204 205 206 207 208 209 210 211 212│ │
+│  │ ...                                            │ │
+│  └──────────────────────────────────────────────┘  │
+│                                                    │
+│  [ Generate 360 Units ]                            │
+└──────────────────────────────────────────────────┘
+```
+
+- **EMPTY**: Floor range and units-per-floor fields empty. Preview hidden. "Generate" disabled.
+- **IN PROGRESS**: As user fills in parameters, preview updates live (debounced 300ms). Unit count shown.
+- **VALIDATION ERROR**: "Starting floor must be less than ending floor." Inline under the field.
+- **LOADING (Generating)**: "Generate" shows spinner + "Creating 360 units...". Progress bar.
+- **SUCCESS**: "360 units created. You can edit individual units later." Grid shows created units with checkmarks.
+- **OFFLINE**: Parameter entry works. Preview works (client-side calculation). "Generate" disabled: "Creating units requires an internet connection."
+- Accessibility: preview grid has `role="grid"`, `aria-label="Unit number preview, 360 units"`. Live count announced via `aria-live="polite"`: "360 units will be created."
+
+---
+
+### 19.4 Go-Live Step
+
+**Layout**: Final step (Step 8). Summary review of all configuration. Completion checklist. Welcome email toggle. Activate button.
+
+```
+┌──────────────────────────────────────────────────┐
+│  Ready to go live                                  │
+│                                                    │
+│  SETUP SUMMARY                                     │
+│  ┌──────────────────────────────────────────────┐  │
+│  │ ✓ Property Details         Complete           │  │
+│  │ ✓ Roles & Permissions      3 roles            │  │
+│  │ ✓ Units                    360 units           │  │
+│  │ ✓ Residents                312 imported        │  │
+│  │ – Amenities                Skipped             │  │
+│  │   [ Complete Now ]                             │  │
+│  │ ✓ Access Control           4 entry points      │  │
+│  │ ✓ Communication            Email configured    │  │
+│  └──────────────────────────────────────────────┘  │
+│                                                    │
+│  WELCOME EMAIL                                     │
+│  ┌──────────────────────────────────────────────┐  │
+│  │ ☑ Send welcome email to 312 residents         │  │
+│  │   Includes: login link, getting started guide │  │
+│  │   [ Preview Email ]                           │  │
+│  └──────────────────────────────────────────────┘  │
+│                                                    │
+│  ⚠ Skipped steps can be completed later from       │
+│    Settings, but residents will not have access     │
+│    to those features until configured.              │
+│                                                    │
+│  [ ◀ Back ]           [ Activate Property ▶ ]      │
+│                       (--accent, prominent)         │
+└──────────────────────────────────────────────────┘
+```
+
+- **EMPTY**: Checklist populates from wizard state. Skipped steps show dash + "Complete Now" link.
+- **LOADING (Activating)**: "Activate Property" shows "Activating..." with spinner. Progress: "Setting up 360 units... Sending 312 welcome emails..."
+- **ERROR**: "Activation failed. Your data is saved — try again." CTA: "Retry Activation". Details expandable.
+- **SUCCESS**: Major success with animation. Checkmark draws in. "Your property is live. 312 residents have been invited." CTAs: "Go to Dashboard" / "View Setup Guide".
+- **PARTIAL**: Property activated but welcome emails partially sent. "Property is live. 280 of 312 welcome emails sent. [Retry remaining]."
+- **OFFLINE**: "Activate Property" disabled. "Activation requires an internet connection."
+- Accessibility: checklist uses `role="list"`. Each item: `role="listitem"` with status indicated by `aria-label` ("Units: complete, 360 units" / "Amenities: skipped"). "Activate Property" button: `aria-label="Activate property and send welcome emails to 312 residents"`.
+
+---
+
+## 20. Demo & Training Mode
+
+---
+
+### 20.1 Demo Mode Badge
+
+**Layout**: Persistent badge in the top-right of the header bar, always visible on every page during a demo session.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  [Logo]  Dashboard  Events  ...       [ DEMO MODE 🟠 ] [👤] │
+│  ────────────────────────────────────────────────────────── │
+│  (normal app content below)                                  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- Badge: `--status-warning` background (#FF9500), white text, 12px bold uppercase, `border-radius: 4px`, `padding: 4px 12px`.
+- Badge is non-dismissable. Clicking it opens the Demo Control Panel (see 20.3).
+- Accessibility: badge has `role="status"`, `aria-label="Demo mode active. Click to open demo controls."`.
+
+**DEFAULT**: Badge reads "DEMO MODE". Subtle pulse animation on first load (3 cycles, then static).
+
+**DEMO EXPIRED**: Badge turns `--status-error` (#FF3B30) background. Text: "DEMO EXPIRED". Clicking opens expiry dialog (see 20.6). All interactive elements below the header are disabled with 50% opacity overlay.
+
+---
+
+### 20.2 Training Mode Badge
+
+**Layout**: Same position and size as demo badge but yellow.
+
+- Badge: `#FFD60A` background, `--text-primary` text (dark), 12px bold uppercase.
+- Badge text: "TRAINING MODE".
+- Clicking opens Training Progress Dashboard (see 20.7).
+- Accessibility: `role="status"`, `aria-label="Training mode active. Click to view training progress."`.
+
+---
+
+### 20.3 Role Switcher Overlay
+
+**Layout**: Full-screen semi-transparent overlay (backdrop: rgba(0,0,0,0.5)) with a centered card containing 5 persona cards.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  (backdrop: 50% black overlay)                               │
+│                                                              │
+│         ┌──────────────────────────────────────┐             │
+│         │  Switch Role                    ✕    │             │
+│         │  Experience the platform as:         │             │
+│         │                                      │             │
+│         │  ┌────────┐  ┌────────┐  ┌────────┐ │             │
+│         │  │ 🖥      │  │ 🛡      │  │ 📋     │ │             │
+│         │  │Concierge│  │Security │  │Manager │ │             │
+│         │  │Front    │  │Guard    │  │Property│ │             │
+│         │  │Desk     │  │         │  │Mgmt    │ │             │
+│         │  └────────┘  └────────┘  └────────┘ │             │
+│         │  ┌────────┐  ┌────────┐              │             │
+│         │  │ 🏠      │  │ 📊     │              │             │
+│         │  │Resident │  │Board   │              │             │
+│         │  │Owner /  │  │Member  │              │             │
+│         │  │Tenant   │  │        │              │             │
+│         │  └────────┘  └────────┘              │             │
+│         │                                      │             │
+│         │  Current role: Concierge (active)    │             │
+│         └──────────────────────────────────────┘             │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- Each persona card: 120x120px, white background, subtle border, icon (line-art), role title, role subtitle.
+- Active role: `--accent` border (2px), `--accent` background tint. Others: `--border-subtle`.
+- Hover: card lifts (`box-shadow` elevation), border becomes `--accent`.
+- Click: instant role switch. Overlay closes. Dashboard and navigation rebuild for the new role (300ms crossfade).
+- Accessibility: overlay is `role="dialog"`, `aria-modal="true"`, `aria-label="Switch demo role"`. Cards: `role="radiogroup"`. Each card: `role="radio"`, `aria-checked`. Focus trap within overlay. Escape closes.
+
+---
+
+### 20.4 Demo Reset Confirmation
+
+```
+┌──────────────────────────────────────────────────┐
+│  Reset demo data?                           ✕    │
+│                                                    │
+│  This will restore all demo data to its original   │
+│  state. Any changes you made during this session   │
+│  (events, packages, notes) will be removed.        │
+│                                                    │
+│  This cannot be undone.                            │
+│                                                    │
+│         [ Cancel ]    [ Reset Demo Data ]          │
+│                       (--status-error bg)           │
+└──────────────────────────────────────────────────┘
+```
+
+- "Reset Demo Data" is destructive — uses `--status-error` styling.
+- **LOADING**: Button shows "Resetting..." with spinner. Modal stays open.
+- **SUCCESS**: Modal closes. Toast: "Demo data has been reset." Dashboard reloads with fresh data.
+- **ERROR**: "Could not reset demo data. Try again." Retry available within modal.
+- Accessibility: `role="alertdialog"`, `aria-label="Confirm demo data reset"`. Focus on "Cancel" (safer default).
+
+---
+
+### 20.5 Demo Customization
+
+**Layout**: Settings panel (accessible from Demo Control Panel) where the salesperson can upload a prospect's logo and enter their property name, so the demo feels personalized.
+
+- **EMPTY**: Logo placeholder (grey circle with building icon). Property name: "Demo Property".
+- **SUCCESS (Customized)**: Prospect logo appears in the header and login page. Property name replaces "Demo Property" across the UI.
+- **ERROR (Upload Failed)**: "Logo upload failed. Try a smaller file (max 2MB, PNG or SVG)." Inline error.
+- Accessibility: logo upload has `aria-label="Upload prospect logo"`. Property name input: `aria-label="Prospect property name"`.
+
+---
+
+### 20.6 Demo Expired State
+
+**Layout**: Full-page overlay blocking all interaction.
+
+```
+┌──────────────────────────────────────────────────┐
+│                                                    │
+│         ┌──────────────┐                           │
+│         │  Clock icon   │                           │
+│         │  (line-art,   │                           │
+│         │  --text-tert) │                           │
+│         └──────────────┘                           │
+│                                                    │
+│         This demo session has expired              │
+│         (Title 2, 22px, 600)                       │
+│                                                    │
+│         Demo sessions last 14 days. Contact        │
+│         your sales representative to extend         │
+│         or start a new demo.                       │
+│         (Body, 15px, --text-secondary)             │
+│                                                    │
+│         [ Request Extension ]  [ Start New Demo ]  │
+│         (--accent outline)     (--accent filled)   │
+│                                                    │
+└──────────────────────────────────────────────────┘
+```
+
+- Blocks all navigation. Only the two CTAs and a sign-out link are interactive.
+- Accessibility: `role="alert"`. "Demo session expired. Request extension or start a new demo."
+
+---
+
+### 20.7 Training Progress Dashboard
+
+**Layout**: Slide-out panel (500px wide, from right) showing which features each trainee has interacted with.
+
+- **EMPTY**: "No training activity yet. Start exploring the platform and your progress will appear here."
+- **LOADING**: Skeleton: trainee name header + 6 module progress bar skeletons.
+- **SUCCESS**: Trainee name at top. Modules listed with progress bars (percentage of features used). Modules: Events, Packages, Security, Maintenance, Amenities, Communication. Each module expandable to show individual feature checkmarks.
+- **ERROR**: "Could not load training progress. [Retry]."
+- **OFFLINE**: Cached progress shown. "Training progress will update when you reconnect."
+- Accessibility: panel is `role="dialog"`, `aria-label="Training progress"`. Each module progress: `role="progressbar"`, `aria-valuenow`, `aria-valuemax`. Expandable sections: `aria-expanded`.
+
+---
+
+## 21. Billing Dashboard
+
+---
+
+### 21.1 Plan Overview
+
+**Layout**: Top section of billing page. Current plan badge, usage meters, and quick action buttons.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Billing & Subscription                                      │
+│                                                              │
+│  CURRENT PLAN                                                │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │  Professional Plan              [ Change Plan ]       │    │
+│  │  $3.50/unit/month · 171 units · Billed annually       │    │
+│  │  Next billing date: April 1, 2026                     │    │
+│  │                                                       │    │
+│  │  USAGE                                                │    │
+│  │  Units      ████████████████░░░░  171 / 500           │    │
+│  │  Storage    ████████░░░░░░░░░░░░  12GB / 50GB         │    │
+│  │  API Calls  ██░░░░░░░░░░░░░░░░░░  2.1k / 50k         │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **EMPTY**: Never empty — always shows current plan even if no usage.
+- **LOADING**: Skeleton: plan card with shimmer on plan name, price, and usage bars.
+- **ERROR**: "Could not load billing information. [Retry]." Warning: "If you believe there is a billing issue, contact support."
+- **SUCCESS**: All meters display with color coding: green (< 70%), `--status-warning` (70-90%), `--status-error` (> 90%).
+- **PARTIAL**: Plan info loads but usage metrics fail. Plan card shown without meters. "Usage data temporarily unavailable."
+- **OFFLINE**: Cached plan info shown. "Billing information may not be current."
+- Accessibility: each usage meter has `role="meter"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, `aria-label="Units used: 171 of 500"`. Plan badge: `aria-label="Current plan: Professional"`.
+
+---
+
+### 21.2 Plan Comparison
+
+**Layout**: 3-tier card layout, identical structure to pricing page (Section 17.2) but shown within the billing dashboard context. Current plan highlighted.
+
+- **DEFAULT**: Current plan card has `--accent` border and "Current Plan" badge. Downgrade options show "Downgrade" in `--text-secondary`. Upgrade options show "Upgrade" in `--accent`.
+- **LOADING**: Card skeletons (3 cards with shimmer).
+- **ERROR**: "Could not load plan options. [Retry]."
+- Accessibility: current plan card has `aria-current="true"`. Action buttons: `aria-label="Upgrade to Enterprise plan"` or `aria-label="Downgrade to Starter plan"`.
+
+---
+
+### 21.3 Upgrade / Downgrade Modal
+
+```
+┌──────────────────────────────────────────────────┐
+│  Change to Professional Plan               ✕    │
+│                                                    │
+│  CURRENT: Starter ($2/unit/mo)                     │
+│  NEW: Professional ($3.50/unit/mo)                 │
+│                                                    │
+│  PRORATION PREVIEW                                 │
+│  ┌──────────────────────────────────────────────┐ │
+│  │  Remaining on Starter (15 days): -$51.30     │ │
+│  │  Professional for 15 days:       +$89.78     │ │
+│  │  ──────────────────────────────────────       │ │
+│  │  Amount due today:               $38.48      │ │
+│  └──────────────────────────────────────────────┘ │
+│                                                    │
+│  ✓ New features available immediately              │
+│  ✓ No service interruption                         │
+│                                                    │
+│       [ Cancel ]    [ Confirm Change ]             │
+│                     (--accent)                      │
+└──────────────────────────────────────────────────┘
+```
+
+- **LOADING**: "Calculating proration..." shimmer in the preview area.
+- **ERROR**: "Could not calculate plan change. [Retry]." Modal stays open.
+- **SUCCESS**: Modal closes. Toast: "Plan changed to Professional. New features are now available."
+- **DOWNGRADE WARNING** (if downgrading): additional warning box: "Downgrading will disable: [list of features]. Data is preserved but inaccessible until you upgrade again." `--status-warning` background.
+- Accessibility: `role="dialog"`, `aria-label="Change subscription plan"`. Proration table: `role="table"`. Focus on "Cancel" (safer default for financial action).
+
+---
+
+### 21.4 Invoice List
+
+**Layout**: Paginated table of past invoices.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Invoices                              [ Export All (CSV) ]  │
+│                                                              │
+│  ┌──────────┬───────────┬───────────┬────────┬─────────────┐ │
+│  │ Date     │ Amount    │ Plan      │ Status │ Actions     │ │
+│  ├──────────┼───────────┼───────────┼────────┼─────────────┤ │
+│  │ Mar 1    │ $598.50   │ Profess.  │ ✓ Paid │ [Download]  │ │
+│  │ Feb 1    │ $598.50   │ Profess.  │ ✓ Paid │ [Download]  │ │
+│  │ Jan 1    │ $342.00   │ Starter   │ ✓ Paid │ [Download]  │ │
+│  └──────────┴───────────┴───────────┴────────┴─────────────┘ │
+│                                                              │
+│  Showing 1-10 of 24        [ ◀ ]  1  2  3  [ ▶ ]           │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **EMPTY**: "No invoices yet. Your first invoice will appear after your billing cycle begins."
+- **LOADING**: Skeleton table rows (5 rows with shimmer).
+- **ERROR**: "Could not load invoices. [Retry]."
+- **SUCCESS**: Table with sortable columns. Download generates PDF. Status badges: "Paid" (green), "Pending" (yellow), "Failed" (red), "Refunded" (grey).
+- **OFFLINE**: Cached invoices shown (if previously loaded). Download disabled: "PDF download requires an internet connection."
+- Accessibility: table has proper `<th>` with `scope="col"`. Status badges: `aria-label="Payment status: paid"`. Download: `aria-label="Download invoice for March 1, 2026"`. Pagination: `role="navigation"`, `aria-label="Invoice pages"`.
+
+---
+
+### 21.5 Payment Method Management
+
+**Layout**: Card display of saved payment methods with add/remove actions. Stripe Elements embedded for card entry.
+
+- **EMPTY**: "No payment method on file. Add a card to continue your subscription." CTA: "Add Payment Method".
+- **LOADING**: Skeleton card placeholder.
+- **ERROR (Load)**: "Could not load payment methods. [Retry]."
+- **SUCCESS (Card Added)**: New card appears in list. Toast: "Payment method added."
+- **SUCCESS (Card Removed)**: Card fades out (200ms). Toast: "Payment method removed."
+- **ERROR (Card Declined)**: Inline error within Stripe Elements: "Card was declined. Try a different card." Error styling from Stripe's embedded UI, consistent with our `--status-error` color.
+- **PARTIAL**: Card list loads but default card indicator fails. Cards shown without default badge.
+- **OFFLINE**: Cached card info shown (last 4 digits, expiry only — no sensitive data cached). "Add" and "Remove" disabled.
+- Accessibility: each card: `role="listitem"`, `aria-label="Visa ending in 4242, expires 12/2028. Default payment method."`. Remove button: `aria-label="Remove Visa ending in 4242"`. Stripe Elements provides its own accessibility — do not override.
+
+---
+
+### 21.6 Failed Payment / Dunning States
+
+**Layout**: Progressive severity banners shown at the top of the billing page (and as a persistent banner site-wide during grace period).
+
+**GRACE PERIOD** (Days 1-7 after failure):
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ⚠ Payment failed. Update your payment method by March 23   │
+│    to avoid service interruption. [ Update Payment ]         │
+│  (--status-warning background, site-wide banner)             │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- Banner is dismissable per session but reappears on next login.
+- "Update Payment" links to payment method management.
+
+**PAYMENT RETRY** (automatic, Days 1, 3, 7):
+
+- Subtle inline status on billing page: "Retrying payment... Next retry: March 18."
+- If retry succeeds: banner disappears. Toast: "Payment processed successfully."
+
+**ACCOUNT SUSPENSION** (Day 14+):
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                                                              │
+│         ┌──────────────┐                                     │
+│         │  Lock icon    │                                     │
+│         └──────────────┘                                     │
+│                                                              │
+│         Your account has been suspended                      │
+│         (Title 2, 22px, 600, --status-error)                 │
+│                                                              │
+│         We were unable to process your payment               │
+│         after multiple attempts. Update your payment         │
+│         method to restore access.                            │
+│                                                              │
+│         Your data is safe and will be preserved              │
+│         for 90 days.                                         │
+│                                                              │
+│         [ Update Payment Method ]  [ Contact Support ]       │
+│         (--accent filled)          (outline)                 │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- Blocks all app access. Only billing page and support contact accessible.
+- Accessibility: `role="alert"`. "Account suspended due to failed payment. Update payment method to restore access. Data preserved for 90 days."
+
+---
+
+### 21.7 Trial States
+
+**TRIAL BANNER** (shown site-wide during trial):
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  🎉 You are on a 14-day free trial. 9 days remaining.       │
+│     [ Choose a Plan ]                                        │
+│  (--accent-light background, --accent text)                  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- Dismissable per session. Reappears daily.
+
+**TRIAL EXPIRING SOON** (last 3 days):
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ⚠ Your trial ends in 2 days. Choose a plan to keep         │
+│    your data and continue using the platform. [ Choose Plan ]│
+│  (--status-warning background)                               │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- Not dismissable during last 3 days. Persistent.
+
+**TRIAL EXPIRED**:
+
+```
+┌──────────────────────────────────────────────────┐
+│                                                    │
+│         ┌──────────────┐                           │
+│         │  Calendar     │                           │
+│         │  icon with X  │                           │
+│         └──────────────┘                           │
+│                                                    │
+│         Your free trial has ended                  │
+│         (Title 2, 22px, 600)                       │
+│                                                    │
+│         Choose a plan to continue. All your        │
+│         data from the trial is preserved.          │
+│                                                    │
+│         [ View Plans ]    [ Export My Data ]        │
+│         (--accent)        (outline)                │
+│                                                    │
+└──────────────────────────────────────────────────┘
+```
+
+- Full-page block. Only plan selection and data export accessible.
+- "Export My Data" generates a ZIP of all property data (CSV + documents). Ensures no vendor lock-in anxiety.
+- Accessibility: `role="alert"`. "Free trial ended. Choose a plan to continue. Data is preserved. Export option available."
+
+---
+
+## 22. Help Center
+
+---
+
+### 22.1 Help Drawer
+
+**Layout**: Slide-out panel from the right (440px wide), triggered by "?" icon in the header or `?` keyboard shortcut. Shows contextual help articles relevant to the current page.
+
+```
+┌──────────────────────────────────────────────────┐
+│  Help                                       ✕    │
+│  ───────────────────────────────────────────── │
+│                                                    │
+│  RELATED TO THIS PAGE                              │
+│  ┌──────────────────────────────────────────────┐ │
+│  │ 📄 How to log a new package                   │ │
+│  │    Learn the package intake workflow...        │ │
+│  ├──────────────────────────────────────────────┤ │
+│  │ 📄 Understanding package statuses             │ │
+│  │    Received, notified, released, returned...  │ │
+│  ├──────────────────────────────────────────────┤ │
+│  │ 📄 Printing package labels                    │ │
+│  │    Set up your label printer and formats...   │ │
+│  └──────────────────────────────────────────────┘ │
+│                                                    │
+│  ┌──────────────────────────────────────┐          │
+│  │ 🔍 Search all help articles...       │          │
+│  └──────────────────────────────────────┘          │
+│                                                    │
+│  [ Browse Knowledge Base ]                         │
+│  [ Contact Support ] (v2)                          │
+│                                                    │
+└──────────────────────────────────────────────────┘
+```
+
+- **EMPTY (No Articles for Page)**: "No help articles for this page yet. Browse the knowledge base or contact support." Illustration: line-art open book with question mark, accent blue on question mark.
+- **LOADING**: Skeleton: 3 article card skeletons (icon + 2 text lines each).
+- **ERROR**: "Could not load help articles. [Retry]."
+- **SUCCESS**: Contextual articles listed. Click opens article within the drawer (push navigation, "Back" button appears).
+- **PARTIAL**: Some articles load, others fail. Show loaded articles with "Some articles could not be loaded" note at bottom.
+- **OFFLINE**: Cached articles shown if previously viewed. "Search and new articles require an internet connection."
+
+**Animation**: Panel slides in from right, 250ms, ease-out. Backdrop fades in, 200ms. Close: reverse, 200ms. Same timing as Notification Panel (Section 15).
+
+**Accessibility**: `role="dialog"`, `aria-modal="true"`, `aria-label="Help panel"`. Focus trap active. Articles: `role="list"`. Each article: `role="listitem"`, `aria-label="Article: [title]"`. Search input: `aria-label="Search help articles"`. Close button: `aria-label="Close help panel"`.
+
+---
+
+### 22.2 Knowledge Base
+
+**Layout**: Full-page view with category sidebar (left, 240px) and article list (right). Top search bar.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Knowledge Base                                              │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │ 🔍 Search articles...                                │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌──────────┐  ┌──────────────────────────────────────────┐  │
+│  │CATEGORIES│  │  Getting Started (8 articles)            │  │
+│  │          │  │  ┌────────────────────────────────────┐  │  │
+│  │ All      │  │  │ 📄 Setting up your property         │  │  │
+│  │ Getting  │  │  │    First-time setup guide...        │  │  │
+│  │ Started  │  │  ├────────────────────────────────────┤  │  │
+│  │ Packages │  │  │ 📄 Managing your first package      │  │  │
+│  │ Security │  │  │    Package lifecycle explained...   │  │  │
+│  │ Amenities│  │  ├────────────────────────────────────┤  │  │
+│  │ Mainten. │  │  │ 📄 Setting up amenity bookings      │  │  │
+│  │ Reports  │  │  │    Calendar, rules, approvals...   │  │  │
+│  │ Billing  │  │  └────────────────────────────────────┘  │  │
+│  └──────────┘  │                                          │  │
+│                │  Showing 1-10 of 8     [ ◀ ]  1  [ ▶ ]  │  │
+│                └──────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **EMPTY**: "No articles published yet. Check back soon." (Admin-facing: "No articles yet. Create your first article in Settings > Help Center.")
+- **LOADING**: Category sidebar skeleton (6 items). Article list skeleton (5 items).
+- **ERROR**: "Could not load the knowledge base. [Retry]."
+- **SUCCESS (Search)**: Results highlight matching terms in yellow (`--status-warning-bg`). Result count: "12 results for 'package label'". Empty search: "No articles found for '[query]'. Try different keywords."
+- **PARTIAL**: Categories load but article counts fail. Categories shown without counts.
+- **OFFLINE**: Cached articles browsable. Search limited to cached content. "Showing cached articles. Connect to the internet for the latest content."
+- Accessibility: category sidebar: `role="navigation"`, `aria-label="Article categories"`. Active category: `aria-current="true"`. Search: `role="search"`. Results: `role="list"`, `aria-label="Search results, 12 articles found"`.
+
+---
+
+### 22.3 Article View
+
+**Layout**: Centered content column (720px max-width). MDX-rendered content with table of contents sidebar on wide screens (> 1200px).
+
+- **LOADING**: Skeleton: title bar + 8 body text line skeletons + sidebar TOC skeleton.
+- **ERROR**: "Could not load this article. [Retry]." Back link to knowledge base.
+- **SUCCESS**: Article renders with: heading hierarchy (h2, h3), code blocks, images (lazy-loaded), video embeds (iframe, lazy-loaded), callout boxes (tip, warning, note), and step-by-step numbered lists. Related articles shown at bottom (3 cards).
+- **PARTIAL**: Article content loads but video embeds fail. Placeholder: "Video could not be loaded. [Open in new tab]."
+- **OFFLINE**: Cached article shown if previously viewed. Videos show "Requires internet" placeholder. Images show cached versions or alt text. "This article was cached on [date]. It may not reflect the latest changes."
+
+**Video Embed States**:
+
+- **LOADING**: Grey placeholder with play button skeleton. Aspect ratio preserved (16:9).
+- **READY**: Thumbnail with centered play button overlay. Click loads the player.
+- **ERROR**: "Video unavailable. [Open in new tab]." Fallback link.
+- Accessibility: video embed: `role="region"`, `aria-label="Video: [title]"`. Related articles: `role="complementary"`, `aria-label="Related articles"`. TOC sidebar: `role="navigation"`, `aria-label="Table of contents"`. Active TOC heading highlighted and tracked on scroll.
+
+---
+
+### 22.4 Support Ticket Form (v2)
+
+**Layout**: Multi-step form within the Help Drawer or as a standalone page.
+
+```
+┌──────────────────────────────────────────────────┐
+│  Contact Support                                   │
+│                                                    │
+│  Category *                                        │
+│  ┌──────────────────────────────────────┐          │
+│  │ Select a category...             ▼   │          │
+│  └──────────────────────────────────────┘          │
+│  (Billing, Technical, Feature Request, Other)      │
+│                                                    │
+│  Subject *                                         │
+│  ┌──────────────────────────────────────┐          │
+│  │                                      │          │
+│  └──────────────────────────────────────┘          │
+│                                                    │
+│  Description *                                     │
+│  ┌──────────────────────────────────────┐          │
+│  │                                      │          │
+│  │                              0/2,000 │          │
+│  └──────────────────────────────────────┘          │
+│                                                    │
+│  Attachments (optional)                            │
+│  [ + Add Files ] (max 3 files, 5MB each)           │
+│                                                    │
+│  [ Cancel ]    [ Submit Ticket ]                   │
+│                (--accent)                           │
+└──────────────────────────────────────────────────┘
+```
+
+- **EMPTY**: Category dropdown focused. All fields empty. "Submit" disabled.
+- **LOADING (Submitting)**: "Submit" shows spinner + "Submitting...". Fields read-only.
+- **ERROR (Validation)**: Inline errors on required fields. Category, Subject, Description required. Description min 20 characters.
+- **ERROR (Submit Failed)**: "Could not submit your ticket. Your message has been saved as a draft. [Retry]."
+- **SUCCESS**: "Ticket #1234 submitted. We will respond within 24 hours. Check your email for updates." CTA: "View My Tickets" / "Submit Another".
+- **OFFLINE**: Form available. "Submit" disabled. "Submitting a ticket requires an internet connection. Your draft will be saved."
+- Accessibility: form has `aria-label="Support ticket form"`. Category select: `aria-required="true"`. Character counter: `aria-live="polite"`, updated every 100 characters. Attachment area: `aria-label="File attachments, optional, maximum 3 files"`.
+
+**Ticket List** (within Help Drawer or standalone):
+
+- Table: Ticket #, Subject, Status (Open/In Progress/Resolved/Closed), Last Updated.
+- **EMPTY**: "No support tickets. Need help? Create a ticket."
+- **LOADING**: Skeleton table (3 rows).
+- Accessibility: table with `<th scope="col">`. Status badges with `aria-label`.
+
+**Ticket Detail**:
+
+- Conversation thread: alternating messages from user and support team.
+- Reply form at bottom with same styling as ticket creation (description + attachments).
+- Status badge at top. Timeline of status changes shown.
+- **LOADING**: Skeleton conversation (3 message bubbles).
+- **ERROR**: "Could not load ticket details. [Retry]."
+- Accessibility: conversation uses `role="log"`, `aria-label="Support conversation"`. Each message: `role="article"`, `aria-label="Message from [name] at [time]"`.
+
+---
+
+### 22.5 Keyboard Shortcut Reference
+
+**Layout**: Full-screen overlay triggered by pressing `?` (when no text input is focused). Centered card with categorized shortcut list.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  (backdrop: 50% black overlay)                               │
+│                                                              │
+│       ┌──────────────────────────────────────────────┐       │
+│       │  Keyboard Shortcuts                     ✕    │       │
+│       │  ──────────────────────────────────────────  │       │
+│       │                                              │       │
+│       │  NAVIGATION                                  │       │
+│       │  g then d    Go to Dashboard                 │       │
+│       │  g then e    Go to Event Log                 │       │
+│       │  g then p    Go to Packages                  │       │
+│       │  g then s    Go to Settings                  │       │
+│       │                                              │       │
+│       │  ACTIONS                                     │       │
+│       │  n            New event / entry              │       │
+│       │  /            Focus search bar               │       │
+│       │  ?            Show this reference             │       │
+│       │  Esc          Close panel / modal            │       │
+│       │                                              │       │
+│       │  LISTS                                       │       │
+│       │  j / k        Move up / down in list         │       │
+│       │  Enter        Open selected item             │       │
+│       │  x            Select / deselect item         │       │
+│       │                                              │       │
+│       │  Press Esc to close                          │       │
+│       └──────────────────────────────────────────────┘       │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **DEFAULT**: Overlay with categorized shortcuts. Keys shown in `<kbd>` styled elements (monospace, `--bg-secondary` background, 1px border, `border-radius: 4px`, `padding: 2px 6px`).
+- Escape closes the overlay. Clicking outside closes it.
+- Shortcuts are role-aware: Security sees security-specific shortcuts, managers see management shortcuts.
+- **REDUCED MOTION**: Overlay appears instantly (no fade).
+- Accessibility: overlay is `role="dialog"`, `aria-modal="true"`, `aria-label="Keyboard shortcuts reference"`. Focus trap active. Each shortcut row: key in `<kbd>` with `aria-label` describing the full shortcut. Categories: `role="group"`, `aria-label="[Category name] shortcuts"`. Close: Escape key or close button.
+
+---
+
+_Document version: 1.1_
+_Last updated: 2026-03-16_
+_Total screens covered: 95+_
+_Total states defined: 570+_
+_Total appendices: 10_

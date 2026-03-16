@@ -21,8 +21,9 @@
 6. [Forms](#6-forms) — 10 components
 7. [Specialized](#7-specialized) — 10 components
 8. [Composite](#8-composite) — 6 components
+9. [Business Operations](#9-business-operations) — 10 components
 
-**Total: 82 components**
+**Total: 92 components**
 
 ---
 
@@ -33,17 +34,17 @@
 ```tsx
 // All components use these shared types where applicable.
 
-type Size = "sm" | "md" | "lg";
-type Variant = "primary" | "secondary" | "ghost" | "danger";
-type Status = "success" | "warning" | "error" | "info" | "pending";
-type Orientation = "horizontal" | "vertical";
+type Size = 'sm' | 'md' | 'lg';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Status = 'success' | 'warning' | 'error' | 'info' | 'pending';
+type Orientation = 'horizontal' | 'vertical';
 
 // Every interactive component accepts these props:
 interface BaseInteractiveProps {
   disabled?: boolean;
   className?: string;
   id?: string;
-  "data-testid"?: string;
+  'data-testid'?: string;
 }
 ```
 
@@ -71,8 +72,8 @@ The primary interactive element. Every action in Concierge flows through a Butto
 
 ```tsx
 interface ButtonProps extends BaseInteractiveProps {
-  variant: "primary" | "secondary" | "ghost" | "danger";
-  size: "sm" | "md" | "lg";
+  variant: 'primary' | 'secondary' | 'ghost' | 'danger';
+  size: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
@@ -80,38 +81,38 @@ interface ButtonProps extends BaseInteractiveProps {
   loadingText?: string;
   fullWidth?: boolean;
   asChild?: boolean; // Radix Slot pattern for link-as-button
-  type?: "button" | "submit" | "reset";
+  type?: 'button' | 'submit' | 'reset';
   onClick?: (e: React.MouseEvent) => void;
 }
 ```
 
 **Variants**
 
-| Variant | Background | Text | Border | Use Case |
-|---------|-----------|------|--------|----------|
-| `primary` | `--accent` (#0071E3) | White | None | Primary CTA: "Save," "Create," "Submit" |
-| `secondary` | `--bg-primary` | `--text-primary` | 1px `--border-subtle` | Secondary action: "Cancel," "Back," "Export" |
-| `ghost` | Transparent | `--accent` | None | Tertiary action: "Learn more," inline actions |
-| `danger` | `--color-error` (#DC2626) | White | None | Destructive action: "Delete," "Remove," "Revoke" |
+| Variant     | Background                | Text             | Border                | Use Case                                         |
+| ----------- | ------------------------- | ---------------- | --------------------- | ------------------------------------------------ |
+| `primary`   | `--accent` (#0071E3)      | White            | None                  | Primary CTA: "Save," "Create," "Submit"          |
+| `secondary` | `--bg-primary`            | `--text-primary` | 1px `--border-subtle` | Secondary action: "Cancel," "Back," "Export"     |
+| `ghost`     | Transparent               | `--accent`       | None                  | Tertiary action: "Learn more," inline actions    |
+| `danger`    | `--color-error` (#DC2626) | White            | None                  | Destructive action: "Delete," "Remove," "Revoke" |
 
 **Sizes**
 
-| Size | Height | Padding (H) | Font | Icon Size |
-|------|--------|------------|------|-----------|
-| `sm` | 32px | 12px | 13px / 500 | 16px |
-| `md` | 40px | 16px | 14px / 500 | 18px |
-| `lg` | 48px | 24px | 15px / 600 | 20px |
+| Size | Height | Padding (H) | Font       | Icon Size |
+| ---- | ------ | ----------- | ---------- | --------- |
+| `sm` | 32px   | 12px        | 13px / 500 | 16px      |
+| `md` | 40px   | 16px        | 14px / 500 | 18px      |
+| `lg` | 48px   | 24px        | 15px / 600 | 20px      |
 
 **States**
 
-| State | Primary | Secondary | Ghost | Danger |
-|-------|---------|-----------|-------|--------|
-| Default | `--accent` bg | White bg, border | Transparent | `--color-error` bg |
-| Hover | `--accent-hover` bg | `--bg-secondary` bg | `--accent-subtle` bg | Error-600 bg |
-| Active/Pressed | `--accent-pressed` bg, scale(0.98) | `--bg-tertiary` bg, scale(0.98) | `--accent-subtle` bg, scale(0.98) | Error-700 bg, scale(0.98) |
-| Focus | 3px `--accent-subtle` ring | 3px `--accent-subtle` ring | 3px `--accent-subtle` ring | 3px error-subtle ring |
-| Disabled | 50% opacity, no pointer events | 50% opacity, no pointer events | 50% opacity | 50% opacity |
-| Loading | Spinner replaces leftIcon, text becomes `loadingText` or "Loading..." | Same | Same | Same |
+| State          | Primary                                                               | Secondary                       | Ghost                             | Danger                    |
+| -------------- | --------------------------------------------------------------------- | ------------------------------- | --------------------------------- | ------------------------- |
+| Default        | `--accent` bg                                                         | White bg, border                | Transparent                       | `--color-error` bg        |
+| Hover          | `--accent-hover` bg                                                   | `--bg-secondary` bg             | `--accent-subtle` bg              | Error-600 bg              |
+| Active/Pressed | `--accent-pressed` bg, scale(0.98)                                    | `--bg-tertiary` bg, scale(0.98) | `--accent-subtle` bg, scale(0.98) | Error-700 bg, scale(0.98) |
+| Focus          | 3px `--accent-subtle` ring                                            | 3px `--accent-subtle` ring      | 3px `--accent-subtle` ring        | 3px error-subtle ring     |
+| Disabled       | 50% opacity, no pointer events                                        | 50% opacity, no pointer events  | 50% opacity                       | 50% opacity               |
+| Loading        | Spinner replaces leftIcon, text becomes `loadingText` or "Loading..." | Same                            | Same                              | Same                      |
 
 **Animation**: See AP: Section 9.1 — springSnappy on press (scale 0.98 to 1.0). Loading spinner rotates at 0.8s per revolution.
 
@@ -140,8 +141,8 @@ Single-line text entry. The most-used form primitive in the platform.
 
 ```tsx
 interface InputProps extends BaseInteractiveProps {
-  type?: "text" | "email" | "password" | "number" | "tel" | "url" | "search";
-  size?: "sm" | "md" | "lg";
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search';
+  size?: 'sm' | 'md' | 'lg';
   value?: string;
   defaultValue?: string;
   placeholder?: string;
@@ -160,11 +161,11 @@ interface InputProps extends BaseInteractiveProps {
 
 **Sizes**
 
-| Size | Height | Padding | Font | Icon Size |
-|------|--------|---------|------|-----------|
-| `sm` | 36px | 0 10px | 13px / 400 | 16px |
-| `md` | 44px | 0 12px | 15px / 400 | 20px |
-| `lg` | 52px | 0 16px | 16px / 400 | 20px |
+| Size | Height | Padding | Font       | Icon Size |
+| ---- | ------ | ------- | ---------- | --------- |
+| `sm` | 36px   | 0 10px  | 13px / 400 | 16px      |
+| `md` | 44px   | 0 12px  | 15px / 400 | 20px      |
+| `lg` | 52px   | 0 16px  | 16px / 400 | 20px      |
 
 **States**: Default, Hover, Focus, Filled, Error, Disabled, Read-Only. See `DESIGN-SYSTEM-v2.md` Section 8.2 for exact CSS.
 
@@ -223,7 +224,7 @@ Dropdown selector built on Radix UI `Select` primitive.
 
 ```tsx
 interface SelectProps extends BaseInteractiveProps {
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
   value?: string;
   defaultValue?: string;
   placeholder?: string;
@@ -280,15 +281,15 @@ interface CheckboxProps extends BaseInteractiveProps {
 
 **States**
 
-| State | Appearance |
-|-------|-----------|
-| Unchecked | 1px `--border-subtle` border, white fill |
-| Checked | `--accent` fill, white check icon |
-| Indeterminate | `--accent` fill, white minus icon |
-| Hover | Border darkens to neutral-500 (unchecked) or `--accent-hover` fill (checked) |
-| Focus | 3px `--accent-subtle` ring around box |
-| Disabled | 50% opacity |
-| Error | `--color-error` border |
+| State         | Appearance                                                                   |
+| ------------- | ---------------------------------------------------------------------------- |
+| Unchecked     | 1px `--border-subtle` border, white fill                                     |
+| Checked       | `--accent` fill, white check icon                                            |
+| Indeterminate | `--accent` fill, white minus icon                                            |
+| Hover         | Border darkens to neutral-500 (unchecked) or `--accent-hover` fill (checked) |
+| Focus         | 3px `--accent-subtle` ring around box                                        |
+| Disabled      | 50% opacity                                                                  |
+| Error         | `--color-error` border                                                       |
 
 **Animation**: Check icon draws in (stroke-dasharray animation) over 200ms. See AP: Section 9.4.
 
@@ -345,7 +346,7 @@ Boolean on/off switch for settings and preferences.
 interface ToggleProps extends BaseInteractiveProps {
   checked?: boolean;
   defaultChecked?: boolean;
-  size?: "sm" | "md";
+  size?: 'sm' | 'md';
   label?: string;
   description?: string;
   onChange?: (checked: boolean) => void;
@@ -354,20 +355,20 @@ interface ToggleProps extends BaseInteractiveProps {
 
 **Dimensions**
 
-| Size | Track (W x H) | Knob | Border Radius |
-|------|---------------|------|---------------|
-| `sm` | 36 x 20px | 16px circle | 10px (pill) |
-| `md` | 48 x 28px | 24px circle | 14px (pill) |
+| Size | Track (W x H) | Knob        | Border Radius |
+| ---- | ------------- | ----------- | ------------- |
+| `sm` | 36 x 20px     | 16px circle | 10px (pill)   |
+| `md` | 48 x 28px     | 24px circle | 14px (pill)   |
 
 **States**
 
-| State | Track | Knob |
-|-------|-------|------|
-| Off | `--bg-tertiary` | White, left-aligned |
-| On | `--accent` | White, right-aligned |
-| Hover (off) | Neutral-300 | — |
-| Hover (on) | `--accent-hover` | — |
-| Disabled | 50% opacity | — |
+| State       | Track            | Knob                 |
+| ----------- | ---------------- | -------------------- |
+| Off         | `--bg-tertiary`  | White, left-aligned  |
+| On          | `--accent`       | White, right-aligned |
+| Hover (off) | Neutral-300      | —                    |
+| Hover (on)  | `--accent-hover` | —                    |
+| Disabled    | 50% opacity      | —                    |
 
 **Animation**: Knob slides via springSnappy. Track color cross-fades over 150ms.
 
@@ -429,7 +430,7 @@ interface TimePickerProps extends BaseInteractiveProps {
   value?: string; // "HH:mm" format (24h internal)
   defaultValue?: string;
   placeholder?: string;
-  format?: "12h" | "24h"; // Display format. Default: "12h"
+  format?: '12h' | '24h'; // Display format. Default: "12h"
   minuteStep?: number; // Default: 15 (options: 1, 5, 15, 30)
   minTime?: string;
   maxTime?: string;
@@ -527,13 +528,13 @@ interface FileUploadProps extends BaseInteractiveProps {
 
 **States**
 
-| State | Appearance |
-|-------|-----------|
-| Default | Dashed border, neutral icon |
-| Hover | `--bg-secondary` background, border darkens |
+| State     | Appearance                                                                    |
+| --------- | ----------------------------------------------------------------------------- |
+| Default   | Dashed border, neutral icon                                                   |
+| Hover     | `--bg-secondary` background, border darkens                                   |
 | Drag Over | `--accent-subtle` background, `--accent` dashed border, "Drop to upload" text |
-| Uploading | Progress bar replaces dropzone content |
-| Error | Error border, error message below |
+| Uploading | Progress bar replaces dropzone content                                        |
+| Error     | Error border, error message below                                             |
 
 **File Preview**: Below dropzone, each file renders as a row: file icon + name + size + remove button (X icon).
 
@@ -567,7 +568,7 @@ interface DataTableProps<T> {
   emptyState?: EmptyStateConfig;
   selectable?: boolean; // Enables row checkboxes
   sortable?: boolean;
-  defaultSort?: { column: string; direction: "asc" | "desc" };
+  defaultSort?: { column: string; direction: 'asc' | 'desc' };
   pagination?: PaginationConfig;
   onRowClick?: (row: T) => void;
   onSelectionChange?: (selected: T[]) => void;
@@ -582,8 +583,8 @@ interface ColumnDef<T> {
   cell?: (row: T) => React.ReactNode;
   sortable?: boolean;
   width?: string | number;
-  align?: "left" | "center" | "right";
-  hiddenBelow?: "sm" | "md" | "lg" | "xl"; // Responsive column hiding
+  align?: 'left' | 'center' | 'right';
+  hiddenBelow?: 'sm' | 'md' | 'lg' | 'xl'; // Responsive column hiding
 }
 
 interface PaginationConfig {
@@ -602,16 +603,16 @@ interface EmptyStateConfig {
 
 **Dimensions**
 
-| Element | Specification |
-|---------|--------------|
-| Header row height | 44px |
-| Body row height | 56px |
-| Header font | 13px / 600, `--text-secondary`, uppercase, 0.5px letter-spacing |
-| Body font | 15px / 400, `--text-primary` |
-| Cell padding | 16px horizontal |
-| Row hover | `--bg-secondary` background, 150ms transition |
-| Selected row | `--accent-subtle` background |
-| Sort indicator | ChevronUp/Down icon (14px) next to header text |
+| Element           | Specification                                                   |
+| ----------------- | --------------------------------------------------------------- |
+| Header row height | 44px                                                            |
+| Body row height   | 56px                                                            |
+| Header font       | 13px / 600, `--text-secondary`, uppercase, 0.5px letter-spacing |
+| Body font         | 15px / 400, `--text-primary`                                    |
+| Cell padding      | 16px horizontal                                                 |
+| Row hover         | `--bg-secondary` background, 150ms transition                   |
+| Selected row      | `--accent-subtle` background                                    |
+| Sort indicator    | ChevronUp/Down icon (14px) next to header text                  |
 
 **Loading State**: Skeleton rows (8 rows of pulsing rectangles matching column widths). See AP: Section 11.
 
@@ -643,11 +644,11 @@ Generic content container. Foundation for all card-based layouts.
 ```tsx
 interface CardProps {
   children: React.ReactNode;
-  variant?: "elevated" | "outlined" | "flat";
+  variant?: 'elevated' | 'outlined' | 'flat';
   clickable?: boolean;
   selected?: boolean;
   accentColor?: string; // Left 3px border color (event type coding)
-  padding?: "none" | "compact" | "default" | "spacious";
+  padding?: 'none' | 'compact' | 'default' | 'spacious';
   className?: string;
   onClick?: () => void;
 }
@@ -655,20 +656,20 @@ interface CardProps {
 
 **Variants**
 
-| Variant | Shadow | Border | Use Case |
-|---------|--------|--------|----------|
-| `elevated` | `--shadow-1` (rest), `--shadow-2` (hover) | None | Clickable cards, KPI cards |
-| `outlined` | None | 1px `--border-subtle` | Static information cards, form sections |
-| `flat` | None | None | Cards within cards, inner composition |
+| Variant    | Shadow                                    | Border                | Use Case                                |
+| ---------- | ----------------------------------------- | --------------------- | --------------------------------------- |
+| `elevated` | `--shadow-1` (rest), `--shadow-2` (hover) | None                  | Clickable cards, KPI cards              |
+| `outlined` | None                                      | 1px `--border-subtle` | Static information cards, form sections |
+| `flat`     | None                                      | None                  | Cards within cards, inner composition   |
 
 **Padding**
 
-| Padding | Value |
-|---------|-------|
-| `none` | 0 |
-| `compact` | 16px |
-| `default` | 20px |
-| `spacious` | 24px |
+| Padding    | Value |
+| ---------- | ----- |
+| `none`     | 0     |
+| `compact`  | 16px  |
+| `default`  | 20px  |
+| `spacious` | 24px  |
 
 **Animation**: Clickable cards lift on hover (AP: MI-03). `translateY(-2px)` + shadow transition to level 2. Press: `scale(0.99)` via springSnappy.
 
@@ -691,8 +692,8 @@ interface StatCardProps {
   formatValue?: (value: number) => string;
   trend?: {
     value: number; // Percentage: +12 or -5
-    direction: "up" | "down";
-    sentiment: "positive" | "negative" | "neutral";
+    direction: 'up' | 'down';
+    sentiment: 'positive' | 'negative' | 'neutral';
   };
   sparklineData?: number[]; // Array of values for mini chart
   icon?: React.ReactNode;
@@ -703,12 +704,12 @@ interface StatCardProps {
 
 **Layout**: See `DESIGN-SYSTEM-v2.md` Section 5.2 (StatCardRow Composition).
 
-| Element | Typography | Color |
-|---------|-----------|-------|
-| Label | Overline (11px, 600, uppercase, 0.8px spacing) | `--text-secondary` |
-| Value | 28px / 700 (Title 1) | `--text-primary` |
-| Trend | Caption (12px, 500) | Success-700 (positive), Error-700 (negative), `--text-secondary` (neutral) |
-| Sparkline | 48px height, 100% width | `--accent` (neutral), success-500 (positive), error-500 (negative) |
+| Element   | Typography                                     | Color                                                                      |
+| --------- | ---------------------------------------------- | -------------------------------------------------------------------------- |
+| Label     | Overline (11px, 600, uppercase, 0.8px spacing) | `--text-secondary`                                                         |
+| Value     | 28px / 700 (Title 1)                           | `--text-primary`                                                           |
+| Trend     | Caption (12px, 500)                            | Success-700 (positive), Error-700 (negative), `--text-secondary` (neutral) |
+| Sparkline | 48px height, 100% width                        | `--accent` (neutral), success-500 (positive), error-500 (negative)         |
 
 **Animation**: Value counts up from 0 on first render (AP: Section 10 — status counter). Trend arrow bounces via springBouncy. Sparkline draws left-to-right over 600ms.
 
@@ -727,9 +728,9 @@ Inline label for categorization and metadata.
 ```tsx
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: "default" | "outline";
-  color?: "gray" | "blue" | "green" | "amber" | "red" | "purple";
-  size?: "sm" | "md";
+  variant?: 'default' | 'outline';
+  color?: 'gray' | 'blue' | 'green' | 'amber' | 'red' | 'purple';
+  size?: 'sm' | 'md';
   leftIcon?: React.ReactNode;
   removable?: boolean;
   onRemove?: () => void;
@@ -738,10 +739,10 @@ interface BadgeProps {
 
 **Sizes**
 
-| Size | Height | Padding | Font | Border Radius |
-|------|--------|---------|------|---------------|
-| `sm` | 20px | 4px 8px | 11px / 500 | 999px (pill) |
-| `md` | 24px | 4px 10px | 12px / 500 | 999px (pill) |
+| Size | Height | Padding  | Font       | Border Radius |
+| ---- | ------ | -------- | ---------- | ------------- |
+| `sm` | 20px   | 4px 8px  | 11px / 500 | 999px (pill)  |
+| `md` | 24px   | 4px 10px | 12px / 500 | 999px (pill)  |
 
 **Color Mapping**: Each `color` maps to the badge token pairs from `DESIGN-SYSTEM-v2.md` Section 1.3-1.8. Example: `green` uses `--badge-success-bg` background + `--badge-success-text` text.
 
@@ -761,19 +762,19 @@ interface StatusBadgeProps {
   status: Status;
   label: string;
   showDot?: boolean; // Colored dot before label. Default: true
-  size?: "sm" | "md";
+  size?: 'sm' | 'md';
 }
 ```
 
 **Status-Color Mapping**
 
-| Status | Dot Color | Background | Text |
-|--------|----------|------------|------|
+| Status    | Dot Color          | Background           | Text                   |
+| --------- | ------------------ | -------------------- | ---------------------- |
 | `success` | `--status-success` | `--badge-success-bg` | `--badge-success-text` |
 | `warning` | `--status-warning` | `--badge-warning-bg` | `--badge-warning-text` |
-| `error` | `--status-error` | `--badge-error-bg` | `--badge-error-text` |
-| `info` | `--status-info` | `--badge-info-bg` | `--badge-info-text` |
-| `pending` | Neutral-400 | `--badge-pending-bg` | `--badge-pending-text` |
+| `error`   | `--status-error`   | `--badge-error-bg`   | `--badge-error-text`   |
+| `info`    | `--status-info`    | `--badge-info-bg`    | `--badge-info-text`    |
+| `pending` | Neutral-400        | `--badge-pending-bg` | `--badge-pending-text` |
 
 **Dot**: 6px circle, `margin-right: 6px`. Pulsing animation on `error` status (AP: Section 10.2).
 
@@ -793,21 +794,21 @@ interface AvatarProps {
   src?: string;
   alt: string;
   name: string; // Used for initials fallback
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
-  status?: "online" | "offline" | "busy" | "away";
-  shape?: "circle" | "rounded"; // Default: "circle"
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  status?: 'online' | 'offline' | 'busy' | 'away';
+  shape?: 'circle' | 'rounded'; // Default: "circle"
 }
 ```
 
 **Sizes**
 
 | Size | Dimension | Font (initials) | Status dot |
-|------|-----------|----------------|-----------|
-| `xs` | 24px | 10px / 600 | 6px |
-| `sm` | 32px | 12px / 600 | 8px |
-| `md` | 40px | 14px / 600 | 10px |
-| `lg` | 56px | 18px / 600 | 12px |
-| `xl` | 80px | 24px / 600 | 14px |
+| ---- | --------- | --------------- | ---------- |
+| `xs` | 24px      | 10px / 600      | 6px        |
+| `sm` | 32px      | 12px / 600      | 8px        |
+| `md` | 40px      | 14px / 600      | 10px       |
+| `lg` | 56px      | 18px / 600      | 12px       |
+| `xl` | 80px      | 24px / 600      | 14px       |
 
 **Fallback Order**: Image `src` -> Initials (first letter of first + last name) on colored background -> Generic user icon.
 
@@ -828,7 +829,7 @@ Stacked display of multiple avatars with overflow indicator.
 interface AvatarGroupProps {
   avatars: AvatarProps[];
   max?: number; // Default: 4. Shows "+N more" for overflow.
-  size?: "xs" | "sm" | "md" | "lg";
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   spacing?: number; // Overlap in px. Default: -8
 }
 ```
@@ -849,8 +850,8 @@ Contextual information on hover/focus.
 ```tsx
 interface TooltipProps {
   content: React.ReactNode;
-  side?: "top" | "right" | "bottom" | "left"; // Default: "top"
-  align?: "start" | "center" | "end";
+  side?: 'top' | 'right' | 'bottom' | 'left'; // Default: "top"
+  align?: 'start' | 'center' | 'end';
   delayDuration?: number; // ms before showing. Default: 300
   children: React.ReactNode; // Trigger element
 }
@@ -884,8 +885,8 @@ Rich interactive content container triggered by click.
 interface PopoverProps {
   trigger: React.ReactNode;
   content: React.ReactNode;
-  side?: "top" | "right" | "bottom" | "left";
-  align?: "start" | "center" | "end";
+  side?: 'top' | 'right' | 'bottom' | 'left';
+  align?: 'start' | 'center' | 'end';
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -918,11 +919,11 @@ interface KPICardProps {
   comparison?: {
     label: string; // "vs last week"
     value: number;
-    direction: "up" | "down" | "flat";
-    sentiment: "positive" | "negative" | "neutral";
+    direction: 'up' | 'down' | 'flat';
+    sentiment: 'positive' | 'negative' | 'neutral';
   };
   chart?: {
-    type: "sparkline" | "donut" | "progress";
+    type: 'sparkline' | 'donut' | 'progress';
     data: number[];
     color?: string;
   };
@@ -970,14 +971,14 @@ Wrapper component for data visualization using a charting library (Recharts or s
 
 ```tsx
 interface ChartProps {
-  type: "line" | "bar" | "horizontalBar" | "donut" | "area" | "stackedBar" | "groupedBar";
+  type: 'line' | 'bar' | 'horizontalBar' | 'donut' | 'area' | 'stackedBar' | 'groupedBar';
   data: ChartDataPoint[];
   series: ChartSeries[];
   height?: number; // Default: 300
   showLegend?: boolean;
   showGrid?: boolean;
   showTooltip?: boolean;
-  colorScheme?: "default" | "colorblind"; // Default uses chart palette, colorblind uses Section 1.11
+  colorScheme?: 'default' | 'colorblind'; // Default uses chart palette, colorblind uses Section 1.11
   xAxisLabel?: string;
   yAxisLabel?: string;
   formatXAxis?: (value: string) => string;
@@ -1021,7 +1022,7 @@ Chronological event display for activity logs and history.
 ```tsx
 interface TimelineProps {
   items: TimelineItem[];
-  orientation?: "vertical"; // Always vertical in v1
+  orientation?: 'vertical'; // Always vertical in v1
   showConnector?: boolean; // Default: true
 }
 
@@ -1057,8 +1058,8 @@ Linear progress indicator.
 interface ProgressBarProps {
   value: number; // 0-100
   max?: number; // Default: 100
-  size?: "sm" | "md" | "lg";
-  color?: "accent" | "success" | "warning" | "error";
+  size?: 'sm' | 'md' | 'lg';
+  color?: 'accent' | 'success' | 'warning' | 'error';
   showLabel?: boolean; // Percentage text. Default: false
   label?: string; // Custom label overriding percentage
   animate?: boolean; // Animate fill on mount. Default: true
@@ -1068,10 +1069,10 @@ interface ProgressBarProps {
 **Sizes**
 
 | Size | Height |
-|------|--------|
-| `sm` | 4px |
-| `md` | 8px |
-| `lg` | 12px |
+| ---- | ------ |
+| `sm` | 4px    |
+| `md` | 8px    |
+| `lg` | 12px   |
 
 Track: `--bg-tertiary`. Fill: determined by `color` prop (default `--accent`). Border-radius: 999px (pill).
 
@@ -1091,12 +1092,12 @@ Removable label for categorization. Used in filters and multi-select displays.
 ```tsx
 interface TagProps {
   children: React.ReactNode;
-  color?: "gray" | "blue" | "green" | "amber" | "red" | "purple";
+  color?: 'gray' | 'blue' | 'green' | 'amber' | 'red' | 'purple';
   removable?: boolean;
   onRemove?: () => void;
   onClick?: () => void;
   leftIcon?: React.ReactNode;
-  size?: "sm" | "md";
+  size?: 'sm' | 'md';
 }
 ```
 
@@ -1120,7 +1121,7 @@ Non-blocking notification for action confirmations and system messages.
 interface ToastProps {
   title: string;
   description?: string;
-  variant: "success" | "error" | "warning" | "info";
+  variant: 'success' | 'error' | 'warning' | 'info';
   action?: { label: string; onClick: () => void };
   duration?: number; // ms. Default: 5000. Use Infinity for persistent.
   dismissible?: boolean; // Default: true
@@ -1128,7 +1129,7 @@ interface ToastProps {
 
 // Provider API
 interface ToastProviderProps {
-  position?: "top-right" | "top-center" | "bottom-right" | "bottom-center";
+  position?: 'top-right' | 'top-center' | 'bottom-right' | 'bottom-center';
   maxToasts?: number; // Default: 3. Older ones dismissed.
 }
 ```
@@ -1162,7 +1163,7 @@ Inline persistent message for important information.
 
 ```tsx
 interface AlertProps {
-  variant: "info" | "success" | "warning" | "error";
+  variant: 'info' | 'success' | 'warning' | 'error';
   title?: string;
   children: React.ReactNode; // Description content
   action?: { label: string; onClick: () => void };
@@ -1174,12 +1175,12 @@ interface AlertProps {
 
 **Dimensions**: Full-width of parent. Padding 16px. Border-radius 10px. Border: 1px variant-100 color. Background: variant-50 color.
 
-| Variant | Icon | Background | Border | Text |
-|---------|------|-----------|--------|------|
-| `info` | InfoCircle | Info-50 | Info-100 | Info-800 (title), Info-700 (body) |
-| `success` | CheckCircle | Success-50 | Success-100 | Success-800, Success-700 |
-| `warning` | AlertTriangle | Warning-50 | Warning-100 | Warning-800, Warning-700 |
-| `error` | AlertCircle | Error-50 | Error-100 | Error-800, Error-700 |
+| Variant   | Icon          | Background | Border      | Text                              |
+| --------- | ------------- | ---------- | ----------- | --------------------------------- |
+| `info`    | InfoCircle    | Info-50    | Info-100    | Info-800 (title), Info-700 (body) |
+| `success` | CheckCircle   | Success-50 | Success-100 | Success-800, Success-700          |
+| `warning` | AlertTriangle | Warning-50 | Warning-100 | Warning-800, Warning-700          |
+| `error`   | AlertCircle   | Error-50   | Error-100   | Error-800, Error-700              |
 
 **Accessibility**
 
@@ -1198,7 +1199,7 @@ interface DialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
-  size?: "sm" | "md" | "lg" | "xl" | "fullscreen";
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'fullscreen';
   children: React.ReactNode; // Body content
   footer?: React.ReactNode; // Action buttons
   closable?: boolean; // Show X button. Default: true
@@ -1208,13 +1209,13 @@ interface DialogProps {
 
 **Sizes**
 
-| Size | Width | Use Case |
-|------|-------|----------|
-| `sm` | 400px | Confirmations, simple forms |
-| `md` | 560px | Standard forms (package check-in, service request) |
-| `lg` | 720px | Complex forms, multi-step wizards |
-| `xl` | 960px | Detail views, side-by-side layouts |
-| `fullscreen` | 100vw x 100vh | Mobile sheets, document preview |
+| Size         | Width         | Use Case                                           |
+| ------------ | ------------- | -------------------------------------------------- |
+| `sm`         | 400px         | Confirmations, simple forms                        |
+| `md`         | 560px         | Standard forms (package check-in, service request) |
+| `lg`         | 720px         | Complex forms, multi-step wizards                  |
+| `xl`         | 960px         | Detail views, side-by-side layouts                 |
+| `fullscreen` | 100vw x 100vh | Mobile sheets, document preview                    |
 
 **Dimensions**: Max-height `calc(100vh - 64px)`. Scrollable body. Sticky header (title + close) and sticky footer (actions). Border-radius 16px. Shadow `--shadow-4`. Backdrop: `rgba(0, 0, 0, 0.4)`.
 
@@ -1249,7 +1250,7 @@ interface ConfirmDialogProps {
   description: string;
   confirmLabel?: string; // Default: "Delete"
   cancelLabel?: string; // Default: "Cancel"
-  variant?: "danger" | "warning"; // Default: "danger"
+  variant?: 'danger' | 'warning'; // Default: "danger"
   confirmationText?: string; // If set, user must type this text to enable confirm button
   onConfirm: () => void;
   onCancel?: () => void;
@@ -1276,8 +1277,8 @@ Slide-over panel for secondary content without leaving the page context.
 interface SheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  side?: "right" | "left" | "bottom"; // Default: "right"
-  size?: "sm" | "md" | "lg";
+  side?: 'right' | 'left' | 'bottom'; // Default: "right"
+  size?: 'sm' | 'md' | 'lg';
   title?: string;
   description?: string;
   children: React.ReactNode;
@@ -1288,7 +1289,7 @@ interface SheetProps {
 **Sizes (right/left side)**
 
 | Size | Width |
-|------|-------|
+| ---- | ----- |
 | `sm` | 320px |
 | `md` | 480px |
 | `lg` | 640px |
@@ -1311,7 +1312,7 @@ Placeholder content shown during data loading.
 
 ```tsx
 interface SkeletonProps {
-  variant?: "text" | "circular" | "rectangular";
+  variant?: 'text' | 'circular' | 'rectangular';
   width?: string | number;
   height?: string | number;
   lines?: number; // For "text" variant, renders multiple lines
@@ -1348,8 +1349,8 @@ Inline loading indicator for buttons and small areas.
 
 ```tsx
 interface SpinnerProps {
-  size?: "sm" | "md" | "lg";
-  color?: "accent" | "white" | "current"; // "current" inherits parent text color
+  size?: 'sm' | 'md' | 'lg';
+  color?: 'accent' | 'white' | 'current'; // "current" inherits parent text color
   label?: string; // Screen reader text. Default: "Loading"
 }
 ```
@@ -1357,10 +1358,10 @@ interface SpinnerProps {
 **Sizes**
 
 | Size | Dimension | Stroke Width |
-|------|-----------|-------------|
-| `sm` | 16px | 2px |
-| `md` | 24px | 2.5px |
-| `lg` | 40px | 3px |
+| ---- | --------- | ------------ |
+| `sm` | 16px      | 2px          |
+| `md` | 24px      | 2.5px        |
+| `lg` | 40px      | 3px          |
 
 **Rendering**: SVG circle with `stroke-dasharray` creating a 270-degree arc. Rotates at 0.8s per revolution.
 
@@ -1429,24 +1430,24 @@ interface ProgressIndicatorProps {
   steps: ProgressStep[];
   currentStep: number; // 0-indexed
   orientation?: Orientation; // Default: "horizontal"
-  size?: "sm" | "md";
+  size?: 'sm' | 'md';
 }
 
 interface ProgressStep {
   label: string;
   description?: string;
-  status?: "complete" | "current" | "upcoming" | "error";
+  status?: 'complete' | 'current' | 'upcoming' | 'error';
 }
 ```
 
 **Layout (horizontal)**: Steps connected by horizontal lines. Each step: numbered circle (24px for sm, 32px for md) -> label below.
 
-| Status | Circle | Line (to next) | Label |
-|--------|--------|----------------|-------|
-| Complete | `--accent` fill, white checkmark | `--accent` solid | `--text-primary` |
-| Current | `--accent` ring, accent dot inside | `--border-subtle` dashed | `--accent`, 600 weight |
-| Upcoming | `--border-subtle` ring | `--border-subtle` dashed | `--text-secondary` |
-| Error | `--color-error` ring, X icon | `--color-error` dashed | `--color-error` |
+| Status   | Circle                             | Line (to next)           | Label                  |
+| -------- | ---------------------------------- | ------------------------ | ---------------------- |
+| Complete | `--accent` fill, white checkmark   | `--accent` solid         | `--text-primary`       |
+| Current  | `--accent` ring, accent dot inside | `--border-subtle` dashed | `--accent`, 600 weight |
+| Upcoming | `--border-subtle` ring             | `--border-subtle` dashed | `--text-secondary`     |
+| Error    | `--color-error` ring, X icon       | `--color-error` dashed   | `--color-error`        |
 
 **Animation**: Completion transitions: circle fills with accent via springSnappy, checkmark draws in (stroke animation). Line fills left-to-right over 300ms.
 
@@ -1495,11 +1496,11 @@ interface SidebarItemConfig {
 
 **Dimensions**
 
-| State | Width | Content |
-|-------|-------|---------|
-| Expanded | 240px | Icon + label + category headers |
-| Collapsed | 64px | Icon only, centered. Tooltip on hover shows label. |
-| Mobile | Full-width overlay | Slide-over with backdrop |
+| State     | Width              | Content                                            |
+| --------- | ------------------ | -------------------------------------------------- |
+| Expanded  | 240px              | Icon + label + category headers                    |
+| Collapsed | 64px               | Icon only, centered. Tooltip on hover shows label. |
+| Mobile    | Full-width overlay | Slide-over with backdrop                           |
 
 **Active Item**: Left 3px `--accent` border + `--accent-subtle` background + `--accent` text.
 **Hover Item**: `--bg-tertiary` background, 150ms transition.
@@ -1593,8 +1594,8 @@ interface TabsProps {
   items: TabItem[];
   value?: string;
   defaultValue?: string;
-  variant?: "underline" | "pills"; // Default: "underline"
-  size?: "sm" | "md";
+  variant?: 'underline' | 'pills'; // Default: "underline"
+  size?: 'sm' | 'md';
   fullWidth?: boolean; // Tabs stretch to fill container
   onChange?: (value: string) => void;
 }
@@ -1707,14 +1708,22 @@ Contextual action menu triggered by a button.
 interface DropdownMenuProps {
   trigger: React.ReactNode;
   items: DropdownItem[];
-  align?: "start" | "center" | "end"; // Default: "end"
-  side?: "top" | "bottom"; // Default: "bottom"
+  align?: 'start' | 'center' | 'end'; // Default: "end"
+  side?: 'top' | 'bottom'; // Default: "bottom"
 }
 
 type DropdownItem =
-  | { type: "item"; label: string; icon?: React.ReactNode; shortcut?: string; disabled?: boolean; destructive?: boolean; onSelect: () => void }
-  | { type: "separator" }
-  | { type: "label"; text: string };
+  | {
+      type: 'item';
+      label: string;
+      icon?: React.ReactNode;
+      shortcut?: string;
+      disabled?: boolean;
+      destructive?: boolean;
+      onSelect: () => void;
+    }
+  | { type: 'separator' }
+  | { type: 'label'; text: string };
 ```
 
 **Dimensions**: Min-width 180px, max-width 280px. Item height 36px. Padding 4px. Border-radius 10px. Shadow `--shadow-2`.
@@ -1761,7 +1770,7 @@ interface StepIndicatorProps {
   steps: StepConfig[];
   currentStep: number;
   onStepClick?: (step: number) => void; // If set, completed steps are clickable
-  variant?: "horizontal" | "vertical";
+  variant?: 'horizontal' | 'vertical';
 }
 
 interface StepConfig {
@@ -1820,11 +1829,11 @@ interface SectionHeaderProps {
 
 **Typography by Level**
 
-| Level | Element | Font |
-|-------|---------|------|
-| 1 | `<h1>` | 34px / 700 (Display) |
-| 2 | `<h2>` | 22px / 600 (Title 2) |
-| 3 | `<h3>` | 20px / 600 (Title 3) |
+| Level | Element | Font                 |
+| ----- | ------- | -------------------- |
+| 1     | `<h1>`  | 34px / 700 (Display) |
+| 2     | `<h2>`  | 22px / 600 (Title 2) |
+| 3     | `<h3>`  | 20px / 600 (Title 3) |
 
 Description: Body (15px, 400), `--text-secondary`. Margin bottom: 24px to content below.
 
@@ -1837,11 +1846,13 @@ CSS Grid layout utility.
 ```tsx
 interface GridProps {
   children: React.ReactNode;
-  columns?: number | { xs?: number; sm?: number; md?: number; lg?: number; xl?: number; monitor?: number };
+  columns?:
+    | number
+    | { xs?: number; sm?: number; md?: number; lg?: number; xl?: number; monitor?: number };
   gap?: number | string; // Default: 24px
   rowGap?: number | string;
   columnGap?: number | string;
-  alignItems?: "start" | "center" | "end" | "stretch";
+  alignItems?: 'start' | 'center' | 'end' | 'stretch';
   className?: string;
 }
 ```
@@ -1862,10 +1873,10 @@ Flex-based linear layout.
 ```tsx
 interface StackProps {
   children: React.ReactNode;
-  direction?: "row" | "column"; // Default: "column"
+  direction?: 'row' | 'column'; // Default: "column"
   gap?: number | string; // Default: 16px
-  align?: "start" | "center" | "end" | "stretch" | "baseline";
-  justify?: "start" | "center" | "end" | "between" | "around" | "evenly";
+  align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
+  justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
   wrap?: boolean;
   className?: string;
   as?: React.ElementType; // Default: "div"
@@ -1900,7 +1911,7 @@ Explicit empty space. Preferred over margin hacks for layout spacing.
 ```tsx
 interface SpacerProps {
   size: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9; // Maps to --space-1 through --space-9
-  axis?: "horizontal" | "vertical"; // Default: "vertical"
+  axis?: 'horizontal' | 'vertical'; // Default: "vertical"
 }
 ```
 
@@ -1913,7 +1924,7 @@ Max-width content wrapper.
 ```tsx
 interface ContainerProps {
   children: React.ReactNode;
-  maxWidth?: "sm" | "md" | "lg" | "xl" | "full";
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   padding?: boolean; // Default: true (adds horizontal padding)
   center?: boolean; // Default: true (margin auto)
   className?: string;
@@ -1922,12 +1933,12 @@ interface ContainerProps {
 
 **Max-Width Values**
 
-| Size | Max-Width |
-|------|-----------|
-| `sm` | 640px |
-| `md` | 768px |
-| `lg` | 1024px |
-| `xl` | 1280px |
+| Size   | Max-Width   |
+| ------ | ----------- |
+| `sm`   | 640px       |
+| `md`   | 768px       |
+| `lg`   | 1024px      |
+| `xl`   | 1280px      |
 | `full` | None (100%) |
 
 **Note**: On monitor breakpoint (1920px+), pages use `full` width to maximize data density. Container is used primarily for centered content like auth pages and marketing.
@@ -1957,7 +1968,7 @@ Custom-styled scrollable area with thin, auto-hiding scrollbar.
 ```tsx
 interface ScrollAreaProps {
   children: React.ReactNode;
-  orientation?: "vertical" | "horizontal" | "both";
+  orientation?: 'vertical' | 'horizontal' | 'both';
   maxHeight?: string | number;
   className?: string;
 }
@@ -2032,23 +2043,23 @@ Click-to-edit text that transitions between display and input mode.
 ```tsx
 interface InlineEditProps {
   value: string;
-  displayAs?: "text" | "heading"; // Typography style
+  displayAs?: 'text' | 'heading'; // Typography style
   placeholder?: string;
   maxLength?: number;
   required?: boolean;
   onSave: (value: string) => Promise<void> | void;
   onCancel?: () => void;
-  editTrigger?: "click" | "doubleClick"; // Default: "click"
+  editTrigger?: 'click' | 'doubleClick'; // Default: "click"
 }
 ```
 
 **States**
 
-| State | Rendering |
-|-------|----------|
+| State   | Rendering                                                               |
+| ------- | ----------------------------------------------------------------------- |
 | Display | Text value with subtle pencil icon on hover. Dashed underline on hover. |
 | Editing | Input field (same dimensions as display text) with save/cancel buttons. |
-| Saving | Input disabled, spinner next to save button. |
+| Saving  | Input disabled, spinner next to save button.                            |
 
 **Animation**: Transition between display and edit modes via cross-fade (150ms).
 
@@ -2067,7 +2078,7 @@ Specialized input for search with clear button and keyboard shortcut hint.
 interface SearchInputProps extends BaseInteractiveProps {
   value?: string;
   placeholder?: string; // Default: "Search..."
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
   shortcutHint?: string; // e.g., "Ctrl+K" displayed as badge inside input
   loading?: boolean; // Shows spinner while searching
   onSearch?: (query: string) => void;
@@ -2206,7 +2217,16 @@ WYSIWYG text editor for announcements, descriptions, and long-form content.
 interface RichTextEditorProps extends BaseInteractiveProps {
   value?: string; // HTML string
   placeholder?: string;
-  toolbar?: ("bold" | "italic" | "underline" | "heading" | "list" | "orderedList" | "link" | "image")[];
+  toolbar?: (
+    | 'bold'
+    | 'italic'
+    | 'underline'
+    | 'heading'
+    | 'list'
+    | 'orderedList'
+    | 'link'
+    | 'image'
+  )[];
   maxLength?: number;
   minHeight?: number; // Default: 200
   maxHeight?: number; // Default: 500
@@ -2266,7 +2286,7 @@ interface PackageCardProps {
   residentName: string;
   courierName: string;
   courierIcon?: React.ReactNode; // Amazon, FedEx, UPS, etc.
-  status: "received" | "notified" | "released" | "returned";
+  status: 'received' | 'notified' | 'released' | 'returned';
   receivedAt: Date;
   releasedAt?: Date;
   releasedTo?: string;
@@ -2304,7 +2324,7 @@ interface EventCardProps {
   resident?: string;
   createdAt: Date;
   createdBy: string;
-  status: "open" | "closed";
+  status: 'open' | 'closed';
   notificationSent?: boolean;
   onClick?: () => void;
 }
@@ -2325,8 +2345,8 @@ interface MaintenanceCardProps {
   title: string;
   category: string;
   unit: string;
-  priority: "low" | "medium" | "high" | "urgent";
-  status: "open" | "in_progress" | "on_hold" | "closed";
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'open' | 'in_progress' | 'on_hold' | 'closed';
   assignee?: { name: string; avatar?: string };
   createdAt: Date;
   hasPhotos?: boolean;
@@ -2372,7 +2392,7 @@ interface ShiftNoteProps {
   content: string;
   author: { name: string; role: string; avatar?: string };
   createdAt: Date;
-  priority?: "normal" | "important";
+  priority?: 'normal' | 'important';
   acknowledged?: boolean;
   onAcknowledge?: () => void;
 }
@@ -2388,12 +2408,12 @@ Calendar grid for amenity booking visualization.
 
 ```tsx
 interface AmenityCalendarProps {
-  view: "day" | "week" | "month";
+  view: 'day' | 'week' | 'month';
   date: Date;
   bookings: CalendarBooking[];
   amenities: Amenity[];
   onDateChange: (date: Date) => void;
-  onViewChange: (view: "day" | "week" | "month") => void;
+  onViewChange: (view: 'day' | 'week' | 'month') => void;
   onBookingClick: (bookingId: string) => void;
   onSlotClick: (date: Date, amenityId: string) => void;
 }
@@ -2404,7 +2424,7 @@ interface CalendarBooking {
   title: string;
   start: Date;
   end: Date;
-  status: "confirmed" | "pending" | "cancelled";
+  status: 'confirmed' | 'pending' | 'cancelled';
   resident?: string;
 }
 ```
@@ -2441,7 +2461,7 @@ interface Notification {
   timestamp: Date;
   read: boolean;
   icon?: React.ReactNode;
-  type: "package" | "maintenance" | "booking" | "announcement" | "security" | "system";
+  type: 'package' | 'maintenance' | 'booking' | 'announcement' | 'security' | 'system';
   actionUrl?: string;
 }
 ```
@@ -2493,23 +2513,31 @@ Displays a user's role with appropriate visual treatment.
 
 ```tsx
 interface RoleBadgeProps {
-  role: "super_admin" | "admin" | "property_manager" | "concierge" | "security" | "board_member" | "resident" | "owner";
-  size?: "sm" | "md";
+  role:
+    | 'super_admin'
+    | 'admin'
+    | 'property_manager'
+    | 'concierge'
+    | 'security'
+    | 'board_member'
+    | 'resident'
+    | 'owner';
+  size?: 'sm' | 'md';
 }
 ```
 
 **Color Mapping**
 
-| Role | Color | Icon |
-|------|-------|------|
-| `super_admin` | Purple | Shield |
-| `admin` | Purple-light | ShieldCheck |
-| `property_manager` | Blue | Building |
-| `concierge` | Teal | Desk |
-| `security` | Amber | Lock |
-| `board_member` | Indigo | Users |
-| `resident` | Green | Home |
-| `owner` | Green-dark | Key |
+| Role               | Color        | Icon        |
+| ------------------ | ------------ | ----------- |
+| `super_admin`      | Purple       | Shield      |
+| `admin`            | Purple-light | ShieldCheck |
+| `property_manager` | Blue         | Building    |
+| `concierge`        | Teal         | Desk        |
+| `security`         | Amber        | Lock        |
+| `board_member`     | Indigo       | Users       |
+| `resident`         | Green        | Home        |
+| `owner`            | Green-dark   | Key         |
 
 ---
 
@@ -2584,7 +2612,7 @@ interface FilterBarProps {
 interface FilterConfig {
   id: string;
   label: string;
-  type: "select" | "multiSelect" | "dateRange" | "toggle";
+  type: 'select' | 'multiSelect' | 'dateRange' | 'toggle';
   options?: { value: string; label: string }[];
 }
 ```
@@ -2617,7 +2645,7 @@ interface BulkActionBarProps {
 interface BulkAction {
   label: string;
   icon?: React.ReactNode;
-  variant?: "default" | "danger";
+  variant?: 'default' | 'danger';
   onClick: () => void;
 }
 ```
@@ -2719,62 +2747,587 @@ interface SettingsSection {
 
 ## Appendix A: Component-to-Token Quick Reference
 
-| Token Category | CSS Variable Pattern | Source Document |
-|---------------|---------------------|----------------|
-| Colors (OKLCH) | `--color-{scale}-{step}` | DESIGN-SYSTEM-v2.md Section 1 |
+| Token Category  | CSS Variable Pattern                                                  | Source Document                     |
+| --------------- | --------------------------------------------------------------------- | ----------------------------------- |
+| Colors (OKLCH)  | `--color-{scale}-{step}`                                              | DESIGN-SYSTEM-v2.md Section 1       |
 | Semantic colors | `--color-success`, `--color-warning`, `--color-error`, `--color-info` | DESIGN-SYSTEM-v2.md Section 1.3-1.7 |
-| Badge pairs | `--badge-{status}-bg`, `--badge-{status}-text` | DESIGN-SYSTEM-v2.md Section 1.10 |
-| Backgrounds | `--bg-primary`, `--bg-secondary`, `--bg-tertiary` | DESIGN-SYSTEM.md Section 2.1 |
-| Text | `--text-primary`, `--text-secondary`, `--text-tertiary` | DESIGN-SYSTEM.md Section 2.1 |
-| Borders | `--border-subtle`, `--border-focus` | DESIGN-SYSTEM.md Section 2.1 |
-| Accent | `--accent`, `--accent-hover`, `--accent-pressed`, `--accent-subtle` | DESIGN-SYSTEM.md Section 2.2 |
-| Shadows | `--shadow-0` through `--shadow-5` | DESIGN-SYSTEM-v2.md Section 9 |
-| Z-index | `--z-base` through `--z-emergency` | DESIGN-SYSTEM-v2.md Section 9.4 |
-| Spacing | `--space-1` through `--space-9` | DESIGN-SYSTEM.md Section 4.1 |
-| Spring presets | `springSnappy`, `springResponsive`, `springGentle` | ANIMATION-PLAYBOOK.md Section 2 |
-| Easing presets | `easeFadeIn`, `easeFadeOut`, `easeOut`, `easeIn` | ANIMATION-PLAYBOOK.md Section 2 |
-| Chart colors | `--chart-1` through `--chart-6` | DESIGN-SYSTEM-v2.md Section 6.2 |
+| Badge pairs     | `--badge-{status}-bg`, `--badge-{status}-text`                        | DESIGN-SYSTEM-v2.md Section 1.10    |
+| Backgrounds     | `--bg-primary`, `--bg-secondary`, `--bg-tertiary`                     | DESIGN-SYSTEM.md Section 2.1        |
+| Text            | `--text-primary`, `--text-secondary`, `--text-tertiary`               | DESIGN-SYSTEM.md Section 2.1        |
+| Borders         | `--border-subtle`, `--border-focus`                                   | DESIGN-SYSTEM.md Section 2.1        |
+| Accent          | `--accent`, `--accent-hover`, `--accent-pressed`, `--accent-subtle`   | DESIGN-SYSTEM.md Section 2.2        |
+| Shadows         | `--shadow-0` through `--shadow-5`                                     | DESIGN-SYSTEM-v2.md Section 9       |
+| Z-index         | `--z-base` through `--z-emergency`                                    | DESIGN-SYSTEM-v2.md Section 9.4     |
+| Spacing         | `--space-1` through `--space-9`                                       | DESIGN-SYSTEM.md Section 4.1        |
+| Spring presets  | `springSnappy`, `springResponsive`, `springGentle`                    | ANIMATION-PLAYBOOK.md Section 2     |
+| Easing presets  | `easeFadeIn`, `easeFadeOut`, `easeOut`, `easeIn`                      | ANIMATION-PLAYBOOK.md Section 2     |
+| Chart colors    | `--chart-1` through `--chart-6`                                       | DESIGN-SYSTEM-v2.md Section 6.2     |
 
 ## Appendix B: Radix UI Primitive Mapping
 
-| Concierge Component | Radix Primitive | Notes |
-|---------------------|----------------|-------|
-| Select | `@radix-ui/react-select` | Full select with groups |
-| Checkbox | `@radix-ui/react-checkbox` | Indeterminate support |
-| Radio | `@radix-ui/react-radio-group` | — |
-| Toggle | `@radix-ui/react-switch` | — |
-| Tooltip | `@radix-ui/react-tooltip` | Provider at app root |
-| Popover | `@radix-ui/react-popover` | — |
-| Dialog / Modal | `@radix-ui/react-dialog` | — |
-| Sheet / Drawer | `@radix-ui/react-dialog` | Variant with slide animation |
-| DropdownMenu | `@radix-ui/react-dropdown-menu` | Sub-menus supported |
-| ContextMenu | `@radix-ui/react-context-menu` | — |
-| Tabs | `@radix-ui/react-tabs` | — |
-| ScrollArea | `@radix-ui/react-scroll-area` | Custom scrollbar |
-| Slider | `@radix-ui/react-slider` | — |
-| Combobox | Custom (Radix Popover + Command) | No official Radix combobox |
-| CommandPalette | `cmdk` (pacocoursey/cmdk) | Built on Radix primitives |
+| Concierge Component | Radix Primitive                  | Notes                        |
+| ------------------- | -------------------------------- | ---------------------------- |
+| Select              | `@radix-ui/react-select`         | Full select with groups      |
+| Checkbox            | `@radix-ui/react-checkbox`       | Indeterminate support        |
+| Radio               | `@radix-ui/react-radio-group`    | —                            |
+| Toggle              | `@radix-ui/react-switch`         | —                            |
+| Tooltip             | `@radix-ui/react-tooltip`        | Provider at app root         |
+| Popover             | `@radix-ui/react-popover`        | —                            |
+| Dialog / Modal      | `@radix-ui/react-dialog`         | —                            |
+| Sheet / Drawer      | `@radix-ui/react-dialog`         | Variant with slide animation |
+| DropdownMenu        | `@radix-ui/react-dropdown-menu`  | Sub-menus supported          |
+| ContextMenu         | `@radix-ui/react-context-menu`   | —                            |
+| Tabs                | `@radix-ui/react-tabs`           | —                            |
+| ScrollArea          | `@radix-ui/react-scroll-area`    | Custom scrollbar             |
+| Slider              | `@radix-ui/react-slider`         | —                            |
+| Combobox            | Custom (Radix Popover + Command) | No official Radix combobox   |
+| CommandPalette      | `cmdk` (pacocoursey/cmdk)        | Built on Radix primitives    |
 
 ## Appendix C: Keyboard Shortcut Registry
 
-| Shortcut | Action | Scope |
-|----------|--------|-------|
-| `Cmd/Ctrl + K` | Open Command Palette | Global |
-| `[` | Toggle sidebar collapse | Global |
-| `Escape` | Close topmost overlay (modal, popover, dropdown) | Global |
-| `Cmd/Ctrl + Enter` | Submit current form | Within form |
-| `Cmd/Ctrl + .` | Toggle notification panel | Global |
-| `Cmd/Ctrl + /` | Focus search input on current page | Global |
-| `ArrowUp / ArrowDown` | Navigate list/menu items | Within listbox |
-| `Enter / Space` | Select/activate focused element | Within interactive |
-| `Tab / Shift+Tab` | Move focus forward/backward | Global |
-| `Backspace` | Remove last tag in TagInput | Within TagInput |
+| Shortcut              | Action                                           | Scope              |
+| --------------------- | ------------------------------------------------ | ------------------ |
+| `Cmd/Ctrl + K`        | Open Command Palette                             | Global             |
+| `[`                   | Toggle sidebar collapse                          | Global             |
+| `Escape`              | Close topmost overlay (modal, popover, dropdown) | Global             |
+| `Cmd/Ctrl + Enter`    | Submit current form                              | Within form        |
+| `Cmd/Ctrl + .`        | Toggle notification panel                        | Global             |
+| `Cmd/Ctrl + /`        | Focus search input on current page               | Global             |
+| `ArrowUp / ArrowDown` | Navigate list/menu items                         | Within listbox     |
+| `Enter / Space`       | Select/activate focused element                  | Within interactive |
+| `Tab / Shift+Tab`     | Move focus forward/backward                      | Global             |
+| `Backspace`           | Remove last tag in TagInput                      | Within TagInput    |
 
 ---
 
-*Component count: 82 (12 Primitives + 15 Data Display + 10 Feedback + 10 Navigation + 9 Layout + 10 Forms + 10 Specialized + 6 Composite)*
+## 9. Business Operations
 
-*Last updated: 2026-03-16*
-*Design system version: v2*
-*Animation reference: ANIMATION-PLAYBOOK.md*
-*Breakpoint reference: RESPONSIVE-BREAKPOINTS.md*
+### 9.1 OnboardingStepper
+
+Horizontal stepper for multi-step onboarding wizards. Tracks progress across up to 8 steps with visual indicators for completed, active, skipped, and pending states.
+
+```tsx
+interface OnboardingStepperProps extends BaseInteractiveProps {
+  steps: StepDefinition[];
+  currentStep: number; // 0-indexed
+  completedSteps: number[];
+  skippedSteps?: number[];
+  onStepClick?: (stepIndex: number) => void;
+  orientation?: 'horizontal' | 'vertical'; // Default: horizontal
+}
+
+interface StepDefinition {
+  label: string;
+  description?: string;
+  icon?: React.ReactNode;
+  optional?: boolean; // Shows "(Optional)" below label
+}
+```
+
+**Layout**: Horizontal bar with numbered circles (32px diameter) connected by lines (2px height, `--border-primary`). Each step: circle + label (Caption, 12px) + optional description (Caption, `--text-tertiary`). Total width: 100% of container, steps evenly distributed.
+
+**Step States**
+
+| State    | Circle                                               | Connector Line                                    | Label                        |
+| -------- | ---------------------------------------------------- | ------------------------------------------------- | ---------------------------- |
+| Pending  | `--border-primary` outline, `--text-tertiary` number | `--border-primary`                                | `--text-tertiary`            |
+| Active   | `--accent` fill, white number                        | Left segment `--accent`, right `--border-primary` | `--text-primary`, 600 weight |
+| Complete | `--accent` fill, white checkmark icon (16px)         | `--accent` solid                                  | `--text-primary`             |
+| Skipped  | `--border-primary` outline, dash icon                | `--border-primary` dashed                         | `--text-tertiary`, italic    |
+
+**Responsive**: Desktop (>= 1024px): all 8 steps visible. Tablet (768-1023px): show labels for current + 2 adjacent, icons only for rest. Mobile (< 768px): show current step + adjacent step indicators. Swipe gesture to scroll steps.
+
+**Animation**: Step completion: circle scales 1.0 -> 1.15 -> 1.0 (springGentle), checkmark fades in (150ms). Connector line fills left-to-right (200ms ease-out). See AP: Section 8 for progress animations.
+
+**Accessibility**
+
+- `role="navigation"`, `aria-label="Onboarding progress"`.
+- Each step: `role="listitem"`, `aria-current="step"` on active step.
+- `aria-label` on each step combining label and state: "Step 3: Property Settings, completed".
+- Clickable completed/skipped steps for non-linear navigation; pending steps not clickable.
+- `Tab` moves between clickable steps, `Enter`/`Space` activates.
+
+---
+
+### 9.2 PricingCard
+
+Plan comparison card for subscription selection. Displays plan name, pricing, feature checklist, and a call-to-action button.
+
+```tsx
+interface PricingCardProps extends BaseInteractiveProps {
+  planName: string;
+  price: number;
+  billingCycle: 'monthly' | 'annual';
+  annualDiscount?: number; // Percentage, e.g., 20
+  features: PricingFeature[];
+  highlighted?: boolean; // Adds "Popular" badge and accent border
+  variant: 'starter' | 'professional' | 'enterprise';
+  ctaLabel: string;
+  onCtaClick: () => void;
+  currentPlan?: boolean; // Shows "Current Plan" instead of CTA
+}
+
+interface PricingFeature {
+  label: string;
+  included: boolean;
+  tooltip?: string; // Help text on hover
+  limit?: string; // e.g., "Up to 500 units"
+}
+```
+
+**Variants**
+
+| Variant        | Border             | Background       | Badge                                 | CTA Variant |
+| -------------- | ------------------ | ---------------- | ------------------------------------- | ----------- |
+| `starter`      | `--border-primary` | `--bg-primary`   | None                                  | `secondary` |
+| `professional` | `--accent` (2px)   | `--bg-primary`   | "Popular" (`--accent` bg, white text) | `primary`   |
+| `enterprise`   | `--border-primary` | `--bg-secondary` | "Custom" (`--text-secondary` bg)      | `secondary` |
+
+**Layout**: Card (320px width, auto height). Padding: 32px. Top: plan name (Headline, 17px, 600). Price: large display (Display, 34px, 700) with currency symbol (Body) and "/mo" or "/yr" suffix (Caption). Feature list: vertical stack, 12px gap. Each feature: checkmark (16px, `--success`) or x-mark (16px, `--text-tertiary`) + label (Body). CTA button full-width at bottom, 24px top margin.
+
+**Popular Badge**: Positioned top-right corner, offset -8px vertically. Pill shape, 24px height, `--accent` background, white text (Caption, 600).
+
+**Animation**: Billing cycle toggle: price cross-fades (150ms) with subtle scale pulse. Highlighted card: subtle shadow elevation on mount. Card hover: lift via AP: MI-03.
+
+**Accessibility**
+
+- `role="article"`, `aria-label` combining plan name and price.
+- Feature tooltips accessible via focus (keyboard) and hover (mouse).
+- CTA button has descriptive `aria-label`: "Select Professional plan at $299 per month".
+- Current plan state: CTA replaced with static "Current Plan" badge, `aria-disabled="true"`.
+
+---
+
+### 9.3 DemoBadge
+
+Persistent banner badge indicating the application is in demo or training mode. Prevents confusion between live and sandbox environments.
+
+```tsx
+interface DemoBadgeProps {
+  mode: 'demo' | 'training';
+  propertyName?: string; // Shown as "Demo: [propertyName]"
+  onExit?: () => void; // Exit demo/training mode
+  onReset?: () => void; // Reset demo data (demo mode only)
+}
+```
+
+**Variants**
+
+| Mode       | Background         | Text Color              | Icon                   | Actions                    |
+| ---------- | ------------------ | ----------------------- | ---------------------- | -------------------------- |
+| `demo`     | `#FF9500` (Orange) | White                   | BeakerIcon (16px)      | "Reset Data" + "Exit Demo" |
+| `training` | `#FFD60A` (Yellow) | `--text-primary` (dark) | AcademicCapIcon (16px) | "End Training"             |
+
+**Layout**: Full-width bar, 36px height, fixed to top of viewport above the main header. Content centered: icon + mode label (Caption, 12px, 700, uppercase tracking 0.08em) + optional property name (Caption, 400). Action buttons right-aligned (ghost variant, 28px height).
+
+**Z-Index**: `--z-banner` (defined as 1100) — above header (1000) but below modals (1200) and toasts (1300).
+
+**Behavior**: Never dismissible by clicking away. Persists across all page navigations. Main app content shifts down by 36px to accommodate. Action buttons require confirmation dialog before executing.
+
+**Animation**: Slides down from top on mount (200ms, easeOut). No exit animation — instant removal on mode change.
+
+**Accessibility**
+
+- `role="status"`, `aria-live="polite"`.
+- `aria-label="Application is in demo mode"` or `"Application is in training mode"`.
+- Action buttons keyboard accessible, included in tab order.
+- High contrast between text and background ensured for both variants.
+
+---
+
+### 9.4 PropertySwitcherDropdown
+
+Enhanced header dropdown for multi-property users. Extends the base PropertySwitcher (7.8) with search, role badges, and admin management link.
+
+```tsx
+interface PropertySwitcherDropdownProps extends BaseInteractiveProps {
+  properties: PropertyOption[];
+  currentPropertyId: string;
+  onSwitch: (propertyId: string) => void;
+  onManage?: () => void; // "Manage Properties" link (Admin only)
+  loading?: boolean;
+}
+
+interface PropertyOption {
+  id: string;
+  name: string;
+  address: string;
+  unitCount: number;
+  logo?: string;
+  role: string; // User's role at this property
+  roleColor: string; // Role badge color (matches RoleBadge 7.9)
+  unreadCount?: number; // Pending notifications for this property
+}
+```
+
+**Trigger**: Current property name (Headline, 17px, 600) + chevron-down icon (16px) in the header bar. Chevron rotates 180deg when open.
+
+**Dropdown Panel**: Width 360px, max-height 480px. Border-radius 12px. Shadow `--shadow-3`. Background `--bg-primary`.
+
+**Search**: Visible when `properties.length > 5`. Input at top with SearchIcon, 40px height, `--bg-secondary` background. Filters by name and address. Placeholder: "Search properties...".
+
+**Property Row**: 56px height, 16px horizontal padding. Left: property logo/avatar (36px circle) or initials fallback. Center: property name (Body, 600) + address (Caption, `--text-secondary`). Right: RoleBadge (compact) + optional unread count badge (red dot, 8px).
+
+**Current Property**: Row has `--accent-subtle` background, checkmark icon (16px, `--accent`) far right.
+
+**Footer**: Divider + "Manage Properties" link (Caption, `--accent`). Only rendered when `onManage` is provided. Padding: 12px 16px.
+
+**Animation**: Dropdown enters via scaleY from top (AP: Section 5). Chevron rotation: 200ms ease.
+
+**Accessibility**
+
+- Combobox pattern: `role="combobox"` on trigger, `role="listbox"` on dropdown.
+- `aria-expanded` toggles on trigger.
+- `ArrowUp`/`ArrowDown` navigate options, `Enter` selects, `Escape` closes.
+- Search input: `aria-label="Search properties"`.
+- Each option: `aria-selected` on current property.
+- Focus trapped within dropdown when open.
+
+---
+
+### 9.5 HelpDrawer
+
+Slide-out right panel providing contextual help articles, search, and documentation links. Appears as an overlay on mobile and a push-panel on desktop.
+
+```tsx
+interface HelpDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  articles: HelpArticle[];
+  currentPage?: string; // Current route for contextual filtering
+  onSearch?: (query: string) => void;
+  onArticleClick: (articleId: string) => void;
+  recentArticles?: HelpArticle[];
+  loading?: boolean;
+}
+
+interface HelpArticle {
+  id: string;
+  title: string;
+  excerpt: string; // 2-line max
+  readTime: number; // Minutes
+  category: string;
+  tags: string[];
+  url?: string; // External link to full article
+}
+```
+
+**Layout**: Panel fixed to right edge of viewport. Width: 400px (desktop), 100vw (mobile < 768px). Height: 100vh. Background: `--bg-primary`. Shadow: `--shadow-4` on left edge. Z-index: `--z-drawer` (1150).
+
+**Header**: 56px height. Title "Help" (Headline, 17px, 600). Close button (IconButton, ghost, X icon) right-aligned. Bottom border `--border-primary`.
+
+**Search Section**: Below header, 16px padding. SearchInput (full width) with magnifying glass icon. Placeholder: "Search help articles...".
+
+**Contextual Articles Section**: Label "Related to this page" (Caption, 600, `--text-secondary`, uppercase). Filtered by `currentPage` matching article tags. Max 3 articles shown.
+
+**Article Card**: Padding 12px 16px. Title (Body, 600, 1-line clamp). Excerpt (Callout, `--text-secondary`, 2-line clamp). Footer: category badge (pill, `--bg-secondary`) + read time (Caption, `--text-tertiary`). Divider between cards.
+
+**Recent Articles Section**: Label "Recently viewed" (Caption, 600). Max 5 articles.
+
+**Mobile Behavior**: Full-screen overlay with `--bg-overlay` backdrop (rgba black, 0.4 opacity). Swipe right to dismiss.
+
+**Animation**: Panel slides in from right (300ms, easeOut). Backdrop fades in (200ms). See AP: Section 6 for drawer transitions.
+
+**Accessibility**
+
+- `role="complementary"`, `aria-label="Help panel"`.
+- Focus trap when open. Focus moves to search input on open.
+- `Escape` closes the drawer.
+- Articles are `role="link"` with descriptive `aria-label` including title and read time.
+- Backdrop click closes drawer (desktop only).
+
+---
+
+### 9.6 RoleSwitcher
+
+Demo-mode-only overlay for quickly switching between role personas. Allows stakeholders to preview the application as different user types during demos and training.
+
+```tsx
+interface RoleSwitcherProps {
+  currentRole: RoleType;
+  availableRoles: RoleOption[];
+  onSwitch: (role: RoleType) => void;
+  isDemo: boolean; // Only renders when true
+}
+
+type RoleType = 'concierge' | 'security' | 'property_manager' | 'board_member' | 'resident';
+
+interface RoleOption {
+  role: RoleType;
+  label: string;
+  description: string; // Brief role summary, e.g., "Front desk operations"
+  icon: React.ReactNode;
+  color: string; // Matches RoleBadge color mapping (7.9)
+}
+```
+
+**Behavior**: Only renders when `isDemo === true`. Returns `null` in production mode.
+
+**FAB Trigger**: Floating action button, 56px diameter, positioned bottom-right (24px from edges). Background: `--accent`. Icon: UsersIcon (24px, white). Shadow: `--shadow-3`. Tooltip on hover: "Switch Role".
+
+**Overlay Panel**: Appears above FAB. Width: 320px. Border-radius: 16px. Shadow: `--shadow-4`. Background: `--bg-primary`. Padding: 24px.
+
+**Header**: "Switch Role" (Headline, 17px, 600). "Preview as a different user" (Callout, `--text-secondary`). 16px bottom margin.
+
+**Role Cards**: Vertical stack, 8px gap. Each card: 64px height, 12px padding, border-radius 8px. Left: role icon (24px, role color). Center: role label (Body, 600) + description (Caption, `--text-secondary`). Border: `--border-primary`. Hover: `--bg-secondary` background.
+
+**Active Role Card**: Border changes to role color (2px). Left: filled role icon. Checkmark icon (16px, role color) far right.
+
+**Animation**: FAB pulse animation every 10s in demo mode to draw attention (scale 1.0 -> 1.05, 600ms). Panel fans out from FAB origin: scaleY(0) -> scaleY(1) with transform-origin bottom-right (250ms, springGentle). Cards stagger in (50ms per card). See AP: Section 10 for overlay animations.
+
+**Accessibility**
+
+- FAB: `role="button"`, `aria-label="Switch user role"`, `aria-expanded`.
+- Panel: `role="radiogroup"`, `aria-label="Available roles"`.
+- Each card: `role="radio"`, `aria-checked` on current role.
+- `ArrowUp`/`ArrowDown` navigate cards, `Enter`/`Space` selects.
+- `Escape` closes the panel.
+- Focus trapped in panel when open.
+
+---
+
+### 9.7 BillingWidget
+
+Dashboard widget displaying subscription plan status, resource usage meters, and upcoming invoice information. Composed of three sub-variants that can be used independently or together.
+
+```tsx
+interface BillingWidgetProps extends BaseInteractiveProps {
+  plan: PlanInfo;
+  usageMetrics: UsageMetric[];
+  nextInvoice?: InvoiceInfo;
+  trialDaysRemaining?: number; // Shows trial countdown when present
+  onUpgrade?: () => void;
+  onViewBilling?: () => void;
+}
+
+interface PlanInfo {
+  name: string;
+  tier: 'starter' | 'professional' | 'enterprise';
+  billingCycle: 'monthly' | 'annual';
+  price: number;
+}
+
+interface UsageMetric {
+  label: string; // e.g., "Units", "Storage", "Staff accounts"
+  current: number;
+  limit: number;
+  unit?: string; // e.g., "GB", "users"
+}
+
+interface InvoiceInfo {
+  amount: number;
+  currency: string;
+  dueDate: Date;
+  status: 'upcoming' | 'overdue' | 'paid';
+}
+```
+
+**Sub-Variants**
+
+| Sub-variant | Usage                  | Content                             |
+| ----------- | ---------------------- | ----------------------------------- |
+| PlanBadge   | Compact plan indicator | Plan name pill + billing cycle      |
+| UsageMeter  | Resource usage bars    | Horizontal progress bars per metric |
+| InvoiceCard | Next payment preview   | Amount + due date + status          |
+
+**PlanBadge**: Pill shape, 28px height. Plan name (Caption, 600) + tier icon. Background: starter = `--bg-secondary`, professional = `--accent-subtle`, enterprise = `--bg-primary` with `--border-primary`.
+
+**UsageMeter**: Each metric row: label (Caption, `--text-secondary`) left, "current/limit unit" (Caption, 600) right. Below: horizontal bar (8px height, border-radius 4px, `--bg-tertiary` track). Fill color thresholds: 0-79% = `--accent`, 80-94% = `--warning`, 95-100% = `--error`. Bar width animates on value change.
+
+**InvoiceCard**: Compact card within widget. Amount (Title 3, 600). Due date (Caption, `--text-secondary`). Status badge: upcoming = `--info`, overdue = `--error`, paid = `--success`.
+
+**Trial Mode**: When `trialDaysRemaining` is present, shows countdown badge above plan info. Badge: pill, `--warning` background when <= 7 days, `--error` when <= 3 days. Text: "N days left in trial" (Caption, 600).
+
+**Animation**: Usage bars animate width on mount (400ms, easeOut). Trial countdown badge pulses gently when <= 3 days. See AP: Section 8.
+
+**Accessibility**
+
+- Widget: `role="region"`, `aria-label="Billing overview"`.
+- Usage meters: `role="progressbar"`, `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax`.
+- Color thresholds supplemented with text labels ("Warning: approaching limit") for screen readers.
+- Invoice status communicated via `aria-label`, not color alone.
+
+---
+
+### 9.8 ImportProgress
+
+Multi-phase progress indicator for CSV file imports. Guides users through upload, validation, error review, import execution, and completion.
+
+```tsx
+interface ImportProgressProps extends BaseInteractiveProps {
+  status: 'idle' | 'uploading' | 'validating' | 'importing' | 'complete' | 'error';
+  progress: number; // 0-100
+  fileName?: string;
+  fileSize?: number; // Bytes
+  totalRows?: number;
+  processedRows?: number;
+  errors: ImportError[];
+  warnings?: ImportWarning[];
+  onRetry?: () => void;
+  onCancel?: () => void;
+  onDownloadErrors?: () => void; // Export error report as CSV
+}
+
+interface ImportError {
+  row: number;
+  field: string;
+  value: string;
+  message: string;
+  severity: 'error' | 'warning';
+}
+
+interface ImportWarning {
+  row: number;
+  field: string;
+  message: string;
+}
+```
+
+**Phase Visual** (horizontal mini-stepper, 5 phases):
+
+| Phase    | Icon                     | Label    | Active When               |
+| -------- | ------------------------ | -------- | ------------------------- |
+| Upload   | CloudArrowUpIcon         | Upload   | `status === "uploading"`  |
+| Validate | ShieldCheckIcon          | Validate | `status === "validating"` |
+| Review   | ExclamationTriangleIcon  | Review   | `status === "error"`      |
+| Import   | ArrowPathIcon (spinning) | Import   | `status === "importing"`  |
+| Complete | CheckCircleIcon          | Done     | `status === "complete"`   |
+
+**Progress Bar**: Full-width, 8px height, border-radius 4px. Track: `--bg-tertiary`. Fill: `--accent` (normal), `--error` (error state). Text above: "Processed N of M rows" (Caption, `--text-secondary`).
+
+**Error Display**: Collapsible section below progress bar. Header: "N errors found" (Body, 600, `--error`) + expand chevron. Expanded: scrollable list (max-height 240px). Each error row: row number (monospace, Caption), field name (Caption, 600), error message (Caption, `--text-secondary`). "Download Error Report" ghost button at bottom.
+
+**Idle State**: Dropzone area (dashed border, 120px height) with upload icon and "Drop CSV file or click to browse" text.
+
+**Animation**: Progress bar fills smoothly (CSS transition, 300ms linear). Phase icons: active phase pulses subtly. Completion: checkmark draws in (AP: Section 9). Error shake on validation failure (AP: Section 7).
+
+**Accessibility**
+
+- Progress bar: `role="progressbar"`, `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax="100"`, `aria-label="Import progress"`.
+- Phase stepper: `role="list"`, each phase `role="listitem"` with `aria-current="step"`.
+- Error list: `role="alert"` on appearance. Each error row readable by screen reader with full context.
+- Cancel and retry buttons always keyboard accessible.
+- Status changes announced via `aria-live="polite"` region.
+
+---
+
+### 9.9 VanityLogin
+
+Branded login card supporting per-property customization. Properties can apply their logo, colors, and background image for a white-labeled sign-in experience.
+
+```tsx
+interface VanityLoginProps {
+  propertyName: string;
+  propertyLogo?: string; // URL to logo image
+  primaryColor?: string; // OKLCH or hex override for CTA button
+  backgroundImage?: string; // URL to full-bleed background
+  loginMethod: 'email' | 'code'; // Email + password vs. magic code
+  onSubmit: (credentials: LoginCredentials) => void;
+  loading?: boolean;
+  error?: string; // Inline error message
+  onForgotPassword?: () => void;
+}
+
+interface LoginCredentials {
+  email: string;
+  password?: string; // Only for "email" method
+  code?: string; // Only for "code" method
+}
+```
+
+**Layout**: Full viewport. Optional `backgroundImage` fills the viewport with `object-fit: cover` and a dark overlay (rgba(0,0,0,0.5)) for contrast. Card centered vertically and horizontally. Card width: 420px (desktop), 100vw with 16px padding (mobile). Border-radius: 16px. Shadow: `--shadow-4`. Background: `--bg-primary`. Padding: 40px.
+
+**Card Content (top to bottom)**:
+
+1. Logo: property logo image (max-height 48px, auto width) or Concierge default logo. Centered. 24px bottom margin.
+2. Property name: Title 2 (24px, 700), centered. 8px bottom margin.
+3. Welcome text: "Sign in to your account" (Body, `--text-secondary`), centered. 32px bottom margin.
+4. Email input: standard TextInput, full width. Label "Email address".
+5. Password input (email method): TextInput with type="password" and show/hide toggle. Label "Password". OR Code input (code method): 6-digit code input with individual character boxes.
+6. "Forgot password?" link (Caption, `--accent`), right-aligned. 24px top margin.
+7. Submit button: full width, primary variant. Label "Sign In" (email) or "Verify Code" (code). Uses `primaryColor` override if provided.
+8. Error message: below submit, `--error` color, Body text with ExclamationCircleIcon.
+
+**Fallback**: When no `propertyLogo` or `primaryColor` provided, uses Concierge default branding (logo, `--accent` for buttons). No `backgroundImage` = solid `--bg-secondary` page background.
+
+**Animation**: Card fades in + slides up 20px on mount (300ms, easeOut). Error message shakes horizontally (AP: Section 7). Loading state on submit button (spinner).
+
+**Accessibility**
+
+- Card: `role="main"`, `aria-label="Sign in to [propertyName]"`.
+- Form: standard `<form>` element with `onSubmit` handler.
+- Error message: `role="alert"`, `aria-live="assertive"`.
+- Password visibility toggle: `aria-label="Show password"` / `"Hide password"`.
+- All inputs have associated `<label>` elements.
+- `Enter` key submits the form from any input.
+- Autofocus on email input on mount.
+
+---
+
+### 9.10 WizardStep
+
+Individual step container used within the OnboardingStepper (9.1). Provides a consistent layout for step content with navigation controls and validation feedback.
+
+```tsx
+interface WizardStepProps extends BaseInteractiveProps {
+  title: string;
+  description?: string;
+  stepNumber: number;
+  totalSteps: number;
+  status: 'pending' | 'active' | 'complete' | 'skipped';
+  children: React.ReactNode; // Step content (forms, selections, etc.)
+  onNext: () => void;
+  onBack?: () => void; // Hidden on first step
+  onSkip?: () => void; // Only shown when provided
+  isLastStep?: boolean; // Changes "Next" to "Go Live"
+  nextLabel?: string; // Override "Next" button text
+  loading?: boolean; // Disables buttons and shows spinner on Next
+  errors?: ValidationError[];
+}
+
+interface ValidationError {
+  field: string;
+  message: string;
+}
+```
+
+**Layout**: Max-width 720px, centered horizontally. Top: step header. Middle: content area (children). Bottom: navigation footer.
+
+**Step Header**: Step indicator "Step N of M" (Caption, `--text-tertiary`). Title (Title 2, 24px, 700). Description (Body, `--text-secondary`). Spacing: indicator to title 8px, title to description 4px, description to content 32px.
+
+**Content Area**: Minimum height 200px. Children rendered directly. Padding: 0 (content provides its own padding).
+
+**Validation Error Summary**: Rendered above the footer when `errors.length > 0`. Background: `--error-subtle`. Border-radius: 8px. Padding: 12px 16px. Icon: ExclamationTriangleIcon (16px, `--error`). Each error: field name (Caption, 600) + message (Caption, `--text-secondary`). Separator: divider between errors.
+
+**Navigation Footer**: Border-top `--border-primary`. Padding-top: 24px. Margin-top: 32px. Layout: flex, space-between.
+
+| Position     | Button                                  | Condition                                 |
+| ------------ | --------------------------------------- | ----------------------------------------- |
+| Left         | "Back" (secondary)                      | `onBack` provided and `stepNumber > 1`    |
+| Center-right | "Skip" (ghost)                          | `onSkip` provided                         |
+| Right        | "Next" (primary) or "Go Live" (primary) | Always shown. "Go Live" when `isLastStep` |
+
+**Button Sizes**: All navigation buttons use `md` size. "Go Live" button uses `lg` size with celebration icon (RocketLaunchIcon).
+
+**Loading State**: When `loading === true`, Next/Go Live button shows spinner and is disabled. Back and Skip buttons also disabled.
+
+**Animation**: Content area fades in when step becomes active (200ms, easeOut). Error summary slides down from top of footer area (AP: Section 7). "Go Live" button has subtle pulse animation when step is valid and ready.
+
+**Accessibility**
+
+- Step container: `role="region"`, `aria-label="Step N: [title]"`.
+- Error summary: `role="alert"`, `aria-live="assertive"`. Announced immediately on validation failure.
+- Navigation buttons: descriptive `aria-label` including step context: "Go to next step: [next step title]".
+- "Go Live" button: `aria-label="Complete setup and go live"`.
+- Skip button: `aria-label="Skip [current step title]"`.
+- Focus moves to first error field when validation fails (if errors reference form fields within children).
+- Step transition: focus moves to step title on step change.
+
+---
+
+_Component count: 92 (12 Primitives + 15 Data Display + 10 Feedback + 10 Navigation + 9 Layout + 10 Forms + 10 Specialized + 6 Composite + 10 Business Operations)_
+
+_Last updated: 2026-03-16_
+_Design system version: v2_
+_Animation reference: ANIMATION-PLAYBOOK.md_
+_Breakpoint reference: RESPONSIVE-BREAKPOINTS.md_
