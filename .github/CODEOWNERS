@@ -1,0 +1,7 @@
+# Security-sensitive files require additional review
+src/middleware.ts @security-team
+src/server/middleware/ @security-team
+src/server/auth/ @security-team
+src/lib/security-headers.ts @security-team
+prisma/schema.prisma @security-team
+.env* @security-team

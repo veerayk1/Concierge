@@ -1,0 +1,351 @@
+// =============================================================================
+// Concierge — Prisma Schema
+// =============================================================================
+// Multi-tenant by design: every user-visible table has property_id.
+// UUID primary keys everywhere (prevents enumeration — SECURITY-RULEBOOK C.6.3).
+// Soft deletes on all tables (deleted_at — SECURITY-RULEBOOK J.4).
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// CORE: Multi-Tenancy
+// ---------------------------------------------------------------------------
+
+model Property {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(200)
+  address   String   @db.VarChar(500)
+  city      String   @db.VarChar(100)
+  province  String   @db.VarChar(100)
+  country   String   @default("CA") @db.VarChar(2)
+  postalCode String  @db.VarChar(20)
+  unitCount Int      @default(0)
+  timezone  String   @default("America/Toronto") @db.VarChar(50)
+  logo      String?  @db.VarChar(500)
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  userProperties UserProperty[]
+  roles          Role[]
+  eventGroups    EventGroup[]
+  eventTypes     EventType[]
+  events         Event[]
+  units          Unit[]
+  announcements  Announcement[]
+  auditEntries   AuditEntry[]
+
+  @@map("properties")
+}
+
+// ---------------------------------------------------------------------------
+// AUTH: Users, Roles, Sessions
+// ---------------------------------------------------------------------------
+
+model User {
+  id             String   @id @default(uuid()) @db.Uuid
+  email          String   @unique @db.VarChar(254)
+  passwordHash   String   @db.VarChar(255)
+  firstName      String   @db.VarChar(100)
+  lastName       String   @db.VarChar(100)
+  phone          String?  @db.VarChar(20)
+  avatarUrl      String?  @db.VarChar(500)
+  mfaEnabled     Boolean  @default(false)
+  mfaSecret      String?  @db.VarChar(500) // Encrypted at application layer
+  isActive       Boolean  @default(true)
+  activatedAt    DateTime?
+  lastLoginAt    DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  userProperties  UserProperty[]
+  sessions        Session[]
+  refreshTokens   RefreshToken[]
+  loginAudits     LoginAudit[]
+  passwordHistory PasswordHistory[]
+
+  @@map("users")
+}
+
+/// Junction: one user can have different roles at different properties
+model UserProperty {
+  id         String @id @default(uuid()) @db.Uuid
+  userId     String @db.Uuid
+  propertyId String @db.Uuid
+  roleId     String @db.Uuid
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user     User     @relation(fields: [userId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+  role     Role     @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, propertyId])
+  @@index([propertyId])
+  @@map("user_properties")
+}
+
+model Role {
+  id          String  @id @default(uuid()) @db.Uuid
+  propertyId  String  @db.Uuid
+  name        String  @db.VarChar(100)
+  slug        String  @db.VarChar(100)
+  description String? @db.VarChar(500)
+  isSystem    Boolean @default(false) // Built-in roles cannot be deleted
+  permissions Json    @default("[]") // Array of permission strings
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property       Property       @relation(fields: [propertyId], references: [id])
+  userProperties UserProperty[]
+
+  @@unique([propertyId, slug])
+  @@map("roles")
+}
+
+model Session {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @db.Uuid
+  deviceFingerprint String   @db.VarChar(64)
+  ipAddress         String   @db.VarChar(45)
+  userAgent         String   @db.VarChar(500)
+  lastActiveAt      DateTime @default(now())
+  expiresAt         DateTime
+
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model RefreshToken {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @db.Uuid
+  tokenHash         String   @unique @db.VarChar(64) // SHA-256 hash
+  deviceFingerprint String   @db.VarChar(64)
+  ipAddress         String   @db.VarChar(45)
+  expiresAt         DateTime
+  rotatedAt         DateTime?
+  revokedAt         DateTime?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model PasswordHistory {
+  id           String @id @default(uuid()) @db.Uuid
+  userId       String @db.Uuid
+  passwordHash String @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("password_history")
+}
+
+// ---------------------------------------------------------------------------
+// AUDIT: Login & PII Access (INSERT-only tables)
+// ---------------------------------------------------------------------------
+
+model LoginAudit {
+  id          String  @id @default(uuid()) @db.Uuid
+  userId      String? @db.Uuid
+  email       String  @db.VarChar(254)
+  ipAddress   String  @db.VarChar(45)
+  userAgent   String  @db.VarChar(500)
+  geoCity     String? @db.VarChar(100)
+  geoCountry  String? @db.VarChar(2)
+  success     Boolean
+  failReason  String? @db.VarChar(100)
+  sessionId   String? @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([email])
+  @@index([ipAddress])
+  @@map("login_audits")
+}
+
+model AuditEntry {
+  id           String  @id @default(uuid()) @db.Uuid
+  propertyId   String  @db.Uuid
+  userId       String  @db.Uuid
+  action       String  @db.VarChar(20) // read, create, update, delete
+  resource     String  @db.VarChar(100) // table name
+  resourceId   String  @db.Uuid
+  fields       Json?   // Which fields were accessed/modified
+  ipAddress    String  @db.VarChar(45)
+  userAgent    String? @db.VarChar(500)
+  piiAccessed  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@map("audit_entries")
+}
+
+// ---------------------------------------------------------------------------
+// UNIFIED EVENT MODEL
+// ---------------------------------------------------------------------------
+
+model EventGroup {
+  id          String @id @default(uuid()) @db.Uuid
+  propertyId  String @db.Uuid
+  name        String @db.VarChar(100)
+  slug        String @db.VarChar(100)
+  description String? @db.VarChar(500)
+  sortOrder   Int    @default(0)
+  isActive    Boolean @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property   Property    @relation(fields: [propertyId], references: [id])
+  eventTypes EventType[]
+
+  @@unique([propertyId, slug])
+  @@map("event_groups")
+}
+
+model EventType {
+  id                String  @id @default(uuid()) @db.Uuid
+  propertyId        String  @db.Uuid
+  eventGroupId      String  @db.Uuid
+  name              String  @db.VarChar(100)
+  slug              String  @db.VarChar(100)
+  icon              String  @default("circle") @db.VarChar(50)
+  color             String  @default("#2563EB") @db.VarChar(7)
+  defaultPriority   String  @default("normal") @db.VarChar(20)
+  notifyOnCreate    Boolean @default(true)
+  notifyOnClose     Boolean @default(false)
+  showOnLobby       Boolean @default(false)
+  customFieldsSchema Json?  // JSON Schema for custom fields
+  isActive          Boolean @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property   Property   @relation(fields: [propertyId], references: [id])
+  eventGroup EventGroup @relation(fields: [eventGroupId], references: [id])
+  events     Event[]
+
+  @@unique([propertyId, slug])
+  @@map("event_types")
+}
+
+model Event {
+  id            String  @id @default(uuid()) @db.Uuid
+  propertyId    String  @db.Uuid
+  eventTypeId   String  @db.Uuid
+  unitId        String? @db.Uuid
+  status        String  @default("open") @db.VarChar(20)
+  priority      String  @default("normal") @db.VarChar(20)
+  title         String  @db.VarChar(200)
+  description   String? @db.Text
+  customFields  Json?   // JSONB for configurable fields
+  createdById   String  @db.Uuid
+  closedById    String? @db.Uuid
+  closedAt      DateTime?
+  referenceNo   String  @db.VarChar(20)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property  Property  @relation(fields: [propertyId], references: [id])
+  eventType EventType @relation(fields: [eventTypeId], references: [id])
+  unit      Unit?     @relation(fields: [unitId], references: [id])
+
+  @@index([propertyId, status])
+  @@index([propertyId, eventTypeId])
+  @@index([propertyId, createdAt])
+  @@index([unitId])
+  @@map("events")
+}
+
+// ---------------------------------------------------------------------------
+// BUILDING: Units
+// ---------------------------------------------------------------------------
+
+model Unit {
+  id           String  @id @default(uuid()) @db.Uuid
+  propertyId   String  @db.Uuid
+  number       String  @db.VarChar(20)
+  floor        Int?
+  building     String? @db.VarChar(50)
+  unitType     String? @db.VarChar(50)
+  instructions Json?   // Per-unit front desk instructions
+  customFields Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id])
+  events   Event[]
+
+  @@unique([propertyId, number])
+  @@index([propertyId])
+  @@map("units")
+}
+
+// ---------------------------------------------------------------------------
+// COMMUNICATION: Announcements
+// ---------------------------------------------------------------------------
+
+model Announcement {
+  id          String   @id @default(uuid()) @db.Uuid
+  propertyId  String   @db.Uuid
+  title       String   @db.VarChar(200)
+  content     String   @db.Text
+  priority    String   @default("normal") @db.VarChar(20)
+  channels    Json     @default("[\"web\"]") // ["web", "email", "sms", "push"]
+  publishedAt DateTime?
+  expiresAt   DateTime?
+  createdById String   @db.Uuid
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, publishedAt])
+  @@map("announcements")
+}

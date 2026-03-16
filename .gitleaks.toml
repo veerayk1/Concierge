@@ -1,0 +1,25 @@
+# Gitleaks configuration for Concierge
+# Per SECURITY-RULEBOOK F.4, M.1
+
+title = "Concierge Gitleaks Config"
+
+[allowlist]
+  description = "Global allowlist"
+  paths = [
+    '''node_modules''',
+    '''.next''',
+    '''pnpm-lock.yaml''',
+    '''\.env\.example$''',
+  ]
+
+[[rules]]
+  id = "concierge-api-key"
+  description = "Concierge API Key"
+  regex = '''conc_[a-zA-Z0-9]{32,}'''
+  tags = ["key", "concierge"]
+
+[[rules]]
+  id = "generic-api-key"
+  description = "Generic API Key"
+  regex = '''(?i)(api[_-]?key|apikey)\s*[:=]\s*['"][a-zA-Z0-9]{20,}['"]'''
+  tags = ["key", "generic"]

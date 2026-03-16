@@ -1,0 +1,4 @@
+export default {
+  '*.{ts,tsx}': ['prettier --write'],
+  '*.{css,json,md}': ['prettier --write'],
+};

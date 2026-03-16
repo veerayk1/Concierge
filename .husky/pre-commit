@@ -1,0 +1,6 @@
+pnpm lint-staged
+
+# Secrets scanning (requires gitleaks installed)
+if command -v gitleaks &> /dev/null; then
+  gitleaks protect --staged --verbose
+fi

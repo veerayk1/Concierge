@@ -1,0 +1,127 @@
+@import 'tailwindcss';
+@import './tokens/design-tokens.css';
+
+/*
+ * Concierge Design System — Tailwind CSS 4.x Theme
+ * Maps design tokens to Tailwind utility classes.
+ */
+
+@theme {
+  /* ---- Colors ---- */
+  --color-primary-50: var(--concierge-color-primary-50);
+  --color-primary-100: var(--concierge-color-primary-100);
+  --color-primary-200: var(--concierge-color-primary-200);
+  --color-primary-300: var(--concierge-color-primary-300);
+  --color-primary-400: var(--concierge-color-primary-400);
+  --color-primary-500: var(--concierge-color-primary-500);
+  --color-primary-600: var(--concierge-color-primary-600);
+  --color-primary-700: var(--concierge-color-primary-700);
+  --color-primary-800: var(--concierge-color-primary-800);
+  --color-primary-900: var(--concierge-color-primary-900);
+  --color-primary-950: var(--concierge-color-primary-950);
+
+  --color-neutral-0: var(--concierge-color-neutral-0);
+  --color-neutral-50: var(--concierge-color-neutral-50);
+  --color-neutral-100: var(--concierge-color-neutral-100);
+  --color-neutral-200: var(--concierge-color-neutral-200);
+  --color-neutral-300: var(--concierge-color-neutral-300);
+  --color-neutral-400: var(--concierge-color-neutral-400);
+  --color-neutral-500: var(--concierge-color-neutral-500);
+  --color-neutral-600: var(--concierge-color-neutral-600);
+  --color-neutral-700: var(--concierge-color-neutral-700);
+  --color-neutral-800: var(--concierge-color-neutral-800);
+  --color-neutral-900: var(--concierge-color-neutral-900);
+  --color-neutral-950: var(--concierge-color-neutral-950);
+
+  --color-success: var(--concierge-color-status-success);
+  --color-success-fg: var(--concierge-color-status-success-foreground);
+  --color-success-bg: var(--concierge-color-status-success-bg);
+  --color-success-border: var(--concierge-color-status-success-border);
+
+  --color-warning: var(--concierge-color-status-warning);
+  --color-warning-fg: var(--concierge-color-status-warning-foreground);
+  --color-warning-bg: var(--concierge-color-status-warning-bg);
+  --color-warning-border: var(--concierge-color-status-warning-border);
+
+  --color-error: var(--concierge-color-status-error);
+  --color-error-fg: var(--concierge-color-status-error-foreground);
+  --color-error-bg: var(--concierge-color-status-error-bg);
+  --color-error-border: var(--concierge-color-status-error-border);
+
+  --color-info: var(--concierge-color-status-info);
+  --color-info-fg: var(--concierge-color-status-info-foreground);
+  --color-info-bg: var(--concierge-color-status-info-bg);
+  --color-info-border: var(--concierge-color-status-info-border);
+
+  /* ---- Typography ---- */
+  --font-display: var(--concierge-font-family-display);
+  --font-body: var(--concierge-font-family-body);
+  --font-mono: var(--concierge-font-family-monospace);
+
+  /* ---- Shadows ---- */
+  --shadow-xs: var(--concierge-shadow-xs);
+  --shadow-sm: var(--concierge-shadow-sm);
+  --shadow-md: var(--concierge-shadow-md);
+  --shadow-lg: var(--concierge-shadow-lg);
+  --shadow-xl: var(--concierge-shadow-xl);
+  --shadow-2xl: var(--concierge-shadow-2xl);
+
+  /* ---- Breakpoints ---- */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+  --breakpoint-monitor: 1920px;
+}
+
+/* ---- Base Styles ---- */
+html {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  color: var(--concierge-color-neutral-900);
+  background-color: var(--concierge-color-neutral-0);
+}
+
+/* ---- Focus Ring ---- */
+*:focus-visible {
+  outline: 2px solid var(--concierge-color-primary-500);
+  outline-offset: 2px;
+}
+
+/* ---- Reduced Motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- Skeleton Shimmer ---- */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--concierge-color-neutral-100) 25%,
+    var(--concierge-color-neutral-200) 50%,
+    var(--concierge-color-neutral-100) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
