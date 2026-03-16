@@ -519,6 +519,10 @@ Incomplete steps show a "Complete this step" link that navigates back to that st
     3. "Invite More Team Members" — navigates to User Management.
 - The wizard is now complete and cannot be re-entered. All skipped steps become configurable through the normal Settings and module interfaces.
 
+#### Billing Handoff
+
+Activation creates a Subscription record in **TRIAL** status with a 14-day free trial period. All Professional tier features are available during the trial -- there are no feature gates or limitations. No credit card is required to activate; billing setup happens in Settings > Billing (PRD 24). A trial countdown banner appears in the header from day 10 onward, prompting the Admin to select a plan and enter payment details before the trial expires.
+
 ---
 
 ## 5. CSV Templates
@@ -861,3 +865,17 @@ When an optional step is visited but the admin decides not to configure anything
 | Admin uses Internet Explorer                 | Not supported. Redirect to a "Please use a modern browser" page listing Chrome, Firefox, Safari, and Edge.                                                                                                            |
 | Admin has JavaScript disabled                | Server-rendered fallback page: "Concierge requires JavaScript to run. Please enable JavaScript in your browser settings."                                                                                             |
 | Auto-save fails due to browser storage quota | The wizard does not depend on local storage for persistence. Server-side save is the primary mechanism. If the server save also fails, the network error state (Section 8.4) activates.                               |
+
+---
+
+## 11. UI Implementation Reference
+
+The wizard UI uses these components from the Component Catalog (COMPONENT-CATALOG.md Section 9):
+
+| Component           | Catalog Reference | Usage in Wizard                                                                  |
+| ------------------- | ----------------- | -------------------------------------------------------------------------------- |
+| `OnboardingStepper` | Section 9.1       | 8-step horizontal stepper with progress tracking, shown at the top of the wizard |
+| `WizardStep`        | Section 9.10      | Individual step container with header, content area, and navigation footer       |
+| `ImportProgress`    | Section 9.8       | CSV import progress tracker used in Step 2 (Units) and Step 6 (Residents)        |
+
+The wizard also uses these general components from Sections 1-6 of the Component Catalog: `Button`, `Input`, `Select`, `FileUpload`, and `DataTable`.

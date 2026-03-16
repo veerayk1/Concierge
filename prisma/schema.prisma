@@ -44,7 +44,25 @@ model Property {
   expiresAt         DateTime?          @map("expires_at")
   parentPropertyId  String?            @map("parent_property_id") @db.Uuid
 
+  // Demo & Training fields (PRD 21)
+  demoTemplateId        String?    @map("demo_template_id") @db.Uuid
+  assignedSalesRepId    String?    @map("assigned_sales_rep_id") @db.Uuid
+  demoLabel             String?    @map("demo_label") @db.VarChar(200)
+  lastAccessedAt        DateTime?  @map("last_accessed_at")
+  prospectName          String?    @map("prospect_name") @db.VarChar(200)
+  prospectLogoUrl       String?    @map("prospect_logo_url") @db.VarChar(500)
+  prospectAccentColor   String?    @map("prospect_accent_color") @db.VarChar(20)
+  notificationSuppressed Boolean   @default(false) @map("notification_suppressed")
+  maxTrainees           Int?       @map("max_trainees")
+  createdFromTemplate   String?    @map("created_from_template") @db.VarChar(100)
+
+  // Property Code for login routing (PRD 22)
+  propertyCode          String?    @unique @map("property_code") @db.VarChar(7) // e.g., "MPL-HTS"
+
   // Relations
+  parentProperty Property?  @relation("PropertyParent", fields: [parentPropertyId], references: [id])
+  childProperties Property[] @relation("PropertyParent")
+  demoTemplate   DemoTemplate? @relation(fields: [demoTemplateId], references: [id])
   userProperties UserProperty[]
   roles          Role[]
   eventGroups    EventGroup[]
@@ -54,7 +72,13 @@ model Property {
   announcements  Announcement[]
   auditEntries   AuditEntry[]
   subscriptions  Subscription[]
+  demoSessions   DemoSession[]
+  trainingProgress TrainingProgress[]
 
+  @@index([type])
+  @@index([slug])
+  @@index([propertyCode])
+  @@index([parentPropertyId])
   @@map("properties")
 }
 
@@ -551,16 +575,56 @@ model DataExportRequest {
 }
 
 model DemoTemplate {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  description String?
-  dataSpec    Json     @map("data_spec") @db.JsonB // specification of what data to generate
-  version     Int      @default(1)
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id                      String   @id @default(uuid()) @db.Uuid
+  name                    String
+  slug                    String   @unique @db.VarChar(100) // e.g., "maple-heights"
+  description             String?
+  dataSpec                Json     @map("data_spec") @db.JsonB // specification of what data to generate
+  seedValue               Int      @default(20260101) @map("seed_value") // faker seed for reproducibility
+  estimatedSeedTimeSeconds Int     @default(30) @map("estimated_seed_time_seconds")
+  version                 Int      @default(1)
+  isActive                Boolean  @default(true) @map("is_active")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+  properties              Property[]
 
   @@map("demo_templates")
+}
+
+model DemoSession {
+  id             String   @id @default(uuid()) @db.Uuid
+  propertyId     String   @map("property_id") @db.Uuid
+  property       Property @relation(fields: [propertyId], references: [id])
+  userId         String   @map("user_id") @db.Uuid
+  effectiveRole  String   @map("effective_role") @db.VarChar(50) // role being viewed as
+  actualRole     String   @map("actual_role") @db.VarChar(50) // real role for audit
+  startedAt      DateTime @default(now()) @map("started_at")
+  endedAt        DateTime? @map("ended_at")
+
+  @@index([propertyId])
+  @@index([userId])
+  @@map("demo_sessions")
+}
+
+model TrainingProgress {
+  id                 String    @id @default(uuid()) @db.Uuid
+  propertyId         String    @map("property_id") @db.Uuid
+  property           Property  @relation(fields: [propertyId], references: [id])
+  userId             String    @map("user_id") @db.Uuid
+  moduleSlug         String    @map("module_slug") @db.VarChar(100)
+  tutorialCompleted  Boolean   @default(false) @map("tutorial_completed")
+  tutorialCompletedAt DateTime? @map("tutorial_completed_at")
+  actionsCount       Int       @default(0) @map("actions_count")
+  timeSpentSeconds   Int       @default(0) @map("time_spent_seconds")
+  assessmentPassed   Boolean?  @map("assessment_passed")
+  assessmentScore    Int?      @map("assessment_score")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@unique([propertyId, userId, moduleSlug])
+  @@index([propertyId])
+  @@index([userId])
+  @@map("training_progress")
 }
 
 model ComplianceReport {

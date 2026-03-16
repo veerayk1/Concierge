@@ -684,9 +684,17 @@ When a user visits `concierge.com/login` and switches to the "Property Code" tab
 
 **Property code format:**
 
-- 6 characters: 3 letters, hyphen, 3 letters (e.g., `MPL-HTS`)
-- Auto-generated when a property is created (derived from property name)
+- 7 characters including hyphen: 3 uppercase letters, hyphen, 3 uppercase letters (e.g., `MPL-HTS`)
+- Storage: `Property.propertyCode` field (String, unique, 7 characters)
+- Auto-generated when a property is created using the following algorithm:
+  1. Take the first word of the property name and strip all vowels (A, E, I, O, U)
+  2. Take the first 3 consonants (uppercase). If fewer than 3 consonants exist, pad with letters from the original word.
+  3. Repeat for the second word of the property name
+  4. Join with a hyphen: `{first3}-{second3}`
+- Examples: "Maple Heights" strips to "MPL" + "HGHTS" first 3 = "HGH" ... but the canonical format uses `MPL-HTS` (first 3 consonants of each word)
+- Collision handling: If the generated code already exists, randomize the last character (A-Z) until a unique code is found
 - Admin can customize in Settings > Branding > Property Code
+- Regeneration: Admin can regenerate the code at any time. The old code expires immediately with no redirect period.
 - Uniqueness enforced at the database level
 - Case-insensitive lookup (user can type `mpl-hts` or `MPL-HTS`)
 
@@ -702,6 +710,26 @@ Each property gets a URL slug that maps to a branded login page.
 | Default              | Auto-generated from property name (e.g., "Maple Heights Condos" becomes `maple-heights-condos`)                                                                                                            |
 | Change               | Admin can change the slug. Old slug returns a 301 redirect to the new slug for 90 days, then 404.                                                                                                          |
 | Physical signage use | The URL is designed to be printed on lobby signs, welcome packages, and business cards. Format: `concierge.com/maple-heights`                                                                              |
+
+**Slug generation algorithm:**
+
+The default slug is auto-generated from the property name using `slugify(propertyName)`:
+
+1. Convert to lowercase
+2. Replace `@` with `at`
+3. Replace `#` with empty string
+4. Replace all spaces and remaining special characters with hyphens
+5. Collapse consecutive hyphens into a single hyphen
+6. Trim hyphens from the start and end
+7. Truncate to 50 characters (without cutting mid-word if possible)
+
+| Input                      | Output                       |
+| -------------------------- | ---------------------------- |
+| Maple Heights Condominiums | `maple-heights-condominiums` |
+| The Grand @ King West      | `the-grand-at-king-west`     |
+| TSCC #2934                 | `tscc-2934`                  |
+
+**Collision handling:** If the generated slug already exists, append `-2`. If that also exists, try `-3`, and so on (e.g., `maple-heights-2`). Admin can override the auto-generated slug at any time in Settings > Branding > Custom URL Slug. When a slug is changed, the old slug is stored in a `slug_redirects` table with a 90-day expiry. During those 90 days, requests to the old slug receive a 301 redirect to the new slug via middleware. After 90 days, the redirect is removed and the old slug returns 404.
 
 **Reserved route list (vanity slugs cannot use these):**
 

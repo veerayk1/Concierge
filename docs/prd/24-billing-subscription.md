@@ -310,6 +310,17 @@ During the dunning period, a persistent banner displays at the top of every page
 - Banners persist across page navigation -- they cannot be dismissed
 - The [Update Payment] button opens the Stripe Customer Portal in a new tab
 
+### 6.5 Dunning Email Templates
+
+All dunning emails are sent to the billing contact from `noreply@concierge.com`. Every email includes the invoice amount, the payment method last 4 digits, and a direct link to the Stripe Customer Portal for payment method updates.
+
+| Stage  | Subject Line                                        | Body Summary                                                                                                         | CTA Button              |
+| ------ | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Day 0  | "Payment failed — retrying automatically"           | "We couldn't process your payment for {PropertyName}. We'll retry automatically."                                    | "Update Payment Method" |
+| Day 3  | "Action needed: Update your payment method"         | "Your payment for {PropertyName} has failed twice. Please update your payment method to avoid service interruption." | "Update Payment Method" |
+| Day 7  | "Urgent: Service interruption in 7 days"            | "We've been unable to process your payment for {PropertyName}. Your account will be restricted on {Date}."           | "Update Payment Method" |
+| Day 14 | "Final notice: Account will be restricted tomorrow" | "This is our final attempt. If payment cannot be processed, your property will enter read-only mode on {Date}."      | "Update Payment Method" |
+
 ---
 
 ## 7. Usage Metering
@@ -447,6 +458,16 @@ When the Admin clicks "Change Plan", a modal appears with a side-by-side compari
 **Upgrade behavior**: Immediate. The property gains access to new features right away. Prorated charge for the remainder of the billing cycle.
 
 **Downgrade behavior**: Deferred to next billing cycle. Current features remain available until the cycle ends. The system validates that the property's current usage fits within the lower tier's limits before allowing the downgrade.
+
+**Downgrade validation rules:**
+
+Before allowing a downgrade, the system validates current usage against the lower tier's limits. Downgrade validation runs at the moment of request, NOT at the end of the billing period. The following checks execute in order:
+
+1. **Active units**: If the property's active unit count exceeds the lower tier's limit, reject the request. Message: "You have {N} active units. {TierName} supports up to {limit}. Reduce active units or choose a higher tier."
+2. **Tier-locked features**: If the property is using features that require the current tier (custom event types, API webhooks, Training/LMS, white-label branding), reject the request. Message: "You are using features that require {CurrentTier}: {list}. Disable these features first or keep your current plan."
+3. **Storage**: If the property's current storage usage exceeds the lower tier's limit, reject the request. Message: "Your storage usage ({X} GB) exceeds the {TierName} limit ({Y} GB). Free up storage before downgrading."
+
+If all checks pass, the confirmation dialog shows the effective date (next billing cycle) and a summary of feature differences between the current and target tiers.
 
 ### 8.6 Cancel Subscription
 
