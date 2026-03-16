@@ -1,0 +1,345 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$description": "Concierge Design System — W3C Design Tokens Community Group format. Parseable by Style Dictionary.",
+
+  "color": {
+    "$description": "All colors defined in sRGB hex. OKLCH equivalents noted for perceptual uniformity in future tooling.",
+
+    "primary": {
+      "$description": "Primary blue interactive scale. OKLCH base: oklch(0.546 0.245 264)",
+      "50":       { "$value": "#EFF6FF",  "$type": "color", "$description": "Tinted background — oklch(0.97 0.014 264)" },
+      "100":      { "$value": "#DBEAFE",  "$type": "color", "$description": "oklch(0.94 0.028 264)" },
+      "200":      { "$value": "#BFDBFE",  "$type": "color", "$description": "oklch(0.88 0.056 264)" },
+      "300":      { "$value": "#93C5FD",  "$type": "color", "$description": "oklch(0.80 0.098 264)" },
+      "400":      { "$value": "#60A5FA",  "$type": "color", "$description": "oklch(0.70 0.155 264)" },
+      "500":      { "$value": "#2563EB",  "$type": "color", "$description": "Default — oklch(0.546 0.245 264)" },
+      "600":      { "$value": "#1D4FD7",  "$type": "color", "$description": "Hover — oklch(0.488 0.243 264)" },
+      "700":      { "$value": "#1E40AF",  "$type": "color", "$description": "Active/pressed — oklch(0.424 0.199 264)" },
+      "800":      { "$value": "#1E3A8A",  "$type": "color", "$description": "oklch(0.379 0.171 264)" },
+      "900":      { "$value": "#1E3163",  "$type": "color", "$description": "oklch(0.326 0.130 264)" },
+      "950":      { "$value": "#172554",  "$type": "color", "$description": "Deepest — oklch(0.282 0.114 264)" },
+      "disabled": { "$value": "#93C5FD",  "$type": "color", "$description": "Disabled state — 300 value at 50% opacity" }
+    },
+
+    "neutral": {
+      "$description": "Full gray scale. Perceptually uniform in OKLCH lightness. OKLCH base hue: 264 (cool-biased).",
+      "0":   { "$value": "#FFFFFF", "$type": "color", "$description": "Pure white — oklch(1.000 0 0)" },
+      "50":  { "$value": "#F9FAFB", "$type": "color", "$description": "oklch(0.985 0.002 264)" },
+      "100": { "$value": "#F3F4F6", "$type": "color", "$description": "oklch(0.967 0.003 264)" },
+      "200": { "$value": "#E5E7EB", "$type": "color", "$description": "oklch(0.928 0.006 264)" },
+      "300": { "$value": "#D1D5DB", "$type": "color", "$description": "oklch(0.872 0.010 264)" },
+      "400": { "$value": "#9CA3AF", "$type": "color", "$description": "oklch(0.707 0.015 264)" },
+      "500": { "$value": "#6B7280", "$type": "color", "$description": "oklch(0.551 0.018 264)" },
+      "600": { "$value": "#4B5563", "$type": "color", "$description": "oklch(0.446 0.018 264)" },
+      "700": { "$value": "#374151", "$type": "color", "$description": "oklch(0.373 0.017 264)" },
+      "800": { "$value": "#1F2937", "$type": "color", "$description": "oklch(0.293 0.016 264)" },
+      "900": { "$value": "#111827", "$type": "color", "$description": "oklch(0.218 0.014 264)" },
+      "950": { "$value": "#030712", "$type": "color", "$description": "Near-black — oklch(0.130 0.010 264)" }
+    },
+
+    "status": {
+      "$description": "Semantic status palette. Each has a foreground and a tinted background for badges.",
+      "success": {
+        "default":    { "$value": "#22C55E", "$type": "color", "$description": "Resolved, delivered, approved — oklch(0.723 0.191 145)" },
+        "foreground": { "$value": "#15803D", "$type": "color", "$description": "Text on success-bg — oklch(0.527 0.154 145)" },
+        "bg":         { "$value": "#F0FDF4", "$type": "color", "$description": "Badge/banner background — oklch(0.982 0.018 145)" },
+        "border":     { "$value": "#BBF7D0", "$type": "color", "$description": "oklch(0.928 0.060 145)" }
+      },
+      "warning": {
+        "default":    { "$value": "#F59E0B", "$type": "color", "$description": "Pending, on hold, expiring — oklch(0.750 0.183 84)" },
+        "foreground": { "$value": "#92400E", "$type": "color", "$description": "Text on warning-bg — oklch(0.444 0.119 84)" },
+        "bg":         { "$value": "#FFFBEB", "$type": "color", "$description": "Badge/banner background — oklch(0.991 0.015 84)" },
+        "border":     { "$value": "#FDE68A", "$type": "color", "$description": "oklch(0.936 0.075 84)" }
+      },
+      "error": {
+        "default":    { "$value": "#EF4444", "$type": "color", "$description": "Failed, overdue, emergency — oklch(0.577 0.245 27)" },
+        "foreground": { "$value": "#991B1B", "$type": "color", "$description": "Text on error-bg — oklch(0.368 0.157 27)" },
+        "bg":         { "$value": "#FEF2F2", "$type": "color", "$description": "Badge/banner background — oklch(0.977 0.013 27)" },
+        "border":     { "$value": "#FECACA", "$type": "color", "$description": "oklch(0.910 0.048 27)" }
+      },
+      "info": {
+        "default":    { "$value": "#3B82F6", "$type": "color", "$description": "Informational, new, in progress — oklch(0.606 0.221 264)" },
+        "foreground": { "$value": "#1E40AF", "$type": "color", "$description": "Text on info-bg — oklch(0.424 0.199 264)" },
+        "bg":         { "$value": "#EFF6FF", "$type": "color", "$description": "Badge/banner background — oklch(0.970 0.014 264)" },
+        "border":     { "$value": "#BFDBFE", "$type": "color", "$description": "oklch(0.880 0.056 264)" }
+      }
+    },
+
+    "surface": {
+      "$description": "Semantic surface tokens mapped from neutrals. Mode comments: Normal = default, Dark = future, HC = high contrast.",
+      "page":       { "$value": "#FFFFFF",  "$type": "color", "$description": "Normal: white | Dark: neutral-950 | HC: white" },
+      "card":       { "$value": "#FFFFFF",  "$type": "color", "$description": "Normal: white | Dark: neutral-900 | HC: white" },
+      "secondary":  { "$value": "#F5F5F7",  "$type": "color", "$description": "Normal: design-system bg-secondary | Dark: neutral-800 | HC: #F0F0F0" },
+      "tertiary":   { "$value": "#E8E8ED",  "$type": "color", "$description": "Normal: design-system bg-tertiary | Dark: neutral-700 | HC: #D0D0D0" },
+      "overlay":    { "$value": "rgba(0, 0, 0, 0.30)", "$type": "color", "$description": "Modal/dialog backdrop" }
+    },
+
+    "text": {
+      "$description": "Semantic text tokens. Normal | Dark | HC modes.",
+      "primary":     { "$value": "#1D1D1F", "$type": "color", "$description": "Normal: near-black | Dark: neutral-50 | HC: #000000" },
+      "secondary":   { "$value": "#6E6E73", "$type": "color", "$description": "Normal: mid-gray | Dark: neutral-400 | HC: #333333" },
+      "tertiary":    { "$value": "#AEAEB2", "$type": "color", "$description": "Normal: light-gray | Dark: neutral-500 | HC: #555555" },
+      "on-primary":  { "$value": "#FFFFFF", "$type": "color", "$description": "Text on primary-500 buttons" },
+      "on-error":    { "$value": "#FFFFFF", "$type": "color", "$description": "Text on error buttons" },
+      "link":        { "$value": "#2563EB", "$type": "color", "$description": "Inline links — matches primary-500" }
+    },
+
+    "border": {
+      "subtle":  { "$value": "#E5E5EA", "$type": "color", "$description": "Normal: light border | Dark: neutral-700 | HC: #999999" },
+      "default": { "$value": "#D1D5DB", "$type": "color", "$description": "Normal: neutral-300 | Dark: neutral-600 | HC: #666666" },
+      "focus":   { "$value": "#2563EB", "$type": "color", "$description": "Focus ring — matches primary-500 | HC: #000000" }
+    },
+
+    "chart": {
+      "$description": "Data visualization palette. Use in order. Maximum 6 series per chart.",
+      "series-1": { "$value": "#2563EB", "$type": "color" },
+      "series-2": { "$value": "#3B82F6", "$type": "color" },
+      "series-3": { "$value": "#22C55E", "$type": "color" },
+      "series-4": { "$value": "#F59E0B", "$type": "color" },
+      "series-5": { "$value": "#A855F7", "$type": "color" },
+      "series-6": { "$value": "#EF4444", "$type": "color" }
+    }
+  },
+
+  "typography": {
+    "$description": "Inter Display for H1-H2 (display/title-1), Inter for H3 and below.",
+
+    "font-family": {
+      "display":   { "$value": "'Inter Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", "$type": "fontFamily" },
+      "body":      { "$value": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",                 "$type": "fontFamily" },
+      "monospace": { "$value": "'JetBrains Mono', 'SF Mono', 'Fira Code', monospace",                                "$type": "fontFamily" }
+    },
+
+    "font-weight": {
+      "regular":   { "$value": 400, "$type": "fontWeight" },
+      "medium":    { "$value": 500, "$type": "fontWeight" },
+      "semibold":  { "$value": 600, "$type": "fontWeight" },
+      "bold":      { "$value": 700, "$type": "fontWeight" }
+    },
+
+    "scale": {
+      "display": {
+        "$description": "Page titles — uses Inter Display",
+        "font-size":      { "$value": "34px",   "$type": "dimension" },
+        "font-weight":    { "$value": 700,       "$type": "fontWeight" },
+        "line-height":    { "$value": "40px",    "$type": "dimension" },
+        "letter-spacing": { "$value": "-0.4px",  "$type": "dimension" },
+        "font-family":    { "$value": "{typography.font-family.display}", "$type": "fontFamily" }
+      },
+      "title-1": {
+        "$description": "Section headers — uses Inter Display",
+        "font-size":      { "$value": "28px",   "$type": "dimension" },
+        "font-weight":    { "$value": 700,       "$type": "fontWeight" },
+        "line-height":    { "$value": "34px",    "$type": "dimension" },
+        "letter-spacing": { "$value": "-0.3px",  "$type": "dimension" },
+        "font-family":    { "$value": "{typography.font-family.display}", "$type": "fontFamily" }
+      },
+      "title-2": {
+        "$description": "Card titles, modal headers — uses Inter",
+        "font-size":      { "$value": "22px",   "$type": "dimension" },
+        "font-weight":    { "$value": 600,       "$type": "fontWeight" },
+        "line-height":    { "$value": "28px",    "$type": "dimension" },
+        "letter-spacing": { "$value": "-0.2px",  "$type": "dimension" },
+        "font-family":    { "$value": "{typography.font-family.body}", "$type": "fontFamily" }
+      },
+      "title-3": {
+        "$description": "Sub-section headers — uses Inter",
+        "font-size":      { "$value": "20px",   "$type": "dimension" },
+        "font-weight":    { "$value": 600,       "$type": "fontWeight" },
+        "line-height":    { "$value": "24px",    "$type": "dimension" },
+        "letter-spacing": { "$value": "-0.1px",  "$type": "dimension" },
+        "font-family":    { "$value": "{typography.font-family.body}", "$type": "fontFamily" }
+      },
+      "headline": {
+        "$description": "Table headers, label emphasis — uses Inter",
+        "font-size":      { "$value": "17px",   "$type": "dimension" },
+        "font-weight":    { "$value": 600,       "$type": "fontWeight" },
+        "line-height":    { "$value": "22px",    "$type": "dimension" },
+        "letter-spacing": { "$value": "0px",     "$type": "dimension" },
+        "font-family":    { "$value": "{typography.font-family.body}", "$type": "fontFamily" }
+      },
+      "body": {
+        "$description": "Primary body text — uses Inter",
+        "font-size":      { "$value": "15px",   "$type": "dimension" },
+        "font-weight":    { "$value": 400,       "$type": "fontWeight" },
+        "line-height":    { "$value": "22px",    "$type": "dimension" },
+        "letter-spacing": { "$value": "0px",     "$type": "dimension" },
+        "font-family":    { "$value": "{typography.font-family.body}", "$type": "fontFamily" }
+      },
+      "body-medium": {
+        "$description": "Emphasized body text — uses Inter",
+        "font-size":      { "$value": "15px",   "$type": "dimension" },
+        "font-weight":    { "$value": 500,       "$type": "fontWeight" },
+        "line-height":    { "$value": "22px",    "$type": "dimension" },
+        "letter-spacing": { "$value": "0px",     "$type": "dimension" },
+        "font-family":    { "$value": "{typography.font-family.body}", "$type": "fontFamily" }
+      },
+      "callout": {
+        "$description": "Secondary info, metadata — uses Inter",
+        "font-size":      { "$value": "14px",   "$type": "dimension" },
+        "font-weight":    { "$value": 400,       "$type": "fontWeight" },
+        "line-height":    { "$value": "20px",    "$type": "dimension" },
+        "letter-spacing": { "$value": "0px",     "$type": "dimension" },
+        "font-family":    { "$value": "{typography.font-family.body}", "$type": "fontFamily" }
+      },
+      "caption": {
+        "$description": "Timestamps, badges, helper text — uses Inter",
+        "font-size":      { "$value": "12px",   "$type": "dimension" },
+        "font-weight":    { "$value": 500,       "$type": "fontWeight" },
+        "line-height":    { "$value": "16px",    "$type": "dimension" },
+        "letter-spacing": { "$value": "0.2px",   "$type": "dimension" },
+        "font-family":    { "$value": "{typography.font-family.body}", "$type": "fontFamily" }
+      },
+      "overline": {
+        "$description": "Section labels (uppercase), category tags — uses Inter",
+        "font-size":      { "$value": "11px",   "$type": "dimension" },
+        "font-weight":    { "$value": 600,       "$type": "fontWeight" },
+        "line-height":    { "$value": "14px",    "$type": "dimension" },
+        "letter-spacing": { "$value": "0.8px",   "$type": "dimension" },
+        "font-family":    { "$value": "{typography.font-family.body}", "$type": "fontFamily" }
+      }
+    }
+  },
+
+  "spacing": {
+    "$description": "4px base unit. Scale from 0.5 (2px) to 96 (384px).",
+    "0":    { "$value": "0px",    "$type": "dimension" },
+    "0.5":  { "$value": "2px",    "$type": "dimension" },
+    "1":    { "$value": "4px",    "$type": "dimension" },
+    "1.5":  { "$value": "6px",    "$type": "dimension" },
+    "2":    { "$value": "8px",    "$type": "dimension" },
+    "2.5":  { "$value": "10px",   "$type": "dimension" },
+    "3":    { "$value": "12px",   "$type": "dimension" },
+    "3.5":  { "$value": "14px",   "$type": "dimension" },
+    "4":    { "$value": "16px",   "$type": "dimension" },
+    "5":    { "$value": "20px",   "$type": "dimension" },
+    "6":    { "$value": "24px",   "$type": "dimension" },
+    "7":    { "$value": "28px",   "$type": "dimension" },
+    "8":    { "$value": "32px",   "$type": "dimension" },
+    "9":    { "$value": "36px",   "$type": "dimension" },
+    "10":   { "$value": "40px",   "$type": "dimension" },
+    "11":   { "$value": "44px",   "$type": "dimension" },
+    "12":   { "$value": "48px",   "$type": "dimension" },
+    "14":   { "$value": "56px",   "$type": "dimension" },
+    "16":   { "$value": "64px",   "$type": "dimension" },
+    "20":   { "$value": "80px",   "$type": "dimension" },
+    "24":   { "$value": "96px",   "$type": "dimension" },
+    "28":   { "$value": "112px",  "$type": "dimension" },
+    "32":   { "$value": "128px",  "$type": "dimension" },
+    "36":   { "$value": "144px",  "$type": "dimension" },
+    "40":   { "$value": "160px",  "$type": "dimension" },
+    "44":   { "$value": "176px",  "$type": "dimension" },
+    "48":   { "$value": "192px",  "$type": "dimension" },
+    "52":   { "$value": "208px",  "$type": "dimension" },
+    "56":   { "$value": "224px",  "$type": "dimension" },
+    "60":   { "$value": "240px",  "$type": "dimension" },
+    "64":   { "$value": "256px",  "$type": "dimension" },
+    "72":   { "$value": "288px",  "$type": "dimension" },
+    "80":   { "$value": "320px",  "$type": "dimension" },
+    "96":   { "$value": "384px",  "$type": "dimension" }
+  },
+
+  "border-radius": {
+    "none": { "$value": "0px",    "$type": "dimension" },
+    "sm":   { "$value": "4px",    "$type": "dimension" },
+    "md":   { "$value": "8px",    "$type": "dimension" },
+    "lg":   { "$value": "12px",   "$type": "dimension" },
+    "xl":   { "$value": "16px",   "$type": "dimension" },
+    "2xl":  { "$value": "24px",   "$type": "dimension" },
+    "full": { "$value": "9999px", "$type": "dimension" }
+  },
+
+  "shadow": {
+    "$description": "5 elevation levels inspired by Linear/Stripe. Soft, diffuse, layered shadows.",
+    "xs": {
+      "$value": "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+      "$type": "shadow",
+      "$description": "Subtle lift — cards at rest, input fields"
+    },
+    "sm": {
+      "$value": "0 1px 3px 0 rgba(0, 0, 0, 0.10), 0 1px 2px -1px rgba(0, 0, 0, 0.10)",
+      "$type": "shadow",
+      "$description": "Low elevation — hovered cards, dropdowns"
+    },
+    "md": {
+      "$value": "0 4px 6px -1px rgba(0, 0, 0, 0.10), 0 2px 4px -2px rgba(0, 0, 0, 0.10)",
+      "$type": "shadow",
+      "$description": "Medium elevation — popovers, floating action bars"
+    },
+    "lg": {
+      "$value": "0 10px 15px -3px rgba(0, 0, 0, 0.10), 0 4px 6px -4px rgba(0, 0, 0, 0.10)",
+      "$type": "shadow",
+      "$description": "High elevation — modals, slide-over panels"
+    },
+    "xl": {
+      "$value": "0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 8px 10px -6px rgba(0, 0, 0, 0.10)",
+      "$type": "shadow",
+      "$description": "Highest elevation — command palette, notification toasts"
+    },
+    "2xl": {
+      "$value": "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+      "$type": "shadow",
+      "$description": "Dramatic — full-sheet modals, onboarding overlays"
+    }
+  },
+
+  "z-index": {
+    "dropdown":       { "$value": 1000, "$type": "number" },
+    "sticky":         { "$value": 1020, "$type": "number" },
+    "fixed":          { "$value": 1030, "$type": "number" },
+    "modal-backdrop": { "$value": 1040, "$type": "number" },
+    "modal":          { "$value": 1050, "$type": "number" },
+    "popover":        { "$value": 1060, "$type": "number" },
+    "tooltip":        { "$value": 1070, "$type": "number" }
+  },
+
+  "breakpoint": {
+    "$description": "Mobile-first breakpoints. 'monitor' targets 1920px+ desktop monitors (primary user environment).",
+    "sm":      { "$value": "640px",  "$type": "dimension" },
+    "md":      { "$value": "768px",  "$type": "dimension" },
+    "lg":      { "$value": "1024px", "$type": "dimension" },
+    "xl":      { "$value": "1280px", "$type": "dimension" },
+    "2xl":     { "$value": "1536px", "$type": "dimension" },
+    "monitor": { "$value": "1920px", "$type": "dimension" }
+  },
+
+  "animation": {
+    "duration": {
+      "instant": { "$value": "0ms",   "$type": "duration" },
+      "fast":    { "$value": "100ms", "$type": "duration" },
+      "normal":  { "$value": "200ms", "$type": "duration" },
+      "slow":    { "$value": "300ms", "$type": "duration" },
+      "slower":  { "$value": "500ms", "$type": "duration" }
+    },
+    "easing": {
+      "$description": "CSS easing functions. Spring equivalents for Framer Motion noted in descriptions.",
+      "default":     { "$value": "cubic-bezier(0.25, 0.1, 0.25, 1.0)",  "$type": "cubicBezier", "$description": "General transitions. Framer Motion spring: { stiffness: 300, damping: 30 }" },
+      "in":          { "$value": "cubic-bezier(0.55, 0, 1, 0.45)",      "$type": "cubicBezier", "$description": "Elements entering. Framer Motion spring: { stiffness: 400, damping: 35 }" },
+      "out":         { "$value": "cubic-bezier(0, 0.55, 0.45, 1)",      "$type": "cubicBezier", "$description": "Elements exiting. Framer Motion spring: { stiffness: 200, damping: 25 }" },
+      "in-out":      { "$value": "cubic-bezier(0.45, 0, 0.55, 1)",      "$type": "cubicBezier", "$description": "Symmetric transitions. Framer Motion spring: { stiffness: 300, damping: 28 }" },
+      "bounce":      { "$value": "cubic-bezier(0.34, 1.56, 0.64, 1)",   "$type": "cubicBezier", "$description": "Playful overshoot. Framer Motion spring: { stiffness: 500, damping: 15, mass: 0.8 }" },
+      "spring":      { "$value": "cubic-bezier(0.22, 1.0, 0.36, 1.0)",  "$type": "cubicBezier", "$description": "Natural spring feel. Framer Motion spring: { stiffness: 350, damping: 26, mass: 1 }" }
+    },
+    "framer-spring": {
+      "$description": "Exact Framer Motion spring configs for JS consumption. Not CSS — use easing tokens for CSS.",
+      "default": { "$value": { "stiffness": 300, "damping": 30, "mass": 1 },   "$type": "other" },
+      "gentle":  { "$value": { "stiffness": 200, "damping": 25, "mass": 1 },   "$type": "other" },
+      "snappy":  { "$value": { "stiffness": 400, "damping": 35, "mass": 0.8 }, "$type": "other" },
+      "bouncy":  { "$value": { "stiffness": 500, "damping": 15, "mass": 0.8 }, "$type": "other" },
+      "slow":    { "$value": { "stiffness": 150, "damping": 20, "mass": 1.2 }, "$type": "other" }
+    }
+  },
+
+  "layout": {
+    "$description": "Layout-specific tokens from the design system grid specification.",
+    "sidebar-width":           { "$value": "240px", "$type": "dimension" },
+    "sidebar-width-collapsed": { "$value": "64px",  "$type": "dimension" },
+    "content-max-width":       { "$value": "1440px","$type": "dimension" },
+    "content-padding":         { "$value": "32px",  "$type": "dimension" },
+    "grid-columns":            { "$value": 12,      "$type": "number" },
+    "grid-gap":                { "$value": "24px",  "$type": "dimension" },
+    "row-height-table":        { "$value": "56px",  "$type": "dimension" },
+    "touch-target-min":        { "$value": "44px",  "$type": "dimension" },
+    "input-height":            { "$value": "44px",  "$type": "dimension" }
+  }
+}
