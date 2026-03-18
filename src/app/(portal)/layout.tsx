@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CommandPalette } from '@/components/layout/command-palette';
 import type { Role } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -49,6 +50,11 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [demoRole, setDemoRole] = useState<Role | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  const handleSearchOpen = useCallback(() => {
+    setCommandPaletteOpen(true);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -83,9 +89,10 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
           localStorage.removeItem('demo_role');
           router.push('/login');
         }}
-        onSearchOpen={() => {}}
+        onSearchOpen={handleSearchOpen}
       >
         {children}
+        <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
       </AppShell>
     );
   }
@@ -114,9 +121,10 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
       properties={MOCK_PROPERTIES}
       notificationCount={0}
       onLogout={logout}
-      onSearchOpen={() => {}}
+      onSearchOpen={handleSearchOpen}
     >
       {children}
+      <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
     </AppShell>
   );
 }
