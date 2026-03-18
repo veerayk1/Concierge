@@ -63,7 +63,12 @@ export function ReleasePackageDialog({
     try {
       const response = await fetch(`/api/v1/packages/${packageId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
+            ? { 'x-demo-role': localStorage.getItem('demo_role')! }
+            : {}),
+        },
         body: JSON.stringify({ action: 'release', ...data }),
       });
 

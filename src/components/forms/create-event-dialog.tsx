@@ -120,7 +120,12 @@ export function CreateEventDialog({
     try {
       const response = await fetch('/api/v1/events', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
+            ? { 'x-demo-role': localStorage.getItem('demo_role')! }
+            : {}),
+        },
         body: JSON.stringify(data),
       });
 

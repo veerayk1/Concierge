@@ -71,8 +71,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
+        const demoRole = localStorage.getItem('demo_role');
         const res = await fetch(
           `/api/v1/search?propertyId=00000000-0000-4000-b000-000000000001&q=${encodeURIComponent(query)}`,
+          {
+            headers: {
+              ...(demoRole ? { 'x-demo-role': demoRole } : {}),
+            },
+          },
         );
         if (res.ok) {
           const data = await res.json();

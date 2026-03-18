@@ -72,7 +72,12 @@ export function CreateMaintenanceDialog({
     try {
       const response = await fetch('/api/v1/maintenance', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
+            ? { 'x-demo-role': localStorage.getItem('demo_role')! }
+            : {}),
+        },
         body: JSON.stringify(data),
       });
 
