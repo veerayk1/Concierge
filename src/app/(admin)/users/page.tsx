@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Download,
   Mail,
@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { CreateUserDialog } from '@/components/admin/create-user-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -155,6 +156,12 @@ const ROLE_COLORS: Record<string, string> = {
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  const handleUserCreated = useCallback(() => {
+    // TODO: Refetch users from API
+    setShowCreateDialog(false);
+  }, []);
 
   const filteredUsers = useMemo(
     () =>
@@ -295,7 +302,7 @@ export default function UsersPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             Create User
           </Button>
@@ -383,6 +390,14 @@ export default function UsersPage() {
         data={filteredUsers}
         emptyMessage="No users found."
         emptyIcon={<Users className="h-6 w-6" />}
+      />
+
+      {/* Create User Dialog */}
+      <CreateUserDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId="prop-1"
+        onSuccess={handleUserCreated}
       />
     </PageShell>
   );
