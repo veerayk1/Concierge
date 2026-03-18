@@ -1,12 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Box, Brush, FileWarning, Key, MessageSquare, UserCheck } from 'lucide-react';
+import {
+  ArrowLeft,
+  Box,
+  Brush,
+  FileWarning,
+  Key,
+  MessageSquare,
+  UserCheck,
+  Circle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
 // Mock Data
@@ -95,15 +107,94 @@ const INITIAL_EVENT_TYPES: EventType[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// API response shape
+// ---------------------------------------------------------------------------
+
+interface ApiEventType {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  color: string | null;
+  isActive: boolean;
+  notificationTemplate: string | null;
+  group: { id: string; name: string } | null;
+  eventCount: number;
+}
+
+// Map icon slugs from DB to Lucide components
+const ICON_MAP: Record<string, React.ElementType> = {
+  box: Box,
+  'user-check': UserCheck,
+  'file-warning': FileWarning,
+  key: Key,
+  'message-square': MessageSquare,
+  brush: Brush,
+};
+
+// Map color slugs from DB to Tailwind classes
+const COLOR_MAP: Record<string, { color: string; bgColor: string }> = {
+  blue: { color: 'text-primary-600', bgColor: 'bg-primary-50' },
+  green: { color: 'text-success-600', bgColor: 'bg-success-50' },
+  red: { color: 'text-error-600', bgColor: 'bg-error-50' },
+  yellow: { color: 'text-warning-600', bgColor: 'bg-warning-50' },
+  orange: { color: 'text-warning-600', bgColor: 'bg-warning-50' },
+  purple: { color: 'text-purple-600', bgColor: 'bg-purple-50' },
+  cyan: { color: 'text-info-600', bgColor: 'bg-info-50' },
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function EventTypesPage() {
+  const {
+    data: apiEventTypes,
+    loading,
+    refetch,
+  } = useApi<ApiEventType[]>(apiUrl('/api/v1/event-types', { propertyId: DEMO_PROPERTY_ID }));
+
+  const mergedEventTypes = useMemo<EventType[]>(() => {
+    if (!apiEventTypes || apiEventTypes.length === 0) return INITIAL_EVENT_TYPES;
+    return apiEventTypes.map((et) => {
+      const colors = COLOR_MAP[et.color || ''] || {
+        color: 'text-neutral-600',
+        bgColor: 'bg-neutral-100',
+      };
+      return {
+        id: et.id,
+        name: et.name,
+        group: et.group?.name || 'General',
+        icon: ICON_MAP[et.icon || ''] || Circle,
+        color: colors.color,
+        bgColor: colors.bgColor,
+        enabled: et.isActive,
+        notificationTemplate: et.notificationTemplate || '',
+        description: `${et.eventCount} event${et.eventCount === 1 ? '' : 's'} logged`,
+      };
+    });
+  }, [apiEventTypes]);
+
   const [eventTypes, setEventTypes] = useState(INITIAL_EVENT_TYPES);
+
+  // Use API data when available
+  const displayEventTypes = apiEventTypes ? mergedEventTypes : eventTypes;
 
   function toggleEventType(id: string) {
     setEventTypes((prev) =>
       prev.map((et) => (et.id === id ? { ...et, enabled: !et.enabled } : et)),
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-8 py-8">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-9 w-64" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 rounded-2xl" />
+        ))}
+      </div>
     );
   }
 
@@ -136,10 +227,10 @@ export default function EventTypesPage() {
       {/* Event Types List */}
       <div>
         <h2 className="mb-4 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
-          Event Types ({eventTypes.length})
+          Event Types ({displayEventTypes.length})
         </h2>
         <div className="space-y-3">
-          {eventTypes.map((et) => {
+          {displayEventTypes.map((et) => {
             const Icon = et.icon;
             return (
               <Card key={et.id}>

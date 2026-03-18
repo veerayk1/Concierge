@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const addUpdateSchema = z.object({
   content: z.string().min(1, 'Update content is required').max(2000),
@@ -78,7 +79,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const timestamp = new Date().toISOString();
-    const updateEntry = `\n\n--- Update (${timestamp}) ---\n${input.content}`;
+    const sanitizedContent = stripControlChars(stripHtml(input.content));
+    const updateEntry = `\n\n--- Update (${timestamp}) ---\n${sanitizedContent}`;
 
     await prisma.event.update({
       where: { id },

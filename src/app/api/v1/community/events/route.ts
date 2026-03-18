@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createEventSchema = z.object({
   propertyId: z.string().uuid(),
@@ -77,9 +78,9 @@ export async function POST(request: NextRequest) {
     const event = await prisma.communityEvent.create({
       data: {
         propertyId: input.propertyId,
-        title: input.title,
-        description: input.description || null,
-        location: input.location || null,
+        title: stripControlChars(stripHtml(input.title)),
+        description: input.description ? stripControlChars(stripHtml(input.description)) : null,
+        location: input.location ? stripControlChars(stripHtml(input.location)) : null,
         startDate: new Date(input.startDate),
         endDate: input.endDate ? new Date(input.endDate) : null,
         maxAttendees: input.maxAttendees || null,

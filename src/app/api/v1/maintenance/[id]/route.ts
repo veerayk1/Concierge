@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { updateMaintenanceSchema } from '@/schemas/maintenance';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -68,7 +69,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (input.priority) updateData.priority = input.priority;
     if (input.assignedEmployeeId) updateData.assignedEmployeeId = input.assignedEmployeeId;
     if (input.assignedVendorId) updateData.assignedVendorId = input.assignedVendorId;
-    if (input.description) updateData.description = input.description;
+    if (input.description) updateData.description = stripControlChars(stripHtml(input.description));
 
     const req = await prisma.maintenanceRequest.update({
       where: { id },

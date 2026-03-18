@@ -78,9 +78,13 @@ export async function POST(request: NextRequest) {
     const survey = await prisma.survey.create({
       data: {
         propertyId: input.propertyId,
-        title: input.title,
-        description: input.description || null,
-        questions: input.questions,
+        title: stripControlChars(stripHtml(input.title)),
+        description: input.description ? stripControlChars(stripHtml(input.description)) : null,
+        questions: input.questions.map((q) => ({
+          ...q,
+          text: stripControlChars(stripHtml(q.text)),
+          options: q.options?.map((o) => stripControlChars(stripHtml(o))),
+        })),
         startsAt: input.startsAt ? new Date(input.startsAt) : null,
         endsAt: input.endsAt ? new Date(input.endsAt) : null,
         isAnonymous: input.isAnonymous,

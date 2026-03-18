@@ -1,9 +1,11 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
   Building2,
+  Circle,
   ClipboardList,
   Cog,
   Eye,
@@ -22,6 +24,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
 // Mock Data
@@ -199,10 +204,84 @@ const ROLES: Role[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// API response shape
+// ---------------------------------------------------------------------------
+
+interface ApiRole {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  isSystem: boolean;
+  permissions: unknown;
+  memberCount: number;
+}
+
+// Map role slugs to icons and colors
+const ROLE_ICON_MAP: Record<string, { icon: React.ElementType; color: string; bgColor: string }> = {
+  super_admin: { icon: Star, color: 'text-warning-600', bgColor: 'bg-warning-50' },
+  property_admin: { icon: UserCog, color: 'text-error-600', bgColor: 'bg-error-50' },
+  property_manager: { icon: Building2, color: 'text-primary-600', bgColor: 'bg-primary-50' },
+  front_desk: { icon: Headphones, color: 'text-info-600', bgColor: 'bg-info-50' },
+  security_guard: { icon: Shield, color: 'text-error-600', bgColor: 'bg-error-50' },
+  security_supervisor: { icon: Shield, color: 'text-error-600', bgColor: 'bg-error-50' },
+  maintenance_staff: { icon: Wrench, color: 'text-warning-600', bgColor: 'bg-warning-50' },
+  superintendent: { icon: HardHat, color: 'text-warning-600', bgColor: 'bg-warning-50' },
+  board_member: { icon: Gavel, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+  resident_owner: { icon: Home, color: 'text-success-600', bgColor: 'bg-success-50' },
+  resident_tenant: { icon: Home, color: 'text-success-600', bgColor: 'bg-success-50' },
+  offsite_owner: { icon: Home, color: 'text-success-600', bgColor: 'bg-success-50' },
+  family_member: { icon: Users, color: 'text-primary-600', bgColor: 'bg-primary-50' },
+  vendor: { icon: Truck, color: 'text-neutral-600', bgColor: 'bg-neutral-100' },
+  visitor: { icon: Eye, color: 'text-neutral-600', bgColor: 'bg-neutral-100' },
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function RolesPage() {
+  const {
+    data: apiRoles,
+    loading,
+    refetch,
+  } = useApi<ApiRole[]>(apiUrl('/api/v1/roles', { propertyId: DEMO_PROPERTY_ID }));
+
+  const roles = useMemo<Role[]>(() => {
+    if (!apiRoles || apiRoles.length === 0) return ROLES;
+    return apiRoles.map((r) => {
+      const iconConfig = ROLE_ICON_MAP[r.slug] || {
+        icon: Circle,
+        color: 'text-neutral-600',
+        bgColor: 'bg-neutral-100',
+      };
+      const perms = Array.isArray(r.permissions) ? (r.permissions as string[]) : ['View'];
+      return {
+        id: r.id,
+        name: r.name,
+        memberCount: r.memberCount,
+        description: r.description || '',
+        icon: iconConfig.icon,
+        color: iconConfig.color,
+        bgColor: iconConfig.bgColor,
+        permissions: perms,
+        isSystem: r.isSystem,
+      };
+    });
+  }, [apiRoles]);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-8 py-8">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-9 w-64" />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-28 rounded-2xl" />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-8 py-8">
       {/* Back Navigation */}
@@ -232,24 +311,28 @@ export default function RolesPage() {
       {/* System Roles */}
       <div>
         <h2 className="mb-4 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
-          System Roles ({ROLES.filter((r) => r.isSystem).length})
+          System Roles ({roles.filter((r) => r.isSystem).length})
         </h2>
         <div className="space-y-3">
-          {ROLES.filter((r) => r.isSystem).map((role) => (
-            <RoleCard key={role.id} role={role} />
-          ))}
+          {roles
+            .filter((r) => r.isSystem)
+            .map((role) => (
+              <RoleCard key={role.id} role={role} />
+            ))}
         </div>
       </div>
 
       {/* Custom Roles */}
       <div>
         <h2 className="mb-4 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
-          Custom Roles ({ROLES.filter((r) => !r.isSystem).length})
+          Custom Roles ({roles.filter((r) => !r.isSystem).length})
         </h2>
         <div className="space-y-3">
-          {ROLES.filter((r) => !r.isSystem).map((role) => (
-            <RoleCard key={role.id} role={role} />
-          ))}
+          {roles
+            .filter((r) => !r.isSystem)
+            .map((role) => (
+              <RoleCard key={role.id} role={role} />
+            ))}
         </div>
       </div>
 

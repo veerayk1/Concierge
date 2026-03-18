@@ -1,10 +1,12 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Building2, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 
@@ -22,10 +24,72 @@ const TIMEZONES = [
 ];
 
 // ---------------------------------------------------------------------------
+// API response shape
+// ---------------------------------------------------------------------------
+
+interface SettingsApiData {
+  property: {
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+    province: string;
+    country: string;
+    postalCode: string;
+    unitCount: number;
+    timezone: string;
+    logo: string | null;
+    branding: unknown;
+    type: string;
+    subscriptionTier: string;
+  };
+  eventTypes: unknown[];
+}
+
+// Fallback mock values
+const MOCK_SETTINGS = {
+  name: 'The Residence at Harbourfront',
+  address: '225 Queens Quay West',
+  city: 'Toronto',
+  province: 'Ontario',
+  postalCode: 'M5J 1B5',
+  timezone: 'America/Toronto',
+  unitCount: 342,
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function GeneralSettingsPage() {
+  const { data: apiData, loading } = useApi<SettingsApiData>(
+    apiUrl('/api/v1/settings', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const settings = useMemo(() => {
+    if (!apiData?.property) return MOCK_SETTINGS;
+    const p = apiData.property;
+    return {
+      name: p.name || MOCK_SETTINGS.name,
+      address: p.address || MOCK_SETTINGS.address,
+      city: p.city || MOCK_SETTINGS.city,
+      province: p.province || MOCK_SETTINGS.province,
+      postalCode: p.postalCode || MOCK_SETTINGS.postalCode,
+      timezone: p.timezone || MOCK_SETTINGS.timezone,
+      unitCount: p.unitCount ?? MOCK_SETTINGS.unitCount,
+    };
+  }, [apiData]);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-8 py-8">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-9 w-64" />
+        <Skeleton className="h-[400px] rounded-2xl" />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-8 py-8">
       {/* Back Navigation */}
@@ -55,27 +119,37 @@ export default function GeneralSettingsPage() {
             <div className="space-y-5">
               <Input
                 label="Property Name"
-                defaultValue="The Residence at Harbourfront"
+                defaultValue={settings.name}
                 placeholder="Enter property name"
                 required
               />
               <Input
                 label="Street Address"
-                defaultValue="225 Queens Quay West"
+                defaultValue={settings.address}
                 placeholder="Enter street address"
                 required
               />
               <div className="grid grid-cols-2 gap-4">
-                <Input label="City" defaultValue="Toronto" placeholder="Enter city" required />
+                <Input
+                  label="City"
+                  defaultValue={settings.city}
+                  placeholder="Enter city"
+                  required
+                />
                 <Input
                   label="Province / State"
-                  defaultValue="Ontario"
+                  defaultValue={settings.province}
                   placeholder="Enter province"
                   required
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Postal Code" defaultValue="M5J 1B5" placeholder="A1A 1A1" required />
+                <Input
+                  label="Postal Code"
+                  defaultValue={settings.postalCode}
+                  placeholder="A1A 1A1"
+                  required
+                />
                 <div className="flex flex-col gap-2">
                   <label
                     htmlFor="timezone"
@@ -85,7 +159,7 @@ export default function GeneralSettingsPage() {
                   </label>
                   <select
                     id="timezone"
-                    defaultValue="America/Toronto"
+                    defaultValue={settings.timezone}
                     className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 ease-out hover:border-neutral-300 focus:ring-4 focus:outline-none"
                   >
                     {TIMEZONES.map((tz) => (
@@ -99,7 +173,7 @@ export default function GeneralSettingsPage() {
               <Input
                 label="Total Units"
                 type="number"
-                defaultValue="342"
+                defaultValue={String(settings.unitCount)}
                 placeholder="Number of units"
                 helperText="Total number of residential and commercial units in the property."
               />

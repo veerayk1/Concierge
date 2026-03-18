@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createViolationSchema = z.object({
   propertyId: z.string().uuid(),
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
         licensePlate: input.licensePlate.toUpperCase(),
         location: input.location,
         violationType: input.violationType,
-        description: input.description || null,
+        description: input.description ? stripControlChars(stripHtml(input.description)) : null,
         status: 'open',
         reportedById: auth.user.userId,
       },

@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createInstructionSchema = z.object({
   instruction: z.string().min(1, 'Instruction is required').max(500),
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const instruction = await prisma.unitInstruction.create({
       data: {
         unitId,
-        instruction: input.instruction,
+        instruction: stripControlChars(stripHtml(input.instruction)),
         priority: input.priority,
         createdById: auth.user.userId,
       },

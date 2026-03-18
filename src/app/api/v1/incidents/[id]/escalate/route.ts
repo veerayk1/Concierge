@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const escalateSchema = z.object({
   escalateTo: z.string().min(1, 'Escalation target is required').max(200),
@@ -39,8 +40,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         priority: input.priority,
         status: 'in_progress',
         customFields: {
-          escalatedTo: input.escalateTo,
-          escalationReason: input.reason,
+          escalatedTo: stripControlChars(stripHtml(input.escalateTo)),
+          escalationReason: stripControlChars(stripHtml(input.reason)),
           escalatedAt: new Date().toISOString(),
           escalatedBy: auth.user.userId,
         },

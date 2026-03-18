@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createShiftEntrySchema = z.object({
   propertyId: z.string().uuid(),
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
         propertyId: input.propertyId,
         eventTypeId: 'shift-log-type', // Will be seeded
         title: `${input.shift} shift note`,
-        description: input.content,
+        description: stripControlChars(stripHtml(input.content)),
         priority: input.priority,
         referenceNo: `SL-${Date.now().toString(36).toUpperCase()}`,
         createdById: auth.user.userId,

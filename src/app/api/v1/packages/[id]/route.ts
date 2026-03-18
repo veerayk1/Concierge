@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { releasePackageSchema } from '@/schemas/package';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/packages/:id
@@ -97,7 +98,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           releasedById: auth.user.userId, // TODO: Get from auth
           idVerified: input.idVerified,
           isAuthorizedDelegate: input.isAuthorizedDelegate,
-          releaseComments: input.releaseComments || null,
+          releaseComments: input.releaseComments
+            ? stripControlChars(stripHtml(input.releaseComments))
+            : null,
         },
       });
 
@@ -120,7 +123,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Regular update (e.g., storage location, description)
     const updateData: Record<string, unknown> = {};
     if (body.storageSpotId !== undefined) updateData.storageSpotId = body.storageSpotId;
-    if (body.description !== undefined) updateData.description = body.description;
+    if (body.description !== undefined)
+      updateData.description = stripControlChars(stripHtml(body.description));
     if (body.isPerishable !== undefined) updateData.isPerishable = body.isPerishable;
     if (body.isOversized !== undefined) updateData.isOversized = body.isOversized;
 

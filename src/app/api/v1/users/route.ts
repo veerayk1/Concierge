@@ -12,6 +12,7 @@ import { hashPassword } from '@/server/auth/password';
 import { createUserSchema } from '@/schemas/user';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/users — List users
@@ -195,8 +196,8 @@ export async function POST(request: NextRequest) {
         data: {
           email: input.email.toLowerCase(),
           passwordHash,
-          firstName: input.firstName,
-          lastName: input.lastName,
+          firstName: stripControlChars(stripHtml(input.firstName)),
+          lastName: stripControlChars(stripHtml(input.lastName)),
           phone: input.phone || null,
           isActive: true,
           // activatedAt is null until user completes onboarding

@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { updateEventSchema } from '@/schemas/event';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -71,8 +72,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
     if (input.priority) updateData.priority = input.priority;
-    if (input.title) updateData.title = input.title;
-    if (input.description !== undefined) updateData.description = input.description;
+    if (input.title) updateData.title = stripControlChars(stripHtml(input.title));
+    if (input.description !== undefined)
+      updateData.description = stripControlChars(stripHtml(input.description));
 
     const event = await prisma.event.update({
       where: { id },

@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -46,8 +47,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const body = await request.json();
 
     const updateData: Record<string, unknown> = {};
-    if (body.title) updateData.title = body.title;
-    if (body.body) updateData.body = body.body;
+    if (body.title) updateData.title = stripControlChars(stripHtml(body.title));
+    if (body.body) updateData.body = stripControlChars(stripHtml(body.body));
     if (body.priority) updateData.priority = body.priority;
     if (body.channels) updateData.channels = body.channels;
     if (body.status) {

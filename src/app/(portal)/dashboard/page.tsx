@@ -1,6 +1,9 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -321,6 +324,28 @@ function getGreeting(): string {
 // Component
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// API response shape
+// ---------------------------------------------------------------------------
+
+interface DashboardApiData {
+  kpis: {
+    unreleasedPackages: number;
+    openMaintenanceRequests: number;
+    openEvents: number;
+    totalUnits: number;
+    activeUsers: number;
+  };
+  recentActivity: {
+    id: string;
+    type: string;
+    title: string;
+    unit?: string;
+    status: string;
+    createdAt: string;
+  }[];
+}
+
 export default function DashboardPage() {
   const { user, loading } = useAuth();
 
@@ -329,6 +354,30 @@ export default function DashboardPage() {
     typeof window !== 'undefined' ? (localStorage.getItem('demo_role') as Role | null) : null;
   const effectiveRole: Role = user?.role ?? demoRole ?? 'front_desk';
   const effectiveName = user?.firstName ?? (demoRole ? (DEMO_NAMES[demoRole] ?? 'User') : 'User');
+
+  // Fetch real dashboard data from API
+  const { data: apiData } = useApi<DashboardApiData>(
+    apiUrl('/api/v1/dashboard', { propertyId: DEMO_PROPERTY_ID, role: effectiveRole }),
+  );
+
+  // Map KPI names to real values from the API, falling back to em-dash
+  const kpiValues = useMemo<Record<string, string>>(() => {
+    if (!apiData?.kpis) return {};
+    const k = apiData.kpis;
+    return {
+      'Unreleased Packages': String(k.unreleasedPackages),
+      'Open Requests': String(k.openMaintenanceRequests),
+      'Active Visitors': String(k.openEvents),
+      'Resident Count': String(k.totalUnits),
+      'Active Users': String(k.activeUsers),
+      'Total Properties': '1',
+      'My Packages': String(k.unreleasedPackages),
+      'Assigned Requests': String(k.openMaintenanceRequests),
+      'Pending Items': String(k.openEvents),
+      'Expected Visitors': String(k.openEvents),
+      Bookings: '\u2014',
+    };
+  }, [apiData]);
 
   if (loading && !demoRole) {
     return <DashboardSkeleton />;
@@ -384,7 +433,7 @@ export default function DashboardPage() {
                 <div className="mt-4">
                   <p className="text-[13px] font-medium text-neutral-500">{kpiConfig.label}</p>
                   <p className="mt-1 text-[24px] font-bold tracking-tight text-neutral-900">
-                    &mdash;
+                    {kpiValues[kpi] ?? '\u2014'}
                   </p>
                 </div>
               </Card>
@@ -418,17 +467,46 @@ export default function DashboardPage() {
         <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
           Recent Activity
         </h2>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100">
-              <Activity className="h-6 w-6 text-neutral-400" />
-            </div>
-            <p className="text-[15px] font-medium text-neutral-900">No activity yet</p>
-            <p className="mt-1 text-[13px] text-neutral-500">
-              Events will appear here as activity occurs across the building.
-            </p>
-          </CardContent>
-        </Card>
+        {apiData?.recentActivity && apiData.recentActivity.length > 0 ? (
+          <div className="space-y-2">
+            {apiData.recentActivity.map((event) => (
+              <Card key={event.id} hoverable className="cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100">
+                      <Activity className="h-4 w-4 text-neutral-500" />
+                    </div>
+                    <div>
+                      <p className="text-[14px] font-medium text-neutral-900">{event.title}</p>
+                      <p className="text-[12px] text-neutral-500">
+                        {event.type}
+                        {event.unit ? ` \u00B7 Unit ${event.unit}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[12px] text-neutral-400">
+                    {new Date(event.createdAt).toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100">
+                <Activity className="h-6 w-6 text-neutral-400" />
+              </div>
+              <p className="text-[15px] font-medium text-neutral-900">No activity yet</p>
+              <p className="mt-1 text-[13px] text-neutral-500">
+                Events will appear here as activity occurs across the building.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

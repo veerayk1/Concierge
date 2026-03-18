@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createPetSchema = z.object({
   unitId: z.string().uuid(),
@@ -62,7 +63,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const pet = await prisma.pet.create({ data: parsed.data });
+    const input = parsed.data;
+    const pet = await prisma.pet.create({
+      data: {
+        ...input,
+        name: stripControlChars(stripHtml(input.name)),
+        notes: input.notes ? stripControlChars(stripHtml(input.notes)) : undefined,
+      },
+    });
     return NextResponse.json({ data: pet, message: 'Pet registered.' }, { status: 201 });
   } catch (error) {
     console.error('POST /api/v1/pets error:', error);
