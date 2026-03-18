@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import {
   Download,
   Mail,
@@ -153,19 +154,47 @@ const ROLE_COLORS: Record<string, string> = {
 // Component
 // ---------------------------------------------------------------------------
 
+const PROPERTY_ID = '00000000-0000-4000-b000-000000000001';
+
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
+  // Fetch real users from API
+  const {
+    data: apiUsers,
+    loading: apiLoading,
+    refetch,
+  } = useApi<UserAccount[]>(apiUrl('/api/v1/users', { propertyId: PROPERTY_ID }));
+
   const handleUserCreated = useCallback(() => {
-    // TODO: Refetch users from API
     setShowCreateDialog(false);
-  }, []);
+    refetch();
+  }, [refetch]);
+
+  // Merge API users with mock data as fallback
+  const allUsers = useMemo(() => {
+    if (apiUsers && Array.isArray(apiUsers) && apiUsers.length > 0) {
+      return apiUsers.map((u: Record<string, unknown>) => ({
+        id: u.id as string,
+        firstName: u.firstName as string,
+        lastName: u.lastName as string,
+        email: u.email as string,
+        role: (u.role as Record<string, string>)?.slug || 'front_desk',
+        roleDisplay: (u.role as Record<string, string>)?.name || 'Staff',
+        status: (u.status as string) || 'active',
+        mfaEnabled: (u.mfaEnabled as boolean) || false,
+        lastLogin: u.lastLoginAt as string | undefined,
+        createdAt: u.createdAt as string,
+      }));
+    }
+    return MOCK_USERS;
+  }, [apiUsers]);
 
   const filteredUsers = useMemo(
     () =>
-      MOCK_USERS.filter((u) => {
+      allUsers.filter((u) => {
         if (roleFilter !== 'all' && u.role !== roleFilter) return false;
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
@@ -178,10 +207,10 @@ export default function UsersPage() {
         }
         return true;
       }),
-    [searchQuery, roleFilter],
+    [searchQuery, roleFilter, allUsers],
   );
 
-  const activeCount = MOCK_USERS.filter((u) => u.status === 'active').length;
+  const activeCount = allUsers.filter((u) => u.status === 'active').length;
 
   const columns: Column<UserAccount>[] = [
     {
@@ -396,7 +425,7 @@ export default function UsersPage() {
       <CreateUserDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId="prop-1"
+        propertyId={PROPERTY_ID}
         onSuccess={handleUserCreated}
       />
     </PageShell>

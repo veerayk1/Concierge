@@ -13,9 +13,9 @@ import type { Role } from '@/types';
 // ---------------------------------------------------------------------------
 
 const MOCK_PROPERTY = {
-  id: 'prop-1',
-  name: 'Bond Tower',
-  address: '123 Bond Street, Toronto, ON',
+  id: '00000000-0000-4000-b000-000000000001',
+  name: 'Maple Heights Condominiums',
+  address: '100 Maple Avenue, Toronto, ON',
 };
 
 const MOCK_PROPERTIES = [MOCK_PROPERTY];
