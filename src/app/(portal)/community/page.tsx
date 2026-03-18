@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Calendar, Heart, MessageCircle, Plus, Search, ShoppingBag, Tag, X } from 'lucide-react';
+import { CreateClassifiedAdDialog } from '@/components/forms/create-classified-ad-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -109,6 +110,7 @@ const CATEGORIES = [
 export default function CommunityPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [showPostDialog, setShowPostDialog] = useState(false);
 
   const filteredAds = MOCK_ADS.filter((ad) => {
     if (categoryFilter !== 'All' && ad.category !== categoryFilter) return false;
@@ -124,7 +126,7 @@ export default function CommunityPage() {
       title="Community"
       description="Classified ads, services, and community engagement."
       actions={
-        <Button size="sm">
+        <Button size="sm" onClick={() => setShowPostDialog(true)}>
           <Plus className="h-4 w-4" />
           Post Ad
         </Button>
@@ -215,6 +217,12 @@ export default function CommunityPage() {
           </Card>
         ))}
       </div>
+
+      <CreateClassifiedAdDialog
+        open={showPostDialog}
+        onOpenChange={setShowPostDialog}
+        onSuccess={() => setShowPostDialog(false)}
+      />
     </PageShell>
   );
 }

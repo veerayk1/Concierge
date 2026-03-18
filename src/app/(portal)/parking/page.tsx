@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AlertTriangle, Car, Download, MapPin, Plus, Search, X } from 'lucide-react';
+import { CreateParkingPermitDialog } from '@/components/forms/create-parking-permit-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -120,6 +121,7 @@ const MOCK_VIOLATIONS: ParkingViolation[] = [
 export default function ParkingPage() {
   const [tab, setTab] = useState<'permits' | 'violations'>('permits');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showPermitDialog, setShowPermitDialog] = useState(false);
 
   const filteredPermits = MOCK_PERMITS.filter((p) => {
     if (!searchQuery) return true;
@@ -261,7 +263,7 @@ export default function ParkingPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowPermitDialog(true)}>
             <Plus className="h-4 w-4" />
             New Permit
           </Button>
@@ -331,6 +333,13 @@ export default function ParkingPage() {
           emptyIcon={<AlertTriangle className="h-6 w-6" />}
         />
       )}
+
+      <CreateParkingPermitDialog
+        open={showPermitDialog}
+        onOpenChange={setShowPermitDialog}
+        propertyId="prop-1"
+        onSuccess={() => setShowPermitDialog(false)}
+      />
     </PageShell>
   );
 }
