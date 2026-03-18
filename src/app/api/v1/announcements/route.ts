@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
         status: input.status,
         scheduledFor: input.scheduledFor ? new Date(input.scheduledFor) : null,
         categoryId: input.categoryId || null,
-        authorId: 'demo-user',
+        authorId: auth.user.userId,
         publishedAt: input.status === 'published' ? new Date() : null,
       },
     });

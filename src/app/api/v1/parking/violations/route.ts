@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         violationType: input.violationType,
         description: input.description || null,
         status: 'open',
-        reportedById: 'demo-user',
+        reportedById: auth.user.userId,
       },
     });
 

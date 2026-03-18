@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         endDate: input.endDate ? new Date(input.endDate) : null,
         maxAttendees: input.maxAttendees || null,
         requiresRsvp: input.requiresRsvp,
-        organizedById: 'demo-user',
+        organizedById: auth.user.userId,
       },
     });
 

@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         isPerishable: input.isPerishable,
         isOversized: input.isOversized,
         notifyChannel: input.notifyChannel,
-        createdById: 'demo-user', // TODO: Get from auth context
+        createdById: auth.user.userId, // TODO: Get from auth context
         status: 'unreleased',
       },
       include: {

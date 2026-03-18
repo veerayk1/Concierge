@@ -11,6 +11,7 @@ import { prisma } from '@/server/db';
 import { createEventSchema } from '@/schemas/event';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/events
@@ -125,11 +126,11 @@ export async function POST(request: NextRequest) {
         propertyId: input.propertyId,
         eventTypeId: input.eventTypeId,
         unitId: input.unitId || null,
-        title: input.title,
-        description: input.description || null,
+        title: stripControlChars(stripHtml(input.title)),
+        description: input.description ? stripControlChars(stripHtml(input.description)) : null,
         priority: input.priority,
         referenceNo,
-        createdById: 'demo-user', // TODO: Get from auth context
+        createdById: auth.user.userId, // TODO: Get from auth context
         customFields: input.customFields || undefined,
       },
       include: {

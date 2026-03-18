@@ -42,7 +42,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           escalatedTo: input.escalateTo,
           escalationReason: input.reason,
           escalatedAt: new Date().toISOString(),
-          escalatedBy: 'demo-user',
+          escalatedBy: auth.user.userId,
         },
       },
     });

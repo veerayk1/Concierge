@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         entryInstructions: input.entryInstructions || null,
         referenceNumber,
         status: 'open',
-        createdById: 'demo-user',
+        createdById: auth.user.userId,
       },
       include: {
         unit: { select: { id: true, number: true } },

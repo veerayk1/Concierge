@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
             isPerishable: input.isPerishable,
             isOversized: input.isOversized,
             notifyChannel: input.notifyChannel,
-            createdById: 'demo-user',
+            createdById: auth.user.userId,
             status: 'unreleased',
           },
           include: {

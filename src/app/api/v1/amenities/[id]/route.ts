@@ -103,7 +103,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         guestCount: input.guestCount,
         notes: input.notes || null,
         status: amenity.requiresApproval ? 'pending' : 'approved',
-        bookedById: 'demo-user',
+        bookedById: auth.user.userId,
       },
     });
 

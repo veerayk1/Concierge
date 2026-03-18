@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
         price: input.isFree ? null : (input.price ?? null),
         isFree: input.isFree,
         contactMethod: input.contactMethod,
-        authorId: 'demo-user',
+        authorId: auth.user.userId,
         status: 'active',
       },
     });

@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         description: input.content,
         priority: input.priority,
         referenceNo: `SL-${Date.now().toString(36).toUpperCase()}`,
-        createdById: 'demo-user',
+        createdById: auth.user.userId,
         customFields: { shift: input.shift },
       },
     });

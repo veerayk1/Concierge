@@ -62,7 +62,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       where: { id },
       data: {
         signedOutAt: new Date(),
-        signedOutById: 'demo-user',
+        signedOutById: auth.user.userId,
       },
     });
 

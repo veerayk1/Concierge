@@ -67,7 +67,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.status = input.status;
       if (input.status === 'closed' || input.status === 'resolved') {
         updateData.closedAt = new Date();
-        updateData.closedById = 'demo-user'; // TODO: Get from auth
+        updateData.closedById = auth.user.userId; // TODO: Get from auth
       }
     }
     if (input.priority) updateData.priority = input.priority;

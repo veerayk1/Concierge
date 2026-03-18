@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       },
       data: {
         signedOutAt: new Date(),
-        signedOutById: 'demo-user',
+        signedOutById: auth.user.userId,
       },
     });
 

@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
           status: 'released',
           releasedToName: input.releasedToName,
           releasedAt: now,
-          releasedById: 'demo-user',
+          releasedById: auth.user.userId,
           idVerified: input.idVerified,
           isAuthorizedDelegate: input.isAuthorizedDelegate,
           releaseComments: input.releaseComments || null,

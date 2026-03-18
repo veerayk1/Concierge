@@ -77,7 +77,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
 
       updateData.status = body.status;
-      if (body.status === 'approved') updateData.approvedById = 'demo-user';
+      if (body.status === 'approved') updateData.approvedById = auth.user.userId;
       if (body.status === 'cancelled') updateData.cancelledAt = new Date();
     }
 

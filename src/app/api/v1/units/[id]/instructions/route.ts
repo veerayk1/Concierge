@@ -59,7 +59,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         unitId,
         instruction: input.instruction,
         priority: input.priority,
-        createdById: 'demo-user',
+        createdById: auth.user.userId,
       },
     });
 

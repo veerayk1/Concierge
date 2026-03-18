@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         endsAt: input.endsAt ? new Date(input.endsAt) : null,
         isAnonymous: input.isAnonymous,
         status: 'draft',
-        createdById: 'demo-user',
+        createdById: auth.user.userId,
       },
     });
 

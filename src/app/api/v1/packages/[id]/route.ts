@@ -94,7 +94,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           status: 'released',
           releasedToName: input.releasedToName,
           releasedAt: new Date(),
-          releasedById: 'demo-user', // TODO: Get from auth
+          releasedById: auth.user.userId, // TODO: Get from auth
           idVerified: input.idVerified,
           isAuthorizedDelegate: input.isAuthorizedDelegate,
           releaseComments: input.releaseComments || null,

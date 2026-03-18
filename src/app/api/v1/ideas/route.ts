@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         title: input.title,
         description: input.description,
         category: input.category || null,
-        authorId: 'demo-user',
+        authorId: auth.user.userId,
         status: 'open',
         voteCount: 0,
       },

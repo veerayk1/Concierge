@@ -21,7 +21,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.status = body.status;
       if (body.status === 'resolved') {
         updateData.resolvedAt = new Date();
-        updateData.resolvedById = 'demo-user';
+        updateData.resolvedById = auth.user.userId;
       }
     }
     if (body.notes) updateData.notes = body.notes;

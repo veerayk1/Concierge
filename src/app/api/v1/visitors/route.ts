@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         idType: input.idType || null,
         idVerified: input.idVerified,
         notes: input.notes || null,
-        signedInById: 'demo-user',
+        signedInById: auth.user.userId,
       },
       include: {
         unit: { select: { number: true } },
