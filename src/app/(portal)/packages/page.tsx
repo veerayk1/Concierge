@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreatePackageDialog } from '@/components/forms/create-package-dialog';
+import { BatchPackageDialog } from '@/components/forms/batch-package-dialog';
 import {
   Download,
   Filter,
@@ -184,6 +185,7 @@ export default function PackagesPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showBatchDialog, setShowBatchDialog] = useState(false);
 
   const unreleasedPackages = useMemo(
     () =>
@@ -407,9 +409,9 @@ export default function PackagesPage() {
       description="Track and manage all deliveries across the building."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
-            <Printer className="h-4 w-4" />
-            Print Labels
+          <Button variant="secondary" size="sm" onClick={() => setShowBatchDialog(true)}>
+            <Package className="h-4 w-4" />
+            Batch Intake
           </Button>
           <Button variant="secondary" size="sm">
             <Download className="h-4 w-4" />
@@ -579,6 +581,12 @@ export default function PackagesPage() {
         onOpenChange={setShowCreateDialog}
         propertyId="prop-1"
         onSuccess={() => setShowCreateDialog(false)}
+      />
+      <BatchPackageDialog
+        open={showBatchDialog}
+        onOpenChange={setShowBatchDialog}
+        propertyId="prop-1"
+        onSuccess={() => setShowBatchDialog(false)}
       />
     </PageShell>
   );

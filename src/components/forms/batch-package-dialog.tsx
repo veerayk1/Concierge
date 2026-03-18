@@ -1,0 +1,237 @@
+'use client';
+
+/**
+ * Batch Package Intake Dialog — per PRD 04 Section 3.1.3
+ * Multi-row form for logging multiple packages at once
+ */
+
+import { useState } from 'react';
+import { Package, Plus, Trash2 } from 'lucide-react';
+
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+interface PackageRow {
+  id: string;
+  unitId: string;
+  courier: string;
+  trackingNumber: string;
+  description: string;
+  isPerishable: boolean;
+}
+
+const EMPTY_ROW = (): PackageRow => ({
+  id: crypto.randomUUID(),
+  unitId: '',
+  courier: '',
+  trackingNumber: '',
+  description: '',
+  isPerishable: false,
+});
+
+const UNITS = ['101', '305', '422', '710', '802', '1105', '1203', '1501'];
+const COURIERS = [
+  'Amazon',
+  'FedEx',
+  'UPS',
+  'Canada Post',
+  'DHL',
+  'Purolator',
+  'Uber Eats',
+  'Other',
+];
+
+interface BatchPackageDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  propertyId: string;
+  onSuccess?: () => void;
+}
+
+export function BatchPackageDialog({
+  open,
+  onOpenChange,
+  propertyId,
+  onSuccess,
+}: BatchPackageDialogProps) {
+  const [rows, setRows] = useState<PackageRow[]>([EMPTY_ROW(), EMPTY_ROW(), EMPTY_ROW()]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  function addRow() {
+    if (rows.length >= 20) return;
+    setRows([...rows, EMPTY_ROW()]);
+  }
+
+  function removeRow(id: string) {
+    if (rows.length <= 1) return;
+    setRows(rows.filter((r) => r.id !== id));
+  }
+
+  function updateRow(id: string, field: keyof PackageRow, value: string | boolean) {
+    setRows(rows.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
+  }
+
+  async function handleSubmit() {
+    setServerError(null);
+    const validRows = rows.filter((r) => r.unitId);
+
+    if (validRows.length === 0) {
+      setServerError('At least one row with a unit is required.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/v1/packages/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          propertyId,
+          packages: validRows.map((r) => ({
+            unitId: r.unitId,
+            direction: 'incoming',
+            courierId: r.courier || undefined,
+            trackingNumber: r.trackingNumber || undefined,
+            description: r.description || undefined,
+            isPerishable: r.isPerishable,
+            isOversized: false,
+            notifyChannel: 'default',
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        setServerError(result.message || 'Batch intake failed');
+        return;
+      }
+
+      const result = await response.json();
+      setRows([EMPTY_ROW(), EMPTY_ROW(), EMPTY_ROW()]);
+      onOpenChange(false);
+      onSuccess?.();
+    } catch {
+      setServerError('An unexpected error occurred.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
+        <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
+          <Package className="text-primary-500 h-5 w-5" />
+          Batch Package Intake
+        </DialogTitle>
+        <DialogDescription className="text-[14px] text-neutral-500">
+          Log multiple packages at once. {rows.length}/20 rows.
+        </DialogDescription>
+
+        <div className="mt-6 flex flex-col gap-3">
+          {serverError && (
+            <div className="border-error-200 bg-error-50 text-error-700 rounded-xl border px-4 py-3 text-[14px]">
+              {serverError}
+            </div>
+          )}
+
+          {/* Header */}
+          <div className="grid grid-cols-[1fr_1fr_1fr_1fr_80px_40px] gap-2 text-[11px] font-semibold tracking-[0.06em] text-neutral-400 uppercase">
+            <span>Unit *</span>
+            <span>Courier</span>
+            <span>Tracking #</span>
+            <span>Description</span>
+            <span>Perish.</span>
+            <span />
+          </div>
+
+          {/* Rows */}
+          {rows.map((row) => (
+            <div key={row.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_80px_40px] gap-2">
+              <select
+                value={row.unitId}
+                onChange={(e) => updateRow(row.id, 'unitId', e.target.value)}
+                className="focus:border-primary-500 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none"
+              >
+                <option value="">Unit...</option>
+                {UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={row.courier}
+                onChange={(e) => updateRow(row.id, 'courier', e.target.value)}
+                className="focus:border-primary-500 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none"
+              >
+                <option value="">Courier...</option>
+                {COURIERS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={row.trackingNumber}
+                onChange={(e) => updateRow(row.id, 'trackingNumber', e.target.value)}
+                placeholder="Tracking #"
+                className="focus:border-primary-500 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 placeholder:text-neutral-400 focus:ring-2 focus:outline-none"
+              />
+              <input
+                value={row.description}
+                onChange={(e) => updateRow(row.id, 'description', e.target.value)}
+                placeholder="Description"
+                className="focus:border-primary-500 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 placeholder:text-neutral-400 focus:ring-2 focus:outline-none"
+              />
+              <label className="flex h-9 items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={row.isPerishable}
+                  onChange={(e) => updateRow(row.id, 'isPerishable', e.target.checked)}
+                  className="h-4 w-4 rounded border-neutral-300"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => removeRow(row.id)}
+                className="hover:text-error-500 flex h-9 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100"
+                disabled={rows.length <= 1}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+
+          {/* Add Row */}
+          {rows.length < 20 && (
+            <button
+              type="button"
+              onClick={addRow}
+              className="hover:border-primary-300 hover:text-primary-600 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-neutral-300 py-2 text-[13px] font-medium text-neutral-500 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Row
+            </button>
+          )}
+        </div>
+
+        <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-5">
+          <p className="text-[13px] text-neutral-500">
+            {rows.filter((r) => r.unitId).length} packages ready
+          </p>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button loading={isSubmitting} disabled={isSubmitting} onClick={handleSubmit}>
+              {isSubmitting ? 'Logging...' : `Log ${rows.filter((r) => r.unitId).length} Packages`}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
