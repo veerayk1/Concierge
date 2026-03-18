@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreateEventDialog } from '@/components/forms/create-event-dialog';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import {
   AlertTriangle,
   Eye,
@@ -146,7 +148,31 @@ export default function SecurityPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const filteredEvents = MOCK_EVENTS.filter((e) => {
+  // Fetch real events from database
+  const { data: apiEvents, refetch } = useApi<SecurityEvent[]>(
+    apiUrl('/api/v1/events', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  // Use API data if available, otherwise mock
+  const allEvents = useMemo(() => {
+    if (apiEvents && Array.isArray(apiEvents) && apiEvents.length > 0) {
+      return apiEvents.map((e: Record<string, unknown>) => ({
+        id: e.id as string,
+        type: ((e.eventType as Record<string, string>)?.name?.toLowerCase().replace(/[/ ]/g, '_') ||
+          'note') as SecurityEvent['type'],
+        title: e.title as string,
+        description: (e.description as string) || '',
+        unit: (e.unit as Record<string, string>)?.number,
+        status: e.status as string as SecurityEvent['status'],
+        priority: e.priority as SecurityEvent['priority'],
+        createdBy: 'Staff',
+        createdAt: e.createdAt as string,
+      }));
+    }
+    return MOCK_EVENTS;
+  }, [apiEvents]);
+
+  const filteredEvents = allEvents.filter((e) => {
     if (typeFilter !== 'all' && e.type !== typeFilter) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -160,10 +186,10 @@ export default function SecurityPage() {
     return true;
   });
 
-  const openCount = MOCK_EVENTS.filter(
+  const openCount = allEvents.filter(
     (e) => e.status === 'open' || e.status === 'in_progress',
   ).length;
-  const incidentCount = MOCK_EVENTS.filter((e) => e.type === 'incident').length;
+  const incidentCount = allEvents.filter((e) => e.type === 'incident').length;
 
   const columns: Column<SecurityEvent>[] = [
     {
@@ -385,7 +411,10 @@ export default function SecurityPage() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         propertyId="00000000-0000-4000-b000-000000000001"
-        onSuccess={() => setShowCreateDialog(false)}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );

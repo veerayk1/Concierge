@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, Download, Grid3X3, List, Search, Users, X } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -168,9 +170,32 @@ export default function UnitsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
+  const { data: apiUnits } = useApi<UnitItem[]>(
+    apiUrl('/api/v1/units', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const dbUnits = useMemo(() => {
+    if (apiUnits && Array.isArray(apiUnits) && apiUnits.length > 0) {
+      return apiUnits.map((u: Record<string, unknown>) => ({
+        id: u.id as string,
+        number: u.number as string,
+        floor: (u.floor as number) || 1,
+        building: (u.building as Record<string, string>)?.name || 'Tower A',
+        type: ((u.unitType as string) || 'residential') as UnitItem['type'],
+        occupantCount: 0,
+        primaryResident: '',
+        status: (u.status as string) === 'occupied' ? ('occupied' as const) : ('vacant' as const),
+        unreleasedPackages: 0,
+        openRequests: 0,
+        hasInstructions: ((u.unitInstructions as unknown[]) || []).length > 0,
+      }));
+    }
+    return MOCK_UNITS;
+  }, [apiUnits]);
+
   const filteredUnits = useMemo(
     () =>
-      MOCK_UNITS.filter((u) => {
+      dbUnits.filter((u) => {
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
         return (
@@ -182,7 +207,7 @@ export default function UnitsPage() {
     [searchQuery],
   );
 
-  const occupiedCount = MOCK_UNITS.filter((u) => u.status !== 'vacant').length;
+  const occupiedCount = dbUnits.filter((u) => u.status !== 'vacant').length;
 
   const columns: Column<UnitItem>[] = [
     {
@@ -289,7 +314,7 @@ export default function UnitsPage() {
   return (
     <PageShell
       title="Unit Directory"
-      description={`${MOCK_UNITS.length} units \u00B7 ${occupiedCount} occupied \u00B7 ${MOCK_UNITS.length - occupiedCount} vacant`}
+      description={`${dbUnits.length} units \u00B7 ${occupiedCount} occupied \u00B7 ${dbUnits.length - occupiedCount} vacant`}
       actions={
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg border border-neutral-200 bg-white p-0.5">

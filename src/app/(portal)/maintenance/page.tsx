@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreateMaintenanceDialog } from '@/components/forms/create-maintenance-dialog';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import {
   AlertCircle,
   CheckCircle2,
@@ -128,9 +130,33 @@ export default function MaintenancePage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
+  const { data: apiRequests, refetch } = useApi<MaintenanceRequest[]>(
+    apiUrl('/api/v1/maintenance', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const allRequests = useMemo(() => {
+    if (apiRequests && Array.isArray(apiRequests) && apiRequests.length > 0) {
+      return apiRequests.map((r: Record<string, unknown>) => ({
+        id: r.id as string,
+        referenceNumber: r.referenceNumber as string,
+        unit: (r.unit as Record<string, string>)?.number || '',
+        resident: '',
+        category: (r.category as Record<string, string>)?.name || 'General',
+        description: r.description as string,
+        status: r.status as MaintenanceRequest['status'],
+        priority: r.priority as MaintenanceRequest['priority'],
+        assignedTo: r.assignedEmployeeId as string | undefined,
+        createdAt: r.createdAt as string,
+        updatedAt: r.updatedAt as string,
+        permissionToEnter: (r.permissionToEnter as boolean) || false,
+      }));
+    }
+    return MOCK_REQUESTS;
+  }, [apiRequests]);
+
   const filteredRequests = useMemo(
     () =>
-      MOCK_REQUESTS.filter((r) => {
+      allRequests.filter((r) => {
         if (statusFilter !== 'all' && r.status !== statusFilter) return false;
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
@@ -148,10 +174,10 @@ export default function MaintenancePage() {
   );
 
   const statusCounts = {
-    open: MOCK_REQUESTS.filter((r) => r.status === 'open').length,
-    assigned: MOCK_REQUESTS.filter((r) => r.status === 'assigned').length,
-    in_progress: MOCK_REQUESTS.filter((r) => r.status === 'in_progress').length,
-    on_hold: MOCK_REQUESTS.filter((r) => r.status === 'on_hold').length,
+    open: allRequests.filter((r) => r.status === 'open').length,
+    assigned: allRequests.filter((r) => r.status === 'assigned').length,
+    in_progress: allRequests.filter((r) => r.status === 'in_progress').length,
+    on_hold: allRequests.filter((r) => r.status === 'on_hold').length,
   };
 
   const columns: Column<MaintenanceRequest>[] = [
@@ -385,7 +411,10 @@ export default function MaintenancePage() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         propertyId="00000000-0000-4000-b000-000000000001"
-        onSuccess={() => setShowCreateDialog(false)}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );
