@@ -1,16 +1,3 @@
-/**
- * Concierge — Reset Password Form (Client Component)
- *
- * Features:
- * - Token from URL search params
- * - New password with show/hide toggle
- * - Confirm password with match validation
- * - Password requirements checklist (checkmarks as each is met)
- * - Password strength indicator bar
- * - Success state with redirect countdown
- * - Error state for invalid/expired token
- */
-
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -26,10 +13,6 @@ import { passwordSchema } from '@/schemas/auth';
 import { PASSWORD_POLICY, PASSWORD_PATTERNS } from '@/lib/constants';
 import { apiClient, ApiClientError } from '@/lib/api-client';
 
-// ---------------------------------------------------------------------------
-// Form Schema (with confirm password)
-// ---------------------------------------------------------------------------
-
 const resetFormSchema = z
   .object({
     password: passwordSchema,
@@ -41,10 +24,6 @@ const resetFormSchema = z
   });
 
 type ResetFormInput = z.infer<typeof resetFormSchema>;
-
-// ---------------------------------------------------------------------------
-// Password Requirements
-// ---------------------------------------------------------------------------
 
 interface PasswordRequirement {
   label: string;
@@ -72,10 +51,6 @@ function getStrengthLevel(password: string): { level: number; label: string; col
   return { level: 4, label: 'Strong', color: 'bg-success-500' };
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 export function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -99,14 +74,12 @@ export function ResetPasswordForm() {
   const password = watch('password');
   const strength = useMemo(() => getStrengthLevel(password), [password]);
 
-  // Redirect to login if no token
   useEffect(() => {
     if (!token) {
       router.replace('/login');
     }
   }, [token, router]);
 
-  // Auto-redirect after success
   useEffect(() => {
     if (success) {
       const timer = setTimeout(() => {
@@ -138,43 +111,47 @@ export function ResetPasswordForm() {
 
   if (success) {
     return (
-      <div className="flex flex-col items-center gap-5 py-4">
-        <div className="bg-success-50 flex h-14 w-14 items-center justify-center rounded-full">
-          <Check className="text-success-600 h-7 w-7" />
+      <div className="flex flex-col items-center gap-6 py-4">
+        <div className="bg-success-50 flex h-16 w-16 items-center justify-center rounded-2xl">
+          <Check className="text-success-600 h-8 w-8" />
         </div>
         <div className="flex flex-col items-center gap-2 text-center">
-          <h2 className="text-[18px] font-semibold text-neutral-900">Password Reset!</h2>
-          <p className="text-[15px] leading-6 text-neutral-500">
-            Your password has been reset successfully. Redirecting to sign in...
+          <h2 className="text-[22px] font-bold tracking-tight text-neutral-900">
+            Password updated
+          </h2>
+          <p className="max-w-[320px] text-[15px] leading-relaxed text-neutral-500">
+            Your password has been reset successfully. Redirecting you to sign in...
           </p>
         </div>
         <Link
           href="/login"
-          className="text-primary-500 hover:text-primary-600 mt-2 text-[14px] font-medium"
+          className="text-primary-500 hover:text-primary-600 mt-2 text-[14px] font-medium transition-colors"
         >
-          Go to Sign In
+          Go to sign in
         </Link>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5" noValidate>
-      {/* Server Error */}
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6" noValidate>
       {serverError && (
         <div
           role="alert"
           aria-live="polite"
-          className="border-error-200 bg-error-50 text-error-700 rounded-lg border px-4 py-3 text-[14px]"
+          className="border-error-200 bg-error-50 flex items-start gap-3 rounded-xl border px-4 py-3.5"
         >
-          {serverError}
+          <p className="text-error-700 text-[14px] leading-5">{serverError}</p>
         </div>
       )}
 
       {/* New Password */}
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-[14px] font-medium text-neutral-900">
-          New Password
+      <div className="flex flex-col gap-2">
+        <label
+          htmlFor="password"
+          className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700"
+        >
+          New password
           <span className="text-error-500 ml-0.5">*</span>
         </label>
         <div className="relative">
@@ -186,16 +163,16 @@ export function ResetPasswordForm() {
             placeholder="Enter new password"
             aria-invalid={errors.password ? 'true' : undefined}
             aria-describedby="password-requirements"
-            className={`bg-surface-primary text-body-md text-text-primary placeholder:text-text-tertiary h-10 w-full rounded-lg border px-3 pr-10 focus:ring-2 focus:ring-offset-1 focus:outline-none ${
+            className={`h-[44px] w-full rounded-xl border bg-white px-4 pr-12 text-[15px] text-neutral-900 transition-all duration-200 ease-out placeholder:text-neutral-400 focus:ring-4 focus:outline-none ${
               errors.password
-                ? 'border-status-error focus:ring-status-error'
-                : 'border-border-primary hover:border-border-secondary focus:ring-interactive-focus'
+                ? 'border-error-300 focus:border-error-500 focus:ring-error-100'
+                : 'focus:border-primary-500 focus:ring-primary-100 border-neutral-200 hover:border-neutral-300'
             }`}
           />
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+            className="absolute top-1/2 right-4 -translate-y-1/2 rounded-md p-0.5 text-neutral-400 transition-colors hover:text-neutral-600"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
             tabIndex={-1}
           >
@@ -209,25 +186,25 @@ export function ResetPasswordForm() {
 
         {/* Strength Indicator */}
         {password.length > 0 && (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             <div className="flex gap-1">
               {[1, 2, 3, 4].map((level) => (
                 <div
                   key={level}
-                  className={`h-1.5 flex-1 rounded-full transition-colors ${
+                  className={`h-1 flex-1 rounded-full transition-all duration-300 ${
                     level <= strength.level ? strength.color : 'bg-neutral-200'
                   }`}
                 />
               ))}
             </div>
-            <span className="text-[12px] text-neutral-500">{strength.label}</span>
+            <span className="text-[12px] font-medium text-neutral-500">{strength.label}</span>
           </div>
         )}
 
         {/* Requirements Checklist */}
         <ul
           id="password-requirements"
-          className="flex flex-col gap-1 pt-1"
+          className="flex flex-col gap-1.5 pt-1"
           aria-label="Password requirements"
         >
           {PASSWORD_REQUIREMENTS.map((req) => {
@@ -237,7 +214,9 @@ export function ResetPasswordForm() {
                 {password.length === 0 ? (
                   <div className="h-4 w-4 rounded-full border border-neutral-300" />
                 ) : met ? (
-                  <Check className="text-success-500 h-4 w-4" />
+                  <div className="bg-success-500 flex h-4 w-4 items-center justify-center rounded-full">
+                    <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+                  </div>
                 ) : (
                   <X className="h-4 w-4 text-neutral-300" />
                 )}
@@ -253,9 +232,12 @@ export function ResetPasswordForm() {
       </div>
 
       {/* Confirm Password */}
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="confirm-password" className="text-[14px] font-medium text-neutral-900">
-          Confirm Password
+      <div className="flex flex-col gap-2">
+        <label
+          htmlFor="confirm-password"
+          className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700"
+        >
+          Confirm password
           <span className="text-error-500 ml-0.5">*</span>
         </label>
         <div className="relative">
@@ -267,16 +249,16 @@ export function ResetPasswordForm() {
             placeholder="Confirm new password"
             aria-invalid={errors.confirmPassword ? 'true' : undefined}
             aria-describedby={errors.confirmPassword ? 'confirm-password-error' : undefined}
-            className={`bg-surface-primary text-body-md text-text-primary placeholder:text-text-tertiary h-10 w-full rounded-lg border px-3 pr-10 focus:ring-2 focus:ring-offset-1 focus:outline-none ${
+            className={`h-[44px] w-full rounded-xl border bg-white px-4 pr-12 text-[15px] text-neutral-900 transition-all duration-200 ease-out placeholder:text-neutral-400 focus:ring-4 focus:outline-none ${
               errors.confirmPassword
-                ? 'border-status-error focus:ring-status-error'
-                : 'border-border-primary hover:border-border-secondary focus:ring-interactive-focus'
+                ? 'border-error-300 focus:border-error-500 focus:ring-error-100'
+                : 'focus:border-primary-500 focus:ring-primary-100 border-neutral-200 hover:border-neutral-300'
             }`}
           />
           <button
             type="button"
             onClick={() => setShowConfirmPassword((prev) => !prev)}
-            className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+            className="absolute top-1/2 right-4 -translate-y-1/2 rounded-md p-0.5 text-neutral-400 transition-colors hover:text-neutral-600"
             aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
             tabIndex={-1}
           >
@@ -288,29 +270,19 @@ export function ResetPasswordForm() {
           </button>
         </div>
         {errors.confirmPassword && (
-          <p id="confirm-password-error" className="text-error-600 text-[13px]" role="alert">
+          <p
+            id="confirm-password-error"
+            className="text-error-600 text-[13px] font-medium"
+            role="alert"
+          >
             {errors.confirmPassword.message}
           </p>
         )}
       </div>
 
-      {/* Submit */}
-      <Button
-        type="submit"
-        loading={isSubmitting}
-        disabled={isSubmitting}
-        className="h-11 w-full text-[15px]"
-      >
-        Reset Password
+      <Button type="submit" size="lg" loading={isSubmitting} disabled={isSubmitting} fullWidth>
+        Reset password
       </Button>
-
-      {/* Back to Login */}
-      <Link
-        href="/login"
-        className="text-center text-[14px] text-neutral-500 hover:text-neutral-700"
-      >
-        Back to Sign In
-      </Link>
     </form>
   );
 }

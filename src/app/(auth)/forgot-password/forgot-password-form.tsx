@@ -1,13 +1,3 @@
-/**
- * Concierge — Forgot Password Form (Client Component)
- *
- * Features:
- * - Email input with Zod validation
- * - Success state with email icon and message
- * - Always shows success (no email enumeration)
- * - Back to login link
- */
-
 'use client';
 
 import { useState } from 'react';
@@ -47,11 +37,9 @@ export function ForgotPasswordForm() {
       setSubmitted(true);
     } catch (err) {
       if (err instanceof ApiClientError) {
-        // Rate limiting is the only error we surface
         if (err.code === 'RATE_LIMIT_EXCEEDED') {
           setServerError(err.message);
         } else {
-          // For all other errors, still show success (prevent enumeration)
           setSubmitted(true);
         }
       } else {
@@ -62,68 +50,54 @@ export function ForgotPasswordForm() {
 
   if (submitted) {
     return (
-      <div className="flex flex-col items-center gap-5 py-4">
-        <div className="bg-success-50 flex h-14 w-14 items-center justify-center rounded-full">
-          <Mail className="text-success-600 h-7 w-7" />
+      <div className="flex flex-col items-center gap-6 py-4">
+        <div className="bg-success-50 flex h-16 w-16 items-center justify-center rounded-2xl">
+          <Mail className="text-success-600 h-8 w-8" />
         </div>
         <div className="flex flex-col items-center gap-2 text-center">
-          <h2 className="text-[18px] font-semibold text-neutral-900">Check Your Email</h2>
-          <p className="text-[15px] leading-6 text-neutral-500">
-            If an account with that email exists, we&#39;ve sent a password reset link. Please check
-            your inbox and spam folder.
+          <h2 className="text-[22px] font-bold tracking-tight text-neutral-900">
+            Check your email
+          </h2>
+          <p className="max-w-[320px] text-[15px] leading-relaxed text-neutral-500">
+            If an account with that email exists, we&apos;ve sent a password reset link. Check your
+            inbox and spam folder.
           </p>
         </div>
         <Link
           href="/login"
-          className="text-primary-500 hover:text-primary-600 mt-2 text-[14px] font-medium"
+          className="text-primary-500 hover:text-primary-600 mt-2 text-[14px] font-medium transition-colors"
         >
-          Back to Sign In
+          Back to sign in
         </Link>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5" noValidate>
-      {/* Server Error */}
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6" noValidate>
       {serverError && (
         <div
           role="alert"
           aria-live="polite"
-          className="border-error-200 bg-error-50 text-error-700 rounded-lg border px-4 py-3 text-[14px]"
+          className="border-error-200 bg-error-50 flex items-start gap-3 rounded-xl border px-4 py-3.5"
         >
-          {serverError}
+          <p className="text-error-700 text-[14px] leading-5">{serverError}</p>
         </div>
       )}
 
-      {/* Email */}
       <Input
         {...register('email')}
         type="email"
-        label="Email"
-        placeholder="you@building.com"
+        label="Email address"
+        placeholder="name@company.com"
         autoComplete="email"
         required
         error={errors.email?.message}
       />
 
-      {/* Submit */}
-      <Button
-        type="submit"
-        loading={isSubmitting}
-        disabled={isSubmitting}
-        className="h-11 w-full text-[15px]"
-      >
-        Send Reset Link
+      <Button type="submit" size="lg" loading={isSubmitting} disabled={isSubmitting} fullWidth>
+        Send reset link
       </Button>
-
-      {/* Back to Login */}
-      <Link
-        href="/login"
-        className="text-center text-[14px] text-neutral-500 hover:text-neutral-700"
-      >
-        Back to Sign In
-      </Link>
     </form>
   );
 }

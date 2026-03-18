@@ -1,19 +1,9 @@
-/**
- * Concierge — 2FA Verification Form (Client Component)
- *
- * Features:
- * - 6-digit TOTP code input with auto-focus and numeric enforcement
- * - Auto-submit when all 6 digits entered
- * - Toggle to recovery code input
- * - Back to login link
- * - Error display for invalid codes
- */
-
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { ShieldCheck } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,14 +35,12 @@ export function Verify2faForm() {
   const codeInputRef = useRef<HTMLInputElement>(null);
   const hasAutoSubmitted = useRef(false);
 
-  // Auto-focus the code input on mount
   useEffect(() => {
     if (codeInputRef.current) {
       codeInputRef.current.focus();
     }
   }, [useRecovery]);
 
-  // Redirect to login if no mfaToken
   useEffect(() => {
     if (!mfaToken) {
       router.replace('/login');
@@ -93,7 +81,6 @@ export function Verify2faForm() {
     [mfaToken, isSubmitting, router],
   );
 
-  // Auto-submit when 6 digits are entered
   useEffect(() => {
     if (code.length === 6 && /^\d{6}$/.test(code) && !hasAutoSubmitted.current) {
       hasAutoSubmitted.current = true;
@@ -128,23 +115,26 @@ export function Verify2faForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-      {/* Error Display */}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+      {/* Security icon */}
+      <div className="bg-primary-50 flex h-14 w-14 items-center justify-center rounded-2xl">
+        <ShieldCheck className="text-primary-500 h-7 w-7" />
+      </div>
+
       {error && (
         <div
           role="alert"
           aria-live="polite"
-          className="border-error-200 bg-error-50 text-error-700 rounded-lg border px-4 py-3 text-[14px]"
+          className="border-error-200 bg-error-50 flex items-start gap-3 rounded-xl border px-4 py-3.5"
         >
-          {error}
+          <p className="text-error-700 text-[14px] leading-5">{error}</p>
         </div>
       )}
 
       {useRecovery ? (
-        /* Recovery Code Input */
         <Input
           ref={codeInputRef}
-          label="Recovery Code"
+          label="Recovery code"
           value={recoveryCode}
           onChange={(e) => {
             setRecoveryCode(e.target.value);
@@ -155,10 +145,12 @@ export function Verify2faForm() {
           required
         />
       ) : (
-        /* TOTP Code Input */
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="totp-code" className="text-[14px] font-medium text-neutral-900">
-            Verification Code
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="totp-code"
+            className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700"
+          >
+            Verification code
           </label>
           <input
             ref={codeInputRef}
@@ -171,24 +163,20 @@ export function Verify2faForm() {
             onChange={handleCodeChange}
             placeholder="000000"
             maxLength={6}
-            className="bg-surface-primary text-body-md text-text-primary border-border-primary placeholder:text-text-tertiary focus:ring-interactive-focus h-12 w-full rounded-lg border px-4 text-center font-mono text-[20px] tracking-[0.3em] placeholder:tracking-[0.3em] focus:ring-2 focus:ring-offset-1 focus:outline-none"
+            className="focus:border-primary-500 focus:ring-primary-100 h-14 w-full rounded-xl border border-neutral-200 bg-white px-4 text-center font-mono text-[24px] tracking-[0.4em] text-neutral-900 transition-all duration-200 placeholder:tracking-[0.4em] placeholder:text-neutral-300 hover:border-neutral-300 focus:ring-4 focus:outline-none"
             aria-label="6-digit verification code"
             aria-invalid={error ? 'true' : undefined}
           />
+          <p className="text-[13px] text-neutral-400">
+            Code auto-submits when all 6 digits are entered.
+          </p>
         </div>
       )}
 
-      {/* Submit Button */}
-      <Button
-        type="submit"
-        loading={isSubmitting}
-        disabled={isSubmitting}
-        className="h-11 w-full text-[15px]"
-      >
+      <Button type="submit" size="lg" loading={isSubmitting} disabled={isSubmitting} fullWidth>
         Verify
       </Button>
 
-      {/* Toggle Recovery / TOTP */}
       <div className="flex flex-col items-center gap-3">
         <button
           type="button"
@@ -198,13 +186,16 @@ export function Verify2faForm() {
             setCode('');
             setRecoveryCode('');
           }}
-          className="text-primary-500 hover:text-primary-600 text-[14px] font-medium"
+          className="text-primary-500 hover:text-primary-600 text-[14px] font-medium transition-colors"
         >
           {useRecovery ? 'Use authenticator code instead' : 'Use recovery code instead'}
         </button>
 
-        <Link href="/login" className="text-[14px] text-neutral-500 hover:text-neutral-700">
-          Back to Sign In
+        <Link
+          href="/login"
+          className="text-[14px] text-neutral-500 transition-colors hover:text-neutral-700"
+        >
+          Back to sign in
         </Link>
       </div>
     </form>

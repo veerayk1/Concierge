@@ -5,5 +5,5 @@ export interface SkeletonProps {
 }
 
 export function Skeleton({ className }: SkeletonProps) {
-  return <div className={cn('bg-surface-tertiary animate-pulse rounded-md', className)} />;
+  return <div className={cn('animate-shimmer rounded-xl bg-neutral-100', className)} />;
 }

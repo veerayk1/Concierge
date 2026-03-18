@@ -3,37 +3,54 @@ import { cn } from '@/lib/utils';
 
 const buttonVariants = {
   primary:
-    'bg-interactive-primary text-white hover:bg-interactive-primary-hover active:bg-interactive-primary-active',
+    'bg-primary-500 text-white shadow-sm hover:bg-primary-600 active:bg-primary-700 active:scale-[0.98]',
   secondary:
-    'bg-surface-secondary text-text-primary border border-border-primary hover:bg-surface-tertiary active:bg-surface-quaternary',
-  ghost:
-    'text-text-secondary hover:bg-surface-secondary hover:text-text-primary active:bg-surface-tertiary',
-  danger: 'bg-status-error text-white hover:bg-red-700 active:bg-red-800',
+    'bg-white text-neutral-700 border border-neutral-200 shadow-sm hover:bg-neutral-50 hover:border-neutral-300 active:bg-neutral-100 active:scale-[0.98]',
+  ghost: 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 active:bg-neutral-150',
+  danger:
+    'bg-error-600 text-white shadow-sm hover:bg-error-700 active:bg-error-800 active:scale-[0.98]',
+  link: 'text-primary-500 hover:text-primary-600 underline-offset-4 hover:underline p-0 h-auto',
 } as const;
 
 const buttonSizes = {
-  sm: 'h-8 px-3 text-body-sm gap-1.5',
-  md: 'h-10 px-4 text-body-md gap-2',
-  lg: 'h-12 px-6 text-body-lg gap-2.5',
+  sm: 'h-8 px-3 text-[13px] gap-1.5 rounded-lg',
+  md: 'h-10 px-4 text-[14px] gap-2 rounded-xl',
+  lg: 'h-[44px] px-5 text-[15px] gap-2.5 rounded-xl',
+  xl: 'h-12 px-6 text-[16px] gap-3 rounded-xl',
 } as const;
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: keyof typeof buttonVariants;
   size?: keyof typeof buttonSizes;
   loading?: boolean;
+  fullWidth?: boolean;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', loading, disabled, children, ...props }, ref) => {
+  (
+    {
+      className,
+      variant = 'primary',
+      size = 'md',
+      loading,
+      disabled,
+      fullWidth,
+      children,
+      ...props
+    },
+    ref,
+  ) => {
     return (
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center rounded-lg font-medium transition-colors duration-150',
-          'focus-visible:ring-interactive-focus focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
-          'disabled:pointer-events-none disabled:opacity-50',
+          'inline-flex items-center justify-center font-medium',
+          'transition-all duration-200 ease-out',
+          'focus-visible:ring-primary-100 focus-visible:ring-4 focus-visible:outline-none',
+          'disabled:pointer-events-none disabled:opacity-40',
           buttonVariants[variant],
           buttonSizes[size],
+          fullWidth && 'w-full',
           className,
         )}
         disabled={disabled || loading}
@@ -47,7 +64,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
               cy="12"
               r="10"
               stroke="currentColor"
-              strokeWidth="4"
+              strokeWidth="3"
             />
             <path
               className="opacity-75"

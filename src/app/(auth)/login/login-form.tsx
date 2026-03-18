@@ -1,16 +1,3 @@
-/**
- * Concierge — Login Form (Client Component)
- *
- * Handles email/password login with react-hook-form + Zod validation.
- * Features:
- * - Password show/hide toggle
- * - "Remember me" checkbox
- * - Inline error display with aria-live
- * - Loading state on submit
- * - MFA redirect when mfaRequired
- * - Redirect to dashboard on success
- */
-
 'use client';
 
 import { useState } from 'react';
@@ -28,10 +15,6 @@ import { loginSchema } from '@/schemas/auth';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { ApiClientError } from '@/lib/api-client';
 
-/**
- * Use the Zod input type for the form (before transforms/defaults),
- * since react-hook-form works with the raw input shape.
- */
 type LoginFormValues = z.input<typeof loginSchema>;
 
 export function LoginForm() {
@@ -64,13 +47,11 @@ export function LoginForm() {
       const response = await login(data.email, data.password, data.rememberMe ?? false);
 
       if ('mfaRequired' in response && response.mfaRequired) {
-        // Redirect to 2FA verification with the mfaToken
         const url = `/verify-2fa?token=${encodeURIComponent(response.mfaToken)}`;
         router.push(url as never);
         return;
       }
 
-      // Successful login — redirect to dashboard
       router.push('/dashboard');
     } catch (error) {
       if (error instanceof ApiClientError) {
@@ -82,35 +63,54 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5" noValidate>
-      {/* Server Error */}
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6" noValidate>
       {serverError && (
         <div
           role="alert"
           aria-live="polite"
-          className="border-error-200 bg-error-50 text-error-700 rounded-lg border px-4 py-3 text-[14px]"
+          className="border-error-200 bg-error-50 flex items-start gap-3 rounded-xl border px-4 py-3.5"
         >
-          {serverError}
+          <div className="bg-error-100 mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full">
+            <svg
+              className="text-error-600 h-3 w-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <p className="text-error-700 text-[14px] leading-5">{serverError}</p>
         </div>
       )}
 
-      {/* Email */}
       <Input
         {...register('email')}
         type="email"
-        label="Email"
-        placeholder="you@building.com"
+        label="Email address"
+        placeholder="name@company.com"
         autoComplete="email"
         required
         error={errors.email?.message}
       />
 
-      {/* Password */}
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-body-sm text-text-primary font-medium">
-          Password
-          <span className="text-status-error ml-0.5">*</span>
-        </label>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <label
+            htmlFor="password"
+            className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700"
+          >
+            Password
+            <span className="text-error-500 ml-0.5">*</span>
+          </label>
+          <Link
+            href="/forgot-password"
+            className="text-primary-500 hover:text-primary-600 text-[13px] font-medium transition-colors"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <div className="relative">
           <input
             {...register('password')}
@@ -120,16 +120,16 @@ export function LoginForm() {
             placeholder="Enter your password"
             aria-invalid={errors.password ? 'true' : undefined}
             aria-describedby={errors.password ? 'password-error' : undefined}
-            className={`bg-surface-primary text-body-md text-text-primary placeholder:text-text-tertiary h-10 w-full rounded-lg border px-3 pr-10 focus:ring-2 focus:ring-offset-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`h-[44px] w-full rounded-xl border bg-white px-4 pr-12 text-[15px] text-neutral-900 transition-all duration-200 ease-out placeholder:text-neutral-400 focus:ring-4 focus:outline-none disabled:cursor-not-allowed disabled:bg-neutral-50 ${
               errors.password
-                ? 'border-status-error focus:ring-status-error'
-                : 'border-border-primary hover:border-border-secondary focus:ring-interactive-focus'
+                ? 'border-error-300 focus:border-error-500 focus:ring-error-100'
+                : 'focus:border-primary-500 focus:ring-primary-100 border-neutral-200 hover:border-neutral-300'
             }`}
           />
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+            className="absolute top-1/2 right-4 -translate-y-1/2 rounded-md p-0.5 text-neutral-400 transition-colors hover:text-neutral-600"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
             tabIndex={-1}
           >
@@ -141,36 +141,21 @@ export function LoginForm() {
           </button>
         </div>
         {errors.password && (
-          <p id="password-error" className="text-body-xs text-status-error" role="alert">
+          <p id="password-error" className="text-error-600 text-[13px] font-medium" role="alert">
             {errors.password.message}
           </p>
         )}
       </div>
 
-      {/* Remember Me + Forgot Password */}
-      <div className="flex items-center justify-between">
-        <Checkbox
-          checked={rememberMe ?? false}
-          onCheckedChange={(checked) => setValue('rememberMe', checked === true)}
-          label="Remember me"
-          id="remember-me"
-        />
-        <Link
-          href="/forgot-password"
-          className="text-primary-500 hover:text-primary-600 text-[14px] font-medium"
-        >
-          Forgot password?
-        </Link>
-      </div>
+      <Checkbox
+        checked={rememberMe ?? false}
+        onCheckedChange={(checked) => setValue('rememberMe', checked === true)}
+        label="Keep me signed in"
+        id="remember-me"
+      />
 
-      {/* Submit */}
-      <Button
-        type="submit"
-        loading={isSubmitting}
-        disabled={isSubmitting}
-        className="h-11 w-full text-[15px]"
-      >
-        Sign In
+      <Button type="submit" size="lg" loading={isSubmitting} disabled={isSubmitting} fullWidth>
+        Sign in
       </Button>
     </form>
   );
