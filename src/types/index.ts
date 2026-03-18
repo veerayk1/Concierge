@@ -19,9 +19,11 @@ export type Role =
   | 'super_admin'
   | 'property_admin'
   | 'property_manager'
-  | 'front_desk'
+  | 'security_supervisor'
   | 'security_guard'
+  | 'front_desk'
   | 'maintenance_staff'
+  | 'superintendent'
   | 'board_member'
   | 'resident_owner'
   | 'resident_tenant'
@@ -37,9 +39,11 @@ export const ROLE_HIERARCHY: Record<Role, number> = {
   super_admin: 100,
   property_admin: 90,
   property_manager: 80,
-  front_desk: 70,
+  security_supervisor: 75,
   security_guard: 70,
+  front_desk: 70,
   maintenance_staff: 60,
+  superintendent: 65,
   board_member: 50,
   resident_owner: 40,
   resident_tenant: 30,
@@ -54,9 +58,11 @@ export const ADMIN_ROLES: ReadonlySet<Role> = new Set<Role>(['super_admin', 'pro
 /** Convenience set for quick staff role lookups. */
 export const STAFF_ROLES: ReadonlySet<Role> = new Set<Role>([
   'property_manager',
-  'front_desk',
+  'security_supervisor',
   'security_guard',
+  'front_desk',
   'maintenance_staff',
+  'superintendent',
 ]);
 
 /** Convenience set for quick resident role lookups. */
