@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AlertTriangle, Download, Filter, Plus, Search, ShieldAlert, X } from 'lucide-react';
+import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -88,6 +89,7 @@ const MOCK_INCIDENTS: Incident[] = [
 
 export default function IncidentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showReportDialog, setShowReportDialog] = useState(false);
 
   const filteredIncidents = MOCK_INCIDENTS.filter((i) => {
     if (!searchQuery) return true;
@@ -213,7 +215,7 @@ export default function IncidentsPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowReportDialog(true)}>
             <Plus className="h-4 w-4" />
             Report Incident
           </Button>
@@ -246,6 +248,13 @@ export default function IncidentsPage() {
         data={filteredIncidents}
         emptyMessage="No incidents found."
         emptyIcon={<ShieldAlert className="h-6 w-6" />}
+      />
+
+      <ReportIncidentDialog
+        open={showReportDialog}
+        onOpenChange={setShowReportDialog}
+        propertyId="prop-1"
+        onSuccess={() => setShowReportDialog(false)}
       />
     </PageShell>
   );
