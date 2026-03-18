@@ -4,6 +4,8 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, Mail, Phone, Plus, Search, Users, X } from 'lucide-react';
 import { AddResidentDialog } from '@/components/forms/add-resident-dialog';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -148,9 +150,32 @@ export default function ResidentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
 
+  const { data: apiResidents, refetch } = useApi<Resident[]>(
+    apiUrl('/api/v1/residents', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const allResidents = useMemo(() => {
+    if (apiResidents && Array.isArray(apiResidents) && apiResidents.length > 0) {
+      return apiResidents.map((r: Record<string, unknown>) => ({
+        id: r.id as string,
+        firstName: r.firstName as string,
+        lastName: r.lastName as string,
+        email: r.email as string,
+        phone: (r.phone as string) || '',
+        unit: '',
+        role: ((r.role as Record<string, string>)?.slug as Resident['role']) || 'tenant',
+        status: 'active' as const,
+        moveInDate: (r.createdAt as string) || '2025-01-01',
+        hasPets: false,
+        hasVehicle: false,
+      }));
+    }
+    return MOCK_RESIDENTS;
+  }, [apiResidents]);
+
   const filteredResidents = useMemo(
     () =>
-      MOCK_RESIDENTS.filter((r) => {
+      allResidents.filter((r) => {
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
         const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
@@ -261,7 +286,7 @@ export default function ResidentsPage() {
   return (
     <PageShell
       title="Resident Directory"
-      description={`${MOCK_RESIDENTS.length} residents across ${new Set(MOCK_RESIDENTS.map((r) => r.unit)).size} units`}
+      description={`${allResidents.length} residents across ${new Set(allResidents.map((r) => r.unit)).size} units`}
       actions={
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm">
@@ -308,7 +333,10 @@ export default function ResidentsPage() {
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         propertyId="00000000-0000-4000-b000-000000000001"
-        onSuccess={() => setShowAddDialog(false)}
+        onSuccess={() => {
+          setShowAddDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );
