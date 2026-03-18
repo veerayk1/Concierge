@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreateAnnouncementDialog } from '@/components/forms/create-announcement-dialog';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import {
   Calendar,
   Clock,
@@ -132,7 +134,30 @@ export default function AnnouncementsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const filteredAnnouncements = MOCK_ANNOUNCEMENTS.filter((a) => {
+  const { data: apiAnnouncements, refetch } = useApi<Announcement[]>(
+    apiUrl('/api/v1/announcements', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const allAnnouncements = useMemo(() => {
+    if (apiAnnouncements && Array.isArray(apiAnnouncements) && apiAnnouncements.length > 0) {
+      return apiAnnouncements.map((a: Record<string, unknown>) => ({
+        id: a.id as string,
+        title: a.title as string,
+        body: a.body as string,
+        status: a.status as string as Announcement['status'],
+        priority: a.priority as string as Announcement['priority'],
+        channels: (a.channels as string[]) || ['web'],
+        author: 'Property Management',
+        publishedAt: a.publishedAt as string | undefined,
+        scheduledFor: a.scheduledFor as string | undefined,
+        createdAt: a.createdAt as string,
+        viewCount: 0,
+      }));
+    }
+    return MOCK_ANNOUNCEMENTS;
+  }, [apiAnnouncements]);
+
+  const filteredAnnouncements = allAnnouncements.filter((a) => {
     if (statusFilter !== 'all' && a.status !== statusFilter) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -307,7 +332,10 @@ export default function AnnouncementsPage() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         propertyId="00000000-0000-4000-b000-000000000001"
-        onSuccess={() => setShowCreateDialog(false)}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );

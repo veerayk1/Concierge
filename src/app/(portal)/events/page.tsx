@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import {
   Calendar,
   Download,
@@ -164,7 +166,34 @@ export default function EventsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  const filteredEvents = MOCK_EVENTS.filter((e) => {
+  const { data: apiEvents } = useApi<EventLogEntry[]>(
+    apiUrl('/api/v1/events', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const allEvents = useMemo(() => {
+    if (apiEvents && Array.isArray(apiEvents) && apiEvents.length > 0) {
+      return apiEvents.map((e: Record<string, unknown>) => {
+        const et = e.eventType as Record<string, string> | null;
+        return {
+          id: e.id as string,
+          type: et?.name?.toLowerCase().replace(/[/ ]/g, '_') || 'note',
+          typeLabel: et?.name || 'Note',
+          typeColor: 'text-neutral-600',
+          typeBgColor: 'bg-neutral-100',
+          title: e.title as string,
+          unit: (e.unit as Record<string, string>)?.number,
+          resident: undefined,
+          status: e.status as string as 'open' | 'closed',
+          notificationSent: false,
+          createdBy: 'Staff',
+          createdAt: e.createdAt as string,
+        };
+      });
+    }
+    return MOCK_EVENTS;
+  }, [apiEvents]);
+
+  const filteredEvents = allEvents.filter((e) => {
     if (typeFilter !== 'all' && e.type !== typeFilter) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
