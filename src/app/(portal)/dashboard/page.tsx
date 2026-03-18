@@ -1,21 +1,207 @@
 'use client';
 
-/**
- * Concierge — Dashboard
- *
- * Role-aware dashboard with greeting and placeholder cards.
- * Each role sees a different layout per PRD 02 Section 8
- * and PRD ADMIN-SUPERADMIN-ARCHITECTURE Section 2.1.
- */
-
 import { useAuth } from '@/lib/hooks/use-auth';
 import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Role } from '@/types';
+import {
+  Activity,
+  AlertTriangle,
+  ArrowUpRight,
+  BarChart3,
+  BookOpen,
+  Building2,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Key,
+  Megaphone,
+  Package,
+  Shield,
+  Sparkles,
+  TrendingUp,
+  Users,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react';
 
 // ---------------------------------------------------------------------------
-// Dashboard config per role (from PRD 02 Section 8)
+// KPI Card Data
+// ---------------------------------------------------------------------------
+
+interface KpiCardConfig {
+  label: string;
+  icon: LucideIcon;
+  color: string;
+  bgColor: string;
+}
+
+const KPI_ICONS: Record<string, KpiCardConfig> = {
+  'Platform Health': {
+    label: 'Platform Health',
+    icon: Activity,
+    color: 'text-success-600',
+    bgColor: 'bg-success-50',
+  },
+  'Total Properties': {
+    label: 'Total Properties',
+    icon: Building2,
+    color: 'text-primary-600',
+    bgColor: 'bg-primary-50',
+  },
+  'AI Spend': { label: 'AI Spend', icon: Sparkles, color: 'text-info-600', bgColor: 'bg-info-50' },
+  'Active Users': {
+    label: 'Active Users',
+    icon: Users,
+    color: 'text-primary-600',
+    bgColor: 'bg-primary-50',
+  },
+  'Open Requests': {
+    label: 'Open Requests',
+    icon: Wrench,
+    color: 'text-warning-600',
+    bgColor: 'bg-warning-50',
+  },
+  'Unreleased Packages': {
+    label: 'Unreleased Packages',
+    icon: Package,
+    color: 'text-primary-600',
+    bgColor: 'bg-primary-50',
+  },
+  'Active Visitors': {
+    label: 'Active Visitors',
+    icon: Users,
+    color: 'text-success-600',
+    bgColor: 'bg-success-50',
+  },
+  Bookings: { label: 'Bookings', icon: Calendar, color: 'text-info-600', bgColor: 'bg-info-50' },
+  'Resident Count': {
+    label: 'Resident Count',
+    icon: Users,
+    color: 'text-primary-600',
+    bgColor: 'bg-primary-50',
+  },
+  'Financial Summary': {
+    label: 'Financial Summary',
+    icon: TrendingUp,
+    color: 'text-success-600',
+    bgColor: 'bg-success-50',
+  },
+  'Compliance %': {
+    label: 'Compliance %',
+    icon: CheckCircle2,
+    color: 'text-success-600',
+    bgColor: 'bg-success-50',
+  },
+  'Pending Approvals': {
+    label: 'Pending Approvals',
+    icon: Clock,
+    color: 'text-warning-600',
+    bgColor: 'bg-warning-50',
+  },
+  'Satisfaction Score': {
+    label: 'Satisfaction Score',
+    icon: BarChart3,
+    color: 'text-primary-600',
+    bgColor: 'bg-primary-50',
+  },
+  'Incident Count': {
+    label: 'Incident Count',
+    icon: AlertTriangle,
+    color: 'text-error-600',
+    bgColor: 'bg-error-50',
+  },
+  'Guard Coverage': {
+    label: 'Guard Coverage',
+    icon: Shield,
+    color: 'text-primary-600',
+    bgColor: 'bg-primary-50',
+  },
+  'Open Escalations': {
+    label: 'Open Escalations',
+    icon: AlertTriangle,
+    color: 'text-warning-600',
+    bgColor: 'bg-warning-50',
+  },
+  'Patrol Status': {
+    label: 'Patrol Status',
+    icon: Activity,
+    color: 'text-success-600',
+    bgColor: 'bg-success-50',
+  },
+  'Keys Out': { label: 'Keys Out', icon: Key, color: 'text-warning-600', bgColor: 'bg-warning-50' },
+  'Expected Visitors': {
+    label: 'Expected Visitors',
+    icon: Users,
+    color: 'text-info-600',
+    bgColor: 'bg-info-50',
+  },
+  'Pending Items': {
+    label: 'Pending Items',
+    icon: Clock,
+    color: 'text-warning-600',
+    bgColor: 'bg-warning-50',
+  },
+  'Assigned Requests': {
+    label: 'Assigned Requests',
+    icon: Wrench,
+    color: 'text-primary-600',
+    bgColor: 'bg-primary-50',
+  },
+  'Equipment Alerts': {
+    label: 'Equipment Alerts',
+    icon: AlertTriangle,
+    color: 'text-error-600',
+    bgColor: 'bg-error-50',
+  },
+  'Scheduled Tasks': {
+    label: 'Scheduled Tasks',
+    icon: Calendar,
+    color: 'text-info-600',
+    bgColor: 'bg-info-50',
+  },
+  'Building Systems': {
+    label: 'Building Systems',
+    icon: Building2,
+    color: 'text-primary-600',
+    bgColor: 'bg-primary-50',
+  },
+  "Today's Schedule": {
+    label: "Today's Schedule",
+    icon: Calendar,
+    color: 'text-info-600',
+    bgColor: 'bg-info-50',
+  },
+  'My Packages': {
+    label: 'My Packages',
+    icon: Package,
+    color: 'text-primary-600',
+    bgColor: 'bg-primary-50',
+  },
+  'Upcoming Bookings': {
+    label: 'Upcoming Bookings',
+    icon: Calendar,
+    color: 'text-info-600',
+    bgColor: 'bg-info-50',
+  },
+  Announcements: {
+    label: 'Announcements',
+    icon: Megaphone,
+    color: 'text-primary-600',
+    bgColor: 'bg-primary-50',
+  },
+  'Upcoming Events': {
+    label: 'Upcoming Events',
+    icon: Calendar,
+    color: 'text-info-600',
+    bgColor: 'bg-info-50',
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Dashboard config per role
 // ---------------------------------------------------------------------------
 
 interface DashboardConfig {
@@ -129,40 +315,65 @@ export default function DashboardPage() {
   const greeting = getGreeting();
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       {/* Greeting */}
-      <div>
-        <h1 className="text-2xl font-semibold text-neutral-900">
-          {greeting}, {user.firstName}
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          {config.title} &middot; {ROLE_DISPLAY_NAMES[user.role]}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
+            {greeting}, {user.firstName}
+          </h1>
+          <p className="mt-1 text-[15px] text-neutral-500">
+            {config.title} &middot; {ROLE_DISPLAY_NAMES[user.role]}
+          </p>
+        </div>
+        <p className="hidden text-[13px] text-neutral-400 xl:block">
+          {new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })}
         </p>
       </div>
 
       {/* KPI Cards */}
       {config.kpiCards.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {config.kpiCards.map((kpi) => (
-            <Card key={kpi} hoverable className="cursor-pointer">
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-neutral-500">{kpi}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-neutral-900">&mdash;</p>
-                <p className="mt-1 text-xs text-neutral-400">
-                  Data will be available when the module is connected
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+          {config.kpiCards.map((kpi) => {
+            const kpiConfig = KPI_ICONS[kpi] || {
+              label: kpi,
+              icon: FileText,
+              color: 'text-neutral-600',
+              bgColor: 'bg-neutral-50',
+            };
+            const Icon = kpiConfig.icon;
+
+            return (
+              <Card key={kpi} hoverable className="group cursor-pointer">
+                <div className="flex items-start justify-between">
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpiConfig.bgColor}`}
+                  >
+                    <Icon className={`h-5 w-5 ${kpiConfig.color}`} />
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-neutral-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-neutral-500" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-[13px] font-medium text-neutral-500">{kpiConfig.label}</p>
+                  <p className="mt-1 text-[24px] font-bold tracking-tight text-neutral-900">
+                    &mdash;
+                  </p>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
       {/* Quick Actions */}
       {config.quickActions.length > 0 && (
         <div>
-          <h2 className="mb-3 text-sm font-semibold tracking-wider text-neutral-500 uppercase">
+          <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
             Quick Actions
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -170,7 +381,7 @@ export default function DashboardPage() {
               <button
                 key={action}
                 type="button"
-                className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition-colors"
+                className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
               >
                 {action}
               </button>
@@ -179,16 +390,19 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Activity Feed Placeholder */}
+      {/* Activity Feed */}
       <div>
-        <h2 className="mb-3 text-sm font-semibold tracking-wider text-neutral-500 uppercase">
+        <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
           Recent Activity
         </h2>
         <Card>
-          <CardContent className="py-8 text-center">
-            <p className="text-neutral-400">
-              No recent activity. Events will appear here as staff and residents interact with the
-              system.
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100">
+              <Activity className="h-6 w-6 text-neutral-400" />
+            </div>
+            <p className="text-[15px] font-medium text-neutral-900">No activity yet</p>
+            <p className="mt-1 text-[13px] text-neutral-500">
+              Events will appear here as activity occurs across the building.
             </p>
           </CardContent>
         </Card>
@@ -203,17 +417,25 @@ export default function DashboardPage() {
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <div>
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="mt-2 h-4 w-40" />
+        <Skeleton className="h-9 w-72" />
+        <Skeleton className="mt-2 h-5 w-48" />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-28 rounded-xl" />
+          <Skeleton key={i} className="h-[130px] rounded-2xl" />
         ))}
       </div>
-      <Skeleton className="h-48 rounded-xl" />
+      <div>
+        <Skeleton className="h-4 w-32" />
+        <div className="mt-3 flex gap-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-32 rounded-xl" />
+          ))}
+        </div>
+      </div>
+      <Skeleton className="h-48 rounded-2xl" />
     </div>
   );
 }

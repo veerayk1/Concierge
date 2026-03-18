@@ -1,20 +1,5 @@
 'use client';
 
-/**
- * Concierge — Role-Aware Sidebar Navigation
- *
- * Collapsible sidebar (260px expanded, 64px collapsed) with:
- * - Concierge logo at top
- * - Navigation items grouped by category, filtered by user role
- * - Active state: primary-50 bg, primary-600 text, left border accent
- * - Collapse/expand toggle at bottom
- *
- * Per PRD 02 Section 7: items not assigned to the user's role are absent.
- * Per COMPONENT-SPECS 4.1: nav landmark, aria-current on active item.
- *
- * @module components/layout/sidebar
- */
-
 import { useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -24,26 +9,13 @@ import type { Role } from '@/types';
 import { getNavigationForRole, type NavGroup } from '@/lib/navigation';
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface SidebarProps {
-  /** Current user's role — determines visible navigation items */
   role: Role;
-  /** Whether the sidebar is collapsed (icon-only mode) */
   collapsed: boolean;
-  /** Callback when collapse state changes */
   onCollapsedChange: (collapsed: boolean) => void;
-  /** Optional badge counts keyed by NavItem.badgeKey */
   badgeCounts?: Record<string, number>;
-  /** Additional CSS classes */
   className?: string;
 }
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export function Sidebar({
   role,
@@ -62,19 +34,33 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        'flex h-screen flex-col border-r border-neutral-200 bg-white transition-[width] duration-200',
-        collapsed ? 'w-16' : 'w-[260px]',
+        'flex h-screen flex-col border-r border-neutral-200/80 bg-white transition-[width] duration-300 ease-out',
+        collapsed ? 'w-[68px]' : 'w-[260px]',
         className,
       )}
       aria-label="Main navigation"
     >
       {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center border-b border-neutral-200 px-4">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          {collapsed ? (
-            <span className="text-primary-600 text-xl font-bold">C</span>
-          ) : (
-            <span className="text-lg font-bold text-neutral-900">Concierge</span>
+      <div className="flex h-16 shrink-0 items-center border-b border-neutral-100 px-5">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <div className="bg-primary-500 flex h-8 w-8 items-center justify-center rounded-lg">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          </div>
+          {!collapsed && (
+            <span className="text-[17px] font-bold tracking-tight text-neutral-900">Concierge</span>
           )}
         </Link>
       </div>
@@ -82,7 +68,7 @@ export function Sidebar({
       {/* Navigation Groups */}
       <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Main">
         <TooltipProvider delayDuration={0}>
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-7">
             {navGroups.map((group) => (
               <NavGroupSection
                 key={group.label}
@@ -97,14 +83,14 @@ export function Sidebar({
       </nav>
 
       {/* Collapse Toggle */}
-      <div className="shrink-0 border-t border-neutral-200 p-2">
+      <div className="shrink-0 border-t border-neutral-100 p-3">
         <button
           type="button"
           onClick={toggleCollapsed}
-          className="flex w-full items-center justify-center rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-50 hover:text-neutral-600"
+          className="flex w-full items-center justify-center rounded-xl p-2 text-neutral-400 transition-all duration-200 hover:bg-neutral-50 hover:text-neutral-600"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
       </div>
     </aside>
@@ -125,9 +111,8 @@ interface NavGroupSectionProps {
 function NavGroupSection({ group, collapsed, pathname, badgeCounts }: NavGroupSectionProps) {
   return (
     <div>
-      {/* Group label — hidden when collapsed */}
       {!collapsed && (
-        <p className="mb-1 px-3 text-[11px] font-semibold tracking-wider text-neutral-400 uppercase">
+        <p className="mb-2 px-3 text-[11px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
           {group.label}
         </p>
       )}
@@ -141,9 +126,9 @@ function NavGroupSection({ group, collapsed, pathname, badgeCounts }: NavGroupSe
             <Link
               href={item.href as never}
               className={cn(
-                'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'group relative flex items-center gap-3 rounded-xl px-3 py-2 text-[14px] font-medium transition-all duration-150',
                 isActive
-                  ? 'border-primary-600 bg-primary-50 text-primary-600 border-l-[3px] pl-[9px]'
+                  ? 'bg-primary-50 text-primary-600'
                   : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900',
                 collapsed && 'justify-center px-0',
               )}
@@ -152,8 +137,8 @@ function NavGroupSection({ group, collapsed, pathname, badgeCounts }: NavGroupSe
             >
               <Icon
                 className={cn(
-                  'h-5 w-5 shrink-0',
-                  isActive ? 'text-primary-600' : 'text-neutral-400 group-hover:text-neutral-600',
+                  'h-[18px] w-[18px] shrink-0',
+                  isActive ? 'text-primary-500' : 'text-neutral-400 group-hover:text-neutral-600',
                 )}
               />
               {!collapsed && (

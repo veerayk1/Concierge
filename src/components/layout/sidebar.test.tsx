@@ -171,9 +171,10 @@ describe('Sidebar collapse behavior', () => {
     expect(screen.queryByText('OVERVIEW')).not.toBeInTheDocument();
   });
 
-  it('shows single letter logo when collapsed', () => {
+  it('shows icon logo when collapsed (text hidden)', () => {
     renderSidebar('super_admin', { collapsed: true });
-    expect(screen.getByText('C')).toBeInTheDocument();
+    // When collapsed, the "Concierge" text is hidden, only the icon logo remains
+    expect(screen.queryByText('Concierge')).not.toBeInTheDocument();
   });
 
   it('calls onCollapsedChange when toggle is clicked', async () => {
