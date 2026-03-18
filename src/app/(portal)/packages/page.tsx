@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { CreatePackageDialog } from '@/components/forms/create-package-dialog';
 import { BatchPackageDialog } from '@/components/forms/batch-package-dialog';
 import {
@@ -187,9 +189,15 @@ export default function PackagesPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showBatchDialog, setShowBatchDialog] = useState(false);
 
+  const { data: apiPackages, refetch } = useApi<PackageItem[]>(
+    apiUrl('/api/v1/packages', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const allPackages = useMemo<PackageItem[]>(() => apiPackages ?? MOCK_PACKAGES, [apiPackages]);
+
   const unreleasedPackages = useMemo(
     () =>
-      MOCK_PACKAGES.filter((p) => {
+      allPackages.filter((p) => {
         if (p.status !== 'unreleased') return false;
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
@@ -203,12 +211,12 @@ export default function PackagesPage() {
         }
         return true;
       }),
-    [searchQuery],
+    [searchQuery, allPackages],
   );
 
   const releasedPackages = useMemo(
     () =>
-      MOCK_PACKAGES.filter((p) => {
+      allPackages.filter((p) => {
         if (p.status !== 'released') return false;
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
@@ -220,7 +228,7 @@ export default function PackagesPage() {
         }
         return true;
       }),
-    [searchQuery],
+    [searchQuery, allPackages],
   );
 
   const unreleasedColumns: Column<PackageItem>[] = [
@@ -454,7 +462,7 @@ export default function PackagesPage() {
           </div>
           <div>
             <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {MOCK_PACKAGES.filter((p) => p.isPerishable && p.status === 'unreleased').length}
+              {allPackages.filter((p) => p.isPerishable && p.status === 'unreleased').length}
             </p>
             <p className="text-[13px] text-neutral-500">Perishable</p>
           </div>
@@ -580,13 +588,19 @@ export default function PackagesPage() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         propertyId="00000000-0000-4000-b000-000000000001"
-        onSuccess={() => setShowCreateDialog(false)}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
       />
       <BatchPackageDialog
         open={showBatchDialog}
         onOpenChange={setShowBatchDialog}
         propertyId="00000000-0000-4000-b000-000000000001"
-        onSuccess={() => setShowBatchDialog(false)}
+        onSuccess={() => {
+          setShowBatchDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );

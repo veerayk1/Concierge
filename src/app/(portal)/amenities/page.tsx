@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { CreateBookingDialog } from '@/components/forms/create-booking-dialog';
 import {
   Calendar,
@@ -162,7 +164,13 @@ export default function AmenitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showBookingDialog, setShowBookingDialog] = useState(false);
 
-  const filteredAmenities = MOCK_AMENITIES.filter((a) => {
+  const { data: apiAmenities, refetch } = useApi<Amenity[]>(
+    apiUrl('/api/v1/amenities', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const allAmenities = useMemo<Amenity[]>(() => apiAmenities ?? MOCK_AMENITIES, [apiAmenities]);
+
+  const filteredAmenities = allAmenities.filter((a) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return a.name.toLowerCase().includes(q) || a.category.toLowerCase().includes(q);
@@ -271,7 +279,10 @@ export default function AmenitiesPage() {
       <CreateBookingDialog
         open={showBookingDialog}
         onOpenChange={setShowBookingDialog}
-        onSuccess={() => setShowBookingDialog(false)}
+        onSuccess={() => {
+          setShowBookingDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );

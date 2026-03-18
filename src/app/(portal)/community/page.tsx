@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Calendar, Heart, MessageCircle, Plus, Search, ShoppingBag, Tag, X } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { CreateClassifiedAdDialog } from '@/components/forms/create-classified-ad-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -112,7 +114,13 @@ export default function CommunityPage() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [showPostDialog, setShowPostDialog] = useState(false);
 
-  const filteredAds = MOCK_ADS.filter((ad) => {
+  const { data: apiAds, refetch } = useApi<ClassifiedAd[]>(
+    apiUrl('/api/v1/community', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const allAds = useMemo<ClassifiedAd[]>(() => apiAds ?? MOCK_ADS, [apiAds]);
+
+  const filteredAds = allAds.filter((ad) => {
     if (categoryFilter !== 'All' && ad.category !== categoryFilter) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -221,7 +229,10 @@ export default function CommunityPage() {
       <CreateClassifiedAdDialog
         open={showPostDialog}
         onOpenChange={setShowPostDialog}
-        onSuccess={() => setShowPostDialog(false)}
+        onSuccess={() => {
+          setShowPostDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );

@@ -1,6 +1,8 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Building2, ChevronRight, Globe, MapPin, Plus, Users } from 'lucide-react';
+import { useApi } from '@/lib/hooks/use-api';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +42,10 @@ const MOCK_PROPERTIES = [
 // ---------------------------------------------------------------------------
 
 export default function PropertiesPage() {
+  const { data: apiProperties } = useApi<typeof MOCK_PROPERTIES>('/api/v1/properties');
+
+  const allProperties = useMemo(() => apiProperties ?? MOCK_PROPERTIES, [apiProperties]);
+
   return (
     <PageShell
       title="Property Management"
@@ -52,7 +58,7 @@ export default function PropertiesPage() {
       }
     >
       <div className="flex flex-col gap-4">
-        {MOCK_PROPERTIES.map((property) => (
+        {allProperties.map((property) => (
           <Card key={property.id} hoverable className="cursor-pointer">
             <div className="flex items-center gap-6">
               <div className="bg-primary-50 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl">

@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AlertTriangle, Car, Download, MapPin, Plus, Search, X } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { CreateParkingPermitDialog } from '@/components/forms/create-parking-permit-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -123,7 +125,22 @@ export default function ParkingPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPermitDialog, setShowPermitDialog] = useState(false);
 
-  const filteredPermits = MOCK_PERMITS.filter((p) => {
+  const { data: apiPermits, refetch: refetchPermits } = useApi<ParkingPermit[]>(
+    apiUrl('/api/v1/parking', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const { data: apiViolations, refetch: refetchViolations } = useApi<ParkingViolation[]>(
+    apiUrl('/api/v1/parking', { propertyId: DEMO_PROPERTY_ID, type: 'violations' }),
+  );
+
+  const allPermits = useMemo<ParkingPermit[]>(() => apiPermits ?? MOCK_PERMITS, [apiPermits]);
+
+  const allViolations = useMemo<ParkingViolation[]>(
+    () => apiViolations ?? MOCK_VIOLATIONS,
+    [apiViolations],
+  );
+
+  const filteredPermits = allPermits.filter((p) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -256,7 +273,7 @@ export default function ParkingPage() {
   return (
     <PageShell
       title="Parking Management"
-      description={`${MOCK_PERMITS.length} active permits \u00B7 ${MOCK_VIOLATIONS.filter((v) => v.status === 'open').length} open violations`}
+      description={`${allPermits.length} active permits \u00B7 ${allViolations.filter((v) => v.status === 'open').length} open violations`}
       actions={
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm">
@@ -280,7 +297,7 @@ export default function ParkingPage() {
           <Car className="h-4 w-4" />
           Permits{' '}
           <Badge variant={tab === 'permits' ? 'primary' : 'default'} size="sm">
-            {MOCK_PERMITS.length}
+            {allPermits.length}
           </Badge>
         </button>
         <button
@@ -291,7 +308,7 @@ export default function ParkingPage() {
           <AlertTriangle className="h-4 w-4" />
           Violations{' '}
           <Badge variant={tab === 'violations' ? 'error' : 'default'} size="sm">
-            {MOCK_VIOLATIONS.length}
+            {allViolations.length}
           </Badge>
         </button>
       </div>
@@ -328,7 +345,7 @@ export default function ParkingPage() {
       ) : (
         <DataTable
           columns={violationColumns}
-          data={MOCK_VIOLATIONS}
+          data={allViolations}
           emptyMessage="No violations."
           emptyIcon={<AlertTriangle className="h-6 w-6" />}
         />
@@ -338,7 +355,11 @@ export default function ParkingPage() {
         open={showPermitDialog}
         onOpenChange={setShowPermitDialog}
         propertyId="00000000-0000-4000-b000-000000000001"
-        onSuccess={() => setShowPermitDialog(false)}
+        onSuccess={() => {
+          setShowPermitDialog(false);
+          refetchPermits();
+          refetchViolations();
+        }}
       />
     </PageShell>
   );

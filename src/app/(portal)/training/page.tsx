@@ -1,6 +1,9 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Award, BookOpen, CheckCircle2, Clock, GraduationCap, Play } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -97,12 +100,16 @@ const MOCK_COURSES: Course[] = [
 // ---------------------------------------------------------------------------
 
 export default function TrainingPage() {
-  const completedCount = MOCK_COURSES.filter((c) => c.status === 'completed').length;
-  const inProgressCount = MOCK_COURSES.filter((c) => c.status === 'in_progress').length;
-  const requiredCount = MOCK_COURSES.filter((c) => c.required).length;
-  const completedRequired = MOCK_COURSES.filter(
-    (c) => c.required && c.status === 'completed',
-  ).length;
+  const { data: apiCourses } = useApi<Course[]>(
+    apiUrl('/api/v1/training', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const allCourses = useMemo<Course[]>(() => apiCourses ?? MOCK_COURSES, [apiCourses]);
+
+  const completedCount = allCourses.filter((c) => c.status === 'completed').length;
+  const inProgressCount = allCourses.filter((c) => c.status === 'in_progress').length;
+  const requiredCount = allCourses.filter((c) => c.required).length;
+  const completedRequired = allCourses.filter((c) => c.required && c.status === 'completed').length;
 
   return (
     <PageShell
@@ -150,7 +157,7 @@ export default function TrainingPage() {
           </div>
           <div>
             <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {MOCK_COURSES.length}
+              {allCourses.length}
             </p>
             <p className="text-[13px] text-neutral-500">Total Courses</p>
           </div>
@@ -159,7 +166,7 @@ export default function TrainingPage() {
 
       {/* Course List */}
       <div className="flex flex-col gap-4">
-        {MOCK_COURSES.map((course) => {
+        {allCourses.map((course) => {
           const progress =
             course.lessons > 0 ? Math.round((course.completedLessons / course.lessons) * 100) : 0;
           return (

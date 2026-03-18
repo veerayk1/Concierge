@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Clock, MessageSquare, Plus, User } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { CreateShiftEntryDialog } from '@/components/forms/create-shift-entry-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -92,6 +94,12 @@ const SHIFT_COLORS = {
 export default function ShiftLogPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
+  const { data: apiEntries, refetch } = useApi<ShiftEntry[]>(
+    apiUrl('/api/v1/shift-log', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const allEntries = useMemo<ShiftEntry[]>(() => apiEntries ?? MOCK_ENTRIES, [apiEntries]);
+
   return (
     <PageShell
       title="Shift Log"
@@ -104,7 +112,7 @@ export default function ShiftLogPage() {
       }
     >
       <div className="flex flex-col gap-4">
-        {MOCK_ENTRIES.map((entry) => (
+        {allEntries.map((entry) => (
           <Card key={entry.id} className="transition-all duration-200 hover:shadow-md">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
@@ -149,7 +157,10 @@ export default function ShiftLogPage() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         propertyId="00000000-0000-4000-b000-000000000001"
-        onSuccess={() => setShowCreateDialog(false)}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );
