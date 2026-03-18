@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Clock, MessageSquare, Plus, User } from 'lucide-react';
+import { CreateShiftEntryDialog } from '@/components/forms/create-shift-entry-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -89,12 +90,14 @@ const SHIFT_COLORS = {
 // ---------------------------------------------------------------------------
 
 export default function ShiftLogPage() {
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+
   return (
     <PageShell
       title="Shift Log"
       description="Staff handoff notes and shift-to-shift communication."
       actions={
-        <Button size="sm">
+        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4" />
           Add Entry
         </Button>
@@ -141,6 +144,13 @@ export default function ShiftLogPage() {
           </Card>
         ))}
       </div>
+
+      <CreateShiftEntryDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId="prop-1"
+        onSuccess={() => setShowCreateDialog(false)}
+      />
     </PageShell>
   );
 }

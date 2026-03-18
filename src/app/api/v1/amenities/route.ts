@@ -1,0 +1,58 @@
+/**
+ * Amenities API — List amenities for a property
+ * Per PRD 06 Amenity Booking
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/server/db';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const propertyId = searchParams.get('propertyId');
+    const search = searchParams.get('search') || '';
+    const groupId = searchParams.get('groupId');
+
+    if (!propertyId) {
+      return NextResponse.json(
+        { error: 'MISSING_PROPERTY', message: 'propertyId is required' },
+        { status: 400 },
+      );
+    }
+
+    const where: Record<string, unknown> = { propertyId, deletedAt: null };
+    if (groupId) where.groupId = groupId;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const amenities = await prisma.amenity.findMany({
+      where,
+      include: {
+        group: { select: { id: true, name: true } },
+        bookings: {
+          where: {
+            deletedAt: null,
+            status: { in: ['approved', 'pending'] },
+            startTime: { gte: new Date() },
+          },
+          select: { id: true, startTime: true, endTime: true, status: true },
+          take: 5,
+          orderBy: { startTime: 'asc' },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return NextResponse.json({ data: amenities });
+  } catch (error) {
+    console.error('GET /api/v1/amenities error:', error);
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', message: 'Failed to fetch amenities' },
+      { status: 500 },
+    );
+  }
+}
