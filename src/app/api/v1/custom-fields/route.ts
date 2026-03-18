@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const createFieldSchema = z.object({
   propertyId: z.string().uuid(),
@@ -41,6 +42,9 @@ const customFields: Record<string, unknown>[] = [];
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
     const module = searchParams.get('module');
@@ -67,6 +71,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = createFieldSchema.safeParse(body);
 

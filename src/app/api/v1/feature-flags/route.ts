@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 // Feature flags stored in-memory for now (will be DB-backed)
 const DEFAULT_FLAGS: Record<
@@ -110,6 +111,9 @@ const DEFAULT_FLAGS: Record<
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const propertyId = new URL(request.url).searchParams.get('propertyId');
 
     if (!propertyId) {
@@ -137,6 +141,9 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const { propertyId, key, enabled } = body;
 

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const ONBOARDING_STEPS = [
   { step: 1, name: 'Property Details', description: 'Name, address, timezone', required: true },
@@ -28,6 +29,9 @@ const ONBOARDING_STEPS = [
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const propertyId = new URL(request.url).searchParams.get('propertyId');
 
     if (!propertyId) {
@@ -60,6 +64,9 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const { propertyId, step, completed } = body;
 

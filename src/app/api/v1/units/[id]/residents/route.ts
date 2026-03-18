@@ -5,9 +5,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { id: unitId } = await params;
 
     const unit = await prisma.unit.findUnique({

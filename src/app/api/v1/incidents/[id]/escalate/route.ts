@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const escalateSchema = z.object({
   escalateTo: z.string().min(1, 'Escalation target is required').max(200),
@@ -15,6 +16,9 @@ const escalateSchema = z.object({
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { id } = await params;
     const body = await request.json();
 

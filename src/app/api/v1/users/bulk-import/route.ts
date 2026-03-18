@@ -7,9 +7,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { hashPassword } from '@/server/auth/password';
 import { nanoid } from 'nanoid';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const { propertyId, roleId, users } = body;
 

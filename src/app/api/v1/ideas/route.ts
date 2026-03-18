@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const createIdeaSchema = z.object({
   propertyId: z.string().uuid(),
@@ -16,6 +17,9 @@ const createIdeaSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
     const sort = searchParams.get('sort') || 'newest'; // newest, popular
@@ -47,6 +51,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = createIdeaSchema.safeParse(body);
 

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const batchReleaseSchema = z.object({
   packageIds: z.array(z.string().uuid()).min(1, 'Select at least one package').max(20),
@@ -17,6 +18,9 @@ const batchReleaseSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = batchReleaseSchema.safeParse(body);
 

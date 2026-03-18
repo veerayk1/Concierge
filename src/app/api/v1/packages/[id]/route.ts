@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { releasePackageSchema } from '@/schemas/package';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/packages/:id
@@ -17,6 +18,9 @@ import { releasePackageSchema } from '@/schemas/package';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { id } = await params;
 
     const pkg = await prisma.package.findUnique({
@@ -66,6 +70,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -141,6 +148,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { id } = await params;
 
     await prisma.package.update({

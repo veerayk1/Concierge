@@ -31,6 +31,19 @@ vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('0841'),
 }));
 
+vi.mock('@/server/middleware/api-guard', () => ({
+  guardRoute: vi.fn().mockResolvedValue({
+    user: {
+      userId: 'test-staff',
+      propertyId: '00000000-0000-4000-b000-000000000001',
+      role: 'front_desk',
+      permissions: ['*'],
+      mfaVerified: false,
+    },
+    error: null,
+  }),
+}));
+
 import { GET, POST } from '../route';
 
 beforeEach(() => {

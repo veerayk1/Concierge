@@ -5,9 +5,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const { id } = await params;
 
     const sessions = await prisma.session.findMany({
@@ -51,6 +55,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const { id: userId } = await params;
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');

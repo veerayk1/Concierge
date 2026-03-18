@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { updateUserSchema, changeStatusSchema } from '@/schemas/user';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/users/:id
@@ -17,6 +18,9 @@ import { updateUserSchema, changeStatusSchema } from '@/schemas/user';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const { id } = await params;
 
     const user = await prisma.user.findUnique({
@@ -95,6 +99,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -197,6 +204,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const { id } = await params;
 
     await prisma.$transaction(async (tx) => {

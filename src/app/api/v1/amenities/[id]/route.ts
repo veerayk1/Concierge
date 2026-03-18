@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const createBookingSchema = z.object({
   unitId: z.string().uuid(),
@@ -18,6 +19,9 @@ const createBookingSchema = z.object({
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { id } = await params;
 
     const amenity = await prisma.amenity.findUnique({
@@ -62,6 +66,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { id: amenityId } = await params;
     const body = await request.json();
 

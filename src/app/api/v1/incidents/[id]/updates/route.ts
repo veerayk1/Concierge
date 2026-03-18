@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const addUpdateSchema = z.object({
   content: z.string().min(1, 'Update content is required').max(2000),
@@ -14,6 +15,9 @@ const addUpdateSchema = z.object({
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { id } = await params;
 
     // Incident updates stored as related events or in custom fields
@@ -48,6 +52,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { id } = await params;
     const body = await request.json();
 

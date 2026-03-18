@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const createTemplateSchema = z.object({
   propertyId: z.string().uuid(),
@@ -19,6 +20,9 @@ const createTemplateSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const propertyId = new URL(request.url).searchParams.get('propertyId');
     const type = new URL(request.url).searchParams.get('type');
 
@@ -116,6 +120,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = createTemplateSchema.safeParse(body);
 

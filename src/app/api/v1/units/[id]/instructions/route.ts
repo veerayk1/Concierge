@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const createInstructionSchema = z.object({
   instruction: z.string().min(1, 'Instruction is required').max(500),
@@ -15,6 +16,9 @@ const createInstructionSchema = z.object({
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { id: unitId } = await params;
 
     const instructions = await prisma.unitInstruction.findMany({
@@ -34,6 +38,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { id: unitId } = await params;
     const body = await request.json();
 

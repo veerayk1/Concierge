@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const createVehicleSchema = z.object({
   unitId: z.string().uuid(),
@@ -19,6 +20,9 @@ const createVehicleSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const unitId = new URL(request.url).searchParams.get('unitId');
     const propertyId = new URL(request.url).searchParams.get('propertyId');
 
@@ -44,6 +48,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = createVehicleSchema.safeParse(body);
 

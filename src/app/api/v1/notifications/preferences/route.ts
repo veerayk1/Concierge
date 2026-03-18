@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const updatePreferencesSchema = z.object({
   userId: z.string().uuid(),
@@ -22,6 +23,9 @@ const updatePreferencesSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const userId = new URL(request.url).searchParams.get('userId');
 
     if (!userId) {
@@ -139,6 +143,9 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = updatePreferencesSchema.safeParse(body);
 

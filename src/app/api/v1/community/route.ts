@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const createAdSchema = z.object({
   propertyId: z.string().uuid(),
@@ -19,6 +20,9 @@ const createAdSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
     const search = searchParams.get('search') || '';
@@ -70,6 +74,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = createAdSchema.safeParse(body);
 

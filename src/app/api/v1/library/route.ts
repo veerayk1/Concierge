@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const uploadDocumentSchema = z.object({
   propertyId: z.string().uuid(),
@@ -22,6 +23,9 @@ const uploadDocumentSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
     const category = searchParams.get('category');
@@ -131,6 +135,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = uploadDocumentSchema.safeParse(body);
 

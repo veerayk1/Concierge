@@ -8,9 +8,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { batchCreatePackageSchema } from '@/schemas/package';
 import { nanoid } from 'nanoid';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = batchCreatePackageSchema.safeParse(body);
 

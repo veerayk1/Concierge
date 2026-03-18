@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const createViolationSchema = z.object({
   propertyId: z.string().uuid(),
@@ -19,6 +20,9 @@ const createViolationSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = createViolationSchema.safeParse(body);
 

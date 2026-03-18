@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const createCategorySchema = z.object({
   propertyId: z.string().uuid(),
@@ -18,6 +19,9 @@ const createCategorySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const propertyId = new URL(request.url).searchParams.get('propertyId');
 
     if (!propertyId) {
@@ -52,6 +56,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = createCategorySchema.safeParse(body);
 
