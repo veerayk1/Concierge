@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createAnnouncementSchema = z.object({
   propertyId: z.string().uuid(),
@@ -93,8 +94,8 @@ export async function POST(request: NextRequest) {
     const announcement = await prisma.announcement.create({
       data: {
         propertyId: input.propertyId,
-        title: input.title,
-        body: input.body,
+        title: stripControlChars(stripHtml(input.title)),
+        body: stripControlChars(stripHtml(input.body)),
         priority: input.priority,
         channels: input.channels,
         status: input.status,

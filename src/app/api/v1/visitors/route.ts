@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const signInVisitorSchema = z.object({
   propertyId: z.string().uuid(),
@@ -100,13 +101,13 @@ export async function POST(request: NextRequest) {
     const visitor = await prisma.visitorEntry.create({
       data: {
         propertyId: input.propertyId,
-        visitorName: input.visitorName,
+        visitorName: stripControlChars(stripHtml(input.visitorName)),
         unitId: input.unitId,
         purpose: input.purpose,
         vehiclePlate: input.vehiclePlate || null,
         idType: input.idType || null,
         idVerified: input.idVerified,
-        notes: input.notes || null,
+        notes: input.notes ? stripControlChars(stripHtml(input.notes)) : null,
         signedInById: auth.user.userId,
       },
       include: {

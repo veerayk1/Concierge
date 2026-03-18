@@ -11,6 +11,7 @@ import { prisma } from '@/server/db';
 import { createPackageSchema } from '@/schemas/package';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/packages
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
         courierOtherName: input.courierOtherName || null,
         trackingNumber: input.trackingNumber || null,
         parcelCategoryId: input.parcelCategoryId || null,
-        description: input.description || null,
+        description: input.description ? stripControlChars(stripHtml(input.description)) : null,
         storageSpotId: input.storageSpotId || null,
         isPerishable: input.isPerishable,
         isOversized: input.isOversized,

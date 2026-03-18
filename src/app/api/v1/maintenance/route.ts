@@ -8,6 +8,7 @@ import { prisma } from '@/server/db';
 import { createMaintenanceSchema } from '@/schemas/maintenance';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest) {
   try {
@@ -89,10 +90,12 @@ export async function POST(request: NextRequest) {
         propertyId: input.propertyId,
         unitId: input.unitId,
         categoryId: input.categoryId || null,
-        description: input.description,
+        description: stripControlChars(stripHtml(input.description)),
         priority: input.priority,
         permissionToEnter: input.permissionToEnter,
-        entryInstructions: input.entryInstructions || null,
+        entryInstructions: input.entryInstructions
+          ? stripControlChars(stripHtml(input.entryInstructions))
+          : null,
         referenceNumber,
         status: 'open',
         createdById: auth.user.userId,

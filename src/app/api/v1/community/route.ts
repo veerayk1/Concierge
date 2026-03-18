@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createAdSchema = z.object({
   propertyId: z.string().uuid(),
@@ -92,8 +93,8 @@ export async function POST(request: NextRequest) {
     const ad = await prisma.classifiedAd.create({
       data: {
         propertyId: input.propertyId,
-        title: input.title,
-        description: input.description,
+        title: stripControlChars(stripHtml(input.title)),
+        description: stripControlChars(stripHtml(input.description)),
         category: input.category,
         price: input.isFree ? null : (input.price ?? null),
         isFree: input.isFree,
