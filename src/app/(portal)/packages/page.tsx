@@ -6,6 +6,7 @@ import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { CreatePackageDialog } from '@/components/forms/create-package-dialog';
 import { BatchPackageDialog } from '@/components/forms/batch-package-dialog';
+import { ReleasePackageDialog } from '@/components/forms/release-package-dialog';
 import {
   Download,
   Filter,
@@ -188,6 +189,7 @@ export default function PackagesPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showBatchDialog, setShowBatchDialog] = useState(false);
+  const [releaseTarget, setReleaseTarget] = useState<PackageItem | null>(null);
 
   const { data: apiPackages, refetch } = useApi<PackageItem[]>(
     apiUrl('/api/v1/packages', { propertyId: DEMO_PROPERTY_ID }),
@@ -337,8 +339,15 @@ export default function PackagesPage() {
       id: 'actions',
       header: '',
       className: 'text-right',
-      cell: () => (
-        <Button variant="secondary" size="sm">
+      cell: (row) => (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            setReleaseTarget(row);
+          }}
+        >
           Release
         </Button>
       ),
@@ -602,6 +611,22 @@ export default function PackagesPage() {
           refetch();
         }}
       />
+      {releaseTarget && (
+        <ReleasePackageDialog
+          open={!!releaseTarget}
+          onOpenChange={(open) => {
+            if (!open) setReleaseTarget(null);
+          }}
+          packageId={releaseTarget.id}
+          packageRef={releaseTarget.referenceNumber}
+          recipientName={releaseTarget.recipient}
+          unitNumber={releaseTarget.unit}
+          onSuccess={() => {
+            setReleaseTarget(null);
+            refetch();
+          }}
+        />
+      )}
     </PageShell>
   );
 }

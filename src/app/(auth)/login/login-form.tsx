@@ -164,16 +164,36 @@ export function LoginForm() {
           <div className="w-full border-t border-neutral-200" />
         </div>
         <span className="relative bg-white px-3 text-[12px] text-neutral-400">
-          or continue with
+          or quick demo access
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         {[
-          { role: 'front_desk', label: 'Front Desk' },
-          { role: 'security_guard', label: 'Security' },
-          { role: 'property_admin', label: 'Admin' },
-          { role: 'resident_owner', label: 'Resident' },
+          {
+            role: 'front_desk',
+            label: 'Front Desk',
+            email: 'concierge1@mapleheights.ca',
+            password: 'StaffPass123!@',
+          },
+          {
+            role: 'security_guard',
+            label: 'Security',
+            email: 'guard1@mapleheights.ca',
+            password: 'StaffPass123!@',
+          },
+          {
+            role: 'property_admin',
+            label: 'Admin',
+            email: 'admin@concierge.app',
+            password: 'SuperAdmin123!',
+          },
+          {
+            role: 'resident_owner',
+            label: 'Resident',
+            email: 'resident1@mapleheights.ca',
+            password: 'Resident123!@',
+          },
         ].map((demo) => (
           <button
             key={demo.role}
@@ -182,12 +202,19 @@ export function LoginForm() {
               localStorage.setItem('demo_role', demo.role);
               window.location.href = '/dashboard';
             }}
-            className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-[13px] font-medium text-neutral-700 transition-all duration-200 active:scale-[0.98]"
+            className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 group rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-left transition-all duration-200 active:scale-[0.98]"
           >
-            Demo: {demo.label}
+            <span className="group-hover:text-primary-700 block text-[13px] font-medium text-neutral-700">
+              Demo: {demo.label}
+            </span>
+            <span className="block truncate text-[11px] text-neutral-400">{demo.email}</span>
           </button>
         ))}
       </div>
+
+      <p className="text-center text-[11px] text-neutral-400">
+        Demo buttons bypass auth. To test real login, use credentials above with the sign-in form.
+      </p>
     </form>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { ReleasePackageDialog } from '@/components/forms/release-package-dialog';
 
 // ---------------------------------------------------------------------------
 // Mock Package Detail
@@ -101,6 +102,7 @@ interface PackageDetailPageProps {
 export default function PackageDetailPage({ params }: PackageDetailPageProps) {
   const { id } = use(params);
   const pkg = { ...MOCK_PACKAGE, id };
+  const [showReleaseDialog, setShowReleaseDialog] = useState(false);
 
   const statusBadge = {
     unreleased: { variant: 'warning' as const, label: 'Unreleased' },
@@ -150,7 +152,11 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
             <Printer className="h-4 w-4" />
             Print Label
           </Button>
-          {pkg.status === 'unreleased' && <Button size="sm">Release Package</Button>}
+          {pkg.status === 'unreleased' && (
+            <Button size="sm" onClick={() => setShowReleaseDialog(true)}>
+              Release Package
+            </Button>
+          )}
         </div>
       </div>
 
@@ -298,7 +304,7 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
               <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Quick Actions</h2>
               <CardContent>
                 <div className="flex flex-col gap-2">
-                  <Button fullWidth size="lg">
+                  <Button fullWidth size="lg" onClick={() => setShowReleaseDialog(true)}>
                     <CheckCircle2 className="h-4 w-4" />
                     Release Package
                   </Button>
@@ -350,6 +356,20 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
           </Card>
         </div>
       </div>
+
+      <ReleasePackageDialog
+        open={showReleaseDialog}
+        onOpenChange={setShowReleaseDialog}
+        packageId={pkg.id}
+        packageRef={pkg.referenceNumber}
+        recipientName={pkg.recipient}
+        unitNumber={pkg.unit}
+        onSuccess={() => {
+          setShowReleaseDialog(false);
+          // Reload the page to reflect updated status
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }

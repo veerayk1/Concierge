@@ -231,6 +231,20 @@ const AUDIT_COLUMNS: Column<AuditEntry>[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// API response shape
+// ---------------------------------------------------------------------------
+
+interface ApiAuditEntry {
+  id: string;
+  email: string;
+  success: boolean;
+  failReason: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -239,7 +253,28 @@ export default function AuditLogPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const filteredData = AUDIT_DATA.filter((entry) => {
+  const {
+    data: apiEntries,
+    loading,
+    refetch,
+  } = useApi<ApiAuditEntry[]>(apiUrl('/api/v1/audit-log', { propertyId: DEMO_PROPERTY_ID }));
+
+  // Map API entries to the AuditEntry shape, falling back to mock data
+  const allData = useMemo<AuditEntry[]>(() => {
+    if (!apiEntries || apiEntries.length === 0) return AUDIT_DATA;
+    return apiEntries.map((e, i) => ({
+      id: e.id || String(i),
+      timestamp: new Date(e.createdAt).toISOString().replace('T', ' ').slice(0, 19),
+      user: e.email,
+      role: '',
+      action: e.success ? 'Login succeeded' : `Login failed: ${e.failReason || 'unknown'}`,
+      target: 'Authentication',
+      ipAddress: e.ipAddress || '—',
+      category: 'Settings',
+    }));
+  }, [apiEntries]);
+
+  const filteredData = allData.filter((entry) => {
     if (selectedCategory !== 'All Actions' && entry.category !== selectedCategory) {
       return false;
     }
@@ -342,7 +377,7 @@ export default function AuditLogPage() {
       {/* Results Count */}
       <p className="text-[13px] text-neutral-500">
         Showing <span className="font-semibold text-neutral-700">{filteredData.length}</span> of{' '}
-        <span className="font-semibold text-neutral-700">{AUDIT_DATA.length}</span> entries
+        <span className="font-semibold text-neutral-700">{allData.length}</span> entries
       </p>
 
       {/* Audit Table */}

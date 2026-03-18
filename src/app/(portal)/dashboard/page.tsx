@@ -361,10 +361,10 @@ export default function DashboardPage() {
   );
 
   // Map KPI names to real values from the API, falling back to em-dash
-  const kpiValues = useMemo<Record<string, string>>(() => {
-    if (!apiData?.kpis) return {};
+  const kpiValues: Record<string, string> = useMemo(() => {
+    if (!apiData?.kpis) return {} as Record<string, string>;
     const k = apiData.kpis;
-    return {
+    const map: Record<string, string> = {
       'Unreleased Packages': String(k.unreleasedPackages),
       'Open Requests': String(k.openMaintenanceRequests),
       'Active Visitors': String(k.openEvents),
@@ -377,6 +377,7 @@ export default function DashboardPage() {
       'Expected Visitors': String(k.openEvents),
       Bookings: '\u2014',
     };
+    return map;
   }, [apiData]);
 
   if (loading && !demoRole) {
