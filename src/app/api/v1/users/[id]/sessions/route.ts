@@ -1,0 +1,91 @@
+/**
+ * User Sessions API — per PRD 08 Section 3.1.9
+ * View and manage active sessions for a user
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/server/db';
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+
+    const sessions = await prisma.session.findMany({
+      where: {
+        userId: id,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      select: {
+        id: true,
+        deviceFingerprint: true,
+        ipAddress: true,
+        userAgent: true,
+        lastActiveAt: true,
+        createdAt: true,
+      },
+      orderBy: { lastActiveAt: 'desc' },
+    });
+
+    return NextResponse.json({
+      data: sessions.map((s) => ({
+        id: s.id,
+        device: parseUserAgent(s.userAgent),
+        ipAddress: s.ipAddress,
+        lastActive: s.lastActiveAt,
+        createdAt: s.createdAt,
+      })),
+    });
+  } catch (error) {
+    console.error('GET /api/v1/users/:id/sessions error:', error);
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', message: 'Failed to fetch sessions' },
+      { status: 500 },
+    );
+  }
+}
+
+// Revoke a specific session or all sessions
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id: userId } = await params;
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get('sessionId');
+
+    if (sessionId) {
+      // Revoke specific session
+      await prisma.session.update({
+        where: { id: sessionId },
+        data: { revokedAt: new Date() },
+      });
+      return NextResponse.json({ message: 'Session revoked.' });
+    }
+
+    // Revoke all sessions for user
+    const result = await prisma.session.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    return NextResponse.json({ message: `${result.count} sessions revoked.` });
+  } catch (error) {
+    console.error('DELETE /api/v1/users/:id/sessions error:', error);
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', message: 'Failed to revoke sessions' },
+      { status: 500 },
+    );
+  }
+}
+
+function parseUserAgent(ua: string): string {
+  if (ua.includes('Chrome') && ua.includes('Mac')) return 'Chrome on macOS';
+  if (ua.includes('Chrome') && ua.includes('Windows')) return 'Chrome on Windows';
+  if (ua.includes('Safari') && ua.includes('iPhone')) return 'Safari on iPhone';
+  if (ua.includes('Safari') && ua.includes('Mac')) return 'Safari on macOS';
+  if (ua.includes('Firefox')) return 'Firefox';
+  if (ua.includes('Edge')) return 'Edge';
+  return ua.substring(0, 50);
+}
