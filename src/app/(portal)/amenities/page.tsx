@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CreateBookingDialog } from '@/components/forms/create-booking-dialog';
 import {
   Calendar,
   Clock,
@@ -159,6 +160,7 @@ function getAmenityIcon(icon: string) {
 export default function AmenitiesPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showBookingDialog, setShowBookingDialog] = useState(false);
 
   const filteredAmenities = MOCK_AMENITIES.filter((a) => {
     if (!searchQuery) return true;
@@ -176,7 +178,7 @@ export default function AmenitiesPage() {
             <Calendar className="h-4 w-4" />
             Calendar View
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowBookingDialog(true)}>
             <Plus className="h-4 w-4" />
             New Booking
           </Button>
@@ -265,6 +267,12 @@ export default function AmenitiesPage() {
           </Card>
         ))}
       </div>
+
+      <CreateBookingDialog
+        open={showBookingDialog}
+        onOpenChange={setShowBookingDialog}
+        onSuccess={() => setShowBookingDialog(false)}
+      />
     </PageShell>
   );
 }

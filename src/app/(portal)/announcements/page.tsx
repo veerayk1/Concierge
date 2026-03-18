@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CreateAnnouncementDialog } from '@/components/forms/create-announcement-dialog';
 import {
   Calendar,
   Clock,
@@ -129,6 +130,7 @@ export default function AnnouncementsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const filteredAnnouncements = MOCK_ANNOUNCEMENTS.filter((a) => {
     if (statusFilter !== 'all' && a.status !== statusFilter) return false;
@@ -144,7 +146,7 @@ export default function AnnouncementsPage() {
       title="Announcements"
       description="Create and distribute announcements via web, email, SMS, and push."
       actions={
-        <Button size="sm">
+        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4" />
           New Announcement
         </Button>
@@ -300,6 +302,13 @@ export default function AnnouncementsPage() {
           })
         )}
       </div>
+
+      <CreateAnnouncementDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId="prop-1"
+        onSuccess={() => setShowCreateDialog(false)}
+      />
     </PageShell>
   );
 }
