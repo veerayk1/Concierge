@@ -384,7 +384,7 @@ export default function MaintenancePage() {
       <CreateMaintenanceDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId="prop-1"
+        propertyId="00000000-0000-4000-b000-000000000001"
         onSuccess={() => setShowCreateDialog(false)}
       />
     </PageShell>

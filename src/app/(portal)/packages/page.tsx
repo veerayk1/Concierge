@@ -579,13 +579,13 @@ export default function PackagesPage() {
       <CreatePackageDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId="prop-1"
+        propertyId="00000000-0000-4000-b000-000000000001"
         onSuccess={() => setShowCreateDialog(false)}
       />
       <BatchPackageDialog
         open={showBatchDialog}
         onOpenChange={setShowBatchDialog}
-        propertyId="prop-1"
+        propertyId="00000000-0000-4000-b000-000000000001"
         onSuccess={() => setShowBatchDialog(false)}
       />
     </PageShell>

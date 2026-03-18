@@ -71,7 +71,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/v1/search?propertyId=prop-1&q=${encodeURIComponent(query)}`);
+        const res = await fetch(
+          `/api/v1/search?propertyId=00000000-0000-4000-b000-000000000001&q=${encodeURIComponent(query)}`,
+        );
         if (res.ok) {
           const data = await res.json();
           const mapped: SearchResult[] = [];

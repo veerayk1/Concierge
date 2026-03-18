@@ -337,7 +337,7 @@ export default function ParkingPage() {
       <CreateParkingPermitDialog
         open={showPermitDialog}
         onOpenChange={setShowPermitDialog}
-        propertyId="prop-1"
+        propertyId="00000000-0000-4000-b000-000000000001"
         onSuccess={() => setShowPermitDialog(false)}
       />
     </PageShell>

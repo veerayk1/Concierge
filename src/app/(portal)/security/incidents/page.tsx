@@ -253,7 +253,7 @@ export default function IncidentsPage() {
       <ReportIncidentDialog
         open={showReportDialog}
         onOpenChange={setShowReportDialog}
-        propertyId="prop-1"
+        propertyId="00000000-0000-4000-b000-000000000001"
         onSuccess={() => setShowReportDialog(false)}
       />
     </PageShell>
