@@ -11,6 +11,7 @@ import { prisma } from '@/server/db';
 import { hashPassword } from '@/server/auth/password';
 import { createUserSchema } from '@/schemas/user';
 import { nanoid } from 'nanoid';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/users — List users
@@ -18,6 +19,10 @@ import { nanoid } from 'nanoid';
 
 export async function GET(request: NextRequest) {
   try {
+    // Auth: Any authenticated staff member can list users
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
     const search = searchParams.get('search') || '';
@@ -136,6 +141,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth: Only Super Admin and Property Admin can create accounts (PRD 08 Section 3.1.1)
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin'],
+    });
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = createUserSchema.safeParse(body);
 

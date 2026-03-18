@@ -39,6 +39,21 @@ vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('TMP_PWD_16CHARS'),
 }));
 
+// Mock the auth guard — these tests focus on business logic, not auth
+// Auth is tested separately in api-guard.test.ts
+vi.mock('@/server/middleware/api-guard', () => ({
+  guardRoute: vi.fn().mockResolvedValue({
+    user: {
+      userId: 'test-admin',
+      propertyId: '00000000-0000-4000-b000-000000000001',
+      role: 'property_admin',
+      permissions: ['*'],
+      mfaVerified: true,
+    },
+    error: null,
+  }),
+}));
+
 import { GET, POST } from '../route';
 
 beforeEach(() => {
@@ -332,15 +347,13 @@ describe('POST /api/v1/users — Validation', () => {
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
         user: {
-          create: vi
-            .fn()
-            .mockResolvedValue({
-              id: 'u1',
-              email: 'mary@b.com',
-              firstName: 'Mary-Jane',
-              lastName: "O'Brien",
-              createdAt: new Date(),
-            }),
+          create: vi.fn().mockResolvedValue({
+            id: 'u1',
+            email: 'mary@b.com',
+            firstName: 'Mary-Jane',
+            lastName: "O'Brien",
+            createdAt: new Date(),
+          }),
         },
         userProperty: { create: vi.fn() },
       });
@@ -383,15 +396,13 @@ describe('POST /api/v1/users — Email Uniqueness (Security)', () => {
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
         user: {
-          create: vi
-            .fn()
-            .mockResolvedValue({
-              id: 'u1',
-              email: 'janet@building.com',
-              firstName: 'Janet',
-              lastName: 'Smith',
-              createdAt: new Date(),
-            }),
+          create: vi.fn().mockResolvedValue({
+            id: 'u1',
+            email: 'janet@building.com',
+            firstName: 'Janet',
+            lastName: 'Smith',
+            createdAt: new Date(),
+          }),
         },
         userProperty: { create: vi.fn() },
       });
@@ -415,15 +426,13 @@ describe('POST /api/v1/users — Email Uniqueness (Security)', () => {
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
         user: {
-          create: vi
-            .fn()
-            .mockResolvedValue({
-              id: 'u1',
-              email: 'janet@building.com',
-              firstName: 'Janet',
-              lastName: 'Smith',
-              createdAt: new Date(),
-            }),
+          create: vi.fn().mockResolvedValue({
+            id: 'u1',
+            email: 'janet@building.com',
+            firstName: 'Janet',
+            lastName: 'Smith',
+            createdAt: new Date(),
+          }),
         },
         userProperty: { create: vi.fn() },
       });
@@ -466,15 +475,13 @@ describe('POST /api/v1/users — Account Creation Flow', () => {
       transactionCalled = true;
       return fn({
         user: {
-          create: vi
-            .fn()
-            .mockResolvedValue({
-              id: 'u1',
-              email: 'janet@building.com',
-              firstName: 'Janet',
-              lastName: 'Smith',
-              createdAt: new Date(),
-            }),
+          create: vi.fn().mockResolvedValue({
+            id: 'u1',
+            email: 'janet@building.com',
+            firstName: 'Janet',
+            lastName: 'Smith',
+            createdAt: new Date(),
+          }),
         },
         userProperty: { create: vi.fn() },
       });
@@ -492,15 +499,13 @@ describe('POST /api/v1/users — Account Creation Flow', () => {
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
         user: {
-          create: vi
-            .fn()
-            .mockResolvedValue({
-              id: 'u1',
-              email: 'janet@building.com',
-              firstName: 'Janet',
-              lastName: 'Smith',
-              createdAt: new Date(),
-            }),
+          create: vi.fn().mockResolvedValue({
+            id: 'u1',
+            email: 'janet@building.com',
+            firstName: 'Janet',
+            lastName: 'Smith',
+            createdAt: new Date(),
+          }),
         },
         userProperty: { create: vi.fn() },
       });
@@ -517,15 +522,13 @@ describe('POST /api/v1/users — Account Creation Flow', () => {
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
         user: {
-          create: vi
-            .fn()
-            .mockResolvedValue({
-              id: 'new-user-id',
-              email: 'janet@building.com',
-              firstName: 'Janet',
-              lastName: 'Smith',
-              createdAt: new Date(),
-            }),
+          create: vi.fn().mockResolvedValue({
+            id: 'new-user-id',
+            email: 'janet@building.com',
+            firstName: 'Janet',
+            lastName: 'Smith',
+            createdAt: new Date(),
+          }),
         },
         userProperty: { create: vi.fn() },
       });
@@ -549,15 +552,13 @@ describe('POST /api/v1/users — Account Creation Flow', () => {
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
         user: {
-          create: vi
-            .fn()
-            .mockResolvedValue({
-              id: 'u1',
-              email: 'janet@building.com',
-              firstName: 'Janet',
-              lastName: 'Smith',
-              createdAt: new Date(),
-            }),
+          create: vi.fn().mockResolvedValue({
+            id: 'u1',
+            email: 'janet@building.com',
+            firstName: 'Janet',
+            lastName: 'Smith',
+            createdAt: new Date(),
+          }),
         },
         userProperty: { create: vi.fn() },
       });
