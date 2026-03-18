@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { CreateEventDialog } from '@/components/forms/create-event-dialog';
 import {
   AlertTriangle,
   Eye,
@@ -143,6 +144,7 @@ export default function SecurityPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const filteredEvents = MOCK_EVENTS.filter((e) => {
     if (typeFilter !== 'all' && e.type !== typeFilter) return false;
@@ -274,7 +276,7 @@ export default function SecurityPage() {
             <Eye className="h-4 w-4" />
             View Cameras
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             Log Event
           </Button>
@@ -377,6 +379,13 @@ export default function SecurityPage() {
             router.push(`/security/incidents/${row.id}`);
           }
         }}
+      />
+
+      <CreateEventDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId="prop-1"
+        onSuccess={() => setShowCreateDialog(false)}
       />
     </PageShell>
   );

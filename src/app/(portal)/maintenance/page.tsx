@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { CreateMaintenanceDialog } from '@/components/forms/create-maintenance-dialog';
 import {
   AlertCircle,
   CheckCircle2,
@@ -125,6 +126,7 @@ export default function MaintenancePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const filteredRequests = useMemo(
     () =>
@@ -273,7 +275,7 @@ export default function MaintenancePage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             New Request
           </Button>
@@ -377,6 +379,13 @@ export default function MaintenancePage() {
         emptyMessage="No maintenance requests found."
         emptyIcon={<Wrench className="h-6 w-6" />}
         onRowClick={(row) => router.push(`/maintenance/${row.id}`)}
+      />
+
+      <CreateMaintenanceDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId="prop-1"
+        onSuccess={() => setShowCreateDialog(false)}
       />
     </PageShell>
   );

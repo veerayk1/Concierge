@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { CreatePackageDialog } from '@/components/forms/create-package-dialog';
 import {
   Download,
   Filter,
@@ -182,6 +183,7 @@ export default function PackagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const unreleasedPackages = useMemo(
     () =>
@@ -413,7 +415,7 @@ export default function PackagesPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             New Package
           </Button>
@@ -571,6 +573,13 @@ export default function PackagesPage() {
           />
         )}
       </div>
+
+      <CreatePackageDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId="prop-1"
+        onSuccess={() => setShowCreateDialog(false)}
+      />
     </PageShell>
   );
 }
