@@ -7,7 +7,7 @@
  */
 
 @theme {
-  /* ---- Colors ---- */
+  /* ---- Primary Blue Scale ---- */
   --color-primary-50: var(--concierge-color-primary-50);
   --color-primary-100: var(--concierge-color-primary-100);
   --color-primary-200: var(--concierge-color-primary-200);
@@ -20,6 +20,7 @@
   --color-primary-900: var(--concierge-color-primary-900);
   --color-primary-950: var(--concierge-color-primary-950);
 
+  /* ---- Neutral Gray Scale ---- */
   --color-neutral-0: var(--concierge-color-neutral-0);
   --color-neutral-50: var(--concierge-color-neutral-50);
   --color-neutral-100: var(--concierge-color-neutral-100);
@@ -33,6 +34,59 @@
   --color-neutral-900: var(--concierge-color-neutral-900);
   --color-neutral-950: var(--concierge-color-neutral-950);
 
+  /* ---- Success Green Scale ---- */
+  --color-success-50: var(--concierge-color-success-50);
+  --color-success-100: var(--concierge-color-success-100);
+  --color-success-200: var(--concierge-color-success-200);
+  --color-success-300: var(--concierge-color-success-300);
+  --color-success-400: var(--concierge-color-success-400);
+  --color-success-500: var(--concierge-color-success-500);
+  --color-success-600: var(--concierge-color-success-600);
+  --color-success-700: var(--concierge-color-success-700);
+  --color-success-800: var(--concierge-color-success-800);
+  --color-success-900: var(--concierge-color-success-900);
+  --color-success-950: var(--concierge-color-success-950);
+
+  /* ---- Warning Amber Scale ---- */
+  --color-warning-50: var(--concierge-color-warning-50);
+  --color-warning-100: var(--concierge-color-warning-100);
+  --color-warning-200: var(--concierge-color-warning-200);
+  --color-warning-300: var(--concierge-color-warning-300);
+  --color-warning-400: var(--concierge-color-warning-400);
+  --color-warning-500: var(--concierge-color-warning-500);
+  --color-warning-600: var(--concierge-color-warning-600);
+  --color-warning-700: var(--concierge-color-warning-700);
+  --color-warning-800: var(--concierge-color-warning-800);
+  --color-warning-900: var(--concierge-color-warning-900);
+  --color-warning-950: var(--concierge-color-warning-950);
+
+  /* ---- Error Red Scale ---- */
+  --color-error-50: var(--concierge-color-error-50);
+  --color-error-100: var(--concierge-color-error-100);
+  --color-error-200: var(--concierge-color-error-200);
+  --color-error-300: var(--concierge-color-error-300);
+  --color-error-400: var(--concierge-color-error-400);
+  --color-error-500: var(--concierge-color-error-500);
+  --color-error-600: var(--concierge-color-error-600);
+  --color-error-700: var(--concierge-color-error-700);
+  --color-error-800: var(--concierge-color-error-800);
+  --color-error-900: var(--concierge-color-error-900);
+  --color-error-950: var(--concierge-color-error-950);
+
+  /* ---- Info Blue Scale ---- */
+  --color-info-50: var(--concierge-color-info-50);
+  --color-info-100: var(--concierge-color-info-100);
+  --color-info-200: var(--concierge-color-info-200);
+  --color-info-300: var(--concierge-color-info-300);
+  --color-info-400: var(--concierge-color-info-400);
+  --color-info-500: var(--concierge-color-info-500);
+  --color-info-600: var(--concierge-color-info-600);
+  --color-info-700: var(--concierge-color-info-700);
+  --color-info-800: var(--concierge-color-info-800);
+  --color-info-900: var(--concierge-color-info-900);
+  --color-info-950: var(--concierge-color-info-950);
+
+  /* ---- Semantic Status (single-token shortcuts) ---- */
   --color-success: var(--concierge-color-status-success);
   --color-success-fg: var(--concierge-color-status-success-foreground);
   --color-success-bg: var(--concierge-color-status-success-bg);
@@ -53,6 +107,25 @@
   --color-info-bg: var(--concierge-color-status-info-bg);
   --color-info-border: var(--concierge-color-status-info-border);
 
+  /* ---- Event Type Accent Colors ---- */
+  --color-event-package: var(--concierge-color-event-package);
+  --color-event-visitor: var(--concierge-color-event-visitor);
+  --color-event-incident: var(--concierge-color-event-incident);
+  --color-event-cleaning: var(--concierge-color-event-cleaning);
+  --color-event-key: var(--concierge-color-event-key);
+  --color-event-pass-on: var(--concierge-color-event-pass-on);
+  --color-event-maintenance: var(--concierge-color-event-maintenance);
+  --color-event-parking: var(--concierge-color-event-parking);
+
+  --color-event-package-bg: var(--concierge-color-event-package-bg);
+  --color-event-visitor-bg: var(--concierge-color-event-visitor-bg);
+  --color-event-incident-bg: var(--concierge-color-event-incident-bg);
+  --color-event-cleaning-bg: var(--concierge-color-event-cleaning-bg);
+  --color-event-key-bg: var(--concierge-color-event-key-bg);
+  --color-event-pass-on-bg: var(--concierge-color-event-pass-on-bg);
+  --color-event-maintenance-bg: var(--concierge-color-event-maintenance-bg);
+  --color-event-parking-bg: var(--concierge-color-event-parking-bg);
+
   /* ---- Typography ---- */
   --font-display: var(--concierge-font-family-display);
   --font-body: var(--concierge-font-family-body);
@@ -65,6 +138,30 @@
   --shadow-lg: var(--concierge-shadow-lg);
   --shadow-xl: var(--concierge-shadow-xl);
   --shadow-2xl: var(--concierge-shadow-2xl);
+
+  /* ---- Border Radius ---- */
+  --radius-none: var(--concierge-radius-none);
+  --radius-sm: var(--concierge-radius-sm);
+  --radius-md: var(--concierge-radius-md);
+  --radius-lg: var(--concierge-radius-lg);
+  --radius-xl: var(--concierge-radius-xl);
+  --radius-2xl: var(--concierge-radius-2xl);
+  --radius-full: var(--concierge-radius-full);
+
+  /* ---- Animation Durations ---- */
+  --animate-duration-instant: var(--concierge-duration-instant);
+  --animate-duration-fast: var(--concierge-duration-fast);
+  --animate-duration-normal: var(--concierge-duration-normal);
+  --animate-duration-slow: var(--concierge-duration-slow);
+  --animate-duration-slower: var(--concierge-duration-slower);
+
+  /* ---- Animation Easings ---- */
+  --animate-ease-default: var(--concierge-ease-default);
+  --animate-ease-in: var(--concierge-ease-in);
+  --animate-ease-out: var(--concierge-ease-out);
+  --animate-ease-in-out: var(--concierge-ease-in-out);
+  --animate-ease-bounce: var(--concierge-ease-bounce);
+  --animate-ease-spring: var(--concierge-ease-spring);
 
   /* ---- Breakpoints ---- */
   --breakpoint-sm: 640px;

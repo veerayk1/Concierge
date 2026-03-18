@@ -31,12 +31,14 @@ export const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEleme
 CardHeader.displayName = 'CardHeader';
 
 export const CardTitle = forwardRef<HTMLHeadingElement, HTMLAttributes<HTMLHeadingElement>>(
-  ({ className, ...props }, ref) => (
+  ({ className, children, ...props }, ref) => (
     <h3
       ref={ref}
       className={cn('text-heading-sm text-text-primary font-semibold', className)}
       {...props}
-    />
+    >
+      {children}
+    </h3>
   ),
 );
 CardTitle.displayName = 'CardTitle';

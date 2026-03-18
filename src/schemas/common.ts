@@ -49,6 +49,7 @@ export const postalCodeSchema = z
     `Postal code must be at most ${FIELD_LENGTHS.postalCode} characters`,
   )
   .regex(
+    // eslint-disable-next-line security/detect-unsafe-regex
     /^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$|^\d{5}(-\d{4})?$/,
     'Must be a valid postal code (e.g. M5V 2T6 or 90210)',
   )

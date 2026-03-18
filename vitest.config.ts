@@ -9,6 +9,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    environmentMatchGlobs: [
+      // Server-side auth modules need Node.js environment (argon2 native, crypto.subtle)
+      ['src/server/**/*.{test,spec}.ts', 'node'],
+    ],
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'json', 'html', 'lcov'],

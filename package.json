@@ -10,8 +10,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
     "typecheck": "tsc --noEmit",
@@ -25,10 +25,15 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset",
     "audit": "pnpm audit --audit-level=high",
     "prepare": "husky"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1011.0",
+    "@aws-sdk/s3-request-presigner": "^3.1011.0",
+    "@faker-js/faker": "^10.3.0",
     "@prisma/client": "^6.4.0",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
@@ -50,7 +55,10 @@
     "@radix-ui/react-toast": "^1.2.6",
     "@radix-ui/react-toggle-group": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
+    "@sentry/nextjs": "^10.44.0",
+    "@tanstack/react-query": "^5.90.21",
     "argon2": "^0.41.1",
+    "bullmq": "^5.71.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "ioredis": "^5.4.2",
@@ -60,13 +68,18 @@
     "motion": "^12.4.0",
     "nanoid": "^5.1.2",
     "next": "^15.2.0",
+    "next-intl": "^4.8.3",
     "pino": "^9.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "resend": "^6.9.4",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.0.2",
     "zod": "^3.24.2"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.1",
@@ -88,9 +101,12 @@
     "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^9.20.0",
     "eslint-config-next": "^15.2.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-security": "^4.0.0",
     "husky": "^9.1.7",
     "jsdom": "^26.0.0",
     "lint-staged": "^15.4.3",
+    "msw": "^2.12.13",
     "pino-pretty": "^13.0.0",
     "postcss": "^8.5.1",
     "prettier": "^3.5.1",
@@ -98,7 +114,9 @@
     "prisma": "^6.4.0",
     "storybook": "^8.6.18",
     "tailwindcss": "^4.0.6",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.3",
-    "vitest": "^3.0.5"
+    "vitest": "^3.0.5",
+    "vitest-axe": "^0.1.0"
   }
 }
