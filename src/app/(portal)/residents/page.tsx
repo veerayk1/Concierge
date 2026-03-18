@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, Mail, Phone, Plus, Search, Users, X } from 'lucide-react';
+import { AddResidentDialog } from '@/components/forms/add-resident-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -145,6 +146,7 @@ const MOCK_RESIDENTS: Resident[] = [
 export default function ResidentsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   const filteredResidents = useMemo(
     () =>
@@ -266,7 +268,7 @@ export default function ResidentsPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowAddDialog(true)}>
             <Plus className="h-4 w-4" />
             Add Resident
           </Button>
@@ -300,6 +302,13 @@ export default function ResidentsPage() {
         emptyMessage="No residents found."
         emptyIcon={<Users className="h-6 w-6" />}
         onRowClick={(row) => router.push(`/residents/${row.id}`)}
+      />
+
+      <AddResidentDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        propertyId="prop-1"
+        onSuccess={() => setShowAddDialog(false)}
       />
     </PageShell>
   );
