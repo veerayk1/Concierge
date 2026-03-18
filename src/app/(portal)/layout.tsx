@@ -1,23 +1,14 @@
 'use client';
 
-/**
- * Concierge — Portal Layout
- *
- * Protected dashboard layout using AppShell. Redirects to /login if
- * not authenticated. Renders role-aware navigation based on user's role.
- *
- * The AppShell provides: collapsible sidebar, top bar with breadcrumbs
- * and search, notification bell, user menu, and property switcher.
- */
-
-import { type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { Role } from '@/types';
 
 // ---------------------------------------------------------------------------
-// Mock data — will be replaced with real API calls
+// Mock data
 // ---------------------------------------------------------------------------
 
 const MOCK_PROPERTY = {
@@ -28,6 +19,27 @@ const MOCK_PROPERTY = {
 
 const MOCK_PROPERTIES = [MOCK_PROPERTY];
 
+const DEMO_USERS: Record<string, { firstName: string; lastName: string; email: string }> = {
+  front_desk: { firstName: 'Mike', lastName: 'Johnson', email: 'mike.j@bondtower.com' },
+  security_guard: { firstName: 'Guard', lastName: 'Patel', email: 'guard.patel@bondtower.com' },
+  property_admin: { firstName: 'Admin', lastName: 'User', email: 'admin@bondtower.com' },
+  property_manager: { firstName: 'Sarah', lastName: 'Lee', email: 'sarah.l@bondtower.com' },
+  resident_owner: { firstName: 'Janet', lastName: 'Smith', email: 'janet.smith@email.com' },
+  resident_tenant: { firstName: 'David', lastName: 'Chen', email: 'david.chen@email.com' },
+  board_member: { firstName: 'Board', lastName: 'Member', email: 'board@bondtower.com' },
+  super_admin: { firstName: 'Super', lastName: 'Admin', email: 'superadmin@concierge.com' },
+  maintenance_staff: { firstName: 'Mike', lastName: 'Thompson', email: 'mike.t@bondtower.com' },
+  security_supervisor: {
+    firstName: 'Supervisor',
+    lastName: 'Chen',
+    email: 'supervisor@bondtower.com',
+  },
+  superintendent: { firstName: 'James', lastName: 'Wilson', email: 'james.w@bondtower.com' },
+  family_member: { firstName: 'Tom', lastName: 'Smith', email: 'tom.s@email.com' },
+  offsite_owner: { firstName: 'Offsite', lastName: 'Owner', email: 'offsite@email.com' },
+  visitor: { firstName: 'Guest', lastName: 'Visitor', email: 'guest@email.com' },
+};
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -35,14 +47,55 @@ const MOCK_PROPERTIES = [MOCK_PROPERTY];
 export default function PortalLayout({ children }: { children: ReactNode }) {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
+  const [demoRole, setDemoRole] = useState<Role | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  // Redirect to login if not authenticated
+  useEffect(() => {
+    setMounted(true);
+    const role = localStorage.getItem('demo_role') as Role | null;
+    if (role) {
+      setDemoRole(role);
+    }
+  }, []);
+
+  if (!mounted) {
+    return <PortalSkeleton />;
+  }
+
+  // Demo mode — use mock user based on selected role
+  if (demoRole) {
+    const demoUser = DEMO_USERS[demoRole] || DEMO_USERS.front_desk;
+    return (
+      <AppShell
+        user={{
+          id: 'demo-user',
+          firstName: demoUser.firstName,
+          lastName: demoUser.lastName,
+          email: demoUser.email,
+          role: demoRole,
+          avatarUrl: undefined,
+        }}
+        currentProperty={MOCK_PROPERTY}
+        properties={MOCK_PROPERTIES}
+        notificationCount={3}
+        badgeCounts={{ unreleased_packages: 4 }}
+        onLogout={() => {
+          localStorage.removeItem('demo_role');
+          router.push('/login');
+        }}
+        onSearchOpen={() => {}}
+      >
+        {children}
+      </AppShell>
+    );
+  }
+
+  // Real auth mode
   if (!loading && !isAuthenticated) {
     router.replace('/login');
     return null;
   }
 
-  // Show loading skeleton while auth state is resolving
   if (loading || !user) {
     return <PortalSkeleton />;
   }
@@ -61,9 +114,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
       properties={MOCK_PROPERTIES}
       notificationCount={0}
       onLogout={logout}
-      onSearchOpen={() => {
-        // Will open command palette in the future
-      }}
+      onSearchOpen={() => {}}
     >
       {children}
     </AppShell>
@@ -71,13 +122,12 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
-// Skeleton for loading state
+// Skeleton
 // ---------------------------------------------------------------------------
 
 function PortalSkeleton() {
   return (
     <div className="flex h-screen overflow-hidden bg-white">
-      {/* Sidebar skeleton */}
       <div className="flex w-[260px] flex-col border-r border-neutral-200">
         <div className="flex h-16 items-center border-b border-neutral-200 px-4">
           <Skeleton className="h-6 w-24" />
@@ -88,7 +138,6 @@ function PortalSkeleton() {
           ))}
         </div>
       </div>
-      {/* Main area skeleton */}
       <div className="flex flex-1 flex-col">
         <div className="flex h-16 items-center border-b border-neutral-200 px-6">
           <Skeleton className="h-5 w-32" />

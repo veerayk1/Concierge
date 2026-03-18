@@ -157,6 +157,37 @@ export function LoginForm() {
       <Button type="submit" size="lg" loading={isSubmitting} disabled={isSubmitting} fullWidth>
         Sign in
       </Button>
+
+      {/* Demo Access — quick login for testing */}
+      <div className="relative flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-neutral-200" />
+        </div>
+        <span className="relative bg-white px-3 text-[12px] text-neutral-400">
+          or continue with
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { role: 'front_desk', label: 'Front Desk' },
+          { role: 'security_guard', label: 'Security' },
+          { role: 'property_admin', label: 'Admin' },
+          { role: 'resident_owner', label: 'Resident' },
+        ].map((demo) => (
+          <button
+            key={demo.role}
+            type="button"
+            onClick={() => {
+              localStorage.setItem('demo_role', demo.role);
+              window.location.href = '/dashboard';
+            }}
+            className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-[13px] font-medium text-neutral-700 transition-all duration-200 active:scale-[0.98]"
+          >
+            Demo: {demo.label}
+          </button>
+        ))}
+      </div>
     </form>
   );
 }

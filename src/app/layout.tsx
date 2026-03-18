@@ -8,7 +8,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Inter } from 'next/font/google';
-import { headers } from 'next/headers';
 
 import '@/styles/globals.css';
 import { Providers } from '@/components/layout/providers';
@@ -42,19 +41,10 @@ export const metadata: Metadata = {
 // Layout
 // ---------------------------------------------------------------------------
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
-  const headersList = await headers();
-  const nonce = headersList.get('x-nonce') ?? '';
-
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-screen bg-white antialiased">
-        <script
-          nonce={nonce}
-          dangerouslySetInnerHTML={{
-            __html: '',
-          }}
-        />
         <Providers>{children}</Providers>
       </body>
     </html>

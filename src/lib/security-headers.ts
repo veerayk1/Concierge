@@ -22,18 +22,22 @@
  * once we move to a nonce-based style strategy.
  */
 function buildCsp(nonce: string): string {
+  const isDev = process.env.NODE_ENV === 'development';
+
   const directives: string[] = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}'`,
+    isDev
+      ? `script-src 'self' 'unsafe-eval' 'nonce-${nonce}'`
+      : `script-src 'self' 'nonce-${nonce}'`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self'",
-    "connect-src 'self' wss:",
+    isDev ? "connect-src 'self' wss: ws: http://localhost:*" : "connect-src 'self' wss:",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
     "object-src 'none'",
-    'upgrade-insecure-requests',
+    ...(isDev ? [] : ['upgrade-insecure-requests']),
   ];
 
   return directives.join('; ');

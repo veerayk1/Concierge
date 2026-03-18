@@ -293,6 +293,23 @@ const DASHBOARD_CONFIGS: Record<Role, DashboardConfig> = {
 // Greeting helper
 // ---------------------------------------------------------------------------
 
+const DEMO_NAMES: Partial<Record<Role, string>> = {
+  front_desk: 'Mike',
+  security_guard: 'Patel',
+  property_admin: 'Admin',
+  property_manager: 'Sarah',
+  resident_owner: 'Janet',
+  resident_tenant: 'David',
+  board_member: 'Director',
+  super_admin: 'Super Admin',
+  maintenance_staff: 'Mike',
+  security_supervisor: 'Supervisor',
+  superintendent: 'James',
+  family_member: 'Tom',
+  offsite_owner: 'Owner',
+  visitor: 'Guest',
+};
+
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';
@@ -307,11 +324,17 @@ function getGreeting(): string {
 export default function DashboardPage() {
   const { user, loading } = useAuth();
 
-  if (loading || !user) {
+  // Support demo mode — read role from localStorage
+  const demoRole =
+    typeof window !== 'undefined' ? (localStorage.getItem('demo_role') as Role | null) : null;
+  const effectiveRole: Role = user?.role ?? demoRole ?? 'front_desk';
+  const effectiveName = user?.firstName ?? (demoRole ? (DEMO_NAMES[demoRole] ?? 'User') : 'User');
+
+  if (loading && !demoRole) {
     return <DashboardSkeleton />;
   }
 
-  const config = DASHBOARD_CONFIGS[user.role];
+  const config = DASHBOARD_CONFIGS[effectiveRole];
   const greeting = getGreeting();
 
   return (
@@ -320,10 +343,10 @@ export default function DashboardPage() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
-            {greeting}, {user.firstName}
+            {greeting}, {effectiveName}
           </h1>
           <p className="mt-1 text-[15px] text-neutral-500">
-            {config.title} &middot; {ROLE_DISPLAY_NAMES[user.role]}
+            {config.title} &middot; {ROLE_DISPLAY_NAMES[effectiveRole]}
           </p>
         </div>
         <p className="hidden text-[13px] text-neutral-400 xl:block">
