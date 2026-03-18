@@ -1115,5 +1115,64 @@ All API security rules defined in the Security Rulebook (Section I) apply to the
 
 ---
 
-_Last updated: 2026-03-16_
+---
+
+## 17. Edge Cases
+
+| Scenario                                                    | Behavior                                                                                                                                                                                                                                                                                           |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Revoked API key used in a request                           | Return `401 Unauthorized` with body: `{ "data": null, "meta": { "request_id": "req_xxx" }, "errors": [{ "code": "API_KEY_REVOKED", "message": "This API key has been revoked. Generate a new key in Settings > Integrations > API Keys." }] }`. Do not reveal when the key was revoked or by whom. |
+| Expired API key used in a request                           | Return `401 Unauthorized` with body: `{ "data": null, "meta": { "request_id": "req_xxx" }, "errors": [{ "code": "API_KEY_EXPIRED", "message": "This API key expired on {date}. Generate a new key or update the expiry in Settings > Integrations > API Keys." }] }`.                              |
+| API key used from a different property's context            | Return `403 Forbidden` with body: `{ "errors": [{ "code": "PROPERTY_MISMATCH", "message": "This API key does not have access to the requested property." }] }`.                                                                                                                                    |
+| Webhook endpoint returns 5xx for 100 consecutive deliveries | Auto-pause the webhook. Send email to Property Admin: "Webhook endpoint {url} has been paused after 100 consecutive delivery failures. Check the endpoint and re-enable it in Settings > Integrations > Webhooks."                                                                                 |
+| API request with invalid JSON body                          | Return `400 Bad Request` with: `{ "errors": [{ "code": "INVALID_JSON", "message": "Request body is not valid JSON. Check for syntax errors." }] }`.                                                                                                                                                |
+| API request exceeding max payload size (10 MB)              | Return `413 Payload Too Large` with: `{ "errors": [{ "code": "PAYLOAD_TOO_LARGE", "message": "Request body exceeds the 10 MB limit." }] }`.                                                                                                                                                        |
+| Idempotency key reused with different request body          | Return `422 Unprocessable Entity` with: `{ "errors": [{ "code": "IDEMPOTENCY_CONFLICT", "message": "This idempotency key was used with a different request body. Use a unique key for each unique request." }] }`.                                                                                 |
+| Sandbox (test) key used against production endpoint         | Return `403 Forbidden` with: `{ "errors": [{ "code": "ENVIRONMENT_MISMATCH", "message": "Test API keys (conc_test_*) cannot access production data. Use a live key (conc_live_*) for production requests." }] }`.                                                                                  |
+
+---
+
+## 18. Completeness Checklist
+
+### API Coverage
+
+| #   | Requirement                                               | Status  | Section  |
+| --- | --------------------------------------------------------- | ------- | -------- |
+| 1   | RESTful JSON API with versioned URL prefix                | Covered | 3.1, 3.2 |
+| 2   | Consistent response envelope (data, meta, errors)         | Covered | 3.3      |
+| 3   | Cursor-based pagination on all list endpoints             | Covered | 3.4      |
+| 4   | Filtering via query parameters                            | Covered | 3.5      |
+| 5   | Sorting with configurable field and order                 | Covered | 3.6      |
+| 6   | Field selection (sparse fieldsets)                        | Covered | 3.7      |
+| 7   | Rate limiting headers on every response                   | Covered | 3.8      |
+| 8   | API key authentication with Bearer header                 | Covered | 4.1      |
+| 9   | Key rotation with 24-hour grace period                    | Covered | 4.1      |
+| 10  | Tier-based rate limits with burst support                 | Covered | 5.1      |
+| 11  | All resource CRUD endpoints (10 resources)                | Covered | 6        |
+| 12  | 40+ webhook event types                                   | Covered | 7.1      |
+| 13  | Webhook signature verification (HMAC-SHA256)              | Covered | 7.4      |
+| 14  | Webhook retry policy with exponential backoff             | Covered | 7.5      |
+| 15  | Webhook delivery log with status codes and response times | Covered | 7.6      |
+| 16  | Webhook testing tool                                      | Covered | 7.7      |
+| 17  | Developer portal with interactive docs                    | Covered | 8        |
+| 18  | API key management dashboard                              | Covered | 9        |
+| 19  | OpenAPI 3.1 spec auto-generated from Zod schemas          | Covered | 3.1      |
+| 20  | Sunset policy (12-month deprecation)                      | Covered | 3.2      |
+
+### Edge Case Coverage
+
+| #   | Requirement                                   | Status  | Section |
+| --- | --------------------------------------------- | ------- | ------- |
+| 1   | Revoked key error response                    | Covered | 17      |
+| 2   | Expired key error response                    | Covered | 17      |
+| 3   | Property mismatch error                       | Covered | 17      |
+| 4   | Webhook auto-pause on consecutive failures    | Covered | 17      |
+| 5   | Invalid JSON body                             | Covered | 17      |
+| 6   | Payload size exceeded                         | Covered | 17      |
+| 7   | Idempotency key conflict                      | Covered | 17      |
+| 8   | Environment mismatch (test key on production) | Covered | 17      |
+
+---
+
+_Last updated: 2026-03-17_
 _Author: Concierge Product Team_

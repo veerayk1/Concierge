@@ -22,6 +22,7 @@
 **Why:** 99% of users work on desktop monitors in condo management offices. These are not developers on laptops — they are security guards, property managers, and building staff sitting at a front desk with a large monitor.
 
 **Requirements:**
+
 - Design for **1920x1080 monitors first**, then adapt down to tablet and mobile
 - Use the full screen real estate — side panels, multi-column layouts, split views, dashboard grids
 - Never design cramped layouts optimized for small screens and then stretch them for desktop
@@ -37,6 +38,7 @@
 **Why:** Every user of this system — security guards, property managers, board members, building supervisors, contractors, amenity specialists, patrol guards — is a non-technical person. They do not understand technology like software engineers. They should never need to.
 
 **Requirements:**
+
 - Every screen must pass the **"30-second test"**: Can a first-time user figure out what to do within 30 seconds?
 - No technical jargon anywhere in the UI (no "API", "webhook", "JSONB", "RBAC" — use plain English)
 - Every complex feature needs a **tooltip** (i icon) explaining what it does in plain language
@@ -55,6 +57,7 @@
 **Why:** The Admin (property manager or building owner) is the person who PAYS for the software. From a business psychology standpoint — if the security guard loves the product but the Admin hates their interface, we lose the contract. The Admin decides whether we stay or go.
 
 **Requirements:**
+
 - Admin interface must be the **most polished, most intuitive, most powerful** interface in the entire system
 - Admin must have **zero friction** — no dead ends, no "contact support" moments, no confusing settings
 - Admin must feel like they have **superpowers** — complete control over every aspect of the system
@@ -72,6 +75,7 @@
 **Why:** We never had admin-level access to any of the 3 competitor platforms we researched. We saw user-level interfaces only. The Admin and Super Admin panels are the MOST IMPORTANT parts of the system (see Rule 3) and we have the LEAST research data on them.
 
 **Requirements:**
+
 - Every Admin/Super Admin feature must be designed from **first principles and industry best practices**, not from competitor research
 - Extra design attention, extra review passes, extra testing for Admin features
 - Admin features to design with maximum care: property onboarding, billing, multi-property management, API key management, AI configuration, user provisioning, role creation, audit logs, system health monitoring, notification template management, branding/theming
@@ -87,6 +91,7 @@
 **Why:** The PRD and all specifications must be so detailed that an AI coding agent or a junior developer can implement them with zero questions. Vague requirements lead to wrong implementations, which lead to rework, which leads to delays.
 
 **Requirements:**
+
 - Every field must specify: data type, max length, required/optional, default value, validation rules, error messages
 - Every button must specify: what it does on click, success state, failure state, loading state
 - Every screen must specify: desktop layout, tablet layout, mobile layout, empty state, loading state, error state, full state
@@ -103,6 +108,7 @@
 **Why:** As Concierge grows, we cannot risk legal claims of IP infringement or reverse engineering. All product-facing documents must be clean.
 
 **Requirements:**
+
 - NEVER mention: Aquarius, BuildingLink, Condo Control, Condo Control Central, ICON
 - Use instead: "industry research", "competitive analysis", "best practices observed in the market"
 - Internal research docs (`docs/`, `docs/platform-2/`, `docs/platform-3/`) can keep names — they're internal
@@ -118,6 +124,7 @@
 **Why:** AI is our core differentiator. Every competing platform was built 10+ years ago without AI. We integrate intelligence at every interaction — it should feel invisible, like the system just "knows" what you need.
 
 **Requirements:**
+
 - Before building any feature, ask: "Where can AI make this easier, faster, or smarter?"
 - After building any feature, validate: "Did we miss any AI integration opportunity?"
 - 105 AI capabilities are defined in `19-ai-framework.md` — cross-reference every module
@@ -135,6 +142,7 @@
 **Why:** Users may not need every feature on day one. But when they eventually encounter a problem, they expect the platform to solve it. A missing feature = a frustrated customer = potential churn. We documented 800+ fields across 46 research files. Every single one must be accounted for.
 
 **Requirements:**
+
 - Every module PRD must cross-reference the specific research files it draws from
 - Every module PRD must have a completeness checklist at the end
 - Every field, dropdown option, workflow, and edge case from research must appear in the PRD
@@ -152,6 +160,7 @@
 **Why:** Non-technical users (Rule 2) get overwhelmed by too many options. But power users eventually need those options. The solution: show basic first, reveal advanced on demand.
 
 **Requirements:**
+
 - Default forms must be lean — only fields used 80%+ of the time are visible by default
 - Advanced fields hide behind "Show More" or expandable sections
 - Settings pages use tabs or accordion sections, not one giant scrolling page
@@ -168,6 +177,7 @@
 **Why:** Competing platforms have zero real analytics. Every module in Concierge ships with three layers of analytics, giving property managers and admins actionable insights, not just raw data.
 
 **Requirements:**
+
 - Every module gets three analytics layers:
   1. **Operational Dashboard** — Real-time counts, status breakdowns, trend sparklines
   2. **Performance Analytics** — Staff metrics, response times, SLA compliance
@@ -186,6 +196,7 @@
 **Why:** Competing platforms are email-only or email-plus-one-channel. We support Email, SMS, Push, and Voice from launch. Residents choose their preferred channels. No email-only dead ends.
 
 **Requirements:**
+
 - Every notification event must support all 4 channels (email, SMS, push, voice)
 - Residents can set preferences per channel, per notification type
 - Emergency broadcasts override preferences (push → SMS → voice cascade)
@@ -204,6 +215,7 @@
 **Requirements:**
 
 ### Encryption (Non-Negotiable for Every Feature)
+
 - All data encrypted **at rest** (AES-256) and **in transit** (TLS 1.3)
 - **Application-level double encryption** for critical PII: SIN, passport numbers, bank accounts, credit cards, medical information, access codes, alarm codes
 - Encryption keys managed via cloud KMS, rotated quarterly
@@ -212,6 +224,7 @@
 - **Every feature** that stores, displays, transmits, or exports PII must follow the encryption and access rules defined in `01-architecture.md` Section 13
 
 ### Backup & Disaster Recovery
+
 - **Continuous PITR** (Point-in-Time Recovery) — can restore to any second within the retention window
 - **Automated daily snapshots** — compressed and encrypted before storage
 - **Geographic redundancy** — primary (Toronto), secondary (Montreal), cold (Calgary) — all within Canada
@@ -222,6 +235,7 @@
 - **Super Admin Backup Health Dashboard** — real-time visibility into backup status, storage, health, and alerts for every property
 
 ### PII Handling (Global Rule — Every Module Must Comply)
+
 - Application logs NEVER contain PII — log sanitization middleware strips PII before writing
 - PII is stripped before sending to AI providers (Claude/OpenAI) — anonymized identifiers only
 - Exported files inherit the exporter's permission level — Tier 1 PII exports require additional confirmation
@@ -230,6 +244,7 @@
 - Every read of critical or sensitive PII is logged: who, when, from where, why
 
 ### Multi-Framework Compliance
+
 This platform must be designed and built to satisfy **all** of the following compliance frameworks simultaneously:
 
 1. **PIPEDA** (Personal Information Protection and Electronic Documents Act) — Canadian federal privacy law. All personal information collected with informed consent. Data residency: all data stored in Canadian data centers. Breach notification to Privacy Commissioner within 72 hours. Right to access and right to correction for all residents.
@@ -249,6 +264,7 @@ This platform must be designed and built to satisfy **all** of the following com
 8. **HIPAA** (Health Insurance Portability and Accountability Act) — Relevant because resident profiles may store medical conditions, accessibility needs, emergency medical information. Protected Health Information (PHI) must be encrypted at rest and in transit. Minimum necessary standard — only show medical info to roles that need it. Business Associate Agreements (BAA) with any third party that touches health data. Breach notification within 60 days for health data specifically. Access logs for all PHI access must be retained for 6 years.
 
 ### Security Incident Response
+
 - Incident classification (P1-P4) with defined response times
 - P1 (confirmed breach): containment within 15 minutes, Super Admin notified within 15 minutes, affected property admins within 1 hour, Privacy Commissioner within 72 hours
 - Post-incident report within 7 days
@@ -263,6 +279,7 @@ This platform must be designed and built to satisfy **all** of the following com
 **Why:** Untested code is broken code waiting to break in production. In a multi-tenant condo platform handling security incidents, access codes, and financial data, a single uncaught bug can cascade across properties. 95% coverage is not aspirational — it is the minimum acceptable standard.
 
 **Requirements:**
+
 - 95% minimum **line AND branch coverage** for ALL code — backend, frontend, shared libraries, utilities
 - New code introduced in any pull request must have **100% coverage** — zero untested new code ships
 - CI/CD pipeline **hard-fails** if overall coverage drops below 95% — no overrides, no exceptions
@@ -282,6 +299,7 @@ This platform must be designed and built to satisfy **all** of the following com
 **Why:** Unit tests prove individual pieces work. Integration tests prove the system works as a whole. In a multi-tenant platform where a package arrival triggers notifications across channels and appears in a resident's portal, a failure at any integration point means a broken user experience.
 
 **Requirements:**
+
 - Every API endpoint tested for **every HTTP method it supports** and **every possible status code**: 200 (success), 201 (created), 400 (bad request), 401 (unauthorized), 403 (forbidden), 404 (not found), 409 (conflict), 422 (unprocessable), 429 (rate limited), 500 (server error)
 - **Multi-tenant isolation tests**: automated tests that prove Property A's users, API keys, and queries cannot access, modify, or even detect the existence of Property B's data — tested for every data-accessing endpoint
 - **RBAC matrix coverage**: every role (Super Admin, Property Admin, Property Manager, Front Desk, Security, Resident, Board Member) tested against every endpoint — verified that permitted actions succeed AND forbidden actions return 403
@@ -300,6 +318,7 @@ This platform must be designed and built to satisfy **all** of the following com
 **Why:** Condo buildings are home to residents of all abilities — elderly residents, residents with visual impairments, residents with motor disabilities. Accessibility is not a nice-to-have. It is a legal requirement in many jurisdictions and a moral obligation. An inaccessible portal excludes the people who need building services the most.
 
 **Requirements:**
+
 - **WCAG 2.2 Level AA compliance is mandatory** — not optional, not aspirational, not "we'll fix it later"
 - **Automated accessibility scan runs on every PR** — PR cannot be merged if any WCAG AA violations are detected
 - Every interactive element (buttons, links, inputs, dropdowns, modals, tabs, accordions, date pickers) must be **fully operable via keyboard alone** using Tab, Shift+Tab, Enter, Space, Escape, and Arrow keys
@@ -319,6 +338,7 @@ This platform must be designed and built to satisfy **all** of the following com
 **Why:** Code quality is not about aesthetics — it is about maintainability, debuggability, and long-term velocity. Sloppy code creates compounding technical debt that slows every future feature. In a platform that must serve properties for years, every file must be clean enough for a new developer to understand without asking questions.
 
 **Requirements:**
+
 - **TypeScript strict mode enabled globally** — `strict: true` in tsconfig, no `any` types anywhere (use `unknown` + type guards), strict null checks enforced, no implicit returns, no unused variables or parameters
 - **Maximum cyclomatic complexity: 10 per function** — enforced by linter, no exceptions
 - **Maximum function length: 50 lines** — if a function exceeds 50 lines, it must be decomposed
@@ -340,6 +360,7 @@ This platform must be designed and built to satisfy **all** of the following com
 **Why:** If the original developer leaves and no one can understand the code, the project is dead. Documentation is not extra work — it is insurance against knowledge loss. Every decision, every API, every component must be documented well enough that a new developer can be productive within their first week.
 
 **Requirements:**
+
 - Every public function, method, and exported module has **JSDoc/TSDoc documentation** — description, parameters with types, return value, thrown exceptions, and a usage example for complex functions
 - **API documentation auto-generated from code** using OpenAPI/Swagger spec — every endpoint, every request/response schema, every error code documented and always in sync with the implementation
 - **Architecture Decision Records (ADR)** written for every significant technical decision — what was decided, what alternatives were considered, why this option was chosen, what trade-offs were accepted
@@ -358,6 +379,7 @@ This platform must be designed and built to satisfy **all** of the following com
 **Why:** Shipping a feature that has not been formally accepted is shipping a guess. In a platform managing security, access control, and financial data for condo properties, guesses are unacceptable. Every feature must pass formal acceptance, and every client must have the right to audit how their data is handled.
 
 **Requirements:**
+
 - **User Acceptance Testing (UAT) required for every feature** before production deployment — no feature goes live without sign-off from a designated tester or product owner
 - **UAT environment must be identical to production** — same infrastructure, same configuration, same data volume characteristics, same third-party integrations (sandbox mode)
 - **Release acceptance criteria checklist with 12+ gates** that must ALL pass before deployment: (1) all tests pass, (2) coverage thresholds met, (3) accessibility scan clean, (4) SAST scan clean, (5) DAST scan clean, (6) performance benchmarks met, (7) UAT sign-off obtained, (8) documentation updated, (9) runbook reviewed, (10) rollback plan documented, (11) monitoring alerts configured, (12) feature flags configured for gradual rollout
@@ -380,6 +402,7 @@ This platform must be designed and built to satisfy **all** of the following com
 **Why:** Concierge handles building access codes, resident PII, security incident reports, and financial data across multiple properties. A single security vulnerability — cross-tenant data leak, privilege escalation, injection attack — could expose hundreds of residents' data and destroy the company. Security testing is not a phase — it is a permanent, continuous requirement.
 
 **Requirements:**
+
 - **Authentication testing**: brute force protection verified (account lockout after 5 failed attempts), session management tested (sessions expire after inactivity, sessions invalidated on password change), token expiry enforced (access tokens max 15 minutes, refresh tokens max 7 days), multi-factor authentication flows tested for all bypass scenarios
 - **Authorization testing**: horizontal escalation tests (User A cannot access User B's data within the same role), vertical escalation tests (Resident cannot access Admin endpoints), cross-tenant escalation tests (Property A staff cannot access Property B data) — automated for every endpoint
 - **Input validation testing**: SQL injection (parameterized queries verified), XSS (reflected, stored, and DOM-based), CSRF (token validation on every state-changing request), command injection, path traversal, SSRF, XML/JSON injection — ALL attack vectors tested and blocked with automated test suites
@@ -398,6 +421,7 @@ This platform must be designed and built to satisfy **all** of the following com
 **Why:** Security vulnerabilities caught in code review cost 10x less to fix than those found in production. SAST analyzes source code for vulnerabilities before the code ever runs. In a platform handling PII and access credentials, every line of code must be scanned before it reaches any environment.
 
 **Requirements:**
+
 - **SAST runs on EVERY pull request** — Critical and High severity findings block merge, no exceptions
 - **Nightly full SAST scan on the main branch** — results reviewed by the security lead within 24 hours every business day
 - **Custom SAST rules for Concierge-specific patterns**: PII handling without encryption, multi-tenant data queries without tenant_id filter, direct database access bypassing the data access layer, encryption key handling outside KMS, hardcoded configuration values
@@ -421,6 +445,7 @@ This platform must be designed and built to satisfy **all** of the following com
 **Why:** SAST finds vulnerabilities in code. DAST finds vulnerabilities in the running application — misconfigurations, authentication bypasses, injection flaws that only manifest at runtime. In a multi-tenant platform, DAST is the last automated line of defense before a vulnerability reaches real users and real data.
 
 **Requirements:**
+
 - **DAST runs against the staging environment on every release candidate** — Critical and High findings block promotion to production
 - **Weekly scheduled DAST scan** against the staging environment — results reviewed within 24 hours every business day
 - **Authenticated scans for EVERY user role**: Super Admin, Property Admin, Property Manager, Front Desk/Concierge, Security Guard, Resident, Board Member — each role scanned separately to detect role-specific vulnerabilities and privilege escalation paths
@@ -436,6 +461,33 @@ This platform must be designed and built to satisfy **all** of the following com
 - DAST scan results archived for 2 years for compliance audit purposes
 
 **Verification:** Has DAST been run against this release candidate with authenticated scans for every role, cross-tenant isolation validated, API fuzzing completed, and all Critical/High findings resolved before production deployment?
+
+---
+
+## Rule 22: Data Protection Impact Assessment (DPIA) for New PII Fields
+
+**Why:** GDPR Article 35 and ISO 27701 require a Data Protection Impact Assessment before any processing that is likely to result in a high risk to data subjects' rights. In a condo management platform that handles resident PII, every new field that collects personal information must be assessed for privacy impact before it reaches production. This prevents accidental scope creep of data collection without proper justification.
+
+**Requirements:**
+
+- **Every PR that introduces a new PII field** (any field that stores personally identifiable information as defined in COMPLIANCE-MATRIX.md Section 2) **must include a completed DPIA section in the PR description** before it can be approved
+- **DPIA fields required in the PR description**:
+  1. **Field name and data type**: What is being collected (e.g., "date_of_birth, date field on Resident model")
+  2. **PII classification tier**: Tier 1 (Critical), Tier 2 (Sensitive), or Tier 3 (Standard) per the encryption matrix
+  3. **Purpose of collection**: Why this data is needed (specific business justification, not generic "for the platform")
+  4. **Lawful basis**: Which legal basis applies — consent, contract, legitimate interest, legal obligation, vital interests, or public task (GDPR Art. 6)
+  5. **Data subjects affected**: Which user types (residents, staff, vendors, visitors)
+  6. **Retention period**: How long the data will be kept and what happens after (anonymize, delete, archive)
+  7. **Access scope**: Which roles can read this field, which can write it
+  8. **Encryption tier confirmation**: Confirmation that the field will be encrypted at the correct tier
+  9. **Cross-border transfer**: Whether this data will be sent to any third-party provider (and if so, which)
+  10. **Risk assessment**: Low / Medium / High risk to data subjects, with justification
+- **Reviewer responsibility**: At least one PR reviewer must verify the DPIA section is complete and the risk assessment is reasonable. If risk is Medium or High, the DPO (or Security Officer if no DPO) must also approve.
+- **CI enforcement**: A PR template check verifies the presence of the DPIA section when file changes touch model definitions or database migrations. Missing DPIA blocks merge.
+- **DPIA registry**: Completed DPIAs are indexed in the ROPA (Record of Processing Activities, `docs/tech/ROPA.md`) within 5 business days of the PR merging.
+- **Existing fields**: The initial DPIA for all existing PII fields is documented in `docs/tech/COMPLIANCE-MATRIX.md` Section 2 (Data Inventory). This rule applies to all NEW fields introduced after the initial compliance audit.
+
+**Verification:** Does this PR introduce any new PII fields? If yes, is the DPIA section complete in the PR description with all 10 required items, and has the appropriate reviewer (DPO for Medium/High risk) approved it?
 
 ---
 
@@ -464,10 +516,11 @@ Before marking any task as done, verify:
 - [ ] **Rule 19**: Authentication, authorization, and injection testing complete, PII exposure verified clean, penetration test findings resolved?
 - [ ] **Rule 20**: SAST passed with zero Critical/High findings, secrets scan clean, dependency licenses compliant?
 - [ ] **Rule 21**: DAST passed for all roles, cross-tenant isolation validated, API fuzzing complete, findings correlated with SAST in unified dashboard?
+- [ ] **Rule 22**: If new PII fields introduced, DPIA section complete in PR description with all 10 items, DPO/Security Officer approved for Medium/High risk?
 
 ---
 
-*This rulebook is a living document. Every instruction from the product owner gets added here as a new rule. Every rule applies to every piece of work — past, present, and future.*
+_This rulebook is a living document. Every instruction from the product owner gets added here as a new rule. Every rule applies to every piece of work — past, present, and future._
 
-*Last updated: 2026-03-14*
-*Rules: 21*
+_Last updated: 2026-03-14_
+_Rules: 21_

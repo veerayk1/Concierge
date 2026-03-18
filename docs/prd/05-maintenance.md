@@ -22,7 +22,7 @@ Buildings break. Pipes leak, elevators stall, hallway lights burn out. The speed
 | **URL**                     | `/maintenance` (listing), `/maintenance/new` (create), `/maintenance/:id` (detail)                           |
 | **Sidebar label**           | Service Requests                                                                                             |
 | **Sidebar group**           | Operations                                                                                                   |
-| **Badge**                   | Count of open requests (visible to Property Manager, Maintenance Staff)                                      |
+| **Badge**                   | Count of open requests (visible to Property Manager, Maintenance Staff, Superintendent)                      |
 | **v1 scope**                | Service request lifecycle, 43 categories, vendor/employee assignment, attachments, work orders, comments     |
 | **v2 scope**                | Equipment tracking, inspection checklists, recurring tasks, vendor compliance dashboard, alteration projects |
 | **AI capabilities**         | 12 features (IDs 23-34 in the AI Framework)                                                                  |
@@ -97,7 +97,7 @@ One platform uses a "Received" status between "Open" and active work, indicating
 
 #### 3.1.1 Create Service Request
 
-**Who can create**: Property Manager, Property Admin, Super Admin (full form). Residents -- Owner and Tenant (simplified form). Maintenance Staff cannot create requests -- they receive assignments.
+**Who can create**: Property Manager, Property Admin, Super Admin (full form). Superintendent (full form -- see Section 5.6 for Superintendent-specific workflow). Residents -- Owner and Tenant (simplified form). Maintenance Staff cannot create requests -- they receive assignments.
 
 ##### Staff Form (Full)
 
@@ -489,17 +489,17 @@ A printable work order can be generated from any service request. The work order
 
 ##### Work Order Layout
 
-| Section            | Fields                                                                                                                                                                              |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Header             | Property name, Property logo, "WORK ORDER" title, Reference number (large), Date generated, Page number                                                                             |
-| Request Summary    | Title, Description (full), Category, Sub-category, Priority, Urgency flag                                                                                                           |
-| Unit Information   | Unit number, Building, Floor, Resident name, Contact phone, Contact email                                                                                                           |
-| Access Details     | Permission to enter (Yes/No), Entry instructions (full text, highlighted box)                                                                                                       |
-| Assignment         | Assigned employee name + phone, Assigned vendor name + phone, Scheduled date                                                                                                        |
-| Equipment          | Equipment name, Serial number, Location, Category (only if equipment linked)                                                                                                        |
-| Photos             | Thumbnail grid of attached photos (max 6 per page, additional pages as needed)                                                                                                      |
-| Notes              | Internal notes (staff version only)                                                                                                                                                 |
-| Completion Section | "Work Performed: ****\_\_\_\_****", "Parts Used: ****\_\_\_\_****", "Time Spent: \_**\_", "Completed by: ****\_\_****** Date: **\_\_\_\_**", "Resident Signature: ****\_\_\_\_****" |
+| Section            | Fields                                                                                                                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Header             | Property name, Property logo, "WORK ORDER" title, Reference number (large), Date generated, Page number                                                                                             |
+| Request Summary    | Title, Description (full), Category, Sub-category, Priority, Urgency flag                                                                                                                           |
+| Unit Information   | Unit number, Building, Floor, Resident name, Contact phone, Contact email                                                                                                                           |
+| Access Details     | Permission to enter (Yes/No), Entry instructions (full text, highlighted box)                                                                                                                       |
+| Assignment         | Assigned employee name + phone, Assigned vendor name + phone, Scheduled date                                                                                                                        |
+| Equipment          | Equipment name, Serial number, Location, Category (only if equipment linked)                                                                                                                        |
+| Photos             | Thumbnail grid of attached photos (max 6 per page, additional pages as needed)                                                                                                                      |
+| Notes              | Internal notes (staff version only)                                                                                                                                                                 |
+| Completion Section | "Work Performed: \***\*\_\_\_\_\*\***", "Parts Used: \***\*\_\_\_\_\*\***", "Time Spent: \_**\_", "Completed by: \*\***\_\_**\*\*** Date: **\_\_\_\_**", "Resident Signature: \***\*\_\_\_\_\*\***" |
 
 **Button behavior**:
 | State | Display |
@@ -1143,6 +1143,94 @@ The `ai_metadata` JSONB field on MaintenanceRequest stores all AI-related sugges
 9. PM exports the filtered list to Excel for board reporting
 ```
 
+### 5.6 Superintendent Manages Assigned Requests
+
+The Superintendent is the building's on-site maintenance person with their own dedicated login and dashboard. Unlike Maintenance Staff (who receive assignments passively), the Superintendent has a broader operational view including building systems, equipment responsibility, unit entry coordination, and a direct communication channel to the Property Manager for parts and supplies.
+
+```
+1. Superintendent logs in → sees Superintendent Command Center dashboard
+2. Dashboard shows:
+   a. "My Assigned Requests" card grid, sorted by priority (Critical → High → Normal → Low)
+   b. "Building Systems Status" panel: HVAC (green), Plumbing (green), Electrical (amber alert)
+   c. "Equipment Alerts" panel: 2 items need attention (boiler filter overdue, elevator cert expiring)
+   d. "Today's Schedule" timeline: 3 scheduled visits
+   e. "Parts & Supplies" panel: 1 pending request to PM, 2 approved
+3. Superintendent sees new Critical request assigned to them → taps card
+4. Detail page loads with:
+   - Full request description, resident photos, AI insights
+   - **Unit Access Panel** (Superintendent-exclusive): Permission to Enter status, entry instructions
+     (e.g., "Lockbox code 4321, cat inside, alarm code 9876"), emergency contacts for the unit
+   - Equipment linkage (if applicable)
+   - Timeline of all activity
+5. Superintendent reviews entry instructions before heading to unit
+6. Superintendent travels to unit, diagnoses issue
+7. Superintendent determines parts are needed → taps "Request Parts/Supplies"
+   a. Parts Request form opens (inline or slide-over panel):
+      - Part description (text, required)
+      - Quantity (number, required)
+      - Urgency (Normal, Urgent -- dropdown)
+      - Linked request (auto-filled with current SR reference)
+      - Vendor suggestion (optional text -- "Available at Home Depot, SKU 12345")
+      - Notes for PM (optional text)
+   b. Taps "Send to Property Manager"
+   c. System: creates parts request, notifies PM via push + email
+   d. PM sees parts request in their dashboard with link to the service request
+   e. PM approves/declines/modifies → Superintendent receives notification
+8. Once parts arrive, Superintendent returns to the request
+9. Taps "Update Status" → selects "In Progress"
+10. Completes repair
+11. Taps "Log Work" to record completion details:
+    - Resolution notes (textarea, required, min 10 chars)
+    - Time spent (hours + minutes dropdowns)
+    - Completion photos (file upload, up to 10 images)
+    - Materials used (text, optional -- for cost tracking by PM)
+    - Equipment updated (checkbox -- "Update linked equipment maintenance record")
+12. Taps "Mark Complete" → status changes to Closed
+13. System: logs closure with all work details, notifies resident, updates equipment
+    history if linked, adds to Superintendent's work log
+```
+
+### 5.7 Superintendent Creates a Request (Proactive Maintenance)
+
+The Superintendent can create maintenance requests for issues they discover during rounds, inspections, or building system monitoring -- without waiting for a resident report.
+
+```
+1. Superintendent spots issue during building rounds (e.g., water stain on P2 ceiling)
+2. Opens app → taps "Create Request" from dashboard quick action
+3. Superintendent Create Form loads (similar to Staff Full Form with these differences):
+   - "Discovered By" field auto-filled as Superintendent's name (read-only)
+   - "Hide from Resident Portal" toggle available and defaulted ON for common-area issues
+   - Building systems category group highlighted (HVAC, Plumbing, Electrical, Structural, Fire Safety)
+   - "Assign to Self" toggle (default ON) -- auto-assigns the request to the Superintendent
+   - Equipment linkage dropdown pre-filtered to Superintendent's responsible equipment
+   - No vendor assignment field (only PM can assign vendors -- Superintendent can note
+     "Vendor needed" in description and PM will be notified)
+4. Superintendent fills form, takes photos of water stain directly from mobile camera
+5. Taps "Submit Request"
+6. System: creates request, auto-assigns to Superintendent, notifies PM of new proactive request
+7. Request appears in both Superintendent's queue and PM's dashboard
+8. PM reviews, may adjust priority, add vendor if external work needed
+```
+
+### 5.8 Superintendent Views Building Systems Status
+
+```
+1. Superintendent navigates to "Building Systems" in sidebar
+2. Building Systems dashboard shows status panels for each system category:
+   - HVAC: temperature readings, filter status, last service date, next scheduled service
+   - Plumbing: any active leak alerts, water pressure status, last inspection
+   - Electrical: panel status, any circuit issues, generator test status
+   - Fire Safety: alarm system status, extinguisher inspection dates, sprinkler test dates
+   - Elevator: inspection certificate expiry, recent service history, current status
+3. Each panel shows: green (normal), amber (attention needed), red (critical issue)
+4. Superintendent taps amber "Electrical" panel → sees detail:
+   "Circuit breaker tripped on Floor 3 panel B, reset 2 times this week"
+5. Superintendent can create a maintenance request directly from the systems panel:
+   taps "Create Request" → form pre-fills with system category and relevant equipment
+6. Building systems data is read-only for the Superintendent -- configuration and thresholds
+   are set by Property Manager or Admin in Settings
+```
+
 ---
 
 ## 6. UI/UX
@@ -1227,17 +1315,18 @@ The `ai_metadata` JSONB field on MaintenanceRequest stores all AI-related sugges
 
 Described inline in Section 3.1.2 (listing empty states) and throughout detail sections. Summary:
 
-| Context                                  | Heading                               | Body                                                                | CTA                        |
-| ---------------------------------------- | ------------------------------------- | ------------------------------------------------------------------- | -------------------------- |
-| No requests (staff)                      | "No service requests yet"             | "Requests from residents and staff will appear here."               | "Create First Request"     |
-| No requests (resident)                   | "You don't have any service requests" | "Need something fixed? Submit a request and we'll take care of it." | "Submit a Request"         |
-| No assigned requests (maintenance staff) | "No requests assigned to you"         | "When a manager assigns a request to you, it will appear here."     | None                       |
-| Filters return nothing                   | "No requests match your filters"      | "Try adjusting your filters or clearing them."                      | "Clear all filters" (link) |
-| No comments                              | "No comments yet"                     | "Add a comment to share an update."                                 | "Add Comment" (text link)  |
-| No photos                                | "No photos attached"                  | "Photos help diagnose the issue faster."                            | "Add Photos" (text link)   |
-| No equipment (v2)                        | "No equipment registered"             | "Add building equipment to track maintenance history."              | "Add Equipment"            |
-| No recurring tasks (v2)                  | "No recurring tasks"                  | "Schedule preventive maintenance to avoid costly repairs."          | "Create Recurring Task"    |
-| No vendors                               | "No vendors in directory"             | "Add vendors to assign them to maintenance requests."               | "Add Vendor"               |
+| Context                                  | Heading                               | Body                                                                                                                  | CTA                        |
+| ---------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| No requests (staff)                      | "No service requests yet"             | "Requests from residents and staff will appear here."                                                                 | "Create First Request"     |
+| No requests (resident)                   | "You don't have any service requests" | "Need something fixed? Submit a request and we'll take care of it."                                                   | "Submit a Request"         |
+| No assigned requests (maintenance staff) | "No requests assigned to you"         | "When a manager assigns a request to you, it will appear here."                                                       | None                       |
+| No assigned requests (superintendent)    | "No requests assigned to you"         | "When a manager assigns a request to you, it will appear here. You can also create requests for issues you discover." | "Create Request"           |
+| Filters return nothing                   | "No requests match your filters"      | "Try adjusting your filters or clearing them."                                                                        | "Clear all filters" (link) |
+| No comments                              | "No comments yet"                     | "Add a comment to share an update."                                                                                   | "Add Comment" (text link)  |
+| No photos                                | "No photos attached"                  | "Photos help diagnose the issue faster."                                                                              | "Add Photos" (text link)   |
+| No equipment (v2)                        | "No equipment registered"             | "Add building equipment to track maintenance history."                                                                | "Add Equipment"            |
+| No recurring tasks (v2)                  | "No recurring tasks"                  | "Schedule preventive maintenance to avoid costly repairs."                                                            | "Create Recurring Task"    |
+| No vendors                               | "No vendors in directory"             | "Add vendors to assign them to maintenance requests."                                                                 | "Add Vendor"               |
 
 ### 6.7 Accessibility
 
@@ -1472,20 +1561,24 @@ The Maintenance module integrates **12 AI capabilities** (IDs 23-34 from 19-ai-f
 
 ### 9.1 Notification Events
 
-| Event                           | Default Channels           | Recipients                                               | Template Preview                                                                                                                                                                                           |
-| ------------------------------- | -------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Request Created (by resident)   | Email + Push               | Property Manager, Assigned Employee (if set)             | "New service request from Unit [UNIT]: [TITLE]. Priority: [PRIORITY]. Ref: [REF]."                                                                                                                         |
-| Request Created (by staff)      | Email                      | Resident (if unit-linked and hide_from_resident = false) | "A service request has been created for your unit: [TITLE]. Reference: [REF]. We'll keep you updated." Note: Requests with "Hide from Resident Portal" enabled suppress ALL resident-facing notifications. |
-| Status Changed to In Progress   | Email + Push               | Resident                                                 | "Your request [REF] is now being worked on. [CUSTOM_MESSAGE]"                                                                                                                                              |
-| Status Changed to On Hold       | Email                      | Resident                                                 | "Your request [REF] has been placed on hold. Reason: [REASON]. We'll resume as soon as possible."                                                                                                          |
-| Status Changed to Closed        | Email                      | Resident                                                 | "Your request [REF] has been resolved. [RESOLUTION_NOTES]. If the issue persists, submit a new request."                                                                                                   |
-| Comment Added (by staff)        | Email + Push               | Resident                                                 | "Update on your request [REF]: [COMMENT_PREVIEW]"                                                                                                                                                          |
-| Comment Added (by resident)     | Push                       | Assigned Employee, PM                                    | "New comment from [RESIDENT] on [REF]: [COMMENT_PREVIEW]"                                                                                                                                                  |
-| Employee Assigned               | Email + Push               | Assigned Employee                                        | "You have been assigned to [REF]: [TITLE]. Priority: [PRIORITY]."                                                                                                                                          |
-| Vendor Assigned                 | Email                      | Vendor primary contact                                   | "You have been assigned to request [REF] at [PROPERTY]. [WORK_ORDER_PDF_LINK if generated]."                                                                                                               |
-| Urgency Flag Set                | Push + SMS (if configured) | Property Manager, Assigned Employee                      | "URGENT: Request [REF] flagged as urgent. [TITLE]. Immediate attention required."                                                                                                                          |
-| Overdue Alert                   | Push                       | Property Manager                                         | "[N] service requests are overdue. [REF_LIST]. Please review."                                                                                                                                             |
-| Vendor Compliance Expiring (v2) | Email                      | Property Manager, Vendor                                 | "[VENDOR]'s [DOCUMENT_TYPE] expires on [DATE]. Please renew to maintain compliance."                                                                                                                       |
+| Event                            | Default Channels           | Recipients                                                     | Template Preview                                                                                                                                                                                           |
+| -------------------------------- | -------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Request Created (by resident)    | Email + Push               | Property Manager, Assigned Employee or Superintendent (if set) | "New service request from Unit [UNIT]: [TITLE]. Priority: [PRIORITY]. Ref: [REF]."                                                                                                                         |
+| Request Created (by staff)       | Email                      | Resident (if unit-linked and hide_from_resident = false)       | "A service request has been created for your unit: [TITLE]. Reference: [REF]. We'll keep you updated." Note: Requests with "Hide from Resident Portal" enabled suppress ALL resident-facing notifications. |
+| Status Changed to In Progress    | Email + Push               | Resident                                                       | "Your request [REF] is now being worked on. [CUSTOM_MESSAGE]"                                                                                                                                              |
+| Status Changed to On Hold        | Email                      | Resident                                                       | "Your request [REF] has been placed on hold. Reason: [REASON]. We'll resume as soon as possible."                                                                                                          |
+| Status Changed to Closed         | Email                      | Resident                                                       | "Your request [REF] has been resolved. [RESOLUTION_NOTES]. If the issue persists, submit a new request."                                                                                                   |
+| Comment Added (by staff)         | Email + Push               | Resident                                                       | "Update on your request [REF]: [COMMENT_PREVIEW]"                                                                                                                                                          |
+| Comment Added (by resident)      | Push                       | Assigned Employee or Superintendent, PM                        | "New comment from [RESIDENT] on [REF]: [COMMENT_PREVIEW]"                                                                                                                                                  |
+| Employee/Superintendent Assigned | Email + Push               | Assigned Employee or Superintendent                            | "You have been assigned to [REF]: [TITLE]. Priority: [PRIORITY]."                                                                                                                                          |
+| Vendor Assigned                  | Email                      | Vendor primary contact                                         | "You have been assigned to request [REF] at [PROPERTY]. [WORK_ORDER_PDF_LINK if generated]."                                                                                                               |
+| Urgency Flag Set                 | Push + SMS (if configured) | Property Manager, Assigned Employee or Superintendent          | "URGENT: Request [REF] flagged as urgent. [TITLE]. Immediate attention required."                                                                                                                          |
+| Overdue Alert                    | Push                       | Property Manager                                               | "[N] service requests are overdue. [REF_LIST]. Please review."                                                                                                                                             |
+| Parts/Supply Request Created     | Email + Push               | Property Manager                                               | "Parts request from [SUPERINTENDENT_NAME] for [REF]: [PART_DESCRIPTION]. Urgency: [URGENCY]."                                                                                                              |
+| Parts/Supply Request Approved    | Push                       | Superintendent (requestor)                                     | "Your parts request for [REF] has been approved by [PM_NAME]. [NOTES]."                                                                                                                                    |
+| Parts/Supply Request Declined    | Push                       | Superintendent (requestor)                                     | "Your parts request for [REF] was declined. Reason: [REASON]."                                                                                                                                             |
+| Proactive Request Created        | Email + Push               | Property Manager                                               | "Superintendent [NAME] created request [REF]: [TITLE]. Priority: [PRIORITY]. Review recommended."                                                                                                          |
+| Vendor Compliance Expiring (v2)  | Email                      | Property Manager, Vendor                                       | "[VENDOR]'s [DOCUMENT_TYPE] expires on [DATE]. Please renew to maintain compliance."                                                                                                                       |
 
 ### 9.2 Resident Notification Preferences
 
@@ -1526,34 +1619,40 @@ Staff notification preferences are managed by Property Admin. Assignment and urg
 
 ### 10.1 Endpoints
 
-| Method   | Path                                                                                          | Description                                                                                                                            | Authorized Roles                                                |
-| -------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests`                                        | Create a new service request                                                                                                           | PM, Admin, Resident (own unit only)                             |
-| `GET`    | `/api/v1/properties/{propertyId}/maintenance-requests`                                        | List requests (filtered, paginated, sorted)                                                                                            | PM, Admin, Maintenance Staff (assigned only), Board (read-only) |
-| `GET`    | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}`                            | Get single request detail                                                                                                              | PM, Admin, Maintenance Staff (if assigned), Resident (if own)   |
-| `PATCH`  | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}`                            | Update request fields                                                                                                                  | PM, Admin, Maintenance Staff (status + comments only)           |
-| `DELETE` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}`                            | Soft-delete request                                                                                                                    | Admin only                                                      |
-| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/comments`                   | Add a comment                                                                                                                          | PM, Admin, Maintenance Staff, Resident (own request)            |
-| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/attachments`                | Upload photo or document                                                                                                               | PM, Admin, Maintenance Staff, Resident (own request)            |
-| `DELETE` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/attachments/{attachmentId}` | Remove an attachment                                                                                                                   | PM, Admin                                                       |
-| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/assign`                     | Assign employee and/or vendor                                                                                                          | PM, Admin                                                       |
-| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/status`                     | Change status with reason/resolution                                                                                                   | PM, Admin, Maintenance Staff                                    |
-| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/work-order`                 | Generate work order PDF                                                                                                                | PM, Admin, Maintenance Staff                                    |
-| `GET`    | `/api/v1/properties/{propertyId}/maintenance-categories`                                      | List all categories                                                                                                                    | All authenticated users                                         |
-| `POST`   | `/api/v1/properties/{propertyId}/maintenance-categories`                                      | Create a category                                                                                                                      | Admin only                                                      |
-| `PATCH`  | `/api/v1/properties/{propertyId}/maintenance-categories/{categoryId}`                         | Update a category                                                                                                                      | Admin only                                                      |
-| `DELETE` | `/api/v1/properties/{propertyId}/maintenance-categories/{categoryId}`                         | Deactivate a category (soft delete)                                                                                                    | Admin only                                                      |
-| `GET`    | `/api/v1/properties/{propertyId}/maintenance-requests/analytics`                              | Analytics summary data                                                                                                                 | PM, Admin, Board (read-only)                                    |
-| `GET`    | `/api/v1/properties/{propertyId}/response-templates`                                          | List response templates                                                                                                                | PM, Admin, Maintenance Staff                                    |
-| `POST`   | `/api/v1/properties/{propertyId}/response-templates`                                          | Create a template                                                                                                                      | PM, Admin                                                       |
-| `GET`    | `/api/v1/properties/{propertyId}/vendors`                                                     | List all vendors (filtered, paginated)                                                                                                 | PM, Admin                                                       |
-| `POST`   | `/api/v1/properties/{propertyId}/vendors`                                                     | Create a new vendor                                                                                                                    | PM, Admin                                                       |
-| `GET`    | `/api/v1/properties/{propertyId}/vendors/{vendorId}`                                          | Get vendor detail including compliance documents                                                                                       | PM, Admin                                                       |
-| `PATCH`  | `/api/v1/properties/{propertyId}/vendors/{vendorId}`                                          | Update vendor fields (name, address, service category, notes, active status)                                                           | PM, Admin                                                       |
-| `DELETE` | `/api/v1/properties/{propertyId}/vendors/{vendorId}`                                          | Deactivate vendor (soft delete -- sets active=false). Vendors with open assigned requests cannot be deactivated; returns 409 Conflict. | Admin only                                                      |
-| `POST`   | `/api/v1/properties/{propertyId}/vendors/{vendorId}/compliance-documents`                     | Upload a compliance document (insurance, license, etc.)                                                                                | PM, Admin                                                       |
-| `GET`    | `/api/v1/properties/{propertyId}/vendor-service-categories`                                   | List vendor service categories                                                                                                         | PM, Admin, Maintenance Staff                                    |
-| `GET`    | `/api/v1/residents/me/maintenance-requests`                                                   | Current resident's own requests                                                                                                        | Any resident role                                               |
+| Method   | Path                                                                                          | Description                                                                                                                            | Authorized Roles                                                                                         |
+| -------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests`                                        | Create a new service request                                                                                                           | PM, Admin, Superintendent, Resident (own unit only)                                                      |
+| `GET`    | `/api/v1/properties/{propertyId}/maintenance-requests`                                        | List requests (filtered, paginated, sorted)                                                                                            | PM, Admin, Maintenance Staff (assigned only), Superintendent (assigned + own created), Board (read-only) |
+| `GET`    | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}`                            | Get single request detail                                                                                                              | PM, Admin, Maintenance Staff (if assigned), Superintendent (if assigned or own), Resident (if own)       |
+| `PATCH`  | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}`                            | Update request fields                                                                                                                  | PM, Admin, Maintenance Staff (status + comments only), Superintendent (status + comments + work log)     |
+| `DELETE` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}`                            | Soft-delete request                                                                                                                    | Admin only                                                                                               |
+| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/comments`                   | Add a comment                                                                                                                          | PM, Admin, Maintenance Staff, Superintendent, Resident (own request)                                     |
+| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/attachments`                | Upload photo or document                                                                                                               | PM, Admin, Maintenance Staff, Superintendent, Resident (own request)                                     |
+| `DELETE` | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/attachments/{attachmentId}` | Remove an attachment                                                                                                                   | PM, Admin                                                                                                |
+| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/assign`                     | Assign employee, superintendent, and/or vendor                                                                                         | PM, Admin                                                                                                |
+| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/status`                     | Change status with reason/resolution                                                                                                   | PM, Admin, Maintenance Staff, Superintendent                                                             |
+| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/work-order`                 | Generate work order PDF                                                                                                                | PM, Admin, Maintenance Staff, Superintendent                                                             |
+| `GET`    | `/api/v1/properties/{propertyId}/maintenance-categories`                                      | List all categories                                                                                                                    | All authenticated users                                                                                  |
+| `POST`   | `/api/v1/properties/{propertyId}/maintenance-categories`                                      | Create a category                                                                                                                      | Admin only                                                                                               |
+| `PATCH`  | `/api/v1/properties/{propertyId}/maintenance-categories/{categoryId}`                         | Update a category                                                                                                                      | Admin only                                                                                               |
+| `DELETE` | `/api/v1/properties/{propertyId}/maintenance-categories/{categoryId}`                         | Deactivate a category (soft delete)                                                                                                    | Admin only                                                                                               |
+| `GET`    | `/api/v1/properties/{propertyId}/maintenance-requests/analytics`                              | Analytics summary data                                                                                                                 | PM, Admin, Board (read-only)                                                                             |
+| `POST`   | `/api/v1/properties/{propertyId}/maintenance-requests/{requestId}/parts-request`              | Create a parts/supply request linked to a service request                                                                              | Superintendent                                                                                           |
+| `GET`    | `/api/v1/properties/{propertyId}/parts-requests`                                              | List all parts/supply requests (filtered, paginated)                                                                                   | PM, Admin, Superintendent (own only)                                                                     |
+| `PATCH`  | `/api/v1/properties/{propertyId}/parts-requests/{partsRequestId}`                             | Approve, decline, or modify a parts request                                                                                            | PM, Admin                                                                                                |
+| `GET`    | `/api/v1/properties/{propertyId}/building-systems`                                            | Get building systems status (HVAC, plumbing, electrical, etc.)                                                                         | PM, Admin, Superintendent (read-only)                                                                    |
+| `GET`    | `/api/v1/properties/{propertyId}/superintendent/work-log`                                     | Get Superintendent's own work log (completed requests, time spent, materials)                                                          | PM, Admin, Superintendent (own only)                                                                     |
+| `GET`    | `/api/v1/properties/{propertyId}/superintendent/schedule`                                     | Get Superintendent's assigned schedule and upcoming tasks                                                                              | PM, Admin, Superintendent (own only)                                                                     |
+| `GET`    | `/api/v1/properties/{propertyId}/response-templates`                                          | List response templates                                                                                                                | PM, Admin, Maintenance Staff, Superintendent                                                             |
+| `POST`   | `/api/v1/properties/{propertyId}/response-templates`                                          | Create a template                                                                                                                      | PM, Admin                                                                                                |
+| `GET`    | `/api/v1/properties/{propertyId}/vendors`                                                     | List all vendors (filtered, paginated)                                                                                                 | PM, Admin                                                                                                |
+| `POST`   | `/api/v1/properties/{propertyId}/vendors`                                                     | Create a new vendor                                                                                                                    | PM, Admin                                                                                                |
+| `GET`    | `/api/v1/properties/{propertyId}/vendors/{vendorId}`                                          | Get vendor detail including compliance documents                                                                                       | PM, Admin                                                                                                |
+| `PATCH`  | `/api/v1/properties/{propertyId}/vendors/{vendorId}`                                          | Update vendor fields (name, address, service category, notes, active status)                                                           | PM, Admin                                                                                                |
+| `DELETE` | `/api/v1/properties/{propertyId}/vendors/{vendorId}`                                          | Deactivate vendor (soft delete -- sets active=false). Vendors with open assigned requests cannot be deactivated; returns 409 Conflict. | Admin only                                                                                               |
+| `POST`   | `/api/v1/properties/{propertyId}/vendors/{vendorId}/compliance-documents`                     | Upload a compliance document (insurance, license, etc.)                                                                                | PM, Admin                                                                                                |
+| `GET`    | `/api/v1/properties/{propertyId}/vendor-service-categories`                                   | List vendor service categories                                                                                                         | PM, Admin, Maintenance Staff, Superintendent                                                             |
+| `GET`    | `/api/v1/residents/me/maintenance-requests`                                                   | Current resident's own requests                                                                                                        | Any resident role                                                                                        |
 
 ### 10.2 Request/Response Examples
 
@@ -1752,6 +1851,13 @@ External integrations can subscribe to maintenance events:
 | 20c | Source indicator (resident vs staff) on cards and table                                                                 | 3.1.2         | Specified |
 | 20d | Vendor contact quick-action links (email, phone)                                                                        | 3.1.8         | Specified |
 | 20e | Vendor list column visibility toggles                                                                                   | 3.2.4         | Specified |
+| 20f | Superintendent workflow -- assigned request lifecycle (view, status, log work, photos)                                  | 5.6           | Specified |
+| 20g | Superintendent workflow -- proactive request creation with auto-self-assign                                             | 5.7           | Specified |
+| 20h | Superintendent workflow -- parts/supply request channel to Property Manager                                             | 5.6           | Specified |
+| 20i | Superintendent workflow -- building systems status view                                                                 | 5.8           | Specified |
+| 20j | Superintendent workflow -- unit entry instructions access (assigned units only)                                         | 5.6           | Specified |
+| 20k | Superintendent-specific API endpoints (parts requests, work log, schedule, building systems)                            | 10.1          | Specified |
+| 20l | Superintendent-specific notifications (parts request, proactive request creation)                                       | 9.1           | Specified |
 
 ### Enhanced (v2) Requirements
 
@@ -2093,12 +2199,12 @@ Each document upload captures:
 
 #### Non-Compliance Escalation
 
-| Aspect              | Detail                                                                                                                                                                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Automatic block** | When a vendor's insurance expires and is not renewed within a configurable grace period (default: 14 days), the vendor is automatically blocked from new maintenance request assignments.                                                   |
-| **Block indicator** | Blocked vendors show a red "Non-Compliant -- Cannot Assign" badge in the assignment dropdown. Attempting to assign a blocked vendor shows: "This vendor is blocked due to expired insurance. Update their compliance documents to proceed." |
-| **Override**        | Property Admin can override the block for a specific assignment with a documented reason (logged in audit trail).                                                                                                                           |
-| **Unblock**         | Uploading valid replacement insurance automatically removes the block.                                                                                                                                                                      |
+| Aspect              | Detail                                                                                                                                                                                                                                               |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Automatic block** | When a vendor's insurance expires and is not renewed within a grace period (default: 14 days, configurable by Property Admin in Settings > Vendors, range: 1-90 days), the vendor is automatically blocked from new maintenance request assignments. |
+| **Block indicator** | Blocked vendors show a red "Non-Compliant -- Cannot Assign" badge in the assignment dropdown. Attempting to assign a blocked vendor shows: "This vendor is blocked due to expired insurance. Update their compliance documents to proceed."          |
+| **Override**        | Property Admin can override the block for a specific assignment with a documented reason (logged in audit trail).                                                                                                                                    |
+| **Unblock**         | Uploading valid replacement insurance automatically removes the block.                                                                                                                                                                               |
 
 #### Compliance Report
 
@@ -2108,6 +2214,60 @@ Each document upload captures:
 | **Contents**       | All vendors with: name, status (5 statuses), document types on file, expiry dates, days until expiry (or days since expiry), coverage amounts |
 | **Filters**        | By status, by document type, by expiry date range                                                                                             |
 | **Schedule**       | Can be scheduled for automatic monthly generation and email delivery to Property Admin (feeds into PRD 15 report scheduler)                   |
+
+---
+
+## ADDENDUM: Gap Analysis Fixes (2026-03-17)
+
+> Added from GAP-ANALYSIS-FINAL.md gap 5.1
+
+### A1. "Don't Show to Residents" Visibility Toggle (Gap 5.1, High)
+
+Platform 2 has a "Don't show to residents" checkbox on the maintenance request form, allowing staff to create internal-only maintenance requests.
+
+#### Field Specification
+
+| Field               | Type    | Required | Default | Description                                            |
+| ------------------- | ------- | -------- | ------- | ------------------------------------------------------ |
+| visible_to_resident | Boolean | No       | true    | Whether this request is visible on the resident portal |
+
+#### Behavioral Rules
+
+1. When `visible_to_resident = false`:
+   - Request does NOT appear in the resident's "My Maintenance Requests" list
+   - No notification is sent to the resident on creation or status change
+   - Internal staff notifications still fire normally
+   - The request shows a "Staff Only" badge in the staff-facing list
+2. When `visible_to_resident = true` (default):
+   - Standard behavior: resident can see the request and receives notifications
+3. Only staff roles (Front Desk, Property Manager, Maintenance Staff) can toggle this field
+4. Residents cannot see or change this field
+
+#### Use Cases
+
+- Building-wide preventive maintenance (e.g., "Replace hallway light fixture Floor 3") that does not relate to a resident's unit
+- Internal tracking of work that would confuse residents (e.g., "Inspect fire panel -- routine")
+- Management-initiated work that does not require resident awareness
+
+### A2. "Save and Add Another" Workflow Shortcut (Gap 5.2, Medium)
+
+The maintenance request creation form must include a **"Save and Add Another"** button alongside the standard "Save" button.
+
+#### Behavior
+
+1. **"Save"** (primary button): Saves the request and navigates to the request detail page (standard behavior).
+2. **"Save and Add Another"** (secondary button): Saves the request, shows a brief success toast ("Request #[ref] created"), and resets the form to a blank state for the next entry. The following fields are preserved (not reset) to speed up sequential entry:
+   - Category (if the same type of issue is being logged for multiple units)
+   - Priority
+   - Assigned employee (if a single technician is handling a batch of requests)
+   - "Don't show to residents" toggle state
+3. The form scroll position resets to the top after each save.
+4. A counter badge appears next to the "Save and Add Another" button showing how many requests were created in this session (e.g., "Save and Add Another (3)").
+5. When the user finally clicks "Save" (ending the batch) or navigates away, the counter resets.
+
+#### Use Case
+
+During building inspections or after a major weather event, maintenance staff create dozens of requests in sequence (e.g., "Water stain Unit 301", "Water stain Unit 302", "Water stain Unit 303"). Without this shortcut, each submission requires navigating back to the creation form manually.
 
 ---
 

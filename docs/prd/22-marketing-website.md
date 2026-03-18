@@ -902,12 +902,14 @@ Each email includes an unsubscribe link. If the user logs into the demo, the seq
 
 ### 9.5 Privacy Policy (`/privacy`)
 
-| Aspect           | Specification                                                                                                                            |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Content**      | Full PIPEDA and GDPR-compliant privacy policy                                                                                            |
-| **Format**       | MDX with table of contents, section anchors, and "Last updated" date                                                                     |
-| **Key sections** | Data collected, how data is used, data sharing, data retention, user rights (access, correction, deletion), cookies, contact information |
-| **Language**     | Available in English and French-Canadian                                                                                                 |
+| Aspect           | Specification                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Content**      | Full PIPEDA and GDPR-compliant privacy policy written in plain language at 10th-grade reading level                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Format**       | MDX with table of contents, section anchors, and "Last updated" date                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Key sections** | (1) Data Protection Officer name and contact info, (2) What personal data is collected (per-field breakdown with purpose), (3) Lawful basis for processing each category (contract, consent, legitimate interest), (4) How data is used, (5) Who data is shared with (link to `/sub-processors`), (6) Cross-border data transfers, (7) Data retention periods per category, (8) Individual rights (access, rectification, erasure, restriction, portability, objection, automated decision-making), (9) Cookie policy, (10) How to file a privacy complaint, (11) Changes to policy (with notification mechanism), (12) Contact information for Privacy Commissioner of Canada |
+| **Language**     | Available in English and French-Canadian                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Footer link**  | Privacy policy link must appear in the footer of every authenticated and unauthenticated page                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Compliance**   | Required by PIPEDA Principle 8, GDPR Articles 13-14, SOC 2 P1.1. Referenced in `docs/tech/COMPLIANCE-MATRIX.md` gap C1.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 ### 9.6 Terms of Service (`/terms`)
 
@@ -918,7 +920,29 @@ Each email includes an unsubscribe link. If the user logs into the demo, the seq
 | **Key sections** | Account terms, payment terms, cancellation policy, data ownership, liability limitations, acceptable use, SLA reference |
 | **Language**     | Available in English and French-Canadian                                                                                |
 
-### 9.7 Status Page (`/status`)
+### 9.7 HIPAA Notice of Privacy Practices (`/hipaa-notice`)
+
+| Aspect           | Specification                                                                                                                                                                                                                                                                                             |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Content**      | HIPAA-compliant Notice of Privacy Practices describing how Concierge handles Protected Health Information (PHI) including medical conditions, accessibility needs, emergency medical info, allergies, and medications stored in resident profiles                                                         |
+| **Format**       | MDX with table of contents, section anchors, and "Last updated" date                                                                                                                                                                                                                                      |
+| **Key sections** | What PHI is collected, how PHI is used, who can access PHI (role-by-role breakdown), PHI encryption and safeguards, PHI retention and disposal, individual rights (access, amendment, restriction, accounting of disclosures), breach notification procedures, contact information for DPO and complaints |
+| **Language**     | Available in English and French-Canadian                                                                                                                                                                                                                                                                  |
+| **Visibility**   | Linked from the Security page. Not in the main navigation (most properties do not store PHI). Displayed during onboarding for properties that enable health data fields.                                                                                                                                  |
+| **Compliance**   | Required by HIPAA Privacy Rule. Referenced in `docs/tech/COMPLIANCE-MATRIX.md` gap H8.                                                                                                                                                                                                                    |
+
+### 9.8 Sub-Processor List (`/sub-processors`)
+
+| Aspect            | Specification                                                                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Content**       | Public list of all third-party services (sub-processors) that process personal data on behalf of Concierge, as required by GDPR Article 28 and ISO 27701                                          |
+| **Format**        | Table with columns: Sub-Processor Name, Purpose, Data Processed, Country of Operation, DPA Status                                                                                                 |
+| **Key sections**  | Infrastructure sub-processors (cloud hosting, CDN), application sub-processors (payment processor, email/SMS providers, AI providers), analytics sub-processors                                   |
+| **Update policy** | Updated whenever a new sub-processor is added. Property Admins notified 30 days before a new sub-processor goes live per GDPR Article 28(2). Historical versions accessible via version dropdown. |
+| **Language**      | Available in English and French-Canadian                                                                                                                                                          |
+| **Compliance**    | Required by GDPR Art. 28, ISO 27701 Clause 7.2.6. Referenced in `docs/tech/COMPLIANCE-MATRIX.md` gap H4.                                                                                          |
+
+### 9.9 Status Page (`/status`)
 
 | Aspect             | Specification                                                                                                                         |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1150,5 +1174,35 @@ All marketing pages comply with WCAG 2.2 AA standards.
 
 ---
 
-_Last updated: 2026-03-16_
+---
+
+## 16. Completeness Checklist
+
+### Feature Coverage
+
+| #   | Requirement                                                                               | Status  | Section |
+| --- | ----------------------------------------------------------------------------------------- | ------- | ------- |
+| 1   | Landing page with hero, features, social proof, CTA                                       | Covered | 3       |
+| 2   | Features page with module showcase                                                        | Covered | 4       |
+| 3   | Pricing page with 3 tiers and annual toggle                                               | Covered | 5       |
+| 4   | Login routing: vanity URL, email-based, property code                                     | Covered | 6       |
+| 5   | SSG for static pages, SSR for login/demo                                                  | Covered | 7       |
+| 6   | Privacy-respecting analytics (Plausible/PostHog)                                          | Covered | 8       |
+| 7   | Bilingual support (en, fr-CA)                                                             | Covered | 9       |
+| 8   | Blog/changelog with MDX and ISR                                                           | Covered | 14      |
+| 9   | SEO optimization with meta tags (title max 60 characters, description max 160 characters) | Covered | 10      |
+| 10  | Mobile-responsive design for all marketing pages                                          | Covered | 11      |
+
+### UX Coverage
+
+| #   | Requirement                                      | Status  | Section |
+| --- | ------------------------------------------------ | ------- | ------- |
+| 1   | Page load performance (< 1s TTFB for SSG)        | Covered | 7       |
+| 2   | Accessibility (WCAG 2.2 AA)                      | Covered | 11      |
+| 3   | Cookie consent banner (auto-decline for privacy) | Covered | 8       |
+| 4   | Authenticated user redirect (Login -> Dashboard) | Covered | 6       |
+
+---
+
+_Last updated: 2026-03-17_
 _Author: Concierge Product Team_

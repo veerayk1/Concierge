@@ -84,6 +84,38 @@ Real-time updates apply to:
 - Notification delivery confirmations
 - Amenity reservation changes
 
+#### WebSocket Event Type Enumeration (Gap 1.2)
+
+The following table defines which event types trigger real-time WebSocket pushes and which use standard polling. All WebSocket messages include `property_id`, `building_id`, `event_type`, `entity_id`, `version`, and `timestamp` fields.
+
+| #   | Event Type                  | Channel Pattern               | Trigger                                                                 | Recipients                                                                     | Delivery              |
+| --- | --------------------------- | ----------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------- |
+| 1   | `event.created`             | `property.{id}.events`        | New event logged (any type: package, visitor, incident, cleaning, etc.) | All staff currently viewing the event list or dashboard                        | WebSocket (real-time) |
+| 2   | `event.updated`             | `property.{id}.events`        | Event status change, comment added, or fields edited                    | All staff currently viewing the event list, detail page, or dashboard          | WebSocket (real-time) |
+| 3   | `event.closed`              | `property.{id}.events`        | Event marked as closed/resolved                                         | Same as event.updated                                                          | WebSocket (real-time) |
+| 4   | `package.created`           | `property.{id}.packages`      | New package logged                                                      | Staff on package list; resident via push notification                          | WebSocket (real-time) |
+| 5   | `package.released`          | `property.{id}.packages`      | Package picked up by resident                                           | Staff on package list                                                          | WebSocket (real-time) |
+| 6   | `maintenance.created`       | `property.{id}.maintenance`   | New maintenance request submitted                                       | Staff on maintenance list; assigned employee                                   | WebSocket (real-time) |
+| 7   | `maintenance.updated`       | `property.{id}.maintenance`   | Status change, assignment change, comment added                         | Staff on maintenance list; assigned employee; requesting resident (if visible) | WebSocket (real-time) |
+| 8   | `booking.created`           | `property.{id}.bookings`      | New amenity reservation                                                 | Staff viewing calendar; amenity manager (if approval required)                 | WebSocket (real-time) |
+| 9   | `booking.updated`           | `property.{id}.bookings`      | Booking approved, rejected, or cancelled                                | Staff viewing calendar; booking owner                                          | WebSocket (real-time) |
+| 10  | `shift_log.created`         | `property.{id}.shift-log`     | New shift log entry                                                     | All staff viewing the shift log                                                | WebSocket (real-time) |
+| 11  | `announcement.published`    | `property.{id}.announcements` | New announcement published                                              | All users on dashboard or announcement list                                    | WebSocket (real-time) |
+| 12  | `notification.delivered`    | `user.{id}.notifications`     | Notification sent to a specific user                                    | The target user only                                                           | WebSocket (real-time) |
+| 13  | `unit.updated`              | `property.{id}.units`         | Unit record changed (occupant, instructions, custom fields)             | Staff viewing the unit file                                                    | WebSocket (real-time) |
+| 14  | `parking.violation_created` | `property.{id}.parking`       | New parking violation logged                                            | Security and property manager on parking dashboard                             | WebSocket (real-time) |
+| 15  | `incident.created`          | `property.{id}.incidents`     | New incident report filed                                               | All security staff on duty                                                     | WebSocket (real-time) |
+
+**Events that use polling (not WebSocket)**:
+
+| #   | Event Type                      | Polling Interval          | Reason                                  |
+| --- | ------------------------------- | ------------------------- | --------------------------------------- |
+| 1   | Report generation complete      | 10 seconds                | Reports are background jobs; infrequent |
+| 2   | Scheduled announcement queued   | 60 seconds                | Batch operation; not time-critical      |
+| 3   | Vendor compliance status change | 300 seconds               | External data; infrequent updates       |
+| 4   | Billing/subscription changes    | No polling (page refresh) | Rare; admin-only                        |
+| 5   | System health metrics           | 60 seconds                | Admin dashboard only                    |
+
 ### 2.6 Offline-First Mobile
 
 Mobile clients must function during network interruptions:
@@ -1726,7 +1758,7 @@ Every access to a PII or Sensitive PII field is logged in the `DataAccessLog` ta
 
 #### Data Minimization
 
-- Every field must justify its existence. If fewer than 80% of properties use a field, it should be a custom field (JSONB), not a schema column.
+- Every field must justify its existence. If fewer than 80% of properties use a field, it must be a custom field (JSONB), not a schema column.
 - Optional fields default to `null`, not empty strings or placeholder values.
 - File uploads are scanned for embedded metadata (EXIF data from photos, author info from PDFs) and stripped of non-essential metadata before storage.
 - Analytics dashboards use anonymized, aggregated data -- never raw PII.
@@ -2182,6 +2214,94 @@ FailoverEvent
 ├── created_at (timestamp with timezone, auto-set)
 └── updated_at (timestamp with timezone, auto-set)
 ```
+
+### 13.10 Capacity Management (SOC 2 A1.1, ISO 27017 CLD.12.1.3)
+
+**Purpose**: SOC 2 Trust Services Criteria A1.1 requires that the entity maintains, monitors, and evaluates current processing capacity and usage to meet business objectives. ISO 27017 CLD.12.1.3 requires capacity management for cloud services.
+
+#### 13.10.1 Auto-Scaling Thresholds
+
+| Resource                   | Scale-Up Trigger                                              | Scale-Down Trigger                       | Maximum Scale           | Cooldown Period |
+| -------------------------- | ------------------------------------------------------------- | ---------------------------------------- | ----------------------- | --------------- |
+| **API servers**            | CPU > 70% for 3 minutes, or request queue > 100               | CPU < 30% for 10 minutes                 | 20 instances            | 5 minutes       |
+| **Background workers**     | Queue depth > 500 jobs, or oldest job > 5 minutes             | Queue depth < 50 for 10 minutes          | 10 instances            | 5 minutes       |
+| **Database read replicas** | Connection count > 80% of max, or replication lag > 5 seconds | Connection count < 30% for 15 minutes    | 5 replicas              | 10 minutes      |
+| **Search index**           | Query latency P99 > 500ms                                     | Query latency P99 < 100ms for 30 minutes | 3 nodes                 | 15 minutes      |
+| **File storage (CDN)**     | Automatic (cloud-managed)                                     | Automatic                                | Unlimited (usage-based) | N/A             |
+
+#### 13.10.2 Capacity Alerts
+
+| Alert                                   | Threshold                                      | Recipients                    | Channels             |
+| --------------------------------------- | ---------------------------------------------- | ----------------------------- | -------------------- |
+| **Database storage approaching limit**  | > 80% of provisioned storage                   | Super Admin, Security Officer | Email + SMS          |
+| **File storage cost anomaly**           | > 150% of 30-day average daily cost            | Super Admin                   | Email                |
+| **API server sustained high load**      | CPU > 85% for 15 minutes despite auto-scaling  | Super Admin, Security Officer | Email + SMS + in-app |
+| **Database connection pool exhaustion** | > 90% of max connections for 5 minutes         | Super Admin                   | Email + SMS          |
+| **Background job backlog**              | Queue depth > 2,000 or oldest job > 30 minutes | Super Admin                   | Email + in-app       |
+| **Search index degradation**            | Query latency P99 > 2 seconds                  | Super Admin                   | Email                |
+| **Backup storage growth**               | Monthly growth > 50% of previous month         | Super Admin                   | Email                |
+
+#### 13.10.3 Capacity Planning
+
+| Activity                        | Frequency                 | Owner                 | Output                                                                          |
+| ------------------------------- | ------------------------- | --------------------- | ------------------------------------------------------------------------------- |
+| **Resource utilization review** | Monthly                   | DevOps team           | Capacity report with utilization trends and projections                         |
+| **Growth projection**           | Quarterly                 | DevOps team + Product | Estimated resource needs for next quarter based on property onboarding pipeline |
+| **Cost optimization review**    | Quarterly                 | Super Admin + DevOps  | Identify over-provisioned resources and right-sizing opportunities              |
+| **Load testing**                | Before each major release | QA team               | Verify system handles 2x current peak load without degradation                  |
+
+#### 13.10.4 Capacity Dashboard
+
+Displayed on Super Admin > System Health (PRD 16, Section 3.11):
+
+| Widget                   | Content                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
+| **Resource Utilization** | Bar charts showing CPU, memory, storage, connections as percentage of capacity for each component |
+| **Cost Trend**           | Line chart of daily infrastructure cost over last 90 days                                         |
+| **Scaling Events**       | Timeline of auto-scale events (up and down) in last 30 days                                       |
+| **Projected Capacity**   | AI-generated forecast of when current capacity limits will be reached based on growth trends      |
+
+### 13.11 KMS Audit Log Forwarding (All Encryption Frameworks)
+
+**Purpose**: Every key access (encrypt/decrypt operation) must be logged and forwarded to the compliance dashboard for monitoring. This satisfies SOC 2 CC6.1 (logical access), ISO 27001 A.10.1 (cryptographic controls), and ISO 27017 CLD.10.1.1 (key management for cloud services).
+
+#### 13.11.1 KMS Events to Capture
+
+| Event Type            | Description                                               | Logged Fields                                                                     |
+| --------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `kms.encrypt`         | A field was encrypted using a property DEK                | timestamp, property_id, user_id, field_name, key_id                               |
+| `kms.decrypt`         | A field was decrypted for display                         | timestamp, property_id, user_id, field_name, key_id, access_reason                |
+| `kms.key_create`      | A new DEK was generated for a property                    | timestamp, property_id, key_id, created_by                                        |
+| `kms.key_rotate`      | A DEK was rotated (new key activated)                     | timestamp, property_id, old_key_id, new_key_id, initiated_by                      |
+| `kms.key_retire`      | An old DEK was retired after re-encryption completed      | timestamp, property_id, key_id, retired_by                                        |
+| `kms.key_destroy`     | A key was permanently destroyed (property termination)    | timestamp, property_id, key_id, destroyed_by, authorization_reference             |
+| `kms.reencrypt_batch` | Background re-encryption job processed a batch of records | timestamp, property_id, old_key_id, new_key_id, records_processed, records_failed |
+
+#### 13.11.2 Log Forwarding Pipeline
+
+```
+KMS Event → Application Event Bus → Two Destinations:
+  1. Compliance Dashboard (PRD 28, Section 4.7 Infrastructure Changes panel)
+  2. Long-term audit storage (encrypted, append-only, tamper-evident)
+```
+
+#### 13.11.3 Retention
+
+| Log Type                   | Retention Period                      | Storage Tier                                                 | Justification                                                          |
+| -------------------------- | ------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| KMS encrypt/decrypt events | 1 year (hot), 10 years (cold archive) | Hot: database table. Cold: compressed, encrypted S3 archive. | SOC 2 audit trail requirements. ISO 27001 A.10.1 control evidence.     |
+| KMS key lifecycle events   | 10 years (all hot)                    | Database table with tamper-evident checksums                 | Key lifecycle must be fully traceable for entire data retention period |
+
+#### 13.11.4 Anomaly Detection on KMS Events
+
+The compliance monitoring system (PRD 28, Section 5.1) includes a real-time check for unusual KMS access patterns:
+
+| Anomaly                    | Detection Logic                                                               | Alert Level                                         |
+| -------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------- |
+| **Bulk decryption**        | > 100 decrypt operations by a single user in 10 minutes                       | Critical — potential data exfiltration              |
+| **After-hours key access** | Any key lifecycle event (create/rotate/retire/destroy) outside business hours | High                                                |
+| **Cross-property decrypt** | User decrypts data from a property they do not have an active role in         | Critical — RLS bypass attempt                       |
+| **Failed decrypt spike**   | > 10 failed decrypt attempts in 5 minutes                                     | High — potential key compromise or permission issue |
 
 ---
 
@@ -3995,3 +4115,107 @@ Training properties follow the same flow except: no auto-expiry, training comple
 ---
 
 _This document is referenced by all module PRDs (02 through 19). Changes to this architecture specification must be reviewed for downstream impact._
+
+---
+
+## ADDENDUM: Gap Analysis Fixes (2026-03-17)
+
+> Added from GAP-ANALYSIS-FINAL.md gap 1.1
+
+### A1. Multi-Building Context Switching (Gap 1.1, High)
+
+Platform 1 has a building selector dropdown on every page. Platform 2 has facility-level context. Concierge's multi-tenancy architecture supports multiple buildings per property but the UI mechanism for switching between buildings is not specified.
+
+#### Building Selector Component
+
+| Aspect                         | Specification                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Location**                   | Top bar, left of the search input                                                                                              |
+| **Component**                  | Dropdown select with building name and optional building icon                                                                  |
+| **Default**                    | "All Buildings" (shows aggregated data across all buildings in the property)                                                   |
+| **Options**                    | "All Buildings" + one option per building in the property                                                                      |
+| **Persistence**                | Selected building is stored in user session. Persists across page navigations. Resets on logout.                               |
+| **URL impact**                 | Selected building appends `?building={buildingId}` to all API calls. Does not change the visible URL path.                     |
+| **Data filtering**             | When a specific building is selected, ALL data views (events, packages, units, maintenance, etc.) filter to that building only |
+| **Single-building properties** | For properties with only one building, the selector is hidden                                                                  |
+
+#### Building Selector Behavior
+
+1. On page load, check user's stored building preference
+2. If stored building is valid, apply filter
+3. If stored building is invalid (deleted, user lost access), reset to "All Buildings"
+4. Changing the building selector:
+   - Updates the current page data immediately (no full page reload)
+   - Stores preference in session
+   - Fires a `building-changed` event that all components listen to for reactive updates
+5. The building selector is visible to ALL authenticated roles
+
+#### Multi-Building API Pattern
+
+All list endpoints accept an optional `building_id` query parameter:
+
+- `GET /api/v1/events?building_id=abc` -- events for building abc
+- `GET /api/v1/events` (no building_id) -- events for all buildings in the user's property
+- Response includes `building_name` on each item for display in "All Buildings" mode
+
+---
+
+## APPENDIX D: Cross-Cutting Edge Cases
+
+> These edge cases apply across all modules and are not repeated in individual PRDs. Every module implementation must handle these scenarios.
+
+### D.1 Database Failover
+
+| Scenario                             | Behavior                                                                                                                                                                                                                         |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Primary database becomes unreachable | Application switches to read replica within 5 seconds. All write operations return `503 Service Unavailable` with `Retry-After: 30` header. UI displays banner: "Some features are temporarily read-only. We are working on it." |
+| Read replica lag exceeds 10 seconds  | Dashboard and list views display a warning icon with tooltip: "Data may be up to {lag_seconds} seconds behind."                                                                                                                  |
+| Database connection pool exhausted   | Requests queue for up to 5 seconds, then return 503. Circuit breaker opens after 10 consecutive failures, rejecting immediately for 30 seconds before retrying.                                                                  |
+
+### D.2 Cache Invalidation Race Conditions
+
+| Scenario                                                  | Behavior                                                                                                                                                                                                                    |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User A updates a record while User B has a cached version | User B sees stale data until their next API call or WebSocket push (whichever comes first). WebSocket events include a `version` field; clients discard events with a version older than their local state.                 |
+| Cache write fails after database write succeeds           | The API response returns the fresh data directly from the database. A background job retries cache write 3 times with 1-second delays. If all retries fail, the cache entry is deleted (forcing a cache miss on next read). |
+| Bulk operation invalidates hundreds of cache keys         | Cache invalidation is batched in groups of 50 keys with 100ms delays between batches to prevent cache stampede.                                                                                                             |
+
+### D.3 File Upload Edge Cases
+
+| Scenario                                         | Behavior                                                                                                                                                                                                                |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Upload interrupted mid-transfer                  | Client retries using resumable upload protocol (tus). If the connection is lost for more than 60 seconds, the partial upload is discarded from S3 via lifecycle policy. UI shows: "Upload interrupted. Click to retry." |
+| File passes size validation but virus scan fails | File is quarantined. User sees: "This file was flagged by our security scan and cannot be uploaded. Contact support if you believe this is an error." The file reference is logged for admin review.                    |
+| S3 becomes unavailable                           | File upload buttons display disabled state with tooltip: "File uploads are temporarily unavailable." Existing file URLs served from CloudFront cache continue to work.                                                  |
+
+### D.4 WebSocket Disconnection
+
+| Scenario                              | Behavior                                                                                                                                                                                                                                            |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WebSocket connection drops            | Client attempts reconnection with exponential backoff: 1s, 2s, 4s, 8s, 16s, then every 30s. On reconnect, client sends last received event timestamp; server replays missed events (up to 1,000 events or 1 hour of history, whichever is smaller). |
+| WebSocket server restart (deployment) | Server sends a `server-restart` event 10 seconds before shutdown. Clients immediately reconnect to a new server instance. Missed events during the ~5 second gap are replayed on reconnect.                                                         |
+| Client has many stale tabs open       | Each tab maintains its own WebSocket connection. Server enforces a maximum of 5 concurrent WebSocket connections per user. The 6th connection closes the oldest one with code 4001 and reason "Too many connections."                               |
+
+### D.5 Concurrent Edit Conflicts
+
+| Scenario                                       | Behavior                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Two users edit the same record simultaneously  | Optimistic concurrency control using `version` field. The second save receives `409 Conflict` with the current server version. UI displays: "This record was updated by {user_name} at {time}. Review their changes and try again." with a diff view showing changed fields. |
+| User saves a form referencing a deleted entity | Server returns `422 Unprocessable Entity` with message identifying the deleted reference. The deleted entity is removed from all dropdown menus on the next render.                                                                                                          |
+| Bulk operation partially fails                 | The operation completes for successful items and returns a detailed result: `{succeeded: N, failed: M, errors: [{id, reason}]}`. UI shows a summary with an option to retry only the failed items.                                                                           |
+
+### D.6 Session and Authentication Edge Cases
+
+| Scenario                                   | Behavior                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| JWT expires during a long form fill        | On form submit, the 401 response triggers a silent token refresh using the refresh token. If refresh succeeds, the original request is retried automatically. If refresh fails, the user is redirected to login with their form data preserved in sessionStorage (restored after re-login). |
+| User role changed by admin while logged in | The next API call returns a `X-Role-Changed: true` header. Client displays a banner: "Your permissions have been updated. Refresh to apply changes." Page refreshes automatically after 30 seconds if the user takes no action.                                                             |
+| User deactivated while logged in           | The next API call returns `403 Forbidden` with `reason: "account_deactivated"`. Client immediately clears local storage and redirects to an "Account deactivated" page with a "Contact your property manager" link.                                                                         |
+
+### D.7 Timezone Edge Cases
+
+| Scenario                                              | Behavior                                                                                                                                                                                                                                                                             |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Browser timezone differs from property timezone       | All timestamps stored in UTC. Display uses the **property timezone** for building operations (events, bookings, shift logs) and the **user's local timezone** for personal items (notification preferences, login history). A globe icon next to timestamps indicates property time. |
+| Daylight Saving Time transition                       | Scheduled tasks use IANA timezone identifiers (e.g., `America/Toronto`), not UTC offsets. Amenity bookings during the "lost" hour are rejected: "This time slot does not exist due to Daylight Saving Time. Select a different time."                                                |
+| Event logged at 11:59 PM appears in next day boundary | Reports use the property timezone for date boundaries. An event at 11:59 PM ET on March 10 belongs to the March 10 report, regardless of its UTC timestamp.                                                                                                                          |

@@ -20,60 +20,124 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model Property {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @db.VarChar(200)
-  address   String   @db.VarChar(500)
-  city      String   @db.VarChar(100)
-  province  String   @db.VarChar(100)
-  country   String   @default("CA") @db.VarChar(2)
+  id         String  @id @default(uuid()) @db.Uuid
+  name       String  @db.VarChar(200)
+  address    String  @db.VarChar(500)
+  city       String  @db.VarChar(100)
+  province   String  @db.VarChar(100)
+  country    String  @default("CA") @db.VarChar(2)
   postalCode String  @db.VarChar(20)
-  unitCount Int      @default(0)
-  timezone  String   @default("America/Toronto") @db.VarChar(50)
-  logo      String?  @db.VarChar(500)
-  isActive  Boolean  @default(true)
+  unitCount  Int     @default(0)
+  timezone   String  @default("America/Toronto") @db.VarChar(50)
+  logo       String? @db.VarChar(500)
+  isActive   Boolean @default(true)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   // Business Operations fields
-  type              PropertyType       @default(PRODUCTION)
-  slug              String?            @unique
-  branding          Json?              @db.JsonB
-  subscriptionTier  SubscriptionTier?  @map("subscription_tier")
-  expiresAt         DateTime?          @map("expires_at")
-  parentPropertyId  String?            @map("parent_property_id") @db.Uuid
+  type             PropertyType      @default(PRODUCTION)
+  slug             String?           @unique
+  branding         Json?             @db.JsonB
+  subscriptionTier SubscriptionTier? @map("subscription_tier")
+  expiresAt        DateTime?         @map("expires_at")
+  parentPropertyId String?           @map("parent_property_id") @db.Uuid
 
   // Demo & Training fields (PRD 21)
-  demoTemplateId        String?    @map("demo_template_id") @db.Uuid
-  assignedSalesRepId    String?    @map("assigned_sales_rep_id") @db.Uuid
-  demoLabel             String?    @map("demo_label") @db.VarChar(200)
-  lastAccessedAt        DateTime?  @map("last_accessed_at")
-  prospectName          String?    @map("prospect_name") @db.VarChar(200)
-  prospectLogoUrl       String?    @map("prospect_logo_url") @db.VarChar(500)
-  prospectAccentColor   String?    @map("prospect_accent_color") @db.VarChar(20)
+  demoTemplateId         String?   @map("demo_template_id") @db.Uuid
+  assignedSalesRepId     String?   @map("assigned_sales_rep_id") @db.Uuid
+  demoLabel              String?   @map("demo_label") @db.VarChar(200)
+  lastAccessedAt         DateTime? @map("last_accessed_at")
+  prospectName           String?   @map("prospect_name") @db.VarChar(200)
+  prospectLogoUrl        String?   @map("prospect_logo_url") @db.VarChar(500)
+  prospectAccentColor    String?   @map("prospect_accent_color") @db.VarChar(20)
   notificationSuppressed Boolean   @default(false) @map("notification_suppressed")
-  maxTrainees           Int?       @map("max_trainees")
-  createdFromTemplate   String?    @map("created_from_template") @db.VarChar(100)
+  maxTrainees            Int?      @map("max_trainees")
+  createdFromTemplate    String?   @map("created_from_template") @db.VarChar(100)
 
   // Property Code for login routing (PRD 22)
-  propertyCode          String?    @unique @map("property_code") @db.VarChar(7) // e.g., "MPL-HTS"
+  propertyCode String? @unique @map("property_code") @db.VarChar(7) // e.g., "MPL-HTS"
 
   // Relations
-  parentProperty Property?  @relation("PropertyParent", fields: [parentPropertyId], references: [id])
-  childProperties Property[] @relation("PropertyParent")
-  demoTemplate   DemoTemplate? @relation(fields: [demoTemplateId], references: [id])
-  userProperties UserProperty[]
-  roles          Role[]
-  eventGroups    EventGroup[]
-  eventTypes     EventType[]
-  events         Event[]
-  units          Unit[]
-  announcements  Announcement[]
-  auditEntries   AuditEntry[]
-  subscriptions  Subscription[]
-  demoSessions   DemoSession[]
+  parentProperty   Property?          @relation("PropertyParent", fields: [parentPropertyId], references: [id])
+  childProperties  Property[]         @relation("PropertyParent")
+  demoTemplate     DemoTemplate?      @relation(fields: [demoTemplateId], references: [id])
+  userProperties   UserProperty[]
+  roles            Role[]
+  eventGroups      EventGroup[]
+  eventTypes       EventType[]
+  events           Event[]
+  buildings        Building[]
+  units            Unit[]
+  announcements    Announcement[]
+  auditEntries     AuditEntry[]
+  subscriptions    Subscription[]
+  demoSessions     DemoSession[]
   trainingProgress TrainingProgress[]
+
+  // Core module relations
+  maintenanceRequests     MaintenanceRequest[]
+  maintenanceCategories   MaintenanceCategory[]
+  vendors                 Vendor[]
+  vendorServiceCategories VendorServiceCategory[]
+  equipment               Equipment[]
+  amenities               Amenity[]
+  amenityGroups           AmenityGroup[]
+  bookings                Booking[]
+  packages                Package[]
+  courierTypes            CourierType[]
+  storageSpots            StorageSpot[]
+  parcelCategories        ParcelCategory[]
+
+  // Security module relations
+  visitorEntries  VisitorEntry[]
+  incidentReports IncidentReport[]
+  incidentTypes   IncidentType[]
+  securityShifts  SecurityShift[]
+  keyInventory    KeyInventory[]
+  passOnLogs      PassOnLog[]
+  staffBulletins  StaffBulletin[]
+
+  // Parking module relations
+  parkingAreas      ParkingArea[]
+  parkingPermits    ParkingPermit[]
+  parkingViolations ParkingViolation[]
+  permitTypes       PermitType[]
+
+  // Communication module relations
+  announcementCategories AnnouncementCategory[]
+  announcementTemplates  AnnouncementTemplate[]
+  notificationTemplates  NotificationTemplate[]
+  emergencyBroadcasts    EmergencyBroadcast[]
+
+  // Training/LMS module relations
+  courses       Course[]
+  learningPaths LearningPath[]
+
+  // Community module relations
+  classifiedAds   ClassifiedAd[]
+  ideas           Idea[]
+  communityEvents CommunityEvent[]
+  surveys         Survey[]
+  libraryFolders  LibraryFolder[]
+  forumTopics     ForumTopic[]
+  photoAlbums     PhotoAlbum[]
+
+  // Dashboard & Reports module relations
+  dashboardLayouts     DashboardLayout[]
+  buildingHealthScores BuildingHealthScore[]
+  aiBriefings          AIBriefing[]
+  shiftHandoffs        ShiftHandoff[]
+  reports              Report[]
+  reportSchedules      ReportSchedule[]
+  healthScores         HealthScore[]
+
+  // Settings & Admin module relations
+  propertySettings       PropertySettings?
+  customFieldDefinitions CustomFieldDefinition[]
+  residentGroups         ResidentGroup[]
+  integrationConfigs     IntegrationConfig[]
 
   @@index([type])
   @@index([slug])
@@ -87,18 +151,18 @@ model Property {
 // ---------------------------------------------------------------------------
 
 model User {
-  id             String   @id @default(uuid()) @db.Uuid
-  email          String   @unique @db.VarChar(254)
-  passwordHash   String   @db.VarChar(255)
-  firstName      String   @db.VarChar(100)
-  lastName       String   @db.VarChar(100)
-  phone          String?  @db.VarChar(20)
-  avatarUrl      String?  @db.VarChar(500)
-  mfaEnabled     Boolean  @default(false)
-  mfaSecret      String?  @db.VarChar(500) // Encrypted at application layer
-  isActive       Boolean  @default(true)
-  activatedAt    DateTime?
-  lastLoginAt    DateTime?
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique @db.VarChar(254)
+  passwordHash String    @db.VarChar(255)
+  firstName    String    @db.VarChar(100)
+  lastName     String    @db.VarChar(100)
+  phone        String?   @db.VarChar(20)
+  avatarUrl    String?   @db.VarChar(500)
+  mfaEnabled   Boolean   @default(false)
+  mfaSecret    String?   @db.VarChar(500) // Encrypted at application layer
+  isActive     Boolean   @default(true)
+  activatedAt  DateTime?
+  lastLoginAt  DateTime?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -163,7 +227,7 @@ model Session {
   lastActiveAt      DateTime @default(now())
   expiresAt         DateTime
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   revokedAt DateTime?
 
   user User @relation(fields: [userId], references: [id])
@@ -173,11 +237,11 @@ model Session {
 }
 
 model RefreshToken {
-  id                String   @id @default(uuid()) @db.Uuid
-  userId            String   @db.Uuid
-  tokenHash         String   @unique @db.VarChar(64) // SHA-256 hash
-  deviceFingerprint String   @db.VarChar(64)
-  ipAddress         String   @db.VarChar(45)
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @db.Uuid
+  tokenHash         String    @unique @db.VarChar(64) // SHA-256 hash
+  deviceFingerprint String    @db.VarChar(64)
+  ipAddress         String    @db.VarChar(45)
   expiresAt         DateTime
   rotatedAt         DateTime?
   revokedAt         DateTime?
@@ -208,16 +272,16 @@ model PasswordHistory {
 // ---------------------------------------------------------------------------
 
 model LoginAudit {
-  id          String  @id @default(uuid()) @db.Uuid
-  userId      String? @db.Uuid
-  email       String  @db.VarChar(254)
-  ipAddress   String  @db.VarChar(45)
-  userAgent   String  @db.VarChar(500)
-  geoCity     String? @db.VarChar(100)
-  geoCountry  String? @db.VarChar(2)
-  success     Boolean
-  failReason  String? @db.VarChar(100)
-  sessionId   String? @db.Uuid
+  id         String  @id @default(uuid()) @db.Uuid
+  userId     String? @db.Uuid
+  email      String  @db.VarChar(254)
+  ipAddress  String  @db.VarChar(45)
+  userAgent  String  @db.VarChar(500)
+  geoCity    String? @db.VarChar(100)
+  geoCountry String? @db.VarChar(2)
+  success    Boolean
+  failReason String? @db.VarChar(100)
+  sessionId  String? @db.Uuid
 
   createdAt DateTime @default(now())
 
@@ -230,16 +294,16 @@ model LoginAudit {
 }
 
 model AuditEntry {
-  id           String  @id @default(uuid()) @db.Uuid
-  propertyId   String  @db.Uuid
-  userId       String  @db.Uuid
-  action       String  @db.VarChar(20) // read, create, update, delete
-  resource     String  @db.VarChar(100) // table name
-  resourceId   String  @db.Uuid
-  fields       Json?   // Which fields were accessed/modified
-  ipAddress    String  @db.VarChar(45)
-  userAgent    String? @db.VarChar(500)
-  piiAccessed  Boolean @default(false)
+  id          String  @id @default(uuid()) @db.Uuid
+  propertyId  String  @db.Uuid
+  userId      String  @db.Uuid
+  action      String  @db.VarChar(20) // read, create, update, delete
+  resource    String  @db.VarChar(100) // table name
+  resourceId  String  @db.Uuid
+  fields      Json? // Which fields were accessed/modified
+  ipAddress   String  @db.VarChar(45)
+  userAgent   String? @db.VarChar(500)
+  piiAccessed Boolean @default(false)
 
   createdAt DateTime @default(now())
 
@@ -256,12 +320,12 @@ model AuditEntry {
 // ---------------------------------------------------------------------------
 
 model EventGroup {
-  id          String @id @default(uuid()) @db.Uuid
-  propertyId  String @db.Uuid
-  name        String @db.VarChar(100)
-  slug        String @db.VarChar(100)
+  id          String  @id @default(uuid()) @db.Uuid
+  propertyId  String  @db.Uuid
+  name        String  @db.VarChar(100)
+  slug        String  @db.VarChar(100)
   description String? @db.VarChar(500)
-  sortOrder   Int    @default(0)
+  sortOrder   Int     @default(0)
   isActive    Boolean @default(true)
 
   createdAt DateTime  @default(now())
@@ -276,19 +340,19 @@ model EventGroup {
 }
 
 model EventType {
-  id                String  @id @default(uuid()) @db.Uuid
-  propertyId        String  @db.Uuid
-  eventGroupId      String  @db.Uuid
-  name              String  @db.VarChar(100)
-  slug              String  @db.VarChar(100)
-  icon              String  @default("circle") @db.VarChar(50)
-  color             String  @default("#2563EB") @db.VarChar(7)
-  defaultPriority   String  @default("normal") @db.VarChar(20)
-  notifyOnCreate    Boolean @default(true)
-  notifyOnClose     Boolean @default(false)
-  showOnLobby       Boolean @default(false)
-  customFieldsSchema Json?  // JSON Schema for custom fields
-  isActive          Boolean @default(true)
+  id                 String  @id @default(uuid()) @db.Uuid
+  propertyId         String  @db.Uuid
+  eventGroupId       String  @db.Uuid
+  name               String  @db.VarChar(100)
+  slug               String  @db.VarChar(100)
+  icon               String  @default("circle") @db.VarChar(50)
+  color              String  @default("#2563EB") @db.VarChar(7)
+  defaultPriority    String  @default("normal") @db.VarChar(20)
+  notifyOnCreate     Boolean @default(true)
+  notifyOnClose      Boolean @default(false)
+  showOnLobby        Boolean @default(false)
+  customFieldsSchema Json? // JSON Schema for custom fields
+  isActive           Boolean @default(true)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -303,19 +367,19 @@ model EventType {
 }
 
 model Event {
-  id            String  @id @default(uuid()) @db.Uuid
-  propertyId    String  @db.Uuid
-  eventTypeId   String  @db.Uuid
-  unitId        String? @db.Uuid
-  status        String  @default("open") @db.VarChar(20)
-  priority      String  @default("normal") @db.VarChar(20)
-  title         String  @db.VarChar(200)
-  description   String? @db.Text
-  customFields  Json?   // JSONB for configurable fields
-  createdById   String  @db.Uuid
-  closedById    String? @db.Uuid
-  closedAt      DateTime?
-  referenceNo   String  @db.VarChar(20)
+  id           String    @id @default(uuid()) @db.Uuid
+  propertyId   String    @db.Uuid
+  eventTypeId  String    @db.Uuid
+  unitId       String?   @db.Uuid
+  status       String    @default("open") @db.VarChar(20)
+  priority     String    @default("normal") @db.VarChar(20)
+  title        String    @db.VarChar(200)
+  description  String?   @db.Text
+  customFields Json? // JSONB for configurable fields
+  createdById  String    @db.Uuid
+  closedById   String?   @db.Uuid
+  closedAt     DateTime?
+  referenceNo  String    @db.VarChar(20)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -333,29 +397,118 @@ model Event {
 }
 
 // ---------------------------------------------------------------------------
-// BUILDING: Units
+// BUILDING: Buildings & Units
 // ---------------------------------------------------------------------------
 
-model Unit {
-  id           String  @id @default(uuid()) @db.Uuid
-  propertyId   String  @db.Uuid
-  number       String  @db.VarChar(20)
-  floor        Int?
-  building     String? @db.VarChar(50)
-  unitType     String? @db.VarChar(50)
-  instructions Json?   // Per-unit front desk instructions
-  customFields Json?
+model Building {
+  id          String  @id @default(uuid()) @db.Uuid
+  propertyId  String  @db.Uuid
+  name        String  @db.VarChar(100)
+  address     String? @db.VarChar(500)
+  totalFloors Int     @default(1)
+  totalUnits  Int     @default(0)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  property Property @relation(fields: [propertyId], references: [id])
-  events   Event[]
+  property     Property      @relation(fields: [propertyId], references: [id])
+  units        Unit[]
+  parkingAreas ParkingArea[]
+
+  @@unique([propertyId, name])
+  @@index([propertyId])
+  @@map("buildings")
+}
+
+model Unit {
+  id                       String   @id @default(uuid()) @db.Uuid
+  propertyId               String   @db.Uuid
+  buildingId               String?  @db.Uuid
+  number                   String   @db.VarChar(20)
+  floor                    Int?
+  unitType                 String   @default("residential") @db.VarChar(50) // residential, commercial, storage, parking
+  status                   String   @default("vacant") @db.VarChar(20) // occupied, vacant, under_renovation
+  squareFootage            Decimal? @db.Decimal(10, 2)
+  enterPhoneCode           String?  @db.VarChar(20)
+  parkingSpot              String?  @db.VarChar(20)
+  locker                   String?  @db.VarChar(20)
+  keyTag                   String?  @db.VarChar(50)
+  packageEmailNotification Boolean  @default(true)
+  comments                 String?  @db.Text
+  customFields             Json?    @db.JsonB
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property            Property             @relation(fields: [propertyId], references: [id])
+  building            Building?            @relation(fields: [buildingId], references: [id])
+  events              Event[]
+  unitInstructions    UnitInstruction[]
+  occupancyRecords    OccupancyRecord[]
+  fobs                Fob[]
+  buzzerCodes         BuzzerCode[]
+  garageClickers      GarageClicker[]
+  pets                Pet[]
+  vehicles            Vehicle[]
+  emergencyContacts   EmergencyContact[]
+  maintenanceRequests MaintenanceRequest[]
+  bookings            Booking[]
+  packages            Package[]
+  parkingPermits      ParkingPermit[]
+  parkingSpots        ParkingSpot[]        @relation("AssignedUnit")
+  visitorEntries      VisitorEntry[]
+  authorizedDelegates AuthorizedDelegate[]
 
   @@unique([propertyId, number])
   @@index([propertyId])
+  @@index([buildingId])
+  @@index([propertyId, status])
   @@map("units")
+}
+
+model UnitInstruction {
+  id              String   @id @default(uuid()) @db.Uuid
+  unitId          String   @db.Uuid
+  propertyId      String   @db.Uuid
+  instructionText String   @db.VarChar(1000)
+  priority        String   @default("normal") @db.VarChar(20) // normal, important, critical
+  visibleToRoles  String[] // Role IDs
+  isActive        Boolean  @default(true)
+  createdById     String   @db.Uuid
+  updatedById     String?  @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  @@index([unitId])
+  @@index([propertyId])
+  @@map("unit_instructions")
+}
+
+model OccupancyRecord {
+  id           String    @id @default(uuid()) @db.Uuid
+  unitId       String    @db.Uuid
+  userId       String    @db.Uuid
+  propertyId   String    @db.Uuid
+  residentType String    @db.VarChar(50) // owner, tenant, offsite_owner, family_member
+  moveInDate   DateTime  @db.Date
+  moveOutDate  DateTime? @db.Date
+  isPrimary    Boolean   @default(false)
+  notes        String?   @db.VarChar(500)
+  recordedById String    @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  @@index([unitId])
+  @@index([propertyId, moveOutDate])
+  @@map("occupancy_records")
 }
 
 // ---------------------------------------------------------------------------
@@ -363,15 +516,1369 @@ model Unit {
 // ---------------------------------------------------------------------------
 
 model Announcement {
-  id          String   @id @default(uuid()) @db.Uuid
-  propertyId  String   @db.Uuid
-  title       String   @db.VarChar(200)
-  content     String   @db.Text
-  priority    String   @default("normal") @db.VarChar(20)
-  channels    Json     @default("[\"web\"]") // ["web", "email", "sms", "push"]
-  publishedAt DateTime?
-  expiresAt   DateTime?
-  createdById String   @db.Uuid
+  id                    String    @id @default(uuid()) @db.Uuid
+  propertyId            String    @db.Uuid
+  title                 String    @db.VarChar(200)
+  content               String    @db.Text
+  contentPlaintext      String?   @db.Text // auto-generated stripped HTML
+  categoryId            String?   @db.Uuid
+  tags                  String[]
+  priority              String    @default("normal") @db.VarChar(20) // low, normal, high, urgent
+  status                String    @default("draft") @db.VarChar(20) // draft, scheduled, published, expired, rejected
+  audience              Json?     @db.JsonB // targeting criteria
+  channels              Json      @default("[\"web\"]") // ["web", "email", "sms", "push", "voice", "lobby_display"]
+  isPinned              Boolean   @default(false)
+  pinnedAt              DateTime?
+  pinnedById            String?   @db.Uuid
+  isEmergency           Boolean   @default(false)
+  requireAcknowledgment Boolean   @default(false)
+  publishedAt           DateTime?
+  scheduledAt           DateTime?
+  expiresAt             DateTime?
+  createdById           String    @db.Uuid
+  approvedById          String?   @db.Uuid
+  approvedAt            DateTime?
+  rejectedById          String?   @db.Uuid
+  rejectedAt            DateTime?
+  rejectionReason       String?   @db.VarChar(500)
+  aiMetadata            Json?     @db.JsonB
+  engagementSummary     Json?     @db.JsonB
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property   Property               @relation(fields: [propertyId], references: [id])
+  category   AnnouncementCategory?  @relation("CategoryAnnouncements", fields: [categoryId], references: [id])
+  deliveries AnnouncementDelivery[]
+
+  @@index([propertyId, publishedAt])
+  @@index([propertyId, status])
+  @@map("announcements")
+}
+
+// ---------------------------------------------------------------------------
+// SECURITY CONSOLE: Visitor, Package, Incident, Shift, Key Management
+// ---------------------------------------------------------------------------
+
+model VisitorEntry {
+  id                  String    @id @default(uuid()) @db.Uuid
+  eventId             String?   @unique @db.Uuid
+  propertyId          String    @db.Uuid
+  unitId              String    @db.Uuid
+  visitorName         String    @db.VarChar(100)
+  visitorType         String    @default("visitor") @db.VarChar(30) // visitor, contractor, delivery_person, real_estate_agent, emergency_service, other
+  arrivalAt           DateTime  @default(now())
+  departureAt         DateTime?
+  expectedDepartureAt DateTime?
+  signedOutById       String?   @db.Uuid
+  notifyResident      Boolean   @default(true)
+  photoUrl            String?   @db.VarChar(500)
+  comments            String?   @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property             Property              @relation(fields: [propertyId], references: [id])
+  unit                 Unit                  @relation(fields: [unitId], references: [id])
+  visitorParkingPermit VisitorParkingPermit?
+
+  @@index([propertyId, arrivalAt])
+  @@index([unitId])
+  @@map("visitor_entries")
+}
+
+model VisitorParkingPermit {
+  id               String   @id @default(uuid()) @db.Uuid
+  visitorEntryId   String   @unique @db.Uuid
+  propertyId       String   @db.Uuid
+  vehicleMakeModel String   @db.VarChar(100)
+  licensePlate     String   @db.VarChar(20)
+  provinceState    String   @db.VarChar(50)
+  vehicleColor     String?  @db.VarChar(30)
+  parkingArea      String?  @db.VarChar(100)
+  permitStart      DateTime
+  permitEnd        DateTime
+  status           String   @default("active") @db.VarChar(20) // active, expired, cancelled
+  printed          Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  visitorEntry VisitorEntry @relation(fields: [visitorEntryId], references: [id])
+
+  @@index([licensePlate])
+  @@index([propertyId, status, permitEnd])
+  @@map("visitor_parking_permits")
+}
+
+model CourierType {
+  id         String  @id @default(uuid()) @db.Uuid
+  propertyId String? @db.Uuid // null = system default
+  name       String  @db.VarChar(50)
+  slug       String  @db.VarChar(50)
+  iconUrl    String  @db.VarChar(500)
+  color      String? @db.VarChar(7)
+  sortOrder  Int     @default(0)
+  isActive   Boolean @default(true)
+  isSystem   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property? @relation(fields: [propertyId], references: [id])
+  packages Package[]
+
+  @@map("courier_types")
+}
+
+model Package {
+  id                   String    @id @default(uuid()) @db.Uuid
+  propertyId           String    @db.Uuid
+  unitId               String    @db.Uuid
+  residentId           String?   @db.Uuid
+  referenceNumber      String    @db.VarChar(20)
+  direction            String    @default("incoming") @db.VarChar(10) // incoming, outgoing
+  status               String    @default("unreleased") @db.VarChar(20) // unreleased, released, returned, disposed
+  courierId            String?   @db.Uuid
+  courierOtherName     String?   @db.VarChar(100)
+  trackingNumber       String?   @db.VarChar(100)
+  parcelCategoryId     String?   @db.Uuid
+  description          String?   @db.VarChar(500)
+  storageSpotId        String?   @db.Uuid
+  isPerishable         Boolean   @default(false)
+  isOversized          Boolean   @default(false)
+  notifyChannel        String    @default("default") @db.VarChar(10) // default, email, sms, push, voice, all, none
+  createdById          String    @db.Uuid
+  releasedToName       String?   @db.VarChar(200)
+  releasedById         String?   @db.Uuid
+  releasedAt           DateTime?
+  idVerified           Boolean   @default(false)
+  releaseComments      String?   @db.VarChar(500)
+  isAuthorizedDelegate Boolean   @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property       Property           @relation(fields: [propertyId], references: [id])
+  unit           Unit               @relation(fields: [unitId], references: [id])
+  courier        CourierType?       @relation(fields: [courierId], references: [id])
+  parcelCategory ParcelCategory?    @relation(fields: [parcelCategoryId], references: [id])
+  storageSpot    StorageSpot?       @relation(fields: [storageSpotId], references: [id])
+  photos         PackagePhoto[]
+  signatures     PackageSignature[]
+  history        PackageHistory[]
+
+  @@index([propertyId, status])
+  @@index([unitId, status])
+  @@index([propertyId, referenceNumber])
+  @@index([trackingNumber])
+  @@index([propertyId, createdAt])
+  @@index([propertyId, releasedAt])
+  @@index([propertyId, isPerishable, status])
+  @@map("packages")
+}
+
+model PackagePhoto {
+  id            String   @id @default(uuid()) @db.Uuid
+  packageId     String   @db.Uuid
+  photoType     String   @db.VarChar(20) // intake, release, damage
+  fileUrl       String   @db.VarChar(500)
+  fileSizeBytes Int
+  uploadedById  String   @db.Uuid
+  uploadedAt    DateTime @default(now())
+
+  package Package @relation(fields: [packageId], references: [id])
+
+  @@index([packageId])
+  @@map("package_photos")
+}
+
+model PackageSignature {
+  id            String   @id @default(uuid()) @db.Uuid
+  packageId     String   @db.Uuid
+  signatureData Bytes
+  signedByName  String   @db.VarChar(200)
+  capturedAt    DateTime @default(now())
+  capturedById  String   @db.Uuid
+
+  package Package @relation(fields: [packageId], references: [id])
+
+  @@index([packageId])
+  @@map("package_signatures")
+}
+
+model PackageHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  packageId String   @db.Uuid
+  action    String   @db.VarChar(30) // created, notification_sent, reminder_sent, released, edited, deleted, escalated, returned, disposed, call_logged, storage_relocated
+  actorId   String   @db.Uuid
+  actorName String   @db.VarChar(200)
+  details   String?  @db.Text
+  channel   String?  @db.VarChar(20)
+  createdAt DateTime @default(now())
+
+  package Package @relation(fields: [packageId], references: [id])
+
+  @@index([packageId])
+  @@map("package_history")
+}
+
+model ParcelCategory {
+  id         String  @id @default(uuid()) @db.Uuid
+  propertyId String  @db.Uuid
+  name       String  @db.VarChar(100)
+  sortOrder  Int     @default(0)
+  isActive   Boolean @default(true)
+
+  property Property  @relation(fields: [propertyId], references: [id])
+  packages Package[]
+
+  @@index([propertyId])
+  @@map("parcel_categories")
+}
+
+model StorageSpot {
+  id             String  @id @default(uuid()) @db.Uuid
+  propertyId     String  @db.Uuid
+  name           String  @db.VarChar(100)
+  code           String  @db.VarChar(10)
+  capacity       Int     @default(0) // 0 = unlimited
+  isRefrigerated Boolean @default(false)
+  sortOrder      Int     @default(0)
+  isActive       Boolean @default(true)
+
+  property Property  @relation(fields: [propertyId], references: [id])
+  packages Package[]
+
+  @@index([propertyId])
+  @@map("storage_spots")
+}
+
+model AuthorizedDelegate {
+  id            String    @id @default(uuid()) @db.Uuid
+  unitId        String    @db.Uuid
+  delegateName  String    @db.VarChar(100)
+  delegatePhone String?   @db.VarChar(20)
+  relationship  String?   @db.VarChar(50)
+  validFrom     DateTime? @db.Date
+  validUntil    DateTime? @db.Date
+  isActive      Boolean   @default(true)
+  createdById   String    @db.Uuid
+  createdAt     DateTime  @default(now())
+
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  @@index([unitId])
+  @@map("authorized_delegates")
+}
+
+model IncidentReport {
+  id                 String    @id @default(uuid()) @db.Uuid
+  eventId            String?   @unique @db.Uuid
+  propertyId         String    @db.Uuid
+  unitId             String?   @db.Uuid
+  incidentTypeId     String    @db.Uuid
+  title              String    @db.VarChar(200)
+  reportBody         String    @db.Text
+  timeOccurred       DateTime
+  urgency            Boolean   @default(false)
+  reportedBy         String?   @db.VarChar(100)
+  suspectDescription String?   @db.VarChar(200)
+  emergencyServices  Json?     @db.JsonB // {police, fire, ambulance, client, supervisor}
+  linkedIncidentIds  String[]  @db.Uuid
+  resolutionSummary  String?   @db.VarChar(2000)
+  resolvedAt         DateTime?
+  resolvedById       String?   @db.Uuid
+  escalatedAt        DateTime?
+  escalatedToId      String?   @db.Uuid
+  escalationReason   String?   @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property     Property         @relation(fields: [propertyId], references: [id])
+  incidentType IncidentType     @relation(fields: [incidentTypeId], references: [id])
+  updates      IncidentUpdate[]
+
+  @@index([propertyId, timeOccurred])
+  @@index([incidentTypeId])
+  @@index([propertyId, urgency])
+  @@map("incident_reports")
+}
+
+model IncidentType {
+  id                        String  @id @default(uuid()) @db.Uuid
+  propertyId                String? @db.Uuid // null = system default
+  name                      String  @db.VarChar(100)
+  slug                      String  @db.VarChar(50)
+  defaultPriority           String  @default("normal") @db.VarChar(20)
+  requiresEmergencyServices Boolean @default(false)
+  autoEscalate              Boolean @default(false)
+  sortOrder                 Int     @default(0)
+  isActive                  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property        Property?        @relation(fields: [propertyId], references: [id])
+  incidentReports IncidentReport[]
+
+  @@map("incident_types")
+}
+
+model IncidentUpdate {
+  id               String   @id @default(uuid()) @db.Uuid
+  incidentReportId String   @db.Uuid
+  updateText       String   @db.VarChar(2000)
+  statusChange     String?  @db.VarChar(20)
+  attachments      Json?    @db.JsonB // [{filename, url, type, size}]
+  createdById      String   @db.Uuid
+  createdAt        DateTime @default(now())
+
+  incidentReport IncidentReport @relation(fields: [incidentReportId], references: [id])
+
+  @@index([incidentReportId, createdAt])
+  @@map("incident_updates")
+}
+
+model SecurityShift {
+  id                String    @id @default(uuid()) @db.Uuid
+  eventId           String?   @unique @db.Uuid
+  propertyId        String    @db.Uuid
+  guardId           String    @db.Uuid
+  startTime         DateTime
+  endTime           DateTime
+  actualEndTime     DateTime?
+  relievedGuardId   String?   @db.Uuid
+  relievingGuardId  String?   @db.Uuid
+  equipmentReceived String?   @db.VarChar(500)
+  equipmentReturned String?   @db.VarChar(500)
+  openingNotes      String?   @db.VarChar(2000)
+  closingNotes      String?   @db.VarChar(2000)
+  aiSummary         String?   @db.VarChar(2000)
+  status            String    @default("active") @db.VarChar(20) // active, completed, abandoned
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property   Property        @relation(fields: [propertyId], references: [id])
+  logEntries ShiftLogEntry[]
+
+  @@index([propertyId, guardId, startTime])
+  @@map("security_shifts")
+}
+
+model ShiftLogEntry {
+  id            String   @id @default(uuid()) @db.Uuid
+  shiftId       String   @db.Uuid
+  entryTime     DateTime
+  category      String   @db.VarChar(30) // general, patrol_round, building_check, resident_interaction, contractor_visit, alarm_response, other
+  entryText     String   @db.VarChar(2000)
+  attachmentUrl String?  @db.VarChar(500)
+  createdById   String   @db.Uuid
+  createdAt     DateTime @default(now())
+
+  shift SecurityShift @relation(fields: [shiftId], references: [id])
+
+  @@index([shiftId, entryTime])
+  @@map("shift_log_entries")
+}
+
+model KeyInventory {
+  id                 String    @id @default(uuid()) @db.Uuid
+  propertyId         String    @db.Uuid
+  keyName            String    @db.VarChar(50)
+  keyNumber          String?   @db.VarChar(20)
+  keyOwner           String?   @db.VarChar(100) // permanent assignee
+  category           String    @db.VarChar(20) // master, unit, common_area, vehicle, equipment, other
+  status             String    @default("available") @db.VarChar(20) // available, checked_out, lost, decommissioned
+  notes              String?   @db.VarChar(200)
+  decommissionReason String?   @db.VarChar(200)
+  decommissionedAt   DateTime?
+  createdById        String    @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property  Property      @relation(fields: [propertyId], references: [id])
+  checkouts KeyCheckout[]
+
+  @@index([propertyId, status])
+  @@map("key_inventory")
+}
+
+model KeyCheckout {
+  id             String    @id @default(uuid()) @db.Uuid
+  eventId        String?   @unique @db.Uuid
+  propertyId     String    @db.Uuid
+  keyId          String    @db.Uuid
+  checkedOutTo   String    @db.VarChar(100)
+  company        String?   @db.VarChar(100)
+  idType         String    @db.VarChar(50)
+  idNumber       String?   @db.VarChar(30)
+  reason         String    @db.VarChar(500)
+  checkoutTime   DateTime
+  expectedReturn DateTime?
+  returnTime     DateTime?
+  returnedToId   String?   @db.Uuid
+  conditionNotes String?   @db.VarChar(200)
+  signatureUrl   String?   @db.VarChar(500)
+  checkedOutById String    @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  key KeyInventory @relation(fields: [keyId], references: [id])
+
+  @@index([propertyId])
+  @@index([keyId])
+  @@map("key_checkouts")
+}
+
+model PassOnLog {
+  id             String    @id @default(uuid()) @db.Uuid
+  eventId        String?   @unique @db.Uuid
+  propertyId     String    @db.Uuid
+  subject        String    @db.VarChar(200)
+  priority       String    @default("normal") @db.VarChar(20) // low, normal, high, urgent
+  details        String    @db.Text
+  expiresAt      DateTime?
+  notifyUserIds  String[]  @db.Uuid
+  attachments    Json?     @db.JsonB
+  acknowledgedBy Json?     @db.JsonB // [{user_id, acknowledged_at}]
+  createdById    String    @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, createdAt])
+  @@map("pass_on_logs")
+}
+
+model StaffBulletin {
+  id           String    @id @default(uuid()) @db.Uuid
+  eventId      String?   @unique @db.Uuid
+  propertyId   String    @db.Uuid
+  title        String    @db.VarChar(200)
+  details      String    @db.Text
+  priority     String    @default("normal") @db.VarChar(20) // low, normal, high
+  expiresAt    DateTime?
+  neverExpires Boolean   @default(false)
+  attachments  Json?     @db.JsonB
+  createdById  String    @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@map("staff_bulletins")
+}
+
+// ---------------------------------------------------------------------------
+// MAINTENANCE: Requests, Categories, Vendors, Equipment
+// ---------------------------------------------------------------------------
+
+model MaintenanceRequest {
+  id                 String    @id @default(uuid()) @db.Uuid
+  propertyId         String    @db.Uuid
+  unitId             String?   @db.Uuid
+  residentId         String    @db.Uuid
+  correlatedEventId  String?   @db.Uuid
+  referenceNumber    String    @db.VarChar(20) // SR-YYYY-NNNNN
+  categoryId         String    @db.Uuid
+  subCategory        String?   @db.VarChar(100)
+  title              String    @db.VarChar(200)
+  description        String    @db.Text
+  status             String    @default("open") @db.VarChar(20) // open, in_progress, on_hold, closed
+  priority           String    @default("normal") @db.VarChar(20) // low, normal, high, critical
+  urgencyFlag        Boolean   @default(false)
+  permissionToEnter  String    @default("not_applicable") @db.VarChar(20) // yes, no, not_applicable
+  entryInstructions  String?   @db.VarChar(1000)
+  assignedEmployeeId String?   @db.Uuid
+  assignedVendorId   String?   @db.Uuid
+  equipmentId        String?   @db.Uuid
+  contactNumbers     String?   @db.VarChar(100)
+  internalNotes      String?   @db.VarChar(2000)
+  printWorkOrder     Boolean   @default(false)
+  dateReported       DateTime? @db.Date
+  hideFromResident   Boolean   @default(false)
+  areaDescription    String?   @db.VarChar(200)
+  source             String    @default("resident") @db.VarChar(10) // resident, staff
+  scheduledDate      DateTime? @db.Date
+  completedDate      DateTime? @db.Date
+  resolutionNotes    String?   @db.VarChar(2000)
+  aiMetadata         Json?     @db.JsonB
+  customFields       Json?     @db.JsonB
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property      Property                  @relation(fields: [propertyId], references: [id])
+  unit          Unit?                     @relation(fields: [unitId], references: [id])
+  category      MaintenanceCategory       @relation(fields: [categoryId], references: [id])
+  vendor        Vendor?                   @relation(fields: [assignedVendorId], references: [id])
+  equipment     Equipment?                @relation(fields: [equipmentId], references: [id])
+  comments      MaintenanceComment[]
+  statusChanges MaintenanceStatusChange[]
+  attachments   Attachment[]
+
+  @@index([propertyId, status])
+  @@index([propertyId, priority])
+  @@index([unitId])
+  @@index([assignedEmployeeId])
+  @@index([assignedVendorId])
+  @@index([propertyId, referenceNumber])
+  @@index([propertyId, createdAt])
+  @@map("maintenance_requests")
+}
+
+model MaintenanceCategory {
+  id                String   @id @default(uuid()) @db.Uuid
+  propertyId        String   @db.Uuid
+  name              String   @db.VarChar(100)
+  icon              String?  @db.VarChar(50)
+  color             String?  @db.VarChar(7)
+  subCategories     String[]
+  defaultPriority   String?  @db.VarChar(20)
+  defaultAssigneeId String?  @db.Uuid
+  sortOrder         Int      @default(0)
+  isActive          Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property            Property             @relation(fields: [propertyId], references: [id])
+  maintenanceRequests MaintenanceRequest[]
+  recurringTasks      RecurringTask[]
+
+  @@index([propertyId])
+  @@map("maintenance_categories")
+}
+
+model MaintenanceComment {
+  id                String   @id @default(uuid()) @db.Uuid
+  requestId         String   @db.Uuid
+  authorId          String   @db.Uuid
+  body              String   @db.VarChar(2000)
+  visibleToResident Boolean  @default(true)
+  isFromTemplate    Boolean  @default(false)
+  templateId        String?  @db.Uuid
+  createdAt         DateTime @default(now())
+
+  request MaintenanceRequest @relation(fields: [requestId], references: [id])
+
+  @@index([requestId])
+  @@map("maintenance_comments")
+}
+
+model MaintenanceStatusChange {
+  id               String   @id @default(uuid()) @db.Uuid
+  requestId        String   @db.Uuid
+  changedById      String   @db.Uuid
+  fromStatus       String   @db.VarChar(20)
+  toStatus         String   @db.VarChar(20)
+  reason           String?  @db.VarChar(500)
+  resolutionNotes  String?  @db.VarChar(2000)
+  notificationSent Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  request MaintenanceRequest @relation(fields: [requestId], references: [id])
+
+  @@index([requestId])
+  @@map("maintenance_status_changes")
+}
+
+model ResponseTemplate {
+  id                 String   @id @default(uuid()) @db.Uuid
+  propertyId         String   @db.Uuid
+  name               String   @db.VarChar(100)
+  body               String   @db.VarChar(2000)
+  applicableStatuses String[]
+  isActive           Boolean  @default(true)
+  usageCount         Int      @default(0)
+  createdById        String   @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([propertyId, name])
+  @@map("response_templates")
+}
+
+model Vendor {
+  id                String   @id @default(uuid()) @db.Uuid
+  propertyId        String   @db.Uuid
+  companyName       String   @db.VarChar(200)
+  serviceCategoryId String   @db.Uuid
+  contactName       String?  @db.VarChar(200)
+  phone             String?  @db.VarChar(50)
+  email             String?  @db.VarChar(200)
+  streetAddress     String?  @db.VarChar(300)
+  city              String?  @db.VarChar(100)
+  stateProvince     String?  @db.VarChar(100)
+  postalCode        String?  @db.VarChar(20)
+  rating            Decimal? @db.Decimal(2, 1) // 1.0-5.0
+  complianceStatus  String   @default("not_tracking") @db.VarChar(20) // compliant, expiring, expired, not_compliant, not_tracking
+  isActive          Boolean  @default(true)
+  notes             String?  @db.VarChar(2000)
+  createdById       String   @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property            Property              @relation(fields: [propertyId], references: [id])
+  serviceCategory     VendorServiceCategory @relation(fields: [serviceCategoryId], references: [id])
+  maintenanceRequests MaintenanceRequest[]
+  documents           VendorDocument[]
+
+  @@index([propertyId])
+  @@map("vendors")
+}
+
+model VendorServiceCategory {
+  id         String  @id @default(uuid()) @db.Uuid
+  propertyId String  @db.Uuid
+  name       String  @db.VarChar(100)
+  sortOrder  Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+  vendors  Vendor[]
+
+  @@index([propertyId])
+  @@map("vendor_service_categories")
+}
+
+model VendorDocument {
+  id           String    @id @default(uuid()) @db.Uuid
+  vendorId     String    @db.Uuid
+  documentType String    @db.VarChar(50) // insurance, license, wsib, certification, other
+  fileName     String    @db.VarChar(255)
+  fileUrl      String    @db.VarChar(500)
+  expiresAt    DateTime?
+  uploadedById String    @db.Uuid
+  createdAt    DateTime  @default(now())
+
+  vendor Vendor @relation(fields: [vendorId], references: [id])
+
+  @@index([vendorId])
+  @@map("vendor_documents")
+}
+
+model Equipment {
+  id              String    @id @default(uuid()) @db.Uuid
+  propertyId      String    @db.Uuid
+  name            String    @db.VarChar(200)
+  categoryId      String?   @db.Uuid
+  serialNumber    String?   @db.VarChar(100)
+  manufacturer    String?   @db.VarChar(100)
+  modelNumber     String?   @db.VarChar(100)
+  status          String    @default("operational") @db.VarChar(20) // operational, needs_repair, out_of_service, decommissioned
+  location        String?   @db.VarChar(200)
+  purchaseDate    DateTime? @db.Date
+  warrantyExpiry  DateTime? @db.Date
+  lastServiceDate DateTime? @db.Date
+  nextServiceDate DateTime? @db.Date
+  notes           String?   @db.VarChar(2000)
+  customFields    Json?     @db.JsonB
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property            Property             @relation(fields: [propertyId], references: [id])
+  maintenanceRequests MaintenanceRequest[]
+  recurringTasks      RecurringTask[]
+
+  @@index([propertyId])
+  @@index([propertyId, status])
+  @@map("equipment")
+}
+
+model RecurringTask {
+  id                 String    @id @default(uuid()) @db.Uuid
+  propertyId         String    @db.Uuid
+  name               String    @db.VarChar(200)
+  taskType           String    @default("standalone") @db.VarChar(20) // standalone, inspection_linked
+  description        String?   @db.VarChar(2000)
+  categoryId         String    @db.Uuid
+  unitId             String?   @db.Uuid
+  areaDescription    String?   @db.VarChar(200)
+  assignedEmployeeId String?   @db.Uuid
+  equipmentId        String?   @db.Uuid
+  intervalType       String    @db.VarChar(20) // daily, weekly, biweekly, monthly, quarterly, semiannually, annually, custom
+  customIntervalDays Int?
+  startDate          DateTime  @db.Date
+  endDate            DateTime? @db.Date
+  nextOccurrence     DateTime? @db.Date
+  autoCreateRequest  Boolean   @default(true)
+  defaultPriority    String    @default("normal") @db.VarChar(20)
+  isActive           Boolean   @default(true)
+  lastGeneratedAt    DateTime?
+  createdById        String    @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category  MaintenanceCategory @relation(fields: [categoryId], references: [id])
+  equipment Equipment?          @relation(fields: [equipmentId], references: [id])
+
+  @@index([propertyId])
+  @@index([isActive, nextOccurrence])
+  @@map("recurring_tasks")
+}
+
+// ---------------------------------------------------------------------------
+// AMENITY BOOKING
+// ---------------------------------------------------------------------------
+
+model AmenityGroup {
+  id           String  @id @default(uuid()) @db.Uuid
+  propertyId   String? @db.Uuid // null = system default
+  name         String  @db.VarChar(100)
+  displayOrder Int     @default(0)
+  icon         String? @db.VarChar(100)
+  isActive     Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property  Property? @relation(fields: [propertyId], references: [id])
+  amenities Amenity[]
+
+  @@map("amenity_groups")
+}
+
+model Amenity {
+  id                     String   @id @default(uuid()) @db.Uuid
+  propertyId             String   @db.Uuid
+  name                   String   @db.VarChar(100)
+  description            String?  @db.VarChar(2000)
+  groupId                String   @db.Uuid
+  displayOrder           Int      @default(0)
+  isActive               Boolean  @default(true)
+  color                  String   @db.VarChar(7) // hex
+  icon                   String?  @db.VarChar(100)
+  bookingStyle           String   @default("fixed_slots") @db.VarChar(20) // fixed_slots, flexible_range, full_day
+  operatingHours         Json?    @db.JsonB // per-day schedule
+  slotDurationMinutes    Int?
+  minBookingMinutes      Int?
+  maxBookingMinutes      Int?
+  timeIncrementMinutes   Int?
+  allowMultiDay          Boolean  @default(false)
+  bufferMinutes          Int      @default(0)
+  maxConcurrent          Int      @default(1)
+  advanceMinHours        Int      @default(0)
+  advanceMaxDays         Int      @default(90)
+  maxPerUnitWeek         Int      @default(0) // 0 = unlimited
+  maxPerUnitMonth        Int      @default(0) // 0 = unlimited
+  maxGuests              Int      @default(0) // 0 = unlimited
+  guestSecurityThreshold Int      @default(0) // 0 = disabled
+  securityRate           Decimal  @default(0) @db.Decimal(10, 2)
+  securityMinHours       Int      @default(4)
+  optionsEnabled         Boolean  @default(false)
+  allowRecurring         Boolean  @default(false)
+  maxRecurringWeeks      Int      @default(12)
+  residentOnly           Boolean  @default(true)
+  requireAgreement       Boolean  @default(false)
+  agreementMethod        String?  @db.VarChar(20) // checkbox, signature, upload
+  termsAndConditions     String?  @db.Text
+  customInstructions     String?  @db.VarChar(2000)
+  fee                    Decimal  @default(0) @db.Decimal(10, 2)
+  feeType                String?  @db.VarChar(20) // flat, hourly, per_guest, per_guest_hourly
+  securityDeposit        Decimal  @default(0) @db.Decimal(10, 2)
+  depositRefundPolicy    String?  @db.VarChar(20) // full, partial, non_refundable
+  acceptedPaymentMethods String[]
+  taxRate                Decimal? @db.Decimal(5, 2)
+  serviceFee             Decimal  @default(0) @db.Decimal(10, 2)
+  approvalMode           String   @default("auto") @db.VarChar(10) // auto, manager, admin
+  cancellationPolicy     String   @default("free_until_start") @db.VarChar(20)
+  cancellationHours      Int?
+  waitlistEnabled        Boolean  @default(false)
+  maxWaitlistSize        Int      @default(5)
+  primaryPhotoUrl        String?  @db.VarChar(500)
+  galleryPhotos          Json?    @db.JsonB // [{url, caption, order}]
+  aiMetadata             Json?    @db.JsonB
+  createdById            String   @db.Uuid
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property        Property        @relation(fields: [propertyId], references: [id])
+  group           AmenityGroup    @relation(fields: [groupId], references: [id])
+  options         AmenityOption[]
+  bookings        Booking[]
+  waitlistEntries WaitlistEntry[]
+
+  @@index([propertyId, isActive])
+  @@map("amenities")
+}
+
+model AmenityOption {
+  id              String   @id @default(uuid()) @db.Uuid
+  amenityId       String   @db.Uuid
+  name            String   @db.VarChar(100)
+  description     String?  @db.VarChar(500)
+  feeOverride     Decimal? @db.Decimal(10, 2)
+  depositOverride Decimal? @db.Decimal(10, 2)
+  displayOrder    Int      @default(0)
+  isActive        Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  amenity  Amenity   @relation(fields: [amenityId], references: [id])
+  bookings Booking[]
+
+  @@index([amenityId, isActive])
+  @@map("amenity_options")
+}
+
+model Booking {
+  id                    String    @id @default(uuid()) @db.Uuid
+  referenceNumber       String    @db.VarChar(20) // AMN-YYYY-NNNNN
+  propertyId            String    @db.Uuid
+  amenityId             String    @db.Uuid
+  amenityOptionId       String?   @db.Uuid
+  unitId                String    @db.Uuid
+  residentId            String    @db.Uuid
+  createdById           String    @db.Uuid
+  startDate             DateTime  @db.Date
+  startTime             DateTime  @db.Time()
+  endDate               DateTime  @db.Date
+  endTime               DateTime  @db.Time()
+  guestCount            Int       @default(1)
+  status                String    @default("pending") @db.VarChar(20) // pending, approved, declined, cancelled, completed, no_show
+  approvalStatus        String    @default("pending") @db.VarChar(20) // pending, approved, declined
+  approvedById          String?   @db.Uuid
+  approvedAt            DateTime?
+  declinedReason        String?   @db.VarChar(1000)
+  cancellationReason    String?   @db.VarChar(1000)
+  cancelledById         String?   @db.Uuid
+  cancelledAt           DateTime?
+  requestorComments     String?   @db.VarChar(1000)
+  approverComments      String?   @db.VarChar(1000)
+  feeAmount             Decimal   @default(0) @db.Decimal(10, 2)
+  depositAmount         Decimal   @default(0) @db.Decimal(10, 2)
+  serviceFee            Decimal   @default(0) @db.Decimal(10, 2)
+  taxAmount             Decimal   @default(0) @db.Decimal(10, 2)
+  totalAmount           Decimal   @default(0) @db.Decimal(10, 2)
+  paymentStatus         String    @default("not_required") @db.VarChar(20) // not_required, pending, paid, overdue, refunded, partial_refund
+  paymentMethod         String?   @db.VarChar(20) // credit_card, cheque, cash, e_transfer
+  stripePaymentIntentId String?   @db.VarChar(100)
+  stripeRefundId        String?   @db.VarChar(100)
+  chequeNumber          String?   @db.VarChar(50)
+  paymentReceivedAt     DateTime?
+  depositRefunded       Boolean   @default(false)
+  depositRefundAmount   Decimal   @default(0) @db.Decimal(10, 2)
+  agreementAccepted     Boolean   @default(false)
+  agreementMethod       String?   @db.VarChar(20)
+  agreementAcceptedAt   DateTime?
+  agreementDocumentUrl  String?   @db.VarChar(500)
+  signatureData         Bytes?
+  recurringGroupId      String?   @db.Uuid
+  recurringSequence     Int?
+  waitlistPosition      Int?
+  aiMetadata            Json?     @db.JsonB
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property      Property            @relation(fields: [propertyId], references: [id])
+  amenity       Amenity             @relation(fields: [amenityId], references: [id])
+  amenityOption AmenityOption?      @relation(fields: [amenityOptionId], references: [id])
+  unit          Unit                @relation(fields: [unitId], references: [id])
+  auditEntries  BookingAuditEntry[]
+
+  @@unique([propertyId, referenceNumber])
+  @@index([amenityId, startDate, startTime])
+  @@index([propertyId, status, startDate])
+  @@index([unitId, startDate])
+  @@index([recurringGroupId])
+  @@map("bookings")
+}
+
+model BookingAuditEntry {
+  id            String   @id @default(uuid()) @db.Uuid
+  bookingId     String   @db.Uuid
+  action        String   @db.VarChar(30) // created, approved, declined, cancelled, updated, payment_recorded, deposit_refunded, etc.
+  performedById String   @db.Uuid
+  performedAt   DateTime @default(now())
+  details       Json?    @db.JsonB
+  ipAddress     String?  @db.VarChar(45)
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@map("booking_audit_entries")
+}
+
+model WaitlistEntry {
+  id                 String    @id @default(uuid()) @db.Uuid
+  amenityId          String    @db.Uuid
+  bookingDate        DateTime  @db.Date
+  preferredStartTime DateTime  @db.Time()
+  preferredEndTime   DateTime  @db.Time()
+  residentId         String    @db.Uuid
+  unitId             String    @db.Uuid
+  position           Int
+  status             String    @default("waiting") @db.VarChar(20) // waiting, offered, booked, expired, removed
+  offeredAt          DateTime?
+  offerExpiresAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  amenity Amenity @relation(fields: [amenityId], references: [id])
+
+  @@index([amenityId, bookingDate, position])
+  @@map("waitlist_entries")
+}
+
+// ---------------------------------------------------------------------------
+// UNIT MANAGEMENT: FOBs, Pets, Vehicles, Emergency Contacts, Access Devices
+// ---------------------------------------------------------------------------
+
+model Fob {
+  id              String    @id @default(uuid()) @db.Uuid
+  propertyId      String    @db.Uuid
+  unitId          String    @db.Uuid
+  serialNumber    String    @db.VarChar(50)
+  fobType         String    @default("standard") @db.VarChar(30) // standard, premium, temporary
+  status          String    @default("active") @db.VarChar(20) // active, deactivated, lost, returned
+  issuedDate      DateTime? @db.Date
+  deactivatedDate DateTime? @db.Date
+  issuedToName    String?   @db.VarChar(100)
+  notes           String?   @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  @@index([propertyId])
+  @@index([unitId])
+  @@index([serialNumber])
+  @@map("fobs")
+}
+
+model BuzzerCode {
+  id          String  @id @default(uuid()) @db.Uuid
+  propertyId  String  @db.Uuid
+  unitId      String  @db.Uuid
+  code        String  @db.VarChar(20)
+  comments    String? @db.VarChar(500)
+  updatedById String? @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  @@index([propertyId])
+  @@index([unitId])
+  @@map("buzzer_codes")
+}
+
+model GarageClicker {
+  id              String    @id @default(uuid()) @db.Uuid
+  propertyId      String    @db.Uuid
+  unitId          String    @db.Uuid
+  serialNumber    String    @db.VarChar(50)
+  status          String    @default("active") @db.VarChar(20) // active, deactivated, lost, returned
+  issuedDate      DateTime? @db.Date
+  deactivatedDate DateTime? @db.Date
+  issuedToName    String?   @db.VarChar(100)
+  notes           String?   @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  @@index([propertyId])
+  @@index([unitId])
+  @@map("garage_clickers")
+}
+
+model Pet {
+  id                 String   @id @default(uuid()) @db.Uuid
+  propertyId         String   @db.Uuid
+  unitId             String   @db.Uuid
+  userId             String   @db.Uuid
+  name               String   @db.VarChar(100)
+  species            String   @db.VarChar(50) // dog, cat, bird, fish, reptile, other
+  breed              String?  @db.VarChar(100)
+  color              String?  @db.VarChar(50)
+  weight             Decimal? @db.Decimal(5, 1)
+  photoUrl           String?  @db.VarChar(500)
+  vetName            String?  @db.VarChar(100)
+  vetPhone           String?  @db.VarChar(20)
+  registrationNumber String?  @db.VarChar(50)
+  notes              String?  @db.VarChar(500)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  @@index([propertyId])
+  @@index([unitId])
+  @@map("pets")
+}
+
+model Vehicle {
+  id            String  @id @default(uuid()) @db.Uuid
+  propertyId    String  @db.Uuid
+  unitId        String  @db.Uuid
+  userId        String  @db.Uuid
+  make          String  @db.VarChar(50)
+  model         String  @db.VarChar(50)
+  year          Int?
+  color         String? @db.VarChar(30)
+  licensePlate  String  @db.VarChar(20)
+  provinceState String  @db.VarChar(50)
+  parkingSpot   String? @db.VarChar(20)
+  notes         String? @db.VarChar(500)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  @@index([propertyId])
+  @@index([unitId])
+  @@index([licensePlate])
+  @@map("vehicles")
+}
+
+model EmergencyContact {
+  id             String  @id @default(uuid()) @db.Uuid
+  propertyId     String  @db.Uuid
+  unitId         String  @db.Uuid
+  userId         String  @db.Uuid
+  contactName    String  @db.VarChar(100)
+  relationship   String  @db.VarChar(50)
+  phonePrimary   String  @db.VarChar(20)
+  phoneSecondary String? @db.VarChar(20)
+  email          String? @db.VarChar(254)
+  sortOrder      Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  @@index([propertyId])
+  @@index([unitId])
+  @@index([userId])
+  @@map("emergency_contacts")
+}
+
+// ---------------------------------------------------------------------------
+// GENERIC: Attachments (polymorphic)
+// ---------------------------------------------------------------------------
+
+model Attachment {
+  id             String @id @default(uuid()) @db.Uuid
+  propertyId     String @db.Uuid
+  attachableType String @db.VarChar(50) // maintenance_request, incident_report, announcement, etc.
+  attachableId   String @db.Uuid
+  fileName       String @db.VarChar(255)
+  fileType       String @db.VarChar(100) // MIME type
+  fileSizeBytes  Int
+  storageUrl     String @db.VarChar(500)
+  uploadedById   String @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  // Optional direct FK for maintenance requests (most common)
+  maintenanceRequestId String?             @db.Uuid
+  maintenanceRequest   MaintenanceRequest? @relation(fields: [maintenanceRequestId], references: [id])
+
+  @@index([attachableType, attachableId])
+  @@index([propertyId])
+  @@map("attachments")
+}
+
+// ---------------------------------------------------------------------------
+// COMMUNICATION: Expanded Announcements & Notifications
+// ---------------------------------------------------------------------------
+
+model AnnouncementCategory {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String?  @db.Uuid // null = system default
+  name       String   @db.VarChar(50)
+  color      String?  @db.VarChar(7)
+  icon       String?  @db.VarChar(50)
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  property              Property?              @relation(fields: [propertyId], references: [id])
+  announcements         Announcement[]         @relation("CategoryAnnouncements")
+  announcementTemplates AnnouncementTemplate[]
+
+  @@map("announcement_categories")
+}
+
+model AnnouncementDelivery {
+  id             String    @id @default(uuid()) @db.Uuid
+  announcementId String    @db.Uuid
+  recipientId    String    @db.Uuid
+  channel        String    @db.VarChar(20) // email, sms, push, voice, lobby_display
+  senderAddress  String?   @db.VarChar(255)
+  status         String    @default("queued") @db.VarChar(20) // queued, sent, delivered, read, failed, bounced
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  failedAt       DateTime?
+  failureReason  String?   @db.VarChar(500)
+  acknowledged   Boolean   @default(false)
+  acknowledgedAt DateTime?
+  retryCount     Int       @default(0)
+  createdAt      DateTime  @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id])
+
+  @@index([announcementId])
+  @@index([recipientId])
+  @@map("announcement_deliveries")
+}
+
+model AnnouncementTemplate {
+  id              String   @id @default(uuid()) @db.Uuid
+  propertyId      String?  @db.Uuid // null = system-wide
+  name            String   @db.VarChar(100)
+  categoryId      String?  @db.Uuid
+  subjectTemplate String   @db.VarChar(200)
+  bodyTemplate    String   @db.Text
+  defaultChannels String[]
+  defaultPriority String   @default("normal") @db.VarChar(20)
+  defaultAudience Json?    @db.JsonB
+  isEmergency     Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  isActive        Boolean  @default(true)
+  usageCount      Int      @default(0)
+  createdById     String   @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category AnnouncementCategory? @relation(fields: [categoryId], references: [id])
+  property Property?             @relation(fields: [propertyId], references: [id])
+
+  @@map("announcement_templates")
+}
+
+model NotificationPreference {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  propertyId String    @db.Uuid
+  module     String    @db.VarChar(50) // packages, maintenance, amenities, etc.
+  channel    String    @db.VarChar(10) // email, sms, push
+  enabled    Boolean   @default(true)
+  digestMode String    @default("instant") @db.VarChar(10) // instant, daily, weekly
+  digestTime DateTime? @db.Time()
+  dndEnabled Boolean   @default(false)
+  dndStart   DateTime? @db.Time()
+  dndEnd     DateTime? @db.Time()
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, propertyId, module, channel])
+  @@index([userId])
+  @@index([propertyId])
+  @@map("notification_preferences")
+}
+
+model NotificationTemplate {
+  id                 String  @id @default(uuid()) @db.Uuid
+  propertyId         String  @db.Uuid
+  name               String  @db.VarChar(100)
+  channel            String  @db.VarChar(10) // email, sms, push, voice
+  triggerEventTypeId String? @db.Uuid
+  triggerSystemEvent String? @db.VarChar(50)
+  triggerAction      String  @db.VarChar(20) // on_create, on_close, on_update, scheduled
+  subject            String? @db.VarChar(200) // email only
+  body               String  @db.Text
+  isActive           Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@map("notification_templates")
+}
+
+model EmergencyBroadcast {
+  id                String    @id @default(uuid()) @db.Uuid
+  propertyId        String    @db.Uuid
+  announcementId    String    @db.Uuid
+  cascadeConfig     Json?     @db.JsonB
+  totalRecipients   Int       @default(0)
+  acknowledgedCount Int       @default(0)
+  cascadeStatus     String    @default("push_phase") @db.VarChar(20) // push_phase, sms_phase, voice_phase, completed
+  startedAt         DateTime  @default(now())
+  completedAt       DateTime?
+  initiatedById     String    @db.Uuid
+  createdAt         DateTime  @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@map("emergency_broadcasts")
+}
+
+// ---------------------------------------------------------------------------
+// PARKING: Permits, Areas, Spots, Violations
+// ---------------------------------------------------------------------------
+
+model ParkingArea {
+  id           String  @id @default(uuid()) @db.Uuid
+  propertyId   String  @db.Uuid
+  buildingId   String? @db.Uuid
+  areaName     String  @db.VarChar(50)
+  areaCode     String  @db.VarChar(10)
+  totalSpots   Int     @default(0)
+  visitorSpots Int     @default(0)
+  description  String? @db.VarChar(200)
+  isActive     Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property      @relation(fields: [propertyId], references: [id])
+  building Building?     @relation(fields: [buildingId], references: [id])
+  spots    ParkingSpot[]
+
+  @@unique([propertyId, areaName])
+  @@unique([propertyId, areaCode])
+  @@map("parking_areas")
+}
+
+model ParkingSpot {
+  id               String  @id @default(uuid()) @db.Uuid
+  propertyId       String  @db.Uuid
+  areaId           String  @db.Uuid
+  spotNumber       String  @db.VarChar(20)
+  spotType         String  @default("standard") @db.VarChar(20) // standard, compact, oversized, handicap, ev_charging, visitor, reserved, loading
+  floorLevel       String? @db.VarChar(10)
+  status           String  @default("available") @db.VarChar(20) // available, occupied, reserved, maintenance, out_of_service
+  assignedUnitId   String? @db.Uuid
+  assignedPermitId String? @db.Uuid
+  notes            String? @db.VarChar(200)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  area         ParkingArea @relation(fields: [areaId], references: [id])
+  assignedUnit Unit?       @relation("AssignedUnit", fields: [assignedUnitId], references: [id])
+
+  @@unique([areaId, spotNumber])
+  @@index([propertyId, areaId, status])
+  @@map("parking_spots")
+}
+
+model ParkingPermit {
+  id              String    @id @default(uuid()) @db.Uuid
+  propertyId      String    @db.Uuid
+  permitTypeId    String    @db.Uuid
+  unitId          String    @db.Uuid
+  residentId      String    @db.Uuid
+  licensePlate    String    @db.VarChar(15)
+  vehicleMake     String?   @db.VarChar(50)
+  vehicleModel    String?   @db.VarChar(50)
+  vehicleYear     Int?      @db.SmallInt
+  vehicleColor    String?   @db.VarChar(30)
+  areaId          String?   @db.Uuid
+  spotId          String?   @db.Uuid
+  status          String    @default("draft") @db.VarChar(20) // draft, pending_review, active, expired, revoked, denied
+  validFrom       DateTime  @db.Date
+  validUntil      DateTime  @db.Date
+  autoRenew       Boolean   @default(false)
+  notes           String?   @db.VarChar(500)
+  approvedById    String?   @db.Uuid
+  approvedAt      DateTime?
+  deniedReason    String?   @db.VarChar(500)
+  revokedReason   String?   @db.VarChar(500)
+  revokedById     String?   @db.Uuid
+  revokedAt       DateTime?
+  referenceNumber String    @db.VarChar(20)
+  createdById     String    @db.Uuid
+  aiMetadata      Json?     @db.JsonB
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property   Property   @relation(fields: [propertyId], references: [id])
+  unit       Unit       @relation(fields: [unitId], references: [id])
+  permitType PermitType @relation(fields: [permitTypeId], references: [id])
+
+  @@index([propertyId, licensePlate])
+  @@index([propertyId, status, validUntil])
+  @@index([unitId])
+  @@map("parking_permits")
+}
+
+model PermitType {
+  id                  String  @id @default(uuid()) @db.Uuid
+  propertyId          String? @db.Uuid // null = system default
+  name                String  @db.VarChar(50)
+  defaultDurationDays Int
+  renewable           Boolean @default(true)
+  autoRenewOption     Boolean @default(false)
+  requiresApproval    Boolean @default(true)
+  maxPerUnit          Int     @default(1)
+  color               String? @db.VarChar(7)
+  sortOrder           Int     @default(0)
+  isActive            Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  permits  ParkingPermit[]
+  property Property?       @relation(fields: [propertyId], references: [id])
+
+  @@map("permit_types")
+}
+
+model ParkingViolation {
+  id              String    @id @default(uuid()) @db.Uuid
+  eventId         String?   @unique @db.Uuid
+  propertyId      String    @db.Uuid
+  licensePlate    String    @db.VarChar(15)
+  violationType   String    @db.VarChar(20) // notice, warning, ticket, ban, vehicle_towed
+  location        String?   @db.VarChar(100)
+  description     String?   @db.VarChar(1000)
+  photos          Json?     @db.JsonB // [{filename, url}]
+  unitId          String?   @db.Uuid
+  status          String    @default("open") @db.VarChar(20) // open, resolved, auto_expired
+  autoExpireOn    DateTime? @db.Date
+  resolutionType  String?   @db.VarChar(30) // resolved, dismissed, appealed_overturned, auto_expired
+  resolutionNotes String?   @db.VarChar(500)
+  resolvedById    String?   @db.Uuid
+  resolvedAt      DateTime?
+  notifyUnitOwner Boolean   @default(true)
+  referenceNumber String    @db.VarChar(20)
+  issuedById      String    @db.Uuid
+  aiMetadata      Json?     @db.JsonB
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -379,8 +1886,996 @@ model Announcement {
 
   property Property @relation(fields: [propertyId], references: [id])
 
-  @@index([propertyId, publishedAt])
-  @@map("announcements")
+  @@index([propertyId, licensePlate])
+  @@index([propertyId, status])
+  @@map("parking_violations")
+}
+
+// ---------------------------------------------------------------------------
+// TRAINING / LMS
+// ---------------------------------------------------------------------------
+
+model LearningPath {
+  id            String   @id @default(uuid()) @db.Uuid
+  propertyId    String   @db.Uuid
+  name          String   @db.VarChar(200)
+  description   String?  @db.Text
+  slug          String   @db.VarChar(100)
+  icon          String?  @db.VarChar(50)
+  color         String?  @db.VarChar(7)
+  assignedRoles String[] @db.Uuid
+  mandatory     Boolean  @default(false)
+  deadlineDays  Int?
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdById   String   @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property    Property             @relation(fields: [propertyId], references: [id])
+  courses     LearningPathCourse[]
+  enrollments Enrollment[]
+
+  @@unique([propertyId, slug])
+  @@index([propertyId])
+  @@map("learning_paths")
+}
+
+model LearningPathCourse {
+  id             String @id @default(uuid()) @db.Uuid
+  learningPathId String @db.Uuid
+  courseId       String @db.Uuid
+  sortOrder      Int    @default(0)
+
+  learningPath LearningPath @relation(fields: [learningPathId], references: [id])
+  course       Course       @relation(fields: [courseId], references: [id])
+
+  @@unique([learningPathId, courseId])
+  @@map("learning_path_courses")
+}
+
+model Course {
+  id                       String   @id @default(uuid()) @db.Uuid
+  propertyId               String   @db.Uuid
+  courseCode               String   @db.VarChar(20)
+  title                    String   @db.VarChar(200)
+  description              String?  @db.Text
+  objectives               String[]
+  category                 String?  @db.VarChar(50)
+  difficulty               String   @default("beginner") @db.VarChar(20) // beginner, intermediate, advanced
+  estimatedDurationMinutes Int      @default(30)
+  thumbnailUrl             String?  @db.VarChar(500)
+  passThreshold            Int      @default(70) // 0-100
+  maxAttempts              Int      @default(3)
+  mandatory                Boolean  @default(false)
+  version                  Int      @default(1)
+  status                   String   @default("draft") @db.VarChar(20) // draft, published, archived
+  createdById              String   @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property            Property             @relation(fields: [propertyId], references: [id])
+  modules             CourseModule[]
+  quiz                Quiz?
+  learningPathCourses LearningPathCourse[]
+  enrollments         Enrollment[]
+
+  @@unique([propertyId, courseCode])
+  @@index([propertyId])
+  @@map("courses")
+}
+
+model CourseModule {
+  id                   String  @id @default(uuid()) @db.Uuid
+  courseId             String  @db.Uuid
+  title                String  @db.VarChar(200)
+  contentType          String  @db.VarChar(20) // rich_text, video, document, interactive
+  contentBody          String? @db.Text
+  videoUrl             String? @db.VarChar(500)
+  videoDurationSeconds Int?
+  documentFileUrl      String? @db.VarChar(500)
+  sortOrder            Int     @default(0)
+  estimatedMinutes     Int     @default(5)
+  allowSkip            Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@index([courseId])
+  @@map("course_modules")
+}
+
+model Quiz {
+  id                 String  @id @default(uuid()) @db.Uuid
+  courseId           String  @unique @db.Uuid
+  title              String  @db.VarChar(200)
+  instructions       String? @db.Text
+  timeLimitMinutes   Int?
+  randomizeQuestions Boolean @default(false)
+  randomizeOptions   Boolean @default(false)
+  showCorrectAnswers Boolean @default(true)
+  showExplanations   Boolean @default(true)
+  questionsToShow    Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course    Course         @relation(fields: [courseId], references: [id])
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id                String   @id @default(uuid()) @db.Uuid
+  quizId            String   @db.Uuid
+  questionType      String   @db.VarChar(20) // multiple_choice, true_false, free_form
+  questionText      String   @db.Text
+  options           Json?    @db.JsonB // [{text, is_correct}]
+  correctAnswer     Boolean? // for true_false
+  expectedAnswer    String?  @db.Text // for free_form
+  gradingRubric     String?  @db.Text
+  maxResponseLength Int?
+  explanation       String?  @db.Text
+  points            Int      @default(1)
+  imageUrl          String?  @db.VarChar(500)
+  sortOrder         Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quiz    Quiz         @relation(fields: [quizId], references: [id])
+  answers QuizAnswer[]
+
+  @@index([quizId])
+  @@map("quiz_questions")
+}
+
+model Enrollment {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  courseId         String    @db.Uuid
+  learningPathId   String?   @db.Uuid
+  assignedById     String    @db.Uuid
+  assignedAt       DateTime  @default(now())
+  deadline         DateTime?
+  status           String    @default("not_started") @db.VarChar(20) // not_started, in_progress, passed, failed, expired
+  startedAt        DateTime?
+  completedAt      DateTime?
+  currentModuleId  String?   @db.Uuid
+  modulesCompleted Int       @default(0)
+  totalModules     Int       @default(0)
+  quizAttempts     Int       @default(0)
+  bestQuizScore    Decimal?  @db.Decimal(5, 2)
+  timeSpentMinutes Int       @default(0)
+  certificateId    String?   @db.Uuid
+
+  updatedAt DateTime @updatedAt
+
+  course             Course        @relation(fields: [courseId], references: [id])
+  learningPath       LearningPath? @relation(fields: [learningPathId], references: [id])
+  certificate        Certificate?
+  quizAttemptRecords QuizAttempt[]
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+model Certificate {
+  id              String   @id @default(uuid()) @db.Uuid
+  enrollmentId    String   @unique @db.Uuid
+  learnerName     String   @db.VarChar(200)
+  courseTitle     String   @db.VarChar(200)
+  propertyName    String   @db.VarChar(200)
+  completionDate  DateTime @db.Date
+  score           Decimal  @db.Decimal(5, 2)
+  verificationUrl String   @db.VarChar(500)
+  pdfFileUrl      String?  @db.VarChar(500)
+  createdAt       DateTime @default(now())
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+
+  @@map("certificates")
+}
+
+model QuizAttempt {
+  id               String    @id @default(uuid()) @db.Uuid
+  enrollmentId     String    @db.Uuid
+  quizId           String    @db.Uuid
+  startedAt        DateTime  @default(now())
+  submittedAt      DateTime?
+  score            Decimal?  @db.Decimal(5, 2)
+  passed           Boolean?
+  timeSpentSeconds Int       @default(0)
+
+  enrollment Enrollment   @relation(fields: [enrollmentId], references: [id])
+  quiz       Quiz         @relation(fields: [quizId], references: [id])
+  answers    QuizAnswer[]
+
+  @@index([enrollmentId])
+  @@map("quiz_attempts")
+}
+
+model QuizAnswer {
+  id                  String   @id @default(uuid()) @db.Uuid
+  attemptId           String   @db.Uuid
+  questionId          String   @db.Uuid
+  selectedOptionIndex Int?
+  selectedBoolean     Boolean?
+  freeFormResponse    String?  @db.Text
+  isCorrect           Boolean  @default(false)
+  pointsAwarded       Decimal  @default(0) @db.Decimal(5, 2)
+  aiGradingResult     Json?    @db.JsonB
+  createdAt           DateTime @default(now())
+
+  attempt  QuizAttempt  @relation(fields: [attemptId], references: [id])
+  question QuizQuestion @relation(fields: [questionId], references: [id])
+
+  @@index([attemptId])
+  @@map("quiz_answers")
+}
+
+// ---------------------------------------------------------------------------
+// COMMUNITY: Classified Ads, Ideas, Events, Forums, Surveys, Library
+// ---------------------------------------------------------------------------
+
+model ClassifiedAd {
+  id              String    @id @default(uuid()) @db.Uuid
+  propertyId      String    @db.Uuid
+  userId          String    @db.Uuid
+  title           String    @db.VarChar(120)
+  description     String    @db.Text
+  categoryId      String?   @db.Uuid
+  price           Decimal?  @db.Decimal(8, 2)
+  priceType       String    @default("fixed") @db.VarChar(20) // fixed, negotiable, free, contact
+  condition       String?   @db.VarChar(20) // new, like_new, good, fair, not_applicable
+  contactMethod   String[] // in_app, phone, email
+  contactPhone    String?   @db.VarChar(20)
+  contactEmail    String?   @db.VarChar(254)
+  status          String    @default("pending_review") @db.VarChar(20) // draft, pending_review, active, sold, expired, rejected, archived
+  expirationDate  DateTime?
+  renewalCount    Int       @default(0)
+  rejectionReason String?   @db.VarChar(500)
+  moderationFlags Json?     @db.JsonB
+  viewCount       Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property            @relation(fields: [propertyId], references: [id])
+  images   ClassifiedAdImage[]
+
+  @@index([propertyId, status])
+  @@index([userId])
+  @@map("classified_ads")
+}
+
+model ClassifiedAdImage {
+  id        String   @id @default(uuid()) @db.Uuid
+  adId      String   @db.Uuid
+  filePath  String   @db.VarChar(500)
+  fileSize  Int
+  mimeType  String   @db.VarChar(50)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  ad ClassifiedAd @relation(fields: [adId], references: [id])
+
+  @@index([adId])
+  @@map("classified_ad_images")
+}
+
+model Idea {
+  id                String    @id @default(uuid()) @db.Uuid
+  propertyId        String    @db.Uuid
+  userId            String    @db.Uuid
+  title             String    @db.VarChar(150)
+  description       String    @db.VarChar(2000)
+  categoryId        String?   @db.Uuid
+  status            String    @default("open") @db.VarChar(20) // open, under_review, planned, in_progress, completed, declined
+  adminResponse     String?   @db.VarChar(2000)
+  adminResponseById String?   @db.Uuid
+  adminResponseAt   DateTime?
+  voteCount         Int       @default(0)
+  isPinned          Boolean   @default(false)
+  mergedIntoId      String?   @db.Uuid
+  moderationFlags   Json?     @db.JsonB
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property   @relation(fields: [propertyId], references: [id])
+  votes    IdeaVote[]
+
+  @@index([propertyId, status])
+  @@index([propertyId, voteCount])
+  @@map("ideas")
+}
+
+model IdeaVote {
+  id        String   @id @default(uuid()) @db.Uuid
+  ideaId    String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  idea Idea @relation(fields: [ideaId], references: [id])
+
+  @@unique([ideaId, userId])
+  @@map("idea_votes")
+}
+
+model CommunityEvent {
+  id              String    @id @default(uuid()) @db.Uuid
+  propertyId      String    @db.Uuid
+  createdById     String    @db.Uuid
+  title           String    @db.VarChar(200)
+  description     String?   @db.Text
+  startDatetime   DateTime
+  endDatetime     DateTime
+  location        String?   @db.VarChar(200)
+  locationType    String    @default("on_site") @db.VarChar(10) // on_site, off_site, virtual, hybrid
+  virtualUrl      String?   @db.VarChar(500)
+  calendarType    String    @default("public") @db.VarChar(10) // public, internal
+  recurrenceRule  String?   @db.VarChar(200) // iCal RRULE
+  capacity        Int?
+  rsvpEnabled     Boolean   @default(true)
+  rsvpDeadline    DateTime?
+  status          String    @default("draft") @db.VarChar(20) // draft, active, in_progress, completed, cancelled, archived
+  coverImagePath  String?   @db.VarChar(500)
+  categoryId      String?   @db.Uuid
+  guardRequired   Boolean   @default(false)
+  notifyOnPublish Boolean   @default(false)
+  targetGroups    String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property    @relation(fields: [propertyId], references: [id])
+  rsvps    EventRsvp[]
+
+  @@index([propertyId, status])
+  @@index([propertyId, startDatetime])
+  @@map("community_events")
+}
+
+model EventRsvp {
+  id      String @id @default(uuid()) @db.Uuid
+  eventId String @db.Uuid
+  userId  String @db.Uuid
+  status  String @db.VarChar(20) // going, maybe, not_going, waitlisted
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event CommunityEvent @relation(fields: [eventId], references: [id])
+
+  @@unique([eventId, userId])
+  @@map("event_rsvps")
+}
+
+model Survey {
+  id               String    @id @default(uuid()) @db.Uuid
+  propertyId       String    @db.Uuid
+  createdById      String    @db.Uuid
+  title            String    @db.VarChar(200)
+  description      String?   @db.VarChar(500)
+  status           String    @default("draft") @db.VarChar(20) // draft, active, closed, expired
+  expiryDate       DateTime?
+  visibleToOwners  Boolean   @default(true)
+  visibleToTenants Boolean   @default(true)
+  anonymous        Boolean   @default(false)
+  responseCount    Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property  Property         @relation(fields: [propertyId], references: [id])
+  questions SurveyQuestion[]
+
+  @@index([propertyId, status])
+  @@map("surveys")
+}
+
+model SurveyQuestion {
+  id           String  @id @default(uuid()) @db.Uuid
+  surveyId     String  @db.Uuid
+  sortOrder    Int     @default(0)
+  questionText String  @db.VarChar(500)
+  questionType String  @db.VarChar(20) // multiple_choice, checkbox, rating, free_text, ranking, yes_no
+  isRequired   Boolean @default(false)
+  options      Json?   @db.JsonB
+  config       Json?   @db.JsonB
+
+  survey Survey @relation(fields: [surveyId], references: [id])
+
+  @@index([surveyId])
+  @@map("survey_questions")
+}
+
+model LibraryFolder {
+  id             String  @id @default(uuid()) @db.Uuid
+  propertyId     String  @db.Uuid
+  parentFolderId String? @db.Uuid
+  name           String  @db.VarChar(100)
+  description    String? @db.VarChar(300)
+  sortOrder      Int     @default(0)
+  createdById    String  @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property     Property        @relation(fields: [propertyId], references: [id])
+  parentFolder LibraryFolder?  @relation("FolderParent", fields: [parentFolderId], references: [id])
+  childFolders LibraryFolder[] @relation("FolderParent")
+  files        LibraryFile[]
+
+  @@index([propertyId])
+  @@index([parentFolderId])
+  @@map("library_folders")
+}
+
+model LibraryFile {
+  id            String  @id @default(uuid()) @db.Uuid
+  folderId      String  @db.Uuid
+  propertyId    String  @db.Uuid
+  fileName      String  @db.VarChar(255)
+  filePath      String  @db.VarChar(500)
+  fileSize      BigInt
+  mimeType      String  @db.VarChar(100)
+  description   String? @db.VarChar(500)
+  version       Int     @default(1)
+  downloadCount Int     @default(0)
+  uploadedById  String  @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  folder   LibraryFolder        @relation(fields: [folderId], references: [id])
+  versions LibraryFileVersion[]
+
+  @@index([folderId])
+  @@index([propertyId])
+  @@map("library_files")
+}
+
+model LibraryFileVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  fileId        String   @db.Uuid
+  versionNumber Int
+  filePath      String   @db.VarChar(500)
+  fileSize      BigInt
+  uploadedById  String   @db.Uuid
+  createdAt     DateTime @default(now())
+
+  file LibraryFile @relation(fields: [fileId], references: [id])
+
+  @@index([fileId])
+  @@map("library_file_versions")
+}
+
+model ForumTopic {
+  id              String   @id @default(uuid()) @db.Uuid
+  propertyId      String   @db.Uuid
+  userId          String   @db.Uuid
+  categoryId      String?  @db.Uuid
+  title           String   @db.VarChar(200)
+  body            String   @db.Text
+  isPinned        Boolean  @default(false)
+  isLocked        Boolean  @default(false)
+  status          String   @default("active") @db.VarChar(20) // active, hidden, deleted
+  replyCount      Int      @default(0)
+  viewCount       Int      @default(0)
+  lastActivityAt  DateTime @default(now())
+  moderationFlags Json?    @db.JsonB
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property     @relation(fields: [propertyId], references: [id])
+  replies  ForumReply[]
+
+  @@index([propertyId, lastActivityAt])
+  @@map("forum_topics")
+}
+
+model ForumReply {
+  id              String  @id @default(uuid()) @db.Uuid
+  topicId         String  @db.Uuid
+  parentReplyId   String? @db.Uuid
+  userId          String  @db.Uuid
+  body            String  @db.Text
+  likeCount       Int     @default(0)
+  status          String  @default("active") @db.VarChar(30) // active, hidden, deleted_by_author, deleted_by_moderator
+  moderationFlags Json?   @db.JsonB
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topic        ForumTopic   @relation(fields: [topicId], references: [id])
+  parentReply  ForumReply?  @relation("ReplyThread", fields: [parentReplyId], references: [id])
+  childReplies ForumReply[] @relation("ReplyThread")
+
+  @@index([topicId])
+  @@map("forum_replies")
+}
+
+model PhotoAlbum {
+  id           String  @id @default(uuid()) @db.Uuid
+  propertyId   String  @db.Uuid
+  createdById  String  @db.Uuid
+  title        String  @db.VarChar(100)
+  description  String? @db.VarChar(300)
+  visibility   String  @default("public") @db.VarChar(10) // public, internal
+  coverPhotoId String? @db.Uuid
+  photoCount   Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@map("photo_albums")
+}
+
+model CommunityComment {
+  id              String   @id @default(uuid()) @db.Uuid
+  commentableType String   @db.VarChar(50) // classified_ad, idea, event
+  commentableId   String   @db.Uuid
+  parentCommentId String?  @db.Uuid
+  userId          String   @db.Uuid
+  body            String   @db.VarChar(1000)
+  status          String   @default("active") @db.VarChar(20) // active, hidden, deleted
+  moderationFlags Json?    @db.JsonB
+  createdAt       DateTime @default(now())
+
+  parentComment CommunityComment?  @relation("CommentThread", fields: [parentCommentId], references: [id])
+  childComments CommunityComment[] @relation("CommentThread")
+
+  @@index([commentableType, commentableId])
+  @@map("community_comments")
+}
+
+// ---------------------------------------------------------------------------
+// DASHBOARD & REPORTS
+// ---------------------------------------------------------------------------
+
+model DashboardLayout {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  propertyId     String   @db.Uuid
+  roleId         String   @db.Uuid
+  widgetOrder    Json     @db.JsonB // Array of widget IDs
+  hiddenWidgets  String[]
+  widgetSettings Json?    @db.JsonB
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([userId, propertyId])
+  @@map("dashboard_layouts")
+}
+
+model DashboardWidget {
+  id            String   @id @default(uuid()) @db.Uuid
+  widgetKey     String   @unique @db.VarChar(50)
+  displayName   String   @db.VarChar(60)
+  description   String?  @db.VarChar(200)
+  widgetType    String   @db.VarChar(20) // kpi_card, quick_action, chart, feed, summary, info
+  defaultConfig Json?    @db.JsonB
+  isMandatory   Boolean  @default(false)
+  minRoleTier   Int      @default(0)
+  allowedRoles  String[]
+  defaultOrder  Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@map("dashboard_widgets")
+}
+
+model BuildingHealthScore {
+  id           String   @id @default(uuid()) @db.Uuid
+  propertyId   String   @db.Uuid
+  score        Int // 0-100
+  trend        String   @db.VarChar(10) // up, down, flat
+  trendChange  Decimal  @db.Decimal(4, 1)
+  period       String   @db.VarChar(10) // 7_days, 30_days, 90_days
+  factors      Json     @db.JsonB // [{name, score, weight, status}]
+  calculatedAt DateTime @default(now())
+  calculatedBy String   @db.VarChar(20) // ai, system
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, calculatedAt])
+  @@map("building_health_scores")
+}
+
+model AIBriefing {
+  id           String   @id @default(uuid()) @db.Uuid
+  propertyId   String   @db.Uuid
+  userId       String   @db.Uuid
+  roleId       String   @db.Uuid
+  briefingType String   @db.VarChar(10) // daily, shift, weekly
+  content      String   @db.VarChar(2000)
+  dataSnapshot Json     @db.JsonB
+  generatedAt  DateTime @default(now())
+  modelUsed    String   @db.VarChar(40)
+  cost         Decimal  @db.Decimal(6, 4) // USD
+  expiresAt    DateTime
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([userId, generatedAt])
+  @@index([propertyId, briefingType, generatedAt])
+  @@map("ai_briefings")
+}
+
+model ShiftHandoff {
+  id             String   @id @default(uuid()) @db.Uuid
+  propertyId     String   @db.Uuid
+  shiftDate      DateTime @db.Date
+  shiftType      String   @db.VarChar(10) // morning, afternoon, night
+  outgoingUserId String   @db.Uuid
+  eventCount     Int      @default(0)
+  flaggedItems   Json?    @db.JsonB // [{description, priority, unit_number, event_id}]
+  notes          String?  @db.VarChar(2000)
+  aiSummary      String?  @db.VarChar(500)
+  createdAt      DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([propertyId, shiftDate, shiftType])
+  @@map("shift_handoffs")
+}
+
+model Report {
+  id             String  @id @default(uuid()) @db.Uuid
+  propertyId     String  @db.Uuid
+  slug           String  @db.VarChar(100)
+  name           String  @db.VarChar(150)
+  description    String? @db.VarChar(500)
+  category       String  @db.VarChar(50) // security, packages, maintenance, amenity, unit_resident, communication, parking, training
+  type           String  @default("standard") @db.VarChar(10) // standard, custom
+  dataSource     String? @db.VarChar(50)
+  columns        Json?   @db.JsonB
+  defaultFilters Json?   @db.JsonB
+  defaultSort    Json?   @db.JsonB
+  defaultGroup   String? @db.VarChar(100)
+  kpiConfig      Json?   @db.JsonB
+  chartConfig    Json?   @db.JsonB
+  isSystem       Boolean @default(true)
+  createdById    String? @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property  Property         @relation(fields: [propertyId], references: [id])
+  templates ReportTemplate[]
+  schedules ReportSchedule[]
+  pins      ReportPin[]
+  runs      ReportRun[]
+
+  @@unique([propertyId, slug])
+  @@index([propertyId])
+  @@map("reports")
+}
+
+model ReportTemplate {
+  id          String  @id @default(uuid()) @db.Uuid
+  reportId    String  @db.Uuid
+  userId      String  @db.Uuid
+  propertyId  String  @db.Uuid
+  name        String  @db.VarChar(100)
+  description String? @db.VarChar(250)
+  filters     Json?   @db.JsonB
+  columns     Json?   @db.JsonB
+  sort        Json?   @db.JsonB
+  groupBy     String? @db.VarChar(100)
+  isShared    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  report Report @relation(fields: [reportId], references: [id])
+
+  @@map("report_templates")
+}
+
+model ReportSchedule {
+  id           String    @id @default(uuid()) @db.Uuid
+  reportId     String    @db.Uuid
+  templateId   String?   @db.Uuid
+  propertyId   String    @db.Uuid
+  createdById  String    @db.Uuid
+  frequency    String    @db.VarChar(10) // daily, weekly, monthly
+  dayOfWeek    Int?      @db.SmallInt // 0-6
+  dayOfMonth   Int?      @db.SmallInt // 1-28
+  deliveryTime DateTime  @db.Time()
+  timezone     String    @db.VarChar(50)
+  format       String    @default("pdf") @db.VarChar(10) // csv, xlsx, pdf
+  recipients   Json      @db.JsonB // user IDs
+  emailSubject String?   @db.VarChar(150)
+  includeChart Boolean   @default(true)
+  isActive     Boolean   @default(true)
+  lastRunAt    DateTime?
+  nextRunAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  report   Report   @relation(fields: [reportId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@map("report_schedules")
+}
+
+model ReportPin {
+  id         String   @id @default(uuid()) @db.Uuid
+  reportId   String   @db.Uuid
+  userId     String   @db.Uuid
+  propertyId String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  report Report @relation(fields: [reportId], references: [id])
+
+  @@unique([reportId, userId, propertyId])
+  @@map("report_pins")
+}
+
+model ReportRun {
+  id           String   @id @default(uuid()) @db.Uuid
+  reportId     String   @db.Uuid
+  userId       String   @db.Uuid
+  propertyId   String   @db.Uuid
+  filters      Json?    @db.JsonB
+  rowCount     Int      @default(0)
+  durationMs   Int      @default(0)
+  exportFormat String?  @db.VarChar(10)
+  aiSummary    String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  report Report @relation(fields: [reportId], references: [id])
+
+  @@index([reportId])
+  @@map("report_runs")
+}
+
+model HealthScore {
+  id                 String   @id @default(uuid()) @db.Uuid
+  propertyId         String   @db.Uuid
+  score              Int      @db.SmallInt // 0-100
+  maintenanceScore   Int      @db.SmallInt
+  securityScore      Int      @db.SmallInt
+  amenityScore       Int      @db.SmallInt
+  engagementScore    Int      @db.SmallInt
+  complianceScore    Int      @db.SmallInt
+  communicationScore Int      @db.SmallInt
+  aiNarrative        String?  @db.Text
+  calculatedAt       DateTime @default(now())
+  property           Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, calculatedAt])
+  @@map("health_scores")
+}
+
+// ---------------------------------------------------------------------------
+// SEARCH & NAVIGATION
+// ---------------------------------------------------------------------------
+
+model SearchQuery {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @db.Uuid
+  propertyId         String   @db.Uuid
+  queryText          String   @db.VarChar(200)
+  resultCount        Int      @default(0)
+  selectedResultId   String?  @db.Uuid
+  selectedResultType String?  @db.VarChar(50)
+  searchDurationMs   Int      @default(0)
+  aiEnhanced         Boolean  @default(false)
+  filtersApplied     Json?    @db.JsonB
+  createdAt          DateTime @default(now())
+
+  @@index([userId])
+  @@index([propertyId])
+  @@map("search_queries")
+}
+
+model RecentItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  propertyId String   @db.Uuid
+  pageTitle  String   @db.VarChar(60)
+  route      String   @db.VarChar(200)
+  moduleSlug String   @db.VarChar(50)
+  entityId   String?  @db.Uuid
+  entityType String?  @db.VarChar(50)
+  visitedAt  DateTime @default(now())
+
+  @@index([userId, propertyId])
+  @@map("recent_items")
+}
+
+model NavigationPreference {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @db.Uuid
+  propertyId       String   @db.Uuid
+  sidebarCollapsed Boolean  @default(false)
+  pinnedItems      String[]
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, propertyId])
+  @@map("navigation_preferences")
+}
+
+// ---------------------------------------------------------------------------
+// SETTINGS & ADMIN
+// ---------------------------------------------------------------------------
+
+model PropertySettings {
+  id                 String  @id @default(uuid()) @db.Uuid
+  propertyId         String  @unique @db.Uuid
+  propertyName       String? @db.VarChar(200)
+  legalName          String? @db.VarChar(300)
+  corporationNumber  String? @db.VarChar(50)
+  totalFloors        Int?
+  totalUnits         Int?
+  yearBuilt          Int?
+  welcomeMessage     String? @db.VarChar(2000)
+  description        String? @db.VarChar(500)
+  contacts           Json?   @db.JsonB // array of contact objects
+  operationalToggles Json?   @db.JsonB // key-value boolean map
+  brandingConfig     Json?   @db.JsonB // colors, logos, login page
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  updatedById String?  @db.Uuid
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@map("property_settings")
+}
+
+model CustomFieldDefinition {
+  id              String  @id @default(uuid()) @db.Uuid
+  propertyId      String  @db.Uuid
+  entityType      String  @db.VarChar(50) // event, unit, resident, maintenance_request
+  fieldKey        String  @db.VarChar(50)
+  fieldLabel      String  @db.VarChar(100)
+  fieldType       String  @db.VarChar(20) // text, number, date, boolean, dropdown, multi_select, url, email, phone, textarea
+  required        Boolean @default(false)
+  defaultValue    Json?   @db.JsonB
+  placeholder     String? @db.VarChar(100)
+  helpText        String? @db.VarChar(200)
+  options         Json?   @db.JsonB // for dropdown/multi_select
+  validationRules Json?   @db.JsonB
+  sortOrder       Int     @default(0)
+  isActive        Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([propertyId, entityType, fieldKey])
+  @@index([propertyId])
+  @@map("custom_field_definitions")
+}
+
+model ResidentGroup {
+  id              String  @id @default(uuid()) @db.Uuid
+  propertyId      String  @db.Uuid
+  name            String  @db.VarChar(100)
+  description     String? @db.VarChar(500)
+  groupType       String  @default("static") @db.VarChar(10) // static, dynamic
+  autoAssignRules Json?   @db.JsonB
+  color           String? @db.VarChar(7)
+  memberCount     Int     @default(0)
+  createdById     String  @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property    Property                  @relation(fields: [propertyId], references: [id])
+  memberships ResidentGroupMembership[]
+
+  @@unique([propertyId, name])
+  @@index([propertyId])
+  @@map("resident_groups")
+}
+
+model ResidentGroupMembership {
+  id           String   @id @default(uuid()) @db.Uuid
+  groupId      String   @db.Uuid
+  userId       String   @db.Uuid
+  assignedAt   DateTime @default(now())
+  assignedById String?  @db.Uuid
+
+  group ResidentGroup @relation(fields: [groupId], references: [id])
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@map("resident_group_memberships")
+}
+
+model TranslationOverride {
+  id          String @id @default(uuid()) @db.Uuid
+  propertyId  String @db.Uuid
+  locale      String @db.VarChar(10)
+  namespace   String @db.VarChar(50)
+  key         String @db.VarChar(200)
+  value       String @db.Text
+  createdById String @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([propertyId, locale, namespace, key])
+  @@index([propertyId])
+  @@map("translation_overrides")
+}
+
+// ---------------------------------------------------------------------------
+// INTEGRATIONS
+// ---------------------------------------------------------------------------
+
+model IntegrationConfig {
+  id                          String    @id @default(uuid()) @db.Uuid
+  propertyId                  String    @db.Uuid
+  integrationType             String    @db.VarChar(30) // stripe, sendgrid, twilio, fcm, anthropic, openai, s3, calendar, smart_building, webhooks, api, signage, weather
+  enabled                     Boolean   @default(false)
+  credentials                 Json?     @db.JsonB // encrypted
+  settings                    Json?     @db.JsonB
+  status                      String    @default("configuring") @db.VarChar(20) // active, error, disabled, configuring
+  lastHealthCheckAt           DateTime?
+  lastHealthCheckStatus       String?   @db.VarChar(20) // healthy, degraded, unreachable
+  errorMessage                String?   @db.Text
+  dataResidencyCountry        String?   @db.VarChar(2)
+  dataResidencyRegion         String?   @db.VarChar(50)
+  dataResidencyVerified       Boolean   @default(false)
+  dataProcessingAgreementUrl  String?   @db.VarChar(500)
+  dataProcessingAgreementDate DateTime? @db.Date
+  createdById                 String    @db.Uuid
+  updatedById                 String?   @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([propertyId, integrationType])
+  @@index([propertyId])
+  @@map("integration_configs")
+}
+
+model IntegrationLog {
+  id                 String   @id @default(uuid()) @db.Uuid
+  propertyId         String   @db.Uuid
+  integrationType    String   @db.VarChar(30)
+  direction          String   @db.VarChar(10) // outbound, inbound
+  endpoint           String   @db.VarChar(500)
+  method             String   @db.VarChar(10) // GET, POST, PUT, PATCH, DELETE
+  requestSizeBytes   Int      @default(0)
+  responseStatusCode Int?
+  responseTimeMs     Int?
+  success            Boolean  @default(false)
+  errorMessage       String?  @db.Text
+  costCents          Int?
+  idempotencyKey     String?  @db.VarChar(100)
+  metadata           Json?    @db.JsonB
+  createdAt          DateTime @default(now())
+
+  @@index([propertyId, integrationType])
+  @@index([createdAt])
+  @@map("integration_logs")
 }
 
 // ============================================
@@ -408,40 +2903,40 @@ enum SubscriptionStatus {
 }
 
 model Subscription {
-  id                  String             @id @default(uuid()) @db.Uuid
-  propertyId          String             @map("property_id") @db.Uuid
-  property            Property           @relation(fields: [propertyId], references: [id])
-  tier                SubscriptionTier
-  status              SubscriptionStatus @default(TRIAL)
-  stripeCustomerId    String?            @map("stripe_customer_id")
-  stripeSubscriptionId String?           @map("stripe_subscription_id")
-  billingCycle        String             @default("monthly") // monthly | annual
-  trialEndsAt         DateTime?          @map("trial_ends_at")
-  currentPeriodStart  DateTime?          @map("current_period_start")
-  currentPeriodEnd    DateTime?          @map("current_period_end")
-  canceledAt          DateTime?          @map("canceled_at")
-  createdAt           DateTime           @default(now()) @map("created_at")
-  updatedAt           DateTime           @updatedAt @map("updated_at")
-  invoices            Invoice[]
+  id                   String             @id @default(uuid()) @db.Uuid
+  propertyId           String             @map("property_id") @db.Uuid
+  property             Property           @relation(fields: [propertyId], references: [id])
+  tier                 SubscriptionTier
+  status               SubscriptionStatus @default(TRIAL)
+  stripeCustomerId     String?            @map("stripe_customer_id")
+  stripeSubscriptionId String?            @map("stripe_subscription_id")
+  billingCycle         String             @default("monthly") // monthly | annual
+  trialEndsAt          DateTime?          @map("trial_ends_at")
+  currentPeriodStart   DateTime?          @map("current_period_start")
+  currentPeriodEnd     DateTime?          @map("current_period_end")
+  canceledAt           DateTime?          @map("canceled_at")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+  invoices             Invoice[]
 
   @@map("subscriptions")
 }
 
 model Invoice {
-  id               String   @id @default(uuid()) @db.Uuid
-  subscriptionId   String   @map("subscription_id") @db.Uuid
-  subscription     Subscription @relation(fields: [subscriptionId], references: [id])
-  propertyId       String   @map("property_id") @db.Uuid
-  stripeInvoiceId  String?  @map("stripe_invoice_id")
-  amount           Int      // in cents
-  tax              Int      @default(0) // in cents
-  currency         String   @default("cad")
-  status           String   @default("draft") // draft | open | paid | void | uncollectible
-  pdfUrl           String?  @map("pdf_url")
-  periodStart      DateTime @map("period_start")
-  periodEnd        DateTime @map("period_end")
-  paidAt           DateTime? @map("paid_at")
-  createdAt        DateTime @default(now()) @map("created_at")
+  id              String       @id @default(uuid()) @db.Uuid
+  subscriptionId  String       @map("subscription_id") @db.Uuid
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+  propertyId      String       @map("property_id") @db.Uuid
+  stripeInvoiceId String?      @map("stripe_invoice_id")
+  amount          Int // in cents
+  tax             Int          @default(0) // in cents
+  currency        String       @default("cad")
+  status          String       @default("draft") // draft | open | paid | void | uncollectible
+  pdfUrl          String?      @map("pdf_url")
+  periodStart     DateTime     @map("period_start")
+  periodEnd       DateTime     @map("period_end")
+  paidAt          DateTime?    @map("paid_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
 
   @@index([propertyId])
   @@index([subscriptionId])
@@ -449,18 +2944,18 @@ model Invoice {
 }
 
 model ApiKey {
-  id           String    @id @default(uuid()) @db.Uuid
-  propertyId   String    @map("property_id") @db.Uuid
-  userId       String    @map("user_id") @db.Uuid
-  name         String
-  keyPrefix    String    @map("key_prefix") // conc_live_ or conc_test_
-  keyHash      String    @map("key_hash") // Argon2id hash of full key
-  permissions  Json      @default("{}") @db.JsonB
-  rateLimit    Int       @default(1000) @map("rate_limit") // calls per hour
-  expiresAt    DateTime? @map("expires_at")
-  lastUsedAt   DateTime? @map("last_used_at")
-  revokedAt    DateTime? @map("revoked_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  id          String    @id @default(uuid()) @db.Uuid
+  propertyId  String    @map("property_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  name        String
+  keyPrefix   String    @map("key_prefix") // conc_live_ or conc_test_
+  keyHash     String    @map("key_hash") // Argon2id hash of full key
+  permissions Json      @default("{}") @db.JsonB
+  rateLimit   Int       @default(1000) @map("rate_limit") // calls per hour
+  expiresAt   DateTime? @map("expires_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   @@index([propertyId])
   @@index([keyPrefix])
@@ -468,17 +2963,17 @@ model ApiKey {
 }
 
 model Webhook {
-  id            String   @id @default(uuid()) @db.Uuid
-  propertyId    String   @map("property_id") @db.Uuid
-  url           String
-  events        String[] // array of event type strings
-  secretHash    String   @map("secret_hash")
-  status        String   @default("active") // active | paused | failed
-  lastDeliveryAt DateTime? @map("last_delivery_at")
-  failureCount  Int      @default(0) @map("failure_count")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  deliveries    WebhookDelivery[]
+  id             String            @id @default(uuid()) @db.Uuid
+  propertyId     String            @map("property_id") @db.Uuid
+  url            String
+  events         String[] // array of event type strings
+  secretHash     String            @map("secret_hash")
+  status         String            @default("active") // active | paused | failed
+  lastDeliveryAt DateTime?         @map("last_delivery_at")
+  failureCount   Int               @default(0) @map("failure_count")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  deliveries     WebhookDelivery[]
 
   @@index([propertyId])
   @@map("webhooks")
@@ -503,20 +2998,20 @@ model WebhookDelivery {
 }
 
 model HelpArticle {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
   title          String
-  slug           String   @unique
-  body           String   // MDX content
+  slug           String    @unique
+  body           String // MDX content
   category       String
   tags           String[]
-  roleVisibility String[] @map("role_visibility") // which roles can see this
-  locale         String   @default("en")
-  status         String   @default("draft") // draft | in_review | published | archived
-  version        Int      @default(1)
-  authorId       String?  @map("author_id") @db.Uuid
+  roleVisibility String[]  @map("role_visibility") // which roles can see this
+  locale         String    @default("en")
+  status         String    @default("draft") // draft | in_review | published | archived
+  version        Int       @default(1)
+  authorId       String?   @map("author_id") @db.Uuid
   publishedAt    DateTime? @map("published_at")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   @@index([slug])
   @@index([category])
@@ -525,33 +3020,33 @@ model HelpArticle {
 }
 
 model FeatureFlag {
-  id                String   @id @default(uuid()) @db.Uuid
-  key               String   @unique
+  id                String            @id @default(uuid()) @db.Uuid
+  key               String            @unique
   description       String?
-  defaultValue      Boolean  @default(false) @map("default_value")
-  propertyOverrides Json     @default("{}") @map("property_overrides") @db.JsonB
+  defaultValue      Boolean           @default(false) @map("default_value")
+  propertyOverrides Json              @default("{}") @map("property_overrides") @db.JsonB
   tierRequirement   SubscriptionTier? @map("tier_requirement")
-  rolloutPercentage Int?     @map("rollout_percentage") // 0-100, null = boolean flag
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  rolloutPercentage Int?              @map("rollout_percentage") // 0-100, null = boolean flag
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
 
   @@map("feature_flags")
 }
 
 model ImportJob {
-  id            String   @id @default(uuid()) @db.Uuid
-  propertyId    String   @map("property_id") @db.Uuid
-  type          String   // units | residents | packages | maintenance | fobs | emergency_contacts
-  fileName      String   @map("file_name")
-  status        String   @default("pending") // pending | validating | importing | completed | failed
-  totalRows     Int      @default(0) @map("total_rows")
-  processedRows Int      @default(0) @map("processed_rows")
-  errorCount    Int      @default(0) @map("error_count")
-  errorLog      Json?    @map("error_log") @db.JsonB
-  mappings      Json?    @db.JsonB // column mappings
-  createdBy     String   @map("created_by") @db.Uuid
+  id            String    @id @default(uuid()) @db.Uuid
+  propertyId    String    @map("property_id") @db.Uuid
+  type          String // units | residents | packages | maintenance | fobs | emergency_contacts
+  fileName      String    @map("file_name")
+  status        String    @default("pending") // pending | validating | importing | completed | failed
+  totalRows     Int       @default(0) @map("total_rows")
+  processedRows Int       @default(0) @map("processed_rows")
+  errorCount    Int       @default(0) @map("error_count")
+  errorLog      Json?     @map("error_log") @db.JsonB
+  mappings      Json?     @db.JsonB // column mappings
+  createdBy     String    @map("created_by") @db.Uuid
   completedAt   DateTime? @map("completed_at")
-  createdAt     DateTime @default(now()) @map("created_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
 
   @@index([propertyId])
   @@index([status])
@@ -559,15 +3054,15 @@ model ImportJob {
 }
 
 model DataExportRequest {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  propertyId  String   @map("property_id") @db.Uuid
-  type        String   // personal_data | property_data | audit_log | full_backup
-  status      String   @default("pending") // pending | processing | completed | failed | expired
-  fileUrl     String?  @map("file_url")
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  propertyId  String    @map("property_id") @db.Uuid
+  type        String // personal_data | property_data | audit_log | full_backup
+  status      String    @default("pending") // pending | processing | completed | failed | expired
+  fileUrl     String?   @map("file_url")
   expiresAt   DateTime? @map("expires_at")
   processedAt DateTime? @map("processed_at")
-  createdAt   DateTime @default(now()) @map("created_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   @@index([userId])
   @@index([propertyId])
@@ -575,31 +3070,31 @@ model DataExportRequest {
 }
 
 model DemoTemplate {
-  id                      String   @id @default(uuid()) @db.Uuid
-  name                    String
-  slug                    String   @unique @db.VarChar(100) // e.g., "maple-heights"
-  description             String?
-  dataSpec                Json     @map("data_spec") @db.JsonB // specification of what data to generate
-  seedValue               Int      @default(20260101) @map("seed_value") // faker seed for reproducibility
-  estimatedSeedTimeSeconds Int     @default(30) @map("estimated_seed_time_seconds")
-  version                 Int      @default(1)
-  isActive                Boolean  @default(true) @map("is_active")
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @updatedAt @map("updated_at")
-  properties              Property[]
+  id                       String     @id @default(uuid()) @db.Uuid
+  name                     String
+  slug                     String     @unique @db.VarChar(100) // e.g., "maple-heights"
+  description              String?
+  dataSpec                 Json       @map("data_spec") @db.JsonB // specification of what data to generate
+  seedValue                Int        @default(20260101) @map("seed_value") // faker seed for reproducibility
+  estimatedSeedTimeSeconds Int        @default(30) @map("estimated_seed_time_seconds")
+  version                  Int        @default(1)
+  isActive                 Boolean    @default(true) @map("is_active")
+  createdAt                DateTime   @default(now()) @map("created_at")
+  updatedAt                DateTime   @updatedAt @map("updated_at")
+  properties               Property[]
 
   @@map("demo_templates")
 }
 
 model DemoSession {
-  id             String   @id @default(uuid()) @db.Uuid
-  propertyId     String   @map("property_id") @db.Uuid
-  property       Property @relation(fields: [propertyId], references: [id])
-  userId         String   @map("user_id") @db.Uuid
-  effectiveRole  String   @map("effective_role") @db.VarChar(50) // role being viewed as
-  actualRole     String   @map("actual_role") @db.VarChar(50) // real role for audit
-  startedAt      DateTime @default(now()) @map("started_at")
-  endedAt        DateTime? @map("ended_at")
+  id            String    @id @default(uuid()) @db.Uuid
+  propertyId    String    @map("property_id") @db.Uuid
+  property      Property  @relation(fields: [propertyId], references: [id])
+  userId        String    @map("user_id") @db.Uuid
+  effectiveRole String    @map("effective_role") @db.VarChar(50) // role being viewed as
+  actualRole    String    @map("actual_role") @db.VarChar(50) // real role for audit
+  startedAt     DateTime  @default(now()) @map("started_at")
+  endedAt       DateTime? @map("ended_at")
 
   @@index([propertyId])
   @@index([userId])
@@ -607,19 +3102,19 @@ model DemoSession {
 }
 
 model TrainingProgress {
-  id                 String    @id @default(uuid()) @db.Uuid
-  propertyId         String    @map("property_id") @db.Uuid
-  property           Property  @relation(fields: [propertyId], references: [id])
-  userId             String    @map("user_id") @db.Uuid
-  moduleSlug         String    @map("module_slug") @db.VarChar(100)
-  tutorialCompleted  Boolean   @default(false) @map("tutorial_completed")
+  id                  String    @id @default(uuid()) @db.Uuid
+  propertyId          String    @map("property_id") @db.Uuid
+  property            Property  @relation(fields: [propertyId], references: [id])
+  userId              String    @map("user_id") @db.Uuid
+  moduleSlug          String    @map("module_slug") @db.VarChar(100)
+  tutorialCompleted   Boolean   @default(false) @map("tutorial_completed")
   tutorialCompletedAt DateTime? @map("tutorial_completed_at")
-  actionsCount       Int       @default(0) @map("actions_count")
-  timeSpentSeconds   Int       @default(0) @map("time_spent_seconds")
-  assessmentPassed   Boolean?  @map("assessment_passed")
-  assessmentScore    Int?      @map("assessment_score")
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
+  actionsCount        Int       @default(0) @map("actions_count")
+  timeSpentSeconds    Int       @default(0) @map("time_spent_seconds")
+  assessmentPassed    Boolean?  @map("assessment_passed")
+  assessmentScore     Int?      @map("assessment_score")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   @@unique([propertyId, userId, moduleSlug])
   @@index([propertyId])
@@ -628,14 +3123,14 @@ model TrainingProgress {
 }
 
 model ComplianceReport {
-  id           String   @id @default(uuid()) @db.Uuid
-  propertyId   String   @map("property_id") @db.Uuid
-  type         String   // access_audit | login_activity | data_retention | privacy_impact | incident_response | consent | dsar | vendor_compliance
-  parameters   Json     @default("{}") @db.JsonB
-  status       String   @default("generating") // generating | completed | failed
-  fileUrl      String?  @map("file_url")
-  generatedBy  String   @map("generated_by") @db.Uuid
-  generatedAt  DateTime @default(now()) @map("generated_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  propertyId  String   @map("property_id") @db.Uuid
+  type        String // access_audit | login_activity | data_retention | privacy_impact | incident_response | consent | dsar | vendor_compliance
+  parameters  Json     @default("{}") @db.JsonB
+  status      String   @default("generating") // generating | completed | failed
+  fileUrl     String?  @map("file_url")
+  generatedBy String   @map("generated_by") @db.Uuid
+  generatedAt DateTime @default(now()) @map("generated_at")
 
   @@index([propertyId])
   @@index([type])
@@ -648,7 +3143,7 @@ model ConsentRecord {
   propertyId  String    @map("property_id") @db.Uuid
   consentType String    @map("consent_type") // tos | privacy_policy | notifications | data_sharing
   granted     Boolean
-  version     String    // version of the policy consented to
+  version     String // version of the policy consented to
   grantedAt   DateTime? @map("granted_at")
   revokedAt   DateTime? @map("revoked_at")
   ipAddress   String?   @map("ip_address")
@@ -660,14 +3155,14 @@ model ConsentRecord {
 }
 
 model OnboardingProgress {
-  id             String   @id @default(uuid()) @db.Uuid
-  propertyId     String   @unique @map("property_id") @db.Uuid
-  currentStep    Int      @default(1) @map("current_step")
-  completedSteps Int[]    @map("completed_steps")
-  stepData       Json     @default("{}") @map("step_data") @db.JsonB
+  id             String    @id @default(uuid()) @db.Uuid
+  propertyId     String    @unique @map("property_id") @db.Uuid
+  currentStep    Int       @default(1) @map("current_step")
+  completedSteps Int[]     @map("completed_steps")
+  stepData       Json      @default("{}") @map("step_data") @db.JsonB
   completedAt    DateTime? @map("completed_at")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   @@map("onboarding_progress")
 }

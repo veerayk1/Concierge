@@ -19,14 +19,15 @@ Concierge is not another iteration. It is a new category of product: an **AI-nat
 
 ### How This Document Is Organized
 
-| Section | What It Covers | Innovation Count |
-|---------|---------------|-----------------|
-| **AI-Native Features** | Intelligence capabilities no competitor has | 15 |
-| **Platform Innovation** | Architectural and UX advances | 10 |
-| **Analytics Innovation** | Data and insight features | 7 |
-| **Future Vision** | v3+ concepts and emerging technology | Open-ended |
+| Section                  | What It Covers                              | Innovation Count |
+| ------------------------ | ------------------------------------------- | ---------------- |
+| **AI-Native Features**   | Intelligence capabilities no competitor has | 15               |
+| **Platform Innovation**  | Architectural and UX advances               | 10               |
+| **Analytics Innovation** | Data and insight features                   | 7                |
+| **Future Vision**        | v3+ concepts and emerging technology        | Open-ended       |
 
 Each innovation includes:
+
 - **Description**: What it does, in plain language
 - **User Story**: Who benefits and why
 - **Acceptance Criteria**: How we know it works
@@ -56,12 +57,12 @@ Each innovation is valuable alone. Together, they create something greater than 
 
 ### 2.2 Innovation Categories
 
-| Category | Definition | Risk | Reward |
-|----------|-----------|------|--------|
-| **AI-Native** | Features powered by the AI service layer (PRD 19) | Medium -- depends on AI provider reliability and cost | Very High -- no competitor has these |
-| **Platform** | Architectural and UX capabilities baked into the core | Low -- proven engineering patterns | High -- dramatically better daily experience |
-| **Analytics** | Data-driven insights and visualizations | Low -- standard data engineering | High -- transforms raw data into decisions |
-| **Future Vision** | Emerging technology and long-term concepts | High -- technology maturity varies | Very High -- defines the next generation |
+| Category          | Definition                                            | Risk                                                  | Reward                                       |
+| ----------------- | ----------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------- |
+| **AI-Native**     | Features powered by the AI service layer (PRD 19)     | Medium -- depends on AI provider reliability and cost | Very High -- no competitor has these         |
+| **Platform**      | Architectural and UX capabilities baked into the core | Low -- proven engineering patterns                    | High -- dramatically better daily experience |
+| **Analytics**     | Data-driven insights and visualizations               | Low -- standard data engineering                      | High -- transforms raw data into decisions   |
+| **Future Vision** | Emerging technology and long-term concepts            | High -- technology maturity varies                    | Very High -- defines the next generation     |
 
 ---
 
@@ -1230,39 +1231,39 @@ As a property manager, I want to export this month's maintenance report as a pre
 
 ### 6.1 Emerging Technology Integration
 
-| Concept | Description | Why It Matters | Earliest Version |
-|---------|------------|---------------|-----------------|
-| **IoT Sensor Integration** | Connect to building sensors (temperature, humidity, water flow, air quality) for automated alerts and data collection | Enables truly predictive maintenance based on real sensor data, not just historical patterns | v3 |
-| **Smart Lock Integration** | Integrate with electronic lock systems for remote access management, visitor passes, and delivery access | Eliminates physical key management for many use cases; enables self-service visitor entry | v3 |
-| **Camera Feed AI Analysis** | Analyze security camera feeds for anomaly detection (tailgating, unauthorized access, crowd formation) | Enhances security beyond manual monitoring; never used for facial recognition | v4+ |
-| **Energy Management** | Track and optimize building energy consumption by connecting to smart meters and HVAC systems | Reduces operating costs; aligns with sustainability goals; provides board-level ROI metrics | v4+ |
-| **Drone Inspection** | Process and analyze drone-captured building exterior photos for maintenance assessment | Automates exterior inspections that currently require scaffolding or rope access | v4+ |
+| Concept                     | Description                                                                                                           | Why It Matters                                                                               | Earliest Version |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------- |
+| **IoT Sensor Integration**  | Connect to building sensors (temperature, humidity, water flow, air quality) for automated alerts and data collection | Enables truly predictive maintenance based on real sensor data, not just historical patterns | v3               |
+| **Smart Lock Integration**  | Integrate with electronic lock systems for remote access management, visitor passes, and delivery access              | Eliminates physical key management for many use cases; enables self-service visitor entry    | v3               |
+| **Camera Feed AI Analysis** | Analyze security camera feeds for anomaly detection (tailgating, unauthorized access, crowd formation)                | Enhances security beyond manual monitoring; never used for facial recognition                | v4+              |
+| **Energy Management**       | Track and optimize building energy consumption by connecting to smart meters and HVAC systems                         | Reduces operating costs; aligns with sustainability goals; provides board-level ROI metrics  | v4+              |
+| **Drone Inspection**        | Process and analyze drone-captured building exterior photos for maintenance assessment                                | Automates exterior inspections that currently require scaffolding or rope access             | v4+              |
 
 ### 6.2 Multi-Property Portfolio Evolution
 
-| Concept | Description | Why It Matters | Earliest Version |
-|---------|------------|---------------|-----------------|
-| **Cross-Property Staff Sharing** | Manage floating staff who work across multiple buildings with unified scheduling | Reduces staffing costs; enables specialized staff to serve multiple properties | v3 |
-| **Vendor Network** | Shared vendor directory across properties with aggregated performance data and volume discounts | Leverages scale for better vendor pricing and broader vendor selection | v3 |
-| **Centralized Procurement** | Purchase orders and inventory management across a portfolio of buildings | Bulk purchasing, centralized budgeting, and cost tracking across properties | v3 |
-| **Portfolio Financial Dashboard** | Comprehensive financial views across all properties with drill-down capability | Gives management companies full financial visibility without logging into each property | v3 |
+| Concept                           | Description                                                                                     | Why It Matters                                                                          | Earliest Version |
+| --------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------- |
+| **Cross-Property Staff Sharing**  | Manage floating staff who work across multiple buildings with unified scheduling                | Reduces staffing costs; enables specialized staff to serve multiple properties          | v3               |
+| **Vendor Network**                | Shared vendor directory across properties with aggregated performance data and volume discounts | Leverages scale for better vendor pricing and broader vendor selection                  | v3               |
+| **Centralized Procurement**       | Purchase orders and inventory management across a portfolio of buildings                        | Bulk purchasing, centralized budgeting, and cost tracking across properties             | v3               |
+| **Portfolio Financial Dashboard** | Comprehensive financial views across all properties with drill-down capability                  | Gives management companies full financial visibility without logging into each property | v3               |
 
 ### 6.3 Predictive Everything
 
-| Concept | Description | Why It Matters | Earliest Version |
-|---------|------------|---------------|-----------------|
-| **Predictive Resident Turnover** | Analyze behavior patterns to predict which residents may not renew their lease | Enables proactive retention efforts, reducing costly unit turnover | v3 |
-| **Predictive Cost Modeling** | Forecast operating costs 12-24 months ahead based on equipment age, vendor trends, and historical spend | Transforms annual budgeting from guesswork to data-driven planning | v3 |
-| **Incident Prevention Scoring** | Assign risk scores to conditions (time of day, weather, events) that precede incidents | Shifts security from reactive to preventive | v3 |
-| **Amenity Demand Forecasting** | Predict amenity usage and automatically adjust availability, staffing, and pricing | Optimizes amenity operations and revenue without manual analysis | v3 |
+| Concept                          | Description                                                                                             | Why It Matters                                                     | Earliest Version |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ---------------- |
+| **Predictive Resident Turnover** | Analyze behavior patterns to predict which residents may not renew their lease                          | Enables proactive retention efforts, reducing costly unit turnover | v3               |
+| **Predictive Cost Modeling**     | Forecast operating costs 12-24 months ahead based on equipment age, vendor trends, and historical spend | Transforms annual budgeting from guesswork to data-driven planning | v3               |
+| **Incident Prevention Scoring**  | Assign risk scores to conditions (time of day, weather, events) that precede incidents                  | Shifts security from reactive to preventive                        | v3               |
+| **Amenity Demand Forecasting**   | Predict amenity usage and automatically adjust availability, staffing, and pricing                      | Optimizes amenity operations and revenue without manual analysis   | v3               |
 
 ### 6.4 Resident Experience Evolution
 
-| Concept | Description | Why It Matters | Earliest Version |
-|---------|------------|---------------|-----------------|
-| **Resident Passport** | Digital identity card with QR code for building access, package pickup, and amenity check-in | Streamlines every resident-staff interaction to a single scan | v3 |
-| **Community Marketplace** | Full classified ads and services marketplace between residents | Builds community engagement and makes the resident app stickier | v3 |
-| **Smart Home Integration** | Connect to in-unit smart devices for maintenance diagnostics and comfort management | Enables remote troubleshooting and proactive comfort management | v4+ |
+| Concept                    | Description                                                                                  | Why It Matters                                                  | Earliest Version |
+| -------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ---------------- |
+| **Resident Passport**      | Digital identity card with QR code for building access, package pickup, and amenity check-in | Streamlines every resident-staff interaction to a single scan   | v3               |
+| **Community Marketplace**  | Full classified ads and services marketplace between residents                               | Builds community engagement and makes the resident app stickier | v3               |
+| **Smart Home Integration** | Connect to in-unit smart devices for maintenance diagnostics and comfort management          | Enables remote troubleshooting and proactive comfort management | v4+              |
 
 ---
 
@@ -1270,23 +1271,23 @@ As a property manager, I want to export this month's maintenance report as a pre
 
 ### 7.1 Why These Innovations Are Hard to Copy
 
-| Moat Type | What It Means | Which Innovations It Protects |
-|-----------|--------------|-------------------------------|
-| **AI-Native Architecture** | AI is a service layer in the foundation, not a feature bolted onto a legacy codebase. Retrofitting AI into a 15-year-old platform requires rewriting the core. | All 15 AI-Native features |
-| **Unified Event Model** | Our configurable event system makes every AI feature more powerful because it operates on consistent, structured data. Competitors with hardcoded log types cannot feed clean data to AI models. | Semantic Search, Anomaly Detection, Predictive Maintenance, Report Builder |
-| **Role-Aware Rendering** | Every interface is purpose-built per role. Adding this to a platform designed around a single user experience requires redesigning every screen. | Role-Aware Everything, Command Palette, Dashboard Widgets |
-| **Real-Time Foundation** | WebSocket infrastructure is built into the core, not added as a patch. Real-time collaboration, live dashboards, and instant notifications all depend on this. | Real-Time Collaboration, Digital Signage, Push Notifications |
-| **Data Compound Effect** | Each feature generates data that makes other features smarter. Package OCR feeds delivery analytics. Maintenance tracking feeds predictive maintenance. Incident data feeds anomaly detection. Competitors would need all features running to get the same compound benefit. | All Analytics features, Building Health Score, AI Daily Briefing |
-| **Multi-Tenant from Day One** | Portfolio views, cross-property analytics, and comparative benchmarks require multi-tenancy in the data model. Platforms built for single properties cannot add this without a database migration. | Multi-Property Portfolio, Comparative Analytics, Cross-Property Staff Sharing |
+| Moat Type                     | What It Means                                                                                                                                                                                                                                                                | Which Innovations It Protects                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **AI-Native Architecture**    | AI is a service layer in the foundation, not a feature bolted onto a legacy codebase. Retrofitting AI into a 15-year-old platform requires rewriting the core.                                                                                                               | All 15 AI-Native features                                                     |
+| **Unified Event Model**       | Our configurable event system makes every AI feature more powerful because it operates on consistent, structured data. Competitors with hardcoded log types cannot feed clean data to AI models.                                                                             | Semantic Search, Anomaly Detection, Predictive Maintenance, Report Builder    |
+| **Role-Aware Rendering**      | Every interface is purpose-built per role. Adding this to a platform designed around a single user experience requires redesigning every screen.                                                                                                                             | Role-Aware Everything, Command Palette, Dashboard Widgets                     |
+| **Real-Time Foundation**      | WebSocket infrastructure is built into the core, not added as a patch. Real-time collaboration, live dashboards, and instant notifications all depend on this.                                                                                                               | Real-Time Collaboration, Digital Signage, Push Notifications                  |
+| **Data Compound Effect**      | Each feature generates data that makes other features smarter. Package OCR feeds delivery analytics. Maintenance tracking feeds predictive maintenance. Incident data feeds anomaly detection. Competitors would need all features running to get the same compound benefit. | All Analytics features, Building Health Score, AI Daily Briefing              |
+| **Multi-Tenant from Day One** | Portfolio views, cross-property analytics, and comparative benchmarks require multi-tenancy in the data model. Platforms built for single properties cannot add this without a database migration.                                                                           | Multi-Property Portfolio, Comparative Analytics, Cross-Property Staff Sharing |
 
 ### 7.2 Time-to-Replicate Estimates
 
-| Innovation Category | Time for a Legacy Competitor to Replicate | Why |
-|--------------------|------------------------------------------|-----|
-| **AI-Native Features** | 18-24 months | Requires AI gateway, PII pipeline, cost tracking, graceful degradation -- all foundational work before a single feature ships |
-| **Platform Innovation** | 12-18 months | Role-aware rendering and real-time collaboration require architectural changes, not feature additions |
-| **Analytics Innovation** | 6-12 months | Most achievable for competitors, but value depends on clean data from unified event model |
-| **Future Vision** | 24-36 months | IoT and sensor integrations require hardware partnerships and new data pipelines |
+| Innovation Category      | Time for a Legacy Competitor to Replicate | Why                                                                                                                           |
+| ------------------------ | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **AI-Native Features**   | 18-24 months                              | Requires AI gateway, PII pipeline, cost tracking, graceful degradation -- all foundational work before a single feature ships |
+| **Platform Innovation**  | 12-18 months                              | Role-aware rendering and real-time collaboration require architectural changes, not feature additions                         |
+| **Analytics Innovation** | 6-12 months                               | Most achievable for competitors, but value depends on clean data from unified event model                                     |
+| **Future Vision**        | 24-36 months                              | IoT and sensor integrations require hardware partnerships and new data pipelines                                              |
 
 ---
 
@@ -1295,48 +1296,49 @@ As a property manager, I want to export this month's maintenance report as a pre
 ### 8.1 Impact vs Effort Grid
 
 Each innovation is scored on two axes:
+
 - **Impact** (1-5): How much value does this deliver to users and the business?
 - **Effort** (1-5): How much engineering time and complexity is required?
 
 Higher impact and lower effort items are prioritized first.
 
-| # | Innovation | Impact | Effort | Target | Priority Score |
-|---|-----------|--------|--------|--------|---------------|
-| | **AI-NATIVE FEATURES** | | | | |
-| 3.1 | AI Daily Briefing | 5 | 2 | v1 | 10.0 |
-| 3.2 | Semantic Search | 5 | 4 | v1 | 6.3 |
-| 3.5 | Automated Report Narratives | 4 | 2 | v1 | 8.0 |
-| 3.7 | Multi-Language Auto-Translation | 4 | 2 | v1 | 8.0 |
-| 3.8 | Voice-to-Text Incident Reporting | 4 | 3 | v1 | 5.3 |
-| 3.9 | Smart Anomaly Alerts | 4 | 3 | v1 | 5.3 |
-| 3.10 | AI Cost Analytics Dashboard | 3 | 1 | v1 | 9.0 |
-| 3.11 | Courier Label OCR | 4 | 2 | v1 | 8.0 |
-| 3.6 | Resident Satisfaction Score | 4 | 3 | v2 | 5.3 |
-| 3.12 | License Plate OCR | 3 | 2 | v2 | 4.5 |
-| 3.13 | Natural Language Report Builder | 5 | 4 | v2 | 6.3 |
-| 3.14 | Board Presentation Auto-Generator | 4 | 5 | v2 | 3.2 |
-| 3.15 | Staff Performance AI Scoring | 3 | 4 | v2 | 2.3 |
-| 3.3 | Smart Guard Scheduling | 4 | 4 | v2 | 4.0 |
-| 3.4 | Predictive Maintenance | 5 | 5 | v2 | 5.0 |
-| | **PLATFORM INNOVATION** | | | | |
-| 4.1 | Role-Aware Everything | 5 | 4 | v1 | 6.3 |
-| 4.2 | Command Palette (Cmd+K) | 4 | 2 | v1 | 8.0 |
-| 4.3 | Real-Time Collaboration | 5 | 4 | v1 | 6.3 |
-| 4.4 | Dark Mode | 3 | 2 | v1 | 4.5 |
-| 4.9 | Customizable Dashboard Widgets | 4 | 3 | v1 | 5.3 |
-| 4.7 | Resident Mobile App with Push | 5 | 5 | v1 | 5.0 |
-| 4.5 | Offline-First Mobile | 4 | 5 | v1 | 3.2 |
-| 4.6 | Digital Signage Integration | 3 | 3 | v2 | 3.0 |
-| 4.8 | Webhook and API Ecosystem | 4 | 4 | v2 | 4.0 |
-| 4.10 | Multi-Property Portfolio View | 5 | 4 | v2 | 6.3 |
-| | **ANALYTICS INNOVATION** | | | | |
-| 5.1 | Staff Leaderboard | 3 | 1 | v2 | 9.0 |
-| 5.2 | Unit Heat Map | 4 | 2 | v2 | 8.0 |
-| 5.4 | Vendor Scorecard | 4 | 2 | v2 | 8.0 |
-| 5.5 | Building Health Score | 4 | 3 | v2 | 5.3 |
-| 5.7 | Export as Presentation | 3 | 3 | v2 | 3.0 |
-| 5.3 | Trend Prediction | 4 | 4 | v2 | 4.0 |
-| 5.6 | Comparative Analytics | 4 | 4 | v3 | 4.0 |
+| #    | Innovation                        | Impact | Effort | Target | Priority Score |
+| ---- | --------------------------------- | ------ | ------ | ------ | -------------- |
+|      | **AI-NATIVE FEATURES**            |        |        |        |                |
+| 3.1  | AI Daily Briefing                 | 5      | 2      | v1     | 10.0           |
+| 3.2  | Semantic Search                   | 5      | 4      | v1     | 6.3            |
+| 3.5  | Automated Report Narratives       | 4      | 2      | v1     | 8.0            |
+| 3.7  | Multi-Language Auto-Translation   | 4      | 2      | v1     | 8.0            |
+| 3.8  | Voice-to-Text Incident Reporting  | 4      | 3      | v1     | 5.3            |
+| 3.9  | Smart Anomaly Alerts              | 4      | 3      | v1     | 5.3            |
+| 3.10 | AI Cost Analytics Dashboard       | 3      | 1      | v1     | 9.0            |
+| 3.11 | Courier Label OCR                 | 4      | 2      | v1     | 8.0            |
+| 3.6  | Resident Satisfaction Score       | 4      | 3      | v2     | 5.3            |
+| 3.12 | License Plate OCR                 | 3      | 2      | v2     | 4.5            |
+| 3.13 | Natural Language Report Builder   | 5      | 4      | v2     | 6.3            |
+| 3.14 | Board Presentation Auto-Generator | 4      | 5      | v2     | 3.2            |
+| 3.15 | Staff Performance AI Scoring      | 3      | 4      | v2     | 2.3            |
+| 3.3  | Smart Guard Scheduling            | 4      | 4      | v2     | 4.0            |
+| 3.4  | Predictive Maintenance            | 5      | 5      | v2     | 5.0            |
+|      | **PLATFORM INNOVATION**           |        |        |        |                |
+| 4.1  | Role-Aware Everything             | 5      | 4      | v1     | 6.3            |
+| 4.2  | Command Palette (Cmd+K)           | 4      | 2      | v1     | 8.0            |
+| 4.3  | Real-Time Collaboration           | 5      | 4      | v1     | 6.3            |
+| 4.4  | Dark Mode                         | 3      | 2      | v1     | 4.5            |
+| 4.9  | Customizable Dashboard Widgets    | 4      | 3      | v1     | 5.3            |
+| 4.7  | Resident Mobile App with Push     | 5      | 5      | v1     | 5.0            |
+| 4.5  | Offline-First Mobile              | 4      | 5      | v1     | 3.2            |
+| 4.6  | Digital Signage Integration       | 3      | 3      | v2     | 3.0            |
+| 4.8  | Webhook and API Ecosystem         | 4      | 4      | v2     | 4.0            |
+| 4.10 | Multi-Property Portfolio View     | 5      | 4      | v2     | 6.3            |
+|      | **ANALYTICS INNOVATION**          |        |        |        |                |
+| 5.1  | Staff Leaderboard                 | 3      | 1      | v2     | 9.0            |
+| 5.2  | Unit Heat Map                     | 4      | 2      | v2     | 8.0            |
+| 5.4  | Vendor Scorecard                  | 4      | 2      | v2     | 8.0            |
+| 5.5  | Building Health Score             | 4      | 3      | v2     | 5.3            |
+| 5.7  | Export as Presentation            | 3      | 3      | v2     | 3.0            |
+| 5.3  | Trend Prediction                  | 4      | 4      | v2     | 4.0            |
+| 5.6  | Comparative Analytics             | 4      | 4      | v3     | 4.0            |
 
 > **Priority Score formula**: Impact^2 / Effort. Higher is better. This naturally favors high-impact, low-effort items.
 
@@ -1344,24 +1346,24 @@ Higher impact and lower effort items are prioritized first.
 
 **v1 — Foundation (14 innovations)**
 
-| Category | Innovations |
-|----------|------------|
+| Category      | Innovations                                                                                                                                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AI-Native (8) | AI Daily Briefing, Semantic Search, Automated Report Narratives, Multi-Language Auto-Translation, Voice-to-Text Incident Reporting, Smart Anomaly Alerts, AI Cost Analytics Dashboard, Courier Label OCR |
-| Platform (6) | Role-Aware Everything, Command Palette, Real-Time Collaboration, Dark Mode, Customizable Dashboard Widgets, Resident Mobile App with Push, Offline-First Mobile |
+| Platform (6)  | Role-Aware Everything, Command Palette, Real-Time Collaboration, Dark Mode, Customizable Dashboard Widgets, Resident Mobile App with Push, Offline-First Mobile                                          |
 
 **v2 — Differentiation (15 innovations)**
 
-| Category | Innovations |
-|----------|------------|
+| Category      | Innovations                                                                                                                                                                                      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | AI-Native (7) | Smart Guard Scheduling, Predictive Maintenance, Resident Satisfaction Score, License Plate OCR, Natural Language Report Builder, Board Presentation Auto-Generator, Staff Performance AI Scoring |
-| Platform (3) | Digital Signage Integration, Webhook and API Ecosystem, Multi-Property Portfolio View |
-| Analytics (6) | Staff Leaderboard, Unit Heat Map, Trend Prediction, Vendor Scorecard, Building Health Score, Export as Presentation |
+| Platform (3)  | Digital Signage Integration, Webhook and API Ecosystem, Multi-Property Portfolio View                                                                                                            |
+| Analytics (6) | Staff Leaderboard, Unit Heat Map, Trend Prediction, Vendor Scorecard, Building Health Score, Export as Presentation                                                                              |
 
 **v3 — Market Leadership (3+ innovations)**
 
-| Category | Innovations |
-|----------|------------|
-| Analytics (1) | Comparative Analytics |
+| Category      | Innovations                                                                                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Analytics (1) | Comparative Analytics                                                                                                                                         |
 | Future Vision | IoT Integration, Smart Lock Integration, Cross-Property Staff Sharing, Vendor Network, Predictive Resident Turnover, Resident Passport, Community Marketplace |
 
 ### 8.3 Key Dependencies
@@ -1379,6 +1381,50 @@ Board Presentation ─────────→ requires: Report Narratives (v
 
 ---
 
-*Last updated: 2026-03-14*
-*Total innovations documented: 32 (15 AI-Native + 10 Platform + 7 Analytics)*
-*Target line count: 750+ lines*
+---
+
+## 9. Completeness Checklist
+
+### Implementation Note
+
+This PRD is a **feature catalog and roadmap**, not a buildable specification. Each innovation listed here is either:
+
+1. **Fully specified** in another PRD (cross-referenced below), or
+2. **Deferred** to a future PRD that will be written before development begins.
+
+No developer builds from this document alone. This document serves as the master index of planned innovations and their dependencies.
+
+### Cross-Reference to Buildable PRDs
+
+| Innovation                      | Fully Specified In                                  | Status                    |
+| ------------------------------- | --------------------------------------------------- | ------------------------- |
+| AI Daily Briefing               | PRD 14 (Dashboard), PRD 19 (AI Framework)           | v1 -- Buildable           |
+| Semantic Search                 | PRD 15 (Search & Navigation), PRD 19 (AI Framework) | v1 -- Buildable           |
+| Package OCR                     | PRD 04 (Package Management), PRD 19 (AI Framework)  | v1 -- Buildable           |
+| Incident Auto-Categorization    | PRD 03 (Security Console), PRD 19 (AI Framework)    | v1 -- Buildable           |
+| Smart Notification Timing       | PRD 09 (Communication), PRD 19 (AI Framework)       | v1 -- Buildable           |
+| Report Narratives               | PRD 10 (Reports & Analytics), PRD 19 (AI Framework) | v1 -- Buildable           |
+| Role-Aware Everything           | PRD 02 (Roles & Permissions), PRD 14 (Dashboard)    | v1 -- Buildable           |
+| Command Palette                 | PRD 15 (Search & Navigation)                        | v1 -- Buildable           |
+| Customizable Dashboard Widgets  | PRD 14 (Dashboard)                                  | v1 -- Buildable           |
+| Real-Time Collaboration         | PRD 01 (Architecture -- WebSocket)                  | v1 -- Buildable           |
+| Dark Mode                       | PRD 17 (Mobile & Responsive)                        | v1 -- Buildable           |
+| Smart Guard Scheduling          | Future PRD required                                 | v2 -- Not yet specified   |
+| Predictive Maintenance          | Future PRD required                                 | v2 -- Not yet specified   |
+| License Plate OCR               | PRD 13 (Parking), PRD 19 (AI Framework)             | v2 -- Buildable           |
+| Natural Language Report Builder | PRD 10 (Reports), PRD 19 (AI Framework)             | v2 -- Partially specified |
+| Building Health Score           | PRD 14 (Dashboard), PRD 19 (AI Framework)           | v2 -- Partially specified |
+| Digital Signage Integration     | Future PRD required                                 | v2 -- Not yet specified   |
+| Webhook and API Ecosystem       | PRD 26 (Developer Portal & API)                     | v2 -- Buildable           |
+| Multi-Property Portfolio View   | PRD 01 (Architecture)                               | v2 -- Partially specified |
+| Comparative Analytics           | Future PRD required                                 | v3 -- Not yet specified   |
+
+### Edge Cases
+
+Edge cases for each innovation are defined in the PRD where that innovation is fully specified. Innovations that are not yet fully specified (marked "Future PRD required" above) will have edge cases defined when their PRD is written.
+
+---
+
+_Last updated: 2026-03-17_
+_Total innovations documented: 32 (15 AI-Native + 10 Platform + 7 Analytics)_
+_Target line count: 750+ lines_

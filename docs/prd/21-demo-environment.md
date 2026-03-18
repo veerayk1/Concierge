@@ -1321,5 +1321,97 @@ Creates a production user account on the parent property with the same name, ema
 
 ---
 
-_Last updated: 2026-03-16_
+---
+
+## 12. Completeness Checklist
+
+### Feature Coverage
+
+| #   | Requirement                                                          | Status  | Section |
+| --- | -------------------------------------------------------------------- | ------- | ------- |
+| 1   | Sales demo with "Maple Heights" template (200 units, 400+ residents) | Covered | 3       |
+| 2   | Deterministic seeding with @faker-js/faker                           | Covered | 4       |
+| 3   | "View as [Role]" quick switcher                                      | Covered | 5       |
+| 4   | Training sandbox with staff onboarding                               | Covered | 6       |
+| 5   | Demo watermark on all screens                                        | Covered | 7       |
+| 6   | Notification suppression (logged but not delivered)                  | Covered | 7       |
+| 7   | Auto-expiry for demo properties (configurable, default 30 days)      | Covered | 8       |
+| 8   | Template versioning and upgrade path                                 | Covered | 11.7    |
+| 9   | Concurrent training environment limit (max 3 per property)           | Covered | 11.8    |
+| 10  | Data isolation using standard multi-tenant boundaries                | Covered | 7       |
+
+### Edge Case Coverage
+
+| #   | Requirement                                                                                                                                                                                                                                                                                    | Status  | Section         |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------- |
+| 1   | Demo expiry during active session                                                                                                                                                                                                                                                              | Covered | 11.1            |
+| 2   | Template version mismatch                                                                                                                                                                                                                                                                      | Covered | 11.7            |
+| 3   | Concurrent training limit exceeded                                                                                                                                                                                                                                                             | Covered | 11.8            |
+| 4   | Trainee email collision with production user                                                                                                                                                                                                                                                   | Covered | 11.9            |
+| 5   | Demo data reset while another user is viewing                                                                                                                                                                                                                                                  | Covered | 11.2            |
+| 6   | Graceful demo expiry mid-session: active users see a modal "This demo has expired. Your session will end in 60 seconds." with a countdown timer. After 60 seconds, the user is redirected to a "Demo Expired" page with a "Request New Demo" CTA. No data loss because demo data is ephemeral. | Covered | 11.1 (expanded) |
+
+---
+
+## ADDENDUM: Gap Analysis Fixes (2026-03-17)
+
+> Added from GAP-ANALYSIS-FINAL.md gap 21.1
+
+### A1. Demo Usage Analytics for Sales Follow-Up (Gap 21.1, Medium)
+
+The Training Sandbox has a TrainingProgress model that tracks trainee activity per module, but Sales Demos have no equivalent analytics. Sales reps need to know which features prospects interacted with and how much time they spent in each module to inform follow-up conversations.
+
+#### DemoAnalytics Model
+
+| Field                | Type     | Description                                                                                                            |
+| -------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `id`                 | UUID     | Primary key                                                                                                            |
+| `property_id`        | UUID     | The demo property                                                                                                      |
+| `session_id`         | UUID     | Groups activity within a single demo session (from login to logout or 30-minute idle timeout)                          |
+| `user_id`            | UUID     | The sales rep or prospect (if self-guided link is used)                                                                |
+| `module_slug`        | String   | Which module was visited (e.g., "security-console", "packages", "maintenance")                                         |
+| `first_visited_at`   | DateTime | First time this module was opened in this session                                                                      |
+| `last_visited_at`    | DateTime | Most recent activity in this module in this session                                                                    |
+| `time_spent_seconds` | Integer  | Cumulative active time in this module (pauses after 60 seconds of inactivity)                                          |
+| `actions_count`      | Integer  | Number of create/edit/delete/view-detail actions taken                                                                 |
+| `features_used`      | JSONB    | Array of specific feature identifiers interacted with (e.g., ["batch_event_create", "filter_by_status", "export_pdf"]) |
+
+#### Demo Analytics Dashboard
+
+Accessible from Demo Management > [Demo Name] > Analytics tab (visible to Super Admin and Sales Rep roles).
+
+**Summary View:**
+
+| #   | Metric              | Description                                          |
+| --- | ------------------- | ---------------------------------------------------- |
+| 1   | Total demo sessions | Count of distinct sessions for this demo environment |
+| 2   | Total time spent    | Cumulative active time across all sessions           |
+| 3   | Modules visited     | Checkmarks for each module visited at least once     |
+| 4   | Most-used module    | Module with highest time_spent_seconds               |
+| 5   | Features explored   | Count of distinct features interacted with           |
+| 6   | Last session date   | When the demo was last accessed                      |
+
+**Module Breakdown Table:**
+
+| #   | Column       | Description                           |
+| --- | ------------ | ------------------------------------- |
+| 1   | Module       | Module name with icon                 |
+| 2   | Visits       | Number of times the module was opened |
+| 3   | Time Spent   | Formatted duration (e.g., "12m 30s")  |
+| 4   | Actions      | Count of actions taken                |
+| 5   | Key Features | Top 3 features used within the module |
+
+**Session Timeline** (expandable):
+
+Each session is shown as a horizontal timeline bar with colored segments per module (similar to a Gantt chart), showing the order and duration of module visits within that session. Hovering on a segment shows module name and time spent.
+
+#### Sales Follow-Up Integration
+
+- When a demo session ends (logout or expiry), the assigned sales rep receives an email summary: "Demo session completed for [Prospect Name]. They spent [X minutes] across [N modules]. Top interest: [Module Name] ([Y minutes])."
+- The analytics data is exportable as CSV for CRM integration.
+- A "Suggested talking points" section (AI-generated, v2) analyzes which modules the prospect spent the most time in and suggests relevant value propositions for the follow-up call.
+
+---
+
+_Last updated: 2026-03-17_
 _Author: Concierge Product Team_

@@ -134,7 +134,17 @@ Super Admin
 | **Primary Dashboard** | Maintenance dashboard -- assigned requests (priority-sorted), equipment alerts, scheduled tasks, work order queue                                                                     |
 | **What They See**     | Maintenance (assigned requests, update status, log work), Equipment (view + update), Dashboard (maintenance KPIs), Training (own courses), Shift Log (own entries).                   |
 | **What Is Hidden**    | Security Console, Packages, Amenity configuration, Units (edit), User Management, Announcements (create), Reports (except maintenance), Settings, Community, Parking, Financial data. |
-| **Typical User**      | Building superintendent, maintenance technician, janitor                                                                                                                              |
+| **Typical User**      | Maintenance technician, janitor, handyperson                                                                                                                                          |
+
+#### Superintendent
+
+| Attribute             | Detail                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Description**       | Building's on-site superintendent responsible for hands-on maintenance, building systems oversight, and facility upkeep. Distinct from Maintenance Staff by having broader authority over building systems, equipment, unit entry coordination, and direct communication with Property Manager. Has their own dedicated login and dashboard. In Canadian condo culture, the superintendent is a recognized title with specific legal obligations (e.g., Ontario RTA provisions for live-in superintendents). Using a distinct role improves admin clarity during property setup.                                                                                                         |
+| **Primary Dashboard** | Superintendent command center -- assigned requests (priority-sorted), building systems status (HVAC, plumbing, electrical), equipment alerts, today's schedule, parts/supply requests pending, emergency contacts quick-access                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **What They See**     | Maintenance requests assigned to them (full lifecycle: view details, change status, log work, upload photos/notes, print work orders), Equipment they are responsible for (view, update status, flag for replacement), Unit access instructions and permission-to-enter status for units with assigned requests (read-only), Building systems status panel (HVAC, plumbing, electrical -- read-only), Emergency contacts for units they service, Their own work log and completed work history, Their assigned schedule and upcoming tasks, Parts/supply request channel to Property Manager, Training (own courses), Shift Log (own entries), Announcements (view only).                |
+| **What Is Hidden**    | Financial data and reports (budgets, invoices, cost summaries), Board governance (meetings, votes, documents), Resident personal information beyond unit number and entry instructions needed for service, Admin settings and configuration, Billing and subscription management, User management (create/edit/deactivate accounts), Security Console (create/manage security events), Package operations (intake/release), Amenity configuration and booking management, Parking management and violations, Community moderation, Announcement creation/editing, Analytics dashboards beyond own work metrics, Vendor management and compliance, Report generation beyond own work log. |
+| **Typical User**      | Building superintendent, building super, resident superintendent, live-in super                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ### 2.2 Resident Roles
 
@@ -184,161 +194,246 @@ Super Admin
 
 ### 3.1 Security Console
 
-| Action              | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Owner | Tenant | Offsite Owner | Family |
-| ------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :---: | :----: | :-----------: | :----: |
-| Create event        |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     | None  |  None  |     None      |  None  |
-| View all events     |    Full     |      Full      |     None     |       Full       |        Full         |   View Only    | View Only |    None     | None  |  None  |     None      |  None  |
-| Edit events         |    Full     |      Full      |     None     |       Full       |        Full         |    Own Only    | Own Only  |    None     | None  |  None  |     None      |  None  |
-| Delete events       |    Full     |      Full      |     None     |   Configurable   |        Full         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| View analytics      |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Export              |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Emergency broadcast |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
+| Action              | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| ------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| Create event        |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |      None      | None  |  None  |     None      |  None  |
+| View all events     |    Full     |      Full      |     None     |       Full       |        Full         |   View Only    | View Only |    None     |      None      | None  |  None  |     None      |  None  |
+| Edit events         |    Full     |      Full      |     None     |       Full       |        Full         |    Own Only    | Own Only  |    None     |      None      | None  |  None  |     None      |  None  |
+| Delete events       |    Full     |      Full      |     None     |   Configurable   |        Full         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| View analytics      |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Export              |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Emergency broadcast |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
 
 ### 3.2 Packages
 
-| Action          | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance |  Owner   |  Tenant  | Offsite Owner |  Family  |
-| --------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------: | :------: | :-----------: | :------: |
-| Create (intake) |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |   None   |   None   |     None      |   None   |
-| Release         |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |   None   |   None   |     None      |   None   |
-| View all        |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |   None   |   None   |     None      |   None   |
-| View own        |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     | Own Only | Own Only |     None      | Own Only |
-| Export          |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     |   None   |   None   |     None      |   None   |
-| Analytics       |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     |   None   |   None   |     None      |   None   |
-| Print label     |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |   None   |   None   |     None      |   None   |
+| Action          | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent |  Owner   |  Tenant  | Offsite Owner |  Family  |
+| --------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :------: | :------: | :-----------: | :------: |
+| Create (intake) |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |      None      |   None   |   None   |     None      |   None   |
+| Release         |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |      None      |   None   |   None   |     None      |   None   |
+| View all        |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |      None      |   None   |   None   |     None      |   None   |
+| View own        |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |      None      | Own Only | Own Only |     None      | Own Only |
+| Export          |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |   None   |
+| Analytics       |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |   None   |
+| Print label     |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |      None      |   None   |   None   |     None      |   None   |
 
 ### 3.3 Maintenance
 
-| Action             | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance |  Owner   |  Tenant  | Offsite Owner | Family |
-| ------------------ | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------: | :------: | :-----------: | :----: |
-| Create request     |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     | Own Only | Own Only |     None      |  None  |
-| Assign vendor      |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |  None  |
-| Assign staff       |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |  None  |
-| Change status      |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    Full     |   None   |   None   |     None      |  None  |
-| View all requests  |    Full     |      Full      |  View Only   |       Full       |        None         |      None      |   None    |  View Only  |   None   |   None   |     None      |  None  |
-| View own requests  |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |  Own Only   | Own Only | Own Only |     None      |  None  |
-| Upload photos/docs |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    Full     | Own Only | Own Only |     None      |  None  |
-| Analytics          |    Full     |      Full      |  View Only   |       Full       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |  None  |
-| Print work order   |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    Full     |   None   |   None   |     None      |  None  |
+| Action             | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent |  Owner   |  Tenant  | Offsite Owner | Family |
+| ------------------ | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :------: | :------: | :-----------: | :----: |
+| Create request     |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      Full      | Own Only | Own Only |     None      |  None  |
+| Assign vendor      |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |  None  |
+| Assign staff       |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |  None  |
+| Change status      |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    Full     |      Full      |   None   |   None   |     None      |  None  |
+| View all requests  |    Full     |      Full      |  View Only   |       Full       |        None         |      None      |   None    |  View Only  |    Assigned    |   None   |   None   |     None      |  None  |
+| View own requests  |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |  Own Only   |    Own Only    | Own Only | Own Only |     None      |  None  |
+| Upload photos/docs |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    Full     |      Full      | Own Only | Own Only |     None      |  None  |
+| Analytics          |    Full     |      Full      |  View Only   |       Full       |        None         |      None      |   None    |    None     |    Own Work    |   None   |   None   |     None      |  None  |
+| Print work order   |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    Full     |      Full      |   None   |   None   |     None      |  None  |
 
 ### 3.4 Amenities
 
-| Action                | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Owner | Tenant | Offsite Owner | Family |
-| --------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :---: | :----: | :-----------: | :----: |
-| Book                  |    Full     |      Full      |     Full     |       Full       |        None         |      None      |   Full    |    None     | Full  |  Full  | Configurable  |  Full  |
-| Approve booking       |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Configure amenity     |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| View calendar         |    Full     |      Full      |     Full     |       Full       |        None         |      None      |   Full    |    None     | Full  |  Full  | Configurable  |  Full  |
-| Cancel own booking    |    Full     |      Full      |     Full     |       Full       |        None         |      None      |   Full    |    None     | Full  |  Full  | Configurable  |  Full  |
-| Cancel any booking    |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Analytics             |    Full     |      Full      |  View Only   |       Full       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Payment configuration |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
+| Action                | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| --------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| Book                  |    Full     |      Full      |     Full     |       Full       |        None         |      None      |   Full    |    None     |      None      | Full  |  Full  | Configurable  |  Full  |
+| Approve booking       |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Configure amenity     |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| View calendar         |    Full     |      Full      |     Full     |       Full       |        None         |      None      |   Full    |    None     |      None      | Full  |  Full  | Configurable  |  Full  |
+| Cancel own booking    |    Full     |      Full      |     Full     |       Full       |        None         |      None      |   Full    |    None     |      None      | Full  |  Full  | Configurable  |  Full  |
+| Cancel any booking    |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Analytics             |    Full     |      Full      |  View Only   |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Payment configuration |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
 
 ### 3.5 Units and Residents
 
-| Action                       | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance |  Owner   |  Tenant  | Offsite Owner |  Family  |
-| ---------------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------: | :------: | :-----------: | :------: |
-| View unit file               |    Full     |      Full      |  View Only   |       Full       |      View Only      |   View Only    | View Only |  View Only  | Own Only | Own Only |   Own Only    | Own Only |
-| Edit unit                    |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |   None   |
-| Add resident                 |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |   None   |
-| Remove resident              |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |   None   |
-| View all units               |    Full     |      Full      |  View Only   |       Full       |      View Only      |   View Only    | View Only |    None     |   None   |   None   |     None      |   None   |
-| Edit front desk instructions |    Full     |      Full      |     None     |       Full       |        None         |      None      |   Full    |    None     |   None   |   None   |     None      |   None   |
-| View emergency contacts      |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     | Own Only | Own Only |     None      |   None   |
-| Manage FOBs/keys             |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   None    |    None     |   None   |   None   |     None      |   None   |
+| Action                       | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent |  Owner   |  Tenant  | Offsite Owner |  Family  |
+| ---------------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :------: | :------: | :-----------: | :------: |
+| View unit file               |    Full     |      Full      |  View Only   |       Full       |      View Only      |   View Only    | View Only |  View Only  |    Limited     | Own Only | Own Only |   Own Only    | Own Only |
+| Edit unit                    |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |   None   |
+| Add resident                 |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |   None   |
+| Remove resident              |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |   None   |
+| View all units               |    Full     |      Full      |  View Only   |       Full       |      View Only      |   View Only    | View Only |    None     |      None      |   None   |   None   |     None      |   None   |
+| Edit front desk instructions |    Full     |      Full      |     None     |       Full       |        None         |      None      |   Full    |    None     |      None      |   None   |   None   |     None      |   None   |
+| View emergency contacts      |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |    Assigned    | Own Only | Own Only |     None      |   None   |
+| Manage FOBs/keys             |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   None    |    None     |      None      |   None   |   None   |     None      |   None   |
 
 ### 3.6 User Management
 
-| Action             | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance |  Owner   |  Tenant  | Offsite Owner |  Family  |
-| ------------------ | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------: | :------: | :-----------: | :------: |
-| Create user        |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |   None   |
-| Edit user          |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |   None   |
-| Deactivate user    |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |   None   |
-| View profile       |    Full     |      Full      |     None     |       Full       |      View Only      |   View Only    | View Only |    None     | Own Only | Own Only |   Own Only    | Own Only |
-| Change role        |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |   None   |
-| View audit log     |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |   None   |
-| Send welcome email |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |   None   |
+| Action             | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent |  Owner   |  Tenant  | Offsite Owner |  Family  |
+| ------------------ | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :------: | :------: | :-----------: | :------: |
+| Create user        |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |   None   |
+| Edit user          |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |   None   |
+| Deactivate user    |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |   None   |
+| View profile       |    Full     |      Full      |     None     |       Full       |      View Only      |   View Only    | View Only |    None     |      None      | Own Only | Own Only |   Own Only    | Own Only |
+| Change role        |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |   None   |
+| View audit log     |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |   None   |
+| Send welcome email |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |   None   |
 
 ### 3.7 Announcements
 
-| Action                   | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Owner | Tenant | Offsite Owner | Family |
-| ------------------------ | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :---: | :----: | :-----------: | :----: |
-| Create                   |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Edit                     |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Delete                   |    Full     |      Full      |     None     |   Configurable   |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| View                     |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     | Full  |  Full  |     Full      |  Full  |
-| Send emergency           |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Multi-channel distribute |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
+| Action                   | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| ------------------------ | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| Create                   |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Edit                     |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Delete                   |    Full     |      Full      |     None     |   Configurable   |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| View                     |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     |      Full      | Full  |  Full  |     Full      |  Full  |
+| Send emergency           |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Multi-channel distribute |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
 
 ### 3.8 Reports
 
-| Action               | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Owner | Tenant | Offsite Owner | Family |
-| -------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :---: | :----: | :-----------: | :----: |
-| View reports         |    Full     |      Full      |     Full     |       Full       |     Own Module      |      None      |   None    | Own Module  | None  |  None  |     None      |  None  |
-| Export (Excel/PDF)   |    Full     |      Full      |     Full     |       Full       |     Own Module      |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Schedule reports     |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Create custom report |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| AI summaries         |    Full     |      Full      |     Full     |       Full       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
+| Action               | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| -------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| View reports         |    Full     |      Full      |     Full     |       Full       |     Own Module      |      None      |   None    | Own Module  |    Own Work    | None  |  None  |     None      |  None  |
+| Export (Excel/PDF)   |    Full     |      Full      |     Full     |       Full       |     Own Module      |      None      |   None    |    None     |    Own Work    | None  |  None  |     None      |  None  |
+| Schedule reports     |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Create custom report |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| AI summaries         |    Full     |      Full      |     Full     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
 
 ### 3.9 Training / LMS
 
-| Action             | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Owner | Tenant | Offsite Owner | Family |
-| ------------------ | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :---: | :----: | :-----------: | :----: |
-| Create course      |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Edit course        |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Assign course      |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Complete course    |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    Full     | None  |  None  |     None      |  None  |
-| View team progress |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| View own progress  |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    Full     | None  |  None  |     None      |  None  |
+| Action             | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| ------------------ | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| Create course      |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Edit course        |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Assign course      |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Complete course    |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    Full     |      Full      | None  |  None  |     None      |  None  |
+| View team progress |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| View own progress  |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    Full     |      Full      | None  |  None  |     None      |  None  |
 
 ### 3.10 Community (Events, Classified Ads, Marketplace)
 
-| Action                   | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance |  Owner   |  Tenant  | Offsite Owner | Family |
-| ------------------------ | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------: | :------: | :-----------: | :----: |
-| Post                     |    Full     |      Full      |     Full     |       Full       |        None         |      None      |   None    |    None     |   Full   |   Full   |     None      |  None  |
-| Edit own post            |    Full     |      Full      |     Full     |       Full       |        None         |      None      |   None    |    None     |   Full   |   Full   |     None      |  None  |
-| Moderate (edit/hide any) |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |   None   |   None   |     None      |  None  |
-| Delete                   |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     | Own Only | Own Only |     None      |  None  |
-| View                     |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     |   Full   |   Full   |     Full      |  Full  |
+| Action                   | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent |  Owner   |  Tenant  | Offsite Owner | Family |
+| ------------------------ | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :------: | :------: | :-----------: | :----: |
+| Post                     |    Full     |      Full      |     Full     |       Full       |        None         |      None      |   None    |    None     |      None      |   Full   |   Full   |     None      |  None  |
+| Edit own post            |    Full     |      Full      |     Full     |       Full       |        None         |      None      |   None    |    None     |      None      |   Full   |   Full   |     None      |  None  |
+| Moderate (edit/hide any) |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      |   None   |   None   |     None      |  None  |
+| Delete                   |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | Own Only | Own Only |     None      |  None  |
+| View                     |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     |      Full      |   Full   |   Full   |     Full      |  Full  |
 
 ### 3.11 Parking
 
-| Action                 | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Owner | Tenant | Offsite Owner | Family |
-| ---------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :---: | :----: | :-----------: | :----: |
-| Create visitor pass    |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     | Full  |  Full  |     None      |  None  |
-| Create violation       |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   None    |    None     | None  |  None  |     None      |  None  |
-| Manage permits         |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| View analytics         |    Full     |      Full      |  View Only   |       Full       |        Full         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Configure rules/limits |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Print pass             |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     | None  |  None  |     None      |  None  |
+| Action                 | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| ---------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| Create visitor pass    |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |      None      | Full  |  Full  |     None      |  None  |
+| Create violation       |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Manage permits         |    Full     |      Full      |     None     |       Full       |        Full         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| View analytics         |    Full     |      Full      |  View Only   |       Full       |        Full         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Configure rules/limits |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Print pass             |    Full     |      Full      |     None     |       Full       |        Full         |      Full      |   Full    |    None     |      None      | None  |  None  |     None      |  None  |
 
 ### 3.12 Settings
 
-| Action                 | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Owner | Tenant | Offsite Owner | Family |
-| ---------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :---: | :----: | :-----------: | :----: |
-| View settings          |    Full     |      Full      |     None     |    View Only     |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Edit settings          |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| AI configuration       |    Full     |  Configurable  |     None     |       None       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Payment configuration  |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Role management        |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Building configuration |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
+| Action                 | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| ---------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| View settings          |    Full     |      Full      |     None     |    View Only     |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Edit settings          |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| AI configuration       |    Full     |  Configurable  |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Payment configuration  |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Role management        |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Building configuration |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
 
 ### 3.13 AI Features
 
-| Action              | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Owner | Tenant | Offsite Owner | Family |
-| ------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :---: | :----: | :-----------: | :----: |
-| Global AI toggle    |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Per-feature toggle  |    Full     |  Configurable  |     None     |       None       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| View cost dashboard |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Configure provider  |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     | None  |  None  |     None      |  None  |
-| Use AI features     |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     | Full  |  Full  |     Full      |  Full  |
+| Action              | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| ------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| Global AI toggle    |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Per-feature toggle  |    Full     |  Configurable  |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| View cost dashboard |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Configure provider  |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Use AI features     |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     |      Full      | Full  |  Full  |     Full      |  Full  |
 
 ### 3.14 Dashboard and Search
 
-| Action          | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance |  Owner   |  Tenant  | Offsite Owner |  Family  |
-| --------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------: | :------: | :-----------: | :------: |
-| View dashboard  |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     |   Full   |   Full   |     Full      |   Full   |
-| Global search   |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     | Own Data | Own Data |   Own Data    | Own Data |
-| Command palette |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     |   Full   |   Full   |     Full      |   Full   |
+| Action          | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent |  Owner   |  Tenant  | Offsite Owner |  Family  |
+| --------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :------: | :------: | :-----------: | :------: |
+| View dashboard  |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     |      Full      |   Full   |   Full   |     Full      |   Full   |
+| Global search   |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     |      Full      | Own Data | Own Data |   Own Data    | Own Data |
+| Command palette |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     |      Full      |   Full   |   Full   |     Full      |   Full   |
+
+### 3.15 Approvals
+
+| Action          | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| --------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| View pending    |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Approve/decline |    Full     |      Full      |     None     |   Configurable   |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Batch approve   |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+
+### 3.16 Scheduled Reports
+
+| Action             | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| ------------------ | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| Create schedule    |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Edit schedule      |    Full     |      Full      |     None     |     Own Only     |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Delete schedule    |    Full     |      Full      |     None     |     Own Only     |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| View all schedules |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+
+### 3.17 Feature Flags (Super Admin Only)
+
+| Action                | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| --------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| View flags            |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Toggle global         |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Override per property |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+
+### 3.18 Compliance
+
+| Action               | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| -------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| View dashboard       |    Full     |      Full      |  View Only   |    View Only     |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Generate reports     |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Grant auditor access |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Configure monitoring |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+
+### 3.19 Demo & Training Environments
+
+| Action                  | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| ----------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| Create sales demo       |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Manage sales demos      |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Create training sandbox |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Manage training sandbox |    Full     |      Full      |     None     |       Full       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Manage demo templates   |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+
+### 3.20 Platform Operations (Super Admin Only)
+
+| Action                     | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| -------------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| Create property            |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Delete property            |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| View system health         |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Backup & recovery          |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Cross-property user search |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Merge user accounts        |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Platform analytics         |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Revenue dashboard          |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Manage release notes       |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Support ticket escalation  |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Emergency AI shutdown      |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Event type library         |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+
+### 3.21 Billing & Subscription
+
+| Action                  | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| ----------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| View current plan       |    Full     |      Full      |     None     |    View Only     |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| View usage meters       |    Full     |      Full      |     None     |    View Only     |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Change plan             |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Update payment method   |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| View invoices           |    Full     |      Full      |  View Only   |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Download invoice PDF    |    Full     |      Full      |     Full     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Cancel subscription     |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| View revenue dashboard  |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Apply credits/discounts |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Configure plan tiers    |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+
+### 3.22 Help Center
+
+| Action                | Super Admin | Property Admin | Board Member | Property Manager | Security Supervisor | Security Guard | Concierge | Maintenance | Superintendent | Owner | Tenant | Offsite Owner | Family |
+| --------------------- | :---------: | :------------: | :----------: | :--------------: | :-----------------: | :------------: | :-------: | :---------: | :------------: | :---: | :----: | :-----------: | :----: |
+| View help articles    |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     |      Full      | Full  |  Full  |     Full      |  Full  |
+| Create/edit articles  |    Full     |      Full      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
+| Submit support ticket |    Full     |      Full      |     Full     |       Full       |        Full         |      Full      |   Full    |    Full     |      Full      | Full  |  Full  |     None      |  None  |
+| Manage KB settings    |    Full     |      None      |     None     |       None       |        None         |      None      |   None    |    None     |      None      | None  |  None  |     None      |  None  |
 
 ---
 
@@ -348,16 +443,17 @@ Super Admin
 
 Permissions flow downward through the hierarchy. A higher-tier role inherits all permissions of the roles below it in its branch, plus additional permissions specific to its tier.
 
-| Role                       | Inherits From           | Additional Permissions                                                                                         |
-| -------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Super Admin**            | All roles               | System settings, multi-property, AI provider config, billing, platform-wide analytics                          |
-| **Property Admin**         | Property Manager        | User management (CRUD), role assignment, property settings, payment config, AI feature toggles                 |
-| **Property Manager**       | (base staff role)       | Maintenance assignment, vendor management, announcements (CRUD), reports, amenity config, community moderation |
-| **Security Supervisor**    | Security Guard          | Security analytics, team performance, export, shift log (all guards), escalation management, report access     |
-| **Security Guard**         | (base security role)    | Event creation, package intake/release, visitor passes, parking violations, key checkout                       |
-| **Front Desk / Concierge** | (base front desk role)  | Package full lifecycle, visitor registration, amenity booking (on behalf), front desk instructions edit        |
-| **Maintenance Staff**      | (base maintenance role) | Work order updates, equipment management, own shift entries                                                    |
-| **Board Member**           | (independent branch)    | Reports, governance docs, building analytics, survey access, approval workflows                                |
+| Role                       | Inherits From           | Additional Permissions                                                                                                                                                               |
+| -------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Super Admin**            | All roles               | System settings, multi-property, AI provider config, billing, platform-wide analytics                                                                                                |
+| **Property Admin**         | Property Manager        | User management (CRUD), role assignment, property settings, payment config, AI feature toggles                                                                                       |
+| **Property Manager**       | (base staff role)       | Maintenance assignment, vendor management, announcements (CRUD), reports, amenity config, community moderation                                                                       |
+| **Security Supervisor**    | Security Guard          | Security analytics, team performance, export, shift log (all guards), escalation management, report access                                                                           |
+| **Security Guard**         | (base security role)    | Event creation, package intake/release, visitor passes, parking violations, key checkout                                                                                             |
+| **Front Desk / Concierge** | (base front desk role)  | Package full lifecycle, visitor registration, amenity booking (on behalf), front desk instructions edit                                                                              |
+| **Maintenance Staff**      | (base maintenance role) | Work order updates, equipment management, own shift entries                                                                                                                          |
+| **Superintendent**         | Maintenance Staff       | Building systems status, unit entry instructions (assigned units), emergency contacts (assigned units), parts/supply requests to PM, create maintenance requests, own work analytics |
+| **Board Member**           | (independent branch)    | Reports, governance docs, building analytics, survey access, approval workflows                                                                                                      |
 
 ### 4.2 Inheritance Constraints
 
@@ -507,7 +603,16 @@ The sidebar adapts to show only relevant items. Items not listed for a role are 
 | **OPERATIONS** | Service Requests (assigned) |
 | **DAILY**      | Shift Log, Training         |
 
-### 7.9 Resident (Owner)
+### 7.9 Superintendent
+
+| Section        | Items                                                       |
+| -------------- | ----------------------------------------------------------- |
+| **OVERVIEW**   | Dashboard                                                   |
+| **OPERATIONS** | Service Requests (assigned + own created), Building Systems |
+| **RESOURCES**  | Equipment, Parts & Supplies                                 |
+| **DAILY**      | My Schedule, Shift Log, Training, Announcements (view)      |
+
+### 7.10 Resident (Owner)
 
 | Section      | Items                                                |
 | ------------ | ---------------------------------------------------- |
@@ -516,7 +621,7 @@ The sidebar adapts to show only relevant items. Items not listed for a role are 
 | **BUILDING** | Announcements, Events, Marketplace, Library, Surveys |
 | **ACCOUNT**  | My Account                                           |
 
-### 7.10 Resident (Tenant)
+### 7.11 Resident (Tenant)
 
 | Section      | Items                                       |
 | ------------ | ------------------------------------------- |
@@ -525,7 +630,7 @@ The sidebar adapts to show only relevant items. Items not listed for a role are 
 | **BUILDING** | Announcements, Events, Marketplace, Library |
 | **ACCOUNT**  | My Account                                  |
 
-### 7.11 Resident (Offsite Owner)
+### 7.12 Resident (Offsite Owner)
 
 | Section      | Items                                          |
 | ------------ | ---------------------------------------------- |
@@ -533,7 +638,7 @@ The sidebar adapts to show only relevant items. Items not listed for a role are 
 | **BUILDING** | Announcements, Events (view), Library, Surveys |
 | **ACCOUNT**  | My Account                                     |
 
-### 7.12 Family Member
+### 7.13 Family Member
 
 | Section      | Items                          |
 | ------------ | ------------------------------ |
@@ -548,20 +653,21 @@ The sidebar adapts to show only relevant items. Items not listed for a role are 
 
 Each role sees a different dashboard layout optimized for their workflow.
 
-| Role                    | Dashboard Type            | KPI Cards                                                                     | Quick Actions                                     | Activity Feed                      |
-| ----------------------- | ------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------- |
-| **Super Admin**         | System overview           | Platform health, total properties, AI spend, active users                     | Switch property, View alerts, AI config           | Cross-property alerts              |
-| **Property Admin**      | Management overview       | Open requests, unreleased packages, active visitors, bookings, resident count | Create user, Send announcement, View reports      | All building activity              |
-| **Board Member**        | Governance overview       | Financial summary, compliance %, pending approvals, satisfaction score        | View reports, Upcoming meetings                   | Governance-relevant items          |
-| **Property Manager**    | Operations command center | Open requests, unreleased packages, active visitors, bookings                 | Create announcement, Assign request, View reports | Staff activity, requests, packages |
-| **Security Supervisor** | Security analytics        | Incident count, guard coverage, open escalations, patrol status               | View reports, Manage shifts, Review incidents     | Security events (all guards)       |
-| **Security Guard**      | Action-oriented           | Active visitors, unreleased packages, keys out                                | + Visitor, + Package, + Incident, + Key           | Recent activity log (own shift)    |
-| **Concierge**           | Front desk hub            | Unreleased packages, expected visitors, pending items                         | + Package, + Visitor, + Note                      | Recent front desk activity         |
-| **Maintenance**         | Work queue                | Assigned requests (by priority), equipment alerts, scheduled tasks            | Update request, Log work, View schedule           | Assigned work orders               |
-| **Resident (Owner)**    | Personal portal           | My packages, open requests, upcoming bookings                                 | Book amenity, Submit request, View directory      | Personal notifications             |
-| **Resident (Tenant)**   | Personal portal           | My packages, open requests, upcoming bookings                                 | Book amenity, Submit request                      | Personal notifications             |
-| **Offsite Owner**       | Limited portal            | Announcements count, upcoming events                                          | View announcements, View library                  | Building updates                   |
-| **Family Member**       | Basic portal              | My packages, upcoming bookings                                                | Book amenity                                      | Personal notifications             |
+| Role                    | Dashboard Type            | KPI Cards                                                                                 | Quick Actions                                          | Activity Feed                          |
+| ----------------------- | ------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------- |
+| **Super Admin**         | System overview           | Platform health, total properties, AI spend, active users                                 | Switch property, View alerts, AI config                | Cross-property alerts                  |
+| **Property Admin**      | Management overview       | Open requests, unreleased packages, active visitors, bookings, resident count             | Create user, Send announcement, View reports           | All building activity                  |
+| **Board Member**        | Governance overview       | Financial summary, compliance %, pending approvals, satisfaction score                    | View reports, Upcoming meetings                        | Governance-relevant items              |
+| **Property Manager**    | Operations command center | Open requests, unreleased packages, active visitors, bookings                             | Create announcement, Assign request, View reports      | Staff activity, requests, packages     |
+| **Security Supervisor** | Security analytics        | Incident count, guard coverage, open escalations, patrol status                           | View reports, Manage shifts, Review incidents          | Security events (all guards)           |
+| **Security Guard**      | Action-oriented           | Active visitors, unreleased packages, keys out                                            | + Visitor, + Package, + Incident, + Key                | Recent activity log (own shift)        |
+| **Concierge**           | Front desk hub            | Unreleased packages, expected visitors, pending items                                     | + Package, + Visitor, + Note                           | Recent front desk activity             |
+| **Maintenance**         | Work queue                | Assigned requests (by priority), equipment alerts, scheduled tasks                        | Update request, Log work, View schedule                | Assigned work orders                   |
+| **Superintendent**      | Superintendent command    | Assigned requests (priority), building systems status, equipment alerts, today's schedule | Update request, Log work, Request parts, View schedule | Assigned work, building systems alerts |
+| **Resident (Owner)**    | Personal portal           | My packages, open requests, upcoming bookings                                             | Book amenity, Submit request, View directory           | Personal notifications                 |
+| **Resident (Tenant)**   | Personal portal           | My packages, open requests, upcoming bookings                                             | Book amenity, Submit request                           | Personal notifications                 |
+| **Offsite Owner**       | Limited portal            | Announcements count, upcoming events                                                      | View announcements, View library                       | Building updates                       |
+| **Family Member**       | Basic portal              | My packages, upcoming bookings                                                            | Book amenity                                           | Personal notifications                 |
 
 ---
 
@@ -603,7 +709,7 @@ In `DEMO` property environments, any authenticated user can preview the platform
 | Aspect               | Detail                                                                                                                                                                                                                                                                                                                                              |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Trigger**          | Dropdown in the top bar, visible only when `property_type = DEMO`                                                                                                                                                                                                                                                                                   |
-| **Options**          | All built-in roles: Super Admin, Property Admin, Board Member, Property Manager, Security Supervisor, Security Guard, Front Desk / Concierge, Maintenance Staff, Resident (Owner), Resident (Tenant), Offsite Owner, Family Member                                                                                                                  |
+| **Options**          | All 13 built-in roles: Super Admin, Property Admin, Board Member, Property Manager, Security Supervisor, Security Guard, Front Desk / Concierge, Maintenance Staff, Superintendent, Resident (Owner), Resident (Tenant), Offsite Owner, Family Member                                                                                               |
 | **Behavior**         | Switching the dropdown changes the **UI rendering context only**. The sidebar, dashboard, available actions, and data visibility all update to reflect the selected role.                                                                                                                                                                           |
 | **Does NOT change**  | The user's actual role in the database. The user's session token. The user's audit trail identity. API permissions remain bound to the user's real role -- the switcher applies a client-side rendering override with a server-side "view-as" parameter that adjusts response shapes but does not grant write access beyond the user's actual role. |
 | **Visual indicator** | A persistent banner at the top of the page: "You are viewing as [Role Name]. Your actual role is [Real Role]." with a "Reset" button.                                                                                                                                                                                                               |
@@ -646,6 +752,120 @@ A single user account can hold different roles across different properties. This
 | **Session scope**         | At any given moment, a user's session is scoped to one property. The active property is stored in the session. All API calls are scoped to the active property.                                                                         |
 | **Role change isolation** | Changing a user's role at Property A has zero effect on their role at Property B. Role changes are per-property.                                                                                                                        |
 | **Deactivation scope**    | A user can be deactivated at one property while remaining active at others. Full account deactivation (across all properties) is a separate Super Admin action.                                                                         |
+
+---
+
+## ADDENDUM: Gap Analysis Fixes (2026-03-17)
+
+> Added from GAP-ANALYSIS-FINAL.md gap 2.1
+
+### A1. Superintendent Role (Gap 2.1, High) -- RESOLVED
+
+**Resolution**: Option A implemented. Superintendent added as the 13th built-in role with full role definition (Section 2.1), complete permission matrix across all 22 modules (Section 3), navigation visibility (Section 7.9), dashboard layout (Section 8), and inheritance rules (Section 4.1). The Superintendent inherits from Maintenance Staff with additional permissions for building systems status, unit entry instructions, emergency contacts, parts/supply requests, and own work analytics. See also PRD 05 (Maintenance) for the Superintendent-specific workflow.
+
+### A2. Security Officer Role Designation (Gap M9, Medium — ISO 27001 A.5.2)
+
+**Purpose**: ISO 27001 Annex A Control A.5.2 requires that information security roles and responsibilities are defined and allocated. The platform must support designating a "Security Officer" — the person responsible for information security policy oversight at the property level.
+
+**Implementation**: This is NOT a new role in the RBAC system. It is a **tag/designation** applied to an existing user who holds an Admin-tier role (Property Admin, Super Admin, or Property Manager).
+
+#### Security Officer Tag
+
+| Aspect                     | Specification                                                        |
+| -------------------------- | -------------------------------------------------------------------- |
+| **Who can be tagged**      | Any user with role: Property Admin, Super Admin, or Property Manager |
+| **Who can assign the tag** | Super Admin or Property Admin                                        |
+| **Maximum per property**   | 1 primary Security Officer, 1 backup Security Officer                |
+| **Where it is configured** | Settings > Compliance > Security Officer Designation                 |
+
+#### Configuration Screen
+
+| Field                    | Type                                         | Required       | Description                              |
+| ------------------------ | -------------------------------------------- | -------------- | ---------------------------------------- |
+| Primary Security Officer | user dropdown (filtered to Admin-tier roles) | Yes            | The designated information security lead |
+| Backup Security Officer  | user dropdown (filtered to Admin-tier roles) | No             | Covers when primary is unavailable       |
+| Designation Date         | date                                         | Auto-populated | When the assignment was made             |
+| Designated By            | user                                         | Auto-populated | Who made the assignment                  |
+
+#### What the Security Officer Tag Enables
+
+1. **Compliance Dashboard Access**: Security Officer automatically gets access to the full Compliance Dashboard (PRD 28) even if their base role would not normally include it.
+2. **Breach Notification Routing**: Security Officer is automatically included in all breach notification chains (in addition to Super Admin).
+3. **Security Anomaly Alerts**: Security Officer receives all Critical and High severity anomaly alerts (PRD 28, Section 4.6).
+4. **Audit Log Access**: Security Officer can view the full Audit Log (Settings > Audit Log) regardless of base role restrictions.
+5. **Compliance Action Items**: Security Officer is the default assignee for security-related compliance action items.
+6. **Annual Review Reminder**: System sends an annual reminder to Property Admin to confirm or update the Security Officer designation.
+
+#### Data Model Addition
+
+Add to the `PropertySettings` model (PRD 16, Section 4.1):
+
+```
+├── security_officer_id → User (FK, nullable)
+├── backup_security_officer_id → User (FK, nullable)
+├── security_officer_designated_at (timestamp with tz, nullable)
+├── security_officer_designated_by → User (FK, nullable)
+```
+
+#### Validation
+
+- If the designated user's role is downgraded below Admin-tier, the system removes the Security Officer tag and notifies Super Admin: "Security Officer designation removed for [Name] because their role was changed to [New Role]. Please designate a new Security Officer."
+- If the designated user is deactivated, same notification is sent.
+
+---
+
+## 8. Edge Cases
+
+### 8.1 Role Lifecycle Conflicts
+
+| Scenario                                                      | Behavior                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Role deleted while users hold it                              | Not possible. Roles cannot be deleted, only deactivated. Deactivated roles remain assigned to existing users but cannot be assigned to new users. To remove users from a deactivated role, the admin must reassign each user individually.                                                                                                                                       |
+| Concurrent role changes by two admins                         | Last-write-wins. If Admin A and Admin B both modify the "Security Guard" role permissions simultaneously, the last save overwrites the first. A version number is incremented on each save. If a conflict is detected (version mismatch), the saving admin sees: "This role was modified by another admin since you started editing. Reload to see their changes before saving." |
+| Role assigned to a deactivated user                           | Blocked. Error: "Cannot assign role to a deactivated user. Reactivate the user first."                                                                                                                                                                                                                                                                                           |
+| User's only role removed                                      | Blocked. Every user must have exactly one role per property. The admin must assign a new role before removing the current one. Error: "Users must have exactly one role. Assign a new role before removing the current one."                                                                                                                                                     |
+| Super Admin role reassignment                                 | The Super Admin role cannot be removed from the last remaining Super Admin. Error: "At least one Super Admin must exist. Assign another user as Super Admin before removing this assignment."                                                                                                                                                                                    |
+| Role permissions changed while user is logged in              | New permissions take effect on the user's next API request. The user does not need to log out and back in. If a permission is revoked, any in-progress action that requires that permission fails gracefully with a 403 response and the message: "Your permissions have been updated. You no longer have access to this action."                                                |
+| Property Admin demoted while onboarding wizard is in progress | The wizard becomes inaccessible. On next login, the user sees their new role's dashboard. If another Property Admin exists, they can resume the wizard. If no Property Admin exists, Super Admin must assign one.                                                                                                                                                                |
+
+---
+
+## 9. Completeness Checklist
+
+### Permission Coverage
+
+| #   | Requirement                                                    | Status  | Section |
+| --- | -------------------------------------------------------------- | ------- | ------- |
+| 1   | Hierarchical RBAC: Super Admin > Property Admin > Roles        | Covered | 3.1     |
+| 2   | One role per user per property                                 | Covered | 3.2     |
+| 3   | No SSO, no self-registration (deliberate security decision)    | Covered | 2       |
+| 4   | Admin creates accounts and assigns roles                       | Covered | 3.3     |
+| 5   | Permission matrix for all 13 built-in roles across all modules | Covered | 4.1     |
+| 6   | Denial behavior for every permission (invisible, not disabled) | Covered | 4.2     |
+| 7   | Role-aware navigation (only show accessible menu items)        | Covered | 4.3     |
+| 8   | Immediate enforcement on role change                           | Covered | 5.1     |
+| 9   | Security Officer designation with tag system                   | Covered | 7.3     |
+| 10  | Auditor role with time-bounded access                          | Covered | 7.2     |
+
+### UX Coverage
+
+| #   | Requirement                             | Status  | Section |
+| --- | --------------------------------------- | ------- | ------- |
+| 1   | Role management admin UI                | Covered | 6.1     |
+| 2   | Permission matrix display (visual grid) | Covered | 6.2     |
+| 3   | Role assignment workflow                | Covered | 6.3     |
+| 4   | Unauthorized access message (403)       | Covered | 4.2     |
+| 5   | Role indicator in user profile          | Covered | 6.4     |
+
+### Edge Case Coverage
+
+| #   | Requirement                             | Status  | Section |
+| --- | --------------------------------------- | ------- | ------- |
+| 1   | Role deleted while users hold it        | Covered | 8.1     |
+| 2   | Concurrent role changes                 | Covered | 8.1     |
+| 3   | Role assigned to deactivated user       | Covered | 8.1     |
+| 4   | Last Super Admin removal prevention     | Covered | 8.1     |
+| 5   | Permission change during active session | Covered | 8.1     |
 
 ---
 

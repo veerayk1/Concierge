@@ -13,19 +13,20 @@ Search & Navigation is the connective tissue of Concierge. It determines how use
 
 ### Core Components
 
-| Component | Description |
-|-----------|-------------|
-| **Command Palette** | A Cmd+K / Ctrl+K overlay that combines search, quick actions, and navigation into one interface |
-| **Role-Aware Sidebar** | A collapsible left navigation panel that shows only the modules relevant to the logged-in user's role |
-| **Breadcrumbs** | A hierarchical path indicator showing current location and enabling backward navigation |
-| **Notification Bell** | A persistent icon with count badges showing unread alerts across modules |
-| **Mobile Bottom Navigation** | A fixed bottom bar replacing the sidebar on mobile devices |
-| **Recent Items** | A list of the user's last 10 visited pages for quick return |
-| **Search History** | A rolling record of the user's last 20 searches for repeat queries |
+| Component                    | Description                                                                                           |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Command Palette**          | A Cmd+K / Ctrl+K overlay that combines search, quick actions, and navigation into one interface       |
+| **Role-Aware Sidebar**       | A collapsible left navigation panel that shows only the modules relevant to the logged-in user's role |
+| **Breadcrumbs**              | A hierarchical path indicator showing current location and enabling backward navigation               |
+| **Notification Bell**        | A persistent icon with count badges showing unread alerts across modules                              |
+| **Mobile Bottom Navigation** | A fixed bottom bar replacing the sidebar on mobile devices                                            |
+| **Recent Items**             | A list of the user's last 10 visited pages for quick return                                           |
+| **Search History**           | A rolling record of the user's last 20 searches for repeat queries                                    |
 
 ### Why This Module Exists
 
 Industry research revealed consistent navigation failures across competing platforms:
+
 - Alphabetical sidebar ordering that ignores usage frequency (a security guard's most-used module was item 9 of 14)
 - No keyboard shortcuts for power users
 - Search limited to keyword matching with no understanding of intent
@@ -42,21 +43,21 @@ Concierge addresses all of these with role-aware navigation, semantic search, a 
 
 ### Key Findings from Competitive Analysis
 
-| Finding | Industry Pattern | Concierge Decision |
-|---------|-----------------|-------------------|
-| Sidebar ordering | Alphabetical, same for all roles | Role-aware ordering by usage frequency per role |
-| Search capability | Keyword-only, limited to specific modules | Semantic search across all modules with AI ranking |
-| Quick actions | Not available from search | Command palette supports "Log package", "Create incident" directly from search |
-| Badge counters | Not present on sidebar items | Real-time badge counters on relevant sidebar items |
-| Keyboard navigation | Not observed in any platform | Full keyboard navigation with Cmd+K command palette |
-| Collapsible sidebar | Supported in one platform (icon-only mode) | Collapsible with icon-only mode, remembers user preference |
-| Mobile navigation | Not optimized | Fixed bottom bar with 4-5 role-relevant items |
-| Breadcrumbs | Present in one platform | Consistent breadcrumb trail on every page |
-| Search modes | Two modes (full search vs. unit/people search) in one platform | Unified search with automatic scope detection |
-| Building filter | Checkbox-based building selection | Auto-scoped to active property with multi-building toggle |
-| Search type filters | Checkbox filters for content types (logs, maintenance, etc.) | Smart filters that auto-suggest based on query intent |
-| Role indicator | Not visible in navigation | Role badge shown below user name in sidebar |
-| Favorites/pinning | Not supported | Users can pin frequently-used modules to the top of sidebar |
+| Finding             | Industry Pattern                                               | Concierge Decision                                                             |
+| ------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Sidebar ordering    | Alphabetical, same for all roles                               | Role-aware ordering by usage frequency per role                                |
+| Search capability   | Keyword-only, limited to specific modules                      | Semantic search across all modules with AI ranking                             |
+| Quick actions       | Not available from search                                      | Command palette supports "Log package", "Create incident" directly from search |
+| Badge counters      | Not present on sidebar items                                   | Real-time badge counters on relevant sidebar items                             |
+| Keyboard navigation | Not observed in any platform                                   | Full keyboard navigation with Cmd+K command palette                            |
+| Collapsible sidebar | Supported in one platform (icon-only mode)                     | Collapsible with icon-only mode, remembers user preference                     |
+| Mobile navigation   | Not optimized                                                  | Fixed bottom bar with 4-5 role-relevant items                                  |
+| Breadcrumbs         | Present in one platform                                        | Consistent breadcrumb trail on every page                                      |
+| Search modes        | Two modes (full search vs. unit/people search) in one platform | Unified search with automatic scope detection                                  |
+| Building filter     | Checkbox-based building selection                              | Auto-scoped to active property with multi-building toggle                      |
+| Search type filters | Checkbox filters for content types (logs, maintenance, etc.)   | Smart filters that auto-suggest based on query intent                          |
+| Role indicator      | Not visible in navigation                                      | Role badge shown below user name in sidebar                                    |
+| Favorites/pinning   | Not supported                                                  | Users can pin frequently-used modules to the top of sidebar                    |
 
 ### Patterns Worth Adopting
 
@@ -85,26 +86,26 @@ The command palette is a floating overlay that combines search, navigation, and 
 
 #### Trigger
 
-| Method | Action |
-|--------|--------|
+| Method            | Action                                                |
+| ----------------- | ----------------------------------------------------- |
 | Keyboard shortcut | Cmd+K (macOS) or Ctrl+K (Windows/Linux) from any page |
-| Click | Click the search icon in the top navigation bar |
-| Slash key | Press `/` when no input field is focused |
+| Click             | Click the search icon in the top navigation bar       |
+| Slash key         | Press `/` when no input field is focused              |
 
 #### Search Input Field
 
-| Attribute | Value |
-|-----------|-------|
-| **Field name** | `command_palette_query` |
-| **Data type** | String |
-| **Max length** | 200 characters |
-| **Required** | No (palette can open empty to show recent items) |
-| **Default** | Empty string |
-| **Placeholder** | "Search or type a command..." |
-| **Validation** | No special characters blocked; all input is sanitized server-side |
-| **Error message** | None -- any input is valid; empty results are handled gracefully |
-| **Debounce** | 300ms after last keystroke before triggering search |
-| **Tooltip** | "Search across all modules, jump to pages, or run quick actions" |
+| Attribute         | Value                                                             |
+| ----------------- | ----------------------------------------------------------------- |
+| **Field name**    | `command_palette_query`                                           |
+| **Data type**     | String                                                            |
+| **Max length**    | 200 characters                                                    |
+| **Required**      | No (palette can open empty to show recent items)                  |
+| **Default**       | Empty string                                                      |
+| **Placeholder**   | "Search or type a command..."                                     |
+| **Validation**    | No special characters blocked; all input is sanitized server-side |
+| **Error message** | None -- any input is valid; empty results are handled gracefully  |
+| **Debounce**      | 300ms after last keystroke before triggering search               |
+| **Tooltip**       | "Search across all modules, jump to pages, or run quick actions"  |
 
 **Property scoping**: Command palette results are always scoped to the user's active property. For multi-building properties, results from all buildings within the property are shown. Each result's subtitle includes the building name for disambiguation (e.g., "Unit 1205 -- Tower A"). Users can switch properties via the Property Switcher in the top bar (Section 3.8) before searching.
 
@@ -112,44 +113,45 @@ The command palette is a floating overlay that combines search, navigation, and 
 
 Results are grouped into categories, displayed in this order:
 
-| Priority | Category | Icon | Description | Max Results |
-|----------|----------|------|-------------|-------------|
-| 1 | Quick Actions | Lightning bolt | Actions the user can perform (e.g., "Log Package", "Create Incident") | 5 |
-| 2 | Recent Items | Clock | Pages the user recently visited | 5 |
-| 3 | Navigation | Compass | Pages and modules the user can navigate to | 8 |
-| 4 | Residents & Units | Person | Resident names, unit numbers, contact info | 5 |
-| 5 | Events & Packages | Box/Shield | Open events, recent packages, active visitors | 5 |
-| 6 | Maintenance | Wrench | Open service requests, equipment records | 5 |
-| 7 | Announcements | Megaphone | Published and draft announcements | 3 |
-| 8 | Documents | File | Library files, uploaded documents | 3 |
+| Priority | Category          | Icon           | Description                                                           | Max Results |
+| -------- | ----------------- | -------------- | --------------------------------------------------------------------- | ----------- |
+| 1        | Quick Actions     | Lightning bolt | Actions the user can perform (e.g., "Log Package", "Create Incident") | 5           |
+| 2        | Recent Items      | Clock          | Pages the user recently visited                                       | 5           |
+| 3        | Navigation        | Compass        | Pages and modules the user can navigate to                            | 8           |
+| 4        | Residents & Units | Person         | Resident names, unit numbers, contact info                            | 5           |
+| 5        | Events & Packages | Box/Shield     | Open events, recent packages, active visitors                         | 5           |
+| 6        | Maintenance       | Wrench         | Open service requests, equipment records                              | 5           |
+| 7        | Announcements     | Megaphone      | Published and draft announcements                                     | 3           |
+| 8        | Documents         | File           | Library files, uploaded documents                                     | 3           |
 
 #### Quick Actions Available per Role
 
-| Action | Roles with Access | What It Does |
-|--------|-------------------|-------------|
-| Log Package | Concierge, Security Guard, Security Supervisor, Property Manager, Property Admin, Super Admin | Opens the package intake form pre-focused |
-| Create Incident | Security Guard, Security Supervisor, Property Manager, Property Admin, Super Admin | Opens the incident creation form |
-| Log Visitor | Concierge, Security Guard, Security Supervisor, Property Manager, Property Admin, Super Admin | Opens the visitor check-in form |
-| Add Shift Note | Concierge, Security Guard, Security Supervisor, Maintenance Staff, Property Manager | Opens the shift note entry |
-| Submit Request | All resident roles, Property Manager, Property Admin | Opens the maintenance request form |
-| Book Amenity | All resident roles, Concierge, Property Manager, Property Admin | Opens the amenity booking calendar |
-| Create Announcement | Property Manager, Property Admin, Super Admin | Opens the announcement creation form |
-| Create User | Property Admin, Super Admin | Opens the user creation form |
-| Run Report | Property Manager, Security Supervisor, Board Member, Property Admin, Super Admin | Opens the report builder |
+| Action              | Roles with Access                                                                             | What It Does                              |
+| ------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Log Package         | Concierge, Security Guard, Security Supervisor, Property Manager, Property Admin, Super Admin | Opens the package intake form pre-focused |
+| Create Incident     | Security Guard, Security Supervisor, Property Manager, Property Admin, Super Admin            | Opens the incident creation form          |
+| Log Visitor         | Concierge, Security Guard, Security Supervisor, Property Manager, Property Admin, Super Admin | Opens the visitor check-in form           |
+| Add Shift Note      | Concierge, Security Guard, Security Supervisor, Maintenance Staff, Property Manager           | Opens the shift note entry                |
+| Submit Request      | All resident roles, Property Manager, Property Admin                                          | Opens the maintenance request form        |
+| Book Amenity        | All resident roles, Concierge, Property Manager, Property Admin                               | Opens the amenity booking calendar        |
+| Create Announcement | Property Manager, Property Admin, Super Admin                                                 | Opens the announcement creation form      |
+| Create User         | Property Admin, Super Admin                                                                   | Opens the user creation form              |
+| Run Report          | Property Manager, Security Supervisor, Board Member, Property Admin, Super Admin              | Opens the report builder                  |
 
 #### Keyboard Navigation
 
-| Key | Action |
-|-----|--------|
-| Arrow Up / Arrow Down | Move highlight through results |
-| Enter | Execute the highlighted result (navigate, open action, or select entity) |
-| Escape | Close the command palette |
-| Tab | Move between result categories |
-| Cmd+K / Ctrl+K (while open) | Clear the current query and reset |
+| Key                         | Action                                                                   |
+| --------------------------- | ------------------------------------------------------------------------ |
+| Arrow Up / Arrow Down       | Move highlight through results                                           |
+| Enter                       | Execute the highlighted result (navigate, open action, or select entity) |
+| Escape                      | Close the command palette                                                |
+| Tab                         | Move between result categories                                           |
+| Cmd+K / Ctrl+K (while open) | Clear the current query and reset                                        |
 
 #### Buttons
 
 **Close Button (X)**
+
 - **Position**: Top-right corner of the palette overlay
 - **What it does**: Closes the command palette and returns focus to the underlying page
 - **Success state**: Palette closes, page regains focus
@@ -157,6 +159,7 @@ Results are grouped into categories, displayed in this order:
 - **Loading state**: N/A
 
 **"View All Results" Link**
+
 - **Position**: Bottom of the palette, visible when results exceed display limits
 - **What it does**: Navigates to the full search results page (`/search?q={query}`) with the current query pre-filled
 - **Success state**: Full search page loads with results
@@ -165,22 +168,22 @@ Results are grouped into categories, displayed in this order:
 
 #### States
 
-| State | Behavior |
-|-------|----------|
-| **Empty (no query)** | Shows "Recent Items" (last 10 pages visited) and "Quick Actions" (top 5 for the user's role) |
-| **Typing (debouncing)** | Shows a subtle typing indicator below the input field; previous results remain visible |
-| **Loading** | Skeleton loader cards appear in each category section (3 skeleton rows per section) |
-| **Results found** | Grouped results appear with category headers, icons, and keyboard-navigable highlights |
-| **No results** | Message: "No results found for '{query}'." Below: "Try a different search term or use a quick action." Quick actions remain visible below the message. |
-| **Error** | Message: "Search is temporarily unavailable." Below: "Quick actions and navigation are still available." Quick actions and navigation items remain functional. |
-| **Offline** | Message: "You are offline. Showing cached results only." Cached recent items and navigation items are shown. |
+| State                   | Behavior                                                                                                                                                       |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Empty (no query)**    | Shows "Recent Items" (last 10 pages visited) and "Quick Actions" (top 5 for the user's role)                                                                   |
+| **Typing (debouncing)** | Shows a subtle typing indicator below the input field; previous results remain visible                                                                         |
+| **Loading**             | Skeleton loader cards appear in each category section (3 skeleton rows per section)                                                                            |
+| **Results found**       | Grouped results appear with category headers, icons, and keyboard-navigable highlights                                                                         |
+| **No results**          | Message: "No results found for '{query}'." Below: "Try a different search term or use a quick action." Quick actions remain visible below the message.         |
+| **Error**               | Message: "Search is temporarily unavailable." Below: "Quick actions and navigation are still available." Quick actions and navigation items remain functional. |
+| **Offline**             | Message: "You are offline. Showing cached results only." Cached recent items and navigation items are shown.                                                   |
 
 #### Responsive Behavior
 
-| Breakpoint | Behavior |
-|------------|----------|
-| **Desktop (1024px+)** | Centered overlay, 640px wide, max 70vh height, slight background dimming |
-| **Tablet (768-1023px)** | Centered overlay, 90% screen width, max 70vh height |
+| Breakpoint               | Behavior                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| **Desktop (1024px+)**    | Centered overlay, 640px wide, max 70vh height, slight background dimming       |
+| **Tablet (768-1023px)**  | Centered overlay, 90% screen width, max 70vh height                            |
 | **Mobile (below 768px)** | Full-screen overlay, input at top, results scroll below, swipe-down to dismiss |
 
 ---
@@ -191,14 +194,14 @@ The sidebar is the primary navigation element. It adapts to the user's role, sho
 
 #### Sidebar Structure
 
-| Element | Description |
-|---------|-------------|
-| **Property Logo and Name** | Top of sidebar. Property logo (48x48px) and property name (truncated at 24 characters with tooltip for full name). |
-| **User Identity Block** | Below property name. Avatar (32x32px), full name (truncated at 20 chars), role badge (e.g., "Concierge", "Security"). |
-| **Navigation Sections** | Grouped navigation items with section headers (e.g., "OVERVIEW", "OPERATIONS", "DAILY"). |
-| **Pinned Items** | User-pinned modules appear at the very top of the navigation list, above sections. Max 3 pins. |
-| **Badge Counters** | Red circle badges on items with pending work (e.g., unreleased packages count, open requests count). |
-| **Collapse Toggle** | Bottom of sidebar. Chevron icon (not styled as a nav item). Toggles between full and icon-only mode. |
+| Element                    | Description                                                                                                           |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Property Logo and Name** | Top of sidebar. Property logo (48x48px) and property name (truncated at 24 characters with tooltip for full name).    |
+| **User Identity Block**    | Below property name. Avatar (32x32px), full name (truncated at 20 chars), role badge (e.g., "Concierge", "Security"). |
+| **Navigation Sections**    | Grouped navigation items with section headers (e.g., "OVERVIEW", "OPERATIONS", "DAILY").                              |
+| **Pinned Items**           | User-pinned modules appear at the very top of the navigation list, above sections. Max 3 pins.                        |
+| **Badge Counters**         | Red circle badges on items with pending work (e.g., unreleased packages count, open requests count).                  |
+| **Collapse Toggle**        | Bottom of sidebar. Chevron icon (not styled as a nav item). Toggles between full and icon-only mode.                  |
 
 #### Navigation Items per Role
 
@@ -206,43 +209,43 @@ Navigation items are defined in `02-roles-and-permissions.md` Section 7. The sid
 
 #### Badge Counter Rules
 
-| Sidebar Item | Badge Shows | Roles That See It | Updates |
-|-------------|------------|-------------------|---------|
-| Packages | Count of unreleased packages for the property | Concierge, Security Guard, Security Supervisor, Property Manager, Property Admin | Real-time via WebSocket |
-| Security Console | Count of open/unresolved events from current shift | Security Guard, Security Supervisor, Concierge | Real-time via WebSocket |
-| Service Requests | Count of open requests (assigned to user for Maintenance; all open for managers) | Maintenance Staff, Property Manager, Property Admin | Real-time via WebSocket |
-| Announcements | Count of unread announcements | All roles | On page load, refreshed every 5 minutes |
-| Training | Count of incomplete assigned courses | All staff roles | On page load |
+| Sidebar Item     | Badge Shows                                                                      | Roles That See It                                                                | Updates                                 |
+| ---------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------- |
+| Packages         | Count of unreleased packages for the property                                    | Concierge, Security Guard, Security Supervisor, Property Manager, Property Admin | Real-time via WebSocket                 |
+| Security Console | Count of open/unresolved events from current shift                               | Security Guard, Security Supervisor, Concierge                                   | Real-time via WebSocket                 |
+| Service Requests | Count of open requests (assigned to user for Maintenance; all open for managers) | Maintenance Staff, Property Manager, Property Admin                              | Real-time via WebSocket                 |
+| Announcements    | Count of unread announcements                                                    | All roles                                                                        | On page load, refreshed every 5 minutes |
+| Training         | Count of incomplete assigned courses                                             | All staff roles                                                                  | On page load                            |
 
 #### Sidebar Item Fields
 
 Each sidebar navigation item has the following attributes:
 
-| Attribute | Data Type | Description |
-|-----------|-----------|-------------|
-| `id` | String | Unique identifier (e.g., `nav_packages`) |
-| `label` | String, max 30 chars | Display text (e.g., "Packages") |
-| `icon` | String | Icon reference from the design system icon set |
-| `route` | String | URL path to navigate to (e.g., `/packages`) |
-| `section` | String | Section header this item belongs to (e.g., "OPERATIONS") |
-| `sort_order` | Integer | Display order within the section |
-| `badge_source` | String, nullable | API endpoint for badge count (null if no badge) |
-| `expandable` | Boolean | Whether item has sub-items |
-| `sub_items` | Array, nullable | Child navigation items |
-| `pinnable` | Boolean | Whether the user can pin this item |
+| Attribute      | Data Type            | Description                                              |
+| -------------- | -------------------- | -------------------------------------------------------- |
+| `id`           | String               | Unique identifier (e.g., `nav_packages`)                 |
+| `label`        | String, max 30 chars | Display text (e.g., "Packages")                          |
+| `icon`         | String               | Icon reference from the design system icon set           |
+| `route`        | String               | URL path to navigate to (e.g., `/packages`)              |
+| `section`      | String               | Section header this item belongs to (e.g., "OPERATIONS") |
+| `sort_order`   | Integer              | Display order within the section                         |
+| `badge_source` | String, nullable     | API endpoint for badge count (null if no badge)          |
+| `expandable`   | Boolean              | Whether item has sub-items                               |
+| `sub_items`    | Array, nullable      | Child navigation items                                   |
+| `pinnable`     | Boolean              | Whether the user can pin this item                       |
 
 #### Collapse Behavior
 
-| Attribute | Full Mode | Icon-Only Mode |
-|-----------|-----------|----------------|
-| **Width** | 260px | 64px |
-| **Labels** | Visible | Hidden (shown as tooltip on hover) |
-| **Section headers** | Visible | Hidden |
-| **User identity** | Name + role visible | Avatar only |
-| **Property name** | Visible | Logo only |
-| **Badge counters** | Number badge | Dot indicator (red dot, no number) |
-| **Transition** | 200ms ease-in-out | 200ms ease-in-out |
-| **Persistence** | Stored in localStorage per user | Restored on next login |
+| Attribute           | Full Mode                       | Icon-Only Mode                     |
+| ------------------- | ------------------------------- | ---------------------------------- |
+| **Width**           | 260px                           | 64px                               |
+| **Labels**          | Visible                         | Hidden (shown as tooltip on hover) |
+| **Section headers** | Visible                         | Hidden                             |
+| **User identity**   | Name + role visible             | Avatar only                        |
+| **Property name**   | Visible                         | Logo only                          |
+| **Badge counters**  | Number badge                    | Dot indicator (red dot, no number) |
+| **Transition**      | 200ms ease-in-out               | 200ms ease-in-out                  |
+| **Persistence**     | Stored in localStorage per user | Restored on next login             |
 
 #### Pin/Unpin Button
 
@@ -254,10 +257,10 @@ Each sidebar navigation item has the following attributes:
 
 #### Responsive Behavior
 
-| Breakpoint | Behavior |
-|------------|----------|
-| **Desktop (1024px+)** | Persistent sidebar on the left. Collapsible between full and icon-only modes. |
-| **Tablet (768-1023px)** | Sidebar defaults to icon-only mode. Expands to full on hover or tap. Overlay mode (does not push content). |
+| Breakpoint               | Behavior                                                                                                                                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Desktop (1024px+)**    | Persistent sidebar on the left. Collapsible between full and icon-only modes.                                                                                                                          |
+| **Tablet (768-1023px)**  | Sidebar defaults to icon-only mode. Expands to full on hover or tap. Overlay mode (does not push content).                                                                                             |
 | **Mobile (below 768px)** | Sidebar is hidden. Replaced by mobile bottom navigation bar (see 3.5). Accessible via hamburger menu icon in top bar. When opened, slides in from left as a full-height overlay with backdrop dimming. |
 
 ---
@@ -273,6 +276,7 @@ Home > [Module] > [Sub-page] > [Entity Name]
 ```
 
 **Examples**:
+
 - `Home > Packages > Non-Released`
 - `Home > Security Console > Incident #INC-2026-00031`
 - `Home > Units > Unit 1205 > Maintenance History`
@@ -280,11 +284,11 @@ Home > [Module] > [Sub-page] > [Entity Name]
 
 #### Breadcrumb Item Fields
 
-| Attribute | Data Type | Max Length | Description |
-|-----------|-----------|-----------|-------------|
-| `label` | String | 40 characters (truncated with ellipsis) | Display text for the breadcrumb segment |
-| `route` | String | 200 characters | URL path for the segment. Last segment has no route (current page). |
-| `is_current` | Boolean | -- | True for the last segment (not clickable) |
+| Attribute    | Data Type | Max Length                              | Description                                                         |
+| ------------ | --------- | --------------------------------------- | ------------------------------------------------------------------- |
+| `label`      | String    | 40 characters (truncated with ellipsis) | Display text for the breadcrumb segment                             |
+| `route`      | String    | 200 characters                          | URL path for the segment. Last segment has no route (current page). |
+| `is_current` | Boolean   | --                                      | True for the last segment (not clickable)                           |
 
 #### Behavior
 
@@ -301,10 +305,10 @@ A persistent icon in the top navigation bar that shows the total count of unread
 
 #### Notification Bell Fields
 
-| Attribute | Data Type | Description |
-|-----------|-----------|-------------|
-| `unread_count` | Integer | Total unread notifications. Displays as a red badge. |
-| `max_display` | Integer | Maximum number shown in badge. Default: 99. Values above 99 display as "99+". |
+| Attribute      | Data Type | Description                                                                   |
+| -------------- | --------- | ----------------------------------------------------------------------------- |
+| `unread_count` | Integer   | Total unread notifications. Displays as a red badge.                          |
+| `max_display`  | Integer   | Maximum number shown in badge. Default: 99. Values above 99 display as "99+". |
 
 #### Bell Icon Button
 
@@ -316,12 +320,12 @@ A persistent icon in the top navigation bar that shows the total count of unread
 
 #### Notification Panel
 
-| Element | Description |
-|---------|-------------|
-| **Header** | "Notifications" title with a "Mark All Read" text button on the right |
+| Element                | Description                                                                                                                                                                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Header**             | "Notifications" title with a "Mark All Read" text button on the right                                                                                                                                                                        |
 | **Notification Items** | List of up to 10 most recent notifications. Each shows: icon (module-specific), title (max 60 chars), description (max 120 chars, truncated), timestamp (relative: "2 min ago", "1 hour ago", "Yesterday"), and unread indicator (blue dot). |
-| **Empty State** | Icon: bell with checkmark. Message: "You're all caught up!" Sub-text: "No new notifications." |
-| **Footer** | "View All Notifications" link navigating to `/notifications` |
+| **Empty State**        | Icon: bell with checkmark. Message: "You're all caught up!" Sub-text: "No new notifications."                                                                                                                                                |
+| **Footer**             | "View All Notifications" link navigating to `/notifications`                                                                                                                                                                                 |
 
 #### "Mark All Read" Button
 
@@ -332,11 +336,11 @@ A persistent icon in the top navigation bar that shows the total count of unread
 
 #### Responsive Behavior
 
-| Breakpoint | Behavior |
-|------------|----------|
+| Breakpoint  | Behavior                                                                     |
+| ----------- | ---------------------------------------------------------------------------- |
 | **Desktop** | Dropdown panel, 380px wide, max 500px height, positioned below the bell icon |
-| **Tablet** | Same as desktop |
-| **Mobile** | Full-screen slide-up panel with swipe-down to dismiss |
+| **Tablet**  | Same as desktop                                                              |
+| **Mobile**  | Full-screen slide-up panel with swipe-down to dismiss                        |
 
 ---
 
@@ -346,36 +350,36 @@ On screens below 768px, the sidebar is replaced by a fixed bottom navigation bar
 
 #### Bottom Bar Structure
 
-| Attribute | Value |
-|-----------|-------|
-| **Height** | 56px (plus safe area inset on notched devices) |
-| **Background** | White with 1px top border (#E5E5EA) |
-| **Items** | 4-5 items depending on role (see table below) |
+| Attribute            | Value                                                                    |
+| -------------------- | ------------------------------------------------------------------------ |
+| **Height**           | 56px (plus safe area inset on notched devices)                           |
+| **Background**       | White with 1px top border (#E5E5EA)                                      |
+| **Items**            | 4-5 items depending on role (see table below)                            |
 | **Active indicator** | Filled icon + primary color label (inactive: outlined icon + gray label) |
 
 #### Bottom Bar Items per Role
 
-| Role | Item 1 | Item 2 | Item 3 | Item 4 | Item 5 |
-|------|--------|--------|--------|--------|--------|
-| **Concierge** | Dashboard | Packages | Security | Shift Log | More |
-| **Security Guard** | Dashboard | Security | Packages | Parking | More |
-| **Security Supervisor** | Dashboard | Security | Reports | Shift Log | More |
-| **Property Manager** | Dashboard | Requests | Packages | Announcements | More |
-| **Property Admin** | Dashboard | Requests | Users | Settings | More |
-| **Maintenance Staff** | Dashboard | Requests | Equipment | Shift Log | More |
-| **Resident (all types)** | Dashboard | Packages | Bookings | Announcements | More |
-| **Board Member** | Dashboard | Reports | Announcements | Events | More |
+| Role                     | Item 1    | Item 2   | Item 3        | Item 4        | Item 5 |
+| ------------------------ | --------- | -------- | ------------- | ------------- | ------ |
+| **Concierge**            | Dashboard | Packages | Security      | Shift Log     | More   |
+| **Security Guard**       | Dashboard | Security | Packages      | Parking       | More   |
+| **Security Supervisor**  | Dashboard | Security | Reports       | Shift Log     | More   |
+| **Property Manager**     | Dashboard | Requests | Packages      | Announcements | More   |
+| **Property Admin**       | Dashboard | Requests | Users         | Settings      | More   |
+| **Maintenance Staff**    | Dashboard | Requests | Equipment     | Shift Log     | More   |
+| **Resident (all types)** | Dashboard | Packages | Bookings      | Announcements | More   |
+| **Board Member**         | Dashboard | Reports  | Announcements | Events        | More   |
 
 The "More" item opens the full sidebar as a bottom sheet overlay, showing all remaining navigation items for the role.
 
 #### Bottom Bar Item Fields
 
-| Attribute | Data Type | Description |
-|-----------|-----------|-------------|
-| `icon` | String | Icon reference (outlined when inactive, filled when active) |
-| `label` | String, max 12 chars | Short label displayed below the icon |
-| `route` | String | Navigation target |
-| `badge_count` | Integer, nullable | Red badge count (same source as sidebar badges) |
+| Attribute     | Data Type            | Description                                                 |
+| ------------- | -------------------- | ----------------------------------------------------------- |
+| `icon`        | String               | Icon reference (outlined when inactive, filled when active) |
+| `label`       | String, max 12 chars | Short label displayed below the icon                        |
+| `route`       | String               | Navigation target                                           |
+| `badge_count` | Integer, nullable    | Red badge count (same source as sidebar badges)             |
 
 ---
 
@@ -389,49 +393,49 @@ When the user clicks "View All Results" from the command palette or navigates to
 
 #### Search Input Field (Full Page)
 
-| Attribute | Value |
-|-----------|-------|
-| **Field name** | `search_query` |
-| **Data type** | String |
-| **Max length** | 200 characters |
-| **Required** | No |
-| **Default** | Pre-filled from query parameter if present |
-| **Placeholder** | "Search across all modules..." |
-| **Validation** | Sanitized server-side. No client-side restrictions. |
-| **Error message** | N/A |
-| **Auto-focus** | Yes, on page load |
-| **Tooltip** | "Search by name, unit number, reference number, keyword, or natural language question" |
+| Attribute         | Value                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------------- |
+| **Field name**    | `search_query`                                                                         |
+| **Data type**     | String                                                                                 |
+| **Max length**    | 200 characters                                                                         |
+| **Required**      | No                                                                                     |
+| **Default**       | Pre-filled from query parameter if present                                             |
+| **Placeholder**   | "Search across all modules..."                                                         |
+| **Validation**    | Sanitized server-side. No client-side restrictions.                                    |
+| **Error message** | N/A                                                                                    |
+| **Auto-focus**    | Yes, on page load                                                                      |
+| **Tooltip**       | "Search by name, unit number, reference number, keyword, or natural language question" |
 
 #### Filter Sidebar (Left Panel -- Desktop Only)
 
-| Filter | Type | Options | Default |
-|--------|------|---------|---------|
-| **Content Type** | Checkbox group | All Modules, Residents & Units, Events & Packages, Maintenance, Announcements, Documents, Amenities | All Modules (all checked) |
-| **Date Range** | Date picker (start/end) | Any date | Last 90 days |
-| **Status** | Checkbox group | Open, Closed, All | All |
-| **Building** | Checkbox group (multi-building properties only) | List of buildings | All buildings |
-| **Sort By** | Radio group | Relevance, Newest First, Oldest First | Relevance |
+| Filter           | Type                                            | Options                                                                                             | Default                   |
+| ---------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------- |
+| **Content Type** | Checkbox group                                  | All Modules, Residents & Units, Events & Packages, Maintenance, Announcements, Documents, Amenities | All Modules (all checked) |
+| **Date Range**   | Date picker (start/end)                         | Any date                                                                                            | Last 90 days              |
+| **Status**       | Checkbox group                                  | Open, Closed, All                                                                                   | All                       |
+| **Building**     | Checkbox group (multi-building properties only) | List of buildings                                                                                   | All buildings             |
+| **Sort By**      | Radio group                                     | Relevance, Newest First, Oldest First                                                               | Relevance                 |
 
 #### Search Results
 
 Each result displays:
 
-| Field | Data Type | Max Length | Description |
-|-------|-----------|-----------|-------------|
-| `title` | String | 100 chars | Primary identifier (resident name, event title, unit number, document name) |
-| `subtitle` | String | 200 chars | Secondary info (unit number, event type, date, status) |
-| `module_badge` | String | 20 chars | Color-coded badge indicating source module (e.g., "Package", "Incident") |
-| `timestamp` | String | -- | Relative or absolute timestamp |
-| `snippet` | String | 300 chars | Contextual excerpt with search terms highlighted in bold |
-| `route` | String | -- | Link to the full entity page |
+| Field          | Data Type | Max Length | Description                                                                 |
+| -------------- | --------- | ---------- | --------------------------------------------------------------------------- |
+| `title`        | String    | 100 chars  | Primary identifier (resident name, event title, unit number, document name) |
+| `subtitle`     | String    | 200 chars  | Secondary info (unit number, event type, date, status)                      |
+| `module_badge` | String    | 20 chars   | Color-coded badge indicating source module (e.g., "Package", "Incident")    |
+| `timestamp`    | String    | --         | Relative or absolute timestamp                                              |
+| `snippet`      | String    | 300 chars  | Contextual excerpt with search terms highlighted in bold                    |
+| `route`        | String    | --         | Link to the full entity page                                                |
 
 #### Pagination
 
-| Attribute | Value |
-|-----------|-------|
-| **Results per page** | 20 |
+| Attribute            | Value                                             |
+| -------------------- | ------------------------------------------------- |
+| **Results per page** | 20                                                |
 | **Pagination style** | "Load More" button at bottom (not numbered pages) |
-| **Max pages** | 50 (1,000 results total) |
+| **Max pages**        | 50 (1,000 results total)                          |
 
 #### "Load More" Button
 
@@ -442,13 +446,13 @@ Each result displays:
 
 #### States
 
-| State | Behavior |
-|-------|----------|
-| **Empty (no query entered)** | Shows search history (last 20 queries) and recent items (last 10 pages) |
-| **Loading** | 6 skeleton result cards with pulsing animation |
-| **Results found** | Grouped results with module badges, snippets, and timestamps |
-| **No results** | Icon: magnifying glass with question mark. Heading: "No results found." Sub-text: "Try different keywords or adjust your filters." Below: list of suggested searches based on the query. |
-| **Error** | Icon: warning triangle. Heading: "Search is temporarily unavailable." Sub-text: "Please try again in a moment." Retry button. |
+| State                        | Behavior                                                                                                                                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Empty (no query entered)** | Shows search history (last 20 queries) and recent items (last 10 pages)                                                                                                                  |
+| **Loading**                  | 6 skeleton result cards with pulsing animation                                                                                                                                           |
+| **Results found**            | Grouped results with module badges, snippets, and timestamps                                                                                                                             |
+| **No results**               | Icon: magnifying glass with question mark. Heading: "No results found." Sub-text: "Try different keywords or adjust your filters." Below: list of suggested searches based on the query. |
+| **Error**                    | Icon: warning triangle. Heading: "Search is temporarily unavailable." Sub-text: "Please try again in a moment." Retry button.                                                            |
 
 ---
 
@@ -456,23 +460,23 @@ Each result displays:
 
 #### Search History
 
-| Attribute | Value |
-|-----------|-------|
-| **Storage** | Server-side, per user, per property |
-| **Max entries** | 20 (oldest entry drops when 21st is added) |
-| **Displayed in** | Command palette (when empty) and full search page (when no query) |
-| **Clear option** | "Clear Search History" text button at the bottom of the history list |
-| **Privacy** | Only visible to the user who created the entries. Not visible to admins. |
+| Attribute        | Value                                                                    |
+| ---------------- | ------------------------------------------------------------------------ |
+| **Storage**      | Server-side, per user, per property                                      |
+| **Max entries**  | 20 (oldest entry drops when 21st is added)                               |
+| **Displayed in** | Command palette (when empty) and full search page (when no query)        |
+| **Clear option** | "Clear Search History" text button at the bottom of the history list     |
+| **Privacy**      | Only visible to the user who created the entries. Not visible to admins. |
 
 #### Recent Items
 
-| Attribute | Value |
-|-----------|-------|
-| **Storage** | Client-side (localStorage), synced to server for cross-device access |
-| **Max entries** | 10 (oldest entry drops when 11th is added) |
-| **Displayed in** | Command palette (when empty) and full search page sidebar |
+| Attribute        | Value                                                                  |
+| ---------------- | ---------------------------------------------------------------------- |
+| **Storage**      | Client-side (localStorage), synced to server for cross-device access   |
+| **Max entries**  | 10 (oldest entry drops when 11th is added)                             |
+| **Displayed in** | Command palette (when empty) and full search page sidebar              |
 | **Entry fields** | Page title (max 60 chars), module icon, route, timestamp of last visit |
-| **Clear option** | "Clear Recent Items" text button |
+| **Clear option** | "Clear Recent Items" text button                                       |
 
 #### "Clear Search History" Button
 
@@ -496,36 +500,36 @@ A fixed horizontal bar at the top of every page.
 
 #### Elements
 
-| # | Element | Position | Description |
-|---|---------|----------|-------------|
-| 1 | Hamburger Menu | Far left (mobile/tablet only) | Opens the sidebar overlay |
-| 2 | Property Switcher | Left (multi-property users only) | Dropdown to switch active property |
-| 3 | Search Icon + Shortcut Hint | Center-left | Magnifying glass icon with "Cmd+K" hint text. Clicking opens the command palette. |
-| 4 | Notification Bell | Right | Bell icon with unread count badge (see 3.4) |
-| 5 | User Avatar | Far right | Circular avatar with initials fallback. Click opens user menu dropdown. |
+| #   | Element                     | Position                         | Description                                                                       |
+| --- | --------------------------- | -------------------------------- | --------------------------------------------------------------------------------- |
+| 1   | Hamburger Menu              | Far left (mobile/tablet only)    | Opens the sidebar overlay                                                         |
+| 2   | Property Switcher           | Left (multi-property users only) | Dropdown to switch active property                                                |
+| 3   | Search Icon + Shortcut Hint | Center-left                      | Magnifying glass icon with "Cmd+K" hint text. Clicking opens the command palette. |
+| 4   | Notification Bell           | Right                            | Bell icon with unread count badge (see 3.4)                                       |
+| 5   | User Avatar                 | Far right                        | Circular avatar with initials fallback. Click opens user menu dropdown.           |
 
 **v2 addition -- Quick Contacts icon**: For staff roles (Concierge, Security Guard, Security Supervisor, Maintenance Staff, Property Manager), a phone icon will be added between the Notification Bell and User Avatar. Clicking it opens a dropdown panel showing: management office phone number, emergency contacts for the property, and a searchable list of vendor contacts. This addresses the high-frequency contact lookup task for front desk staff. Deferred to v2 to avoid top bar clutter at launch.
 
 **Interaction patterns**: Each top bar element has a distinct interaction behavior:
 
-| Element | Click Behavior | Interaction Type |
-|---------|---------------|-----------------|
-| Hamburger Menu | Opens the sidebar as a slide-over overlay (mobile/tablet only) | Overlay panel |
-| Property Switcher | Opens a dropdown list of properties | Dropdown |
-| Search Icon | Opens the command palette as a centered modal overlay | Modal overlay |
-| Notification Bell | Opens a dropdown panel anchored to the bell icon, showing recent notifications | Dropdown panel |
-| User Avatar | Opens a dropdown menu anchored to the avatar | Dropdown menu |
+| Element           | Click Behavior                                                                 | Interaction Type |
+| ----------------- | ------------------------------------------------------------------------------ | ---------------- |
+| Hamburger Menu    | Opens the sidebar as a slide-over overlay (mobile/tablet only)                 | Overlay panel    |
+| Property Switcher | Opens a dropdown list of properties                                            | Dropdown         |
+| Search Icon       | Opens the command palette as a centered modal overlay                          | Modal overlay    |
+| Notification Bell | Opens a dropdown panel anchored to the bell icon, showing recent notifications | Dropdown panel   |
+| User Avatar       | Opens a dropdown menu anchored to the avatar                                   | Dropdown menu    |
 
 #### User Menu Dropdown
 
-| Item | Route | Description |
-|------|-------|-------------|
-| My Account | `/account` | User profile and settings |
-| Notification Preferences | `/account/notifications` | Channel and frequency preferences |
-| Switch Property | (dropdown) | List of properties user has access to (multi-property only) |
-| Keyboard Shortcuts | (modal) | Opens a modal listing all keyboard shortcuts |
-| Help | `/help` | Opens the help center (see 3.9 Help Center) |
-| Sign Out | `/logout` | Signs the user out and redirects to the login page |
+| Item                     | Route                    | Description                                                 |
+| ------------------------ | ------------------------ | ----------------------------------------------------------- |
+| My Account               | `/account`               | User profile and settings                                   |
+| Notification Preferences | `/account/notifications` | Channel and frequency preferences                           |
+| Switch Property          | (dropdown)               | List of properties user has access to (multi-property only) |
+| Keyboard Shortcuts       | (modal)                  | Opens a modal listing all keyboard shortcuts                |
+| Help                     | `/help`                  | Opens the help center (see 3.9 Help Center)                 |
+| Sign Out                 | `/logout`                | Signs the user out and redirects to the login page          |
 
 ### 3.9 Help Center (`/help`)
 
@@ -555,35 +559,35 @@ The help center is an embedded page within Concierge (not an external link). It 
 
 #### Help Article Search
 
-| Attribute | Value |
-|-----------|-------|
-| **Field name** | `help_search_query` |
-| **Data type** | String |
-| **Max length** | 200 characters |
-| **Placeholder** | "Search help articles..." |
-| **Debounce** | 300ms |
-| **Results** | Up to 10 matching articles with title and excerpt. Click to open full article. |
-| **Empty results** | "No articles found. Try a different search term or contact management." |
+| Attribute         | Value                                                                          |
+| ----------------- | ------------------------------------------------------------------------------ |
+| **Field name**    | `help_search_query`                                                            |
+| **Data type**     | String                                                                         |
+| **Max length**    | 200 characters                                                                 |
+| **Placeholder**   | "Search help articles..."                                                      |
+| **Debounce**      | 300ms                                                                          |
+| **Results**       | Up to 10 matching articles with title and excerpt. Click to open full article. |
+| **Empty results** | "No articles found. Try a different search term or contact management."        |
 
 #### Quick Links
 
-| Link | Description | Visibility |
-|------|-------------|-----------|
-| Getting Started Guide | Onboarding walkthrough for the user's role | All roles |
-| Contact Management Office | Shows property management office phone, email, and hours | All roles |
-| Submit a Support Request | Opens a form to create a support ticket (sent to Property Admin) | All roles |
-| View My Support Cases | List of the user's previously submitted support requests with status | All roles |
-| Keyboard Shortcuts | Opens the keyboard shortcuts modal (same as top bar shortcut) | All roles |
+| Link                      | Description                                                          | Visibility |
+| ------------------------- | -------------------------------------------------------------------- | ---------- |
+| Getting Started Guide     | Onboarding walkthrough for the user's role                           | All roles  |
+| Contact Management Office | Shows property management office phone, email, and hours             | All roles  |
+| Submit a Support Request  | Opens a form to create a support ticket (sent to Property Admin)     | All roles  |
+| View My Support Cases     | List of the user's previously submitted support requests with status | All roles  |
+| Keyboard Shortcuts        | Opens the keyboard shortcuts modal (same as top bar shortcut)        | All roles  |
 
 #### Contextual Help
 
 The help center detects the user's current page route and displays up to 3 relevant articles. For example, when viewing `/packages`, the contextual section shows articles about package tracking, release procedures, and notification settings.
 
-| Attribute | Value |
-|-----------|-------|
-| **Detection** | Matches current route prefix to article tags (e.g., `/packages` matches articles tagged "packages") |
-| **Max articles** | 3 |
-| **Fallback** | If no contextual articles exist for the current route, this section is hidden |
+| Attribute        | Value                                                                                               |
+| ---------------- | --------------------------------------------------------------------------------------------------- |
+| **Detection**    | Matches current route prefix to article tags (e.g., `/packages` matches articles tagged "packages") |
+| **Max articles** | 3                                                                                                   |
+| **Fallback**     | If no contextual articles exist for the current route, this section is hidden                       |
 
 **v2 note**: Live chat support widget integration is deferred to v2. If live chat is added, it will appear as a floating button on the help center page and optionally on all pages (configurable by Property Admin).
 
@@ -593,35 +597,35 @@ A minimal footer appears at the bottom of every page, below the main content are
 
 #### Footer Elements
 
-| Element | Position | Description |
-|---------|----------|-------------|
-| Copyright | Left | "(c) {current_year} {property_name}. Powered by Concierge." |
-| Privacy Policy | Center-left | Link to `/legal/privacy`. Opens in the same window. |
-| Terms of Service | Center | Link to `/legal/terms`. Opens in the same window. |
-| System Status | Center-right | Link to `/status`. Shows a green dot when all systems operational, yellow dot for degraded performance, red dot for outage. |
-| Mobile App Downloads | Right | App Store and Google Play badges linking to the Concierge mobile app. Hidden on mobile devices (users are already on the app or mobile web). |
+| Element              | Position     | Description                                                                                                                                  |
+| -------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Copyright            | Left         | "(c) {current_year} {property_name}. Powered by Concierge."                                                                                  |
+| Privacy Policy       | Center-left  | Link to `/legal/privacy`. Opens in the same window.                                                                                          |
+| Terms of Service     | Center       | Link to `/legal/terms`. Opens in the same window.                                                                                            |
+| System Status        | Center-right | Link to `/status`. Shows a green dot when all systems operational, yellow dot for degraded performance, red dot for outage.                  |
+| Mobile App Downloads | Right        | App Store and Google Play badges linking to the Concierge mobile app. Hidden on mobile devices (users are already on the app or mobile web). |
 
 #### Footer Fields
 
-| Field | Data Type | Max Length | Required | Default |
-|-------|-----------|-----------|----------|---------|
-| copyright_text | string | 100 chars | Yes | Auto-generated from property name and current year |
-| privacy_url | string | 255 chars | Yes | `/legal/privacy` |
-| terms_url | string | 255 chars | Yes | `/legal/terms` |
-| status_url | string | 255 chars | Yes | `/status` |
-| ios_app_url | string | 255 chars | No | null (hidden if not configured) |
-| android_app_url | string | 255 chars | No | null (hidden if not configured) |
+| Field           | Data Type | Max Length | Required | Default                                            |
+| --------------- | --------- | ---------- | -------- | -------------------------------------------------- |
+| copyright_text  | string    | 100 chars  | Yes      | Auto-generated from property name and current year |
+| privacy_url     | string    | 255 chars  | Yes      | `/legal/privacy`                                   |
+| terms_url       | string    | 255 chars  | Yes      | `/legal/terms`                                     |
+| status_url      | string    | 255 chars  | Yes      | `/status`                                          |
+| ios_app_url     | string    | 255 chars  | No       | null (hidden if not configured)                    |
+| android_app_url | string    | 255 chars  | No       | null (hidden if not configured)                    |
 
 #### Footer Design Rules
 
-| Rule | Detail |
-|------|--------|
-| **Typography** | 12px regular, #8E8E93 gray |
-| **Background** | White (#FFFFFF), 1px top border #E5E5EA |
-| **Height** | 48px |
-| **Padding** | 16px horizontal |
-| **Sticky** | Not sticky. Appears after page content ends. |
-| **Mobile** | Stack vertically. Copyright on top, links below. App badges hidden. |
+| Rule           | Detail                                                              |
+| -------------- | ------------------------------------------------------------------- |
+| **Typography** | 12px regular, #8E8E93 gray                                          |
+| **Background** | White (#FFFFFF), 1px top border #E5E5EA                             |
+| **Height**     | 48px                                                                |
+| **Padding**    | 16px horizontal                                                     |
+| **Sticky**     | Not sticky. Appears after page content ends.                        |
+| **Mobile**     | Stack vertically. Copyright on top, links below. App badges hidden. |
 
 ---
 
@@ -820,16 +824,16 @@ SearchIndex
 
 ### 6.4 Design Rules
 
-| Rule | Detail |
-|------|--------|
-| **Typography** | Sidebar labels: 14px medium. Section headers: 11px uppercase semibold, #8E8E93 gray. Badge text: 11px bold white on red circle. |
-| **Colors** | Active nav item: primary blue (#007AFF) icon and label with a 3px solid #007AFF left border bar as the active indicator. This left border provides a strong visual signal for users with color vision deficiency. Inactive: #8E8E93 gray, no left border. Badge: #FF3B30 red with white text. Sidebar background: white (#FFFFFF). |
-| **Spacing** | Sidebar items: 40px height, 16px left padding. Section headers: 24px top margin, 8px bottom margin. |
-| **Icons** | 20x20px for sidebar items. Outlined when inactive, filled when active. Consistent icon set across all items. |
-| **Transitions** | Sidebar collapse: 200ms ease-in-out. Command palette open/close: 150ms fade-in. Result highlight: instant (no animation). |
-| **Z-index** | Command palette: z-9999. Notification panel: z-9998. Sidebar overlay (mobile): z-9997. Bottom nav: z-9996. |
-| **Progressive disclosure** | Sub-items hidden under expandable sections. Section headers toggle open/closed with chevron. Multiple sections can be open simultaneously. |
-| **Tooltips** | Sidebar (icon-only mode): tooltip appears after 500ms hover delay showing the full label. Command palette search input: tooltip on focus showing keyboard shortcuts. |
+| Rule                       | Detail                                                                                                                                                                                                                                                                                                                             |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Typography**             | Sidebar labels: 14px medium. Section headers: 11px uppercase semibold, #8E8E93 gray. Badge text: 11px bold white on red circle.                                                                                                                                                                                                    |
+| **Colors**                 | Active nav item: primary blue (#007AFF) icon and label with a 3px solid #007AFF left border bar as the active indicator. This left border provides a strong visual signal for users with color vision deficiency. Inactive: #8E8E93 gray, no left border. Badge: #FF3B30 red with white text. Sidebar background: white (#FFFFFF). |
+| **Spacing**                | Sidebar items: 40px height, 16px left padding. Section headers: 24px top margin, 8px bottom margin.                                                                                                                                                                                                                                |
+| **Icons**                  | 20x20px for sidebar items. Outlined when inactive, filled when active. Consistent icon set across all items.                                                                                                                                                                                                                       |
+| **Transitions**            | Sidebar collapse: 200ms ease-in-out. Command palette open/close: 150ms fade-in. Result highlight: instant (no animation).                                                                                                                                                                                                          |
+| **Z-index**                | Command palette: z-9999. Notification panel: z-9998. Sidebar overlay (mobile): z-9997. Bottom nav: z-9996.                                                                                                                                                                                                                         |
+| **Progressive disclosure** | Sub-items hidden under expandable sections. Section headers toggle open/closed with chevron. Multiple sections can be open simultaneously.                                                                                                                                                                                         |
+| **Tooltips**               | Sidebar (icon-only mode): tooltip appears after 500ms hover delay showing the full label. Command palette search input: tooltip on focus showing keyboard shortcuts.                                                                                                                                                               |
 
 ---
 
@@ -839,43 +843,43 @@ Three AI capabilities enhance Search & Navigation. All three are defined in `19-
 
 ### 7.1 Semantic Search (AI Feature #85)
 
-| Attribute | Detail |
-|-----------|--------|
-| **What it does** | Understands natural language queries and returns relevant results across all modules, not just keyword matching. "Leaking faucet in unit 12" finds maintenance requests about plumbing issues in Unit 1205 even if the words do not exactly match. |
-| **Default model** | OpenAI Embeddings + Claude Haiku |
-| **Estimated cost** | $0.001 per query |
-| **Trigger** | On every search query submitted through the command palette or full search page |
-| **Input** | Natural language query text + user's permission scope (role, property, accessible modules) |
-| **Output** | Ranked results across all modules the user has access to, ordered by semantic relevance |
-| **Graceful degradation** | Falls back to keyword-only search using PostgreSQL full-text search. Results are still functional but less intelligent. User sees no error -- just potentially less relevant results. |
-| **Default state** | Enabled |
-| **How embeddings work** | Every entity in the SearchIndex has a 1536-dimension vector generated when the entity is created or updated. Search queries are also converted to vectors. Results are ranked by cosine similarity between the query vector and entity vectors, filtered by role permissions. |
+| Attribute                | Detail                                                                                                                                                                                                                                                                        |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **What it does**         | Understands natural language queries and returns relevant results across all modules, not just keyword matching. "Leaking faucet in unit 12" finds maintenance requests about plumbing issues in Unit 1205 even if the words do not exactly match.                            |
+| **Default model**        | OpenAI Embeddings + Claude Haiku                                                                                                                                                                                                                                              |
+| **Estimated cost**       | $0.001 per query                                                                                                                                                                                                                                                              |
+| **Trigger**              | On every search query submitted through the command palette or full search page                                                                                                                                                                                               |
+| **Input**                | Natural language query text + user's permission scope (role, property, accessible modules)                                                                                                                                                                                    |
+| **Output**               | Ranked results across all modules the user has access to, ordered by semantic relevance                                                                                                                                                                                       |
+| **Graceful degradation** | Falls back to keyword-only search using PostgreSQL full-text search. Results are still functional but less intelligent. User sees no error -- just potentially less relevant results.                                                                                         |
+| **Default state**        | Enabled                                                                                                                                                                                                                                                                       |
+| **How embeddings work**  | Every entity in the SearchIndex has a 1536-dimension vector generated when the entity is created or updated. Search queries are also converted to vectors. Results are ranked by cosine similarity between the query vector and entity vectors, filtered by role permissions. |
 
 ### 7.2 Context-Aware Suggestions (AI Feature #87)
 
-| Attribute | Detail |
-|-----------|--------|
-| **What it does** | Suggests search queries as the user types, based on partial input, popular queries for the user's role, and the user's recent activity. A concierge typing "pac" sees "packages unreleased", "package release unit 1205", and "package intake" -- not generic autocomplete. |
-| **Default model** | Claude Haiku |
-| **Estimated cost** | $0.0005 per suggestion request |
-| **Trigger** | On typing in the command palette or search page, debounced at 300ms |
-| **Input** | Partial query text + user role + user's recent search history + popular queries for this property |
-| **Output** | Top 5 query suggestions displayed below the search input |
-| **Graceful degradation** | Falls back to basic autocomplete on entity names (resident names, unit numbers, reference numbers). No AI suggestions shown. |
-| **Default state** | Enabled |
+| Attribute                | Detail                                                                                                                                                                                                                                                                      |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **What it does**         | Suggests search queries as the user types, based on partial input, popular queries for the user's role, and the user's recent activity. A concierge typing "pac" sees "packages unreleased", "package release unit 1205", and "package intake" -- not generic autocomplete. |
+| **Default model**        | Claude Haiku                                                                                                                                                                                                                                                                |
+| **Estimated cost**       | $0.0005 per suggestion request                                                                                                                                                                                                                                              |
+| **Trigger**              | On typing in the command palette or search page, debounced at 300ms                                                                                                                                                                                                         |
+| **Input**                | Partial query text + user role + user's recent search history + popular queries for this property                                                                                                                                                                           |
+| **Output**               | Top 5 query suggestions displayed below the search input                                                                                                                                                                                                                    |
+| **Graceful degradation** | Falls back to basic autocomplete on entity names (resident names, unit numbers, reference numbers). No AI suggestions shown.                                                                                                                                                |
+| **Default state**        | Enabled                                                                                                                                                                                                                                                                     |
 
 ### 7.3 Cross-Module Correlation (AI Feature #86)
 
-| Attribute | Detail |
-|-----------|--------|
-| **What it does** | Personalizes search result ordering based on user role, recent activity, and query context. If a Security Guard searches "1205", the system prioritizes security events and visitor logs for Unit 1205 over maintenance requests. If a Property Manager searches the same term, maintenance requests and unit file information rank higher. |
-| **Default model** | Claude Haiku |
-| **Estimated cost** | $0.001 per re-ranking request |
-| **Trigger** | After initial search results are returned, before displaying to the user |
-| **Input** | Initial search results + user role + user's recent activity + query text |
-| **Output** | Re-ranked results with relevance scores adjusted for the user's context |
-| **Graceful degradation** | Falls back to default relevance ranking (keyword match score only). No personalization applied. |
-| **Default state** | Enabled |
+| Attribute                | Detail                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **What it does**         | Personalizes search result ordering based on user role, recent activity, and query context. If a Security Guard searches "1205", the system prioritizes security events and visitor logs for Unit 1205 over maintenance requests. If a Property Manager searches the same term, maintenance requests and unit file information rank higher. |
+| **Default model**        | Claude Haiku                                                                                                                                                                                                                                                                                                                                |
+| **Estimated cost**       | $0.001 per re-ranking request                                                                                                                                                                                                                                                                                                               |
+| **Trigger**              | After initial search results are returned, before displaying to the user                                                                                                                                                                                                                                                                    |
+| **Input**                | Initial search results + user role + user's recent activity + query text                                                                                                                                                                                                                                                                    |
+| **Output**               | Re-ranked results with relevance scores adjusted for the user's context                                                                                                                                                                                                                                                                     |
+| **Graceful degradation** | Falls back to default relevance ranking (keyword match score only). No personalization applied.                                                                                                                                                                                                                                             |
+| **Default state**        | Enabled                                                                                                                                                                                                                                                                                                                                     |
 
 ---
 
@@ -883,34 +887,34 @@ Three AI capabilities enhance Search & Navigation. All three are defined in `19-
 
 ### 8.1 Operational Metrics
 
-| Metric | Description | Visibility |
-|--------|-------------|-----------|
-| Total searches per day | Count of search queries across all users | Property Admin, Super Admin |
-| Search-to-click rate | Percentage of searches that result in a clicked result | Property Admin, Super Admin |
-| Average results per query | Mean number of results returned per search | Super Admin |
-| Most common queries | Top 20 search queries by frequency (last 30 days) | Property Admin, Super Admin |
-| Zero-result queries | Queries that returned no results (indicates content gaps) | Property Admin, Super Admin |
-| Command palette usage rate | Percentage of users who use Cmd+K vs. clicking sidebar items | Super Admin |
-| Navigation heatmap | Which sidebar items are clicked most frequently, by role | Property Admin, Super Admin |
+| Metric                     | Description                                                  | Visibility                  |
+| -------------------------- | ------------------------------------------------------------ | --------------------------- |
+| Total searches per day     | Count of search queries across all users                     | Property Admin, Super Admin |
+| Search-to-click rate       | Percentage of searches that result in a clicked result       | Property Admin, Super Admin |
+| Average results per query  | Mean number of results returned per search                   | Super Admin                 |
+| Most common queries        | Top 20 search queries by frequency (last 30 days)            | Property Admin, Super Admin |
+| Zero-result queries        | Queries that returned no results (indicates content gaps)    | Property Admin, Super Admin |
+| Command palette usage rate | Percentage of users who use Cmd+K vs. clicking sidebar items | Super Admin                 |
+| Navigation heatmap         | Which sidebar items are clicked most frequently, by role     | Property Admin, Super Admin |
 
 ### 8.2 Performance Metrics
 
-| Metric | Description | Target | Visibility |
-|--------|-------------|--------|-----------|
-| Search latency (P50) | Median time from query submission to results rendered | Under 200ms | Super Admin |
-| Search latency (P95) | 95th percentile search latency | Under 500ms | Super Admin |
-| Semantic search latency | Time added by AI semantic processing | Under 300ms additional | Super Admin |
+| Metric                              | Description                                             | Target                   | Visibility  |
+| ----------------------------------- | ------------------------------------------------------- | ------------------------ | ----------- |
+| Search latency (P50)                | Median time from query submission to results rendered   | Under 200ms              | Super Admin |
+| Search latency (P95)                | 95th percentile search latency                          | Under 500ms              | Super Admin |
+| Semantic search latency             | Time added by AI semantic processing                    | Under 300ms additional   | Super Admin |
 | Command palette open-to-action time | Time between opening the palette and selecting a result | Under 3 seconds (median) | Super Admin |
-| Sidebar render time | Time to render the sidebar with badge counts | Under 100ms | Super Admin |
+| Sidebar render time                 | Time to render the sidebar with badge counts            | Under 100ms              | Super Admin |
 
 ### 8.3 AI Insight Metrics
 
-| Metric | Description | Visibility |
-|--------|-------------|-----------|
-| Semantic search acceptance rate | How often users click AI-ranked results vs. scrolling past them | Super Admin |
-| Suggestion acceptance rate | How often users accept auto-suggested queries vs. typing their own | Super Admin |
-| Re-ranking improvement | Click-through rate difference between AI-ranked and default-ranked results | Super Admin |
-| AI cost per search | Average AI cost per search query (embedding generation + re-ranking) | Super Admin |
+| Metric                          | Description                                                                | Visibility  |
+| ------------------------------- | -------------------------------------------------------------------------- | ----------- |
+| Semantic search acceptance rate | How often users click AI-ranked results vs. scrolling past them            | Super Admin |
+| Suggestion acceptance rate      | How often users accept auto-suggested queries vs. typing their own         | Super Admin |
+| Re-ranking improvement          | Click-through rate difference between AI-ranked and default-ranked results | Super Admin |
+| AI cost per search              | Average AI cost per search query (embedding generation + re-ranking)       | Super Admin |
 
 ---
 
@@ -918,25 +922,25 @@ Three AI capabilities enhance Search & Navigation. All three are defined in `19-
 
 Search & Navigation does not generate its own notifications. It is a consumer of notification data from other modules. The notification bell and badge counters aggregate counts from:
 
-| Source Module | Notification Type | Badge Location |
-|--------------|-------------------|---------------|
-| Packages | New package received, package unclaimed reminder | Sidebar "Packages" item, notification bell |
-| Security Console | New incident, escalation alert, shift change | Sidebar "Security Console" item, notification bell |
-| Maintenance | New request assigned, status change, overdue alert | Sidebar "Service Requests" item, notification bell |
-| Amenities | Booking confirmation, booking reminder, approval needed | Notification bell |
-| Announcements | New announcement published | Sidebar "Announcements" item, notification bell |
-| Training | New course assigned, course deadline approaching | Sidebar "Training" item, notification bell |
-| Community | New classified ad response, new event posted | Notification bell |
+| Source Module    | Notification Type                                       | Badge Location                                     |
+| ---------------- | ------------------------------------------------------- | -------------------------------------------------- |
+| Packages         | New package received, package unclaimed reminder        | Sidebar "Packages" item, notification bell         |
+| Security Console | New incident, escalation alert, shift change            | Sidebar "Security Console" item, notification bell |
+| Maintenance      | New request assigned, status change, overdue alert      | Sidebar "Service Requests" item, notification bell |
+| Amenities        | Booking confirmation, booking reminder, approval needed | Notification bell                                  |
+| Announcements    | New announcement published                              | Sidebar "Announcements" item, notification bell    |
+| Training         | New course assigned, course deadline approaching        | Sidebar "Training" item, notification bell         |
+| Community        | New classified ad response, new event posted            | Notification bell                                  |
 
 ### Notification Bell Update Rules
 
-| Rule | Detail |
-|------|--------|
-| **Real-time updates** | Badge count updates via WebSocket whenever a new notification arrives or is read |
-| **Batch reading** | Opening the notification panel marks all visible notifications as "seen" (reduces badge count) |
-| **Individual reading** | Clicking a notification marks it as "read" and navigates to the relevant page |
-| **Max age** | Notifications older than 30 days are auto-archived and no longer appear in the bell dropdown |
-| **Quiet hours** | Notification bell still accumulates badges during quiet hours but does not produce sound or vibration |
+| Rule                   | Detail                                                                                                |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Real-time updates**  | Badge count updates via WebSocket whenever a new notification arrives or is read                      |
+| **Batch reading**      | Opening the notification panel marks all visible notifications as "seen" (reduces badge count)        |
+| **Individual reading** | Clicking a notification marks it as "read" and navigates to the relevant page                         |
+| **Max age**            | Notifications older than 30 days are auto-archived and no longer appear in the bell dropdown          |
+| **Quiet hours**        | Notification bell still accumulates badges during quiet hours but does not produce sound or vibration |
 
 ---
 
@@ -948,20 +952,21 @@ Search & Navigation does not generate its own notifications. It is a consumer of
 
 Global search endpoint. Returns results filtered by the authenticated user's role and permissions.
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `q` | string | Yes | -- | Search query text (max 200 chars) |
-| `type` | string | No | `all` | Content type filter: `all`, `events`, `users`, `units`, `maintenance`, `announcements`, `documents`, `amenities` |
-| `status` | string | No | `all` | Status filter: `all`, `open`, `closed` |
-| `date_from` | ISO 8601 | No | 90 days ago | Start date for results |
-| `date_to` | ISO 8601 | No | today | End date for results |
-| `building_id` | UUID | No | all buildings | Filter by building |
-| `sort` | string | No | `relevance` | Sort order: `relevance`, `newest`, `oldest` |
-| `page` | integer | No | 1 | Page number (1-indexed) |
-| `per_page` | integer | No | 20 | Results per page (max 50) |
-| `semantic` | boolean | No | true | Whether to use AI semantic search |
+| Parameter     | Type     | Required | Default       | Description                                                                                                      |
+| ------------- | -------- | -------- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `q`           | string   | Yes      | --            | Search query text (max 200 chars)                                                                                |
+| `type`        | string   | No       | `all`         | Content type filter: `all`, `events`, `users`, `units`, `maintenance`, `announcements`, `documents`, `amenities` |
+| `status`      | string   | No       | `all`         | Status filter: `all`, `open`, `closed`                                                                           |
+| `date_from`   | ISO 8601 | No       | 90 days ago   | Start date for results                                                                                           |
+| `date_to`     | ISO 8601 | No       | today         | End date for results                                                                                             |
+| `building_id` | UUID     | No       | all buildings | Filter by building                                                                                               |
+| `sort`        | string   | No       | `relevance`   | Sort order: `relevance`, `newest`, `oldest`                                                                      |
+| `page`        | integer  | No       | 1             | Page number (1-indexed)                                                                                          |
+| `per_page`    | integer  | No       | 20            | Results per page (max 50)                                                                                        |
+| `semantic`    | boolean  | No       | true          | Whether to use AI semantic search                                                                                |
 
 **Response (200 OK)**:
+
 ```json
 {
   "results": [
@@ -1000,12 +1005,13 @@ Global search endpoint. Returns results filtered by the authenticated user's rol
 
 Returns query suggestions based on partial input.
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `q` | string | Yes | -- | Partial query text (min 2 chars) |
-| `limit` | integer | No | 5 | Number of suggestions (max 10) |
+| Parameter | Type    | Required | Default | Description                      |
+| --------- | ------- | -------- | ------- | -------------------------------- |
+| `q`       | string  | Yes      | --      | Partial query text (min 2 chars) |
+| `limit`   | integer | No       | 5       | Number of suggestions (max 10)   |
 
 **Response (200 OK)**:
+
 ```json
 {
   "suggestions": [
@@ -1022,9 +1028,9 @@ Returns query suggestions based on partial input.
 
 Returns the user's recently visited pages.
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `limit` | integer | No | 10 | Number of items (max 20) |
+| Parameter | Type    | Required | Default | Description              |
+| --------- | ------- | -------- | ------- | ------------------------ |
+| `limit`   | integer | No       | 10      | Number of items (max 20) |
 
 #### `DELETE /api/v1/me/recent-items`
 
@@ -1038,9 +1044,9 @@ Clears all recent items for the authenticated user.
 
 Returns the user's search history.
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `limit` | integer | No | 20 | Number of entries (max 50) |
+| Parameter | Type    | Required | Default | Description                |
+| --------- | ------- | -------- | ------- | -------------------------- |
+| `limit`   | integer | No       | 20      | Number of entries (max 50) |
 
 #### `DELETE /api/v1/me/search-history`
 
@@ -1058,10 +1064,10 @@ Returns sidebar state and pinned items.
 
 Updates sidebar collapse state or pinned items.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `sidebar_collapsed` | boolean | No | Whether sidebar is in icon-only mode |
-| `pinned_items` | string[] | No | Array of nav item IDs (max 3) |
+| Parameter           | Type     | Required | Description                          |
+| ------------------- | -------- | -------- | ------------------------------------ |
+| `sidebar_collapsed` | boolean  | No       | Whether sidebar is in icon-only mode |
+| `pinned_items`      | string[] | No       | Array of nav item IDs (max 3)        |
 
 **Validation errors**:
 | Condition | Error |
@@ -1075,91 +1081,116 @@ Updates sidebar collapse state or pinned items.
 
 Returns notifications for the authenticated user.
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `limit` | integer | No | 10 | Number of notifications (max 50) |
-| `unread_only` | boolean | No | false | Filter to unread only |
+| Parameter     | Type    | Required | Default | Description                      |
+| ------------- | ------- | -------- | ------- | -------------------------------- |
+| `limit`       | integer | No       | 10      | Number of notifications (max 50) |
+| `unread_only` | boolean | No       | false   | Filter to unread only            |
 
 #### `PATCH /api/v1/me/notifications/mark-all-read`
 
 Marks all notifications as read for the authenticated user.
 
 **Response (200 OK)**:
+
 ```json
 { "marked_count": 12 }
 ```
 
 ### 10.6 Rate Limits
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| `GET /api/v1/search` | 60 requests | Per minute |
+| Endpoint                         | Limit        | Window     |
+| -------------------------------- | ------------ | ---------- |
+| `GET /api/v1/search`             | 60 requests  | Per minute |
 | `GET /api/v1/search/suggestions` | 120 requests | Per minute |
-| `GET /api/v1/me/notifications` | 30 requests | Per minute |
-| All other endpoints | 120 requests | Per minute |
+| `GET /api/v1/me/notifications`   | 30 requests  | Per minute |
+| All other endpoints              | 120 requests | Per minute |
 
 ---
 
 ## 11. Completeness Checklist
 
-| # | Requirement | Status | Section |
-|---|------------|--------|---------|
-| 1 | Command palette triggered by Cmd+K / Ctrl+K | Defined | 3.1 |
-| 2 | Command palette triggered by click on search icon | Defined | 3.1 |
-| 3 | Command palette triggered by `/` key | Defined | 3.1 |
-| 4 | Quick actions filtered by user role | Defined | 3.1 |
-| 5 | Search results grouped by category | Defined | 3.1 |
-| 6 | Keyboard navigation (arrows, enter, escape, tab) | Defined | 3.1 |
-| 7 | Semantic search across all modules | Defined | 7.1 |
-| 8 | Context-aware query suggestions | Defined | 7.2 |
-| 9 | Cross-module result re-ranking by role | Defined | 7.3 |
-| 10 | Role-aware sidebar navigation | Defined | 3.2 |
-| 11 | Sidebar items per role (12 roles) | Referenced | 3.2 (defers to 02-roles-and-permissions.md Section 7) |
-| 12 | Badge counters with real-time updates | Defined | 3.2 |
-| 13 | Sidebar collapse (full/icon-only) with persistence | Defined | 3.2 |
-| 14 | Sidebar pinning (max 3 items) | Defined | 3.2 |
-| 15 | Breadcrumb navigation on every page | Defined | 3.3 |
-| 16 | Breadcrumb responsive collapse on mobile | Defined | 3.3 |
-| 17 | Notification bell with count badge | Defined | 3.4 |
-| 18 | Notification panel with 10 most recent items | Defined | 3.4 |
-| 19 | Mark all notifications as read | Defined | 3.4 |
-| 20 | Mobile bottom navigation bar | Defined | 3.5 |
-| 21 | Bottom bar items per role (8 role groups) | Defined | 3.5 |
-| 22 | "More" item opens full navigation | Defined | 3.5 |
-| 23 | Full search results page with filters | Defined | 3.6 |
-| 24 | Search filters: content type, date, status, building, sort | Defined | 3.6 |
-| 25 | Pagination via "Load More" button | Defined | 3.6 |
-| 26 | Search history (20 entries, server-side) | Defined | 3.7 |
-| 27 | Recent items (10 entries, client + server sync) | Defined | 3.7 |
-| 28 | Clear search history button | Defined | 3.7 |
-| 29 | Clear recent items button | Defined | 3.7 |
-| 30 | Top navigation bar with property switcher | Defined | 3.8 |
-| 31 | User menu dropdown with sign out | Defined | 3.8 |
-| 32 | Desktop responsive behavior (1024px+) | Defined | 3.1, 3.2, 3.4 |
-| 33 | Tablet responsive behavior (768-1023px) | Defined | 3.1, 3.2, 3.4 |
-| 34 | Mobile responsive behavior (below 768px) | Defined | 3.1, 3.2, 3.4, 3.5 |
-| 35 | Empty states for all components | Defined | 3.1, 3.4, 3.6 |
-| 36 | Loading states for all components | Defined | 3.1, 3.4, 3.6 |
-| 37 | Error states for all components | Defined | 3.1, 3.4, 3.6 |
-| 38 | Offline state for command palette | Defined | 3.1 |
-| 39 | Tooltips for complex features | Defined | 3.1, 6.4 |
-| 40 | Progressive disclosure (sub-items, expandable sections) | Defined | 6.4 |
-| 41 | Data model for search queries | Defined | 4.1 |
-| 42 | Data model for recent items | Defined | 4.2 |
-| 43 | Data model for navigation preferences | Defined | 4.3 |
-| 44 | Data model for search index with embeddings | Defined | 4.4 |
-| 45 | API: search endpoint with all parameters | Defined | 10.1 |
-| 46 | API: suggestions endpoint | Defined | 10.1 |
-| 47 | API: recent items CRUD | Defined | 10.2 |
-| 48 | API: search history CRUD | Defined | 10.3 |
-| 49 | API: navigation preferences CRUD | Defined | 10.4 |
-| 50 | API: notification bell endpoints | Defined | 10.5 |
-| 51 | API: rate limits defined | Defined | 10.6 |
-| 52 | Operational analytics (searches/day, click rate, zero-result queries) | Defined | 8.1 |
-| 53 | Performance analytics (latency targets) | Defined | 8.2 |
-| 54 | AI analytics (acceptance rate, cost per search) | Defined | 8.3 |
-| 55 | Notification aggregation from all modules | Defined | 9 |
+| #   | Requirement                                                           | Status     | Section                                               |
+| --- | --------------------------------------------------------------------- | ---------- | ----------------------------------------------------- |
+| 1   | Command palette triggered by Cmd+K / Ctrl+K                           | Defined    | 3.1                                                   |
+| 2   | Command palette triggered by click on search icon                     | Defined    | 3.1                                                   |
+| 3   | Command palette triggered by `/` key                                  | Defined    | 3.1                                                   |
+| 4   | Quick actions filtered by user role                                   | Defined    | 3.1                                                   |
+| 5   | Search results grouped by category                                    | Defined    | 3.1                                                   |
+| 6   | Keyboard navigation (arrows, enter, escape, tab)                      | Defined    | 3.1                                                   |
+| 7   | Semantic search across all modules                                    | Defined    | 7.1                                                   |
+| 8   | Context-aware query suggestions                                       | Defined    | 7.2                                                   |
+| 9   | Cross-module result re-ranking by role                                | Defined    | 7.3                                                   |
+| 10  | Role-aware sidebar navigation                                         | Defined    | 3.2                                                   |
+| 11  | Sidebar items per role (12 roles)                                     | Referenced | 3.2 (defers to 02-roles-and-permissions.md Section 7) |
+| 12  | Badge counters with real-time updates                                 | Defined    | 3.2                                                   |
+| 13  | Sidebar collapse (full/icon-only) with persistence                    | Defined    | 3.2                                                   |
+| 14  | Sidebar pinning (max 3 items)                                         | Defined    | 3.2                                                   |
+| 15  | Breadcrumb navigation on every page                                   | Defined    | 3.3                                                   |
+| 16  | Breadcrumb responsive collapse on mobile                              | Defined    | 3.3                                                   |
+| 17  | Notification bell with count badge                                    | Defined    | 3.4                                                   |
+| 18  | Notification panel with 10 most recent items                          | Defined    | 3.4                                                   |
+| 19  | Mark all notifications as read                                        | Defined    | 3.4                                                   |
+| 20  | Mobile bottom navigation bar                                          | Defined    | 3.5                                                   |
+| 21  | Bottom bar items per role (8 role groups)                             | Defined    | 3.5                                                   |
+| 22  | "More" item opens full navigation                                     | Defined    | 3.5                                                   |
+| 23  | Full search results page with filters                                 | Defined    | 3.6                                                   |
+| 24  | Search filters: content type, date, status, building, sort            | Defined    | 3.6                                                   |
+| 25  | Pagination via "Load More" button                                     | Defined    | 3.6                                                   |
+| 26  | Search history (20 entries, server-side)                              | Defined    | 3.7                                                   |
+| 27  | Recent items (10 entries, client + server sync)                       | Defined    | 3.7                                                   |
+| 28  | Clear search history button                                           | Defined    | 3.7                                                   |
+| 29  | Clear recent items button                                             | Defined    | 3.7                                                   |
+| 30  | Top navigation bar with property switcher                             | Defined    | 3.8                                                   |
+| 31  | User menu dropdown with sign out                                      | Defined    | 3.8                                                   |
+| 32  | Desktop responsive behavior (1024px+)                                 | Defined    | 3.1, 3.2, 3.4                                         |
+| 33  | Tablet responsive behavior (768-1023px)                               | Defined    | 3.1, 3.2, 3.4                                         |
+| 34  | Mobile responsive behavior (below 768px)                              | Defined    | 3.1, 3.2, 3.4, 3.5                                    |
+| 35  | Empty states for all components                                       | Defined    | 3.1, 3.4, 3.6                                         |
+| 36  | Loading states for all components                                     | Defined    | 3.1, 3.4, 3.6                                         |
+| 37  | Error states for all components                                       | Defined    | 3.1, 3.4, 3.6                                         |
+| 38  | Offline state for command palette                                     | Defined    | 3.1                                                   |
+| 39  | Tooltips for complex features                                         | Defined    | 3.1, 6.4                                              |
+| 40  | Progressive disclosure (sub-items, expandable sections)               | Defined    | 6.4                                                   |
+| 41  | Data model for search queries                                         | Defined    | 4.1                                                   |
+| 42  | Data model for recent items                                           | Defined    | 4.2                                                   |
+| 43  | Data model for navigation preferences                                 | Defined    | 4.3                                                   |
+| 44  | Data model for search index with embeddings                           | Defined    | 4.4                                                   |
+| 45  | API: search endpoint with all parameters                              | Defined    | 10.1                                                  |
+| 46  | API: suggestions endpoint                                             | Defined    | 10.1                                                  |
+| 47  | API: recent items CRUD                                                | Defined    | 10.2                                                  |
+| 48  | API: search history CRUD                                              | Defined    | 10.3                                                  |
+| 49  | API: navigation preferences CRUD                                      | Defined    | 10.4                                                  |
+| 50  | API: notification bell endpoints                                      | Defined    | 10.5                                                  |
+| 51  | API: rate limits defined                                              | Defined    | 10.6                                                  |
+| 52  | Operational analytics (searches/day, click rate, zero-result queries) | Defined    | 8.1                                                   |
+| 53  | Performance analytics (latency targets)                               | Defined    | 8.2                                                   |
+| 54  | AI analytics (acceptance rate, cost per search)                       | Defined    | 8.3                                                   |
+| 55  | Notification aggregation from all modules                             | Defined    | 9                                                     |
 
 ---
 
-*End of document.*
+## ADDENDUM: Search Indexing Delay Tolerance
+
+> Added from PRD Quality Audit (2026-03-17). Specifies exact behavior when a user searches immediately after creating or updating a record.
+
+### Indexing Delay Specification
+
+| Parameter                                    | Value                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Maximum indexing delay (write to searchable) | 2 seconds                                                                                                                                                                                                                                                                                                                                                                                           |
+| Indexing mechanism                           | Synchronous index update on write path for the primary search fields (name, unit number, reference number). Asynchronous background job for full-text and embedding updates within 2 seconds.                                                                                                                                                                                                       |
+| User feedback during delay                   | If a user creates a record and immediately searches for it (within 2 seconds), and the record does not appear in results, the search results page displays: "Recently created items may take a few seconds to appear in search. Try again in a moment." This message appears only when the search query matches a record the current user created within the last 10 seconds (tracked client-side). |
+
+### Search Consistency Model
+
+| Scenario                                        | Behavior                                                                                                                                                                                      |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Record created, searched within 500ms           | Record appears in results (synchronous primary index covers name, unit number, reference number fields).                                                                                      |
+| Record created, full-text searched within 500ms | Record may not appear. Client-side hint message displayed. Record appears within 2 seconds.                                                                                                   |
+| Record deleted, searched within 500ms           | Record no longer appears in results (synchronous delete from index).                                                                                                                          |
+| Record updated, searched for old value          | Old value returns no results within 2 seconds of update.                                                                                                                                      |
+| Embedding generation fails (AI unavailable)     | Semantic search (natural language queries) returns no results for the affected record. Keyword search still works. Background job retries embedding generation every 5 minutes up to 3 times. |
+
+---
+
+_End of document._

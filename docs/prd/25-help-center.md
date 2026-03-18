@@ -419,15 +419,15 @@ Users create support tickets from the HelpDrawer by clicking the "Contact Suppor
 
 **Ticket form fields**:
 
-| Field            | Type                   | Required | Validation                                                                              |
-| ---------------- | ---------------------- | -------- | --------------------------------------------------------------------------------------- |
-| **Subject**      | Text input             | Yes      | Min 5 characters, max 200 characters                                                    |
-| **Description**  | Rich text area         | Yes      | Min 20 characters, max 5000 characters. Supports basic formatting (bold, italic, lists) |
-| **Category**     | Select dropdown        | Yes      | Options: General Question, Bug Report, Feature Request, Billing, Account Access, Other  |
-| **Priority**     | Select dropdown        | No       | Options: Low, Normal (default), High, Urgent                                            |
-| **Screenshots**  | File upload (multiple) | No       | Up to 5 files. Formats: JPG, PNG, GIF. Max 5 MB each                                    |
-| **Page URL**     | Hidden field           | Auto     | Automatically captured from the page where the user opened the help drawer              |
-| **Browser info** | Hidden field           | Auto     | User agent string for debugging (only sent if user consents in privacy settings)        |
+| Field            | Type                   | Required | Validation                                                                                                    |
+| ---------------- | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
+| **Subject**      | Text input             | Yes      | Min 5 characters, max 200 characters                                                                          |
+| **Description**  | Rich text area         | Yes      | Min 20 characters, max 5000 characters. Supports basic formatting (bold, italic, lists)                       |
+| **Category**     | Select dropdown        | Yes      | Options: General Question, Bug Report, Feature Request, Billing, Account Access, **Privacy Complaint**, Other |
+| **Priority**     | Select dropdown        | No       | Options: Low, Normal (default), High, Urgent                                                                  |
+| **Screenshots**  | File upload (multiple) | No       | Up to 5 files. Formats: JPG, PNG, GIF. Max 5 MB each                                                          |
+| **Page URL**     | Hidden field           | Auto     | Automatically captured from the page where the user opened the help drawer                                    |
+| **Browser info** | Hidden field           | Auto     | User agent string for debugging (only sent if user consents in privacy settings)                              |
 
 ### 6.2 Ticket Lifecycle
 
@@ -460,6 +460,20 @@ Open → In Progress → Waiting on Customer → Resolved → Closed
 | **First response time**   | 4 hours (Normal), 1 hour (High), 30 minutes (Urgent) | Auto-escalation email to support lead if SLA breached |
 | **Resolution time**       | 24 hours (Normal), 8 hours (High), 4 hours (Urgent)  | Dashboard warning at 80% of SLA window                |
 | **Customer satisfaction** | Target: 90%+ "Resolved" rating                       | Tickets rated "Not resolved" are auto-reopened        |
+
+### 6.3.1 Privacy Complaint Handling (Compliance Required)
+
+The "Privacy Complaint" ticket category has special handling required by PIPEDA Principle 10 (Challenging Compliance), GDPR Article 77 (Right to lodge a complaint), and SOC 2 P8.1. See `docs/tech/COMPLIANCE-MATRIX.md` gap C7.
+
+| Aspect                | Specification                                                                                                                                                                                                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Routing**           | Privacy Complaint tickets are automatically routed to the Data Protection Officer (DPO) configured in Settings > Company > DPO Contact (see PRD 16). If no DPO is configured, tickets route to the Super Admin.                                                                                                                                   |
+| **SLA**               | First response: 5 business days. Resolution: 30 calendar days (PIPEDA and GDPR requirement). These SLAs override the standard ticket SLAs.                                                                                                                                                                                                        |
+| **Escalation**        | If not acknowledged within 5 business days, auto-escalate to Super Admin with a warning: "COMPLIANCE: Privacy complaint SLA at risk."                                                                                                                                                                                                             |
+| **Additional fields** | When "Privacy Complaint" is selected as the category, two additional fields appear: (1) "Nature of Complaint" (dropdown: Data access denied, Data correction denied, Unauthorized data use, Data breach concern, Consent violation, Other), (2) "Affected Data" (multi-select: Personal info, Health info, Security data, Financial info, Other). |
+| **Response template** | Auto-populated response template acknowledging receipt and citing the resident's right to escalate to the Privacy Commissioner of Canada (for PIPEDA) or the relevant Supervisory Authority (for GDPR).                                                                                                                                           |
+| **Audit trail**       | All Privacy Complaint tickets and their resolutions are included in the DSAR Report (PRD 28 Report 7) and the Consent Records Report (PRD 28 Report 6).                                                                                                                                                                                           |
+| **Retention**         | Privacy Complaint tickets are retained for 5 years after resolution (longer than standard ticket retention of 2 years) per audit trail requirements.                                                                                                                                                                                              |
 
 ### 6.4 Email Integration
 
@@ -634,7 +648,7 @@ The "Print cheat sheet" button in the shortcuts overlay generates a formatted PD
 | `status`             | Enum            | Yes      | `open`, `in_progress`, `waiting_on_customer`, `resolved`, `closed`. Default: `open`       |
 | `submittedBy`        | UUID → User     | Yes      | The user who created the ticket                                                           |
 | `assignedTo`         | UUID → User     | No       | Support agent assigned to the ticket                                                      |
-| `propertyId`         | UUID → Property | No       | Property context (if applicable)                                                          |
+| `propertyId`         | UUID → Property | No       | Property context. Null for Super Admin tickets that are not property-specific.            |
 | `pageUrl`            | String(500)     | No       | The page URL where the ticket was created                                                 |
 | `browserInfo`        | String(500)     | No       | User agent string (only if user consented)                                                |
 | `attachments`        | JSONB           | No       | Array of `{ filename, url, size, mimeType }` objects. Max 5 attachments                   |
@@ -978,3 +992,97 @@ The help system tracks the following metrics for content improvement:
 | HelpDrawer open rate (per page)        | Identify pages where users need the most help |
 | Support ticket volume (v2)             | Track self-service deflection rate            |
 | Time to first article view (new users) | Measure help discoverability                  |
+
+---
+
+## 13. Edge Cases
+
+| Scenario                                                        | Behavior                                                                                                                                                                                                                                 |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Article updated while user is reading it                        | The user continues seeing the version they opened. On next visit, they see the updated version. No in-place refresh. Articles are versioned: each edit creates a new version. The drawer does not auto-refresh open articles.            |
+| AI search returns no results                                    | Display: "We could not find an answer to your question." followed by a "Contact Support" button and a list of the 5 most popular articles for the user's role. Log the query as a "zero-result search" for content gap analysis.         |
+| Help article references a feature the user's role cannot access | The article is still displayed (it may be educational), but any "Go to [feature]" links within the article are hidden for that role. A note appears: "This feature is available to [role names]. Contact your administrator for access." |
+| User submits feedback on a deleted article                      | If the article was soft-deleted between the user opening it and submitting feedback, the feedback is still stored (linked to the article version). The user sees "Thanks for your feedback!" as normal.                                  |
+| Knowledge base SSG build fails                                  | The previous build remains live. An alert is sent to the content team. The build is retried automatically up to 3 times with 5-minute intervals. If all retries fail, the content team is notified via email with the build error log.   |
+| Tooltip content missing for a tooltip key                       | Display nothing (no broken tooltip icon). Log a warning: "Missing tooltip content for key: {key}." The tooltip icon is hidden for that field until content is added.                                                                     |
+| User with no role accesses the help drawer                      | Show only articles with `roleVisibility: ["*"]` (all-roles articles). This covers the edge case of a user whose role assignment is pending or in transition.                                                                             |
+
+---
+
+## 14. Completeness Checklist
+
+### Feature Coverage
+
+| #   | Requirement                                        | Status  | Section |
+| --- | -------------------------------------------------- | ------- | ------- |
+| 1   | In-app HelpDrawer with slide-out panel             | Covered | 3.1     |
+| 2   | Contextual help (auto-detect current page)         | Covered | 3.2     |
+| 3   | Tooltip system with stored content                 | Covered | 3.3     |
+| 4   | Video tutorial embeds with fallback                | Covered | 3.4     |
+| 5   | Role-specific onboarding checklists                | Covered | 3.5     |
+| 6   | Article feedback widget (thumbs up/down + comment) | Covered | 3.6     |
+| 7   | External knowledge base (public, SEO-indexed)      | Covered | 4       |
+| 8   | AI-powered semantic search                         | Covered | 4.3     |
+| 9   | Bilingual support (en, fr-CA)                      | Covered | 4.4     |
+| 10  | Keyboard shortcut cheat sheet overlay              | Covered | 7       |
+| 11  | Release notes section                              | Covered | 4.2     |
+| 12  | Support ticket system (v2)                         | Covered | 10      |
+
+### UX Coverage
+
+| #   | Requirement                                                       | Status  | Section |
+| --- | ----------------------------------------------------------------- | ------- | ------- |
+| 1   | HelpDrawer responsive layout (400px desktop, full-screen mobile)  | Covered | 3.1     |
+| 2   | Drawer close methods (X button, Esc key, click outside on mobile) | Covered | 3.1     |
+| 3   | Article detail view within drawer                                 | Covered | 3.1     |
+| 4   | Search debouncing (300ms)                                         | Covered | 3.1     |
+| 5   | Empty state: no contextual articles found                         | Covered | 3.2     |
+| 6   | Empty state: no search results                                    | Covered | 13      |
+| 7   | Loading state: article loading                                    | Covered | 12.1    |
+| 8   | Keyboard navigation (Tab, Shift+Tab, Enter, Esc)                  | Covered | 12.2    |
+| 9   | Screen reader support                                             | Covered | 12.2    |
+
+### Edge Case Coverage
+
+| #   | Requirement                             | Status  | Section |
+| --- | --------------------------------------- | ------- | ------- |
+| 1   | Article updated while user reading      | Covered | 13      |
+| 2   | AI search zero results                  | Covered | 13      |
+| 3   | Article references inaccessible feature | Covered | 13      |
+| 4   | Feedback on deleted article             | Covered | 13      |
+| 5   | Knowledge base build failure            | Covered | 13      |
+| 6   | Missing tooltip content                 | Covered | 13      |
+
+---
+
+## ADDENDUM: Gap Analysis Fixes (2026-03-17)
+
+> Added from GAP-ANALYSIS-FINAL.md gap 25.1
+
+### A1. Feature Request / Idea Submission from Help Center (Gap 25.1, Medium)
+
+Industry research revealed that one platform integrates an "Idea Board" directly into the Help button, allowing users to post feature ideas and browse community suggestions. Concierge should provide a feature request pathway from the Help Center that feeds into the Community module's Idea Board (PRD 12).
+
+#### Feature Request Entry Point
+
+In the Help Center slide-out drawer, add a section below the search bar and above the article list:
+
+| #   | Element            | Specification                                                                                    |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------ |
+| 1   | Section label      | "Have a suggestion?" (gray text, small)                                                          |
+| 2   | Submit Idea button | Secondary button: "Submit a Feature Request". Links to the Idea Board submission form in PRD 12. |
+| 3   | Browse Ideas link  | Text link: "Browse community ideas". Links to the Idea Board listing page in PRD 12.             |
+
+#### Behavioral Rules
+
+1. The "Submit a Feature Request" button opens the Idea Board post form (PRD 12) in a new page (not within the Help drawer). The Help drawer closes.
+2. The "Browse community ideas" link opens the Idea Board listing page.
+3. If the Idea Board module is disabled for this property (via feature flags), both the button and link are hidden. No empty state -- the section simply does not render.
+4. The feature request form pre-fills the category as "Feature Request" (vs. other Idea Board categories like "Improvement" or "Bug Report").
+5. Staff roles see all submitted ideas. Resident roles see only ideas visible to their role.
+
+#### External Knowledge Base Integration
+
+On the public knowledge base at `help.concierge.com`, a "Feature Requests" link appears in the footer navigation. It links to a public-facing, read-only view of the most-upvoted ideas (top 20) with a "Log in to submit your own idea" CTA. This drives engagement and signals product transparency.
+
+---

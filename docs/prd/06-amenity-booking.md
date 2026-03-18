@@ -17,16 +17,16 @@ Every condo building has shared spaces that residents want to use. Without a boo
 
 ### Key Facts
 
-| Attribute | Value |
-|-----------|-------|
-| **User roles** | Resident (book), Front Desk (book on behalf, manage), Property Manager (configure, approve, report), Property Admin (full configuration), Board Member (usage reports read-only). **Offsite owner note**: If 08-User Management defines an "offsite owner" resident sub-type, offsite owners default to read-only access for amenity booking (can view availability and bookings but cannot create bookings). Property Admin can override this per-property to allow offsite owner booking. |
-| **Payment provider** | Stripe (credit/debit cards) + offline methods (cheque, cash, e-transfer) |
-| **Calendar library** | FullCalendar (month, week, day, agenda views) |
-| **Views** | Calendar, List, Card Grid |
-| **Booking styles** | Fixed time slots, flexible time range, full-day |
-| **Approval modes** | Auto-approve, manager-approve, admin-approve |
-| **AI capabilities** | 8 (see Section 7) |
-| **Real-time updates** | WebSocket -- new bookings, approvals, and cancellations appear live |
+| Attribute             | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **User roles**        | Resident (book), Front Desk (book on behalf, manage), Property Manager (configure, approve, report), Property Admin (full configuration), Board Member (usage reports read-only). **Offsite owner note**: If 08-User Management defines an "offsite owner" resident sub-type, offsite owners default to read-only access for amenity booking (can view availability and bookings but cannot create bookings). Property Admin can override this per-property to allow offsite owner booking. |
+| **Payment provider**  | Stripe (credit/debit cards) + offline methods (cheque, cash, e-transfer)                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Calendar library**  | FullCalendar (month, week, day, agenda views)                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Views**             | Calendar, List, Card Grid                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **Booking styles**    | Fixed time slots, flexible time range, full-day                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Approval modes**    | Auto-approve, manager-approve, admin-approve                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| **AI capabilities**   | 8 (see Section 7)                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Real-time updates** | WebSocket -- new bookings, approvals, and cancellations appear live                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 ### Scope
 
@@ -42,33 +42,33 @@ Industry research across three production platforms revealed the following patte
 
 ### What the Industry Gets Right
 
-| # | Pattern | Observed In | Concierge Adoption |
-|---|---------|-------------|-------------------|
-| 1 | **Visual amenity cards with photos** | 2 of 3 platforms | Adopted -- card grid with uploaded photos, fee display, and one-click booking |
-| 2 | **Hero booking bar** | 1 of 3 platforms | Adopted -- streamlined 3-step inline flow (amenity, date, slot, book) for residents who know what they want |
-| 3 | **Color-coded calendar with legend** | 2 of 3 platforms | Adopted -- unique color per amenity, status colors (approved, pending, cancelled), filterable checkboxes |
-| 4 | **Pending approvals above calendar** | 1 of 3 platforms | Adopted -- prominent display with batch approve capability |
-| 5 | **Pricing and deposit transparency** | All 3 platforms | Adopted -- fee, deposit, payment method, and cancellation policy shown before booking |
-| 6 | **Booking history audit trail** | 1 of 3 platforms | Adopted -- every action logged with timestamp, actor, and details |
-| 7 | **Stripe payment integration** | 1 of 3 platforms | Adopted -- credit card payments for amenity fees and deposits |
-| 8 | **Variable fee structures** | All 3 platforms | Adopted -- flat rate, hourly, per-guest, and per-event pricing models |
-| 9 | **Time slot-based booking** | All 3 platforms | Adopted -- configurable slot durations per amenity |
-| 10 | **Combined multi-amenity calendar** | 2 of 3 platforms | Adopted -- single calendar showing all amenities with color filtering |
+| #   | Pattern                              | Observed In      | Concierge Adoption                                                                                          |
+| --- | ------------------------------------ | ---------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | **Visual amenity cards with photos** | 2 of 3 platforms | Adopted -- card grid with uploaded photos, fee display, and one-click booking                               |
+| 2   | **Hero booking bar**                 | 1 of 3 platforms | Adopted -- streamlined 3-step inline flow (amenity, date, slot, book) for residents who know what they want |
+| 3   | **Color-coded calendar with legend** | 2 of 3 platforms | Adopted -- unique color per amenity, status colors (approved, pending, cancelled), filterable checkboxes    |
+| 4   | **Pending approvals above calendar** | 1 of 3 platforms | Adopted -- prominent display with batch approve capability                                                  |
+| 5   | **Pricing and deposit transparency** | All 3 platforms  | Adopted -- fee, deposit, payment method, and cancellation policy shown before booking                       |
+| 6   | **Booking history audit trail**      | 1 of 3 platforms | Adopted -- every action logged with timestamp, actor, and details                                           |
+| 7   | **Stripe payment integration**       | 1 of 3 platforms | Adopted -- credit card payments for amenity fees and deposits                                               |
+| 8   | **Variable fee structures**          | All 3 platforms  | Adopted -- flat rate, hourly, per-guest, and per-event pricing models                                       |
+| 9   | **Time slot-based booking**          | All 3 platforms  | Adopted -- configurable slot durations per amenity                                                          |
+| 10  | **Combined multi-amenity calendar**  | 2 of 3 platforms | Adopted -- single calendar showing all amenities with color filtering                                       |
 
 ### What the Industry Gets Wrong
 
-| # | Anti-Pattern | Observed In | Concierge Fix |
-|---|-------------|-------------|---------------|
-| 1 | **Duplicate booking entry points with inconsistent flows** | 1 platform | Single unified booking flow regardless of entry point (card, calendar click, hero bar) |
-| 2 | **"Quick Booking" button that just navigates to another tab** | 1 platform | True quick-book: click a calendar slot to create a booking inline |
-| 3 | **Inconsistent name formats across views** | 1 platform | Standardized name format across all views: "First Last (Unit)" |
-| 4 | **Inconsistent date/time formats** | 1 platform | ISO-derived format everywhere: "MMM D, YYYY" for dates, "h:mm A" for times |
-| 5 | **Update vs Revise vs Edit -- three buttons for similar actions** | 1 platform | Single "Edit Booking" action with clearly scoped sections (dates, payment, notes) |
-| 6 | **No inline booking from calendar clicks** | 2 of 3 platforms | Click any empty calendar slot to start a booking pre-filled with that date and time |
-| 7 | **No pagination or total count on booking lists** | 1 platform | Paginated list with total count, sort, and filter controls |
-| 8 | **Placeholder images with no upload guidance** | 1 platform | Empty state prompts admin to upload photos with recommended dimensions |
-| 9 | **Empty terms and conditions sections** | 2 of 3 platforms | If no T&C configured, the section is hidden entirely -- not shown as an empty heading |
-| 10 | **Declined status in legend but missing from filters** | 1 platform | Every status that appears anywhere is available in every filter dropdown |
+| #   | Anti-Pattern                                                      | Observed In      | Concierge Fix                                                                          |
+| --- | ----------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------- |
+| 1   | **Duplicate booking entry points with inconsistent flows**        | 1 platform       | Single unified booking flow regardless of entry point (card, calendar click, hero bar) |
+| 2   | **"Quick Booking" button that just navigates to another tab**     | 1 platform       | True quick-book: click a calendar slot to create a booking inline                      |
+| 3   | **Inconsistent name formats across views**                        | 1 platform       | Standardized name format across all views: "First Last (Unit)"                         |
+| 4   | **Inconsistent date/time formats**                                | 1 platform       | ISO-derived format everywhere: "MMM D, YYYY" for dates, "h:mm A" for times             |
+| 5   | **Update vs Revise vs Edit -- three buttons for similar actions** | 1 platform       | Single "Edit Booking" action with clearly scoped sections (dates, payment, notes)      |
+| 6   | **No inline booking from calendar clicks**                        | 2 of 3 platforms | Click any empty calendar slot to start a booking pre-filled with that date and time    |
+| 7   | **No pagination or total count on booking lists**                 | 1 platform       | Paginated list with total count, sort, and filter controls                             |
+| 8   | **Placeholder images with no upload guidance**                    | 1 platform       | Empty state prompts admin to upload photos with recommended dimensions                 |
+| 9   | **Empty terms and conditions sections**                           | 2 of 3 platforms | If no T&C configured, the section is hidden entirely -- not shown as an empty heading  |
+| 10  | **Declined status in legend but missing from filters**            | 1 platform       | Every status that appears anywhere is available in every filter dropdown               |
 
 ### Concierge Differentiators (Not Found in Any Platform)
 
@@ -92,34 +92,34 @@ Property Admin configures each amenity with the following fields, organized into
 
 **Section A: Basic Information**
 
-| # | Field | Type | Max Length | Required | Default | Validation | Error Message |
-|---|-------|------|-----------|----------|---------|------------|---------------|
-| 1 | Amenity Name | text | 100 chars | Yes | -- | Non-empty, unique within property | "An amenity with this name already exists." |
-| 2 | Description | textarea | 2000 chars | No | -- | -- | -- |
-| 3 | Amenity Group | select | -- | Yes | "General" | Must select from existing groups | "Please select an amenity group." |
-| 4 | Display Order | number | 3 digits | No | Auto-increment | Integer >= 0 | "Display order must be a positive number." |
-| 5 | Active | toggle | -- | Yes | true | -- | -- |
-| 6 | Color | color picker | 7 chars (hex) | Yes | Auto-assigned | Valid hex color | "Please select a valid color." |
-| 7 | Icon | icon picker | -- | No | Default per group | From icon library or custom SVG upload | -- |
+| #   | Field         | Type         | Max Length    | Required | Default           | Validation                             | Error Message                               |
+| --- | ------------- | ------------ | ------------- | -------- | ----------------- | -------------------------------------- | ------------------------------------------- |
+| 1   | Amenity Name  | text         | 100 chars     | Yes      | --                | Non-empty, unique within property      | "An amenity with this name already exists." |
+| 2   | Description   | textarea     | 2000 chars    | No       | --                | --                                     | --                                          |
+| 3   | Amenity Group | select       | --            | Yes      | "General"         | Must select from existing groups       | "Please select an amenity group."           |
+| 4   | Display Order | number       | 3 digits      | No       | Auto-increment    | Integer >= 0                           | "Display order must be a positive number."  |
+| 5   | Active        | toggle       | --            | Yes      | true              | --                                     | --                                          |
+| 6   | Color         | color picker | 7 chars (hex) | Yes      | Auto-assigned     | Valid hex color                        | "Please select a valid color."              |
+| 7   | Icon          | icon picker  | --            | No       | Default per group | From icon library or custom SVG upload | --                                          |
 
 **Section B: Photos & Media**
 
-| # | Field | Type | Max Length | Required | Default | Validation | Error Message |
-|---|-------|------|-----------|----------|---------|------------|---------------|
-| 8 | Primary Photo | file upload | 5 MB | No | Placeholder | JPG, PNG, WebP. Min 800x400px | "Photo must be JPG, PNG, or WebP and at least 800x400 pixels." |
-| 9 | Gallery Photos | multi-file upload | 5 MB each, 10 max | No | -- | Same as primary photo | "Each photo must be under 5 MB. Maximum 10 photos." |
-| 10 | Photo Caption | text | 200 chars | No | -- | -- | -- |
+| #   | Field          | Type              | Max Length        | Required | Default     | Validation                    | Error Message                                                  |
+| --- | -------------- | ----------------- | ----------------- | -------- | ----------- | ----------------------------- | -------------------------------------------------------------- |
+| 8   | Primary Photo  | file upload       | 5 MB              | No       | Placeholder | JPG, PNG, WebP. Min 800x400px | "Photo must be JPG, PNG, or WebP and at least 800x400 pixels." |
+| 9   | Gallery Photos | multi-file upload | 5 MB each, 10 max | No       | --          | Same as primary photo         | "Each photo must be under 5 MB. Maximum 10 photos."            |
+| 10  | Photo Caption  | text              | 200 chars         | No       | --          | --                            | --                                                             |
 
 **Section C: Scheduling**
 
-| # | Field | Type | Max Length | Required | Default | Validation | Error Message |
-|---|-------|------|-----------|----------|---------|------------|---------------|
-| 11 | Booking Style | select | -- | Yes | "Fixed Slots" | One of: Fixed Slots, Flexible Range, Full Day | "Please select a booking style." |
-| 12 | Operating Hours | per-day schedule (JSONB) | -- | Yes | All days: 9:00 AM - 10:00 PM | At least one day must have hours defined. Start time must be before end time for each day. Days with no hours are treated as closed. | "Start time must be before end time for {day}." / "At least one day must have operating hours." |
+| #   | Field           | Type                     | Max Length | Required | Default                      | Validation                                                                                                                           | Error Message                                                                                   |
+| --- | --------------- | ------------------------ | ---------- | -------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| 11  | Booking Style   | select                   | --         | Yes      | "Fixed Slots"                | One of: Fixed Slots, Flexible Range, Full Day                                                                                        | "Please select a booking style."                                                                |
+| 12  | Operating Hours | per-day schedule (JSONB) | --         | Yes      | All days: 9:00 AM - 10:00 PM | At least one day must have hours defined. Start time must be before end time for each day. Days with no hours are treated as closed. | "Start time must be before end time for {day}." / "At least one day must have operating hours." |
 
 The operating hours field is a per-day schedule that allows different hours for each day of the week. The UI presents a 7-row table (one per day), where each row has a toggle (open/closed), a start time picker, and an end time picker. Example configuration: Monday-Friday 9:00 AM - 8:00 PM, Saturday 9:00 AM - 9:00 PM, Sunday closed. When a day is toggled off, the start/end time pickers are disabled and that day shows "Closed." The `days_available` multi-select (field 17) is replaced by this schedule -- a day is available if it has operating hours defined.
 
-| 13 | *(removed -- merged into field 12)* | -- | -- | -- | -- | -- | -- |
+| 13 | _(removed -- merged into field 12)_ | -- | -- | -- | -- | -- | -- |
 | 14 | Time Slot Duration | select | -- | Conditional | 60 min | Required if Booking Style = Fixed Slots. Options: 30, 60, 90, 120, 180, 240 min | "Please select a slot duration." |
 | 15 | Minimum Booking Duration | select | -- | Conditional | 30 min | Required if Booking Style = Flexible Range. Options: 15, 30, 60, 90, 120 min | "Please select a minimum booking duration." |
 | 16 | Maximum Booking Duration | select | -- | Conditional | 240 min | Required if Booking Style = Flexible Range. Must be >= min duration | "Maximum duration must be at least the minimum duration." |
@@ -131,9 +131,9 @@ The operating hours field is a per-day schedule that allows different hours for 
 - **Fixed Slots**: The booking form shows a slot selector (grid or list of available pre-defined slots). No time pickers are shown. Each slot is a clickable card showing the time range and availability status.
 - **Flexible Range**: The booking form shows start time and end time dropdown pickers. The dropdown values snap to the configured time increment (e.g., 15-min increments show 9:00 AM, 9:15 AM, 9:30 AM...). When Allow Multi-Day Bookings is enabled, separate start date and end date pickers appear; otherwise a single date picker is shown.
 - **Full Day**: The booking form shows only a date picker (or date range picker if Allow Multi-Day Bookings is enabled). Time pickers are hidden. The booking spans the full operating hours for the selected day(s).
-| 17 | Days of Week Available | multi-select checkboxes | -- | Yes | All days checked | At least 1 day selected | "Select at least one day of the week." |
-| 18 | Holiday Closures | toggle | -- | No | true (closed on holidays) | -- | -- |
-| 19 | Blocked Hours per Day | repeatable group | 7 entries (per day) | No | -- | Start before end, no overlaps within same day | "Blocked hours overlap on {day}." |
+  | 17 | Days of Week Available | multi-select checkboxes | -- | Yes | All days checked | At least 1 day selected | "Select at least one day of the week." |
+  | 18 | Holiday Closures | toggle | -- | No | true (closed on holidays) | -- | -- |
+  | 19 | Blocked Hours per Day | repeatable group | 7 entries (per day) | No | -- | Start before end, no overlaps within same day | "Blocked hours overlap on {day}." |
 
 **Blocked Hours UI**: The blocked hours configuration displays as a 7-row table (one row per day of the week). Each row shows the day name and a list of blocked time ranges. Each range has a start time dropdown and end time dropdown (using the same time increments as the booking form). An "Add Range" button on each row allows multiple blocked ranges per day (e.g., Monday: 12:01 AM - 8:59 AM and 8:01 PM - 11:59 PM). Each range has a remove (X) button. Empty rows (no blocked ranges) mean the full operating hours are available. Validation prevents overlapping ranges within the same day.
 | 20 | Buffer Between Bookings | select | -- | No | 0 min | Options: 0, 15, 30, 60 min | -- |
@@ -141,85 +141,85 @@ The operating hours field is a per-day schedule that allows different hours for 
 
 **Section D: Booking Rules**
 
-| # | Field | Type | Max Length | Required | Default | Validation | Error Message |
-|---|-------|------|-----------|----------|---------|------------|---------------|
-| 22 | Advance Booking Minimum | number + unit | -- | No | 0 (same day) | Integer >= 0. Units: hours or days | "Must be 0 or more." |
-| 23 | Advance Booking Maximum | number + unit | -- | No | 90 days | Integer >= 1. Must be > minimum | "Maximum advance days must be greater than minimum." |
-| 24 | Max Bookings per Unit per Week | number | 2 digits | No | Unlimited (0) | Integer >= 0. 0 = unlimited | "Must be 0 (unlimited) or a positive number." |
-| 25 | Max Bookings per Unit per Month | number | 2 digits | No | Unlimited (0) | Integer >= 0 | Same as above |
-| 26 | Max Guest Count | number | 3 digits | No | Unlimited (0) | Integer >= 0 | "Must be 0 (unlimited) or a positive number." |
-| 27 | Guest Count Triggers Security | number | 3 digits | No | 0 (disabled) | Integer >= 0. Tooltip: "When guest count exceeds this number, a security guard is automatically added to the booking." | "Must be a positive number." |
-| 28 | Security Guard Rate | currency | -- | Conditional | $0.00 | Required if Guest Count Triggers Security > 0 | "Please enter the security guard hourly rate." |
-| 29 | Security Guard Minimum Hours | number | 2 digits | Conditional | 4 | Required if Guest Count Triggers Security > 0 | "Please enter the minimum security hours." |
-| 29a | Security Guard Late Payment Premium | currency | -- | No | $0.00 | Decimal >= 0. Tooltip: "Additional hourly rate applied when security guard payment is not received within the configured deadline. Leave at $0.00 to disable." | "Premium must be a valid dollar amount." |
-| 29b | Security Late Payment Deadline Hours | number | 3 digits | Conditional | 24 | Required if Security Guard Late Payment Premium > $0.00. Hours before booking start by which security payment must be received. | "Please enter the deadline in hours." |
-| 30 | Allow Recurring Bookings | toggle | -- | No | false | -- | -- |
-| 31 | Max Recurring Weeks | number | 2 digits | Conditional | 12 | Required if Allow Recurring Bookings = true. Range: 1-52 | "Recurring bookings can be set for 1 to 52 weeks." |
-| 32 | Resident Booking Only | toggle | -- | No | true | Tooltip: "When enabled, only residents can book. When disabled, staff can book on behalf of non-residents." | -- |
-| 33 | Require Agreement | toggle | -- | No | false | -- | -- |
+| #   | Field                                | Type          | Max Length | Required    | Default       | Validation                                                                                                                                                     | Error Message                                        |
+| --- | ------------------------------------ | ------------- | ---------- | ----------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 22  | Advance Booking Minimum              | number + unit | --         | No          | 0 (same day)  | Integer >= 0. Units: hours or days                                                                                                                             | "Must be 0 or more."                                 |
+| 23  | Advance Booking Maximum              | number + unit | --         | No          | 90 days       | Integer >= 1. Must be > minimum                                                                                                                                | "Maximum advance days must be greater than minimum." |
+| 24  | Max Bookings per Unit per Week       | number        | 2 digits   | No          | Unlimited (0) | Integer >= 0. 0 = unlimited                                                                                                                                    | "Must be 0 (unlimited) or a positive number."        |
+| 25  | Max Bookings per Unit per Month      | number        | 2 digits   | No          | Unlimited (0) | Integer >= 0                                                                                                                                                   | Same as above                                        |
+| 26  | Max Guest Count                      | number        | 3 digits   | No          | Unlimited (0) | Integer >= 0                                                                                                                                                   | "Must be 0 (unlimited) or a positive number."        |
+| 27  | Guest Count Triggers Security        | number        | 3 digits   | No          | 0 (disabled)  | Integer >= 0. Tooltip: "When guest count exceeds this number, a security guard is automatically added to the booking."                                         | "Must be a positive number."                         |
+| 28  | Security Guard Rate                  | currency      | --         | Conditional | $0.00         | Required if Guest Count Triggers Security > 0                                                                                                                  | "Please enter the security guard hourly rate."       |
+| 29  | Security Guard Minimum Hours         | number        | 2 digits   | Conditional | 4             | Required if Guest Count Triggers Security > 0                                                                                                                  | "Please enter the minimum security hours."           |
+| 29a | Security Guard Late Payment Premium  | currency      | --         | No          | $0.00         | Decimal >= 0. Tooltip: "Additional hourly rate applied when security guard payment is not received within the configured deadline. Leave at $0.00 to disable." | "Premium must be a valid dollar amount."             |
+| 29b | Security Late Payment Deadline Hours | number        | 3 digits   | Conditional | 24            | Required if Security Guard Late Payment Premium > $0.00. Hours before booking start by which security payment must be received.                                | "Please enter the deadline in hours."                |
+| 30  | Allow Recurring Bookings             | toggle        | --         | No          | false         | --                                                                                                                                                             | --                                                   |
+| 31  | Max Recurring Weeks                  | number        | 2 digits   | Conditional | 12            | Required if Allow Recurring Bookings = true. Range: 1-52                                                                                                       | "Recurring bookings can be set for 1 to 52 weeks."   |
+| 32  | Resident Booking Only                | toggle        | --         | No          | true          | Tooltip: "When enabled, only residents can book. When disabled, staff can book on behalf of non-residents."                                                    | --                                                   |
+| 33  | Require Agreement                    | toggle        | --         | No          | false         | --                                                                                                                                                             | --                                                   |
 
 **Section E: Pricing & Payment**
 
-| # | Field | Type | Max Length | Required | Default | Validation | Error Message |
-|---|-------|------|-----------|----------|---------|------------|---------------|
-| 34 | Amenity Fee | currency | -- | No | $0.00 | Decimal >= 0, max 2 decimal places | "Fee must be a valid dollar amount." |
-| 35 | Fee Type | select | -- | Conditional | "Flat rate" | Required if Amenity Fee > 0. Options: Flat rate per reservation, Per hour, Per guest, Per guest per hour | "Please select a fee type." |
-| 36 | Security Deposit | currency | -- | No | $0.00 | Decimal >= 0 | "Deposit must be a valid dollar amount." |
-| 37 | Deposit Refund Policy | select | -- | Conditional | "Full refund if no damage" | Required if Security Deposit > 0. Options: Full refund if no damage, Partial refund (specify %), Non-refundable | "Please select a refund policy." |
-| 38 | Accepted Payment Methods | multi-select | -- | Conditional | All methods | Required if fee or deposit > 0. Options: Credit Card (Stripe), Cheque, Cash, E-Transfer | "Select at least one payment method." |
-| 39 | Tax Rate | percentage | 5 chars | No | Property default | Decimal 0-100 | "Tax rate must be between 0% and 100%." |
-| 40 | Service Fee | currency | -- | No | $0.00 | Platform service fee added to bookings | -- |
+| #   | Field                    | Type         | Max Length | Required    | Default                    | Validation                                                                                                      | Error Message                            |
+| --- | ------------------------ | ------------ | ---------- | ----------- | -------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 34  | Amenity Fee              | currency     | --         | No          | $0.00                      | Decimal >= 0, max 2 decimal places                                                                              | "Fee must be a valid dollar amount."     |
+| 35  | Fee Type                 | select       | --         | Conditional | "Flat rate"                | Required if Amenity Fee > 0. Options: Flat rate per reservation, Per hour, Per guest, Per guest per hour        | "Please select a fee type."              |
+| 36  | Security Deposit         | currency     | --         | No          | $0.00                      | Decimal >= 0                                                                                                    | "Deposit must be a valid dollar amount." |
+| 37  | Deposit Refund Policy    | select       | --         | Conditional | "Full refund if no damage" | Required if Security Deposit > 0. Options: Full refund if no damage, Partial refund (specify %), Non-refundable | "Please select a refund policy."         |
+| 38  | Accepted Payment Methods | multi-select | --         | Conditional | All methods                | Required if fee or deposit > 0. Options: Credit Card (Stripe), Cheque, Cash, E-Transfer                         | "Select at least one payment method."    |
+| 39  | Tax Rate                 | percentage   | 5 chars    | No          | Property default           | Decimal 0-100                                                                                                   | "Tax rate must be between 0% and 100%."  |
+| 40  | Service Fee              | currency     | --         | No          | $0.00                      | Platform service fee added to bookings                                                                          | --                                       |
 
 **Section F: Approval & Cancellation**
 
-| # | Field | Type | Max Length | Required | Default | Validation | Error Message |
-|---|-------|------|-----------|----------|---------|------------|---------------|
-| 41 | Approval Mode | select | -- | Yes | "Auto-approve" | Options: Auto-approve, Manager approval required, Admin approval required | -- |
-| 42 | Cancellation Policy | select | -- | Yes | "Free cancellation until start" | Options: Free cancellation until start, Cancel up to X hours before, No cancellation after booking, Non-refundable | "Please select a cancellation policy." |
-| 43 | Cancellation Hours | number | 3 digits | Conditional | 24 | Required if policy = "Cancel up to X hours before" | "Please enter the number of hours." |
-| 44 | Waitlist Enabled | toggle | -- | No | false | -- | -- |
-| 45 | Max Waitlist Size | number | 2 digits | Conditional | 5 | Required if Waitlist Enabled = true. Range: 1-50 | "Waitlist can hold 1 to 50 entries." |
+| #   | Field               | Type   | Max Length | Required    | Default                         | Validation                                                                                                         | Error Message                          |
+| --- | ------------------- | ------ | ---------- | ----------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| 41  | Approval Mode       | select | --         | Yes         | "Auto-approve"                  | Options: Auto-approve, Manager approval required, Admin approval required                                          | --                                     |
+| 42  | Cancellation Policy | select | --         | Yes         | "Free cancellation until start" | Options: Free cancellation until start, Cancel up to X hours before, No cancellation after booking, Non-refundable | "Please select a cancellation policy." |
+| 43  | Cancellation Hours  | number | 3 digits   | Conditional | 24                              | Required if policy = "Cancel up to X hours before"                                                                 | "Please enter the number of hours."    |
+| 44  | Waitlist Enabled    | toggle | --         | No          | false                           | --                                                                                                                 | --                                     |
+| 45  | Max Waitlist Size   | number | 2 digits   | Conditional | 5                               | Required if Waitlist Enabled = true. Range: 1-50                                                                   | "Waitlist can hold 1 to 50 entries."   |
 
 **Section G: Terms & Conditions**
 
-| # | Field | Type | Max Length | Required | Default | Validation | Error Message |
-|---|-------|------|-----------|----------|---------|------------|---------------|
-| 46 | Terms and Conditions | rich text editor | 10,000 chars | Conditional | -- | Required if Require Agreement = true | "Please enter terms and conditions." |
-| 47 | Agreement Method | select | -- | Conditional | "Checkbox" | Required if Require Agreement = true. Options: Checkbox, Digital signature, Upload signed document | -- |
-| 48 | Agreement Document Template | file upload | 10 MB | No | -- | PDF only | "Agreement template must be a PDF file." |
-| 49 | Custom Instructions | textarea | 2000 chars | No | -- | Displayed on the booking page below description | -- |
+| #   | Field                       | Type             | Max Length   | Required    | Default    | Validation                                                                                         | Error Message                            |
+| --- | --------------------------- | ---------------- | ------------ | ----------- | ---------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 46  | Terms and Conditions        | rich text editor | 10,000 chars | Conditional | --         | Required if Require Agreement = true                                                               | "Please enter terms and conditions."     |
+| 47  | Agreement Method            | select           | --           | Conditional | "Checkbox" | Required if Require Agreement = true. Options: Checkbox, Digital signature, Upload signed document | --                                       |
+| 48  | Agreement Document Template | file upload      | 10 MB        | No          | --         | PDF only                                                                                           | "Agreement template must be a PDF file." |
+| 49  | Custom Instructions         | textarea         | 2000 chars   | No          | --         | Displayed on the booking page below description                                                    | --                                       |
 
 **Section H: Amenity Options (Sub-Options)**
 
 Some amenities require different booking purposes, each with its own fee and deposit. For example, an elevator amenity may offer Move-In, Move-Out, and Delivery as distinct options with different pricing. When options are configured, the booking form shows a radio group requiring the resident to select one.
 
-| # | Field | Type | Max Length | Required | Default | Validation | Error Message |
-|---|-------|------|-----------|----------|---------|------------|---------------|
-| 50 | Enable Options | toggle | -- | No | false | -- | -- |
-| 51 | Options | repeatable group | 20 max | Conditional | -- | Required if Enable Options = true. At least 1 option. Each option requires a name. | "Add at least one option when options are enabled." |
+| #   | Field          | Type             | Max Length | Required    | Default | Validation                                                                         | Error Message                                       |
+| --- | -------------- | ---------------- | ---------- | ----------- | ------- | ---------------------------------------------------------------------------------- | --------------------------------------------------- |
+| 50  | Enable Options | toggle           | --         | No          | false   | --                                                                                 | --                                                  |
+| 51  | Options        | repeatable group | 20 max     | Conditional | --      | Required if Enable Options = true. At least 1 option. Each option requires a name. | "Add at least one option when options are enabled." |
 
 **Each Option entry contains**:
 
-| Sub-Field | Type | Max Length | Required | Default | Validation | Error Message |
-|-----------|------|-----------|----------|---------|------------|---------------|
-| Option Name | text | 100 chars | Yes | -- | Non-empty, unique within this amenity | "Option name is required." / "An option with this name already exists." |
-| Option Description | text | 500 chars | No | -- | -- | -- |
-| Fee Override | currency | -- | No | Inherits amenity fee | Decimal >= 0 | "Fee must be a valid dollar amount." |
-| Deposit Override | currency | -- | No | Inherits amenity deposit | Decimal >= 0 | "Deposit must be a valid dollar amount." |
-| Display Order | number | 2 digits | No | Auto-increment | Integer >= 0 | -- |
-| Active | toggle | -- | No | true | -- | -- |
+| Sub-Field          | Type     | Max Length | Required | Default                  | Validation                            | Error Message                                                           |
+| ------------------ | -------- | ---------- | -------- | ------------------------ | ------------------------------------- | ----------------------------------------------------------------------- |
+| Option Name        | text     | 100 chars  | Yes      | --                       | Non-empty, unique within this amenity | "Option name is required." / "An option with this name already exists." |
+| Option Description | text     | 500 chars  | No       | --                       | --                                    | --                                                                      |
+| Fee Override       | currency | --         | No       | Inherits amenity fee     | Decimal >= 0                          | "Fee must be a valid dollar amount."                                    |
+| Deposit Override   | currency | --         | No       | Inherits amenity deposit | Decimal >= 0                          | "Deposit must be a valid dollar amount."                                |
+| Display Order      | number   | 2 digits   | No       | Auto-increment           | Integer >= 0                          | --                                                                      |
+| Active             | toggle   | --         | No       | true                     | --                                    | --                                                                      |
 
 When a fee or deposit override is left blank, the option inherits the amenity-level fee/deposit from Section E. When an override is set, it replaces the amenity-level value for bookings using that option.
 
 **Buttons on Amenity Setup Form**:
 
-| Button | Action | Success State | Failure State | Loading State |
-|--------|--------|---------------|---------------|---------------|
-| Save Amenity | Validates all fields, creates/updates amenity | Toast: "Amenity saved successfully." Redirect to amenity list. | Inline field errors highlighted in red. Toast: "Please fix the errors below." | Button shows spinner, text changes to "Saving..." Disabled. |
-| Save as Draft | Saves with active=false | Toast: "Amenity saved as draft." | Same as Save | Same as Save |
-| Cancel | Discards changes, returns to amenity list | If changes made, confirmation dialog: "Discard unsaved changes?" | -- | -- |
-| Delete Amenity | Soft-deletes amenity | Confirmation dialog: "Delete {name}? Existing bookings will be preserved but no new bookings can be made." On confirm: toast "Amenity deleted." | Toast: "Unable to delete amenity. Please try again." | Button disabled with spinner |
-| Upload Photo | Opens file picker for photo upload | Photo preview appears in gallery. Toast: "Photo uploaded." | Toast: "Upload failed. File must be JPG, PNG, or WebP under 5 MB." | Upload progress bar shown |
+| Button         | Action                                        | Success State                                                                                                                                   | Failure State                                                                 | Loading State                                               |
+| -------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Save Amenity   | Validates all fields, creates/updates amenity | Toast: "Amenity saved successfully." Redirect to amenity list.                                                                                  | Inline field errors highlighted in red. Toast: "Please fix the errors below." | Button shows spinner, text changes to "Saving..." Disabled. |
+| Save as Draft  | Saves with active=false                       | Toast: "Amenity saved as draft."                                                                                                                | Same as Save                                                                  | Same as Save                                                |
+| Cancel         | Discards changes, returns to amenity list     | If changes made, confirmation dialog: "Discard unsaved changes?"                                                                                | --                                                                            | --                                                          |
+| Delete Amenity | Soft-deletes amenity                          | Confirmation dialog: "Delete {name}? Existing bookings will be preserved but no new bookings can be made." On confirm: toast "Amenity deleted." | Toast: "Unable to delete amenity. Please try again."                          | Button disabled with spinner                                |
+| Upload Photo   | Opens file picker for photo upload            | Photo preview appears in gallery. Toast: "Photo uploaded."                                                                                      | Toast: "Upload failed. File must be JPG, PNG, or WebP under 5 MB."            | Upload progress bar shown                                   |
 
 #### 3.1.2 Browse Amenities (Resident & Staff)
 
@@ -239,12 +239,12 @@ Each card shows:
 
 **Search and Filter Bar**:
 
-| # | Control | Type | Behavior |
-|---|---------|------|----------|
-| 1 | Search | text input, placeholder "Search amenities..." | Filters cards by name and description. Debounced (300ms). |
-| 2 | Amenity Group | select dropdown | Filters by group (e.g., Recreation, Common Areas, Move-In/Out). Default: "All Groups" |
-| 3 | Availability | select dropdown | Options: All, Available Today, Available This Week. Default: "All" |
-| 4 | Building | select dropdown | Shown only for multi-building properties. Default: user's building |
+| #   | Control       | Type                                          | Behavior                                                                              |
+| --- | ------------- | --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 1   | Search        | text input, placeholder "Search amenities..." | Filters cards by name and description. Debounced (300ms).                             |
+| 2   | Amenity Group | select dropdown                               | Filters by group (e.g., Recreation, Common Areas, Move-In/Out). Default: "All Groups" |
+| 3   | Availability  | select dropdown                               | Options: All, Available Today, Available This Week. Default: "All"                    |
+| 4   | Building      | select dropdown                               | Shown only for multi-building properties. Default: user's building                    |
 
 **Empty State**: "No amenities are available for booking. Contact your property manager for more information." Illustration of a calendar with a question mark.
 
@@ -253,6 +253,7 @@ Each card shows:
 **Error State**: "Unable to load amenities. Please try again." Retry button.
 
 **Responsive Layout**:
+
 - Desktop: 4 cards per row
 - Tablet: 2 cards per row
 - Mobile: 1 card per row (full width)
@@ -264,6 +265,7 @@ Shows full information about a single amenity with a booking form.
 **Layout** (two columns on desktop, single column on mobile):
 
 Left column:
+
 - Hero photo (or photo gallery carousel)
 - Amenity name (H1)
 - Description
@@ -272,6 +274,7 @@ Left column:
 - "Back to Amenities" link
 
 Right column (sticky on scroll):
+
 - **Create a Booking** form (see 3.1.4)
 - Pricing and deposit card
 - Hours of operation card
@@ -279,12 +282,12 @@ Right column (sticky on scroll):
 
 **Pricing Card Fields**:
 
-| # | Field | Display Logic |
-|---|-------|---------------|
-| 1 | Amenity Fee | Shown if > $0. Format: "$120.00 / flat rate per reservation" |
-| 2 | Security Deposit | Shown if > $0. Format: "$250.00 (refundable)" |
-| 3 | Payment Methods | Shown if fee or deposit > $0. Format: "Credit Card, Cheque, E-Transfer" |
-| 4 | Cancellation Policy | Always shown. Format: "Free cancellation until start of booking" or "Cancel up to 24 hours before" |
+| #   | Field               | Display Logic                                                                                      |
+| --- | ------------------- | -------------------------------------------------------------------------------------------------- |
+| 1   | Amenity Fee         | Shown if > $0. Format: "$120.00 / flat rate per reservation"                                       |
+| 2   | Security Deposit    | Shown if > $0. Format: "$250.00 (refundable)"                                                      |
+| 3   | Payment Methods     | Shown if fee or deposit > $0. Format: "Credit Card, Cheque, E-Transfer"                            |
+| 4   | Cancellation Policy | Always shown. Format: "Free cancellation until start of booking" or "Cancel up to 24 hours before" |
 
 If amenity has no fees: show "No Fee" badge. Hide payment methods. Hide deposit.
 
@@ -292,12 +295,12 @@ If amenity has no fees: show "No Fee" badge. Hide payment methods. Hide deposit.
 
 **Step 1: Select Date and Time**
 
-| # | Field | Type | Required | Default | Validation | Error Message |
-|---|-------|------|----------|---------|------------|---------------|
-| 1 | Date | date picker | Yes | Today (or clicked calendar date) | Must be within advance booking window. Cannot be in the past. Cannot be a blocked day. | "This date is not available for booking." / "Bookings must be made at least {X} hours in advance." / "Bookings can only be made up to {X} days in advance." |
-| 2 | Start Time | time picker or slot selector | Yes | First available slot | Must be within operating hours. Cannot be in the past. | "This time is outside operating hours ({start} - {end})." |
-| 3 | End Time | time picker | Conditional | Start + default duration | Required for Flexible Range style. Must be after start. Must be within operating hours. Duration must be between min and max. | "End time must be after start time." / "Booking duration must be between {min} and {max} minutes." |
-| 4 | Time Slot | slot selector | Conditional | -- | Required for Fixed Slots style. Shows only available slots. | "This time slot is no longer available." |
+| #   | Field      | Type                         | Required    | Default                          | Validation                                                                                                                    | Error Message                                                                                                                                               |
+| --- | ---------- | ---------------------------- | ----------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Date       | date picker                  | Yes         | Today (or clicked calendar date) | Must be within advance booking window. Cannot be in the past. Cannot be a blocked day.                                        | "This date is not available for booking." / "Bookings must be made at least {X} hours in advance." / "Bookings can only be made up to {X} days in advance." |
+| 2   | Start Time | time picker or slot selector | Yes         | First available slot             | Must be within operating hours. Cannot be in the past.                                                                        | "This time is outside operating hours ({start} - {end})."                                                                                                   |
+| 3   | End Time   | time picker                  | Conditional | Start + default duration         | Required for Flexible Range style. Must be after start. Must be within operating hours. Duration must be between min and max. | "End time must be after start time." / "Booking duration must be between {min} and {max} minutes."                                                          |
+| 4   | Time Slot  | slot selector                | Conditional | --                               | Required for Fixed Slots style. Shows only available slots.                                                                   | "This time slot is no longer available."                                                                                                                    |
 
 **Conflict Detection**: When a date and time are selected, the system checks for conflicts in real time. If the slot is taken, the form shows:
 
@@ -307,54 +310,54 @@ If amenity has no fees: show "No Fee" badge. Hide payment methods. Hide deposit.
 
 **Step 1a: Amenity Option** (shown only if the amenity has options enabled)
 
-| # | Field | Type | Required | Default | Validation | Error Message |
-|---|-------|------|----------|---------|------------|---------------|
-| 4a | Amenity Option | radio group | Yes | -- | Must select one active option. Options display name and description. If an option has a fee/deposit override, the pricing card updates dynamically. | "Please select a booking option." |
+| #   | Field          | Type        | Required | Default | Validation                                                                                                                                          | Error Message                     |
+| --- | -------------- | ----------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| 4a  | Amenity Option | radio group | Yes      | --      | Must select one active option. Options display name and description. If an option has a fee/deposit override, the pricing card updates dynamically. | "Please select a booking option." |
 
 When the resident selects an option with fee or deposit overrides, the Pricing Card on the amenity detail page updates immediately to reflect the option-specific pricing.
 
 **Step 2: Guest and Details**
 
-| # | Field | Type | Required | Default | Validation | Error Message |
-|---|-------|------|----------|---------|------------|---------------|
-| 5 | Number of Guests | number | Conditional | 1 | Required if Max Guest Count is configured. Range: 1 to max. | "Maximum {X} guests allowed." |
-| 6 | Purpose / Comments | textarea | No | -- | Max 1000 chars | "Comments cannot exceed 1,000 characters." |
-| 7 | Booking on Behalf Of | resident search | Conditional | Current user | Staff only. Searches by name, unit, email. | "Please select a valid resident." |
+| #   | Field                | Type            | Required    | Default      | Validation                                                  | Error Message                              |
+| --- | -------------------- | --------------- | ----------- | ------------ | ----------------------------------------------------------- | ------------------------------------------ |
+| 5   | Number of Guests     | number          | Conditional | 1            | Required if Max Guest Count is configured. Range: 1 to max. | "Maximum {X} guests allowed."              |
+| 6   | Purpose / Comments   | textarea        | No          | --           | Max 1000 chars                                              | "Comments cannot exceed 1,000 characters." |
+| 7   | Booking on Behalf Of | resident search | Conditional | Current user | Staff only. Searches by name, unit, email.                  | "Please select a valid resident."          |
 
 **Step 3: Agreement** (shown only if Require Agreement = true)
 
-| # | Field | Type | Required | Validation | Error Message |
-|---|-------|------|----------|------------|---------------|
-| 8 | Terms checkbox | checkbox | Yes | Must be checked | "You must agree to the terms and conditions to proceed." |
-| 9 | Digital signature | signature pad | Conditional | Required if Agreement Method = Digital signature | "Please provide your signature." |
-| 10 | Upload signed document | file upload | Conditional | Required if Agreement Method = Upload. PDF only, 10 MB max | "Please upload a signed agreement (PDF, max 10 MB)." |
+| #   | Field                  | Type          | Required    | Validation                                                 | Error Message                                            |
+| --- | ---------------------- | ------------- | ----------- | ---------------------------------------------------------- | -------------------------------------------------------- |
+| 8   | Terms checkbox         | checkbox      | Yes         | Must be checked                                            | "You must agree to the terms and conditions to proceed." |
+| 9   | Digital signature      | signature pad | Conditional | Required if Agreement Method = Digital signature           | "Please provide your signature."                         |
+| 10  | Upload signed document | file upload   | Conditional | Required if Agreement Method = Upload. PDF only, 10 MB max | "Please upload a signed agreement (PDF, max 10 MB)."     |
 
 **Step 4: Payment** (shown only if Amenity Fee or Security Deposit > 0)
 
-| # | Field | Type | Required | Validation | Error Message |
-|---|-------|------|----------|------------|---------------|
-| 11 | Payment Method | radio group | Yes | Must select one of the configured methods | "Please select a payment method." |
-| 12 | Credit Card (Stripe Elements) | Stripe card input | Conditional | Required if payment method = Credit Card. Stripe validates card number, expiry, CVC | "Your card was declined. Please try a different payment method." / "Invalid card number." |
-| 13 | Offline Payment Note | info text | Conditional | Shown if method = Cheque/Cash/E-Transfer. Text: "Please bring your {method} to the front desk before {date}." | -- |
+| #   | Field                         | Type              | Required    | Validation                                                                                                    | Error Message                                                                             |
+| --- | ----------------------------- | ----------------- | ----------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 11  | Payment Method                | radio group       | Yes         | Must select one of the configured methods                                                                     | "Please select a payment method."                                                         |
+| 12  | Credit Card (Stripe Elements) | Stripe card input | Conditional | Required if payment method = Credit Card. Stripe validates card number, expiry, CVC                           | "Your card was declined. Please try a different payment method." / "Invalid card number." |
+| 13  | Offline Payment Note          | info text         | Conditional | Shown if method = Cheque/Cash/E-Transfer. Text: "Please bring your {method} to the front desk before {date}." | --                                                                                        |
 
 **International Card Surcharge Handling**: When the payment method is Credit Card, the system uses Stripe's card metadata to detect international cards (card country differs from the property's country). If an international card is detected, a disclosure alert is shown: "Our system detected an international credit card. Additional processing fees of {surcharge_amount} may apply." A checkbox is displayed: "I understand and want to continue with this card." The surcharge is added as a separate line item in the Order Summary. The booking cannot proceed until the checkbox is accepted.
 
 **Order Summary** (shown before final submit):
 
-| Line Item | Value |
-|-----------|-------|
-| Amenity Fee | $120.00 |
-| Security Deposit | $250.00 |
-| Service Fee | $2.00 |
-| Tax (13% HST) | $15.86 |
-| **Total** | **$387.86** |
+| Line Item        | Value       |
+| ---------------- | ----------- |
+| Amenity Fee      | $120.00     |
+| Security Deposit | $250.00     |
+| Service Fee      | $2.00       |
+| Tax (13% HST)    | $15.86      |
+| **Total**        | **$387.86** |
 
 **Submit Booking Button**:
 
-| Button | Action | Success State | Failure State | Loading State |
-|--------|--------|---------------|---------------|---------------|
+| Button   | Action                                                                | Success State                                                                                                                                                                                                     | Failure State                                                                                                                                                                                                        | Loading State                                                                |
+| -------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | Book Now | Validates all steps, creates booking, processes payment if applicable | If auto-approve: "Your booking is confirmed! Booking #{reference}." with calendar event download link. If approval required: "Your booking request has been submitted. You will be notified when it is approved." | Payment failure: "Payment failed. {Stripe error}. Please try again." Conflict: "This slot was just booked by someone else. Please select a different time." General: "Unable to complete booking. Please try again." | Button shows spinner, text changes to "Booking..." All form fields disabled. |
-| Cancel | Returns to amenity detail page | No state change | -- | -- |
+| Cancel   | Returns to amenity detail page                                        | No state change                                                                                                                                                                                                   | --                                                                                                                                                                                                                   | --                                                                           |
 
 #### 3.1.5 Calendar View
 
@@ -362,23 +365,25 @@ Interactive calendar showing all bookings across amenities. This is the primary 
 
 **Calendar Controls**:
 
-| # | Control | Type | Behavior |
-|---|---------|------|----------|
-| 1 | Previous / Next | navigation arrows | Move backward or forward by current view unit (month, week, day) |
-| 2 | Today | button | Returns calendar to today's date |
-| 3 | View Toggle | button group | Month (default), Week, Day, Agenda |
-| 4 | Legend | collapsible panel | Color-coded checkboxes per amenity + status colors. Toggles visibility. |
-| 5 | Quick Book | button | Opens quick booking modal pre-filled with today's date |
+| #   | Control         | Type              | Behavior                                                                |
+| --- | --------------- | ----------------- | ----------------------------------------------------------------------- |
+| 1   | Previous / Next | navigation arrows | Move backward or forward by current view unit (month, week, day)        |
+| 2   | Today           | button            | Returns calendar to today's date                                        |
+| 3   | View Toggle     | button group      | Month (default), Week, Day, Agenda                                      |
+| 4   | Legend          | collapsible panel | Color-coded checkboxes per amenity + status colors. Toggles visibility. |
+| 5   | Quick Book      | button            | Opens quick booking modal pre-filled with today's date                  |
 
 **Calendar Event Display**:
 
 Each booking appears as a colored block with:
+
 - Time range (short format: "9a - 12p")
 - Amenity name
 - Resident name and unit: "First Last (Unit)"
 - Status indicator (small icon: checkmark for approved, clock for pending, X for cancelled)
 
 **Click Behaviors**:
+
 - **Click existing event**: Opens booking detail sidebar panel (not a full page navigation)
 - **Click empty slot**: Opens quick booking form pre-filled with that date and time
 - **Hover event**: Tooltip with full details (name, unit, time, status, fee)
@@ -394,6 +399,7 @@ Each booking appears as a colored block with:
 - "Approve All" button (with confirmation dialog: "Approve all {N} pending bookings?")
 
 **Responsive**:
+
 - Desktop: Full calendar with sidebar legend
 - Tablet: Calendar with collapsible legend
 - Mobile: Agenda view by default (list of upcoming bookings)
@@ -410,27 +416,27 @@ Sortable, filterable, paginated list of all bookings.
 
 **Filter Bar**:
 
-| # | Filter | Type | Default | Options |
-|---|--------|------|---------|---------|
-| 1 | Search | text input | -- | Searches across resident name, unit number, amenity name, booking reference |
-| 2 | Amenity | select | "All Amenities" | All configured amenities |
-| 3 | Status | select | "All" | All, Approved, Pending Approval, Declined, Cancelled, Payment Overdue, Outstanding Payment |
-| 4 | Date Range | date range picker | Current month | From / To date pickers |
-| 5 | Search button | button | -- | Applies filters |
-| 6 | Clear Filters | text link | -- | Resets all filters to defaults |
+| #   | Filter        | Type              | Default         | Options                                                                                    |
+| --- | ------------- | ----------------- | --------------- | ------------------------------------------------------------------------------------------ |
+| 1   | Search        | text input        | --              | Searches across resident name, unit number, amenity name, booking reference                |
+| 2   | Amenity       | select            | "All Amenities" | All configured amenities                                                                   |
+| 3   | Status        | select            | "All"           | All, Approved, Pending Approval, Declined, Cancelled, Payment Overdue, Outstanding Payment |
+| 4   | Date Range    | date range picker | Current month   | From / To date pickers                                                                     |
+| 5   | Search button | button            | --              | Applies filters                                                                            |
+| 6   | Clear Filters | text link         | --              | Resets all filters to defaults                                                             |
 
 **List Columns**:
 
-| # | Column | Sortable | Format |
-|---|--------|----------|--------|
-| 1 | Reference # | Yes | Auto-generated (e.g., "AMN-2026-00042") |
-| 2 | Amenity | Yes | Amenity name with color dot |
-| 3 | Booked By | Yes | "First Last (Unit)" |
-| 4 | Date | Yes (default sort, descending) | "Mar 14, 2026" |
-| 5 | Time | No | "9:00 AM - 12:00 PM" |
-| 6 | Status | Yes | Color-coded badge (green=Approved, amber=Pending, red=Overdue, gray=Cancelled/Declined) |
-| 7 | Fee | Yes | "$120.00" or "No Fee" |
-| 8 | Actions | No | Dropdown: View, Edit, Cancel, Approve/Decline (staff only) |
+| #   | Column      | Sortable                       | Format                                                                                  |
+| --- | ----------- | ------------------------------ | --------------------------------------------------------------------------------------- |
+| 1   | Reference # | Yes                            | Auto-generated (e.g., "AMN-2026-00042")                                                 |
+| 2   | Amenity     | Yes                            | Amenity name with color dot                                                             |
+| 3   | Booked By   | Yes                            | "First Last (Unit)"                                                                     |
+| 4   | Date        | Yes (default sort, descending) | "Mar 14, 2026"                                                                          |
+| 5   | Time        | No                             | "9:00 AM - 12:00 PM"                                                                    |
+| 6   | Status      | Yes                            | Color-coded badge (green=Approved, amber=Pending, red=Overdue, gray=Cancelled/Declined) |
+| 7   | Fee         | Yes                            | "$120.00" or "No Fee"                                                                   |
+| 8   | Actions     | No                             | Dropdown: View, Edit, Cancel, Approve/Decline (staff only)                              |
 
 **Pagination**: 25 rows per page. Shows "Showing 1-25 of 142 bookings". Page navigation: Previous, page numbers, Next.
 
@@ -446,39 +452,39 @@ Full detail page for a single booking. Read-only display with action buttons.
 
 **Booking Information**:
 
-| # | Field | Format |
-|---|-------|--------|
-| 1 | Booking Reference | "AMN-2026-00042" |
-| 2 | Amenity | Name with color dot and link to amenity detail |
-| 2a | Amenity Option | Shown only if booking has an option selected. Displays option name (e.g., "Move-In", "Move-Out", "Delivery"). |
-| 3 | Booked By | "First Last (Unit) - Property Name" with link to resident profile |
-| 4 | Email | Resident email |
-| 5 | Phone | Resident phone(s) with type labels |
-| 6 | Date | "Mar 14, 2026" |
-| 7 | Start Time | "9:00 AM" |
-| 8 | End Time | "12:00 PM" |
-| 9 | Number of Guests | "8" |
-| 10 | Status | Color-coded badge |
-| 11 | Payment Status | "Paid", "Cheque required", "Payment overdue" |
-| 12 | Amenity Fee | "$120.00" |
-| 13 | Security Deposit | "$250.00 (refundable)" |
-| 14 | Total Charges | "$387.86" with breakdown link |
-| 15 | Requestor Comments | Free text |
-| 16 | Approver Comments | Free text (staff only) |
-| 17 | Agreement Status | "Agreed online on Mar 13, 2026 at 4:30 PM" or "Signed document uploaded" |
+| #   | Field              | Format                                                                                                        |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| 1   | Booking Reference  | "AMN-2026-00042"                                                                                              |
+| 2   | Amenity            | Name with color dot and link to amenity detail                                                                |
+| 2a  | Amenity Option     | Shown only if booking has an option selected. Displays option name (e.g., "Move-In", "Move-Out", "Delivery"). |
+| 3   | Booked By          | "First Last (Unit) - Property Name" with link to resident profile                                             |
+| 4   | Email              | Resident email                                                                                                |
+| 5   | Phone              | Resident phone(s) with type labels                                                                            |
+| 6   | Date               | "Mar 14, 2026"                                                                                                |
+| 7   | Start Time         | "9:00 AM"                                                                                                     |
+| 8   | End Time           | "12:00 PM"                                                                                                    |
+| 9   | Number of Guests   | "8"                                                                                                           |
+| 10  | Status             | Color-coded badge                                                                                             |
+| 11  | Payment Status     | "Paid", "Cheque required", "Payment overdue"                                                                  |
+| 12  | Amenity Fee        | "$120.00"                                                                                                     |
+| 13  | Security Deposit   | "$250.00 (refundable)"                                                                                        |
+| 14  | Total Charges      | "$387.86" with breakdown link                                                                                 |
+| 15  | Requestor Comments | Free text                                                                                                     |
+| 16  | Approver Comments  | Free text (staff only)                                                                                        |
+| 17  | Agreement Status   | "Agreed online on Mar 13, 2026 at 4:30 PM" or "Signed document uploaded"                                      |
 
 **Action Buttons** (role-dependent):
 
-| Button | Visible To | Action | Success State | Failure State | Loading State |
-|--------|-----------|--------|---------------|---------------|---------------|
-| Edit Booking | Staff, Booking owner (if before cancellation deadline) | Opens edit form for date/time/guests. When date, time, or payment fields are changed, a side-by-side "Original vs Revised" comparison card appears showing: Amenity, Start Date/Time, End Date/Time, Payment Method, Amenity Fee, Security Deposit, and Total. Changed fields are highlighted. The user must click "Confirm Changes" after reviewing the comparison. Real-time availability is checked on any time change -- if the new time is unavailable, the save is blocked with message "The selected time is no longer available" and a "Check Availability" button allows re-validation. | Toast: "Booking updated." | "Unable to update. The selected time is no longer available." | Spinner on button |
-| Cancel Booking | Staff, Booking owner (if before cancellation deadline) | Expand inline form: reason textarea + Save/Discard buttons | Toast: "Booking cancelled." Refund processed if applicable. | "Unable to cancel booking." | Spinner on button |
-| Approve | Staff with approval permission | Changes status to Approved. Sends notification to resident. | Toast: "Booking approved." | "Unable to approve." | Spinner |
-| Decline | Staff with approval permission | Expand inline form: reason textarea + Decline/Discard buttons | Toast: "Booking declined. Resident has been notified." | "Unable to decline." | Spinner |
-| Reassign | Staff only | Expand inline form: resident search + Save/Discard | Toast: "Booking reassigned to {name}." | "Unable to reassign." | Spinner |
-| Record Payment | Staff only | Expand inline form: payment method, cheque number, notes + Save | Toast: "Payment recorded." | "Unable to record payment." | Spinner |
-| Refund Deposit | Staff only | Expand inline form: refund amount (pre-filled with deposit), reason + Refund/Discard | Toast: "Deposit of {amount} refunded." | "Refund failed." | Spinner |
-| Upload Agreement | Booking owner, Staff | File upload: PDF only, 5 MB max | Toast: "Agreement uploaded." | "Upload failed." | Progress bar |
+| Button           | Visible To                                             | Action                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Success State                                               | Failure State                                                 | Loading State     |
+| ---------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------- | ----------------- |
+| Edit Booking     | Staff, Booking owner (if before cancellation deadline) | Opens edit form for date/time/guests. When date, time, or payment fields are changed, a side-by-side "Original vs Revised" comparison card appears showing: Amenity, Start Date/Time, End Date/Time, Payment Method, Amenity Fee, Security Deposit, and Total. Changed fields are highlighted. The user must click "Confirm Changes" after reviewing the comparison. Real-time availability is checked on any time change -- if the new time is unavailable, the save is blocked with message "The selected time is no longer available" and a "Check Availability" button allows re-validation. | Toast: "Booking updated."                                   | "Unable to update. The selected time is no longer available." | Spinner on button |
+| Cancel Booking   | Staff, Booking owner (if before cancellation deadline) | Expand inline form: reason textarea + Save/Discard buttons                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Toast: "Booking cancelled." Refund processed if applicable. | "Unable to cancel booking."                                   | Spinner on button |
+| Approve          | Staff with approval permission                         | Changes status to Approved. Sends notification to resident.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Toast: "Booking approved."                                  | "Unable to approve."                                          | Spinner           |
+| Decline          | Staff with approval permission                         | Expand inline form: reason textarea + Decline/Discard buttons                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Toast: "Booking declined. Resident has been notified."      | "Unable to decline."                                          | Spinner           |
+| Reassign         | Staff only                                             | Expand inline form: resident search + Save/Discard                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Toast: "Booking reassigned to {name}."                      | "Unable to reassign."                                         | Spinner           |
+| Record Payment   | Staff only                                             | Expand inline form: payment method, cheque number, notes + Save                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Toast: "Payment recorded."                                  | "Unable to record payment."                                   | Spinner           |
+| Refund Deposit   | Staff only                                             | Expand inline form: refund amount (pre-filled with deposit), reason + Refund/Discard                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Toast: "Deposit of {amount} refunded."                      | "Refund failed."                                              | Spinner           |
+| Upload Agreement | Booking owner, Staff                                   | File upload: PDF only, 5 MB max                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Toast: "Agreement uploaded."                                | "Upload failed."                                              | Progress bar      |
 
 **Action Form Accordion Behavior**: Only one action form can be expanded at a time. Opening a new action (e.g., clicking "Cancel Booking" while "Record Payment" is expanded) collapses the previously open form and discards any unsaved input in it. A brief CSS transition (200ms slide) animates the collapse/expand.
 
@@ -486,18 +492,19 @@ Full detail page for a single booking. Read-only display with action buttons.
 
 Table below booking information showing every action taken on this booking.
 
-| # | Column | Format |
-|---|--------|--------|
-| 1 | Date / Time | "Mar 14, 2026 9:30 AM" |
-| 2 | Who | "Jane Smith (Front Desk)" -- name and role |
-| 3 | Action | "Booking Created", "Approved", "Payment Recorded", "Cancelled", "Reassigned" |
-| 4 | Details | Contextual info: "Reason: Scheduling conflict", "Cheque #4521 received" |
+| #   | Column      | Format                                                                       |
+| --- | ----------- | ---------------------------------------------------------------------------- |
+| 1   | Date / Time | "Mar 14, 2026 9:30 AM"                                                       |
+| 2   | Who         | "Jane Smith (Front Desk)" -- name and role                                   |
+| 3   | Action      | "Booking Created", "Approved", "Payment Recorded", "Cancelled", "Reassigned" |
+| 4   | Details     | Contextual info: "Reason: Scheduling conflict", "Cheque #4521 received"      |
 
 #### 3.1.8 Approval Workflow
 
 **Auto-Approve Mode**: Booking is immediately confirmed. Resident receives confirmation notification. Appears on calendar as "Approved."
 
 **Manager/Admin Approval Mode**:
+
 1. Resident submits booking. Status = "Pending Approval."
 2. Notification sent to designated approver(s).
 3. Booking appears in "Pending Approvals" section above calendar.
@@ -506,6 +513,7 @@ Table below booking information showing every action taken on this booking.
 6. If declined: status changes, resident notified with reason, any hold on credit card is released.
 
 **Conditional Approval (Approved but Payment Pending)**: A booking can be in the Approved state while its payment status is still "Pending." This occurs when the approval mode is Manager/Admin, the booking is approved, but the resident selected an offline payment method (cheque, cash, e-transfer) that has not yet been received. In this case:
+
 - The booking detail page displays an "Items Required for Full Approval" section listing the outstanding items (e.g., "Cheque for $250.00").
 - The booking status badge shows "Approved" but a secondary indicator (orange dot or sub-badge) signals "Payment Outstanding."
 - The payment reminder notification flow (Notification #7) is triggered based on the payment due date.
@@ -520,11 +528,11 @@ Table below booking information showing every action taken on this booking.
 
 Residents can create bookings that repeat weekly for up to 52 weeks.
 
-| # | Field | Type | Required | Default | Validation | Error Message |
-|---|-------|------|----------|---------|------------|---------------|
-| 1 | Repeat | toggle | No | Off | -- | -- |
-| 2 | Frequency | select | Conditional | Weekly | Options: Weekly, Bi-weekly, Monthly. Required if Repeat = on | -- |
-| 3 | Repeat Until | date picker | Conditional | 12 weeks from start | Required if Repeat = on. Cannot exceed Max Recurring Weeks. | "Recurring bookings can repeat for up to {X} weeks." |
+| #   | Field        | Type        | Required    | Default             | Validation                                                   | Error Message                                        |
+| --- | ------------ | ----------- | ----------- | ------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
+| 1   | Repeat       | toggle      | No          | Off                 | --                                                           | --                                                   |
+| 2   | Frequency    | select      | Conditional | Weekly              | Options: Weekly, Bi-weekly, Monthly. Required if Repeat = on | --                                                   |
+| 3   | Repeat Until | date picker | Conditional | 12 weeks from start | Required if Repeat = on. Cannot exceed Max Recurring Weeks.  | "Recurring bookings can repeat for up to {X} weeks." |
 
 The system creates individual booking records for each occurrence. If a conflict exists for one date, that specific occurrence is flagged, and the resident can skip it or choose an alternative time. Remaining occurrences are unaffected.
 
@@ -551,12 +559,12 @@ When a maintenance task is scheduled for an amenity (from the Maintenance module
 
 Available to Property Manager, Property Admin, and Board Member roles.
 
-| # | Report | Description | Export Formats |
-|---|--------|-------------|----------------|
-| 1 | Utilization Report | Bookings per amenity over time, peak hours heatmap, average occupancy rate | CSV, Excel, PDF |
-| 2 | Revenue Report | Fee revenue per amenity, deposit held vs refunded, outstanding payments | CSV, Excel, PDF |
-| 3 | Booking Trends | Month-over-month booking volume, cancellation rate, no-show rate | CSV, Excel, PDF |
-| 4 | Resident Usage | Bookings per unit, most active residents, units that never book | CSV, Excel, PDF |
+| #   | Report             | Description                                                                | Export Formats  |
+| --- | ------------------ | -------------------------------------------------------------------------- | --------------- |
+| 1   | Utilization Report | Bookings per amenity over time, peak hours heatmap, average occupancy rate | CSV, Excel, PDF |
+| 2   | Revenue Report     | Fee revenue per amenity, deposit held vs refunded, outstanding payments    | CSV, Excel, PDF |
+| 3   | Booking Trends     | Month-over-month booking volume, cancellation rate, no-show rate           | CSV, Excel, PDF |
+| 4   | Resident Usage     | Bookings per unit, most active residents, units that never book            | CSV, Excel, PDF |
 
 ### 3.3 Future Features (v3+)
 
@@ -786,16 +794,16 @@ Amenity  ──1:N──> WaitlistEntry
 
 ### 4.7 Indexes
 
-| Table | Index | Purpose |
-|-------|-------|---------|
-| Amenity | `(property_id, active)` | Filter active amenities per property |
-| AmenityOption | `(amenity_id, active)` | Filter active options per amenity |
-| Booking | `(amenity_id, start_date, start_time)` | Conflict detection |
-| Booking | `(property_id, status, start_date)` | Calendar and list filtering |
-| Booking | `(unit_id, start_date)` | Per-unit booking limits |
-| Booking | `(recurring_group_id)` | Group recurring instances |
-| Booking | `(reference_number)` UNIQUE | Reference number lookup |
-| WaitlistEntry | `(amenity_id, booking_date, position)` | Waitlist ordering |
+| Table         | Index                                  | Purpose                              |
+| ------------- | -------------------------------------- | ------------------------------------ |
+| Amenity       | `(property_id, active)`                | Filter active amenities per property |
+| AmenityOption | `(amenity_id, active)`                 | Filter active options per amenity    |
+| Booking       | `(amenity_id, start_date, start_time)` | Conflict detection                   |
+| Booking       | `(property_id, status, start_date)`    | Calendar and list filtering          |
+| Booking       | `(unit_id, start_date)`                | Per-unit booking limits              |
+| Booking       | `(recurring_group_id)`                 | Group recurring instances            |
+| Booking       | `(reference_number)` UNIQUE            | Reference number lookup              |
+| WaitlistEntry | `(amenity_id, booking_date, position)` | Waitlist ordering                    |
 
 ---
 
@@ -892,54 +900,55 @@ Amenity  ──1:N──> WaitlistEntry
 
 **Amenity Card Grid**:
 
-| Property | Desktop | Tablet | Mobile |
-|----------|---------|--------|--------|
-| Cards per row | 4 | 2 | 1 |
-| Card width | 280px | 340px | 100% |
-| Card height | Auto (photo 180px + content) | Same | Same |
-| Photo aspect ratio | 16:9 | 16:9 | 16:9 |
-| Gap between cards | 24px | 16px | 12px |
-| Card border | 1px solid #E5E5EA | Same | Same |
-| Card border radius | 12px | Same | Same |
-| Card shadow | 0 1px 3px rgba(0,0,0,0.08) | Same | Same |
-| Card hover | Shadow increases to 0 4px 12px rgba(0,0,0,0.12) | No hover (touch) | No hover |
+| Property           | Desktop                                         | Tablet           | Mobile   |
+| ------------------ | ----------------------------------------------- | ---------------- | -------- |
+| Cards per row      | 4                                               | 2                | 1        |
+| Card width         | 280px                                           | 340px            | 100%     |
+| Card height        | Auto (photo 180px + content)                    | Same             | Same     |
+| Photo aspect ratio | 16:9                                            | 16:9             | 16:9     |
+| Gap between cards  | 24px                                            | 16px             | 12px     |
+| Card border        | 1px solid #E5E5EA                               | Same             | Same     |
+| Card border radius | 12px                                            | Same             | Same     |
+| Card shadow        | 0 1px 3px rgba(0,0,0,0.08)                      | Same             | Same     |
+| Card hover         | Shadow increases to 0 4px 12px rgba(0,0,0,0.12) | No hover (touch) | No hover |
 
 **Amenity Detail Page**:
 
-| Property | Desktop | Tablet | Mobile |
-|----------|---------|--------|--------|
-| Layout | 2 columns (60% / 40%) | 2 columns (55% / 45%) | Single column |
-| Right column | Sticky (sticks on scroll) | Sticky | Below left column |
-| Hero photo height | 400px | 300px | 200px |
-| Booking form | Always visible in right column | Same | Collapsible card, "Book Now" sticky footer button reveals form |
+| Property          | Desktop                        | Tablet                | Mobile                                                         |
+| ----------------- | ------------------------------ | --------------------- | -------------------------------------------------------------- |
+| Layout            | 2 columns (60% / 40%)          | 2 columns (55% / 45%) | Single column                                                  |
+| Right column      | Sticky (sticks on scroll)      | Sticky                | Below left column                                              |
+| Hero photo height | 400px                          | 300px                 | 200px                                                          |
+| Booking form      | Always visible in right column | Same                  | Collapsible card, "Book Now" sticky footer button reveals form |
 
 **Calendar View**:
 
-| Property | Desktop | Tablet | Mobile |
-|----------|---------|--------|--------|
-| Default view | Month | Week | Agenda (list) |
-| Legend | Sidebar (always visible) | Collapsible above calendar | Collapsible above list |
-| Event text | Full: "9a-12p Party Room - Smith (1205)" | Abbreviated: "9a Party Room" | List item with full details |
-| Click behavior | Sidebar panel opens | Sidebar panel opens | Full-screen detail |
+| Property       | Desktop                                  | Tablet                       | Mobile                      |
+| -------------- | ---------------------------------------- | ---------------------------- | --------------------------- |
+| Default view   | Month                                    | Week                         | Agenda (list)               |
+| Legend         | Sidebar (always visible)                 | Collapsible above calendar   | Collapsible above list      |
+| Event text     | Full: "9a-12p Party Room - Smith (1205)" | Abbreviated: "9a Party Room" | List item with full details |
+| Click behavior | Sidebar panel opens                      | Sidebar panel opens          | Full-screen detail          |
 
 ### 6.2 Component Specifications
 
 **Status Badges**:
 
-| Status | Background | Text Color | Icon |
-|--------|-----------|------------|------|
-| Approved | #34C75920 (green, 12% opacity) | #34C759 | Checkmark |
-| Pending Approval | #FF9F0A20 (amber, 12% opacity) | #FF9F0A | Clock |
-| Declined | #8E8E9320 (gray, 12% opacity) | #8E8E93 | X mark |
-| Cancelled | #8E8E9320 | #8E8E93 | X mark |
-| Payment Overdue | #FF3B3020 (red, 12% opacity) | #FF3B30 | Exclamation |
-| Outstanding Payment | #FF3B3020 | #FF3B30 | Dollar sign |
-| Completed | #5AC8FA20 (blue, 12% opacity) | #5AC8FA | Check circle |
-| No-Show | #AF52DE20 (purple, 12% opacity) | #AF52DE | Person X |
+| Status              | Background                      | Text Color | Icon         |
+| ------------------- | ------------------------------- | ---------- | ------------ |
+| Approved            | #34C75920 (green, 12% opacity)  | #34C759    | Checkmark    |
+| Pending Approval    | #FF9F0A20 (amber, 12% opacity)  | #FF9F0A    | Clock        |
+| Declined            | #8E8E9320 (gray, 12% opacity)   | #8E8E93    | X mark       |
+| Cancelled           | #8E8E9320                       | #8E8E93    | X mark       |
+| Payment Overdue     | #FF3B3020 (red, 12% opacity)    | #FF3B30    | Exclamation  |
+| Outstanding Payment | #FF3B3020                       | #FF3B30    | Dollar sign  |
+| Completed           | #5AC8FA20 (blue, 12% opacity)   | #5AC8FA    | Check circle |
+| No-Show             | #AF52DE20 (purple, 12% opacity) | #AF52DE    | Person X     |
 
 **Booking Form Stepper** (progressive disclosure):
 
 Step indicators appear as a horizontal bar above the form:
+
 1. Date & Time (circle with "1")
 2. Details (circle with "2")
 3. Agreement (circle with "3", shown only if required)
@@ -949,27 +958,27 @@ Active step: filled primary color circle with white number. Completed step: gree
 
 ### 6.3 Empty States
 
-| Screen | Empty State Message | Illustration | Action |
-|--------|-------------------|--------------|--------|
-| Amenity Card Grid (Resident) | "No amenities are available for booking right now. Check back later or contact your property manager." | Calendar with question mark | -- |
-| Amenity Card Grid (Admin) | "No amenities configured yet. Add your first amenity to get started." | Plus icon with sparkle | "Add Amenity" button |
-| Calendar (no bookings) | "No bookings this month." | Empty calendar | "Create Booking" link |
-| All Bookings (no results) | "No bookings match your filters." | Magnifying glass | "Clear Filters" link |
-| My Bookings (Resident, no bookings) | "You have no upcoming bookings. Browse amenities to make your first reservation." | Calendar with star | "Browse Amenities" button |
-| Waitlist (empty) | "No one is on the waitlist for this amenity." | -- | -- |
-| Pending Approvals (none) | Section is hidden entirely when there are no pending bookings | -- | -- |
+| Screen                              | Empty State Message                                                                                    | Illustration                | Action                    |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------- | ------------------------- |
+| Amenity Card Grid (Resident)        | "No amenities are available for booking right now. Check back later or contact your property manager." | Calendar with question mark | --                        |
+| Amenity Card Grid (Admin)           | "No amenities configured yet. Add your first amenity to get started."                                  | Plus icon with sparkle      | "Add Amenity" button      |
+| Calendar (no bookings)              | "No bookings this month."                                                                              | Empty calendar              | "Create Booking" link     |
+| All Bookings (no results)           | "No bookings match your filters."                                                                      | Magnifying glass            | "Clear Filters" link      |
+| My Bookings (Resident, no bookings) | "You have no upcoming bookings. Browse amenities to make your first reservation."                      | Calendar with star          | "Browse Amenities" button |
+| Waitlist (empty)                    | "No one is on the waitlist for this amenity."                                                          | --                          | --                        |
+| Pending Approvals (none)            | Section is hidden entirely when there are no pending bookings                                          | --                          | --                        |
 
 ### 6.4 Tooltips
 
-| Field / Element | Tooltip Text |
-|----------------|-------------|
-| Maximum Concurrent Bookings | "How many bookings can overlap at the same time. Set to 3 if you have 3 BBQ stations that can each be booked independently." |
-| Guest Count Triggers Security | "When a booking has more guests than this number, a security guard is automatically added and the security fee applies." |
-| Buffer Between Bookings | "Time gap between bookings for cleanup or turnover. A 30-minute buffer means if one booking ends at 2:00 PM, the next cannot start until 2:30 PM." |
-| Advance Booking Minimum | "Minimum lead time before a booking. Set to 24 hours to prevent same-day bookings." |
-| Waitlist Enabled | "When a time slot is full, residents can join a waitlist. They are notified automatically when a cancellation opens the slot." |
-| Approval Mode | "Auto-approve: bookings are confirmed instantly. Manager/Admin approval: bookings wait for manual review before confirmation." |
-| Recurring Bookings | "Allows residents to set up weekly or bi-weekly bookings that repeat for a set number of weeks." |
+| Field / Element               | Tooltip Text                                                                                                                                       |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Maximum Concurrent Bookings   | "How many bookings can overlap at the same time. Set to 3 if you have 3 BBQ stations that can each be booked independently."                       |
+| Guest Count Triggers Security | "When a booking has more guests than this number, a security guard is automatically added and the security fee applies."                           |
+| Buffer Between Bookings       | "Time gap between bookings for cleanup or turnover. A 30-minute buffer means if one booking ends at 2:00 PM, the next cannot start until 2:30 PM." |
+| Advance Booking Minimum       | "Minimum lead time before a booking. Set to 24 hours to prevent same-day bookings."                                                                |
+| Waitlist Enabled              | "When a time slot is full, residents can join a waitlist. They are notified automatically when a cancellation opens the slot."                     |
+| Approval Mode                 | "Auto-approve: bookings are confirmed instantly. Manager/Admin approval: bookings wait for manual review before confirmation."                     |
+| Recurring Bookings            | "Allows residents to set up weekly or bi-weekly bookings that repeat for a set number of weeks."                                                   |
 
 ---
 
@@ -979,100 +988,100 @@ Eight AI capabilities enhance the Amenity Booking module. All are optional and c
 
 ### 7.1 Smart Conflict Resolution
 
-| Attribute | Detail |
-|-----------|--------|
-| **Trigger** | When a resident selects a date/time that is already booked |
-| **Model** | Claude Haiku |
-| **Cost** | ~$0.001 per invocation |
-| **Input** | Selected amenity, requested date/time, resident's booking history, full availability calendar |
-| **Output** | Top 3 alternative time slot suggestions ranked by likelihood of acceptance |
-| **Display** | Below the conflict message: "Try these available times: [Sat 2:00 PM], [Sun 10:00 AM], [Next Sat 9:00 AM]" |
-| **Fallback** | Resident manually browses the calendar to find an open slot |
-| **Privacy** | No PII sent to AI. Only anonymized slot data and usage patterns. |
+| Attribute    | Detail                                                                                                     |
+| ------------ | ---------------------------------------------------------------------------------------------------------- |
+| **Trigger**  | When a resident selects a date/time that is already booked                                                 |
+| **Model**    | Claude Haiku                                                                                               |
+| **Cost**     | ~$0.001 per invocation                                                                                     |
+| **Input**    | Selected amenity, requested date/time, resident's booking history, full availability calendar              |
+| **Output**   | Top 3 alternative time slot suggestions ranked by likelihood of acceptance                                 |
+| **Display**  | Below the conflict message: "Try these available times: [Sat 2:00 PM], [Sun 10:00 AM], [Next Sat 9:00 AM]" |
+| **Fallback** | Resident manually browses the calendar to find an open slot                                                |
+| **Privacy**  | No PII sent to AI. Only anonymized slot data and usage patterns.                                           |
 
 ### 7.2 Demand Prediction
 
-| Attribute | Detail |
-|-----------|--------|
-| **Trigger** | Weekly scheduled task (Monday 4:00 AM) |
-| **Model** | Claude Sonnet |
-| **Cost** | ~$0.01 per invocation |
-| **Input** | All booking data for the past 90 days, seasonal patterns, holiday calendar |
-| **Output** | Demand forecast per amenity per day for next 30 days. Heatmap data. |
-| **Display** | Admin dashboard widget: "High demand expected for Party Room next Saturday." Calendar overlay showing predicted demand intensity (light/medium/heavy color bands). |
-| **Fallback** | No demand prediction. Admin relies on historical reports. |
+| Attribute    | Detail                                                                                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Trigger**  | Weekly scheduled task (Monday 4:00 AM)                                                                                                                             |
+| **Model**    | Claude Sonnet                                                                                                                                                      |
+| **Cost**     | ~$0.01 per invocation                                                                                                                                              |
+| **Input**    | All booking data for the past 90 days, seasonal patterns, holiday calendar                                                                                         |
+| **Output**   | Demand forecast per amenity per day for next 30 days. Heatmap data.                                                                                                |
+| **Display**  | Admin dashboard widget: "High demand expected for Party Room next Saturday." Calendar overlay showing predicted demand intensity (light/medium/heavy color bands). |
+| **Fallback** | No demand prediction. Admin relies on historical reports.                                                                                                          |
 
 ### 7.3 Dynamic Pricing Suggestions
 
-| Attribute | Detail |
-|-----------|--------|
-| **Trigger** | Monthly scheduled task |
-| **Model** | Claude Sonnet |
-| **Cost** | ~$0.005 per invocation |
-| **Input** | Booking data, revenue data, utilization rates per amenity per time slot |
-| **Output** | Pricing recommendations: "Increase Party Room Saturday evening fee by 20% (high demand). Reduce Tuesday morning fee by 30% (low utilization)." |
-| **Display** | Admin notification card in Settings. Requires manual approval to apply changes. Never auto-applied. |
-| **Fallback** | Static pricing maintained by admin. |
+| Attribute    | Detail                                                                                                                                         |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Trigger**  | Monthly scheduled task                                                                                                                         |
+| **Model**    | Claude Sonnet                                                                                                                                  |
+| **Cost**     | ~$0.005 per invocation                                                                                                                         |
+| **Input**    | Booking data, revenue data, utilization rates per amenity per time slot                                                                        |
+| **Output**   | Pricing recommendations: "Increase Party Room Saturday evening fee by 20% (high demand). Reduce Tuesday morning fee by 30% (low utilization)." |
+| **Display**  | Admin notification card in Settings. Requires manual approval to apply changes. Never auto-applied.                                            |
+| **Fallback** | Static pricing maintained by admin.                                                                                                            |
 
 ### 7.4 Usage Pattern Analysis
 
-| Attribute | Detail |
-|-----------|--------|
-| **Trigger** | Weekly scheduled task (Monday 4:00 AM) |
-| **Model** | Claude Sonnet |
-| **Cost** | ~$0.01 per invocation |
-| **Input** | All booking data for past 90 days |
-| **Output** | Usage analytics report: peak hours, underutilized periods, seasonal trends, busiest amenities, average booking duration |
-| **Display** | Reports module: "Amenity Usage Intelligence" report with charts and heatmaps |
-| **Fallback** | Standard utilization report without AI commentary |
+| Attribute    | Detail                                                                                                                  |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| **Trigger**  | Weekly scheduled task (Monday 4:00 AM)                                                                                  |
+| **Model**    | Claude Sonnet                                                                                                           |
+| **Cost**     | ~$0.01 per invocation                                                                                                   |
+| **Input**    | All booking data for past 90 days                                                                                       |
+| **Output**   | Usage analytics report: peak hours, underutilized periods, seasonal trends, busiest amenities, average booking duration |
+| **Display**  | Reports module: "Amenity Usage Intelligence" report with charts and heatmaps                                            |
+| **Fallback** | Standard utilization report without AI commentary                                                                       |
 
 ### 7.5 Cancellation Prediction (No-Show Prediction)
 
-| Attribute | Detail |
-|-----------|--------|
-| **Trigger** | 24 hours before each booking |
-| **Model** | Claude Haiku |
-| **Cost** | ~$0.001 per invocation |
-| **Input** | Resident's booking history, historical no-show rate, booking characteristics |
-| **Output** | No-show probability (0-100%). If high risk (>60%), triggers a preemptive reminder. |
-| **Display** | Staff sees a small warning icon on high-risk bookings: "This booking has a 73% no-show probability." Resident receives an extra reminder: "Don't forget your booking tomorrow!" |
-| **Fallback** | Standard 24-hour reminder sent to all bookings regardless of risk |
+| Attribute    | Detail                                                                                                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Trigger**  | 24 hours before each booking                                                                                                                                                    |
+| **Model**    | Claude Haiku                                                                                                                                                                    |
+| **Cost**     | ~$0.001 per invocation                                                                                                                                                          |
+| **Input**    | Resident's booking history, historical no-show rate, booking characteristics                                                                                                    |
+| **Output**   | No-show probability (0-100%). If high risk (>60%), triggers a preemptive reminder.                                                                                              |
+| **Display**  | Staff sees a small warning icon on high-risk bookings: "This booking has a 73% no-show probability." Resident receives an extra reminder: "Don't forget your booking tomorrow!" |
+| **Fallback** | Standard 24-hour reminder sent to all bookings regardless of risk                                                                                                               |
 
 ### 7.6 Capacity Optimization
 
-| Attribute | Detail |
-|-----------|--------|
-| **Trigger** | Monthly scheduled task |
-| **Model** | Claude Sonnet |
-| **Cost** | ~$0.005 per invocation |
-| **Input** | Usage data, incident reports, resident feedback (if collected), current capacity settings |
-| **Output** | Capacity recommendations: "BBQ area can safely support 6 concurrent bookings (currently set to 4). Party Room should reduce from 50 to 40 guests based on 3 noise complaints." |
-| **Display** | Admin notification in Settings. Requires manual approval. |
-| **Fallback** | Static capacity limits maintained by admin. |
+| Attribute    | Detail                                                                                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Trigger**  | Monthly scheduled task                                                                                                                                                         |
+| **Model**    | Claude Sonnet                                                                                                                                                                  |
+| **Cost**     | ~$0.005 per invocation                                                                                                                                                         |
+| **Input**    | Usage data, incident reports, resident feedback (if collected), current capacity settings                                                                                      |
+| **Output**   | Capacity recommendations: "BBQ area can safely support 6 concurrent bookings (currently set to 4). Party Room should reduce from 50 to 40 guests based on 3 noise complaints." |
+| **Display**  | Admin notification in Settings. Requires manual approval.                                                                                                                      |
+| **Fallback** | Static capacity limits maintained by admin.                                                                                                                                    |
 
 ### 7.7 Terms Auto-Generation
 
-| Attribute | Detail |
-|-----------|--------|
-| **Trigger** | Admin clicks "Generate Terms" button on amenity setup |
-| **Model** | Claude Sonnet |
-| **Cost** | ~$0.005 per invocation |
-| **Input** | Amenity type, capacity, fees, building rules, existing terms from other amenities at this property |
-| **Output** | Draft terms and conditions text tailored to the amenity type |
-| **Display** | Populates the Terms and Conditions rich text editor with a draft. Admin reviews and edits before saving. Banner: "AI-generated draft. Please review and customize." |
-| **Fallback** | Admin writes terms manually or copies from a template. |
+| Attribute    | Detail                                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Trigger**  | Admin clicks "Generate Terms" button on amenity setup                                                                                                               |
+| **Model**    | Claude Sonnet                                                                                                                                                       |
+| **Cost**     | ~$0.005 per invocation                                                                                                                                              |
+| **Input**    | Amenity type, capacity, fees, building rules, existing terms from other amenities at this property                                                                  |
+| **Output**   | Draft terms and conditions text tailored to the amenity type                                                                                                        |
+| **Display**  | Populates the Terms and Conditions rich text editor with a draft. Admin reviews and edits before saving. Banner: "AI-generated draft. Please review and customize." |
+| **Fallback** | Admin writes terms manually or copies from a template.                                                                                                              |
 
 ### 7.8 Booking Recommendation
 
-| Attribute | Detail |
-|-----------|--------|
-| **Trigger** | When resident opens the booking form |
-| **Model** | Claude Haiku |
-| **Cost** | ~$0.001 per invocation |
-| **Input** | Resident's booking history, availability calendar, time preferences inferred from past bookings |
-| **Output** | Top 3 suggested time slots: "Based on your history, you usually book on Saturday mornings. Here are available slots:" |
-| **Display** | Subtle suggestion bar above the date picker. Dismissible. |
-| **Fallback** | No suggestions. Resident picks date and time manually. |
+| Attribute    | Detail                                                                                                                |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| **Trigger**  | When resident opens the booking form                                                                                  |
+| **Model**    | Claude Haiku                                                                                                          |
+| **Cost**     | ~$0.001 per invocation                                                                                                |
+| **Input**    | Resident's booking history, availability calendar, time preferences inferred from past bookings                       |
+| **Output**   | Top 3 suggested time slots: "Based on your history, you usually book on Saturday mornings. Here are available slots:" |
+| **Display**  | Subtle suggestion bar above the date picker. Dismissible.                                                             |
+| **Fallback** | No suggestions. Resident picks date and time manually.                                                                |
 
 ---
 
@@ -1082,38 +1091,38 @@ Three layers of analytics, following the platform-wide pattern defined in 01-Arc
 
 ### 8.1 Operational Metrics (What Happened)
 
-| # | Metric | Calculation | Display |
-|---|--------|-------------|---------|
-| 1 | Total Bookings | Count of bookings in period | KPI card on dashboard |
-| 2 | Bookings by Status | Count per status (approved, pending, cancelled, declined, no-show) | Stacked bar chart |
-| 3 | Bookings by Amenity | Count per amenity in period | Horizontal bar chart |
-| 4 | Cancellation Rate | Cancelled / Total bookings * 100 | Percentage with trend arrow |
-| 5 | No-Show Rate | No-shows / Total approved bookings * 100 | Percentage with trend arrow |
-| 6 | Average Booking Duration | Mean duration in minutes across all bookings | KPI card |
-| 7 | Peak Booking Day | Day of week with highest booking count | Text widget |
-| 8 | Peak Booking Hour | Hour of day with highest booking count | Text widget |
+| #   | Metric                   | Calculation                                                        | Display                     |
+| --- | ------------------------ | ------------------------------------------------------------------ | --------------------------- |
+| 1   | Total Bookings           | Count of bookings in period                                        | KPI card on dashboard       |
+| 2   | Bookings by Status       | Count per status (approved, pending, cancelled, declined, no-show) | Stacked bar chart           |
+| 3   | Bookings by Amenity      | Count per amenity in period                                        | Horizontal bar chart        |
+| 4   | Cancellation Rate        | Cancelled / Total bookings \* 100                                  | Percentage with trend arrow |
+| 5   | No-Show Rate             | No-shows / Total approved bookings \* 100                          | Percentage with trend arrow |
+| 6   | Average Booking Duration | Mean duration in minutes across all bookings                       | KPI card                    |
+| 7   | Peak Booking Day         | Day of week with highest booking count                             | Text widget                 |
+| 8   | Peak Booking Hour        | Hour of day with highest booking count                             | Text widget                 |
 
 ### 8.2 Performance Metrics (How Well)
 
-| # | Metric | Calculation | Display |
-|---|--------|-------------|---------|
-| 1 | Utilization Rate | Booked hours / Available hours * 100, per amenity | Gauge chart per amenity |
-| 2 | Revenue | Sum of fee_amount for paid bookings in period | Currency KPI with trend |
-| 3 | Outstanding Payments | Sum of unpaid fees | Currency KPI (red if > 0) |
-| 4 | Deposit Balance | Deposits held - Deposits refunded | Currency KPI |
-| 5 | Approval Turnaround | Median time from booking creation to approval | Duration KPI |
-| 6 | Waitlist Conversion | Waitlist offers that converted to bookings / Total offers * 100 | Percentage |
-| 7 | Repeat Booking Rate | Residents with 2+ bookings / Total unique bookers * 100 | Percentage |
+| #   | Metric               | Calculation                                                      | Display                   |
+| --- | -------------------- | ---------------------------------------------------------------- | ------------------------- |
+| 1   | Utilization Rate     | Booked hours / Available hours \* 100, per amenity               | Gauge chart per amenity   |
+| 2   | Revenue              | Sum of fee_amount for paid bookings in period                    | Currency KPI with trend   |
+| 3   | Outstanding Payments | Sum of unpaid fees                                               | Currency KPI (red if > 0) |
+| 4   | Deposit Balance      | Deposits held - Deposits refunded                                | Currency KPI              |
+| 5   | Approval Turnaround  | Median time from booking creation to approval                    | Duration KPI              |
+| 6   | Waitlist Conversion  | Waitlist offers that converted to bookings / Total offers \* 100 | Percentage                |
+| 7   | Repeat Booking Rate  | Residents with 2+ bookings / Total unique bookers \* 100         | Percentage                |
 
 ### 8.3 AI Insights (What To Do)
 
-| # | Insight | Source AI Capability | Example |
-|---|---------|---------------------|---------|
-| 1 | Demand forecast | Demand Prediction | "Party Room demand expected to spike 40% next month (graduation season)." |
-| 2 | Pricing opportunity | Dynamic Pricing | "Tuesday BBQ bookings are 15% of capacity. Consider a 25% discount." |
-| 3 | Capacity recommendation | Capacity Optimization | "Guest Suite utilization is 95%. Consider adding hours." |
-| 4 | At-risk bookings | Cancellation Prediction | "4 bookings this week have >60% no-show probability." |
-| 5 | Underutilized amenity | Usage Pattern Analysis | "Tennis Court has been booked only 3 times in the past 30 days." |
+| #   | Insight                 | Source AI Capability    | Example                                                                   |
+| --- | ----------------------- | ----------------------- | ------------------------------------------------------------------------- |
+| 1   | Demand forecast         | Demand Prediction       | "Party Room demand expected to spike 40% next month (graduation season)." |
+| 2   | Pricing opportunity     | Dynamic Pricing         | "Tuesday BBQ bookings are 15% of capacity. Consider a 25% discount."      |
+| 3   | Capacity recommendation | Capacity Optimization   | "Guest Suite utilization is 95%. Consider adding hours."                  |
+| 4   | At-risk bookings        | Cancellation Prediction | "4 bookings this week have >60% no-show probability."                     |
+| 5   | Underutilized amenity   | Usage Pattern Analysis  | "Tennis Court has been booked only 3 times in the past 30 days."          |
 
 ---
 
@@ -1121,21 +1130,21 @@ Three layers of analytics, following the platform-wide pattern defined in 01-Arc
 
 ### 9.1 Notification Triggers
 
-| # | Event | Recipients | Channels | Template |
-|---|-------|-----------|----------|----------|
-| 1 | Booking Created (auto-approve) | Resident | Email, Push | "Your booking for {amenity} on {date} at {time} is confirmed. Reference: {ref}." |
-| 2 | Booking Created (approval required) | Resident, Approver(s) | Email, Push | Resident: "Your booking request for {amenity} has been submitted." Approver: "New booking request for {amenity} from {name} ({unit})." |
-| 3 | Booking Approved | Resident | Email, Push, SMS | "Your booking for {amenity} on {date} has been approved." |
-| 4 | Booking Declined | Resident | Email, Push | "Your booking for {amenity} on {date} has been declined. Reason: {reason}." |
-| 5 | Booking Cancelled (by resident) | Staff (approver) | Email, Push | "{name} cancelled their {amenity} booking on {date}." |
-| 6 | Booking Cancelled (by staff) | Resident | Email, Push, SMS | "Your booking for {amenity} on {date} has been cancelled by management. Reason: {reason}." |
-| 7 | Payment Reminder | Resident | Email, Push | "Payment of {amount} is due for your {amenity} booking on {date}. Please deliver {method} to the front desk." |
-| 8 | Payment Overdue | Resident, Staff | Email, Push, SMS | "Payment for your {amenity} booking is overdue. Your booking may be cancelled." |
-| 9 | 24-Hour Reminder | Resident | Email, Push | "Reminder: You have a booking for {amenity} tomorrow at {time}." |
-| 10 | Waitlist Offer | Resident | Email, Push, SMS | "A slot has opened for {amenity} on {date}. Book now -- this offer expires in 4 hours." |
-| 11 | Booking Modified | Resident | Email, Push | "Your booking for {amenity} has been updated. New time: {date} {time}." |
-| 12 | Deposit Refunded | Resident | Email | "Your deposit of {amount} for {amenity} has been refunded." |
-| 13 | Recurring Booking Conflict | Resident | Email, Push | "Your recurring booking for {amenity} on {date} could not be created due to a conflict. All other dates are confirmed." |
+| #   | Event                               | Recipients            | Channels         | Template                                                                                                                               |
+| --- | ----------------------------------- | --------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Booking Created (auto-approve)      | Resident              | Email, Push      | "Your booking for {amenity} on {date} at {time} is confirmed. Reference: {ref}."                                                       |
+| 2   | Booking Created (approval required) | Resident, Approver(s) | Email, Push      | Resident: "Your booking request for {amenity} has been submitted." Approver: "New booking request for {amenity} from {name} ({unit})." |
+| 3   | Booking Approved                    | Resident              | Email, Push, SMS | "Your booking for {amenity} on {date} has been approved."                                                                              |
+| 4   | Booking Declined                    | Resident              | Email, Push      | "Your booking for {amenity} on {date} has been declined. Reason: {reason}."                                                            |
+| 5   | Booking Cancelled (by resident)     | Staff (approver)      | Email, Push      | "{name} cancelled their {amenity} booking on {date}."                                                                                  |
+| 6   | Booking Cancelled (by staff)        | Resident              | Email, Push, SMS | "Your booking for {amenity} on {date} has been cancelled by management. Reason: {reason}."                                             |
+| 7   | Payment Reminder                    | Resident              | Email, Push      | "Payment of {amount} is due for your {amenity} booking on {date}. Please deliver {method} to the front desk."                          |
+| 8   | Payment Overdue                     | Resident, Staff       | Email, Push, SMS | "Payment for your {amenity} booking is overdue. Your booking may be cancelled."                                                        |
+| 9   | 24-Hour Reminder                    | Resident              | Email, Push      | "Reminder: You have a booking for {amenity} tomorrow at {time}."                                                                       |
+| 10  | Waitlist Offer                      | Resident              | Email, Push, SMS | "A slot has opened for {amenity} on {date}. Book now -- this offer expires in 4 hours."                                                |
+| 11  | Booking Modified                    | Resident              | Email, Push      | "Your booking for {amenity} has been updated. New time: {date} {time}."                                                                |
+| 12  | Deposit Refunded                    | Resident              | Email            | "Your deposit of {amount} for {amenity} has been refunded."                                                                            |
+| 13  | Recurring Booking Conflict          | Resident              | Email, Push      | "Your recurring booking for {amenity} on {date} could not be created due to a conflict. All other dates are confirmed."                |
 
 ### 9.2 Notification Preferences
 
@@ -1144,6 +1153,7 @@ Residents can control amenity booking notifications per channel in their notific
 ### 9.3 Calendar Event Attachment
 
 Booking confirmation and approval emails include an `.ics` calendar event attachment with:
+
 - Event title: "{Amenity Name} Booking"
 - Start/end time matching the booking
 - Location: Building name and amenity name
@@ -1160,51 +1170,51 @@ All endpoints require authentication. Responses follow the standard envelope for
 
 #### Amenity Endpoints
 
-| Method | Path | Description | Roles |
-|--------|------|-------------|-------|
-| GET | `/api/v1/amenities` | List amenities for property (filterable by group, active status) | All authenticated |
-| GET | `/api/v1/amenities/:id` | Get amenity detail with availability | All authenticated |
-| POST | `/api/v1/amenities` | Create amenity | Property Admin |
-| PUT | `/api/v1/amenities/:id` | Update amenity | Property Admin, Property Manager |
-| DELETE | `/api/v1/amenities/:id` | Soft-delete amenity | Property Admin |
-| GET | `/api/v1/amenities/:id/availability` | Get available slots for a date range | All authenticated |
-| POST | `/api/v1/amenities/:id/photos` | Upload amenity photo | Property Admin, Property Manager |
-| DELETE | `/api/v1/amenities/:id/photos/:photoId` | Remove amenity photo | Property Admin, Property Manager |
+| Method | Path                                    | Description                                                      | Roles                            |
+| ------ | --------------------------------------- | ---------------------------------------------------------------- | -------------------------------- |
+| GET    | `/api/v1/amenities`                     | List amenities for property (filterable by group, active status) | All authenticated                |
+| GET    | `/api/v1/amenities/:id`                 | Get amenity detail with availability                             | All authenticated                |
+| POST   | `/api/v1/amenities`                     | Create amenity                                                   | Property Admin                   |
+| PUT    | `/api/v1/amenities/:id`                 | Update amenity                                                   | Property Admin, Property Manager |
+| DELETE | `/api/v1/amenities/:id`                 | Soft-delete amenity                                              | Property Admin                   |
+| GET    | `/api/v1/amenities/:id/availability`    | Get available slots for a date range                             | All authenticated                |
+| POST   | `/api/v1/amenities/:id/photos`          | Upload amenity photo                                             | Property Admin, Property Manager |
+| DELETE | `/api/v1/amenities/:id/photos/:photoId` | Remove amenity photo                                             | Property Admin, Property Manager |
 
 #### Booking Endpoints
 
-| Method | Path | Description | Roles |
-|--------|------|-------------|-------|
-| GET | `/api/v1/bookings` | List bookings (filterable by amenity, status, date, unit) | Staff: all bookings. Resident: own bookings. |
-| GET | `/api/v1/bookings/:id` | Get booking detail | Staff: any booking. Resident: own bookings. |
-| POST | `/api/v1/bookings` | Create booking | All authenticated (staff can book on behalf) |
-| PUT | `/api/v1/bookings/:id` | Update booking (date/time/guests/comments) | Staff: any. Resident: own, if before cancellation deadline. |
-| POST | `/api/v1/bookings/:id/cancel` | Cancel booking | Staff: any. Resident: own, if within cancellation policy. |
-| POST | `/api/v1/bookings/:id/approve` | Approve booking | Staff with approval permission |
-| POST | `/api/v1/bookings/:id/decline` | Decline booking (body: reason) | Staff with approval permission |
-| POST | `/api/v1/bookings/:id/reassign` | Reassign to different resident | Staff only |
-| POST | `/api/v1/bookings/:id/payment` | Record offline payment | Staff only |
-| POST | `/api/v1/bookings/:id/refund` | Refund deposit | Staff only |
-| POST | `/api/v1/bookings/:id/agreement` | Upload signed agreement | Booking owner, Staff |
-| GET | `/api/v1/bookings/calendar` | Calendar events for date range (optimized for FullCalendar) | Staff |
-| GET | `/api/v1/bookings/pending` | List pending approvals | Staff with approval permission |
-| POST | `/api/v1/bookings/batch-approve` | Approve multiple bookings (body: booking IDs) | Staff with approval permission |
+| Method | Path                             | Description                                                 | Roles                                                       |
+| ------ | -------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------- |
+| GET    | `/api/v1/bookings`               | List bookings (filterable by amenity, status, date, unit)   | Staff: all bookings. Resident: own bookings.                |
+| GET    | `/api/v1/bookings/:id`           | Get booking detail                                          | Staff: any booking. Resident: own bookings.                 |
+| POST   | `/api/v1/bookings`               | Create booking                                              | All authenticated (staff can book on behalf)                |
+| PUT    | `/api/v1/bookings/:id`           | Update booking (date/time/guests/comments)                  | Staff: any. Resident: own, if before cancellation deadline. |
+| POST   | `/api/v1/bookings/:id/cancel`    | Cancel booking                                              | Staff: any. Resident: own, if within cancellation policy.   |
+| POST   | `/api/v1/bookings/:id/approve`   | Approve booking                                             | Staff with approval permission                              |
+| POST   | `/api/v1/bookings/:id/decline`   | Decline booking (body: reason)                              | Staff with approval permission                              |
+| POST   | `/api/v1/bookings/:id/reassign`  | Reassign to different resident                              | Staff only                                                  |
+| POST   | `/api/v1/bookings/:id/payment`   | Record offline payment                                      | Staff only                                                  |
+| POST   | `/api/v1/bookings/:id/refund`    | Refund deposit                                              | Staff only                                                  |
+| POST   | `/api/v1/bookings/:id/agreement` | Upload signed agreement                                     | Booking owner, Staff                                        |
+| GET    | `/api/v1/bookings/calendar`      | Calendar events for date range (optimized for FullCalendar) | Staff                                                       |
+| GET    | `/api/v1/bookings/pending`       | List pending approvals                                      | Staff with approval permission                              |
+| POST   | `/api/v1/bookings/batch-approve` | Approve multiple bookings (body: booking IDs)               | Staff with approval permission                              |
 
 #### Waitlist Endpoints
 
-| Method | Path | Description | Roles |
-|--------|------|-------------|-------|
-| POST | `/api/v1/waitlist` | Join waitlist for a slot | Resident |
-| GET | `/api/v1/waitlist` | Get resident's waitlist entries | Resident: own. Staff: all. |
-| DELETE | `/api/v1/waitlist/:id` | Remove from waitlist | Resident: own. Staff: any. |
+| Method | Path                   | Description                     | Roles                      |
+| ------ | ---------------------- | ------------------------------- | -------------------------- |
+| POST   | `/api/v1/waitlist`     | Join waitlist for a slot        | Resident                   |
+| GET    | `/api/v1/waitlist`     | Get resident's waitlist entries | Resident: own. Staff: all. |
+| DELETE | `/api/v1/waitlist/:id` | Remove from waitlist            | Resident: own. Staff: any. |
 
 #### AI Endpoints
 
-| Method | Path | Description | Roles |
-|--------|------|-------------|-------|
-| GET | `/api/v1/amenities/:id/ai/suggestions` | Get AI booking time suggestions | All authenticated |
-| GET | `/api/v1/amenities/:id/ai/demand` | Get demand forecast data | Staff, Board Member |
-| POST | `/api/v1/amenities/:id/ai/generate-terms` | Generate terms and conditions draft | Property Admin |
+| Method | Path                                      | Description                         | Roles               |
+| ------ | ----------------------------------------- | ----------------------------------- | ------------------- |
+| GET    | `/api/v1/amenities/:id/ai/suggestions`    | Get AI booking time suggestions     | All authenticated   |
+| GET    | `/api/v1/amenities/:id/ai/demand`         | Get demand forecast data            | Staff, Board Member |
+| POST   | `/api/v1/amenities/:id/ai/generate-terms` | Generate terms and conditions draft | Property Admin      |
 
 ### 10.2 Key Request / Response Examples
 
@@ -1243,7 +1253,7 @@ POST /api/v1/bookings
     "end_date": "2026-03-28",
     "end_time": "22:00",
     "guest_count": 15,
-    "total_amount": 1271.20,
+    "total_amount": 1271.2,
     "payment_status": "paid",
     "created_at": "2026-03-14T15:30:00Z"
   }
@@ -1274,99 +1284,149 @@ POST /api/v1/bookings
 
 ### 10.3 WebSocket Events
 
-| Event | Payload | Purpose |
-|-------|---------|---------|
-| `booking.created` | Booking summary | Real-time calendar update |
-| `booking.approved` | Booking ID, new status | Calendar color change |
-| `booking.cancelled` | Booking ID | Remove from calendar |
-| `booking.updated` | Booking summary | Update calendar event |
-| `waitlist.offered` | Waitlist entry, amenity, time | Notify waiting resident |
+| Event               | Payload                       | Purpose                   |
+| ------------------- | ----------------------------- | ------------------------- |
+| `booking.created`   | Booking summary               | Real-time calendar update |
+| `booking.approved`  | Booking ID, new status        | Calendar color change     |
+| `booking.cancelled` | Booking ID                    | Remove from calendar      |
+| `booking.updated`   | Booking summary               | Update calendar event     |
+| `waitlist.offered`  | Waitlist entry, amenity, time | Notify waiting resident   |
 
 ### 10.4 Rate Limits
 
-| Endpoint Group | Rate Limit | Window |
-|---------------|------------|--------|
-| GET (list/detail) | 60 requests | Per minute |
-| POST (create booking) | 10 requests | Per minute per user |
-| POST (batch approve) | 5 requests | Per minute |
-| AI endpoints | 20 requests | Per minute per property |
+| Endpoint Group        | Rate Limit  | Window                  |
+| --------------------- | ----------- | ----------------------- |
+| GET (list/detail)     | 60 requests | Per minute              |
+| POST (create booking) | 10 requests | Per minute per user     |
+| POST (batch approve)  | 5 requests  | Per minute              |
+| AI endpoints          | 20 requests | Per minute per property |
 
 ---
 
 ## 11. Completeness Checklist
 
-| # | Requirement | Status | Section |
-|---|-------------|--------|---------|
-| 1 | Amenity setup with 49+ fields across 7 sections | Done | 3.1.1 |
-| 2 | Calendar view (month, week, day, agenda) | Done | 3.1.5 |
-| 3 | List view with sort, filter, pagination | Done | 3.1.6 |
-| 4 | Card grid view for browsing amenities | Done | 3.1.2 |
-| 5 | Booking flow with time slot selection | Done | 3.1.4 |
-| 6 | Payment integration (Stripe) | Done | 3.1.4 (Step 4), 4.3 |
-| 7 | Offline payment methods (cheque, cash, e-transfer) | Done | 3.1.4, 3.1.7 |
-| 8 | Approval workflow (auto-approve, manager-approve, admin-approve) | Done | 3.1.8 |
-| 9 | Terms and conditions with multiple agreement methods | Done | 3.1.1 (Section G), 3.1.4 (Step 3) |
-| 10 | Capacity limits and concurrent booking support | Done | 3.1.1 (fields 21, 26) |
-| 11 | Booking rules (advance days, max per unit, cancellation policy) | Done | 3.1.1 (Section D, F) |
-| 12 | Waitlist with automatic promotion | Done | 3.2.2 |
-| 13 | Recurring bookings | Done | 3.2.1 |
-| 14 | Amenity photos (primary + gallery) | Done | 3.1.1 (Section B), 3.1.2 |
-| 15 | Maintenance schedule blocking | Done | 3.2.3 |
-| 16 | Resident vs staff booking (including on-behalf-of) | Done | 3.1.4, 5.1, 5.2 |
-| 17 | Security guard auto-assignment for large events | Done | 3.1.1 (fields 27-29), 5.1 |
-| 18 | Booking detail with full action set | Done | 3.1.7 |
-| 19 | Audit trail / history | Done | 3.1.7, 4.4 |
-| 20 | AI: Smart Conflict Resolution | Done | 7.1 |
-| 21 | AI: Demand Prediction | Done | 7.2 |
-| 22 | AI: Dynamic Pricing Suggestions | Done | 7.3 |
-| 23 | AI: Usage Pattern Analysis | Done | 7.4 |
-| 24 | AI: Cancellation Prediction | Done | 7.5 |
-| 25 | AI: Capacity Optimization | Done | 7.6 |
-| 26 | AI: Terms Auto-Generation | Done | 7.7 |
-| 27 | AI: Booking Recommendation | Done | 7.8 |
-| 28 | Analytics: operational, performance, AI insight layers | Done | 8.1, 8.2, 8.3 |
-| 29 | Notifications: 13 trigger types, multi-channel, .ics attachment | Done | 9.1, 9.3 |
-| 30 | API: full CRUD, calendar, waitlist, batch approve, AI endpoints | Done | 10.1 |
-| 31 | WebSocket real-time events | Done | 10.3 |
-| 32 | Data model with all entities, relationships, and indexes | Done | 4.1-4.7 |
-| 33 | User flows for all 5 key scenarios | Done | 5.1-5.5 |
-| 34 | Desktop, tablet, mobile layouts for all screens | Done | 6.1 |
-| 35 | Empty states with guidance for all screens | Done | 6.3 |
-| 36 | Loading states for all screens | Done | 3.1.2, 3.1.5, 3.1.6 |
-| 37 | Error states for all screens | Done | 3.1.2, 3.1.5, 3.1.6 |
-| 38 | Tooltips for complex features | Done | 6.4 |
-| 39 | Every field: data type, max length, required, default, validation, error message | Done | 3.1.1, 3.1.4, 3.2.1 |
-| 40 | Every button: action, success, failure, loading states | Done | 3.1.1, 3.1.4, 3.1.7 |
-| 41 | Role-based access on every endpoint | Done | 10.1 |
-| 42 | Rate limits | Done | 10.4 |
-| 43 | Reports: utilization, revenue, trends, resident usage | Done | 3.2.4 |
-| 44 | Export: CSV, Excel, PDF | Done | 3.1.6, 3.2.4 |
-| 45 | Multi-building support (building selector) | Done | 3.1.2 |
-| 46 | Progressive disclosure in admin form | Done | 3.1.1 |
-| 47 | Deposit refund workflow | Done | 3.1.7 |
-| 48 | Reference number auto-generation | Done | 4.3 |
-| 49 | Cancellation with refund processing | Done | 5.4, 3.1.7 |
-| 50 | Future: dynamic pricing, digital signage, guest pre-registration, ratings | Done | 3.3 |
-| 51 | Amenity sub-options with per-option fee/deposit overrides | Done | 3.1.1 (Section H), 4.2a |
-| 52 | Per-day operating hours schedule | Done | 3.1.1 (field 12) |
-| 53 | Booking style UI behavior specification (Fixed/Flexible/Full Day) | Done | 3.1.1 (after field 16b) |
-| 54 | Time increment configuration for Flexible Range | Done | 3.1.1 (field 16a) |
-| 55 | Multi-day booking support for Flexible Range | Done | 3.1.1 (field 16b) |
-| 56 | Hero booking bar on browse page | Done | 3.1.2 |
-| 57 | Page header action bar with Calendar / All Bookings links | Done | 3.1.2 |
-| 58 | International card surcharge handling | Done | 3.1.4 (Step 4) |
-| 59 | Original vs Revised comparison card for booking edits | Done | 3.1.7 (Edit Booking) |
-| 60 | Availability check on booking edits | Done | 3.1.7 (Edit Booking) |
-| 61 | Security guard late-payment premium | Done | 3.1.1 (fields 29a-29b) |
-| 62 | Blocked hours configuration UI specification | Done | 3.1.1 (field 19) |
-| 63 | Calendar event truncation behavior per view | Done | 3.1.5 |
-| 64 | Offsite owner read-only access note | Done | 1 (Key Facts) |
-| 65 | Conditional approval (approved but payment pending) workflow | Done | 3.1.8 |
-| 66 | Action form accordion behavior | Done | 3.1.7 |
+| #   | Requirement                                                                      | Status | Section                           |
+| --- | -------------------------------------------------------------------------------- | ------ | --------------------------------- |
+| 1   | Amenity setup with 49+ fields across 7 sections                                  | Done   | 3.1.1                             |
+| 2   | Calendar view (month, week, day, agenda)                                         | Done   | 3.1.5                             |
+| 3   | List view with sort, filter, pagination                                          | Done   | 3.1.6                             |
+| 4   | Card grid view for browsing amenities                                            | Done   | 3.1.2                             |
+| 5   | Booking flow with time slot selection                                            | Done   | 3.1.4                             |
+| 6   | Payment integration (Stripe)                                                     | Done   | 3.1.4 (Step 4), 4.3               |
+| 7   | Offline payment methods (cheque, cash, e-transfer)                               | Done   | 3.1.4, 3.1.7                      |
+| 8   | Approval workflow (auto-approve, manager-approve, admin-approve)                 | Done   | 3.1.8                             |
+| 9   | Terms and conditions with multiple agreement methods                             | Done   | 3.1.1 (Section G), 3.1.4 (Step 3) |
+| 10  | Capacity limits and concurrent booking support                                   | Done   | 3.1.1 (fields 21, 26)             |
+| 11  | Booking rules (advance days, max per unit, cancellation policy)                  | Done   | 3.1.1 (Section D, F)              |
+| 12  | Waitlist with automatic promotion                                                | Done   | 3.2.2                             |
+| 13  | Recurring bookings                                                               | Done   | 3.2.1                             |
+| 14  | Amenity photos (primary + gallery)                                               | Done   | 3.1.1 (Section B), 3.1.2          |
+| 15  | Maintenance schedule blocking                                                    | Done   | 3.2.3                             |
+| 16  | Resident vs staff booking (including on-behalf-of)                               | Done   | 3.1.4, 5.1, 5.2                   |
+| 17  | Security guard auto-assignment for large events                                  | Done   | 3.1.1 (fields 27-29), 5.1         |
+| 18  | Booking detail with full action set                                              | Done   | 3.1.7                             |
+| 19  | Audit trail / history                                                            | Done   | 3.1.7, 4.4                        |
+| 20  | AI: Smart Conflict Resolution                                                    | Done   | 7.1                               |
+| 21  | AI: Demand Prediction                                                            | Done   | 7.2                               |
+| 22  | AI: Dynamic Pricing Suggestions                                                  | Done   | 7.3                               |
+| 23  | AI: Usage Pattern Analysis                                                       | Done   | 7.4                               |
+| 24  | AI: Cancellation Prediction                                                      | Done   | 7.5                               |
+| 25  | AI: Capacity Optimization                                                        | Done   | 7.6                               |
+| 26  | AI: Terms Auto-Generation                                                        | Done   | 7.7                               |
+| 27  | AI: Booking Recommendation                                                       | Done   | 7.8                               |
+| 28  | Analytics: operational, performance, AI insight layers                           | Done   | 8.1, 8.2, 8.3                     |
+| 29  | Notifications: 13 trigger types, multi-channel, .ics attachment                  | Done   | 9.1, 9.3                          |
+| 30  | API: full CRUD, calendar, waitlist, batch approve, AI endpoints                  | Done   | 10.1                              |
+| 31  | WebSocket real-time events                                                       | Done   | 10.3                              |
+| 32  | Data model with all entities, relationships, and indexes                         | Done   | 4.1-4.7                           |
+| 33  | User flows for all 5 key scenarios                                               | Done   | 5.1-5.5                           |
+| 34  | Desktop, tablet, mobile layouts for all screens                                  | Done   | 6.1                               |
+| 35  | Empty states with guidance for all screens                                       | Done   | 6.3                               |
+| 36  | Loading states for all screens                                                   | Done   | 3.1.2, 3.1.5, 3.1.6               |
+| 37  | Error states for all screens                                                     | Done   | 3.1.2, 3.1.5, 3.1.6               |
+| 38  | Tooltips for complex features                                                    | Done   | 6.4                               |
+| 39  | Every field: data type, max length, required, default, validation, error message | Done   | 3.1.1, 3.1.4, 3.2.1               |
+| 40  | Every button: action, success, failure, loading states                           | Done   | 3.1.1, 3.1.4, 3.1.7               |
+| 41  | Role-based access on every endpoint                                              | Done   | 10.1                              |
+| 42  | Rate limits                                                                      | Done   | 10.4                              |
+| 43  | Reports: utilization, revenue, trends, resident usage                            | Done   | 3.2.4                             |
+| 44  | Export: CSV, Excel, PDF                                                          | Done   | 3.1.6, 3.2.4                      |
+| 45  | Multi-building support (building selector)                                       | Done   | 3.1.2                             |
+| 46  | Progressive disclosure in admin form                                             | Done   | 3.1.1                             |
+| 47  | Deposit refund workflow                                                          | Done   | 3.1.7                             |
+| 48  | Reference number auto-generation                                                 | Done   | 4.3                               |
+| 49  | Cancellation with refund processing                                              | Done   | 5.4, 3.1.7                        |
+| 50  | Future: dynamic pricing, digital signage, guest pre-registration, ratings        | Done   | 3.3                               |
+| 51  | Amenity sub-options with per-option fee/deposit overrides                        | Done   | 3.1.1 (Section H), 4.2a           |
+| 52  | Per-day operating hours schedule                                                 | Done   | 3.1.1 (field 12)                  |
+| 53  | Booking style UI behavior specification (Fixed/Flexible/Full Day)                | Done   | 3.1.1 (after field 16b)           |
+| 54  | Time increment configuration for Flexible Range                                  | Done   | 3.1.1 (field 16a)                 |
+| 55  | Multi-day booking support for Flexible Range                                     | Done   | 3.1.1 (field 16b)                 |
+| 56  | Hero booking bar on browse page                                                  | Done   | 3.1.2                             |
+| 57  | Page header action bar with Calendar / All Bookings links                        | Done   | 3.1.2                             |
+| 58  | International card surcharge handling                                            | Done   | 3.1.4 (Step 4)                    |
+| 59  | Original vs Revised comparison card for booking edits                            | Done   | 3.1.7 (Edit Booking)              |
+| 60  | Availability check on booking edits                                              | Done   | 3.1.7 (Edit Booking)              |
+| 61  | Security guard late-payment premium                                              | Done   | 3.1.1 (fields 29a-29b)            |
+| 62  | Blocked hours configuration UI specification                                     | Done   | 3.1.1 (field 19)                  |
+| 63  | Calendar event truncation behavior per view                                      | Done   | 3.1.5                             |
+| 64  | Offsite owner read-only access note                                              | Done   | 1 (Key Facts)                     |
+| 65  | Conditional approval (approved but payment pending) workflow                     | Done   | 3.1.8                             |
+| 66  | Action form accordion behavior                                                   | Done   | 3.1.7                             |
 
 ---
 
-*Document: 06-amenity-booking.md*
-*Module: Amenity Booking*
-*Lines: ~900*
-*Last updated: 2026-03-14*
+## ADDENDUM: Gap Analysis Fixes (2026-03-17)
+
+> Added from GAP-ANALYSIS-FINAL.md gap 6.1
+
+### A1. Move-In/Move-Out Elevator as Special Amenity Type (Gap 6.1, High)
+
+Platform 1 has specialized elevator booking with distinct fee structures per purpose (move-in, move-out, delivery) and day-of-week restrictions. Concierge must support this pattern.
+
+#### Elevator Amenity Configuration
+
+When creating an amenity of type "Elevator", the admin form expands to show:
+
+##### Purpose-Based Fee Structure
+
+| Purpose  | Booking Fee | Damage Deposit | Configurable             |
+| -------- | ----------- | -------------- | ------------------------ |
+| Move-In  | $50.00      | $250.00        | Yes (admin sets amounts) |
+| Move-Out | $50.00      | $500.00        | Yes                      |
+| Delivery | $50.00      | $250.00        | Yes                      |
+
+When a resident books an elevator, they must select the **purpose** before proceeding. The fee and deposit auto-populate based on purpose.
+
+##### Day-of-Week Restrictions
+
+| Field                | Type                    | Description                                                                                                  |
+| -------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| available_days       | Multi-select checkboxes | Which days of the week elevator booking is available                                                         |
+| blocked_days_message | String(200)             | Message shown for blocked days (e.g., "Elevator booking is not available on Sundays and statutory holidays") |
+
+Default: Monday-Saturday available, Sunday and holidays blocked.
+
+##### Elevator-Specific Time Slots
+
+Different from regular amenity time slots:
+
+- Weekday slots: configurable (e.g., 9am-12pm, 1pm-4pm, 6pm-9pm)
+- Weekend slots: configurable (e.g., 9am-12pm, 1pm-4pm only)
+- No evening slots on weekends by default
+
+##### Payment Methods for Elevator
+
+| Field                    | Type         | Description                                       |
+| ------------------------ | ------------ | ------------------------------------------------- |
+| accepted_payment_methods | Multi-select | "Online (Stripe)", "Cash", "E-transfer", "Cheque" |
+| cheque_payable_to        | String(200)  | Name for cheque payments (e.g., "TSCC 2584")      |
+
+Note: This pattern (purpose-based fees, day restrictions, special payment methods) can be generalized to other amenity types. The system should allow any amenity to have sub-purposes with distinct fee schedules.
+
+---
+
+_Document: 06-amenity-booking.md_
+_Module: Amenity Booking_
+_Lines: ~900 + addendum_
+_Last updated: 2026-03-17_

@@ -880,5 +880,69 @@ POST /api/webhooks/stripe
 
 ---
 
-_Last updated: 2026-03-16_
+---
+
+## 14. Completeness Checklist
+
+### Feature Coverage
+
+| #   | Requirement                                                                               | Status  | Section |
+| --- | ----------------------------------------------------------------------------------------- | ------- | ------- |
+| 1   | 3-tier pricing model (Starter, Professional, Enterprise)                                  | Covered | 3.1     |
+| 2   | Per-unit, per-month billing with annual option                                            | Covered | 3.1     |
+| 3   | 14-day free trial with no credit card required                                            | Covered | 3.3     |
+| 4   | Stripe integration (Billing, Checkout, Portal, Tax, Invoicing, Webhooks)                  | Covered | 4       |
+| 5   | PCI DSS out-of-scope architecture (no raw card data)                                      | Covered | 4.2     |
+| 6   | Subscription lifecycle state machine (trial -> active -> past_due -> canceled -> expired) | Covered | 5       |
+| 7   | 4-stage dunning management over 14 days                                                   | Covered | 6       |
+| 8   | Usage metering (units, storage, API calls, SMS)                                           | Covered | 7       |
+| 9   | Overage handling with warn-then-cap approach                                              | Covered | 7.3     |
+| 10  | Admin billing dashboard with 7 sections                                                   | Covered | 8       |
+| 11  | Super Admin revenue dashboard with MRR, churn, trial conversion                           | Covered | 9       |
+| 12  | Canadian tax handling (GST/HST/PST/QST by province)                                       | Covered | 10      |
+| 13  | Tax exemption workflow                                                                    | Covered | 10.3    |
+| 14  | Annual tax summary                                                                        | Covered | 10.4    |
+| 15  | Plan change with proration preview                                                        | Covered | 8.5     |
+| 16  | Cancellation with retention offer and reason survey                                       | Covered | 8.6     |
+| 17  | Reactivation within 90 days                                                               | Covered | 5.4     |
+
+### Proration Formula
+
+For plan upgrades, the prorated charge is calculated as:
+
+```
+remaining_days = (current_period_end - today) / total_period_days
+proration_credit = current_plan_monthly_price * remaining_days
+proration_charge = new_plan_monthly_price * remaining_days
+net_charge = proration_charge - proration_credit
+```
+
+For plan downgrades, no immediate charge or refund occurs. The new lower price takes effect on the next billing cycle.
+
+For annual billing mid-term cancellations, the refund is calculated as:
+
+```
+months_remaining = ceil((cancellation_date - current_period_start) / 30)
+months_used = 12 - months_remaining
+refund = annual_price - (monthly_price_per_unit * unit_count * months_used)
+```
+
+Refunds for annual cancellations are processed at Super Admin discretion within 14 business days. The exact refund amount is displayed to the Admin during the cancellation flow: "You will receive a refund of ${refund_amount} for the unused portion of your annual subscription."
+
+### Edge Case Coverage
+
+| #   | Requirement                               | Status  | Section |
+| --- | ----------------------------------------- | ------- | ------- |
+| 1   | Stripe API outage during checkout         | Covered | 13.5    |
+| 2   | Stripe API outage during webhook delivery | Covered | 13.5    |
+| 3   | Stripe API outage during plan change      | Covered | 13.5    |
+| 4   | Duplicate webhook events                  | Covered | 13.6    |
+| 5   | Concurrent plan changes                   | Covered | 13.7    |
+| 6   | Tax API failure                           | Covered | 13.4    |
+| 7   | Province change                           | Covered | 13.4    |
+| 8   | Tax exemption expiry                      | Covered | 13.4    |
+
+---
+
+_Last updated: 2026-03-17_
 _Author: Concierge Product Team_

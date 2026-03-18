@@ -888,6 +888,7 @@ UserPropertyRole N───1 Unit (optional)
 - "Edit" button opens inline editing on the Profile tab
 - Security tab shows own active sessions and 2FA management
 - Notifications tab shows own preferences with toggles
+- **Privacy tab** shows data rights management (see Section 6.3.2 below)
 - Email Signature tab (staff roles only) for configuring outgoing email signatures
 
 **Mobile**: Tabs become a vertical accordion. Each section expands/collapses on tap.
@@ -919,6 +920,48 @@ UserPropertyRole N───1 Unit (optional)
 | **Failure** | Toast (red): "Failed to save signature. Please try again."                       |
 
 **Applied to**: The signature is appended to all outgoing emails sent by the staff member through the following modules: Announcements (see 11), Maintenance Requests (see 05), Violation Notices (see 03), and any manual email sent via the platform's compose feature. It is not appended to system-generated automated emails (welcome emails, password resets, notification digests).
+
+#### 6.3.2 Privacy Tab (All Users -- Compliance Required)
+
+**Visible to**: All authenticated users (residents, staff, admin). This tab is required by PIPEDA Principle 9, GDPR Articles 15-22, and ISO 27701 Clause 7.3. See `docs/tech/COMPLIANCE-MATRIX.md` gaps C3, H1, H2, M1, M11.
+
+**Description**: The Privacy tab provides every user with self-service tools to exercise their data rights under PIPEDA, GDPR, and HIPAA.
+
+**Privacy Tab Sections**:
+
+| #   | Section                       | Content                                                                                                                                                                                                   | Actions                                                                                                                                                                                                                                                                                 |
+| --- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **My Consents**               | Table of all consent types the user has granted or revoked. Columns: Consent Type (plain-language name), Status (Granted/Revoked), Granted Date, Policy Version.                                          | Toggle switch per consent type. Toggling off = consent revocation. Revocation logged with timestamp, IP, user agent. Consent type `terms_of_service` and `privacy_policy` show as read-only (cannot revoke without closing account).                                                    |
+| 2   | **Download My Data**          | Description: "You have the right to receive a copy of all personal data we hold about you." Shows last export date (if any) and estimated export size.                                                    | "Download My Data" button. On click: confirmation dialog: "We will prepare a data package in JSON format. This may take up to 72 hours. You will be notified by email when it is ready." Creates a DSAR access request (see PRD 27 Section 3.2.1).                                      |
+| 3   | **Request Data Correction**   | Description: "If any of your information is inaccurate, you can request a correction."                                                                                                                    | "Request Correction" button. Opens a form: Field to correct (dropdown of profile fields), Current value (read-only), Correct value (text input), Reason (optional textarea). Submits a DSAR correction request to the Property Admin. SLA: 30 calendar days.                            |
+| 4   | **Request Data Deletion**     | Description: "You have the right to request deletion of your personal data. Note that some data may be retained for legal or safety reasons."                                                             | "Request Deletion" button. Opens confirmation dialog: "Requesting deletion will remove your personal data. Some data may be retained for legal compliance (e.g., security logs, building records). This action cannot be undone." Submits a DSAR deletion request.                      |
+| 5   | **Restrict Processing**       | Description: "You can ask us to stop processing your data while keeping it stored." (GDPR Art. 18)                                                                                                        | "Restrict Processing" toggle. When activated: data remains stored but excluded from reports, notifications, AI processing, and search results. Admin is notified. Resident sees a yellow banner: "Your data processing is currently restricted. Contact your property admin to resume." |
+| 6   | **Object to Processing**      | Description: "You can object to how we process your data for specific purposes." (GDPR Art. 21)                                                                                                           | "Submit Objection" button. Opens form: Processing activity you object to (dropdown: analytics, AI classification, marketing, profiling), Reason (textarea). Submitted to admin for review within 30 days.                                                                               |
+| 7   | **Health Data Authorization** | Only visible if the property has HIPAA health data fields enabled. Description: "You can control whether your health information is shared with building staff for emergency and accessibility purposes." | Toggle: "Authorize health data access" (On/Off). When toggled off: all PHI fields hidden from all roles immediately. PHI data retained encrypted but not displayed. Logged in consent records and PHI access log.                                                                       |
+| 8   | **Analytics Opt-Out**         | Description: "You can choose not to have your usage included in anonymized platform analytics."                                                                                                           | Toggle: "Include my usage in analytics" (default: On). Toggling off sets `analyticsOptOut = true`. Takes effect on next page load.                                                                                                                                                      |
+
+**"Download My Data" Button States**:
+
+| State               | Behavior                                                                                                                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Default**         | Label: "Download My Data". Blue outlined button.                                                                                                                                                  |
+| **Loading**         | Spinner + "Preparing request..."                                                                                                                                                                  |
+| **Success**         | Toast: "Your data export request has been submitted. You will receive an email when your data package is ready (up to 72 hours)." Button changes to "Export Pending" (disabled) with a timestamp. |
+| **Failure**         | Toast (red): "Failed to submit data export request. Please try again."                                                                                                                            |
+| **Already pending** | If a DSAR access request is already in progress: button reads "Export Pending (requested {date})" and is disabled.                                                                                |
+
+**PII Display Masking** (ISO 27001 A.8.11 -- applies across all tabs):
+
+Phone numbers display as `(416) ***-1234` and email addresses display as `j***@email.com` to all roles except: (1) the data subject viewing their own profile, (2) Super Admin, (3) Property Admin. A "Show full value" link next to masked fields reveals the full value on click. Every reveal click is logged in `DataAccessLog` with `access_type: 'read'` and `field_name` identifying the specific field. See `docs/tech/COMPLIANCE-MATRIX.md` gap H2.
+
+**Purpose-of-Collection Tooltips** (PIPEDA Principle 2):
+
+Every PII field on the profile edit form displays an (i) tooltip icon. On hover, the tooltip shows a plain-language statement explaining why the field is collected. Examples:
+
+- **Email**: "Used to send you building notifications, package alerts, and account recovery."
+- **Phone**: "Used for SMS notifications and emergency broadcasts."
+- **Date of Birth**: "Used for age verification. Not shared with building staff."
+- **Emergency Contact**: "Shared with front desk and security staff in case of emergency."
 
 ### 6.4 Component: Notification Preference Grid
 
@@ -1425,6 +1468,55 @@ Sensitive operations require the user to re-confirm their identity even within a
 | **Trigger**              | On password set (initial), password change, and password reset                                                                                                                                                                                                |
 | **Behavior if breached** | Warning message (not a hard block): "This password has appeared in a known data breach. We strongly recommend choosing a different password." with "Choose a Different Password" (primary) and "Use Anyway" (secondary, text link) buttons.                   |
 | **Graceful degradation** | If the HIBP API is unreachable, the check is skipped silently. Password creation proceeds normally.                                                                                                                                                           |
+
+---
+
+## ADDENDUM: Gap Analysis Fixes (2026-03-17)
+
+> Added from GAP-ANALYSIS-FINAL.md gaps 8.1, 8.2
+
+### A1. Email Signature Editor (Gap 8.1, High)
+
+Add a rich text email signature editor for staff and admin users. Platform 3 uses CKEditor 5.
+
+#### Email Signature Feature
+
+| Aspect                   | Specification                                                                     |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| **Location**             | User Profile > "Email Signature" tab                                              |
+| **Editor**               | Rich text editor (same component used in announcements)                           |
+| **Max length**           | 2,000 characters (HTML)                                                           |
+| **Supported formatting** | Bold, italic, underline, links, images (logo upload), font color                  |
+| **Applied to**           | Announcement emails, service request update emails, violation notification emails |
+| **Default**              | Empty. Staff can set their own signature.                                         |
+| **Admin override**       | Property Admin can set a default signature template that staff can customize      |
+
+#### Email Signature Data Model
+
+| Field                      | Type     | Required | Description                      |
+| -------------------------- | -------- | -------- | -------------------------------- |
+| email_signature_html       | Text     | No       | HTML content of the signature    |
+| email_signature_updated_at | DateTime | Auto     | Last time signature was modified |
+
+### A2. "Require Assistance" Emergency Flag (Gap 8.2, Critical)
+
+Both Platform 1 and Platform 3 have this field. It identifies residents who need special assistance during emergencies.
+
+#### Field Specification
+
+| Field               | Type        | Required | Default | Description                                                    |
+| ------------------- | ----------- | -------- | ------- | -------------------------------------------------------------- |
+| requires_assistance | Boolean     | No       | false   | Whether this user needs emergency assistance                   |
+| assistance_details  | String(500) | No       | —       | Details (e.g., "Wheelchair user, floor 8", "Hearing impaired") |
+
+#### Behavioral Requirements
+
+1. When `requires_assistance = true`, the user appears on the "Individuals Requiring Assistance" report
+2. During fire events, the checklist item "List of residents requiring fire assistance" auto-generates a printable list
+3. Emergency broadcast system prioritizes these users for phone call notifications
+4. Dashboard widget for Security role shows count: "X residents require emergency assistance"
+5. Unit card in Security Console shows a medical cross icon when any occupant requires assistance
+6. Notification to Property Manager when this flag is changed
 
 ---
 

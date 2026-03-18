@@ -188,6 +188,25 @@ All wizard progress is stored server-side in the `OnboardingProgress` model (see
 - All required fields must be filled before proceeding to Step 2.
 - Property Name must be unique within the Concierge platform (checked via debounced API call on blur).
 - Logo upload: file type is checked on the client; dimensions are validated on the server after upload. If validation fails, the upload is rejected with a clear error: "Logo must be a PNG, JPG, or SVG file under 2 MB, at least 200x200 pixels."
+- All compliance consent checkboxes (see below) must be checked before proceeding.
+
+#### Compliance Consent Capture (Required -- PIPEDA, GDPR, ISO 27701)
+
+At the bottom of Step 1, after all property fields, a "Legal Agreements" section displays the following checkboxes. This section satisfies PIPEDA Principle 3 (Consent), GDPR Articles 6-7 (Lawfulness and Consent), and ISO 27701 Clause 7.2.3 (Determining Consent Requirements). See `docs/tech/COMPLIANCE-MATRIX.md` gap C2.
+
+**Each consent must be a separate checkbox. Consents must NOT be bundled into a single "I agree to everything" checkbox.** This is a GDPR requirement (freely given, specific, informed, unambiguous).
+
+| #   | Consent Type              | Checkbox Label                                                                                              | Required            | Link                                          |
+| --- | ------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------- |
+| 1   | `terms_of_service`        | "I agree to the [Terms of Service]"                                                                         | Yes (blocks Step 2) | Opens `/terms` in a new tab                   |
+| 2   | `privacy_policy`          | "I have read and agree to the [Privacy Policy]"                                                             | Yes (blocks Step 2) | Opens `/privacy` in a new tab                 |
+| 3   | `data_processing_general` | "I consent to Concierge processing my property's data as described in the Privacy Policy"                   | Yes (blocks Step 2) | Opens `/privacy#data-processing` in a new tab |
+| 4   | `data_sharing_management` | "I consent to sharing property data with my management company for building administration"                 | Yes (blocks Step 2) | Opens `/privacy#data-sharing` in a new tab    |
+| 5   | `data_sharing_vendors`    | "I consent to sharing relevant data with approved third-party vendors for maintenance and service delivery" | No (opt-in)         | Opens `/privacy#vendors` in a new tab         |
+
+**Consent Record Storage**: When the admin checks each box and clicks "Continue", a `ConsentRecord` is created for each consent with: `user_id`, `property_id`, `consent_type`, `status: granted`, `granted_at: now()`, `consent_version` (current policy version), `policy_document_url`, `collection_method: onboarding_wizard`, `ip_address`, `user_agent`. See `docs/tech/COMPLIANCE-MATRIX.md` Section 10.2 for the full schema.
+
+**Validation**: If any required consent is unchecked when "Continue" is clicked, the unchecked items are highlighted in red with the message: "You must agree to this to continue." The page scrolls to the first unchecked required consent.
 
 ---
 
@@ -879,3 +898,70 @@ The wizard UI uses these components from the Component Catalog (COMPONENT-CATALO
 | `ImportProgress`    | Section 9.8       | CSV import progress tracker used in Step 2 (Units) and Step 6 (Residents)        |
 
 The wizard also uses these general components from Sections 1-6 of the Component Catalog: `Button`, `Input`, `Select`, `FileUpload`, and `DataTable`.
+
+---
+
+## ADDENDUM: Gap Analysis Fixes (2026-03-17)
+
+> Added from GAP-ANALYSIS-FINAL.md gap 23.1
+
+### A1. Parking Configuration in Onboarding (Gap 23.1, High)
+
+Given the granular parking limit matrix (see PRD 13 Addendum A1), the onboarding wizard should include parking configuration.
+
+#### Option A: Add as Step 4.5 (between Amenities and Event Types)
+
+Add a "Parking Rules" sub-step with:
+
+1. **Enable visitor parking**: Toggle (default: yes)
+2. **Parking limit preset**: Dropdown with 3 presets:
+   - "Relaxed" (all limits = 0 / unlimited)
+   - "Standard" (3 consecutive nights, 5/unit/month, 2 day visits/unit/day)
+   - "Strict" (2 consecutive nights, 3/unit/month, 1/plate/week, 1 day visit/unit/day)
+   - "Custom" (opens full limit matrix from PRD 13 A1)
+3. **Self-serve visitor parking**: Toggle (default: off)
+4. **Pass printing**: Toggle (default: on)
+
+#### Option B: Set Sensible Defaults, Configure Later
+
+If adding a step makes onboarding too long (target is under 30 minutes), use the "Standard" preset as default and show a post-onboarding reminder: "Configure detailed parking rules in Settings > Parking."
+
+Recommended: **Option B** for initial onboarding, with a prominent "Configure Parking" card on the admin dashboard during the first 7 days.
+
+---
+
+## 12. Completeness Checklist
+
+### Feature Coverage
+
+- [x] 8-step wizard with progress tracking and step validation
+- [x] Auto-save on every field change (debounced 500ms)
+- [x] CSV import for units (Step 2) and residents (Step 6) with template download
+- [x] CSV validation: 4-stage pipeline (format, schema, business rules, duplicate detection)
+- [x] Property details: name, address, unit count, timezone, logo upload
+- [x] Unit creation: manual and bulk CSV import with floor/type/status fields
+- [x] Common area definition: name, floor, type (from fixed list of 12 types)
+- [x] Amenity setup: name, type, capacity, booking rules, time slots
+- [x] Event type configuration: 15 default types with icon, color, notification toggle
+- [x] Resident import: CSV with unit assignment, email invitation toggle
+- [x] Review step: summary of all configured items with per-section edit links
+- [x] Parking configuration: sensible defaults with post-onboarding reminder card
+
+### Edge Case Coverage
+
+- [x] Browser crash mid-wizard: auto-save restores last state on return
+- [x] CSV with 0 valid rows: error banner "No valid rows found. Download the error report for details."
+- [x] CSV with 10,000+ rows: chunked processing with progress bar, 60-second timeout per chunk
+- [x] Concurrent CSV imports from two admin sessions: second import receives 409 Conflict with message "An import is already in progress. Wait for it to complete or cancel it from the Import Status page."
+- [x] Wizard abandoned at Step 3: property created in "setup_incomplete" status, visible only to the admin who started it, auto-deleted after 30 days of inactivity
+- [x] Unicode property names: supported up to 200 characters, validated for printable characters only (no control characters)
+- [x] Session expiry mid-wizard: on re-login, redirect to the last completed step with banner "Your session expired. Your progress has been saved."
+- [x] Duplicate unit numbers in CSV: rejected with row-level error "Duplicate unit number '{value}' found on rows {list}"
+
+### UX Coverage
+
+- [x] "Skip for now" available on Steps 3-6 (not Steps 1, 2, 7, 8 which are mandatory)
+- [x] Back button preserves all entered data
+- [x] Step indicator shows completed (checkmark), current (highlighted), and future (greyed) states
+- [x] Estimated time remaining shown at top: calculated as (remaining steps \* 3 minutes average)
+- [x] Mobile-responsive: steps stack vertically on screens narrower than 768px

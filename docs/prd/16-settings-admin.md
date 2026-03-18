@@ -757,16 +757,16 @@ Features available only at the Super Admin level, designed from first principles
 
 Step-by-step guided setup for new properties:
 
-| Step | Name               | Description               | Fields                                                              |
-| ---- | ------------------ | ------------------------- | ------------------------------------------------------------------- |
-| 1    | Property Details   | Basic building info       | Name, Address, Floors, Units, Timezone, Logo                        |
-| 2    | Admin Account      | Create the Property Admin | Name, Email, Temporary Password, Phone                              |
-| 3    | Core Configuration | Essential setup           | Enable/disable modules (maintenance, amenities, parking, community) |
-| 4    | Event Types        | Configure or use defaults | Review default event types, add/remove as needed                    |
-| 5    | Notification Setup | Channel configuration     | Enable email/SMS/push, configure sender addresses                   |
-| 6    | Branding           | Property appearance       | Logo, primary color, login page header                              |
-| 7    | Data Import        | Optional migration        | CSV import for residents, units, buzzer codes                       |
-| 8    | Review & Launch    | Final confirmation        | Summary of all settings, "Launch Property" button                   |
+| Step | Name               | Description               | Fields                                                                    |
+| ---- | ------------------ | ------------------------- | ------------------------------------------------------------------------- |
+| 1    | Property Details   | Basic building info       | Name, Address, Floors, Units, Timezone, Logo                              |
+| 2    | Admin Account      | Create the Property Admin | Name, Email, Temporary Password, Phone                                    |
+| 3    | Core Configuration | Essential setup           | Enable/disable modules (maintenance, amenities, parking, community)       |
+| 4    | Event Types        | Configure or use defaults | Review 15 default event types, add custom types or remove unused defaults |
+| 5    | Notification Setup | Channel configuration     | Enable email/SMS/push, configure sender addresses                         |
+| 6    | Branding           | Property appearance       | Logo, primary color, login page header                                    |
+| 7    | Data Import        | Optional migration        | CSV import for residents, units, buzzer codes                             |
+| 8    | Review & Launch    | Final confirmation        | Summary of all settings, "Launch Property" button                         |
 
 **"Launch Property" Button** (Step 8):
 
@@ -1851,6 +1851,264 @@ Displays the last 30 days of backups, paginated (10 per page).
 | Uploaded files (photos, documents, attachments)                                                   | Analytics aggregation tables (rebuilt from raw data) |
 | Property configuration (event types, categories, custom fields, branding, notification templates) | Active sessions (users must re-login after restore)  |
 | User accounts and role assignments                                                                | Cached data (rebuilt automatically)                  |
+
+---
+
+## ADDENDUM: Gap Analysis Fixes (2026-03-17)
+
+> Added from GAP-ANALYSIS-FINAL.md gaps 16.1, 16.2, 16.3
+
+### A1. Auto-CC Email Lists per Event Type (Gap 16.1, Critical)
+
+Platform 1 has configurable auto-CC email addresses for each log/event type. This ensures the right stakeholders are always notified when specific event types are created.
+
+#### Configuration Location
+
+Settings > Notifications > Auto-CC Email Lists
+
+#### Auto-CC Configuration Table
+
+| Event Type / Group   | Field               | Type         | Validation             | Description                           |
+| -------------------- | ------------------- | ------------ | ---------------------- | ------------------------------------- |
+| General Events       | auto_cc_general     | String(1000) | Comma-separated emails | Auto-CC recipients for general events |
+| Incident Events      | auto_cc_incident    | String(1000) | Comma-separated emails | Auto-CC for incident reports          |
+| Fire Events          | auto_cc_fire        | String(1000) | Comma-separated emails | Auto-CC for fire events               |
+| Noise Events         | auto_cc_noise       | String(1000) | Comma-separated emails | Auto-CC for noise complaints          |
+| Package Events       | auto_cc_package     | String(1000) | Comma-separated emails | Auto-CC for package notifications     |
+| Maintenance Requests | auto_cc_maintenance | String(1000) | Comma-separated emails | Auto-CC for maintenance requests      |
+| Amenity Reservations | auto_cc_amenity     | String(1000) | Comma-separated emails | Auto-CC for amenity bookings          |
+| Security Events      | auto_cc_security    | String(1000) | Comma-separated emails | Auto-CC for security events           |
+
+Each field accepts a comma-separated list of email addresses. When an event of that type is created, an email copy is automatically sent to all listed addresses IN ADDITION to the standard notification recipients.
+
+Admin-configurable per property. Useful for: property management company oversight emails, insurance company notifications for incidents, fire department liaison for fire events.
+
+### A2. Security Company Configuration (Gap 16.2, High)
+
+Platform 1 has dedicated security company fields in settings. Many condos use third-party security companies.
+
+#### Configuration Location
+
+Settings > Property Setup > Security Provider
+
+| Field                    | Type   | Required | Max Length   | Description                                                             |
+| ------------------------ | ------ | -------- | ------------ | ----------------------------------------------------------------------- |
+| security_company_name    | String | No       | 200          | Name of the security company (e.g., "Royal Concierge and Security Inc") |
+| security_company_logo    | Image  | No       | 2MB, JPG/PNG | Logo image for branded reports and passes                               |
+| security_company_phone   | String | No       | 20           | Security company contact phone                                          |
+| security_company_email   | String | No       | 200          | Security company contact email                                          |
+| security_company_address | String | No       | 500          | Security company address                                                |
+
+#### Usage
+
+- Logo appears on printed security shift reports
+- Company name appears on parking violation notices
+- Contact info displayed on the Security Console dashboard for quick reference
+- Used in branded PDF exports of security reports
+
+### A3. Per-Module "From" Email Addresses (Gap 16.3, High)
+
+Platform 1 configures different "from" email addresses for different notification categories. This allows residents to recognize email sources and enables proper reply routing.
+
+#### Configuration Location
+
+Settings > Notifications > Email Sender Configuration
+
+| Module                            | Field                    | Default               | Description                                     |
+| --------------------------------- | ------------------------ | --------------------- | ----------------------------------------------- |
+| General notifications             | from_email_general       | noreply@concierge.com | Default building "from" email                   |
+| Event/Security log notifications  | from_email_events        | Same as general       | From address for security event notifications   |
+| Front desk instructions           | from_email_instructions  | Same as general       | From address for front desk instruction updates |
+| Maintenance request notifications | from_email_maintenance   | Same as general       | From address for maintenance request emails     |
+| Amenity reservation notifications | from_email_amenity       | Same as general       | From address for booking confirmations/updates  |
+| Package notifications             | from_email_packages      | Same as general       | From address for package arrival/release emails |
+| Announcement emails               | from_email_announcements | Same as general       | From address for building announcements         |
+| Emergency broadcasts              | from_email_emergency     | Same as general       | From address for emergency communications       |
+
+Each module defaults to the general building email but can be overridden. The "from" name is always "[Property Name]" by default but can be customized per module.
+
+---
+
+## ADDENDUM: Compliance Configuration (2026-03-17)
+
+> Added from COMPLIANCE-MATRIX.md gaps C6 (DPO Configuration) and H5 (BAA Registry)
+
+### B1. Data Protection Officer (DPO) Configuration (Gap C6, Critical)
+
+**Purpose**: PIPEDA and GDPR require a designated contact responsible for data protection matters. This person's name and contact information must appear on the Privacy Policy page, in breach notifications, and in DSAR responses.
+
+**Configuration Location**: Settings > Property Setup > Data Protection Officer
+
+This section appears after Contact Information (Section 3.1.2) and before Security Provider (Section 3.1.2a).
+
+| Field                | Type     | Max Length | Required    | Default | Validation                            | Error Message                           |
+| -------------------- | -------- | ---------- | ----------- | ------- | ------------------------------------- | --------------------------------------- |
+| DPO Name             | text     | 100 chars  | Yes         | --      | Non-empty                             | "DPO name is required for compliance"   |
+| DPO Email            | email    | 254 chars  | Yes         | --      | Valid email format                    | "Enter a valid email address"           |
+| DPO Phone            | tel      | 20 chars   | No          | --      | Valid phone format (E.164)            | "Enter a valid phone number"            |
+| DPO Mailing Address  | textarea | 500 chars  | No          | --      | --                                    | --                                      |
+| DPO is External      | boolean  | --         | No          | false   | --                                    | --                                      |
+| External DPO Company | text     | 200 chars  | Conditional | --      | Required if "DPO is External" is true | "External DPO company name is required" |
+
+**Tooltip** (on section header): "Required. Your Data Protection Officer is the designated contact for privacy matters. Their contact information will appear on your Privacy Policy page and in all data-related communications to residents."
+
+**Validation on Save**: If DPO Name or DPO Email is empty, display a persistent warning banner at the top of Settings: "Missing DPO configuration. A Data Protection Officer is required for PIPEDA and GDPR compliance. Configure now." with a link to this section.
+
+**Where DPO Info is Displayed**:
+
+1. Privacy Policy page footer (`/privacy`) — name and email
+2. Breach notification emails — name, email, and phone
+3. DSAR response emails — name and email
+4. Privacy Complaint acknowledgment emails — name and email
+5. Consent collection screens — "Questions? Contact [DPO Name] at [DPO Email]"
+
+**Super Admin Override**: If a Management Company-level DPO is configured, it applies as the default for all properties under that company. Property-level DPO overrides the company-level DPO.
+
+**Super Admin Configuration Location**: Super Admin > Platform Settings > Management Company
+
+| Field             | Type  | Max Length | Required | Validation  |
+| ----------------- | ----- | ---------- | -------- | ----------- |
+| Company DPO Name  | text  | 100 chars  | Yes      | Non-empty   |
+| Company DPO Email | email | 254 chars  | Yes      | Valid email |
+| Company DPO Phone | tel   | 20 chars   | No       | Valid phone |
+
+### B2. Business Associate Agreement (BAA) Registry (Gap H5, High)
+
+**Purpose**: HIPAA requires Business Associate Agreements with all vendors who may access Protected Health Information (PHI). This registry tracks BAA status for vendor compliance.
+
+**Configuration Location**: Settings > Compliance > BAA Registry
+
+**Visibility**: Only visible when the property has `enable_hipaa_compliance` toggle set to `true` in Operational Toggles (Section 3.1.3).
+
+**Operational Toggle Addition** (add to Section 3.1.3):
+
+| Toggle                  | Type    | Default | Tooltip                                                                                                                                                                                              |
+| ----------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Enable HIPAA compliance | boolean | Off     | "Turn on if your property includes medical facilities, assisted living, or handles any health-related data. This enables PHI-specific consent, BAA tracking, and HIPAA-specific compliance reports." |
+
+**BAA Registry Table**:
+
+| Column                  | Description                                                                                                                            |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Vendor Name**         | Vendor from the vendor directory (dropdown linked to Vendor Management)                                                                |
+| **BAA Status**          | Active (green), Expiring Soon (yellow), Expired (red), Not Required (grey), Pending (blue)                                             |
+| **BAA Document**        | Uploaded PDF of the signed BAA. "Upload" button if missing.                                                                            |
+| **Effective Date**      | Date the BAA was signed and became effective                                                                                           |
+| **Expiry Date**         | Date the BAA expires (many BAAs are renewed annually)                                                                                  |
+| **Scope of PHI Access** | Multi-select: Medical Records, Emergency Contacts with Medical Info, Accessibility Requirements, Allergy Information, Medication Lists |
+| **Last Reviewed**       | Date the BAA was last reviewed by Admin                                                                                                |
+| **Reviewed By**         | Admin who last reviewed the BAA                                                                                                        |
+| **Notes**               | Free-text field for additional context                                                                                                 |
+
+**BAA Entry Form** (modal or slide-out):
+
+| Field               | Type         | Max Length | Required    | Validation                                                   | Error Message                              |
+| ------------------- | ------------ | ---------- | ----------- | ------------------------------------------------------------ | ------------------------------------------ |
+| Vendor              | dropdown     | --         | Yes         | Must select existing vendor                                  | "Select a vendor"                          |
+| BAA Status          | dropdown     | --         | Yes         | Must select                                                  | "Select BAA status"                        |
+| BAA Document        | file upload  | 10 MB      | Conditional | PDF only. Required if status is "Active"                     | "Upload a PDF of the signed BAA"           |
+| Effective Date      | date         | --         | Conditional | Required if status is "Active". Must be past or today        | "Effective date must be today or earlier"  |
+| Expiry Date         | date         | --         | Conditional | Required if status is "Active". Must be after Effective Date | "Expiry date must be after effective date" |
+| Scope of PHI Access | multi-select | --         | Yes         | At least one selected                                        | "Select at least one PHI access scope"     |
+| Notes               | textarea     | 1000 chars | No          | --                                                           | --                                         |
+
+**Expiry Alerts**:
+
+- 90 days before expiry: Email to Property Admin (informational)
+- 60 days before expiry: Email to Property Admin + Super Admin (warning)
+- 30 days before expiry: Email + in-app alert to Property Admin + Super Admin (urgent)
+- On expiry: Status auto-changes to "Expired". Email + SMS to Property Admin + Super Admin. Compliance dashboard action item auto-created with Critical priority.
+
+**BAA Data Model**:
+
+```
+BusinessAssociateAgreement
+├── id (UUID, PK)
+├── property_id → Property (FK, NOT NULL)
+├── vendor_id → Vendor (FK, NOT NULL)
+├── status (enum: active, expiring_soon, expired, not_required, pending)
+├── document_url (varchar 500, nullable) -- S3 URL of signed BAA PDF
+├── effective_date (date, nullable)
+├── expiry_date (date, nullable)
+├── phi_access_scope (varchar[], NOT NULL) -- Array of PHI categories
+├── last_reviewed_at (date, nullable)
+├── reviewed_by → User (FK, nullable)
+├── notes (text, nullable)
+├── alert_sent_90_days (boolean, default false)
+├── alert_sent_60_days (boolean, default false)
+├── alert_sent_30_days (boolean, default false)
+├── alert_sent_expiry (boolean, default false)
+├── created_at (timestamp with tz, NOT NULL, default NOW())
+└── updated_at (timestamp with tz, NOT NULL, default NOW())
+
+Indexes:
+  - idx_baa_property_vendor (property_id, vendor_id)
+  - idx_baa_expiry (expiry_date) WHERE status IN ('active', 'expiring_soon')
+  - UNIQUE (property_id, vendor_id)
+```
+
+**API Endpoints**:
+
+- **GET** `/api/v1/settings/compliance/baa` — List all BAAs for the property
+- **POST** `/api/v1/settings/compliance/baa` — Create a new BAA entry
+- **PUT** `/api/v1/settings/compliance/baa/:id` — Update a BAA entry
+- **DELETE** `/api/v1/settings/compliance/baa/:id` — Soft-delete a BAA entry (retains for audit trail, 7 years)
+
+---
+
+## Cross-Reference: Admin & Super Admin Architecture
+
+For the complete architectural blueprint of all Property Admin and Super Admin screens, capabilities, dashboards, edge cases, and data models, see:
+
+**`docs/prd/ADMIN-SUPERADMIN-ARCHITECTURE.md`**
+
+This document extends the Settings & Administration module with:
+
+### Property Admin Additions (documented in ADMIN-SUPERADMIN-ARCHITECTURE.md)
+
+| Feature                        | Section | Summary                                                                                                                                   |
+| ------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin Dashboard                | 2.1     | Role-aware dashboard with 8 KPI cards, trend charts, activity feed, alerts panel, staff performance, and AI daily briefing                |
+| Unified Approvals Center       | 4       | Single page showing all pending approvals (amenity bookings, announcement drafts, alteration requests, classified ads) with batch approve |
+| Scheduled Reports Manager      | 2.11.1  | Configure automated report delivery on daily/weekly/monthly cadence to internal or external recipients                                    |
+| Admin Search & Command Palette | 5       | Enhanced global search covering users, settings, audit log, and reports. Keyboard command palette (`Ctrl/Cmd+K`)                          |
+
+### Super Admin Additions (documented in ADMIN-SUPERADMIN-ARCHITECTURE.md)
+
+| Feature                     | Section | Summary                                                                                     |
+| --------------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| Multi-Property Dashboard    | 3.1     | Property health grid, revenue dashboard, platform KPIs, alerts feed                         |
+| Property Provisioning       | 3.2     | Create properties from templates, launch onboarding wizard, 72-hour deletion cooling period |
+| Global User Management      | 3.3     | Cross-property user search, account merging for users at multiple properties                |
+| Feature Flag Management     | 3.4     | Per-property and global feature toggles organized by category                               |
+| Revenue Dashboard           | 3.5     | MRR, ARR, churn, trial funnel, plan distribution, custom pricing                            |
+| System Health Monitoring    | 3.6     | 12 service status indicators, performance charts, capacity tracking                         |
+| Demo Environment Management | 3.7     | Sales demo and training sandbox creation, template management, usage analytics              |
+| Global Event Type Library   | 3.8     | Master library of event types pushed to properties at onboarding                            |
+| Compliance Dashboard        | 3.9     | 8-framework compliance monitoring, auditor access grants, automated drift detection         |
+| Support Ticket Escalation   | 3.10    | Cross-property ticket management with SLA tracking and assignment                           |
+| Platform Analytics          | 3.11    | Engagement, growth, revenue, operations, AI, and support analytics                          |
+| Release Management          | 3.12    | Release notes, What's New modal, staged rollout via feature flags                           |
+
+### New Data Models (documented in ADMIN-SUPERADMIN-ARCHITECTURE.md, Section 8)
+
+| Entity               | Purpose                                                                                        |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| AdminDashboardWidget | Per-user dashboard widget configuration and layout                                             |
+| AdminAlert           | Property-level alerts for admin attention (overdue maintenance, missing data, backup warnings) |
+| ScheduledReport      | Automated report delivery configuration                                                        |
+| FeatureFlag          | Global feature flag definitions                                                                |
+| PropertyFeatureFlag  | Per-property feature flag overrides                                                            |
+| ApprovalItem         | Unified approval queue entries                                                                 |
+
+### New API Endpoints (documented in ADMIN-SUPERADMIN-ARCHITECTURE.md, Section 9)
+
+- 14 Property Admin-specific endpoints (dashboard, alerts, approvals, scheduled reports)
+- 28 Super Admin-specific endpoints (system dashboard, properties, users, feature flags, billing, health, analytics, compliance, releases, support)
+
+### Updated Permission Matrix
+
+Permission matrices 3.15 through 3.22 have been added to `02-roles-and-permissions.md` covering: Approvals, Scheduled Reports, Feature Flags, Compliance, Demo & Training Environments, Platform Operations, Billing & Subscription, and Help Center.
 
 ---
 

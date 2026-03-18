@@ -562,6 +562,118 @@ Tracks all active vendors and their insurance, certification, and compliance sta
 
 **Applicable Frameworks**: ISO 9001 (Section 8.4 -- Control of Externally Provided Processes), SOC 2 (CC9.2 -- Vendor Risk Management)
 
+#### 3.1.9 Report 9: Record of Processing Activities (ROPA) Report
+
+Documents all personal data processing activities as required by GDPR Article 30 and ISO 27701 Clause 7.2.1. See `docs/tech/COMPLIANCE-MATRIX.md` gap C5.
+
+**Report Parameters**:
+
+| Parameter    | Type | Default | Description                   |
+| ------------ | ---- | ------- | ----------------------------- |
+| `as_of_date` | Date | Today   | Generate ROPA as of this date |
+
+**Report Columns**:
+
+| Column                   | Description                                                                                                                             |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `data_category`          | Category of personal data (e.g., "Resident Contact Information", "Security Access Data", "Health Information")                          |
+| `specific_fields`        | Comma-separated list of database fields in this category (e.g., "first_name, last_name, email, phone")                                  |
+| `purpose`                | Documented purpose for collecting this data (e.g., "Service delivery -- building notifications", "Building security -- access control") |
+| `lawful_basis`           | Legal basis for processing: Consent, Contract, Legitimate Interest, Legal Obligation, Vital Interests, Public Task                      |
+| `data_subjects`          | Categories of data subjects: Residents, Staff, Visitors, Vendors, Board Members                                                         |
+| `recipients`             | Who receives this data: Property Admin, Front Desk, Security, Maintenance Vendors, AI Providers (anonymized), Analytics (anonymized)    |
+| `cross_border_transfers` | Whether data is transferred outside Canada. Default: "None -- all data stored in Canada"                                                |
+| `retention_period`       | How long data is retained (from `docs/tech/COMPLIANCE-MATRIX.md` Section 11)                                                            |
+| `security_measures`      | Encryption tier and access controls (e.g., "Tier 2 -- application-level encryption, RBAC, access logging")                              |
+| `last_reviewed`          | Date of last review of this processing activity                                                                                         |
+
+**Auto-Population**: The ROPA is auto-generated from the data model definitions in PRD 01 (Architecture). When new PII fields are added to the schema, the ROPA automatically includes them with a "Review Required" flag until a Privacy Officer confirms the purpose and lawful basis.
+
+**Export Formats**: PDF, Excel
+
+**Applicable Frameworks**: GDPR (Article 30 -- Records of Processing Activities), ISO 27701 (Clause 7.2.1, 7.2.2)
+
+#### 3.1.10 Report 10: Internal Audit Checklist Report
+
+Generates a pre-filled audit checklist mapped to ISO 9001, ISO 27001, and SOC 2 control requirements. See `docs/tech/COMPLIANCE-MATRIX.md` gap M8.
+
+**Report Parameters**:
+
+| Parameter          | Type              | Default      | Description                           |
+| ------------------ | ----------------- | ------------ | ------------------------------------- |
+| `framework_filter` | Enum multi-select | All          | Filter by: ISO 9001, ISO 27001, SOC 2 |
+| `audit_period`     | Date range        | Last quarter | The period being audited              |
+
+**Report Sections**:
+
+For each selected framework, the report generates a checklist with:
+
+| Column               | Description                                                                                                           |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `control_id`         | Framework control reference (e.g., "A.9.1" for ISO 27001, "CC6.1" for SOC 2)                                          |
+| `control_name`       | Human-readable control name                                                                                           |
+| `requirement`        | What the control requires                                                                                             |
+| `evidence_source`    | Where to find evidence in Concierge (e.g., "Access Audit Report", "Login Activity Report", "Feature Flag Audit")      |
+| `auto_check_result`  | Automated check result: Pass, Fail, N/A, or "Manual Review Required"                                                  |
+| `auto_check_detail`  | Explanation of the automated check (e.g., "452 access events logged in period. All include user, timestamp, and IP.") |
+| `auditor_assessment` | Editable field for the auditor: Pass, Fail, Observation, N/A                                                          |
+| `auditor_notes`      | Editable text field for auditor comments                                                                              |
+
+**Automated Checks**: Where possible, the system auto-fills check results by querying live data. Examples:
+
+| Control                                | Automated Check                                                                                                   |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| ISO 27001 A.9.4 (Access Control)       | Query: "Are all active users assigned exactly one role per property?" Result: Pass if yes, Fail with count if no. |
+| SOC 2 CC6.3 (Access Removal)           | Query: "Are there active accounts past their move-out date?" Result: Pass if zero, Fail with count.               |
+| ISO 9001 8.7 (Nonconforming Outputs)   | Query: "Test coverage above 95%?" Result from CI dashboard.                                                       |
+| SOC 2 CC7.1 (Security Event Detection) | Query: "Are anomaly detection flags active on login monitoring?" Result: Pass if active.                          |
+
+**Export Formats**: PDF (primary -- formatted as a printable audit checklist), Excel
+
+**Applicable Frameworks**: ISO 9001 (Clause 9.2 -- Internal Audit), ISO 27001 (Clause 9.2), SOC 2 (monitoring controls)
+
+#### 3.1.11 Report 11: Data Retention Enforcement Report
+
+Documents the automated retention enforcement actions taken by the `retention-enforcer` job defined in PRD 27 Section 12.6. See `docs/tech/COMPLIANCE-MATRIX.md` Section 11.
+
+**Report Parameters**:
+
+| Parameter   | Type | Default     | Description                   |
+| ----------- | ---- | ----------- | ----------------------------- |
+| `date_from` | Date | 90 days ago | Start of the reporting period |
+| `date_to`   | Date | Today       | End of the reporting period   |
+
+**Report Sections**:
+
+**Section A -- Enforcement Summary**:
+
+| Metric                       | Description                                                     |
+| ---------------------------- | --------------------------------------------------------------- |
+| Total job runs in period     | Count of scheduled and manual runs                              |
+| Records scanned              | Total records evaluated against retention policies              |
+| Records anonymized           | Count of records where PII was replaced with `[REDACTED]`       |
+| Records soft-deleted         | Count of records marked for deletion                            |
+| Records hard-deleted         | Count of records permanently removed (past 30-day grace period) |
+| Records archived             | Count of records moved to cold storage                          |
+| Records skipped (legal hold) | Count of records excluded due to active legal holds             |
+| Errors encountered           | Count and description of any errors                             |
+
+**Section B -- Per-Category Breakdown**:
+
+| Data Category                                 | Retention Policy | Records Past Retention | Action Taken | Records Processed | Errors |
+| --------------------------------------------- | ---------------- | ---------------------- | ------------ | ----------------- | ------ |
+| (populated dynamically from retention matrix) |                  |                        |              |                   |        |
+
+**Section C -- Legal Hold Register**:
+
+| Record Type             | Record ID | Legal Hold Reason | Hold Start Date | Held By (Admin) | Original Retention Expiry |
+| ----------------------- | --------- | ----------------- | --------------- | --------------- | ------------------------- |
+| (populated dynamically) |           |                   |                 |                 |                           |
+
+**Export Formats**: CSV, PDF
+
+**Applicable Frameworks**: PIPEDA (Principle 5), GDPR (Article 5(1)(e)), SOC 2 (P6.1), ISO 27001 (A.8.10)
+
 ### 3.2 Core Features (v2)
 
 #### 3.2.1 SOC 2 Evidence Pack Generator
@@ -650,6 +762,163 @@ A monthly calendar view showing:
 A line chart showing the compliance health score over time (last 12 months). Each data point represents the score at the end of that month.
 
 The chart includes separate lines for the overall score and for each framework score, with a legend. Users can toggle individual framework lines on/off.
+
+### 4.6 Security Anomalies Widget
+
+**Purpose**: Surfaces unusual access patterns and security events that may indicate a breach or policy violation. Required for SOC 2 CC7.2 (anomaly detection in operation of the system).
+
+**Location**: Below the Trend Chart, full width.
+
+**Widget Contents**:
+
+| Element                 | Description                                               |
+| ----------------------- | --------------------------------------------------------- |
+| **Title**               | "Security Anomalies (Last 7 Days)"                        |
+| **Anomaly count badge** | Red badge with count of unresolved anomalies              |
+| **Anomaly list**        | Table of detected anomalies, max 10 rows, "View All" link |
+
+**Anomaly Table Columns**:
+
+| Column        | Description                                                                                                                           |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Timestamp** | When the anomaly was detected                                                                                                         |
+| **Type**      | Impossible travel, unusual PII access volume, after-hours admin action, concurrent sessions, mass data export, repeated failed logins |
+| **User**      | The user whose activity triggered the anomaly                                                                                         |
+| **Severity**  | Critical (red), High (orange), Medium (yellow)                                                                                        |
+| **Status**    | New, Investigating, Resolved, False Positive                                                                                          |
+| **Action**    | "Investigate" button opens detail panel                                                                                               |
+
+**Detail Panel** (slide-out from right, 400px):
+
+- Full anomaly description (plain-language, AI-generated — see Section 9.2)
+- Timeline of the user's recent activity (last 24 hours)
+- "Mark as False Positive" button (requires justification text)
+- "Create Incident" button (creates action item with Critical priority)
+- "Disable User Account" button (requires confirmation modal)
+
+**Data Source**: Computed by the `pii_access_patterns` and `session_management` real-time checks (Section 5.1).
+
+### 4.7 Infrastructure Changes Panel
+
+**Purpose**: Logs all infrastructure-level changes for change management compliance. Required for ISO 27017 CLD.12.1.5 (administrator's operational security).
+
+**Location**: Dashboard tab "Infrastructure" (tab bar above the main dashboard content).
+
+**Panel Contents**:
+
+| Column                 | Description                                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Timestamp**          | When the change occurred                                                                                            |
+| **Change Type**        | Deployment, Configuration Change, Scaling Event, Database Migration, Certificate Rotation, Key Rotation, DNS Change |
+| **Component**          | Which system component was changed (e.g., "API Server", "Database Primary", "CDN", "KMS")                           |
+| **Initiated By**       | User or automated system that triggered the change                                                                  |
+| **Description**        | Plain-language description of what changed                                                                          |
+| **Risk Level**         | Low (green), Medium (yellow), High (red)                                                                            |
+| **Rollback Available** | Yes/No indicator                                                                                                    |
+| **Approval**           | Who approved the change (if applicable), or "Auto-approved" for low-risk                                            |
+
+**Filters**: Date range, Change Type, Component, Risk Level.
+
+**Change Approval Workflow** (for High-risk changes):
+
+1. Change is proposed and logged with status "Pending Approval"
+2. Super Admin receives notification (email + in-app)
+3. Super Admin reviews change details and approves or rejects
+4. If approved, change proceeds and status updates to "Completed"
+5. If rejected, change is blocked and status updates to "Rejected" with reason
+
+**API Endpoint**:
+
+- **POST** `/api/v1/compliance/infrastructure-changes` — Log an infrastructure change (called by CI/CD pipeline, deployment scripts, or manually by Super Admin)
+- **GET** `/api/v1/compliance/infrastructure-changes` — List changes with filters
+
+### 4.8 Cloud Uptime Monitoring Widget
+
+**Purpose**: Tracks SLA compliance and system availability. Required for ISO 27017 CLD.12.4.5 (monitoring of cloud services).
+
+**Location**: Dashboard tab "Infrastructure" (same tab as 4.7), positioned above the Infrastructure Changes Panel.
+
+**Widget Contents**:
+
+| Element              | Description                                                                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Current Uptime**   | Large percentage display (e.g., "99.97%") with color coding: green (>= 99.9%), yellow (99.0-99.9%), red (< 99.0%)                                     |
+| **SLA Target**       | Displayed below uptime (e.g., "Target: 99.9%")                                                                                                        |
+| **Uptime Period**    | Toggle: Last 30 days / Last 90 days / Last 12 months                                                                                                  |
+| **Downtime Events**  | List of incidents with start time, end time, duration, root cause category                                                                            |
+| **Component Status** | Grid of system components: API, Database, File Storage, Email Service, SMS Service, Push Notifications, Search Index. Each shows green/yellow/red dot |
+
+**Downtime Events Table**:
+
+| Column          | Description                                                                     |
+| --------------- | ------------------------------------------------------------------------------- |
+| **Start**       | When the outage began                                                           |
+| **End**         | When service was restored (or "Ongoing" in red)                                 |
+| **Duration**    | Human-readable duration (e.g., "23 minutes")                                    |
+| **Impact**      | Full outage / Partial degradation / Single component                            |
+| **Root Cause**  | Dropdown: Infrastructure, Deployment, Third-party, DDoS, Configuration, Unknown |
+| **Post-Mortem** | Link to post-mortem document (if uploaded)                                      |
+
+**Data Source**: Health check endpoint polled every 60 seconds by an external monitoring service. Results stored in `UptimeRecord` model (see Section 6.6).
+
+### 4.9 Control Owners Table
+
+**Purpose**: Assigns ownership of each compliance control to a specific person, ensuring accountability. Required for SOC 2 CC5.1 (control activities are selected and developed).
+
+**Location**: Dashboard tab "Governance" (tab bar above the main dashboard content).
+
+**Table Columns**:
+
+| Column               | Description                                                                      |
+| -------------------- | -------------------------------------------------------------------------------- |
+| **Control ID**       | Unique identifier (e.g., "CC6.1", "A.8.1", "PIPEDA-P4")                          |
+| **Control Name**     | Human-readable name (e.g., "Logical Access Security", "Data Encryption at Rest") |
+| **Framework(s)**     | Which frameworks this control satisfies (tags)                                   |
+| **Owner**            | Assigned user (dropdown selector from Admin/Super Admin users)                   |
+| **Backup Owner**     | Secondary owner for when primary is unavailable                                  |
+| **Last Review Date** | When this control was last reviewed                                              |
+| **Next Review Date** | Calculated based on review frequency                                             |
+| **Review Frequency** | Quarterly / Semi-annually / Annually                                             |
+| **Status**           | Effective (green), Needs Review (yellow), Deficient (red)                        |
+| **Evidence Link**    | Link to the most recent evidence artifact                                        |
+
+**Features**:
+
+- Bulk assign owners (select multiple controls, assign same owner)
+- Export to CSV/PDF for auditor handoff
+- Filter by framework, owner, status, review frequency
+- Sort by any column
+- "Review Due" badge count in the dashboard tab title (e.g., "Governance (3)")
+- When a control's Next Review Date passes without a review, status auto-changes to "Needs Review" and owner is notified
+
+**Control Seed Data**: On first compliance setup, the system pre-populates controls from a master list covering all 8 frameworks. Super Admin assigns owners during initial configuration.
+
+### 4.10 Monthly Compliance Summary Email
+
+**Purpose**: Keeps Property Admins informed of compliance posture without requiring daily dashboard visits. Required for SOC 2 CC2.1 (information and communication).
+
+**Trigger**: Automated, sent on the 1st of each month at 9:00 AM in the property's configured timezone.
+
+**Recipients**: Property Admin, Super Admin. Configurable — additional recipients can be added in Settings > Compliance > Email Recipients.
+
+**Email Contents**:
+
+| Section                     | Content                                                                                              |
+| --------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Header**                  | Property name, reporting period (previous month), generation timestamp                               |
+| **Compliance Health Score** | Current score with month-over-month change (arrow up/down + delta)                                   |
+| **Framework Summary**       | One row per active framework: name, score, change from last month, open issues count                 |
+| **Top 5 Action Items**      | Highest-priority open action items with due dates                                                    |
+| **Overdue Items**           | Count of overdue action items (red highlight if > 0)                                                 |
+| **Key Events**              | Notable compliance events from the month: checks that failed/recovered, new findings, resolved items |
+| **Upcoming Deadlines**      | Next 30 days: audit dates, certification renewals, vendor insurance expiries                         |
+| **Footer**                  | "View Full Dashboard" button linking to the compliance dashboard                                     |
+
+**Configuration** (Settings > Compliance > Monthly Summary):
+
+- Enable/disable the monthly email (default: enabled)
+- Add/remove recipients
+- Select which sections to include (all enabled by default)
 
 ---
 
@@ -740,7 +1009,8 @@ ComplianceReport
 ├── id (UUID, PK)
 ├── property_id → Property (FK, NOT NULL)
 ├── report_type (enum: access_audit, login_activity, data_retention, privacy_impact,
-│                incident_response, consent_records, dsar, vendor_compliance)
+│                incident_response, consent_records, dsar, vendor_compliance,
+│                ropa, internal_audit_checklist, data_retention_enforcement)
 ├── status (enum: queued, generating, completed, failed)
 ├── parameters (jsonb, NOT NULL) -- The filter/configuration parameters used to generate the report
 ├── generated_by → User (FK, NOT NULL)
@@ -883,6 +1153,111 @@ Indexes:
   - idx_action_item_due_date (due_date) WHERE status IN ('open', 'in_progress')
 ```
 
+### 6.6 UptimeRecord
+
+```
+UptimeRecord
+├── id (UUID, PK)
+├── property_id → Property (FK, NOT NULL)
+├── component (enum: api, database, file_storage, email_service,
+│              sms_service, push_notifications, search_index)
+├── status (enum: operational, degraded, outage)
+├── checked_at (timestamp with tz, NOT NULL)
+├── response_time_ms (integer, nullable)
+├── error_message (text, nullable)
+├── created_at (timestamp with tz, NOT NULL, default NOW())
+└── (no updated_at — append-only)
+
+Indexes:
+  - idx_uptime_property_component (property_id, component, checked_at DESC)
+  - idx_uptime_status (property_id, status) WHERE status != 'operational'
+
+Retention: Aggregated to hourly after 30 days, daily after 1 year. Raw records purged after 30 days.
+```
+
+### 6.7 InfrastructureChange
+
+```
+InfrastructureChange
+├── id (UUID, PK)
+├── property_id → Property (FK, nullable) -- null = platform-wide change
+├── change_type (enum: deployment, configuration_change, scaling_event,
+│                database_migration, certificate_rotation, key_rotation, dns_change)
+├── component (varchar 100, NOT NULL) -- e.g., "API Server", "Database Primary"
+├── description (text, NOT NULL)
+├── risk_level (enum: low, medium, high)
+├── initiated_by → User (FK, nullable) -- null = automated
+├── approved_by → User (FK, nullable) -- required for high-risk
+├── approval_status (enum: pending, approved, rejected, auto_approved)
+├── rollback_available (boolean, default false)
+├── rollback_instructions (text, nullable)
+├── executed_at (timestamp with tz, nullable)
+├── created_at (timestamp with tz, NOT NULL, default NOW())
+└── updated_at (timestamp with tz, NOT NULL, default NOW())
+
+Indexes:
+  - idx_infra_change_property (property_id, created_at DESC)
+  - idx_infra_change_approval (approval_status) WHERE approval_status = 'pending'
+  - idx_infra_change_type (change_type, created_at DESC)
+```
+
+### 6.8 SecurityAnomaly
+
+```
+SecurityAnomaly
+├── id (UUID, PK)
+├── property_id → Property (FK, NOT NULL)
+├── user_id → User (FK, NOT NULL) -- The user whose activity triggered the anomaly
+├── anomaly_type (enum: impossible_travel, unusual_pii_access, after_hours_admin,
+│                 concurrent_sessions, mass_data_export, repeated_failed_logins)
+├── severity (enum: critical, high, medium)
+├── status (enum: new, investigating, resolved, false_positive)
+├── description (text, NOT NULL) -- AI-generated plain-language description
+├── detection_data (jsonb, NOT NULL) -- Raw data that triggered detection
+├── investigated_by → User (FK, nullable)
+├── resolution_notes (text, nullable)
+├── false_positive_justification (text, nullable)
+├── action_item_id → ComplianceActionItem (FK, nullable) -- if escalated to incident
+├── detected_at (timestamp with tz, NOT NULL)
+├── resolved_at (timestamp with tz, nullable)
+├── created_at (timestamp with tz, NOT NULL, default NOW())
+└── updated_at (timestamp with tz, NOT NULL, default NOW())
+
+Indexes:
+  - idx_anomaly_property_status (property_id, status) WHERE status IN ('new', 'investigating')
+  - idx_anomaly_user (user_id, detected_at DESC)
+  - idx_anomaly_severity (severity, detected_at DESC) WHERE status = 'new'
+```
+
+### 6.9 ControlOwner
+
+```
+ControlOwner
+├── id (UUID, PK)
+├── property_id → Property (FK, NOT NULL)
+├── control_id (varchar 20, NOT NULL) -- e.g., "CC6.1", "A.8.1", "PIPEDA-P4"
+├── control_name (varchar 255, NOT NULL)
+├── applicable_frameworks (varchar[], NOT NULL)
+├── owner_id → User (FK, NOT NULL)
+├── backup_owner_id → User (FK, nullable)
+├── review_frequency (enum: quarterly, semi_annually, annually)
+├── last_review_date (date, nullable)
+├── next_review_date (date, nullable) -- auto-calculated from last_review_date + frequency
+├── status (enum: effective, needs_review, deficient)
+├── evidence_url (varchar 500, nullable)
+├── notes (text, nullable)
+├── created_at (timestamp with tz, NOT NULL, default NOW())
+└── updated_at (timestamp with tz, NOT NULL, default NOW())
+
+Indexes:
+  - idx_control_owner_property (property_id, control_id)
+  - idx_control_owner_owner (owner_id)
+  - idx_control_owner_review (next_review_date) WHERE status != 'effective'
+
+Constraints:
+  - UNIQUE (property_id, control_id)
+```
+
 ---
 
 ## 7. User Flows
@@ -891,7 +1266,7 @@ Indexes:
 
 ```
 Step 1: Navigate to Compliance > Reports
-Step 2: Select a report type from the 8 available reports
+Step 2: Select a report type from the 11 available reports
 Step 3: Configure report parameters (date range, filters)
 Step 4: Click "Generate Report"
 Step 5: Report generation begins (progress indicator for large reports)
@@ -944,6 +1319,12 @@ Step 8: At end date, auditor access is automatically revoked
 
 ### 8.1 Compliance Dashboard Layout (Desktop)
 
+**Tab Bar** (full width, top):
+
+Three tabs: "Overview" (default), "Infrastructure", "Governance". Active tab has blue underline. Badge counts shown for tabs with items requiring attention.
+
+**Tab: Overview**
+
 **Top Section** (full width):
 
 - Large compliance health score in the center (font size: 64px)
@@ -975,11 +1356,31 @@ Step 8: At end date, auditor access is automatically revoked
 - Line chart with 12-month x-axis
 - Overall score as bold line, framework scores as thinner dashed lines
 
+**Security Anomalies** (below Calendar and Trend Chart, full width):
+
+- See Section 4.6 for widget specification
+
+**Tab: Infrastructure**
+
+**Cloud Uptime** (top, full width):
+
+- See Section 4.8 for widget specification
+
+**Infrastructure Changes** (below uptime, full width):
+
+- See Section 4.7 for panel specification
+
+**Tab: Governance**
+
+**Control Owners** (full width):
+
+- See Section 4.9 for table specification
+
 ### 8.2 Report Generation Page Layout (Desktop)
 
 **Left Panel** (30% width):
 
-- List of 8 report types as clickable cards
+- List of 11 report types as clickable cards
 - Active report type is highlighted with blue left border
 
 **Right Panel** (70% width):
@@ -1430,5 +1831,31 @@ The Auditor role is unique in the system:
 
 ---
 
-_Last updated: 2026-03-16_
+---
+
+## ADDENDUM: Deployment Gate Behavior
+
+> Added from PRD Quality Audit (2026-03-17). Specifies what happens when a compliance check fails during a deployment.
+
+### Compliance Check as Deployment Gate
+
+The CI/CD pipeline runs compliance checks as a pre-deployment step. The behavior depends on the severity of the compliance failure:
+
+| Check Severity                                                           | Deployment Behavior                                                                                                                                                                       | Override                                                                                                                                                                                              |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Critical (data breach risk, encryption disabled, backup failure)         | **Deployment halted.** Pipeline fails with exit code 1. Slack notification sent to #compliance and #engineering channels. The deployment cannot proceed until the check passes.           | Super Admin can override with a documented reason. Override is logged in the compliance audit trail with the Super Admin's name, timestamp, and justification text (required, minimum 20 characters). |
+| High (expired vendor insurance, missing consent records, audit log gaps) | **Deployment proceeds with warning.** Pipeline completes but triggers a compliance alert. A ComplianceActionItem is auto-created with priority "High" and assigned to the Property Admin. | No override needed; deployment is not blocked.                                                                                                                                                        |
+| Medium (approaching threshold, non-critical policy drift)                | **Deployment proceeds silently.** Compliance dashboard is updated. No notification sent.                                                                                                  | N/A                                                                                                                                                                                                   |
+| Low (informational, best-practice suggestion)                            | **Deployment proceeds silently.** Logged in compliance check history only.                                                                                                                | N/A                                                                                                                                                                                                   |
+
+### Pre-Deployment Check Execution
+
+1. Pipeline triggers `POST /api/v1/compliance/checks/run-all` with `context: "deployment"`
+2. Server runs all 12 automated compliance checks (Section 5.1)
+3. Response includes `{passed: N, failed: M, critical_failures: [...], high_failures: [...]}`
+4. If `critical_failures` array is non-empty, pipeline exits with code 1
+5. If only `high_failures` exist, pipeline continues and POSTs alert to `POST /api/v1/compliance/action-items` for each failure
+6. Total check execution timeout: 120 seconds. If checks do not complete within 120 seconds, deployment proceeds with a warning and the incomplete checks are scheduled to run post-deployment.
+
+_Last updated: 2026-03-17_
 _Author: Concierge Product Team_

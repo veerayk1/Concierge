@@ -1,7 +1,7 @@
 # 18 — Integrations
 
 > **Status**: Draft
-> **Last updated**: 2026-03-14
+> **Last updated**: 2026-03-17
 > **Owner**: Product
 > **Depends on**: 01-Architecture, 06-Amenity Booking, 09-Communication, 14-Dashboard, 19-AI Framework
 
@@ -17,23 +17,23 @@ Competitive analysis revealed a consistent pattern: platforms that rely on a sin
 
 ### Integration Categories
 
-| #   | Category            | Provider(s)                    | Purpose                                      | Phase                           |
-| --- | ------------------- | ------------------------------ | -------------------------------------------- | ------------------------------- |
-| 1   | Payment             | Stripe                         | Amenity booking fees, deposits, fines        | v1                              |
-| 2   | Email               | SendGrid                       | Transactional and bulk email delivery        | v1                              |
-| 3   | SMS / Voice         | Twilio                         | SMS notifications, voice emergency broadcast | v1                              |
-| 4   | Push Notifications  | Firebase Cloud Messaging (FCM) | Mobile and web push notifications            | v1                              |
-| 5   | AI Providers        | Claude API + OpenAI API        | AI intelligence layer (see PRD 19)           | v1                              |
-| 6   | Cloud Storage       | AWS S3 (or compatible)         | Photos, documents, attachments               | v1                              |
-| 7   | Calendar Sync       | iCal / Google Calendar         | Amenity booking sync to personal calendars   | v1                              |
-| 8   | Smart Building      | Vendor APIs                    | Smart locks, intercoms, camera systems       | v2                              |
-| 9   | Webhooks (Outbound) | Custom endpoints               | Push events to third-party systems           | v2                              |
-| 10  | Public API          | RESTful + API keys             | Third-party developer access                 | v2                              |
-| 11  | Import / Export     | CSV, Excel, PDF, Word          | Bulk data import, report export              | v1                              |
-| 12  | Digital Signage     | Push protocol                  | Announcements to lobby screens               | v3                              |
-| 13  | Weather             | OpenWeatherMap                 | Dashboard widget, AI briefing context        | v1                              |
-| 14  | Localization / i18n | AI provider + static files     | Multi-language UI and content translation    | v1 (basic), v2 (AI translation) |
-| 15  | Real-Time Chat      | WebSocket                      | Staff-to-staff in-app messaging              | v3                              |
+| #   | Category            | Provider(s)                            | Purpose                                                                       | Phase                           |
+| --- | ------------------- | -------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------- |
+| 1   | Payment             | Stripe                                 | Amenity booking fees, deposits, fines                                         | v1                              |
+| 2   | Email               | SendGrid                               | Transactional and bulk email delivery                                         | v1                              |
+| 3   | SMS / Voice         | Twilio                                 | SMS notifications, voice emergency broadcast                                  | v1                              |
+| 4   | Push Notifications  | Firebase Cloud Messaging (FCM)         | Mobile and web push notifications                                             | v1                              |
+| 5   | AI Providers        | Claude API + OpenAI API                | AI intelligence layer (see PRD 19)                                            | v1                              |
+| 6   | Cloud Storage       | AWS S3 (or compatible)                 | Photos, documents, attachments                                                | v1                              |
+| 7   | Calendar Sync       | iCal / Google Calendar                 | Amenity booking sync to personal calendars                                    | v1                              |
+| 8   | Smart Building      | Vendor APIs                            | Smart locks, intercoms, camera systems                                        | v2                              |
+| 9   | Webhooks (Outbound) | Custom endpoints                       | Push events to third-party systems                                            | v2                              |
+| 10  | Public API          | RESTful + API keys                     | Third-party developer access                                                  | v2                              |
+| 11  | Import / Export     | CSV, Excel, PDF, Word                  | Bulk data import, report export                                               | v1                              |
+| 12  | Digital Signage     | Push protocol                          | Announcements to lobby screens                                                | v3                              |
+| 13  | Weather             | ECCC (primary) + Open-Meteo (fallback) | Dashboard widget, AI briefing context, digital signage, severe weather alerts | v1                              |
+| 14  | Localization / i18n | AI provider + static files             | Multi-language UI and content translation                                     | v1 (basic), v2 (AI translation) |
+| 15  | Real-Time Chat      | WebSocket                              | Staff-to-staff in-app messaging                                               | v3                              |
 
 ### Design Principles
 
@@ -910,66 +910,244 @@ Signage device loads: /display/{auth_token}
 
 ---
 
-### 3.13 Weather — OpenWeatherMap
+### 3.13 Weather — Environment and Climate Change Canada (ECCC)
 
 #### Purpose
 
-Display current weather and forecast on the dashboard widget and provide weather context to AI briefings (e.g., "Heavy rain expected -- check roof drains" or "Freezing temperatures -- salt walkways").
+Display current weather conditions, hourly forecasts, 7-day outlooks, and severe weather alerts on the dashboard widget. Provide weather context to AI briefings (e.g., "Heavy snow expected -- schedule snow removal" or "Freezing temperatures -- check pipe insulation"). Supply weather data to digital signage displays. Trigger staff notifications on severe weather events. See PRD 14 (Dashboard, Section 3.2.3) for the full weather widget specification, alert notification flow, and building operations trigger mappings.
 
-#### Provider Details
+#### Why Environment Canada
 
-| Attribute            | Value                                                     |
-| -------------------- | --------------------------------------------------------- |
-| **Provider**         | OpenWeatherMap                                            |
-| **Authentication**   | API key (query parameter)                                 |
-| **Data**             | Current conditions, 7-day forecast, severe weather alerts |
-| **Update frequency** | Every 30 minutes (cached)                                 |
+Concierge is built for Canadian condominium properties, primarily in Ontario. The Meteorological Service of Canada (MSC), operated by Environment and Climate Change Canada (ECCC), is the recommended primary weather provider for the following reasons:
+
+| Factor                          | ECCC (Recommended Primary)                                                                                                                                                                             | Open-Meteo (Recommended Fallback)                                                 | OpenWeatherMap (Not Recommended)                                  |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Accuracy for Canada**         | Highest -- official Canadian government meteorological service. Station network covers all Canadian provinces and territories.                                                                         | High -- ingests Canadian Meteorological Centre (CMC) model data.                  | Moderate -- global coverage, not Canada-optimized.                |
+| **Cost**                        | Free. No API key required. No rate limits for reasonable use. Government-funded open data.                                                                                                             | Free for non-commercial use. No API key required for basic access.                | Free tier: 1,000 calls/day. Paid tier: ~$40/month for 100K calls. |
+| **Weather Alerts**              | Official Canadian alerts in CAP (Common Alerting Protocol) format. These are the same alerts used by the national emergency alert system. No other provider has authoritative Canadian weather alerts. | Does not provide Canadian weather alerts.                                         | Provides alerts but not authoritative Canadian CAP alerts.        |
+| **Data Freshness**              | Observations updated at least hourly. Forecasts updated multiple times per day. Alerts issued in real time.                                                                                            | Hourly updates from national weather services.                                    | Varies by tier. Free tier may lag.                                |
+| **Authentication**              | None required. Anonymous access.                                                                                                                                                                       | None required for free tier. API key for commercial.                              | API key required for all tiers.                                   |
+| **Canadian Postal Code Lookup** | Station lookup by province and city code. Postal code resolution via geocoding.                                                                                                                        | Latitude/longitude based. Requires geocoding postal codes.                        | Supports postal code queries directly.                            |
+| **Bilingual Support**           | English and French data natively (critical for Canadian compliance).                                                                                                                                   | English only.                                                                     | English and French available.                                     |
+| **Legal/Compliance**            | Canadian government data. No terms-of-service risk. No vendor lock-in. PIPEDA-friendly (no PII transmitted).                                                                                           | Open-source (AGPLv3). Attribution required.                                       | Commercial terms of service. May change pricing or terms.         |
+| **Limitations**                 | XML/RSS format requires parsing. No REST JSON API for current conditions (citypage data is XML). GeoMet OGC API is geospatial-focused, not designed for simple weather queries.                        | Not authoritative for Canadian alerts. Non-commercial use only without paid plan. | Cost at scale. Not Canada-optimized.                              |
+
+**Decision**: Use ECCC as the primary provider for all Canadian properties. Use Open-Meteo as a fallback provider when ECCC data is unavailable. Do not use OpenWeatherMap -- the free tier is insufficient at scale and the data is not Canada-authoritative.
+
+#### Provider Architecture
+
+```
+                  ┌──────────────────────┐
+                  │   ECCC Data Sources   │
+                  │                       │
+                  │  ┌─────────────────┐  │
+                  │  │ Citypage XML    │──│──→ Current conditions, hourly/daily forecast
+                  │  │ (dd.weather.gc.ca) │  │   (parsed from XML to JSON by weather service)
+                  │  └─────────────────┘  │
+                  │  ┌─────────────────┐  │
+                  │  │ CAP Alert Feed  │──│──→ Severe weather alerts (warnings, watches, advisories)
+                  │  │ (dd.weather.gc.ca) │  │   (parsed from CAP XML to JSON)
+                  │  └─────────────────┘  │
+                  │  ┌─────────────────┐  │
+                  │  │ GeoMet OGC API  │──│──→ UV index, air quality (supplementary)
+                  │  │ (api.weather.gc.ca)│  │
+                  │  └─────────────────┘  │
+                  └──────────────────────┘
+                            │
+                            ▼
+                  ┌──────────────────────┐
+                  │  Concierge Weather   │
+                  │  Service (server)    │
+                  │                      │
+                  │  - Fetches from ECCC │
+                  │  - Parses XML → JSON │
+                  │  - Caches in DB      │
+                  │  - Detects new alerts│
+                  │  - Triggers notifs   │
+                  └──────────────────────┘
+                            │
+                   ┌────────┼────────┐
+                   ▼        ▼        ▼
+              Dashboard   AI       Digital
+              Widget    Briefing   Signage
+```
+
+#### ECCC Data Sources
+
+##### 1. Citypage Weather XML (Current Conditions + Forecast)
+
+| Attribute            | Value                                                                                                                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **URL pattern**      | `https://dd.weather.gc.ca/citypage_weather/{PROVINCE}/{CITY_CODE}_e.xml`                                                                                                                        |
+| **Example**          | `https://dd.weather.gc.ca/citypage_weather/ON/s0000458_e.xml` (Toronto)                                                                                                                         |
+| **Format**           | XML                                                                                                                                                                                             |
+| **Content**          | Current conditions (temperature, wind, humidity, pressure, visibility, condition text, icon code), hourly forecast (24 hours), 7-day forecast (high/low, conditions, precipitation probability) |
+| **Update frequency** | At least hourly for current conditions. Forecasts updated multiple times per day.                                                                                                               |
+| **Authentication**   | None. Anonymous HTTPS access.                                                                                                                                                                   |
+| **Language**         | English (`_e.xml`) and French (`_f.xml`)                                                                                                                                                        |
+| **Coverage**         | ~800 Canadian locations across all provinces and territories                                                                                                                                    |
+
+##### 2. CAP Weather Alerts
+
+| Attribute            | Value                                                                                                                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **URL pattern**      | `https://dd.weather.gc.ca/alerts/cap/{YYYYMMDD}/{ZONE}/`                                                                                                              |
+| **Format**           | CAP-CP (Common Alerting Protocol -- Canadian Profile) XML                                                                                                             |
+| **Content**          | Warnings, watches, advisories, statements, special weather statements. Includes severity, urgency, effective/expiry times, affected areas, full description.          |
+| **Update frequency** | Real-time as alerts are issued, updated, or cancelled                                                                                                                 |
+| **Authentication**   | None                                                                                                                                                                  |
+| **Alert types**      | Winter storm, blizzard, freezing rain, tornado, severe thunderstorm, heat, extreme cold, wind, fog, rainfall, snowfall, frost, air quality, special weather statement |
+
+##### 3. GeoMet OGC API (Supplementary)
+
+| Attribute          | Value                                                                 |
+| ------------------ | --------------------------------------------------------------------- |
+| **URL**            | `https://api.weather.gc.ca/`                                          |
+| **Format**         | JSON (OGC API Features)                                               |
+| **Content**        | Geospatial weather data, UV index forecasts, air quality health index |
+| **Authentication** | None                                                                  |
+| **Documentation**  | `https://api.weather.gc.ca/openapi` (Swagger/OpenAPI)                 |
+
+#### Fallback Provider: Open-Meteo
+
+| Attribute          | Value                                                                                                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **URL**            | `https://api.open-meteo.com/v1/forecast`                                                                                                                                       |
+| **Format**         | JSON REST API                                                                                                                                                                  |
+| **Authentication** | None required (free for non-commercial use)                                                                                                                                    |
+| **Parameters**     | `latitude`, `longitude`, `hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`, `daily=temperature_2m_max,temperature_2m_min,weather_code`, `timezone=auto` |
+| **Data**           | Current conditions, hourly forecast (up to 16 days), daily forecast (up to 16 days)                                                                                            |
+| **Limitations**    | No Canadian weather alerts (ECCC alert feed is always used regardless of fallback). Attribution required.                                                                      |
+| **When used**      | Only when ECCC Citypage XML is unreachable after 3 retries with exponential backoff                                                                                            |
 
 #### Configuration Fields
 
-| Field                      | Type             | Max Length | Required         | Default                                       | Validation                    | Error Message                                       |
-| -------------------------- | ---------------- | ---------- | ---------------- | --------------------------------------------- | ----------------------------- | --------------------------------------------------- |
-| `openweathermap_api_key`   | string           | 64         | Yes (if enabled) | —                                             | Non-empty, 32-char hex        | "Enter a valid OpenWeatherMap API key"              |
-| `latitude`                 | decimal          | —          | Yes              | —                                             | -90 to 90, 6 decimal places   | "Enter a valid latitude"                            |
-| `longitude`                | decimal          | —          | Yes              | —                                             | -180 to 180, 6 decimal places | "Enter a valid longitude"                           |
-| `units`                    | enum             | —          | No               | `metric`                                      | One of: `metric`, `imperial`  | "Select a unit system"                              |
-| `cache_duration_minutes`   | integer          | —          | No               | `30`                                          | 10–120                        | "Cache duration must be between 10 and 120 minutes" |
-| `severe_weather_alerts`    | boolean          | —          | No               | `true`                                        | —                             | —                                                   |
-| `alert_notification_roles` | array of strings | —          | No               | `["property_manager", "security_supervisor"]` | Valid role slugs              | "Select valid roles to receive weather alerts"      |
+| Field                              | Type             | Max Length | Required      | Default                                                         | Validation                                                                                       | Error Message                                               |
+| ---------------------------------- | ---------------- | ---------- | ------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| `weather_enabled`                  | boolean          | --         | No            | `true`                                                          | --                                                                                               | --                                                          |
+| `weather_location_postal_code`     | string           | 7          | Conditional   | --                                                              | Valid Canadian postal code format (A1A 1A1)                                                      | "Enter a valid Canadian postal code (e.g., M5V 3L9)"        |
+| `weather_location_city`            | string           | 100        | Conditional   | --                                                              | Non-empty. At least one of postal_code or city required.                                         | "Enter a city name or postal code"                          |
+| `weather_location_province`        | enum             | --         | Conditional   | --                                                              | Valid Canadian province/territory code (ON, BC, AB, QC, etc.)                                    | "Select a province or territory"                            |
+| `weather_station_id`               | string           | 20         | Auto-resolved | --                                                              | Valid ECCC station code. Auto-populated when postal code or city is entered. Admin can override. | "Select a valid weather station"                            |
+| `weather_latitude`                 | decimal          | --         | Auto-resolved | --                                                              | -90 to 90, 6 decimal places. Auto-populated from station.                                        | "Enter a valid latitude"                                    |
+| `weather_longitude`                | decimal          | --         | Auto-resolved | --                                                              | -180 to 180, 6 decimal places. Auto-populated from station.                                      | "Enter a valid longitude"                                   |
+| `weather_units`                    | enum             | --         | No            | `metric`                                                        | One of: `metric`, `imperial`                                                                     | "Select a unit system"                                      |
+| `weather_cache_current_minutes`    | integer          | --         | No            | `15`                                                            | 5–60                                                                                             | "Current conditions cache must be between 5 and 60 minutes" |
+| `weather_cache_forecast_minutes`   | integer          | --         | No            | `30`                                                            | 15–120                                                                                           | "Forecast cache must be between 15 and 120 minutes"         |
+| `weather_alerts_enabled`           | boolean          | --         | No            | `true`                                                          | --                                                                                               | --                                                          |
+| `weather_alert_notification_roles` | array of strings | --         | No            | `["property_admin", "property_manager", "security_supervisor"]` | Valid role slugs                                                                                 | "Select valid roles to receive weather alerts"              |
+| `weather_alert_severity_threshold` | enum             | --         | No            | `severe`                                                        | One of: `extreme`, `severe`, `moderate`, `minor`                                                 | "Select minimum alert severity for push notifications"      |
+| `weather_fallback_provider`        | enum             | --         | No            | `open_meteo`                                                    | One of: `open_meteo`, `none`                                                                     | "Select a fallback weather provider"                        |
 
-> **Tooltip — Severe Weather Alerts**: When enabled, the system automatically notifies selected staff roles when a severe weather alert is issued for your area (e.g., winter storm warning, heat advisory). Helps with proactive building preparation.
+> **Tooltip — Weather Station**: The system automatically selects the closest Environment Canada weather station based on your postal code or city. You can override this if a different station provides more accurate data for your property.
+
+> **Tooltip — Severe Weather Alerts**: When enabled, the system automatically notifies selected staff roles when Environment Canada issues a severe weather alert for your area (e.g., winter storm warning, freezing rain warning, heat advisory). This helps staff prepare the building proactively -- salting walkways, scheduling snow removal, or checking heating systems.
+
+> **Tooltip — Alert Severity Threshold**: Controls which alert levels trigger push notifications to staff. "Severe" (default) notifies on severe and extreme alerts only. Set to "Moderate" to also receive advisories. Set to "Minor" to receive all alerts including statements.
+
+#### Station Resolution Flow
+
+```
+Admin enters postal code (e.g., M5V 3L9) or city (e.g., Toronto, ON)
+  → Server geocodes to lat/lon (using internal lookup table of ECCC stations)
+  → Finds nearest ECCC weather station (e.g., s0000458 = Toronto City)
+  → Auto-populates station_id, latitude, longitude
+  → Admin sees: "Weather station: Toronto City (ON-143), 2.3 km from property"
+  → Admin can click "Change Station" to select from nearby stations
+  → Station list shows: name, distance, province
+  → Selection saved to IntegrationConfig.settings
+```
+
+**ECCC Station Lookup Table**: A static table of ~800 ECCC citypage stations is bundled with the application and updated with each release. Each entry contains: station code, city name, province, latitude, longitude. No external API call is needed for station resolution.
 
 #### Data Flow
 
 ```
-Dashboard loads → client requests /api/weather
-  → Server checks cache (30-min TTL)
-  → If cache miss: fetch from OpenWeatherMap API
-  → Return: current temp, conditions, icon, 7-day forecast
-  → If severe weather alert active: show alert banner on dashboard
-  → AI briefing engine includes weather in daily context
+Server-side cron job runs every 15 minutes:
+  → For each property with weather_enabled = true:
+      → Check WeatherCache.expires_at
+      → If expired:
+          → Fetch ECCC Citypage XML for property's station_id
+          → Parse XML → extract current conditions, hourly forecast, daily forecast
+          → Fetch ECCC CAP alerts for property's province/zone
+          → Parse CAP XML → extract active alerts matching property's geographic area
+          → If ECCC fetch fails:
+              → Retry 3 times with exponential backoff (1s, 2s, 4s)
+              → If still failing and fallback_provider = open_meteo:
+                  → Fetch from Open-Meteo API using lat/lon
+                  → Mark source = "open_meteo" in cache
+              → If fallback also fails: increment consecutive_errors, keep stale cache
+          → Write to WeatherCache (upsert by property_id)
+          → Compare alerts with WeatherAlertLog:
+              → New alerts not in WeatherAlertLog → insert + trigger notifications
+              → Existing alerts with changed status → update log
+              → Expired alerts → mark as ended in log
+
+Dashboard client requests GET /api/v1/dashboard/weather:
+  → Server reads from WeatherCache (never calls ECCC directly from request path)
+  → Returns JSON response with current, hourly, daily, alerts
+  → If cache is stale (consecutive_errors > 0): include "stale" flag in response
+  → Client renders with appropriate freshness indicator
 ```
+
+#### Caching Strategy
+
+| Data Type            | Server Cache TTL | Client Cache                    | Refresh Mechanism                 |
+| -------------------- | ---------------- | ------------------------------- | --------------------------------- |
+| Current conditions   | 15 minutes       | None (always reads from server) | Server-side cron every 15 minutes |
+| Hourly forecast      | 30 minutes       | None                            | Server-side cron every 30 minutes |
+| Daily forecast       | 30 minutes       | None                            | Server-side cron every 30 minutes |
+| Weather alerts       | 15 minutes       | None                            | Server-side cron every 15 minutes |
+| Station lookup table | Static (bundled) | None                            | Updated with application releases |
+
+**Why server-side caching**: The dashboard widget never calls ECCC directly from the browser. All weather data is fetched server-side by a cron job and stored in the WeatherCache table. This approach: (1) prevents ECCC from seeing individual user requests, (2) ensures consistent data across all users viewing the same property, (3) avoids CORS issues with ECCC XML endpoints, (4) allows XML parsing to happen server-side in a controlled environment, (5) enables alert deduplication and notification dispatch.
+
+**Cache warming**: When a property first configures weather, the system immediately fetches weather data (does not wait for the next cron cycle). This ensures the weather widget is populated on first dashboard load.
+
+**Stale cache handling**: If the weather API is unreachable, the system serves stale cached data rather than showing an error. The widget displays a gray "Last updated X minutes ago" indicator when data is more than 30 minutes old. If data is more than 2 hours old, the widget shows "Weather service unavailable" with a Refresh button. AI briefings omit weather context when data is more than 1 hour old.
 
 #### Rate Limits and Cost
 
-| Metric                        | Value                                            |
-| ----------------------------- | ------------------------------------------------ |
-| **OpenWeatherMap rate limit** | 60 calls/minute (free tier), 3,000/minute (paid) |
-| **Concierge internal limit**  | 2 calls/hour per property (cached)               |
-| **Free tier**                 | 1,000 calls/day (sufficient for ~20 properties)  |
-| **Paid tier**                 | ~$40/month for 100,000 calls/month               |
+| Metric                        | Value                                                                                                                                                                        |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ECCC rate limit**           | No published rate limit. Government open data. Reasonable use expected (no more than 1 request per minute per station).                                                      |
+| **Concierge fetch frequency** | 4 fetches/hour per property (current conditions every 15 min) + 2 fetches/hour (forecast every 30 min) + 4 fetches/hour (alerts every 15 min) = 10 fetches/hour per property |
+| **ECCC cost**                 | Free. No API key. No billing. Government-funded.                                                                                                                             |
+| **Open-Meteo rate limit**     | 10,000 requests/day for non-commercial use. Concierge uses this only as fallback.                                                                                            |
+| **Open-Meteo cost**           | Free for non-commercial. Commercial plans available if needed.                                                                                                               |
+| **Concierge internal limit**  | Maximum 100 properties per server instance. At 10 fetches/hour/property = 1,000 fetches/hour total. Well within ECCC reasonable use.                                         |
+| **Scale consideration**       | At 500+ properties, consider a dedicated weather service that fetches per-region (not per-property) and shares data across properties in the same city.                      |
 
 #### Error Handling
 
-| Scenario        | User Experience                                                 | System Action                                   |
-| --------------- | --------------------------------------------------------------- | ----------------------------------------------- |
-| API key invalid | Weather widget shows "Weather unavailable"                      | Alert admin to check API key                    |
-| API timeout     | Widget shows last cached weather data                           | Serve stale cache, retry on next cycle          |
-| API outage      | Widget shows last cached data with "Last updated X minutes ago" | Continue serving cache, skip AI weather context |
+| Scenario                                  | User Experience                                                                           | System Action                                                            |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| ECCC XML unreachable (temporary)          | Widget shows cached data (no visible impact if within TTL)                                | Retry 3 times with backoff. If still failing, try Open-Meteo fallback.   |
+| ECCC XML unreachable (extended, > 1 hour) | Widget shows cached data with "Last updated X minutes ago" in gray                        | Log warning. Continue serving stale cache. Open-Meteo fallback active.   |
+| ECCC XML format changed                   | Widget shows cached data. Admin sees integration health alert.                            | Log parsing error. Alert Super Admin. Continue serving last valid cache. |
+| Open-Meteo fallback also failing          | Widget shows cached data with "Weather service unavailable" if > 2 hours stale            | Log error. Increment consecutive_errors. AI briefings omit weather.      |
+| No weather station found for postal code  | "No weather station found for this location. Try a nearby city or different postal code." | Admin prompted to manually select a station.                             |
+| Station returns no current data           | Widget shows forecast only (no current conditions section)                                | Serve available data. Log warning about station data gap.                |
+| Alert feed unreachable                    | No impact on current conditions widget. Alert banner not shown.                           | Log warning. Alerts section empty. No false notifications.               |
 
 #### Fallback Strategy
 
-Weather is a non-critical integration. If the API is unreachable, the dashboard widget shows the last known weather with a "last updated" timestamp. AI briefings omit weather context rather than failing entirely.
+Weather is a non-critical integration. The fallback chain is:
+
+1. **Primary**: ECCC Citypage XML + CAP Alert Feed -- authoritative Canadian data, free, no authentication.
+2. **Fallback (conditions/forecast)**: Open-Meteo API -- used only when ECCC Citypage XML is unreachable after retries. Open-Meteo does not provide Canadian weather alerts.
+3. **Fallback (alerts)**: No fallback. ECCC is the only authoritative source for Canadian weather alerts. If the alert feed is unreachable, the alert section is simply empty. No false alerts are ever generated.
+4. **Fallback (all sources down)**: Serve stale cached data with a freshness indicator. AI briefings omit weather context. Dashboard widget shows "Weather service unavailable" after 2 hours of stale data.
+
+#### Privacy and Compliance
+
+| Aspect                            | Detail                                                                                                                                                                                                                                                  |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **PII transmitted to ECCC**       | None. Only the station code (a geographic identifier, not PII) is sent. No user data, no property identifiers.                                                                                                                                          |
+| **PII transmitted to Open-Meteo** | None. Only latitude/longitude coordinates (of the weather station, not the exact property address).                                                                                                                                                     |
+| **Data residency**                | Weather data cached in Concierge database (same region as all property data). No data leaves Canada for Canadian properties.                                                                                                                            |
+| **PIPEDA compliance**             | No personal information is collected, used, or disclosed through the weather integration.                                                                                                                                                               |
+| **Attribution**                   | Open-Meteo requires attribution when used. When fallback is active, the weather widget footer shows "Data: Open-Meteo.com (Environment Canada unavailable)" in small gray text. When ECCC is active, no attribution is required (government open data). |
 
 ---
 
@@ -1100,6 +1278,11 @@ IntegrationConfig
 ├── last_health_check_at (timestamp, nullable)
 ├── last_health_check_status (enum: healthy, degraded, unreachable, nullable)
 ├── error_message (text, nullable — last error for admin display)
+├── data_residency_country (varchar 2, nullable) -- ISO 3166-1 alpha-2 code (e.g., "CA", "US", "EU")
+├── data_residency_region (varchar 50, nullable) -- e.g., "ca-central-1", "us-east-1", "eu-west-1"
+├── data_residency_verified (boolean, default false) -- Admin confirmed residency
+├── data_processing_agreement_url (varchar 500, nullable) -- URL to signed DPA with provider
+├── data_processing_agreement_date (date, nullable) -- Date DPA was signed
 ├── created_by → User
 ├── created_at (timestamp)
 ├── updated_by → User
@@ -1370,16 +1553,16 @@ Each integration shows a health status widget:
 
 The integration layer connects directly to the AI Framework (PRD 19). Key touchpoints:
 
-| AI Feature                        | Integration Used             | How                                                                           |
-| --------------------------------- | ---------------------------- | ----------------------------------------------------------------------------- |
-| Weather-aware morning briefing    | Weather API (OpenWeatherMap) | AI includes weather forecast and severe alerts in the daily property briefing |
-| Photo analysis (damage, packages) | AI Provider (OpenAI Vision)  | Uploaded photos sent to Vision API for analysis                               |
-| Voice-to-text reporting           | AI Provider (OpenAI Whisper) | Audio recordings transcribed via Whisper API                                  |
-| Smart scheduling suggestions      | Calendar Sync                | AI analyzes booking patterns from calendar data                               |
-| Package courier detection         | AI Provider (OpenAI Vision)  | Package photos analyzed to identify courier logos                             |
-| Cost tracking and budget          | AI Provider gateway          | IntegrationLog tracks cost per AI call, enforces monthly budget               |
-| Natural language report builder   | AI Provider (Claude)         | User query → structured report via Claude API                                 |
-| Emergency template selection      | Weather API + AI             | Severe weather context informs emergency template suggestions                 |
+| AI Feature                        | Integration Used                         | How                                                                           |
+| --------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------- |
+| Weather-aware morning briefing    | Weather API (ECCC + Open-Meteo fallback) | AI includes weather forecast and severe alerts in the daily property briefing |
+| Photo analysis (damage, packages) | AI Provider (OpenAI Vision)              | Uploaded photos sent to Vision API for analysis                               |
+| Voice-to-text reporting           | AI Provider (OpenAI Whisper)             | Audio recordings transcribed via Whisper API                                  |
+| Smart scheduling suggestions      | Calendar Sync                            | AI analyzes booking patterns from calendar data                               |
+| Package courier detection         | AI Provider (OpenAI Vision)              | Package photos analyzed to identify courier logos                             |
+| Cost tracking and budget          | AI Provider gateway                      | IntegrationLog tracks cost per AI call, enforces monthly budget               |
+| Natural language report builder   | AI Provider (Claude)                     | User query → structured report via Claude API                                 |
+| Emergency template selection      | Weather API + AI                         | Severe weather context informs emergency template suggestions                 |
 
 All AI integrations follow the same graceful degradation principle: if the AI provider is down, manual alternatives work normally.
 
@@ -1534,43 +1717,43 @@ All inbound webhooks verify the provider's signature before processing.
 
 ## 11. Completeness Checklist
 
-| #   | Requirement                                                                   | Status   | Notes                                               |
-| --- | ----------------------------------------------------------------------------- | -------- | --------------------------------------------------- |
-| 1   | Payment processing for amenity bookings with Stripe                           | Defined  | Section 3.1                                         |
-| 2   | Email delivery via SendGrid with bounce tracking                              | Defined  | Section 3.2                                         |
-| 3   | SMS notifications via Twilio                                                  | Defined  | Section 3.3                                         |
-| 4   | Voice emergency broadcast via Twilio                                          | Defined  | Section 3.3                                         |
-| 5   | Push notifications via Firebase Cloud Messaging                               | Defined  | Section 3.4                                         |
-| 6   | AI provider integration (Claude + OpenAI)                                     | Defined  | Section 3.5, cross-ref PRD 19                       |
-| 7   | Cloud file storage via S3                                                     | Defined  | Section 3.6                                         |
-| 8   | Calendar sync via iCal feeds                                                  | Defined  | Section 3.7                                         |
-| 9   | Smart building hardware (locks, intercoms, cameras)                           | Defined  | Section 3.8                                         |
-| 10  | Outbound webhooks with event subscriptions                                    | Defined  | Section 3.9                                         |
-| 11  | Public RESTful API with API key auth                                          | Defined  | Section 3.10                                        |
-| 12  | CSV/Excel import for bulk data                                                | Defined  | Section 3.11                                        |
-| 13  | PDF/Excel/CSV/Word export for reports and listings                            | Defined  | Section 3.11                                        |
-| 14  | Digital signage for lobby screens                                             | Defined  | Section 3.12                                        |
-| 15  | Weather API for dashboard and AI briefing                                     | Defined  | Section 3.13                                        |
-| 16  | All configuration fields have type, validation, and error messages            | Verified | All sections                                        |
-| 17  | Every integration has error handling and fallback strategy                    | Verified | All sections                                        |
-| 18  | Rate limits defined per integration                                           | Verified | All sections                                        |
-| 19  | Cost estimates provided for metered integrations                              | Verified | Sections 3.1–3.5, 3.13                              |
-| 20  | Data model covers all integration entities                                    | Verified | Section 4                                           |
-| 21  | User flows for admin setup, webhook creation, import, calendar sync, API keys | Verified | Section 5                                           |
-| 22  | Empty states with guidance for every integration                              | Verified | Section 6.2                                         |
-| 23  | Progressive disclosure for advanced settings                                  | Verified | Section 6.1                                         |
-| 24  | Tooltips for complex configuration fields                                     | Verified | All sections                                        |
-| 25  | Circuit breaker and retry patterns documented                                 | Verified | Section 1, per-integration error handling           |
-| 26  | Credential security (encryption, masking, rotation)                           | Verified | Section 6.4                                         |
-| 27  | Integration health monitoring and alerting                                    | Verified | Sections 6.3, 8.1, 9.1                              |
-| 28  | No competitor names referenced                                                | Verified | Uses "competitive analysis" and "industry research" |
-| 29  | Multi-channel notification fallback chain documented                          | Verified | Section 3.3                                         |
-| 30  | Inbound webhook signature verification                                        | Verified | Section 10.7                                        |
-| 31  | Backup SMTP provider configuration fields                                     | Defined  | Section 3.2                                         |
-| 32  | Intercom-to-buzzer-code sync (v2+)                                            | Defined  | Section 3.8                                         |
-| 33  | Localization / i18n with locale configuration and AI translation              | Defined  | Section 3.14                                        |
-| 34  | Real-time staff chat integration (v3+)                                        | Defined  | Section 3.15                                        |
-| 35  | Word (DOCX) as fourth export format                                           | Defined  | Section 3.11                                        |
+| #   | Requirement                                                                                                                          | Status   | Notes                                               |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- | --------------------------------------------------- |
+| 1   | Payment processing for amenity bookings with Stripe                                                                                  | Defined  | Section 3.1                                         |
+| 2   | Email delivery via SendGrid with bounce tracking                                                                                     | Defined  | Section 3.2                                         |
+| 3   | SMS notifications via Twilio                                                                                                         | Defined  | Section 3.3                                         |
+| 4   | Voice emergency broadcast via Twilio                                                                                                 | Defined  | Section 3.3                                         |
+| 5   | Push notifications via Firebase Cloud Messaging                                                                                      | Defined  | Section 3.4                                         |
+| 6   | AI provider integration (Claude + OpenAI)                                                                                            | Defined  | Section 3.5, cross-ref PRD 19                       |
+| 7   | Cloud file storage via S3                                                                                                            | Defined  | Section 3.6                                         |
+| 8   | Calendar sync via iCal feeds                                                                                                         | Defined  | Section 3.7                                         |
+| 9   | Smart building hardware (locks, intercoms, cameras)                                                                                  | Defined  | Section 3.8                                         |
+| 10  | Outbound webhooks with event subscriptions                                                                                           | Defined  | Section 3.9                                         |
+| 11  | Public RESTful API with API key auth                                                                                                 | Defined  | Section 3.10                                        |
+| 12  | CSV/Excel import for bulk data                                                                                                       | Defined  | Section 3.11                                        |
+| 13  | PDF/Excel/CSV/Word export for reports and listings                                                                                   | Defined  | Section 3.11                                        |
+| 14  | Digital signage for lobby screens                                                                                                    | Defined  | Section 3.12                                        |
+| 15  | Weather API (ECCC primary + Open-Meteo fallback) for dashboard, AI briefing, digital signage, and severe weather alert notifications | Defined  | Section 3.13                                        |
+| 16  | All configuration fields have type, validation, and error messages                                                                   | Verified | All sections                                        |
+| 17  | Every integration has error handling and fallback strategy                                                                           | Verified | All sections                                        |
+| 18  | Rate limits defined per integration                                                                                                  | Verified | All sections                                        |
+| 19  | Cost estimates provided for metered integrations                                                                                     | Verified | Sections 3.1–3.5, 3.13                              |
+| 20  | Data model covers all integration entities                                                                                           | Verified | Section 4                                           |
+| 21  | User flows for admin setup, webhook creation, import, calendar sync, API keys                                                        | Verified | Section 5                                           |
+| 22  | Empty states with guidance for every integration                                                                                     | Verified | Section 6.2                                         |
+| 23  | Progressive disclosure for advanced settings                                                                                         | Verified | Section 6.1                                         |
+| 24  | Tooltips for complex configuration fields                                                                                            | Verified | All sections                                        |
+| 25  | Circuit breaker and retry patterns documented                                                                                        | Verified | Section 1, per-integration error handling           |
+| 26  | Credential security (encryption, masking, rotation)                                                                                  | Verified | Section 6.4                                         |
+| 27  | Integration health monitoring and alerting                                                                                           | Verified | Sections 6.3, 8.1, 9.1                              |
+| 28  | No competitor names referenced                                                                                                       | Verified | Uses "competitive analysis" and "industry research" |
+| 29  | Multi-channel notification fallback chain documented                                                                                 | Verified | Section 3.3                                         |
+| 30  | Inbound webhook signature verification                                                                                               | Verified | Section 10.7                                        |
+| 31  | Backup SMTP provider configuration fields                                                                                            | Defined  | Section 3.2                                         |
+| 32  | Intercom-to-buzzer-code sync (v2+)                                                                                                   | Defined  | Section 3.8                                         |
+| 33  | Localization / i18n with locale configuration and AI translation                                                                     | Defined  | Section 3.14                                        |
+| 34  | Real-time staff chat integration (v3+)                                                                                               | Defined  | Section 3.15                                        |
+| 35  | Word (DOCX) as fourth export format                                                                                                  | Defined  | Section 3.11                                        |
 
 ---
 
@@ -1792,6 +1975,65 @@ Integration with physical building infrastructure for access control, intercoms,
 | **Capabilities**        | Real-time sensor readings displayed on a building health dashboard, configurable alert thresholds (e.g., temperature > 30C in server room → alert), alert escalation to property manager and maintenance staff, historical data charts (24h, 7d, 30d) |
 | **Integration pattern** | MQTT broker receives messages from IoT sensors. A Concierge worker service subscribes to relevant topics, persists readings, evaluates threshold rules, and generates alerts.                                                                         |
 | **Phase**               | v2                                                                                                                                                                                                                                                    |
+
+---
+
+## ADDENDUM: Data Residency Registry (2026-03-17)
+
+> Added from COMPLIANCE-MATRIX.md gap H7 (Third-party data residency documentation, PIPEDA)
+
+### Purpose
+
+PIPEDA requires that organizations know where personal information is stored and processed, including by third-party service providers. Canadian properties must be able to confirm that their data stays in Canada or, if transferred outside Canada, that adequate protections are in place.
+
+### Data Residency Registry (Settings > Integrations > Data Residency)
+
+A read-only overview table visible to Property Admin and Super Admin showing where each integration processes and stores data.
+
+| Column                         | Description                                                                                                |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| **Integration**                | Name of the integration (e.g., "Stripe", "SendGrid", "AWS S3")                                             |
+| **Provider**                   | Company name (e.g., "Stripe, Inc.", "Twilio Inc.")                                                         |
+| **Data Residency**             | Country/region where data is stored (e.g., "Canada (ca-central-1)", "United States (us-east-1)")           |
+| **Data Types Shared**          | What PII categories are sent to this provider (e.g., "Email addresses", "Phone numbers", "Payment tokens") |
+| **DPA Status**                 | Data Processing Agreement status: Signed (green), Pending (yellow), Not Required (grey), Missing (red)     |
+| **DPA Document**               | Link to uploaded DPA PDF, or "Upload" button if missing                                                    |
+| **Canadian Hosting Confirmed** | Yes (green checkmark) / No (yellow warning) / N/A                                                          |
+| **Last Verified**              | Date the data residency was last confirmed by Admin                                                        |
+
+### Pre-Populated Data Residency Information
+
+The system pre-populates data residency information for all built-in integrations based on their default configurations:
+
+| Integration                           | Default Data Residency          | Data Types Shared                                                                                           | Canadian Hosting Available               | DPA Required           |
+| ------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ---------------------- |
+| **Stripe**                            | US (default), CA (configurable) | Payment tokens, invoice emails, customer IDs                                                                | Yes (Stripe Atlas for Canadian entities) | Yes                    |
+| **SendGrid**                          | US (default)                    | Email addresses, email content                                                                              | No (US processing)                       | Yes                    |
+| **Twilio**                            | US (default)                    | Phone numbers, SMS content, voice recordings                                                                | No (US processing)                       | Yes                    |
+| **Firebase (FCM)**                    | US (Google Cloud)               | Device tokens, notification content                                                                         | No (US processing)                       | Yes (Google Cloud DPA) |
+| **Claude API (Anthropic)**            | US                              | Anonymized text (no PII — see PRD 19 Section 7.1)                                                           | No                                       | Yes                    |
+| **OpenAI API**                        | US                              | Anonymized text (no PII — see PRD 19 Section 7.1)                                                           | No                                       | Yes                    |
+| **AWS S3**                            | CA (ca-central-1, configurable) | All uploaded files (photos, documents, certificates)                                                        | Yes (ca-central-1 region)                | Yes (AWS DPA)          |
+| **Weather API (ECCC)**                | CA                              | Property weather station code only (no PII). ECCC is a Canadian government service -- data stays in Canada. | No                                       | No                     |
+| **Weather API (Open-Meteo fallback)** | EU (Switzerland)                | Property lat/lon only (no PII)                                                                              | No                                       | No                     |
+| **Smart Building**                    | Varies by vendor                | Resident unit numbers, access credentials                                                                   | Varies                                   | Yes                    |
+
+### Cross-Border Transfer Safeguards
+
+When data leaves Canada (i.e., Canadian Hosting Confirmed = "No"), the following safeguards apply:
+
+1. **DPA is mandatory**: The integration cannot be enabled without an uploaded DPA. The system blocks activation with: "This provider processes data outside Canada. A Data Processing Agreement (DPA) is required before enabling this integration."
+2. **Contractual clauses**: The DPA must include Standard Contractual Clauses (SCCs) or equivalent protections per GDPR Chapter V if EU data subjects are involved.
+3. **PII minimization**: The system logs a warning if Tier 1 (Critical) PII is sent to a non-Canadian provider. Super Admin must acknowledge the warning.
+4. **Disclosure**: The Privacy Policy page (PRD 22, Section 9.5) must list all non-Canadian sub-processors.
+
+### Verification Workflow
+
+1. When a new integration is configured (Section 5.1), after "Test Connection" succeeds, the system shows the Data Residency confirmation screen.
+2. Admin reviews pre-populated residency info and confirms or updates.
+3. If DPA is required and not uploaded, the integration is saved in "Pending DPA" status and cannot be enabled.
+4. Admin uploads signed DPA. Integration can now be enabled.
+5. System sends an annual reminder to Admin: "Please verify that data residency information for [Integration] is still accurate."
 
 ---
 

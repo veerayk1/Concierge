@@ -1274,6 +1274,59 @@ This generates a "Data Quality Score" (0-100) with specific recommendations.
 
 ---
 
+## 12.6 Automated Data Retention Enforcement (Compliance Required)
+
+This section defines the automated retention enforcement system required by PIPEDA Principle 5, GDPR Article 5(1)(e), SOC 2 P6.1, and ISO 27001 A.8.10. See `docs/tech/COMPLIANCE-MATRIX.md` gap C4 and Section 11.
+
+### Retention Enforcer Job
+
+A scheduled background job (`retention-enforcer`) runs daily at 3:00 AM UTC. It enforces the data retention matrix defined in `docs/tech/COMPLIANCE-MATRIX.md` Section 11.
+
+**Job Behavior**:
+
+| Step | Action                  | Detail                                                                                                                                                                                                                                                       |
+| ---- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | **Scan**                | For each data category in the retention matrix, query records where the retention period has expired based on the relevant date field (e.g., `move_out_date + retention_period` for resident accounts, `created_at + retention_period` for security events). |
+| 2    | **Classify**            | Determine the action for each expired record: Anonymize, Soft-Delete, or Archive. The action is defined per data category in the retention matrix.                                                                                                           |
+| 3    | **Exclude legal holds** | Skip any record flagged with `legal_hold = true`. Legal holds are set manually by admin.                                                                                                                                                                     |
+| 4    | **Execute Anonymize**   | For "Anonymize" records: replace all PII fields (name, email, phone, address) with `[REDACTED]`. Set `anonymized_at = now()`. Retain the record structure and non-PII fields (timestamps, counts, categories) for aggregate reporting.                       |
+| 5    | **Execute Soft-Delete** | For "Soft-Delete" records: set `deleted_at = now()`, `deleted_by = 'system:retention-enforcer'`. Record remains in database for 30-day grace period. After 30 days, hard-delete in next run.                                                                 |
+| 6    | **Execute Archive**     | For "Archive" records: move to cold storage tier. Update the record pointer to reference cold storage location. Original record replaced with a stub: `{ archived_at, archive_reference, record_type, record_count }`.                                       |
+| 7    | **Log**                 | Create a `RetentionEnforcementLog` entry: job run ID, data category, records scanned, records acted on (per action type), records skipped (legal hold), errors encountered, duration.                                                                        |
+| 8    | **Report**              | Generate a monthly "Retention Enforcement Report" summarizing all actions taken. Send to Super Admin via email. Report is also available in the Compliance Dashboard (PRD 28).                                                                               |
+
+**Retention Enforcer API Endpoints**:
+
+| Method | Path                           | Description                                                                            | Auth        |
+| ------ | ------------------------------ | -------------------------------------------------------------------------------------- | ----------- |
+| `GET`  | `/api/admin/retention/status`  | Returns the last run status, next scheduled run, and summary statistics                | Super Admin |
+| `POST` | `/api/admin/retention/preview` | Dry-run: returns counts of records that would be affected without executing            | Super Admin |
+| `POST` | `/api/admin/retention/execute` | Manual trigger: runs the retention enforcer immediately (in addition to scheduled run) | Super Admin |
+| `GET`  | `/api/admin/retention/logs`    | Returns paginated enforcement logs                                                     | Super Admin |
+
+**Safeguards**:
+
+- The job runs in dry-run mode for the first 30 days after deployment. Dry-run results are emailed to Super Admin. No data is modified until Super Admin explicitly enables live mode.
+- Every execution creates a backup snapshot before any modifications.
+- If the error rate exceeds 1% (errors / total records processed), the job aborts and alerts Super Admin.
+- Records in the 30-day soft-delete grace period can be restored by Super Admin via a "Restore" action on the retention log detail page.
+
+### DSAR Erasure Exception Documentation (GDPR Art. 17)
+
+When a DSAR deletion request cannot be fulfilled, the admin must select one of the following legally recognized exceptions. The selected exception, along with a free-text justification, is stored on the DSAR record. See `docs/tech/COMPLIANCE-MATRIX.md` gap M2.
+
+| Exception Code     | Exception Name                                      | Legal Basis                            | Example                                                                        |
+| ------------------ | --------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
+| `legal_obligation` | Legal obligation to retain                          | GDPR Art. 17(3)(b), PIPEDA Principle 5 | Building security records required by municipal bylaw for 7 years              |
+| `legal_claims`     | Establishment, exercise, or defense of legal claims | GDPR Art. 17(3)(e)                     | Resident involved in ongoing insurance claim related to a maintenance incident |
+| `public_interest`  | Public interest in health                           | GDPR Art. 17(3)(c)                     | Emergency medical information required for building safety                     |
+| `archiving`        | Archiving in the public interest                    | GDPR Art. 17(3)(d)                     | Historical building records for heritage property compliance                   |
+| `legal_hold`       | Active legal hold                                   | Internal policy                        | Data subject to litigation hold requested by legal counsel                     |
+
+**Denial Response**: When admin denies a DSAR with an exception, the resident receives an email explaining: (1) which data could not be deleted, (2) the legal basis for retention, (3) their right to challenge this decision with the Privacy Commissioner of Canada (PIPEDA) or the relevant Supervisory Authority (GDPR), (4) estimated date when the data will become eligible for deletion.
+
+---
+
 ## 13. Completeness Checklist
 
 ### Functional Coverage
