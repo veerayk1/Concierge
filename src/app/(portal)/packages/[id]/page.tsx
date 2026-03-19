@@ -3,16 +3,21 @@
 import { use, useState } from 'react';
 import Link from 'next/link';
 import {
+  AlertTriangle,
   ArrowLeft,
   Bell,
+  Camera,
   CheckCircle2,
   Clock,
   Edit2,
+  ImageIcon,
   Inbox,
+  Mail,
   MapPin,
   Package,
   Phone,
   Printer,
+  RotateCcw,
   Send,
   Trash2,
   User,
@@ -41,10 +46,11 @@ const MOCK_PACKAGE = {
   recipientPhone: '416-555-0123',
   recipientEmail: 'janet.smith@email.com',
   storageSpot: 'Shelf A-3',
-  isPerishable: false,
-  isOversized: false,
+  isPerishable: true,
+  isOversized: true,
   receivedAt: '2026-03-18T09:15:00',
   receivedBy: 'Mike Johnson',
+  notes: 'Resident requested to hold until Saturday. Do not leave outside the door.',
   history: [
     {
       id: '1',
@@ -67,8 +73,32 @@ const MOCK_PACKAGE = {
       actor: 'System',
       detail: 'Push notification sent',
     },
+    {
+      id: '4',
+      action: 'edited',
+      timestamp: '2026-03-18T10:30:00',
+      actor: 'Mike Johnson',
+      detail: 'Storage location updated to Shelf A-3',
+    },
   ],
 };
+
+// ---------------------------------------------------------------------------
+// Courier badge color helper
+// ---------------------------------------------------------------------------
+
+function getCourierVariant(courier: string): 'info' | 'warning' | 'primary' | 'default' {
+  switch (courier.toLowerCase()) {
+    case 'amazon':
+      return 'warning';
+    case 'fedex':
+      return 'primary';
+    case 'ups':
+      return 'info';
+    default:
+      return 'default';
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Timeline Icon Helper
@@ -84,6 +114,8 @@ function getTimelineIcon(action: string) {
       return <CheckCircle2 className="text-success-600 h-4 w-4" />;
     case 'edited':
       return <Edit2 className="h-4 w-4 text-neutral-500" />;
+    case 'returned':
+      return <RotateCcw className="text-warning-600 h-4 w-4" />;
     case 'deleted':
       return <Trash2 className="text-error-500 h-4 w-4" />;
     default:
@@ -140,6 +172,12 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
                 Perishable
               </Badge>
             )}
+            {pkg.isOversized && (
+              <Badge variant="warning" size="lg">
+                <AlertTriangle className="h-3 w-3" />
+                Oversized
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -164,108 +202,50 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Left Column — Info Cards */}
         <div className="flex flex-col gap-6 xl:col-span-2">
-          {/* Package Info */}
+          {/* Package Details */}
           <Card>
             <div className="mb-4 flex items-center gap-2">
               <Package className="h-4 w-4 text-neutral-400" />
-              <h2 className="text-[14px] font-semibold text-neutral-900">Package Information</h2>
+              <h2 className="text-[14px] font-semibold text-neutral-900">Package Details</h2>
             </div>
             <CardContent>
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                <div>
+                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                    Reference Number
+                  </p>
+                  <p className="mt-1 font-mono text-[15px] font-medium text-neutral-900">
+                    {pkg.referenceNumber}
+                  </p>
+                </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Courier
                   </p>
-                  <p className="mt-1 text-[15px] font-medium text-neutral-900">{pkg.courier}</p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Tracking Number
-                  </p>
-                  <p className="text-primary-600 mt-1 font-mono text-[14px]">
-                    {pkg.trackingNumber}
+                  <p className="mt-1">
+                    <Badge variant={getCourierVariant(pkg.courier)} size="lg">
+                      {pkg.courier}
+                    </Badge>
                   </p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Category
-                  </p>
-                  <p className="mt-1 text-[15px] text-neutral-900">{pkg.category}</p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Direction
-                  </p>
-                  <p className="mt-1 text-[15px] text-neutral-900 capitalize">{pkg.direction}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Description
+                    Description / Type
                   </p>
                   <p className="mt-1 text-[15px] text-neutral-700">{pkg.description}</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recipient Info */}
-          <Card>
-            <div className="mb-4 flex items-center gap-2">
-              <User className="h-4 w-4 text-neutral-400" />
-              <h2 className="text-[14px] font-semibold text-neutral-900">Recipient</h2>
-            </div>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Unit
+                    Storage Location
                   </p>
-                  <p className="mt-1 text-[15px] font-medium text-neutral-900">
-                    {pkg.building} &middot; Unit {pkg.unit}
+                  <p className="mt-1 flex items-center gap-1.5 text-[15px] font-medium text-neutral-900">
+                    <MapPin className="h-3.5 w-3.5 text-neutral-400" />
+                    {pkg.storageSpot}
                   </p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Resident
-                  </p>
-                  <p className="mt-1 text-[15px] text-neutral-900">{pkg.recipient}</p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Phone
-                  </p>
-                  <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
-                    <Phone className="h-3.5 w-3.5 text-neutral-400" />
-                    {pkg.recipientPhone}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Email
-                  </p>
-                  <p className="text-primary-600 mt-1 text-[15px]">{pkg.recipientEmail}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Storage Info */}
-          <Card>
-            <div className="mb-4 flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-neutral-400" />
-              <h2 className="text-[14px] font-semibold text-neutral-900">Storage & Timing</h2>
-            </div>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-x-8 gap-y-4">
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Location
-                  </p>
-                  <p className="mt-1 text-[15px] font-medium text-neutral-900">{pkg.storageSpot}</p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Received
+                    Received At
                   </p>
                   <p className="mt-1 text-[15px] text-neutral-900">
                     {receivedDate.toLocaleString('en-US', {
@@ -275,6 +255,24 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
                       hour: 'numeric',
                       minute: '2-digit',
                     })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                    Direction
+                  </p>
+                  <p className="mt-1">
+                    <Badge variant={pkg.direction === 'incoming' ? 'info' : 'primary'} size="md">
+                      {pkg.direction === 'incoming' ? 'Incoming' : 'Outgoing'}
+                    </Badge>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                    Tracking Number
+                  </p>
+                  <p className="text-primary-600 mt-1 font-mono text-[14px]">
+                    {pkg.trackingNumber}
                   </p>
                 </div>
                 <div>
@@ -294,36 +292,154 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Recipient */}
+          <Card>
+            <div className="mb-4 flex items-center gap-2">
+              <User className="h-4 w-4 text-neutral-400" />
+              <h2 className="text-[14px] font-semibold text-neutral-900">Recipient</h2>
+            </div>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                <div>
+                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                    Name
+                  </p>
+                  <p className="mt-1 text-[15px] font-medium text-neutral-900">{pkg.recipient}</p>
+                </div>
+                <div>
+                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                    Unit
+                  </p>
+                  <p className="mt-1 text-[15px] font-medium text-neutral-900">
+                    {pkg.building} &middot; Unit {pkg.unit}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                    Email
+                  </p>
+                  <p className="text-primary-600 mt-1 flex items-center gap-1.5 text-[15px]">
+                    <Mail className="h-3.5 w-3.5 text-neutral-400" />
+                    {pkg.recipientEmail}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                    Phone
+                  </p>
+                  <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
+                    <Phone className="h-3.5 w-3.5 text-neutral-400" />
+                    {pkg.recipientPhone}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Flags */}
+          <Card>
+            <div className="mb-4 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-neutral-400" />
+              <h2 className="text-[14px] font-semibold text-neutral-900">Flags</h2>
+            </div>
+            <CardContent>
+              <div className="flex items-center gap-3">
+                {pkg.isPerishable ? (
+                  <div className="border-error-200 bg-error-50 flex items-center gap-2 rounded-lg border px-3 py-2">
+                    <span className="bg-error-500 h-2 w-2 rounded-full" />
+                    <span className="text-error-700 text-[13px] font-semibold">Perishable</span>
+                    <span className="text-error-600 text-[12px]">
+                      — Handle with priority, temperature-sensitive
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
+                    <span className="h-2 w-2 rounded-full bg-neutral-300" />
+                    <span className="text-[13px] text-neutral-500">Not perishable</span>
+                  </div>
+                )}
+                {pkg.isOversized ? (
+                  <div className="border-warning-200 bg-warning-50 flex items-center gap-2 rounded-lg border px-3 py-2">
+                    <AlertTriangle className="text-warning-600 h-3.5 w-3.5" />
+                    <span className="text-warning-700 text-[13px] font-semibold">Oversized</span>
+                    <span className="text-warning-600 text-[12px]">
+                      — May require special handling
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
+                    <span className="h-2 w-2 rounded-full bg-neutral-300" />
+                    <span className="text-[13px] text-neutral-500">Standard size</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Notes / Comments */}
+          <Card>
+            <div className="mb-4 flex items-center gap-2">
+              <Edit2 className="h-4 w-4 text-neutral-400" />
+              <h2 className="text-[14px] font-semibold text-neutral-900">Notes / Comments</h2>
+            </div>
+            <CardContent>
+              {pkg.notes ? (
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                  <p className="text-[14px] leading-relaxed text-neutral-700">{pkg.notes}</p>
+                  <p className="mt-2 text-[12px] text-neutral-400">
+                    Added by {pkg.receivedBy} &middot;{' '}
+                    {receivedDate.toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No notes added.</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Right Column — Timeline + Actions */}
+        {/* Right Column — Actions + Timeline + Photos */}
         <div className="flex flex-col gap-6">
-          {/* Quick Actions */}
-          {pkg.status === 'unreleased' && (
-            <Card>
-              <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Quick Actions</h2>
-              <CardContent>
-                <div className="flex flex-col gap-2">
+          {/* Actions */}
+          <Card>
+            <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Actions</h2>
+            <CardContent>
+              <div className="flex flex-col gap-2">
+                {pkg.status === 'unreleased' && (
                   <Button fullWidth size="lg" onClick={() => setShowReleaseDialog(true)}>
                     <CheckCircle2 className="h-4 w-4" />
                     Release Package
                   </Button>
-                  <Button variant="secondary" fullWidth>
-                    <Send className="h-4 w-4" />
-                    Send Reminder
-                  </Button>
-                  <Button variant="ghost" fullWidth className="text-error-600 hover:text-error-700">
-                    <Trash2 className="h-4 w-4" />
-                    Delete Package
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                )}
+                <Button variant="secondary" fullWidth>
+                  <Printer className="h-4 w-4" />
+                  Print Label
+                </Button>
+                <Button variant="secondary" fullWidth>
+                  <Send className="h-4 w-4" />
+                  Send Reminder
+                </Button>
+                <Button variant="secondary" fullWidth>
+                  <RotateCcw className="h-4 w-4" />
+                  Mark as Returned
+                </Button>
+                <Button variant="ghost" fullWidth className="text-error-600 hover:text-error-700">
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* History Timeline */}
           <Card>
-            <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">History</h2>
+            <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Timeline</h2>
             <CardContent>
               <div className="relative">
                 {/* Timeline line */}
@@ -354,6 +470,23 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Photo Section */}
+          <Card>
+            <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Photos</h2>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-50 px-4 py-8">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100">
+                  <ImageIcon className="h-5 w-5 text-neutral-400" />
+                </div>
+                <p className="mt-3 text-[13px] font-medium text-neutral-500">No photos yet</p>
+                <Button variant="secondary" size="sm" className="mt-3">
+                  <Camera className="h-4 w-4" />
+                  Upload Photo
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -366,7 +499,6 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
         unitNumber={pkg.unit}
         onSuccess={() => {
           setShowReleaseDialog(false);
-          // Reload the page to reflect updated status
           window.location.reload();
         }}
       />
