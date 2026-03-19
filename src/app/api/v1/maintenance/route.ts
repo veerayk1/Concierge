@@ -40,6 +40,19 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // GAP 5.1: Residents only see requests not hidden from them
+    const userRole = auth.user.role;
+    const isResident = [
+      'resident',
+      'resident_owner',
+      'resident_tenant',
+      'family_member',
+      'offsite_owner',
+    ].includes(userRole);
+    if (isResident) {
+      where.hideFromResident = false;
+    }
+
     const [requests, total] = await Promise.all([
       prisma.maintenanceRequest.findMany({
         where,
@@ -106,6 +119,7 @@ export async function POST(request: NextRequest) {
         referenceNumber,
         residentId: auth.user.userId,
         status: 'open',
+        hideFromResident: input.hideFromResident ?? false,
         createdById: auth.user.userId,
       },
       include: {

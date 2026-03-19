@@ -198,6 +198,7 @@ model User {
   salutation   String?   @db.VarChar(10) // Mr., Mrs., Ms., Dr., etc.
   languagePreference String @default("en") @db.VarChar(5) // en, fr-CA
   assistanceRequired Boolean @default(false) // Emergency mobility/medical needs flag
+  emailSignature     String?   @db.Text // GAP 8.1: Rich HTML email signature for staff
   mfaEnabled   Boolean   @default(false)
   mfaSecret    String?   @db.VarChar(500) // Encrypted at application layer
   isActive     Boolean   @default(true)

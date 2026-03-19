@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const role = searchParams.get('role');
     const status = searchParams.get('status');
+    const assistanceRequired = searchParams.get('assistanceRequired');
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
 
@@ -58,6 +59,13 @@ export async function GET(request: NextRequest) {
         { lastName: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
       ];
+    }
+
+    // GAP 8.2: Filter by assistanceRequired for emergency reports
+    if (assistanceRequired === 'true') {
+      where.assistanceRequired = true;
+    } else if (assistanceRequired === 'false') {
+      where.assistanceRequired = false;
     }
 
     // Status filter

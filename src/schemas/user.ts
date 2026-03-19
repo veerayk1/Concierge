@@ -69,6 +69,12 @@ export const updateUserSchema = z.object({
   requireAssistance: z.boolean().optional(),
   frontDeskInstructions: z.string().max(500).optional().or(z.literal('')),
   languagePreference: z.enum(['en', 'fr']).optional(),
+  /** GAP 8.1 — Rich HTML email signature for staff members */
+  emailSignature: z
+    .string()
+    .max(5000, 'Email signature cannot exceed 5000 characters')
+    .optional()
+    .nullable(),
 });
 
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;

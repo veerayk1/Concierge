@@ -12,6 +12,8 @@ export const createMaintenanceSchema = z.object({
   permissionToEnter: z.boolean().default(false),
   entryInstructions: z.string().max(1000).optional().or(z.literal('')),
   contactPhone: z.string().max(20).optional().or(z.literal('')),
+  /** GAP 5.1 — Hide from resident portal (default: false = visible to residents) */
+  hideFromResident: z.boolean().default(false),
   /** S3 keys of files uploaded via presigned URL (max 10 attachments). */
   attachments: z
     .array(
@@ -41,6 +43,8 @@ export const updateMaintenanceSchema = z.object({
   holdReason: z.string().min(1).max(500).optional(),
   /** Required when completing a request. */
   resolutionNotes: z.string().min(1).max(2000).optional(),
+  /** GAP 5.1 — Toggle resident visibility on existing requests. */
+  hideFromResident: z.boolean().optional(),
   /** Attach photos/documents to an existing request. */
   attachments: z
     .array(

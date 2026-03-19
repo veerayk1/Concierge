@@ -188,6 +188,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (input.assignedEmployeeId) updateData.assignedEmployeeId = input.assignedEmployeeId;
     if (input.assignedVendorId) updateData.assignedVendorId = input.assignedVendorId;
     if (input.description) updateData.description = stripControlChars(stripHtml(input.description));
+    // GAP 5.1: Toggle resident visibility
+    if (typeof input.hideFromResident === 'boolean')
+      updateData.hideFromResident = input.hideFromResident;
 
     // ------------------------------------------------------------------
     // SLA priority escalation (on any status change)

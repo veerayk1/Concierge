@@ -157,6 +157,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (input.lastName) updateData.lastName = input.lastName;
     if (input.phone !== undefined) updateData.phone = input.phone || null;
     if (input.dateOfBirth !== undefined) updateData.dateOfBirth = input.dateOfBirth || null;
+    // GAP 8.2: assistanceRequired flag for emergency reports
+    if (typeof input.requireAssistance === 'boolean')
+      updateData.assistanceRequired = input.requireAssistance;
+    // GAP 7.6: Language preference per user
+    if (input.languagePreference) updateData.languagePreference = input.languagePreference;
+    // GAP 8.1: Email signature editor
+    if (input.emailSignature !== undefined) updateData.emailSignature = input.emailSignature;
 
     const user = await prisma.user.update({
       where: { id },
