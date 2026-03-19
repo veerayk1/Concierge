@@ -1,0 +1,33 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "search": "Search",
+    "noResults": "No results found",
+    "itemCount": "{count, plural, =0 {No items} one {1 item} other {# items}}"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "greeting": "Good morning, {name}",
+    "lastLogin": "Last login: {date}"
+  },
+  "welcome": {
+    "greeting": "Welcome, {name}"
+  },
+  "packages": {
+    "title": "Packages",
+    "receive": "Receive Package",
+    "release": "Release Package",
+    "notifyResident": "Notify Resident",
+    "storageLocation": "Storage Location",
+    "count": "{count, plural, one {# package} other {# packages}}",
+    "pendingCount": "{count, plural, =0 {No pending packages} one {1 pending package} other {# pending packages}}"
+  },
+  "errors": {
+    "required": "This field is required",
+    "invalidEmail": "Please enter a valid email address",
+    "serverError": "Something went wrong. Please try again."
+  }
+}

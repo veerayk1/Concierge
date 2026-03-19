@@ -63,6 +63,7 @@
     "bullmq": "^5.71.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "intl-messageformat": "^11.2.0",
     "ioredis": "^5.4.2",
     "isomorphic-dompurify": "^2.20.0",
     "jose": "^6.0.8",

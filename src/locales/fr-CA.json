@@ -1,0 +1,33 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "loading": "Chargement...",
+    "search": "Rechercher",
+    "noResults": "Aucun résultat trouvé",
+    "itemCount": "{count, plural, =0 {Aucun élément} one {1 élément} other {# éléments}}"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "greeting": "Bonjour, {name}",
+    "lastLogin": "Dernière connexion : {date}"
+  },
+  "welcome": {
+    "greeting": "Bienvenue, {name}"
+  },
+  "packages": {
+    "title": "Colis",
+    "receive": "Recevoir un colis",
+    "release": "Remettre un colis",
+    "notifyResident": "Aviser le résident",
+    "storageLocation": "Emplacement d'entreposage",
+    "count": "{count, plural, one {# colis} other {# colis}}",
+    "pendingCount": "{count, plural, =0 {Aucun colis en attente} one {1 colis en attente} other {# colis en attente}}"
+  },
+  "errors": {
+    "required": "Ce champ est requis",
+    "invalidEmail": "Veuillez entrer une adresse courriel valide",
+    "serverError": "Une erreur est survenue. Veuillez réessayer."
+  }
+}
