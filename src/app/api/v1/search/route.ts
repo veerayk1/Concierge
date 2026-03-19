@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { parsePagination, buildPaginationMeta } from '@/lib/pagination';
+import { appCache } from '@/server/cache';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -128,6 +129,15 @@ export async function GET(request: NextRequest) {
     const statusFilter = searchParams.get('status');
     const fromDate = searchParams.get('from');
     const toDate = searchParams.get('to');
+
+    // Check cache for search results (keyed on full query params)
+    const searchCacheKey = `search:${propertyId}:${q}:${typeFilter ?? 'all'}:${statusFilter ?? ''}:${fromDate ?? ''}:${toDate ?? ''}:${searchParams.get('page') ?? '1'}:${searchParams.get('limit') ?? ''}`;
+    const cachedSearch = appCache.get(searchCacheKey);
+    if (cachedSearch && propertyId && q && q.length >= 2) {
+      return NextResponse.json(cachedSearch, {
+        headers: { 'X-Cache': 'HIT' },
+      });
+    }
 
     // Empty or too-short query returns empty results (not everything)
     if (!propertyId || !q || q.length < 2) {
@@ -338,10 +348,18 @@ export async function GET(request: NextRequest) {
       ? buildPaginationMeta({ total: totalCount, page, limit })
       : { totalResults: totalCount };
 
-    return NextResponse.json({
+    const searchResponseBody = {
       data: { ...data, results: combinedResults },
       meta,
+    };
+
+    // Cache search results for 60 seconds
+    appCache.set(searchCacheKey, searchResponseBody, {
+      ttl: 60,
+      tags: [`property:${propertyId}`, 'module:search'],
     });
+
+    return NextResponse.json(searchResponseBody);
   } catch (error) {
     console.error('GET /api/v1/search error:', error);
     return NextResponse.json(

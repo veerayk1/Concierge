@@ -1,11 +1,16 @@
 /**
- * Audit Log API — per PRD 16 Settings & Admin
- * Immutable log of all administrative actions
+ * Audit Log API — Enhanced with filtering, export, and GDPR compliance
+ *
+ * GET  /api/v1/audit-log         — Query audit entries with filters
+ * GET  /api/v1/audit-log?export=dsar&userId=...  — DSAR export for a user
+ *
+ * Per PRD 16 Settings & Admin, PRD 28 Compliance Reports
+ * Immutable log of all administrative actions.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { queryAuditEntries, exportUserAuditData } from '@/server/audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,10 +21,12 @@ export async function GET(request: NextRequest) {
     const propertyId = searchParams.get('propertyId');
     const userId = searchParams.get('userId');
     const action = searchParams.get('action');
+    const resource = searchParams.get('resource');
     const from = searchParams.get('from');
     const to = searchParams.get('to');
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '50', 10);
+    const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '50', 10), 200);
+    const exportType = searchParams.get('export');
 
     if (!propertyId) {
       return NextResponse.json(
@@ -28,38 +35,32 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Use LoginAudit as a proxy for audit log until we have a dedicated AuditLog model
-    const where: Record<string, unknown> = {};
-    if (userId) where.userId = userId;
-    if (from || to) {
-      where.createdAt = {};
-      if (from) (where.createdAt as Record<string, unknown>).gte = new Date(from);
-      if (to) (where.createdAt as Record<string, unknown>).lte = new Date(to);
+    // --- DSAR Export ---
+    if (exportType === 'dsar') {
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'MISSING_USER', message: 'userId is required for DSAR export' },
+          { status: 400 },
+        );
+      }
+
+      const dsarData = await exportUserAuditData(userId, propertyId);
+      return NextResponse.json({ data: dsarData });
     }
 
-    const [entries, total] = await Promise.all([
-      prisma.loginAudit.findMany({
-        where,
-        select: {
-          id: true,
-          email: true,
-          success: true,
-          failReason: true,
-          ipAddress: true,
-          userAgent: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      prisma.loginAudit.count({ where }),
-    ]);
-
-    return NextResponse.json({
-      data: entries,
-      meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    // --- Standard Query with Filters ---
+    const result = await queryAuditEntries({
+      propertyId,
+      userId: userId ?? undefined,
+      action: action ?? undefined,
+      resource: resource ?? undefined,
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined,
+      page,
+      pageSize,
     });
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('GET /api/v1/audit-log error:', error);
     return NextResponse.json(

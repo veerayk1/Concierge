@@ -1,5 +1,6 @@
 /**
- * Properties API — List properties for the current user
+ * Properties API — List and create properties
+ * Multi-property management for management companies.
  * Per PRD 01 Architecture + ADMIN-SUPERADMIN-ARCHITECTURE
  */
 
@@ -42,6 +43,9 @@ export async function GET(request: NextRequest) {
         type: true,
         subscriptionTier: true,
         slug: true,
+        branding: true,
+        propertyCode: true,
+        isActive: true,
         createdAt: true,
       },
       orderBy: { name: 'asc' },
@@ -52,6 +56,55 @@ export async function GET(request: NextRequest) {
     console.error('GET /api/v1/properties error:', error);
     return NextResponse.json(
       { error: 'INTERNAL_ERROR', message: 'Failed to fetch properties' },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    if (auth.error) return auth.error;
+
+    const body = await request.json();
+
+    // Validate required fields
+    const required = ['name', 'address', 'city', 'province', 'postalCode'];
+    const missing = required.filter((f) => !body[f]);
+    if (missing.length > 0) {
+      return NextResponse.json(
+        {
+          error: 'VALIDATION_ERROR',
+          message: `Missing required fields: ${missing.join(', ')}`,
+          fields: missing.map((f) => ({ field: f, message: `${f} is required` })),
+        },
+        { status: 400 },
+      );
+    }
+
+    const property = await prisma.property.create({
+      data: {
+        name: body.name,
+        address: body.address,
+        city: body.city,
+        province: body.province,
+        country: body.country || 'CA',
+        postalCode: body.postalCode,
+        unitCount: body.unitCount || 0,
+        timezone: body.timezone || 'America/Toronto',
+        logo: body.logo || null,
+        type: body.type || 'PRODUCTION',
+        slug: body.slug || null,
+        branding: body.branding || null,
+        propertyCode: body.propertyCode || null,
+      },
+    });
+
+    return NextResponse.json({ data: property }, { status: 201 });
+  } catch (error) {
+    console.error('POST /api/v1/properties error:', error);
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', message: 'Failed to create property' },
       { status: 500 },
     );
   }

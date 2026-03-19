@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { appCache } from '@/server/cache';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,6 +20,15 @@ export async function GET(request: NextRequest) {
         { error: 'MISSING_PROPERTY', message: 'propertyId is required' },
         { status: 400 },
       );
+    }
+
+    // Check cache — property settings change infrequently
+    const settingsCacheKey = `settings:${propertyId}`;
+    const cachedSettings = appCache.get(settingsCacheKey);
+    if (cachedSettings) {
+      return NextResponse.json(cachedSettings, {
+        headers: { 'X-Cache': 'HIT' },
+      });
     }
 
     const property = await prisma.property.findUnique({
@@ -62,12 +72,20 @@ export async function GET(request: NextRequest) {
       orderBy: { name: 'asc' },
     });
 
-    return NextResponse.json({
+    const settingsResponseBody = {
       data: {
         property,
         eventTypes,
       },
+    };
+
+    // Cache property settings for 5 minutes (300 seconds)
+    appCache.set(settingsCacheKey, settingsResponseBody, {
+      ttl: 300,
+      tags: [`property:${propertyId}`, 'module:settings'],
     });
+
+    return NextResponse.json(settingsResponseBody);
   } catch (error) {
     console.error('GET /api/v1/settings error:', error);
     return NextResponse.json(
@@ -106,6 +124,9 @@ export async function PATCH(request: NextRequest) {
       where: { id: propertyId },
       data: updateData,
     });
+
+    // Invalidate cached settings for this property
+    appCache.invalidateByTag(`property:${propertyId}`);
 
     return NextResponse.json({ data: property, message: 'Settings updated.' });
   } catch (error) {
