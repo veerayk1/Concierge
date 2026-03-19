@@ -15,44 +15,36 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { createPackageSchema, type CreatePackageInput } from '@/schemas/package';
+import { usePropertyUnits } from '@/lib/hooks/use-property-units';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
 
 // ---------------------------------------------------------------------------
-// Courier options per PRD 04 — 15 system couriers
+// Courier style map — visual styling for well-known couriers
 // ---------------------------------------------------------------------------
 
-const COURIERS = [
-  { id: 'c-amazon', name: 'Amazon', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-  { id: 'c-canada-post', name: 'Canada Post', color: 'bg-red-100 text-red-700 border-red-200' },
-  { id: 'c-fedex', name: 'FedEx', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-  { id: 'c-ups', name: 'UPS', color: 'bg-amber-100 text-amber-800 border-amber-200' },
-  { id: 'c-dhl', name: 'DHL', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-  { id: 'c-purolator', name: 'Purolator', color: 'bg-red-100 text-red-700 border-red-200' },
-  { id: 'c-usps', name: 'USPS', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  { id: 'c-intelcom', name: 'IntelCom', color: 'bg-green-100 text-green-700 border-green-200' },
-  { id: 'c-uber', name: 'Uber Eats', color: 'bg-neutral-800 text-white border-neutral-700' },
-  { id: 'c-doordash', name: 'DoorDash', color: 'bg-red-100 text-red-700 border-red-200' },
-  { id: 'c-skip', name: 'Skip', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-  {
-    id: 'c-personal',
-    name: 'Personal',
-    color: 'bg-neutral-100 text-neutral-700 border-neutral-200',
-  },
-  { id: 'c-other', name: 'Other', color: 'bg-neutral-100 text-neutral-600 border-neutral-200' },
-];
+const COURIER_COLORS: Record<string, string> = {
+  amazon: 'bg-orange-100 text-orange-700 border-orange-200',
+  fedex: 'bg-purple-100 text-purple-700 border-purple-200',
+  ups: 'bg-amber-100 text-amber-800 border-amber-200',
+  'canada-post': 'bg-red-100 text-red-700 border-red-200',
+  dhl: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  purolator: 'bg-red-100 text-red-700 border-red-200',
+  usps: 'bg-blue-100 text-blue-700 border-blue-200',
+  intelcom: 'bg-green-100 text-green-700 border-green-200',
+  'uber-eats': 'bg-neutral-800 text-white border-neutral-700',
+  doordash: 'bg-red-100 text-red-700 border-red-200',
+  skip: 'bg-orange-100 text-orange-700 border-orange-200',
+  personal: 'bg-neutral-100 text-neutral-700 border-neutral-200',
+  other: 'bg-neutral-100 text-neutral-600 border-neutral-200',
+};
 
-const CATEGORIES = [
-  'Small Envelope',
-  'Large Envelope',
-  'Small Box',
-  'Medium Box',
-  'Large Box',
-  'Oversized Item',
-  'Bag',
-  'Tube',
-  'Perishable Container',
-  'Flowers',
-  'Other',
-];
+const DEFAULT_COURIER_COLOR = 'bg-neutral-100 text-neutral-700 border-neutral-200';
+
+interface ApiCourier {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -73,6 +65,8 @@ export function CreatePackageDialog({
 }: CreatePackageDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [direction, setDirection] = useState<'incoming' | 'outgoing'>('incoming');
+  const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
+  const { data: couriers } = useApi<ApiCourier[]>(apiUrl('/api/v1/couriers', { propertyId }));
 
   const {
     register,
@@ -179,15 +173,12 @@ export function CreatePackageDialog({
                   errors.unitId ? 'border-error-300' : 'border-neutral-200 hover:border-neutral-300'
                 }`}
               >
-                <option value="">Select unit...</option>
-                <option value="unit-1">101 — Alice Wong</option>
-                <option value="unit-2">305 — Robert Kim</option>
-                <option value="unit-3">422 — Jane Doe</option>
-                <option value="unit-4">710 — Sarah Wilson</option>
-                <option value="unit-5">802 — David Chen</option>
-                <option value="unit-6">1105 — Lisa Brown</option>
-                <option value="unit-7">1203 — Maria Garcia</option>
-                <option value="unit-8">1501 — Janet Smith</option>
+                <option value="">{unitsLoading ? 'Loading units...' : 'Select unit...'}</option>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.number}
+                  </option>
+                ))}
               </select>
               {errors.unitId && (
                 <p className="text-error-600 text-[13px] font-medium">{errors.unitId.message}</p>
@@ -205,8 +196,9 @@ export function CreatePackageDialog({
           <div>
             <p className="mb-2 text-[14px] font-medium text-neutral-700">Courier</p>
             <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
-              {COURIERS.map((c) => {
+              {(couriers ?? []).map((c) => {
                 const isSelected = selectedCourierId === c.id;
+                const colorClass = COURIER_COLORS[c.slug] || DEFAULT_COURIER_COLOR;
                 return (
                   <button
                     key={c.id}
@@ -214,8 +206,8 @@ export function CreatePackageDialog({
                     onClick={() => setValue('courierId', c.id, { shouldValidate: true })}
                     className={`rounded-xl border px-2 py-2 text-[11px] font-semibold transition-all ${
                       isSelected
-                        ? 'ring-primary-500 ring-2 ' + c.color
-                        : c.color + ' opacity-70 hover:opacity-100'
+                        ? 'ring-primary-500 ring-2 ' + colorClass
+                        : colorClass + ' opacity-70 hover:opacity-100'
                     }`}
                   >
                     {c.name}
@@ -225,41 +217,14 @@ export function CreatePackageDialog({
             </div>
           </div>
 
-          {/* Category + Description */}
+          {/* Description + Notify */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-[14px] font-medium text-neutral-700">Category</label>
-              <select className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none">
-                <option value="">Select type...</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
             <Input
               {...register('description')}
               label="Description"
               placeholder="e.g. Brown box, 30x20cm"
               error={errors.description?.message}
             />
-          </div>
-
-          {/* Storage + Notify */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-[14px] font-medium text-neutral-700">Storage Location</label>
-              <select className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none">
-                <option value="">Select spot...</option>
-                <option value="shelf-a">Shelf A</option>
-                <option value="shelf-b">Shelf B</option>
-                <option value="shelf-c">Shelf C</option>
-                <option value="shelf-d">Shelf D</option>
-                <option value="fridge">Fridge</option>
-                <option value="floor">Floor (oversized)</option>
-              </select>
-            </div>
             <div className="flex flex-col gap-2">
               <label className="text-[14px] font-medium text-neutral-700">Notify Resident</label>
               <select

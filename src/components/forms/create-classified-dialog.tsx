@@ -85,7 +85,12 @@ export function CreateClassifiedDialog({
             ? { 'x-demo-role': localStorage.getItem('demo_role')! }
             : {}),
         },
-        body: JSON.stringify({ ...data, propertyId }),
+        body: JSON.stringify({
+          ...data,
+          propertyId,
+          termsAccepted: true,
+          priceType: data.price === 0 ? 'free' : 'fixed',
+        }),
       });
 
       if (!response.ok) {

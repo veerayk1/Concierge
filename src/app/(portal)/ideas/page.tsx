@@ -17,21 +17,37 @@ import { CreateIdeaDialog } from '@/components/forms/create-idea-dialog';
 // Types
 // ---------------------------------------------------------------------------
 
-type IdeaCategory = 'amenity' | 'security' | 'maintenance' | 'community' | 'policy' | 'other';
+type IdeaCategory =
+  | 'amenities'
+  | 'security'
+  | 'maintenance'
+  | 'community'
+  | 'communication'
+  | 'technology'
+  | 'other';
 
-type IdeaStatus = 'new' | 'under_review' | 'planned' | 'in_progress' | 'completed' | 'declined';
+type IdeaStatus =
+  | 'new'
+  | 'submitted'
+  | 'under_review'
+  | 'planned'
+  | 'in_progress'
+  | 'completed'
+  | 'declined';
 
 interface IdeaItem {
   id: string;
   title: string;
   description: string;
   category: IdeaCategory;
-  author: string;
-  authorUnit: string;
+  author?: string;
+  authorUnit?: string;
+  userId?: string;
   status: IdeaStatus;
-  votesUp: number;
-  votesDown: number;
-  commentCount: number;
+  votesUp?: number;
+  votesDown?: number;
+  voteCount?: number;
+  commentCount?: number;
   createdAt: string;
 }
 
@@ -41,25 +57,28 @@ interface IdeaItem {
 
 const CATEGORY_COLORS: Record<IdeaCategory, 'default' | 'warning' | 'info' | 'error' | 'success'> =
   {
-    amenity: 'info',
+    amenities: 'info',
     security: 'error',
     maintenance: 'warning',
     community: 'success',
-    policy: 'default',
+    communication: 'default',
+    technology: 'info',
     other: 'default',
   };
 
 const CATEGORY_LABELS: Record<IdeaCategory, string> = {
-  amenity: 'Amenity',
+  amenities: 'Amenities',
   security: 'Security',
   maintenance: 'Maintenance',
   community: 'Community',
-  policy: 'Policy',
+  communication: 'Communication',
+  technology: 'Technology',
   other: 'Other',
 };
 
 const STATUS_COLORS: Record<IdeaStatus, 'default' | 'warning' | 'info' | 'error' | 'success'> = {
   new: 'default',
+  submitted: 'default',
   under_review: 'info',
   planned: 'success',
   in_progress: 'warning',
@@ -69,6 +88,7 @@ const STATUS_COLORS: Record<IdeaStatus, 'default' | 'warning' | 'info' | 'error'
 
 const STATUS_LABELS: Record<IdeaStatus, string> = {
   new: 'New',
+  submitted: 'Submitted',
   under_review: 'Under Review',
   planned: 'Planned',
   in_progress: 'In Progress',
@@ -126,7 +146,7 @@ export default function IdeasPage() {
       return (
         idea.title.toLowerCase().includes(q) ||
         idea.description.toLowerCase().includes(q) ||
-        idea.author.toLowerCase().includes(q)
+        (idea.author || '').toLowerCase().includes(q)
       );
     });
   }, [allIdeas, categoryFilter, statusFilter, searchQuery]);
@@ -250,11 +270,12 @@ export default function IdeasPage() {
             className="focus:border-primary-300 focus:ring-primary-100 h-8 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none"
           >
             <option value="all">All Categories</option>
-            <option value="amenity">Amenity</option>
+            <option value="amenities">Amenities</option>
             <option value="security">Security</option>
             <option value="maintenance">Maintenance</option>
             <option value="community">Community</option>
-            <option value="policy">Policy</option>
+            <option value="communication">Communication</option>
+            <option value="technology">Technology</option>
             <option value="other">Other</option>
           </select>
         </div>
@@ -270,6 +291,7 @@ export default function IdeasPage() {
           >
             <option value="all">All Statuses</option>
             <option value="new">New</option>
+            <option value="submitted">Submitted</option>
             <option value="under_review">Under Review</option>
             <option value="planned">Planned</option>
             <option value="in_progress">In Progress</option>
@@ -308,21 +330,22 @@ export default function IdeasPage() {
                 <div className="flex items-center gap-4 text-[13px] text-neutral-500">
                   <span className="flex items-center gap-1">
                     <ThumbsUp className="h-3.5 w-3.5 text-neutral-400" />
-                    {idea.votesUp}
+                    {idea.votesUp || idea.voteCount || 0}
                   </span>
                   <span className="flex items-center gap-1">
                     <ThumbsDown className="h-3.5 w-3.5 text-neutral-400" />
-                    {idea.votesDown}
+                    {idea.votesDown || 0}
                   </span>
                   <span className="flex items-center gap-1">
                     <MessageCircle className="h-3.5 w-3.5 text-neutral-400" />
-                    {idea.commentCount}
+                    {idea.commentCount || 0}
                   </span>
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-3 text-[12px] text-neutral-400">
                 <span>
-                  {idea.author} · Unit {idea.authorUnit}
+                  {idea.author || 'Resident'}
+                  {idea.authorUnit ? ` · Unit ${idea.authorUnit}` : ''}
                 </span>
                 <span>
                   {new Date(idea.createdAt).toLocaleDateString('en-US', {

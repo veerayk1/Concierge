@@ -18,6 +18,7 @@ import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { apiClient, ApiClientError } from '@/lib/api-client';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
+import type { Role } from '@/types';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -79,8 +80,92 @@ const NOTIFICATION_MODULES = [
 // Component
 // ---------------------------------------------------------------------------
 
+// Demo user lookup for when useAuth returns no user (demo mode)
+const DEMO_USERS: Record<
+  string,
+  {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+    role: Role;
+  }
+> = {
+  resident_owner: {
+    id: 'demo-resident-owner',
+    email: 'janet.smith@email.com',
+    firstName: 'Janet',
+    lastName: 'Smith',
+    phone: '+14165552001',
+    role: 'resident_owner',
+  },
+  resident_tenant: {
+    id: 'demo-resident-tenant',
+    email: 'david.chen@email.com',
+    firstName: 'David',
+    lastName: 'Chen',
+    phone: '+14165552003',
+    role: 'resident_tenant',
+  },
+  front_desk: {
+    id: 'demo-front-desk',
+    email: 'mike.j@bondtower.com',
+    firstName: 'Mike',
+    lastName: 'Johnson',
+    phone: null,
+    role: 'front_desk',
+  },
+  property_admin: {
+    id: 'demo-admin',
+    email: 'admin@bondtower.com',
+    firstName: 'Admin',
+    lastName: 'User',
+    phone: null,
+    role: 'property_admin',
+  },
+  super_admin: {
+    id: 'demo-super-admin',
+    email: 'superadmin@concierge.com',
+    firstName: 'Super',
+    lastName: 'Admin',
+    phone: null,
+    role: 'super_admin',
+  },
+};
+
+function getDemoUser(): AuthUser | null {
+  if (typeof window === 'undefined') return null;
+  const role = localStorage.getItem('demo_role');
+  if (!role) return null;
+  const demoUser = DEMO_USERS[role];
+  if (!demoUser) return null;
+  return demoUser;
+}
+
+type AuthUser = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string | null;
+  role: Role;
+};
+
 export default function MyAccountPage() {
-  const { user, loading, setUser } = useAuth();
+  const { user: authUser, loading: authLoading, setUser } = useAuth();
+
+  // In demo mode, useAuth returns null — use a demo user fallback
+  const [demoUser, setDemoUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    if (!authUser && !authLoading) {
+      setDemoUser(getDemoUser());
+    }
+  }, [authUser, authLoading]);
+
+  const user = authUser ?? demoUser;
+  const loading = authLoading && !demoUser;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);

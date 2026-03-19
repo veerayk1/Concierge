@@ -111,7 +111,10 @@ export function CreateAnnouncementDialog({
     try {
       const channelList = Object.entries(data.channels)
         .filter(([, v]) => v)
-        .map(([k]) => k);
+        .map(([k]) => (k === 'lobby_display' ? 'web' : k));
+
+      // Ensure at least one channel is selected
+      const channels = channelList.length > 0 ? channelList : ['web'];
 
       const response = await fetch('/api/v1/announcements', {
         method: 'POST',
@@ -125,10 +128,9 @@ export function CreateAnnouncementDialog({
           propertyId,
           title: data.title,
           content: data.content,
-          category: data.category,
           priority: data.priority,
-          channels: channelList,
-          targetAudience: data.targetAudience,
+          channels,
+          status: data.scheduleForLater ? 'scheduled' : 'published',
           scheduledAt: data.scheduleForLater ? data.scheduledAt : undefined,
         }),
       });

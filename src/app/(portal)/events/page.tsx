@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { LogEventDialog } from '@/components/forms/log-event-dialog';
 
 // ---------------------------------------------------------------------------
 // Types — Unified Event Model (API response shape)
@@ -87,6 +88,7 @@ export default function EventsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [showLogDialog, setShowLogDialog] = useState(false);
 
   const {
     data: apiEvents,
@@ -202,7 +204,7 @@ export default function EventsPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowLogDialog(true)}>
             <Plus className="h-4 w-4" />
             Log Event
           </Button>
@@ -282,6 +284,15 @@ export default function EventsPage() {
           />
         </>
       )}
+      <LogEventDialog
+        open={showLogDialog}
+        onOpenChange={setShowLogDialog}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          setShowLogDialog(false);
+          refetch();
+        }}
+      />
     </PageShell>
   );
 }

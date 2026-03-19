@@ -14,19 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { createMaintenanceSchema, type CreateMaintenanceInput } from '@/schemas/maintenance';
+import { usePropertyUnits } from '@/lib/hooks/use-property-units';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
 
-const CATEGORIES = [
-  'Plumbing',
-  'Electrical',
-  'HVAC',
-  'Appliance',
-  'General',
-  'Doors & Windows',
-  'Flooring',
-  'Painting',
-  'Pest Control',
-  'Other',
-];
+interface ApiCategory {
+  id: string;
+  name: string;
+}
 
 interface CreateMaintenanceDialogProps {
   open: boolean;
@@ -42,6 +36,10 @@ export function CreateMaintenanceDialog({
   onSuccess,
 }: CreateMaintenanceDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
+  const { data: categories } = useApi<ApiCategory[]>(
+    apiUrl('/api/v1/maintenance/categories', { propertyId }),
+  );
 
   const {
     register,
@@ -125,15 +123,12 @@ export function CreateMaintenanceDialog({
                   errors.unitId ? 'border-error-300' : 'border-neutral-200 hover:border-neutral-300'
                 }`}
               >
-                <option value="">Select unit...</option>
-                <option value="unit-1">101</option>
-                <option value="unit-2">305</option>
-                <option value="unit-3">422</option>
-                <option value="unit-4">710</option>
-                <option value="unit-5">802</option>
-                <option value="unit-6">1105</option>
-                <option value="unit-7">1203</option>
-                <option value="unit-8">1501</option>
+                <option value="">{unitsLoading ? 'Loading units...' : 'Select unit...'}</option>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.number}
+                  </option>
+                ))}
               </select>
               {errors.unitId && (
                 <p className="text-error-600 text-[13px] font-medium">{errors.unitId.message}</p>
@@ -147,9 +142,9 @@ export function CreateMaintenanceDialog({
                 className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
               >
                 <option value="">Select category...</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
+                {(categories ?? []).map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
                   </option>
                 ))}
               </select>

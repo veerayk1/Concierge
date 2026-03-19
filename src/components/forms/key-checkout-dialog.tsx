@@ -3,6 +3,7 @@
 /**
  * Key/FOB Checkout Dialog — per PRD 03 Security Console
  * Track key and FOB issuance, returns, and inventory
+ * Posts to /api/v1/keys/checkouts (not /api/v1/events)
  */
 
 import { useState } from 'react';
@@ -15,28 +16,35 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { usePropertyUnits } from '@/lib/hooks/use-property-units';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
 
 const keyCheckoutSchema = z.object({
-  action: z.enum(['checkout', 'return']).default('checkout'),
-  serialNumber: z.string().min(1, 'Serial number is required').max(50),
-  keyType: z
-    .enum(['main_entry', 'unit', 'parking', 'amenity', 'mailbox', 'other'])
-    .default('main_entry'),
-  unitId: z.string().min(1, 'Select a unit'),
-  issuedToName: z.string().min(1, 'Name is required').max(200),
+  keyId: z.string().min(1, 'Select a key'),
+  unitId: z.string().optional(),
+  checkedOutTo: z.string().min(1, 'Name is required').max(200),
+  idType: z.string().min(1, 'ID type is required').max(50),
+  idNumber: z.string().max(30).optional().or(z.literal('')),
+  reason: z.string().min(1, 'Reason is required').max(500),
+  expectedReturn: z.string().optional(),
   idVerified: z.boolean().default(false),
   depositCollected: z.boolean().default(false),
-  notes: z.string().max(500).optional().or(z.literal('')),
 });
 
 type KeyCheckoutInput = z.infer<typeof keyCheckoutSchema>;
 
-const KEY_TYPES = [
-  { value: 'main_entry', label: 'Main Entry FOB' },
-  { value: 'unit', label: 'Unit Key' },
-  { value: 'parking', label: 'Parking FOB' },
-  { value: 'amenity', label: 'Amenity Key' },
-  { value: 'mailbox', label: 'Mailbox Key' },
+interface ApiKey {
+  id: string;
+  keyName: string;
+  keyNumber: string | null;
+  category: string;
+  status: string;
+}
+
+const KEY_ID_TYPES = [
+  { value: 'drivers_license', label: "Driver's License" },
+  { value: 'passport', label: 'Passport' },
+  { value: 'building_id', label: 'Building ID' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -54,6 +62,10 @@ export function KeyCheckoutDialog({
   onSuccess,
 }: KeyCheckoutDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
+  const { data: keys, loading: keysLoading } = useApi<ApiKey[]>(
+    apiUrl('/api/v1/keys', { propertyId, status: 'available' }),
+  );
 
   const {
     register,
@@ -66,25 +78,25 @@ export function KeyCheckoutDialog({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(keyCheckoutSchema) as any,
     defaultValues: {
-      action: 'checkout',
-      serialNumber: '',
-      keyType: 'main_entry',
+      keyId: '',
       unitId: '',
-      issuedToName: '',
+      checkedOutTo: '',
+      idType: '',
+      idNumber: '',
+      reason: '',
+      expectedReturn: '',
       idVerified: false,
       depositCollected: false,
-      notes: '',
     },
   });
 
-  const action = watch('action');
   const idVerified = watch('idVerified');
   const depositCollected = watch('depositCollected');
 
   async function onSubmit(data: KeyCheckoutInput) {
     setServerError(null);
     try {
-      const response = await fetch('/api/v1/events', {
+      const response = await fetch('/api/v1/keys/checkouts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,20 +106,13 @@ export function KeyCheckoutDialog({
         },
         body: JSON.stringify({
           propertyId,
-          eventTypeId: 'type-key',
-          unitId: data.unitId,
-          title: `${data.action === 'checkout' ? 'FOB Issued' : 'FOB Returned'} — ${data.serialNumber}`,
-          description:
-            `${data.keyType} ${data.action} for ${data.issuedToName}. ${data.notes || ''}`.trim(),
-          priority: 'normal',
-          customFields: {
-            serialNumber: data.serialNumber,
-            keyType: data.keyType,
-            action: data.action,
-            issuedToName: data.issuedToName,
-            idVerified: data.idVerified,
-            depositCollected: data.depositCollected,
-          },
+          keyId: data.keyId,
+          checkedOutTo: data.checkedOutTo,
+          unitId: data.unitId || undefined,
+          idType: data.idType,
+          idNumber: data.idNumber || undefined,
+          reason: data.reason,
+          expectedReturn: data.expectedReturn || undefined,
         }),
       });
 
@@ -125,17 +130,17 @@ export function KeyCheckoutDialog({
     }
   }
 
+  const availableKeys = (keys ?? []).filter((k) => k.status === 'available');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
           <Key className="h-5 w-5 text-purple-500" />
-          Key / FOB {action === 'checkout' ? 'Checkout' : 'Return'}
+          Key / FOB Checkout
         </DialogTitle>
         <DialogDescription className="text-[14px] text-neutral-500">
-          {action === 'checkout'
-            ? 'Issue a key or FOB to a resident.'
-            : 'Process a key or FOB return.'}
+          Issue a key or FOB to a resident.
         </DialogDescription>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-5" noValidate>
@@ -145,46 +150,36 @@ export function KeyCheckoutDialog({
             </div>
           )}
 
-          {/* Action Toggle */}
-          <div className="flex rounded-xl bg-neutral-100 p-1">
-            {(['checkout', 'return'] as const).map((a) => (
-              <button
-                key={a}
-                type="button"
-                onClick={() => setValue('action', a)}
-                className={`flex-1 rounded-lg py-2 text-[14px] font-medium capitalize transition-all ${
-                  action === a ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
-                }`}
-              >
-                {a}
-              </button>
-            ))}
-          </div>
+          {availableKeys.length === 0 && !keysLoading && (
+            <div className="border-warning-200 bg-warning-50 text-warning-700 rounded-xl border px-4 py-3 text-[14px]">
+              No keys available for checkout. Add keys to inventory first.
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              {...register('serialNumber')}
-              label="Serial Number"
-              placeholder="e.g. SN-4589"
-              required
-              error={errors.serialNumber?.message}
-            />
             <div className="flex flex-col gap-2">
-              <label className="text-[14px] font-medium text-neutral-700">Key Type</label>
+              <label className="text-[14px] font-medium text-neutral-700">
+                Key / FOB<span className="text-error-500 ml-0.5">*</span>
+              </label>
               <select
-                {...register('keyType')}
-                className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
+                {...register('keyId')}
+                className={`focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none ${
+                  errors.keyId ? 'border-error-300' : 'border-neutral-200 hover:border-neutral-300'
+                }`}
               >
-                {KEY_TYPES.map((kt) => (
-                  <option key={kt.value} value={kt.value}>
-                    {kt.label}
+                <option value="">{keysLoading ? 'Loading keys...' : 'Select key...'}</option>
+                {availableKeys.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.keyName}
+                    {k.keyNumber ? ` (${k.keyNumber})` : ''}
                   </option>
                 ))}
               </select>
+              {errors.keyId && (
+                <p className="text-error-600 text-[13px] font-medium">{errors.keyId.message}</p>
+              )}
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <label className="text-[14px] font-medium text-neutral-700">
                 Unit<span className="text-error-500 ml-0.5">*</span>
@@ -195,26 +190,64 @@ export function KeyCheckoutDialog({
                   errors.unitId ? 'border-error-300' : 'border-neutral-200 hover:border-neutral-300'
                 }`}
               >
-                <option value="">Select unit...</option>
-                <option value="unit-1">101</option>
-                <option value="unit-2">305</option>
-                <option value="unit-3">422</option>
-                <option value="unit-4">710</option>
-                <option value="unit-5">802</option>
-                <option value="unit-6">1501</option>
+                <option value="">{unitsLoading ? 'Loading...' : 'Select unit...'}</option>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.number}
+                  </option>
+                ))}
               </select>
               {errors.unitId && (
                 <p className="text-error-600 text-[13px] font-medium">{errors.unitId.message}</p>
               )}
             </div>
+          </div>
+
+          <Input
+            {...register('checkedOutTo')}
+            label="Issued To"
+            placeholder="Full name"
+            required
+            error={errors.checkedOutTo?.message}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">
+                ID Type<span className="text-error-500 ml-0.5">*</span>
+              </label>
+              <select
+                {...register('idType')}
+                className={`focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none ${
+                  errors.idType ? 'border-error-300' : 'border-neutral-200 hover:border-neutral-300'
+                }`}
+              >
+                <option value="">Select ID type...</option>
+                {KEY_ID_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              {errors.idType && (
+                <p className="text-error-600 text-[13px] font-medium">{errors.idType.message}</p>
+              )}
+            </div>
             <Input
-              {...register('issuedToName')}
-              label={action === 'checkout' ? 'Issued To' : 'Returned By'}
-              placeholder="Full name"
-              required
-              error={errors.issuedToName?.message}
+              {...register('idNumber')}
+              label="ID Number"
+              placeholder="Optional"
+              error={errors.idNumber?.message}
             />
           </div>
+
+          <Input
+            {...register('reason')}
+            label="Reason"
+            placeholder="e.g. Move-in, lockout, maintenance"
+            required
+            error={errors.reason?.message}
+          />
 
           <div className="flex flex-col gap-3">
             <Checkbox
@@ -224,25 +257,12 @@ export function KeyCheckoutDialog({
               description="Government-issued photo ID checked"
               id="key-id"
             />
-            {action === 'checkout' && (
-              <Checkbox
-                checked={depositCollected}
-                onCheckedChange={(c) => setValue('depositCollected', c === true)}
-                label="Deposit Collected"
-                description="Key deposit fee collected from resident"
-                id="key-deposit"
-              />
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-[14px] font-medium text-neutral-700">Notes</label>
-            <textarea
-              {...register('notes')}
-              placeholder="Any additional notes..."
-              rows={2}
-              className="focus:border-primary-500 focus:ring-primary-100 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 hover:border-neutral-300 focus:ring-4 focus:outline-none"
-              maxLength={500}
+            <Checkbox
+              checked={depositCollected}
+              onCheckedChange={(c) => setValue('depositCollected', c === true)}
+              label="Deposit Collected"
+              description="Key deposit fee collected from resident"
+              id="key-deposit"
             />
           </div>
 
@@ -258,11 +278,7 @@ export function KeyCheckoutDialog({
               Cancel
             </Button>
             <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
-              {isSubmitting
-                ? 'Processing...'
-                : action === 'checkout'
-                  ? 'Issue Key'
-                  : 'Process Return'}
+              {isSubmitting ? 'Processing...' : 'Issue Key'}
             </Button>
           </div>
         </form>

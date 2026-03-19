@@ -30,19 +30,23 @@ import { CreateForumThreadDialog } from '@/components/forms/create-forum-thread-
 
 type ThreadCategory = 'general' | 'maintenance' | 'amenities' | 'safety' | 'social' | 'suggestions';
 
-type ThreadStatus = 'open' | 'closed' | 'resolved';
+type ThreadStatus = 'active' | 'closed' | 'resolved';
 
 interface ForumThread {
   id: string;
   title: string;
-  category: ThreadCategory;
-  author: string;
-  authorUnit: string;
+  category?: ThreadCategory;
+  categoryId?: string | null;
+  moderationFlags?: { category?: string } | null;
+  author?: string;
+  authorUnit?: string;
+  userId?: string;
   createdAt: string;
-  lastReplyAt: string;
+  lastReplyAt?: string;
+  lastActivityAt?: string;
   replyCount: number;
   viewCount: number;
-  likeCount: number;
+  likeCount?: number;
   isPinned: boolean;
   isLocked: boolean;
   status: ThreadStatus;
@@ -74,13 +78,13 @@ const CATEGORY_LABELS: Record<ThreadCategory, string> = {
 };
 
 const STATUS_COLORS: Record<ThreadStatus, 'default' | 'success' | 'error'> = {
-  open: 'default',
+  active: 'default',
   closed: 'error',
   resolved: 'success',
 };
 
 const STATUS_LABELS: Record<ThreadStatus, string> = {
-  open: 'Open',
+  active: 'Active',
   closed: 'Closed',
   resolved: 'Resolved',
 };
@@ -145,26 +149,31 @@ export default function ForumPage() {
     return [];
   }, [apiThreads]);
 
+  // Extract category from moderationFlags or direct field
+  const getThreadCategory = (thread: ForumThread): string => {
+    return thread.category || thread.moderationFlags?.category || 'general';
+  };
+
   const filteredThreads = useMemo(() => {
     return allThreads.filter((thread) => {
-      if (categoryFilter !== 'all' && thread.category !== categoryFilter) return false;
+      if (categoryFilter !== 'all' && getThreadCategory(thread) !== categoryFilter) return false;
       if (statusFilter !== 'all' && thread.status !== statusFilter) return false;
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
       return (
         thread.title.toLowerCase().includes(q) ||
-        thread.author.toLowerCase().includes(q) ||
-        thread.authorUnit.toLowerCase().includes(q)
+        (thread.author || '').toLowerCase().includes(q) ||
+        (thread.authorUnit || '').toLowerCase().includes(q)
       );
     });
   }, [allThreads, categoryFilter, statusFilter, searchQuery]);
 
   const totalCount = allThreads.length;
   const activeTodayCount = allThreads.filter((t) => {
-    const lastReply = new Date(t.lastReplyAt);
+    const lastActivity = new Date(t.lastReplyAt || t.lastActivityAt || t.createdAt);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return lastReply >= today;
+    return lastActivity >= today;
   }).length;
   const pinnedCount = allThreads.filter((t) => t.isPinned).length;
 
@@ -189,11 +198,14 @@ export default function ForumPage() {
       header: 'Category',
       accessorKey: 'category',
       sortable: true,
-      cell: (row) => (
-        <Badge variant={CATEGORY_COLORS[row.category]} size="sm">
-          {CATEGORY_LABELS[row.category]}
-        </Badge>
-      ),
+      cell: (row) => {
+        const cat = getThreadCategory(row) as ThreadCategory;
+        return (
+          <Badge variant={CATEGORY_COLORS[cat] || 'default'} size="sm">
+            {CATEGORY_LABELS[cat] || cat}
+          </Badge>
+        );
+      },
     },
     {
       id: 'author',
@@ -202,8 +214,8 @@ export default function ForumPage() {
       sortable: true,
       cell: (row) => (
         <div className="text-[13px]">
-          <span className="font-medium text-neutral-900">{row.author}</span>
-          <span className="ml-1 text-neutral-400">· {row.authorUnit}</span>
+          <span className="font-medium text-neutral-900">{row.author || 'Resident'}</span>
+          {row.authorUnit && <span className="ml-1 text-neutral-400">· {row.authorUnit}</span>}
         </div>
       ),
     },
@@ -239,7 +251,7 @@ export default function ForumPage() {
       cell: (row) => (
         <span className="flex items-center gap-1.5 text-[13px] text-neutral-600">
           <ThumbsUp className="h-3.5 w-3.5 text-neutral-400" />
-          {row.likeCount}
+          {row.likeCount || 0}
         </span>
       ),
     },
@@ -249,7 +261,9 @@ export default function ForumPage() {
       accessorKey: 'lastReplyAt',
       sortable: true,
       cell: (row) => (
-        <span className="text-[13px] text-neutral-500">{formatRelativeTime(row.lastReplyAt)}</span>
+        <span className="text-[13px] text-neutral-500">
+          {formatRelativeTime(row.lastReplyAt || row.lastActivityAt || row.createdAt)}
+        </span>
       ),
     },
     {
@@ -427,7 +441,7 @@ export default function ForumPage() {
               className="focus:border-primary-300 focus:ring-primary-100 h-8 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none"
             >
               <option value="all">All Statuses</option>
-              <option value="open">Open</option>
+              <option value="active">Active</option>
               <option value="closed">Closed</option>
               <option value="resolved">Resolved</option>
             </select>

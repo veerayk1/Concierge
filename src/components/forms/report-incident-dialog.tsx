@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { usePropertyUnits } from '@/lib/hooks/use-property-units';
 
 const incidentSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
@@ -58,6 +59,7 @@ export function ReportIncidentDialog({
   onSuccess,
 }: ReportIncidentDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
 
   const {
     register,
@@ -98,7 +100,7 @@ export function ReportIncidentDialog({
         },
         body: JSON.stringify({
           propertyId,
-          eventTypeId: 'type-incident',
+          eventTypeId: 'incident-report',
           unitId: data.unitId || undefined,
           title: data.title,
           description: data.description,
@@ -239,15 +241,12 @@ export function ReportIncidentDialog({
                 {...register('unitId')}
                 className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
               >
-                <option value="">No specific unit</option>
-                <option value="unit-1">101</option>
-                <option value="unit-2">305</option>
-                <option value="unit-3">422</option>
-                <option value="unit-4">710</option>
-                <option value="unit-5">802</option>
-                <option value="unit-6">1105</option>
-                <option value="unit-7">1203</option>
-                <option value="unit-8">1501</option>
+                <option value="">{unitsLoading ? 'Loading...' : 'No specific unit'}</option>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.number}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

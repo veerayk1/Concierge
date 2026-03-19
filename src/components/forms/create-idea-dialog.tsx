@@ -23,11 +23,12 @@ const ideaSchema = z.object({
 type IdeaInput = z.infer<typeof ideaSchema>;
 
 const CATEGORIES = [
-  { value: 'amenity', label: 'Amenity' },
+  { value: 'amenities', label: 'Amenities' },
   { value: 'security', label: 'Security' },
   { value: 'maintenance', label: 'Maintenance' },
   { value: 'community', label: 'Community' },
-  { value: 'policy', label: 'Policy' },
+  { value: 'communication', label: 'Communication' },
+  { value: 'technology', label: 'Technology' },
   { value: 'other', label: 'Other' },
 ];
 

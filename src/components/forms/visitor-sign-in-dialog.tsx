@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { usePropertyUnits } from '@/lib/hooks/use-property-units';
 
 const visitorSchema = z.object({
   visitorName: z.string().min(1, 'Visitor name is required').max(200),
@@ -43,6 +44,7 @@ export function VisitorSignInDialog({
   onSuccess,
 }: VisitorSignInDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
 
   const {
     register,
@@ -73,7 +75,7 @@ export function VisitorSignInDialog({
   async function onSubmit(data: VisitorInput) {
     setServerError(null);
     try {
-      const response = await fetch('/api/v1/events', {
+      const response = await fetch('/api/v1/visitors', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,19 +85,13 @@ export function VisitorSignInDialog({
         },
         body: JSON.stringify({
           propertyId,
-          eventTypeId: 'type-visitor',
+          visitorName: data.visitorName,
           unitId: data.unitId,
-          title: `${data.visitorName} — Visiting Unit ${data.unitId}`,
-          description: data.notes || `${data.purpose} visit`,
-          priority: 'normal',
-          customFields: {
-            visitorName: data.visitorName,
-            purpose: data.purpose,
-            vehiclePlate: data.vehiclePlate,
-            idVerified: data.idVerified,
-            parkingAssigned: data.parkingAssigned,
-            residentName: data.residentName,
-          },
+          purpose: data.purpose,
+          vehiclePlate: data.vehiclePlate || undefined,
+          idVerified: data.idVerified,
+          parkingAssigned: data.parkingAssigned,
+          notes: data.notes || undefined,
         }),
       });
 
@@ -150,15 +146,12 @@ export function VisitorSignInDialog({
                   errors.unitId ? 'border-error-300' : 'border-neutral-200 hover:border-neutral-300'
                 }`}
               >
-                <option value="">Select unit...</option>
-                <option value="unit-1">101 — Alice Wong</option>
-                <option value="unit-2">305 — Robert Kim</option>
-                <option value="unit-3">422 — Jane Doe</option>
-                <option value="unit-4">710 — Sarah Wilson</option>
-                <option value="unit-5">802 — David Chen</option>
-                <option value="unit-6">1105 — Lisa Brown</option>
-                <option value="unit-7">1203 — Maria Garcia</option>
-                <option value="unit-8">1501 — Janet Smith</option>
+                <option value="">{unitsLoading ? 'Loading units...' : 'Select unit...'}</option>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.number}
+                  </option>
+                ))}
               </select>
               {errors.unitId && (
                 <p className="text-error-600 text-[13px] font-medium">{errors.unitId.message}</p>

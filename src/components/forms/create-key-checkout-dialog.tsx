@@ -2,6 +2,7 @@
 
 /**
  * Create Key Checkout Dialog — Check Out Key/FOB
+ * Posts to /api/v1/keys/checkouts
  */
 
 import { useState } from 'react';
@@ -13,18 +14,28 @@ import { z } from 'zod';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { usePropertyUnits } from '@/lib/hooks/use-property-units';
 
 const keyCheckoutSchema = z.object({
   keyId: z.string().min(1, 'Select a key or FOB'),
-  unit: z.string().max(20).optional(),
-  residentName: z.string().min(2, 'Resident name is required').max(200),
+  unitId: z.string().optional(),
+  checkedOutTo: z.string().min(2, 'Name is required').max(200),
   idType: z.string().min(1, 'Select an ID type'),
   idNumber: z.string().max(100).optional(),
+  reason: z.string().min(1, 'Reason is required').max(500),
   expectedReturn: z.string().optional(),
-  notes: z.string().max(2000).optional(),
 });
 
 type KeyCheckoutInput = z.infer<typeof keyCheckoutSchema>;
+
+interface ApiKey {
+  id: string;
+  keyName: string;
+  keyNumber: string | null;
+  category: string;
+  status: string;
+}
 
 const ID_TYPES = [
   { value: 'drivers_license', label: "Driver's License" },
@@ -47,6 +58,10 @@ export function CreateKeyCheckoutDialog({
   onSuccess,
 }: CreateKeyCheckoutDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
+  const { data: keys, loading: keysLoading } = useApi<ApiKey[]>(
+    apiUrl('/api/v1/keys', { propertyId, status: 'available' }),
+  );
 
   const {
     register,
@@ -58,12 +73,12 @@ export function CreateKeyCheckoutDialog({
     resolver: zodResolver(keyCheckoutSchema) as any,
     defaultValues: {
       keyId: '',
-      unit: '',
-      residentName: '',
+      unitId: '',
+      checkedOutTo: '',
       idType: '',
       idNumber: '',
+      reason: '',
       expectedReturn: '',
-      notes: '',
     },
   });
 
@@ -78,7 +93,16 @@ export function CreateKeyCheckoutDialog({
             ? { 'x-demo-role': localStorage.getItem('demo_role')! }
             : {}),
         },
-        body: JSON.stringify({ ...data, propertyId }),
+        body: JSON.stringify({
+          propertyId,
+          keyId: data.keyId,
+          checkedOutTo: data.checkedOutTo,
+          unitId: data.unitId || undefined,
+          idType: data.idType,
+          idNumber: data.idNumber || undefined,
+          reason: data.reason,
+          expectedReturn: data.expectedReturn || undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -99,10 +123,8 @@ export function CreateKeyCheckoutDialog({
     'focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none';
   const selectErrorClass =
     'focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-error-300 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none';
-  const textareaBase =
-    'w-full rounded-xl border bg-white px-4 py-3 text-[15px] leading-relaxed text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none';
-  const textareaDefault =
-    'focus:border-primary-500 focus:ring-primary-100 border-neutral-200 hover:border-neutral-300';
+
+  const availableKeys = (keys ?? []).filter((k) => k.status === 'available');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -122,6 +144,12 @@ export function CreateKeyCheckoutDialog({
             </div>
           )}
 
+          {availableKeys.length === 0 && !keysLoading && (
+            <div className="border-warning-200 bg-warning-50 text-warning-700 rounded-xl border px-4 py-3 text-[14px]">
+              No keys available for checkout. Add keys to inventory first.
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <label className="text-[14px] font-medium text-neutral-700">
@@ -131,36 +159,39 @@ export function CreateKeyCheckoutDialog({
                 {...register('keyId')}
                 className={errors.keyId ? selectErrorClass : selectClass}
               >
-                <option value="">Select key...</option>
-                <option value="master-1">Master Key #1</option>
-                <option value="master-2">Master Key #2</option>
-                <option value="amenity-gym">Amenity - Gym</option>
-                <option value="amenity-pool">Amenity - Pool</option>
-                <option value="amenity-party">Amenity - Party Room</option>
-                <option value="storage-1">Storage Room Key</option>
-                <option value="mechanical">Mechanical Room Key</option>
-                <option value="fob-spare-1">Spare FOB #1</option>
-                <option value="fob-spare-2">Spare FOB #2</option>
+                <option value="">{keysLoading ? 'Loading keys...' : 'Select key...'}</option>
+                {availableKeys.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.keyName}
+                    {k.keyNumber ? ` (${k.keyNumber})` : ''}
+                    {` — ${k.category}`}
+                  </option>
+                ))}
               </select>
               {errors.keyId && (
                 <p className="text-error-600 text-[13px] font-medium">{errors.keyId.message}</p>
               )}
             </div>
 
-            <Input
-              {...register('unit')}
-              label="Unit"
-              placeholder="e.g. 1204"
-              error={errors.unit?.message}
-            />
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">Unit</label>
+              <select {...register('unitId')} className={selectClass}>
+                <option value="">{unitsLoading ? 'Loading...' : 'Select unit...'}</option>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.number}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <Input
-            {...register('residentName')}
-            label="Resident Name"
+            {...register('checkedOutTo')}
+            label="Checked Out To"
             placeholder="Full name"
             required
-            error={errors.residentName?.message}
+            error={errors.checkedOutTo?.message}
           />
 
           <div className="grid grid-cols-2 gap-4">
@@ -193,22 +224,19 @@ export function CreateKeyCheckoutDialog({
           </div>
 
           <Input
+            {...register('reason')}
+            label="Reason"
+            placeholder="e.g. Move-in, lockout, maintenance access"
+            required
+            error={errors.reason?.message}
+          />
+
+          <Input
             {...register('expectedReturn')}
             type="datetime-local"
             label="Expected Return"
             error={errors.expectedReturn?.message}
           />
-
-          <div className="flex flex-col gap-2">
-            <label className="text-[14px] font-medium text-neutral-700">Notes</label>
-            <textarea
-              {...register('notes')}
-              placeholder="Reason for checkout, special instructions..."
-              rows={3}
-              className={`${textareaBase} ${textareaDefault}`}
-              maxLength={2000}
-            />
-          </div>
 
           <div className="mt-2 flex items-center justify-end gap-3 border-t border-neutral-100 pt-5">
             <Button

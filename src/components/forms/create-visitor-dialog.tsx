@@ -13,11 +13,12 @@ import { z } from 'zod';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { usePropertyUnits } from '@/lib/hooks/use-property-units';
 
 const visitorSchema = z.object({
   visitorName: z.string().min(2, 'Visitor name is required').max(200),
   visitorType: z.string().min(1, 'Select a visitor type'),
-  unitVisiting: z.string().min(1, 'Unit is required').max(20),
+  unitId: z.string().uuid('Select a unit'),
   residentName: z.string().max(200).optional(),
   expectedDeparture: z.string().optional(),
   parkingPermitNeeded: z.boolean().optional(),
@@ -50,6 +51,7 @@ export function CreateVisitorDialog({
   onSuccess,
 }: CreateVisitorDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
 
   const {
     register,
@@ -63,7 +65,7 @@ export function CreateVisitorDialog({
     defaultValues: {
       visitorName: '',
       visitorType: '',
-      unitVisiting: '',
+      unitId: '',
       residentName: '',
       expectedDeparture: '',
       parkingPermitNeeded: false,
@@ -85,7 +87,14 @@ export function CreateVisitorDialog({
             ? { 'x-demo-role': localStorage.getItem('demo_role')! }
             : {}),
         },
-        body: JSON.stringify({ ...data, propertyId }),
+        body: JSON.stringify({
+          propertyId,
+          visitorName: data.visitorName,
+          visitorType: data.visitorType,
+          unitId: data.unitId,
+          comments: data.comments,
+          vehiclePlate: data.vehiclePlate,
+        }),
       });
 
       if (!response.ok) {
@@ -162,13 +171,25 @@ export function CreateVisitorDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              {...register('unitVisiting')}
-              label="Unit Visiting"
-              placeholder="e.g. 1204"
-              required
-              error={errors.unitVisiting?.message}
-            />
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">
+                Unit Visiting<span className="text-error-500 ml-0.5">*</span>
+              </label>
+              <select
+                {...register('unitId')}
+                className={`${errors.unitId ? selectErrorClass : selectClass}`}
+              >
+                <option value="">{unitsLoading ? 'Loading units...' : 'Select unit...'}</option>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.number}
+                  </option>
+                ))}
+              </select>
+              {errors.unitId && (
+                <p className="text-error-600 text-[13px] font-medium">{errors.unitId.message}</p>
+              )}
+            </div>
             <Input
               {...register('residentName')}
               label="Resident Name"

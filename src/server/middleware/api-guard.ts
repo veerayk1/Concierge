@@ -48,6 +48,39 @@ interface GuardOptions {
 }
 
 /**
+ * Resolve demo mode authentication for development.
+ * For resident roles, looks up the first unit in the property to assign unitId.
+ */
+async function handleDemoMode(demoRole: Role, allowedRoles?: Role[]): Promise<GuardResponse> {
+  const isResident = demoRole === 'resident_owner' || demoRole === 'resident_tenant';
+
+  const demoUser: AuthenticatedUser = {
+    userId: isResident
+      ? '00000000-0000-4000-d000-000000010101'
+      : '00000000-0000-4000-a000-000000000001',
+    propertyId: '00000000-0000-4000-b000-000000000001',
+    role: demoRole,
+    permissions: ['*'],
+    mfaVerified: true,
+  };
+
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(demoUser.role)) {
+    return {
+      user: null,
+      error: NextResponse.json(
+        {
+          error: 'FORBIDDEN',
+          message: `Role '${demoUser.role}' does not have access to this resource.`,
+        },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return { user: demoUser, error: null };
+}
+
+/**
  * Guard an API route with authentication and optional role-based authorization.
  */
 export async function guardRoute(
@@ -61,34 +94,7 @@ export async function guardRoute(
     if (allowDemo && process.env.NODE_ENV !== 'production') {
       const demoRole = request.headers.get('x-demo-role');
       if (demoRole) {
-        // Super Admin is a platform-level role — not bound to a single property.
-        // Use a special sentinel value so API routes can detect cross-property access.
-        const isSuperAdmin = demoRole === 'super_admin';
-        const demoUser: AuthenticatedUser = {
-          userId: '00000000-0000-4000-a000-000000000001', // seeded Super Admin UUID
-          propertyId: isSuperAdmin
-            ? '00000000-0000-4000-b000-000000000001' // default to Maple Heights (Super Admin can switch)
-            : '00000000-0000-4000-b000-000000000001',
-          role: demoRole as Role,
-          permissions: ['*'],
-          mfaVerified: true,
-        };
-
-        // Check role authorization even in demo mode
-        if (roles && roles.length > 0 && !roles.includes(demoUser.role)) {
-          return {
-            user: null,
-            error: NextResponse.json(
-              {
-                error: 'FORBIDDEN',
-                message: `Role '${demoUser.role}' does not have access to this resource.`,
-              },
-              { status: 403 },
-            ),
-          };
-        }
-
-        return { user: demoUser, error: null };
+        return handleDemoMode(demoRole as Role, roles);
       }
     }
 

@@ -1,13 +1,14 @@
 'use client';
 
 /**
- * Create Booking Dialog — per PRD 06 Amenity Reservations
+ * Log Event Dialog — Create a unified event entry
+ * Posts to /api/v1/events with an event type from the property's configured types
  */
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Calendar } from 'lucide-react';
+import { Layers } from 'lucide-react';
 import { z } from 'zod';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -16,41 +17,37 @@ import { Input } from '@/components/ui/input';
 import { usePropertyUnits } from '@/lib/hooks/use-property-units';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 
-const bookingSchema = z.object({
-  amenityId: z.string().uuid('Select an amenity'),
-  date: z.string().min(1, 'Date is required'),
-  startTime: z.string().min(1, 'Start time is required'),
-  endTime: z.string().min(1, 'End time is required'),
-  unitId: z.string().uuid('Select a unit'),
-  notes: z.string().max(1000).optional(),
-  guests: z.number().min(0).max(100).default(0),
+const logEventSchema = z.object({
+  eventTypeId: z.string().uuid('Select an event type'),
+  title: z.string().min(1, 'Title is required').max(200),
+  description: z.string().max(4000).optional(),
+  unitId: z.string().optional(),
+  priority: z.enum(['low', 'normal', 'medium', 'high', 'urgent']).default('normal'),
 });
 
-type BookingInput = z.infer<typeof bookingSchema>;
+type LogEventInput = z.infer<typeof logEventSchema>;
 
-interface ApiAmenity {
+interface ApiEventType {
   id: string;
   name: string;
+  icon: string | null;
+  color: string | null;
 }
 
-interface CreateBookingDialogProps {
+interface LogEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   propertyId: string;
   onSuccess?: () => void;
 }
 
-export function CreateBookingDialog({
-  open,
-  onOpenChange,
-  propertyId,
-  onSuccess,
-}: CreateBookingDialogProps) {
+export function LogEventDialog({ open, onOpenChange, propertyId, onSuccess }: LogEventDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
-  const { data: amenities } = useApi<ApiAmenity[]>(apiUrl('/api/v1/amenities', { propertyId }), {
-    enabled: open,
-  });
+  const { data: eventTypes } = useApi<ApiEventType[]>(
+    apiUrl('/api/v1/event-types', { propertyId }),
+    { enabled: open },
+  );
 
   const selectClass =
     'focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none';
@@ -64,30 +61,28 @@ export function CreateBookingDialog({
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<BookingInput>({
+  } = useForm<LogEventInput>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(bookingSchema) as any,
+    resolver: zodResolver(logEventSchema) as any,
     defaultValues: {
-      amenityId: '',
-      date: '',
-      startTime: '',
-      endTime: '',
+      eventTypeId: '',
+      title: '',
+      description: '',
       unitId: '',
-      notes: '',
-      guests: 0,
+      priority: 'normal',
     },
   });
 
-  async function onSubmit(data: BookingInput) {
+  const selectedPriority = watch('priority');
+
+  async function onSubmit(data: LogEventInput) {
     setServerError(null);
     try {
-      // Combine date + time into ISO datetime strings
-      const startDateTime = new Date(`${data.date}T${data.startTime}:00`).toISOString();
-      const endDateTime = new Date(`${data.date}T${data.endTime}:00`).toISOString();
-
-      const response = await fetch('/api/v1/bookings', {
+      const response = await fetch('/api/v1/events', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,18 +92,17 @@ export function CreateBookingDialog({
         },
         body: JSON.stringify({
           propertyId,
-          amenityId: data.amenityId,
-          unitId: data.unitId,
-          startTime: startDateTime,
-          endTime: endDateTime,
-          notes: data.notes,
-          guestCount: data.guests,
+          eventTypeId: data.eventTypeId,
+          title: data.title,
+          description: data.description,
+          unitId: data.unitId || undefined,
+          priority: data.priority,
         }),
       });
 
       if (!response.ok) {
         const result = await response.json();
-        setServerError(result.message || 'Failed to create booking');
+        setServerError(result.message || 'Failed to log event');
         return;
       }
 
@@ -124,11 +118,11 @@ export function CreateBookingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
         <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
-          <Calendar className="text-primary-500 h-5 w-5" />
-          New Booking
+          <Layers className="text-primary-500 h-5 w-5" />
+          Log Event
         </DialogTitle>
         <DialogDescription className="text-[14px] text-neutral-500">
-          Reserve a building amenity.
+          Record a new event in the unified event log.
         </DialogDescription>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-5" noValidate>
@@ -140,91 +134,83 @@ export function CreateBookingDialog({
 
           <div className="flex flex-col gap-2">
             <label className="text-[14px] font-medium text-neutral-700">
-              Amenity<span className="text-error-500 ml-0.5">*</span>
+              Event Type<span className="text-error-500 ml-0.5">*</span>
             </label>
             <select
-              {...register('amenityId')}
-              className={errors.amenityId ? selectErrorClass : selectClass}
+              {...register('eventTypeId')}
+              className={errors.eventTypeId ? selectErrorClass : selectClass}
             >
-              <option value="">Select amenity...</option>
-              {(amenities ?? []).map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
+              <option value="">Select event type...</option>
+              {(eventTypes ?? []).map((et) => (
+                <option key={et.id} value={et.id}>
+                  {et.name}
                 </option>
               ))}
             </select>
-            {errors.amenityId && (
-              <p className="text-error-600 text-[13px] font-medium">{errors.amenityId.message}</p>
+            {errors.eventTypeId && (
+              <p className="text-error-600 text-[13px] font-medium">{errors.eventTypeId.message}</p>
             )}
           </div>
 
           <Input
-            {...register('date')}
-            type="date"
-            label="Date"
+            {...register('title')}
+            label="Title"
+            placeholder="Brief summary of the event"
             required
-            error={errors.date?.message}
+            error={errors.title?.message}
           />
 
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              {...register('startTime')}
-              type="time"
-              label="Start Time"
-              required
-              error={errors.startTime?.message}
-            />
-            <Input
-              {...register('endTime')}
-              type="time"
-              label="End Time"
-              required
-              error={errors.endTime?.message}
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] font-medium text-neutral-700">Description</label>
+            <textarea
+              {...register('description')}
+              placeholder="Detailed description..."
+              rows={4}
+              className={`${textareaBase} ${textareaDefault}`}
+              maxLength={4000}
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-[14px] font-medium text-neutral-700">
-              Unit<span className="text-error-500 ml-0.5">*</span>
-            </label>
-            <select
-              {...register('unitId')}
-              className={errors.unitId ? selectErrorClass : selectClass}
-            >
-              <option value="">{unitsLoading ? 'Loading units...' : 'Select unit...'}</option>
+            <label className="text-[14px] font-medium text-neutral-700">Unit (optional)</label>
+            <select {...register('unitId')} className={selectClass}>
+              <option value="">{unitsLoading ? 'Loading units...' : 'No unit'}</option>
               {units.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.number}
                 </option>
               ))}
             </select>
-            {errors.unitId && (
-              <p className="text-error-600 text-[13px] font-medium">{errors.unitId.message}</p>
-            )}
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-[14px] font-medium text-neutral-700">Purpose / Notes</label>
-            <textarea
-              {...register('notes')}
-              placeholder="Any special requirements or purpose for the booking..."
-              rows={3}
-              className={`${textareaBase} ${textareaDefault}`}
-              maxLength={1000}
-            />
+            <label className="text-[14px] font-medium text-neutral-700">Priority</label>
+            <div className="flex gap-2">
+              {(['low', 'normal', 'high', 'urgent'] as const).map((p) => {
+                const colors = {
+                  low: 'bg-neutral-100 text-neutral-600',
+                  normal: 'bg-primary-50 text-primary-700',
+                  high: 'bg-error-50 text-error-700',
+                  urgent: 'bg-error-100 text-error-800',
+                };
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setValue('priority', p)}
+                    className={`flex-1 rounded-xl py-2 text-[13px] font-semibold capitalize transition-all ${
+                      selectedPriority === p
+                        ? 'ring-primary-500 ring-2 ' + colors[p]
+                        : colors[p] + ' opacity-60'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <Input
-            {...register('guests', { valueAsNumber: true })}
-            type="number"
-            label="Guests"
-            placeholder="0"
-            min={0}
-            max={100}
-            error={errors.guests?.message}
-          />
-
-          {/* Actions */}
           <div className="mt-2 flex items-center justify-end gap-3 border-t border-neutral-100 pt-5">
             <Button
               type="button"
@@ -237,7 +223,7 @@ export function CreateBookingDialog({
               Cancel
             </Button>
             <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
-              {isSubmitting ? 'Booking...' : 'Confirm Booking'}
+              {isSubmitting ? 'Logging...' : 'Log Event'}
             </Button>
           </div>
         </form>

@@ -34,15 +34,19 @@ interface ClassifiedItem {
   id: string;
   title: string;
   description: string;
-  price: number;
+  price: number | string;
   category: ListingCategory;
   condition: ListingCondition;
-  author: string;
-  authorUnit: string;
+  author?: string;
+  authorUnit?: string;
+  userId?: string;
   status: ListingStatus;
-  photos: number;
+  photos?: number;
+  photoCount?: number;
   createdAt: string;
-  expiresAt: string;
+  expiresAt?: string;
+  expirationDate?: string;
+  priceType?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -151,19 +155,21 @@ export default function MarketplacePage() {
     return allListings.filter((item) => {
       if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
       if (conditionFilter !== 'all' && item.condition !== conditionFilter) return false;
-      if (freeOnly && item.price !== 0) return false;
+      if (freeOnly && Number(item.price) !== 0 && item.priceType !== 'free') return false;
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
       return (
         item.title.toLowerCase().includes(q) ||
         item.description.toLowerCase().includes(q) ||
-        item.author.toLowerCase().includes(q)
+        (item.author || '').toLowerCase().includes(q)
       );
     });
   }, [allListings, categoryFilter, conditionFilter, freeOnly, searchQuery]);
 
   const activeCount = allListings.filter((i) => i.status === 'active').length;
-  const freeCount = allListings.filter((i) => i.price === 0 && i.status === 'active').length;
+  const freeCount = allListings.filter(
+    (i) => (Number(i.price) === 0 || i.priceType === 'free') && i.status === 'active',
+  ).length;
   const soldCount = allListings.filter((i) => i.status === 'sold').length;
 
   // Loading state
@@ -332,11 +338,11 @@ export default function MarketplacePage() {
           {filteredListings.map((item) => (
             <Card key={item.id} hoverable className="cursor-pointer">
               {/* Image placeholder */}
-              <div className="mb-4 flex h-40 items-center justify-center rounded-xl bg-neutral-100">
+              <div className="relative mb-4 flex h-40 items-center justify-center rounded-xl bg-neutral-100">
                 <Tag className="h-8 w-8 text-neutral-300" />
-                {item.photos > 0 && (
+                {(item.photos || item.photoCount || 0) > 0 && (
                   <span className="absolute right-2 bottom-2 rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                    {item.photos} photos
+                    {item.photos || item.photoCount} photos
                   </span>
                 )}
               </div>
@@ -349,12 +355,14 @@ export default function MarketplacePage() {
                 )}
               </div>
               <div className="mt-2 flex items-center gap-2">
-                {item.price === 0 ? (
+                {Number(item.price) === 0 || item.priceType === 'free' ? (
                   <Badge variant="success" size="sm">
                     FREE
                   </Badge>
                 ) : (
-                  <span className="text-[16px] font-bold text-neutral-900">${item.price}</span>
+                  <span className="text-[16px] font-bold text-neutral-900">
+                    ${Number(item.price)}
+                  </span>
                 )}
                 <Badge variant={CONDITION_COLORS[item.condition]} size="sm">
                   {CONDITION_LABELS[item.condition]}
@@ -365,7 +373,8 @@ export default function MarketplacePage() {
               </div>
               <div className="mt-3 flex items-center gap-3 text-[12px] text-neutral-400">
                 <span>
-                  {item.author} · Unit {item.authorUnit}
+                  {item.author || 'Resident'}
+                  {item.authorUnit ? ` · Unit ${item.authorUnit}` : ''}
                 </span>
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
