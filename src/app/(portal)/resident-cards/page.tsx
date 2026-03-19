@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { CreateResidentCardDialog } from '@/components/forms/create-resident-card-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -173,6 +174,7 @@ export default function ResidentCardsPage() {
   const [typeFilter, setTypeFilter] = useState<CardType | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<CardStatus | 'all'>('all');
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // API call (falls back to mock data)
   const { data: apiCards } = useApi<ResidentCardItem[]>(
@@ -339,7 +341,7 @@ export default function ResidentCardsPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button variant="primary" size="sm">
+          <Button variant="primary" size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             Issue New Card
           </Button>
@@ -475,6 +477,15 @@ export default function ResidentCardsPage() {
           <DataTable<ResidentCardItem> columns={columns} data={filteredCards} />
         )}
       </div>
+
+      <CreateResidentCardDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          window.location.reload();
+        }}
+      />
     </PageShell>
   );
 }

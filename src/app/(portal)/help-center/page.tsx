@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { CreateHelpTicketDialog } from '@/components/forms/create-help-ticket-dialog';
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                     */
@@ -167,6 +168,7 @@ const FEATURED_ARTICLES: HelpArticle[] = [
 
 export default function HelpCenterPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showTicketDialog, setShowTicketDialog] = useState(false);
 
   /* ---- Filter articles by search ---- */
   const filteredArticles = useMemo(() => {
@@ -323,13 +325,21 @@ export default function HelpCenterPage() {
               <MessageSquare className="h-4 w-4" />
               Contact Support
             </Button>
-            <Button variant="secondary" size="md">
+            <Button variant="secondary" size="md" onClick={() => setShowTicketDialog(true)}>
               <FileText className="h-4 w-4" />
               Submit Ticket
             </Button>
           </div>
         </Card>
       </section>
+
+      <CreateHelpTicketDialog
+        open={showTicketDialog}
+        onOpenChange={setShowTicketDialog}
+        onSuccess={() => {
+          // Ticket submitted successfully
+        }}
+      />
     </PageShell>
   );
 }

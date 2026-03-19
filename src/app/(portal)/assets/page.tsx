@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { CreateAssetDialog } from '@/components/forms/create-asset-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -206,6 +207,7 @@ export default function AssetsPage() {
   const [statusFilter, setStatusFilter] = useState<AssetStatus | 'all'>('all');
   const [conditionFilter, setConditionFilter] = useState<AssetCondition | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // In production, this would fetch from the API
   // const { data, loading, error } = useApi<AssetItem[]>(
@@ -351,7 +353,7 @@ export default function AssetsPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             Add Asset
           </Button>
@@ -525,6 +527,16 @@ export default function AssetsPage() {
           <DataTable<AssetItem> columns={columns} data={filteredAssets} />
         )}
       </div>
+
+      <CreateAssetDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          // Refresh data after successful creation
+          window.location.reload();
+        }}
+      />
     </PageShell>
   );
 }

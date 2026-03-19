@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { CreateDirectoryEntryDialog } from '@/components/forms/create-directory-entry-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -164,6 +165,7 @@ export default function BuildingDirectoryPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const { data: apiEntries } = useApi<DirectoryEntry[]>(
     apiUrl('/api/v1/building-directory', { propertyId: DEMO_PROPERTY_ID }),
@@ -303,7 +305,7 @@ export default function BuildingDirectoryPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             Add Entry
           </Button>
@@ -427,6 +429,15 @@ export default function BuildingDirectoryPage() {
           }
         />
       )}
+
+      <CreateDirectoryEntryDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          window.location.reload();
+        }}
+      />
     </PageShell>
   );
 }
