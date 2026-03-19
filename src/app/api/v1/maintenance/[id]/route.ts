@@ -9,6 +9,7 @@ import { updateMaintenanceSchema } from '@/schemas/maintenance';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { sendEmail } from '@/server/email';
+import { renderTemplate } from '@/server/email-templates';
 import {
   calculateSlaStatus,
   getSlaPriorityBump,
@@ -262,7 +263,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         await sendEmail({
           to: resident.email,
           subject: `Maintenance ${existing.referenceNumber} — status changed to ${newStatus}`,
-          text: `Hi${resident.firstName ? ` ${resident.firstName}` : ''},\n\nYour maintenance request ${existing.referenceNumber} has been updated to: ${newStatus}.\n\n— Concierge`,
+          html: renderTemplate('maintenance_update', {
+            requestRef: existing.referenceNumber,
+            status: newStatus ?? 'open',
+            updatedBy: auth.user.userId,
+            ...(input.resolutionNotes ? { resolutionNotes: input.resolutionNotes } : {}),
+          }),
         });
         notificationSent = true;
       }

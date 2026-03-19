@@ -24,6 +24,8 @@ export interface AuthenticatedUser {
   role: Role;
   permissions: string[];
   mfaVerified: boolean;
+  /** Unit ID for resident roles — populated from occupancy records. */
+  unitId?: string;
 }
 
 export interface GuardResult {

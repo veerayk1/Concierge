@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '@/server/logger';
+import { renderTemplate } from '@/server/email-templates';
 
 const logger = createLogger('email');
 
@@ -185,24 +186,13 @@ export async function sendPasswordResetEmail(payload: PasswordResetEmailPayload)
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const resetLink = `${appUrl}/auth/reset-password?token=${encodeURIComponent(payload.token)}`;
-  const greeting = payload.firstName ? `Hi ${payload.firstName},` : 'Hi,';
 
   await sendEmail({
     to: payload.email,
     subject: 'Reset your Concierge password',
-    html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 16px;">
-        <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 16px;">Password Reset</h2>
-        <p>${greeting}</p>
-        <p>We received a request to reset your password. Click the link below to choose a new one:</p>
-        <p style="margin: 24px 0;">
-          <a href="${resetLink}" style="display: inline-block; padding: 12px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Reset Password</a>
-        </p>
-        <p style="color: #64748b; font-size: 14px;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
-        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-        <p style="color: #94a3b8; font-size: 12px;">Concierge — Building Management</p>
-      </div>
-    `,
-    text: `${greeting}\n\nWe received a request to reset your password. Visit the link below to choose a new one:\n\n${resetLink}\n\nThis link expires in 1 hour. If you didn't request this, you can safely ignore this email.\n\n— Concierge`,
+    html: renderTemplate('password_reset', {
+      resetUrl: resetLink,
+      expiresIn: '1 hour',
+    }),
   });
 }

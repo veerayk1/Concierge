@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { sendEmail } from '@/server/email';
+import { renderTemplate } from '@/server/email-templates';
 import { sendPushToUser } from '@/server/push';
 import { sendSms, formatPhoneNumber } from '@/server/sms';
 import { createLogger } from '@/server/logger';
@@ -63,16 +64,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         void sendEmail({
           to: resident.email,
           subject: `Package Reminder — ${pkg.referenceNumber}`,
-          text: `Hi${resident.firstName ? ` ${resident.firstName}` : ''},\n\nYour package (${pkg.referenceNumber}) is waiting at the front desk. Please pick it up at your earliest convenience.\n\n— Concierge`,
-          html: `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 16px;">
-              <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 16px;">Package Reminder</h2>
-              <p>Hi${resident.firstName ? ` ${resident.firstName}` : ''},</p>
-              <p>Your package (<strong>${pkg.referenceNumber}</strong>) is waiting at the front desk. Please pick it up at your earliest convenience.</p>
-              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-              <p style="color: #94a3b8; font-size: 12px;">Concierge — Building Management</p>
-            </div>
-          `,
+          html: renderTemplate('package_reminder', {
+            residentName: resident.firstName ?? 'Resident',
+            packageRef: pkg.referenceNumber,
+            unitNumber: pkg.unit?.number ?? '',
+          }),
         }).catch((err) => {
           logger.error(
             { err, packageId: id, residentId: pkg.residentId },

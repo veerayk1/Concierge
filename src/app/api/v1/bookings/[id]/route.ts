@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { sendEmail } from '@/server/email';
+import { renderTemplate } from '@/server/email-templates';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -111,18 +112,35 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         sendEmail({
           to: booker.email,
           subject: `Your booking for ${amenityName} has been approved`,
-          text: `Hi ${booker.firstName ?? 'there'},\n\nYour booking for ${amenityName} has been approved.\n\n— Concierge`,
+          html: renderTemplate('booking_approved', {
+            amenityName,
+            date: booking.startTime
+              ? new Date(booking.startTime as string | number | Date).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })
+              : 'TBD',
+            time: booking.startTime
+              ? new Date(booking.startTime as string | number | Date).toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })
+              : 'TBD',
+          }),
         }).catch(() => {
           /* email failures are non-blocking */
         });
       }
 
       if (body.status === 'declined' && booker?.email) {
-        const reason = body.declinedReason ? `\n\nReason: ${body.declinedReason}` : '';
         sendEmail({
           to: booker.email,
           subject: `Your booking for ${amenityName} has been declined`,
-          text: `Hi ${booker.firstName ?? 'there'},\n\nYour booking for ${amenityName} has been declined.${reason}\n\n— Concierge`,
+          html: renderTemplate('booking_declined', {
+            amenityName,
+            reason: body.declinedReason ?? 'No reason provided.',
+          }),
         }).catch(() => {
           /* email failures are non-blocking */
         });
