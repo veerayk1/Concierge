@@ -133,6 +133,9 @@ model Property {
   reportSchedules      ReportSchedule[]
   healthScores         HealthScore[]
 
+  // Alteration module relations
+  alterationProjects AlterationProject[]
+
   // Settings & Admin module relations
   propertySettings       PropertySettings?
   customFieldDefinitions CustomFieldDefinition[]
@@ -461,6 +464,7 @@ model Unit {
   parkingSpots        ParkingSpot[]        @relation("AssignedUnit")
   visitorEntries      VisitorEntry[]
   authorizedDelegates AuthorizedDelegate[]
+  alterationProjects  AlterationProject[]
 
   @@unique([propertyId, number])
   @@index([propertyId])
@@ -1098,6 +1102,78 @@ model MaintenanceStatusChange {
   @@map("maintenance_status_changes")
 }
 
+// ---------------------------------------------------------------------------
+// ALTERATIONS: Renovation/Alteration Project Tracking
+// ---------------------------------------------------------------------------
+
+model AlterationProject {
+  id                   String    @id @default(uuid()) @db.Uuid
+  propertyId           String    @db.Uuid
+  unitId               String    @db.Uuid
+  referenceNumber      String    @unique @db.VarChar(20)
+  description          String    @db.VarChar(4000)
+  scope                String?   @db.VarChar(2000)
+  status               String    @default("submitted") @db.VarChar(20) // submitted, under_review, approved, declined, in_progress, completed
+  declineReason        String?   @db.VarChar(2000)
+  expectedStartDate    DateTime  @db.Date
+  expectedEndDate      DateTime  @db.Date
+  actualCompletionDate DateTime? @db.Date
+  contractorVendorId   String?   @db.Uuid
+  reviewStep           String?   @db.VarChar(30) // documents_check, board_review, final_approval
+  reviewNotes          String?   @db.VarChar(2000)
+  inspectionDate       DateTime? @db.Date
+  inspectionNotes      String?   @db.VarChar(2000)
+  lastActivityDate     DateTime  @default(now())
+  createdById          String    @db.Uuid
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property        Property                @relation(fields: [propertyId], references: [id])
+  unit            Unit                    @relation(fields: [unitId], references: [id])
+  contractorVendor Vendor?                @relation(fields: [contractorVendorId], references: [id])
+  documents       AlterationDocument[]
+  statusChanges   AlterationStatusChange[]
+
+  @@index([propertyId])
+  @@index([propertyId, status])
+  @@index([unitId])
+  @@map("alteration_projects")
+}
+
+model AlterationDocument {
+  id                   String   @id @default(uuid()) @db.Uuid
+  alterationProjectId  String   @db.Uuid
+  documentType         String   @db.VarChar(50) // insurance_certificate, permit, floor_plan, other
+  fileName             String   @db.VarChar(255)
+  fileUrl              String   @db.VarChar(500)
+  fileSizeBytes        Int
+  contentType          String   @db.VarChar(100)
+  uploadedById         String   @db.Uuid
+  createdAt            DateTime @default(now())
+
+  alterationProject AlterationProject @relation(fields: [alterationProjectId], references: [id])
+
+  @@index([alterationProjectId])
+  @@map("alteration_documents")
+}
+
+model AlterationStatusChange {
+  id                   String   @id @default(uuid()) @db.Uuid
+  alterationProjectId  String   @db.Uuid
+  changedById          String   @db.Uuid
+  fromStatus           String   @db.VarChar(20)
+  toStatus             String   @db.VarChar(20)
+  reason               String?  @db.VarChar(2000)
+  createdAt            DateTime @default(now())
+
+  alterationProject AlterationProject @relation(fields: [alterationProjectId], references: [id])
+
+  @@index([alterationProjectId])
+  @@map("alteration_status_changes")
+}
+
 model ResponseTemplate {
   id                 String   @id @default(uuid()) @db.Uuid
   propertyId         String   @db.Uuid
@@ -1139,6 +1215,7 @@ model Vendor {
   property            Property              @relation(fields: [propertyId], references: [id])
   serviceCategory     VendorServiceCategory @relation(fields: [serviceCategoryId], references: [id])
   maintenanceRequests MaintenanceRequest[]
+  alterationProjects  AlterationProject[]
   documents           VendorDocument[]
 
   @@index([propertyId])
@@ -1179,21 +1256,26 @@ model VendorDocument {
 }
 
 model Equipment {
-  id              String    @id @default(uuid()) @db.Uuid
-  propertyId      String    @db.Uuid
-  name            String    @db.VarChar(200)
-  categoryId      String?   @db.Uuid
-  serialNumber    String?   @db.VarChar(100)
-  manufacturer    String?   @db.VarChar(100)
-  modelNumber     String?   @db.VarChar(100)
-  status          String    @default("operational") @db.VarChar(20) // operational, needs_repair, out_of_service, decommissioned
-  location        String?   @db.VarChar(200)
-  purchaseDate    DateTime? @db.Date
-  warrantyExpiry  DateTime? @db.Date
-  lastServiceDate DateTime? @db.Date
-  nextServiceDate DateTime? @db.Date
-  notes           String?   @db.VarChar(2000)
-  customFields    Json?     @db.JsonB
+  id                    String    @id @default(uuid()) @db.Uuid
+  propertyId            String    @db.Uuid
+  name                  String    @db.VarChar(200)
+  category              String    @default("other") @db.VarChar(20) // HVAC, plumbing, electrical, fire_safety, elevator, other
+  serialNumber          String?   @db.VarChar(100)
+  manufacturer          String?   @db.VarChar(100)
+  modelNumber           String?   @db.VarChar(100)
+  status                String    @default("active") @db.VarChar(20) // active, needs_repair, under_repair, decommissioned
+  location              String?   @db.VarChar(200)
+  installDate           DateTime? @db.Date
+  purchaseDate          DateTime? @db.Date
+  purchasePrice         Decimal?  @db.Decimal(12, 2)
+  warrantyExpiry        DateTime? @db.Date
+  expectedLifespanYears Int?
+  lastServiceDate       DateTime? @db.Date
+  nextServiceDate       DateTime? @db.Date
+  nextInspectionDate    DateTime? @db.Date
+  assetTag              String?   @db.VarChar(50)
+  notes                 String?   @db.VarChar(2000)
+  customFields          Json?     @db.JsonB
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -1205,6 +1287,7 @@ model Equipment {
 
   @@index([propertyId])
   @@index([propertyId, status])
+  @@index([propertyId, category])
   @@map("equipment")
 }
 
