@@ -24,8 +24,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
     const status = searchParams.get('status');
+    const type = searchParams.get('type');
+    const momentum = searchParams.get('momentum');
     const unitId = searchParams.get('unitId');
     const residentId = searchParams.get('residentId');
+    const search = searchParams.get('search') || '';
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '50', 10);
 
@@ -36,10 +39,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const where: Record<string, unknown> = { propertyId, deletedAt: null };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, any> = { propertyId, deletedAt: null };
     if (status) where.status = status;
+    if (type) where.type = type;
     if (unitId) where.unitId = unitId;
     if (residentId) where.createdById = residentId;
+    if (search) {
+      where.OR = [
+        { referenceNumber: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { contractorName: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const [projects, total] = await Promise.all([
       prisma.alterationProject.findMany({
@@ -62,9 +74,17 @@ export async function GET(request: NextRequest) {
         : 'stopped',
     }));
 
+    // Filter by momentum if requested (post-query since momentum is computed)
+    const filtered = momentum ? enriched.filter((p) => p.momentum === momentum) : enriched;
+
     return NextResponse.json({
-      data: enriched,
-      meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+      data: filtered,
+      meta: {
+        page,
+        pageSize,
+        total: momentum ? filtered.length : total,
+        totalPages: Math.ceil((momentum ? filtered.length : total) / pageSize),
+      },
     });
   } catch (error) {
     console.error('GET /api/v1/alterations error:', error);
@@ -95,7 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
-    const referenceNumber = `ALT-${nanoid(4).toUpperCase()}`;
+    const referenceNumber = `ALT-${nanoid(6).toUpperCase()}`;
     const now = new Date();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -104,10 +124,20 @@ export async function POST(request: NextRequest) {
         propertyId: input.propertyId,
         unitId: input.unitId,
         description: stripControlChars(stripHtml(input.description)),
+        type: input.type || 'renovation',
         scope: input.scope ? stripControlChars(stripHtml(input.scope)) : null,
         expectedStartDate: new Date(input.expectedStartDate),
         expectedEndDate: new Date(input.expectedEndDate),
         contractorVendorId: input.contractorVendorId || null,
+        contractorName: input.contractorName
+          ? stripControlChars(stripHtml(input.contractorName))
+          : null,
+        contractorPhone: input.contractorPhone || null,
+        contractorEmail: input.contractorEmail || null,
+        hasPermit: input.hasPermit ?? false,
+        permitNumber: input.permitNumber ? stripControlChars(stripHtml(input.permitNumber)) : null,
+        hasInsurance: input.hasInsurance ?? false,
+        notes: input.notes ? stripControlChars(stripHtml(input.notes)) : null,
         referenceNumber,
         status: 'submitted',
         createdById: auth.user.userId,
@@ -119,7 +149,10 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { data: project, message: `Alteration project ${referenceNumber} created.` },
+      {
+        data: { ...project, momentum: 'ok' },
+        message: `Alteration project ${referenceNumber} created.`,
+      },
       { status: 201 },
     );
   } catch (error) {

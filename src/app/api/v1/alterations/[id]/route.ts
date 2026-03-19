@@ -34,6 +34,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       include: {
         unit: { select: { id: true, number: true } },
         documents: true,
+        statusChanges: {
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        },
       },
     });
 
@@ -60,11 +64,34 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       | undefined;
     const momentum = lastActivityDate ? calculateMomentum(lastActivityDate) : 'stopped';
 
+    // Build timeline from status changes
+    const statusChanges = (project as Record<string, unknown>).statusChanges as
+      | Array<{
+          id: string;
+          fromStatus: string;
+          toStatus: string;
+          reason: string | null;
+          createdAt: Date;
+          changedById: string;
+        }>
+      | undefined;
+
+    const timeline = (statusChanges || []).map((change) => ({
+      id: change.id,
+      type: 'status_change' as const,
+      fromStatus: change.fromStatus,
+      toStatus: change.toStatus,
+      reason: change.reason,
+      timestamp: change.createdAt,
+      userId: change.changedById,
+    }));
+
     return NextResponse.json({
       data: {
         ...project,
         requiredDocuments,
         momentum,
+        timeline,
       },
     });
   } catch (error) {
@@ -176,6 +203,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (input.description) {
       updateData.description = stripControlChars(stripHtml(input.description));
     }
+    if (input.type) {
+      updateData.type = input.type;
+    }
     if (input.expectedEndDate) {
       updateData.expectedEndDate = new Date(input.expectedEndDate);
     }
@@ -184,6 +214,31 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     if (input.contractorVendorId) {
       updateData.contractorVendorId = input.contractorVendorId;
+    }
+    if (input.contractorName !== undefined) {
+      updateData.contractorName = input.contractorName
+        ? stripControlChars(stripHtml(input.contractorName))
+        : null;
+    }
+    if (input.contractorPhone !== undefined) {
+      updateData.contractorPhone = input.contractorPhone || null;
+    }
+    if (input.contractorEmail !== undefined) {
+      updateData.contractorEmail = input.contractorEmail || null;
+    }
+    if (input.hasPermit !== undefined) {
+      updateData.hasPermit = input.hasPermit;
+    }
+    if (input.permitNumber !== undefined) {
+      updateData.permitNumber = input.permitNumber
+        ? stripControlChars(stripHtml(input.permitNumber))
+        : null;
+    }
+    if (input.hasInsurance !== undefined) {
+      updateData.hasInsurance = input.hasInsurance;
+    }
+    if (input.notes !== undefined) {
+      updateData.notes = input.notes ? stripControlChars(stripHtml(input.notes)) : null;
     }
     if (input.reviewStep) {
       updateData.reviewStep = input.reviewStep;
@@ -211,6 +266,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         unit: { select: { id: true, number: true } },
       },
     });
+
+    // Calculate momentum for response
+    const updatedMomentum = calculateMomentum(
+      (updated as Record<string, unknown>).lastActivityDate as Date,
+    );
 
     // ------------------------------------------------------------------
     // Email notification on status change
@@ -241,7 +301,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     return NextResponse.json({
-      data: updated,
+      data: { ...updated, momentum: updatedMomentum },
       message: `Alteration project ${isStatusChange ? newStatus : 'updated'}.`,
     });
   } catch (error) {

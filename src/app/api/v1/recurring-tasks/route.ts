@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
     const status = searchParams.get('status'); // active | paused
+    const category = searchParams.get('category');
+    const frequency = searchParams.get('frequency');
+    const search = searchParams.get('search') || '';
     const equipmentId = searchParams.get('equipmentId');
     const assignedEmployeeId = searchParams.get('assignedEmployeeId');
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -40,8 +43,18 @@ export async function GET(request: NextRequest) {
 
     if (status === 'active') where.isActive = true;
     if (status === 'paused') where.isActive = false;
+    if (category) where.categoryId = category;
+    if (frequency) where.intervalType = frequency;
     if (equipmentId) where.equipmentId = equipmentId;
     if (assignedEmployeeId) where.assignedEmployeeId = assignedEmployeeId;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { location: { contains: search, mode: 'insensitive' } },
+        { areaDescription: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const [tasks, total] = await Promise.all([
       prisma.recurringTask.findMany({
@@ -118,6 +131,8 @@ export async function POST(request: NextRequest) {
         categoryId: input.categoryId,
         unitId: input.unitId ?? null,
         areaDescription: input.areaDescription || null,
+        location: input.location || null,
+        notes: input.notes ? stripControlChars(stripHtml(input.notes)) : null,
         assignedEmployeeId: input.assignedEmployeeId ?? null,
         equipmentId: input.equipmentId ?? null,
         intervalType: input.intervalType,

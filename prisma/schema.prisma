@@ -1155,6 +1155,7 @@ model AlterationProject {
   unitId               String    @db.Uuid
   referenceNumber      String    @unique @db.VarChar(20)
   description          String    @db.VarChar(4000)
+  type                 String    @default("renovation") @db.VarChar(50) // renovation, plumbing, electrical, hvac, structural, cosmetic, other
   scope                String?   @db.VarChar(2000)
   status               String    @default("submitted") @db.VarChar(20) // submitted, under_review, approved, declined, in_progress, completed
   declineReason        String?   @db.VarChar(2000)
@@ -1162,6 +1163,13 @@ model AlterationProject {
   expectedEndDate      DateTime  @db.Date
   actualCompletionDate DateTime? @db.Date
   contractorVendorId   String?   @db.Uuid
+  contractorName       String?   @db.VarChar(200)
+  contractorPhone      String?   @db.VarChar(30)
+  contractorEmail      String?   @db.VarChar(255)
+  hasPermit            Boolean   @default(false)
+  permitNumber         String?   @db.VarChar(100)
+  hasInsurance         Boolean   @default(false)
+  notes                String?   @db.VarChar(4000)
   reviewStep           String?   @db.VarChar(30) // documents_check, board_review, final_approval
   reviewNotes          String?   @db.VarChar(2000)
   inspectionDate       DateTime? @db.Date
@@ -1344,6 +1352,8 @@ model RecurringTask {
   categoryId         String    @db.Uuid
   unitId             String?   @db.Uuid
   areaDescription    String?   @db.VarChar(200)
+  location           String?   @db.VarChar(200)
+  notes              String?   @db.VarChar(4000)
   assignedEmployeeId String?   @db.Uuid
   equipmentId        String?   @db.Uuid
   intervalType       String    @db.VarChar(20) // daily, weekly, biweekly, monthly, quarterly, semiannually, annually, custom
@@ -1357,15 +1367,32 @@ model RecurringTask {
   lastGeneratedAt    DateTime?
   createdById        String    @db.Uuid
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  category  MaintenanceCategory @relation(fields: [categoryId], references: [id])
-  equipment Equipment?          @relation(fields: [equipmentId], references: [id])
+  category    MaintenanceCategory      @relation(fields: [categoryId], references: [id])
+  equipment   Equipment?               @relation(fields: [equipmentId], references: [id])
+  completions RecurringTaskCompletion[]
 
   @@index([propertyId])
   @@index([isActive, nextOccurrence])
   @@map("recurring_tasks")
+}
+
+model RecurringTaskCompletion {
+  id              String   @id @default(uuid()) @db.Uuid
+  recurringTaskId String   @db.Uuid
+  completedById   String   @db.Uuid
+  completedAt     DateTime @default(now())
+  notes           String?  @db.VarChar(2000)
+  periodStart     DateTime @db.Date
+  periodEnd       DateTime @db.Date
+
+  recurringTask RecurringTask @relation(fields: [recurringTaskId], references: [id])
+
+  @@index([recurringTaskId])
+  @@index([recurringTaskId, periodStart])
+  @@map("recurring_task_completions")
 }
 
 // ---------------------------------------------------------------------------
@@ -3818,7 +3845,9 @@ model PurchaseOrder {
   referenceNumber String    @unique @db.VarChar(20)
   status          String    @default("draft") @db.VarChar(20) // draft, submitted, approved, ordered, received, closed
   budgetCategory  String    @db.VarChar(100)
+  priority        String    @default("normal") @db.VarChar(20) // low, normal, high, urgent
   totalAmount     Float     @default(0)
+  expectedDelivery DateTime? @db.Date
   notes           String?   @db.VarChar(2000)
 
   // Invoice matching

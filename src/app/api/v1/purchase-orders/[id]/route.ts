@@ -1,6 +1,8 @@
 /**
- * Purchase Orders API — Get, Update, Status Transitions
- * Per CLAUDE.md nice-to-have #4
+ * Purchase Order Detail API — Get, Update, Status Transitions
+ *
+ * Handles PO lifecycle: draft -> submitted -> approved -> ordered -> received -> closed.
+ * Supports field updates and approval workflow with role-based access.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,6 +13,7 @@ import {
   type POStatus,
 } from '@/schemas/purchase-order';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const PO_ALLOWED_ROLES = ['property_admin', 'board_member', 'property_manager', 'super_admin'];
 const APPROVAL_ROLES = ['property_admin', 'board_member', 'super_admin'];
@@ -19,13 +22,15 @@ const APPROVAL_ROLES = ['property_admin', 'board_member', 'super_admin'];
 // GET /api/v1/purchase-orders/[id]
 // ---------------------------------------------------------------------------
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
+    const { id } = await params;
+
     const po = await prisma.purchaseOrder.findUnique({
-      where: { id: params.id },
+      where: { id, deletedAt: null },
       include: {
         vendor: { select: { id: true, companyName: true } },
         items: true,
@@ -51,10 +56,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // ---------------------------------------------------------------------------
-// PATCH /api/v1/purchase-orders/[id] — Status transition
+// PATCH /api/v1/purchase-orders/[id] — Update fields & status transition
 // ---------------------------------------------------------------------------
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
@@ -66,6 +71,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       );
     }
 
+    const { id } = await params;
     const body = await request.json();
     const parsed = updatePurchaseOrderStatusSchema.safeParse(body);
 
@@ -76,11 +82,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       );
     }
 
-    const { status: newStatus, approvalNotes } = parsed.data;
+    const input = parsed.data;
 
     // Fetch current PO
     const po = await prisma.purchaseOrder.findUnique({
-      where: { id: params.id },
+      where: { id, deletedAt: null },
     });
 
     if (!po) {
@@ -90,56 +96,109 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       );
     }
 
-    // Validate status transition
-    const currentStatus = po.status as POStatus;
-    const allowedTransitions = PO_STATUS_TRANSITIONS[currentStatus] || [];
-
-    if (!allowedTransitions.includes(newStatus)) {
-      return NextResponse.json(
-        {
-          error: 'INVALID_TRANSITION',
-          message: `Cannot transition from ${currentStatus} to ${newStatus}. Allowed: ${allowedTransitions.join(', ') || 'none'}`,
-        },
-        { status: 422 },
-      );
-    }
-
-    // Approval requires property_admin or board_member
-    if (newStatus === 'approved' && !APPROVAL_ROLES.includes(auth.user.role)) {
-      return NextResponse.json(
-        {
-          error: 'FORBIDDEN',
-          message: 'Only property admins or board members can approve purchase orders',
-        },
-        { status: 403 },
-      );
-    }
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: Record<string, any> = {
-      status: newStatus,
       updatedById: auth.user.userId,
     };
 
-    if (newStatus === 'approved') {
-      updateData.approvedById = auth.user.userId;
-      updateData.approvedAt = new Date();
-      if (approvalNotes) updateData.approvalNotes = approvalNotes;
+    // ------------------------------------------------------------------
+    // Status transition (optional — PATCH may only update fields)
+    // ------------------------------------------------------------------
+    const newStatus = input.status as POStatus | undefined;
+    const currentStatus = po.status as POStatus;
+    const isStatusChange = newStatus && newStatus !== currentStatus;
+
+    if (isStatusChange) {
+      const allowedTransitions = PO_STATUS_TRANSITIONS[currentStatus] || [];
+
+      if (!allowedTransitions.includes(newStatus)) {
+        return NextResponse.json(
+          {
+            error: 'INVALID_TRANSITION',
+            message: `Cannot transition from ${currentStatus} to ${newStatus}. Allowed: ${allowedTransitions.join(', ') || 'none'}`,
+          },
+          { status: 422 },
+        );
+      }
+
+      // Approval requires property_admin or board_member
+      if (newStatus === 'approved' && !APPROVAL_ROLES.includes(auth.user.role)) {
+        return NextResponse.json(
+          {
+            error: 'FORBIDDEN',
+            message: 'Only property admins or board members can approve purchase orders',
+          },
+          { status: 403 },
+        );
+      }
+
+      updateData.status = newStatus;
+
+      if (newStatus === 'approved') {
+        updateData.approvedById = auth.user.userId;
+        updateData.approvedAt = new Date();
+        if (input.approvalNotes) {
+          updateData.approvalNotes = stripControlChars(stripHtml(input.approvalNotes));
+        }
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Field updates (allowed on draft/submitted POs)
+    // ------------------------------------------------------------------
+    if (input.notes !== undefined) {
+      updateData.notes = input.notes ? stripControlChars(stripHtml(input.notes)) : null;
+    }
+    if (input.priority !== undefined) {
+      updateData.priority = input.priority;
+    }
+    if (input.expectedDelivery !== undefined) {
+      updateData.expectedDelivery = input.expectedDelivery
+        ? new Date(input.expectedDelivery)
+        : null;
+    }
+    if (input.budgetCategory !== undefined) {
+      // Only allow category change on draft POs
+      if (currentStatus !== 'draft') {
+        return NextResponse.json(
+          {
+            error: 'FIELD_LOCKED',
+            message: 'Budget category can only be changed on draft purchase orders.',
+          },
+          { status: 400 },
+        );
+      }
+      updateData.budgetCategory = stripControlChars(stripHtml(input.budgetCategory));
+    }
+    if (input.vendorId !== undefined) {
+      // Only allow vendor change on draft POs
+      if (currentStatus !== 'draft') {
+        return NextResponse.json(
+          {
+            error: 'FIELD_LOCKED',
+            message: 'Vendor can only be changed on draft purchase orders.',
+          },
+          { status: 400 },
+        );
+      }
+      updateData.vendorId = input.vendorId;
     }
 
     const updated = await prisma.purchaseOrder.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         vendor: { select: { id: true, companyName: true } },
         items: true,
+        attachments: true,
       },
     });
 
-    return NextResponse.json({
-      data: updated,
-      message: `Purchase order ${po.referenceNumber} status changed to ${newStatus}.`,
-    });
+    const message = isStatusChange
+      ? `Purchase order ${po.referenceNumber} status changed to ${newStatus}.`
+      : `Purchase order ${po.referenceNumber} updated.`;
+
+    return NextResponse.json({ data: updated, message });
   } catch (error) {
     console.error('PATCH /api/v1/purchase-orders/[id] error:', error);
     return NextResponse.json(

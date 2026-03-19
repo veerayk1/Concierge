@@ -1,6 +1,5 @@
 /**
  * Purchase Orders API — List & Create
- * Per CLAUDE.md nice-to-have #4
  *
  * Tracks building expenditures with vendor assignment, budget categories,
  * approval workflow, and invoice matching.
@@ -28,6 +27,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
     const status = searchParams.get('status');
+    const category = searchParams.get('category');
+    const priority = searchParams.get('priority');
     const search = searchParams.get('search') || '';
     const summary = searchParams.get('summary');
     const month = searchParams.get('month'); // e.g. "2026-03"
@@ -76,9 +77,12 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: Record<string, any> = { propertyId, deletedAt: null };
     if (status) where.status = status;
+    if (category) where.budgetCategory = category;
+    if (priority) where.priority = priority;
     if (search) {
       where.OR = [
         { referenceNumber: { contains: search, mode: 'insensitive' } },
+        { notes: { contains: search, mode: 'insensitive' } },
         { vendor: { companyName: { contains: search, mode: 'insensitive' } } },
       ];
     }
@@ -175,9 +179,11 @@ export async function POST(request: NextRequest) {
       propertyId: input.propertyId,
       vendorId: input.vendorId,
       budgetCategory: stripControlChars(stripHtml(input.budgetCategory)),
+      priority: input.priority || 'normal',
       referenceNumber,
       status: 'draft',
       totalAmount,
+      expectedDelivery: input.expectedDelivery ? new Date(input.expectedDelivery) : null,
       notes: input.notes ? stripControlChars(stripHtml(input.notes)) : null,
       createdById: auth.user.userId,
       items: {

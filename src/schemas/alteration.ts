@@ -23,7 +23,6 @@ export type MomentumIndicator = 'ok' | 'slow' | 'stalled' | 'stopped';
 
 /**
  * Calculate momentum indicator based on days since last activity.
- * Per BuildingLink's alteration tracking pattern.
  */
 export function calculateMomentum(lastActivityDate: Date | string): MomentumIndicator {
   const lastActivity = new Date(lastActivityDate);
@@ -36,6 +35,22 @@ export function calculateMomentum(lastActivityDate: Date | string): MomentumIndi
   if (diffDays <= MOMENTUM_THRESHOLDS.STALLED) return 'stalled';
   return 'stopped';
 }
+
+// ---------------------------------------------------------------------------
+// Alteration types
+// ---------------------------------------------------------------------------
+
+export const ALTERATION_TYPES = [
+  'renovation',
+  'plumbing',
+  'electrical',
+  'hvac',
+  'structural',
+  'cosmetic',
+  'other',
+] as const;
+
+export type AlterationType = (typeof ALTERATION_TYPES)[number];
 
 // ---------------------------------------------------------------------------
 // Status lifecycle
@@ -77,6 +92,7 @@ export const createAlterationSchema = z.object({
   propertyId: z.string().uuid(),
   unitId: z.string().uuid('Select a unit'),
   description: z.string().min(10, 'Description must be at least 10 characters').max(4000),
+  type: z.enum(ALTERATION_TYPES).default('renovation'),
   expectedStartDate: z
     .string()
     .datetime()
@@ -86,7 +102,14 @@ export const createAlterationSchema = z.object({
     .datetime()
     .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   contractorVendorId: z.string().uuid().optional(),
+  contractorName: z.string().max(200).optional(),
+  contractorPhone: z.string().max(30).optional(),
+  contractorEmail: z.string().email().max(255).optional(),
+  hasPermit: z.boolean().optional(),
+  permitNumber: z.string().max(100).optional(),
+  hasInsurance: z.boolean().optional(),
   scope: z.string().max(2000).optional(),
+  notes: z.string().max(4000).optional(),
 });
 
 export type CreateAlterationInput = z.infer<typeof createAlterationSchema>;
@@ -99,6 +122,7 @@ export const updateAlterationSchema = z.object({
   status: z.enum(ALTERATION_STATUSES).optional(),
   declineReason: z.string().min(1).max(2000).optional(),
   description: z.string().max(4000).optional(),
+  type: z.enum(ALTERATION_TYPES).optional(),
   expectedEndDate: z
     .string()
     .datetime()
@@ -110,6 +134,13 @@ export const updateAlterationSchema = z.object({
     .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
     .optional(),
   contractorVendorId: z.string().uuid().optional(),
+  contractorName: z.string().max(200).optional(),
+  contractorPhone: z.string().max(30).optional(),
+  contractorEmail: z.string().email().max(255).optional(),
+  hasPermit: z.boolean().optional(),
+  permitNumber: z.string().max(100).optional(),
+  hasInsurance: z.boolean().optional(),
+  notes: z.string().max(4000).optional(),
   reviewStep: z.enum(['documents_check', 'board_review', 'final_approval']).optional(),
   reviewNotes: z.string().max(2000).optional(),
   inspectionDate: z

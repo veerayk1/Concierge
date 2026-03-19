@@ -1,15 +1,61 @@
 /**
- * Recurring Task Detail API — Get, Update, Delete
- * Supports pause/resume, schedule changes, and equipment linkage
+ * Recurring Task Detail API — Get, Update, Complete, Delete
+ * Supports pause/resume, schedule changes, mark complete, and equipment linkage
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { updateRecurringTaskSchema } from '@/schemas/recurring-task';
+import { updateRecurringTaskSchema, completeRecurringTaskSchema } from '@/schemas/recurring-task';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { calculateNextOccurrence } from '@/server/scheduling';
 import type { ScheduleConfig } from '@/server/scheduling';
+
+// ---------------------------------------------------------------------------
+// Helper: calculate current period boundaries for a task
+// ---------------------------------------------------------------------------
+
+function getCurrentPeriod(task: {
+  intervalType: string;
+  nextOccurrence: Date | null;
+  startDate: Date;
+}): { periodStart: Date; periodEnd: Date } {
+  const now = new Date();
+  const nextDue = task.nextOccurrence ? new Date(task.nextOccurrence) : now;
+
+  // Period end is the next occurrence; period start is one interval before
+  const periodEnd = new Date(nextDue);
+  const periodStart = new Date(nextDue);
+
+  switch (task.intervalType) {
+    case 'daily':
+      periodStart.setDate(periodStart.getDate() - 1);
+      break;
+    case 'weekly':
+      periodStart.setDate(periodStart.getDate() - 7);
+      break;
+    case 'biweekly':
+      periodStart.setDate(periodStart.getDate() - 14);
+      break;
+    case 'monthly':
+      periodStart.setMonth(periodStart.getMonth() - 1);
+      break;
+    case 'quarterly':
+      periodStart.setMonth(periodStart.getMonth() - 3);
+      break;
+    case 'semiannually':
+      periodStart.setMonth(periodStart.getMonth() - 6);
+      break;
+    case 'annually':
+      periodStart.setFullYear(periodStart.getFullYear() - 1);
+      break;
+    default:
+      periodStart.setDate(periodStart.getDate() - 1);
+      break;
+  }
+
+  return { periodStart, periodEnd };
+}
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/recurring-tasks/:id — Task detail with completion history
@@ -22,11 +68,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
 
-    const task = await prisma.recurringTask.findUnique({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const task = await (prisma.recurringTask.findUnique as any)({
       where: { id },
       include: {
         category: { select: { id: true, name: true } },
         equipment: { select: { id: true, name: true } },
+        completions: {
+          orderBy: { completedAt: 'desc' },
+          take: 50,
+        },
       },
     });
 
@@ -94,6 +145,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (input.categoryId !== undefined) updateData.categoryId = input.categoryId;
     if (input.unitId !== undefined) updateData.unitId = input.unitId;
     if (input.areaDescription !== undefined) updateData.areaDescription = input.areaDescription;
+    if (input.location !== undefined) updateData.location = input.location || null;
+    if (input.notes !== undefined)
+      updateData.notes = input.notes ? stripControlChars(stripHtml(input.notes)) : null;
     if (input.assignedEmployeeId !== undefined)
       updateData.assignedEmployeeId = input.assignedEmployeeId;
     if (input.assignedVendorId !== undefined) updateData.assignedVendorId = input.assignedVendorId;
@@ -157,6 +211,121 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     console.error('PATCH /api/v1/recurring-tasks/:id error:', error);
     return NextResponse.json(
       { error: 'INTERNAL_ERROR', message: 'Failed to update recurring task' },
+      { status: 500 },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/v1/recurring-tasks/:id — Mark complete for current period
+// ---------------------------------------------------------------------------
+
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
+    const { id } = await params;
+    const body = await request.json();
+
+    const parsed = completeRecurringTaskSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+
+    const input = parsed.data;
+
+    // Fetch task
+    const existing = await prisma.recurringTask.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Recurring task not found' },
+        { status: 404 },
+      );
+    }
+
+    if (!existing.isActive) {
+      return NextResponse.json(
+        { error: 'TASK_PAUSED', message: 'Cannot complete a paused task. Resume it first.' },
+        { status: 400 },
+      );
+    }
+
+    // Calculate current period
+    const { periodStart, periodEnd } = getCurrentPeriod(existing);
+
+    // Check for duplicate completion in the same period
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existingCompletion = await (prisma as any).recurringTaskCompletion.findFirst({
+      where: {
+        recurringTaskId: id,
+        periodStart: { gte: periodStart },
+        periodEnd: { lte: periodEnd },
+      },
+    });
+
+    if (existingCompletion) {
+      return NextResponse.json(
+        {
+          error: 'ALREADY_COMPLETED',
+          message: 'This task has already been completed for the current period.',
+        },
+        { status: 409 },
+      );
+    }
+
+    // Calculate the next due date
+    const scheduleConfig: ScheduleConfig = {
+      intervalType: existing.intervalType as ScheduleConfig['intervalType'],
+      customIntervalDays: existing.customIntervalDays ?? undefined,
+      startDate: existing.startDate,
+      endDate: existing.endDate,
+    };
+
+    const now = new Date();
+    const nextOccurrence = calculateNextOccurrence(scheduleConfig, now);
+
+    // Create completion record and advance nextDue in a transaction
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [completion, updatedTask] = await (prisma as any).$transaction([
+      (prisma as any).recurringTaskCompletion.create({
+        data: {
+          recurringTaskId: id,
+          completedById: auth.user.userId,
+          completedAt: now,
+          notes: input.notes ? stripControlChars(stripHtml(input.notes)) : null,
+          periodStart,
+          periodEnd,
+        },
+      }),
+      prisma.recurringTask.update({
+        where: { id },
+        data: {
+          lastGeneratedAt: now,
+          nextOccurrence,
+        },
+        include: {
+          category: { select: { id: true, name: true } },
+          equipment: { select: { id: true, name: true } },
+        },
+      }),
+    ]);
+
+    return NextResponse.json({
+      data: {
+        task: updatedTask,
+        completion,
+        nextDue: nextOccurrence,
+      },
+      message: `Task "${existing.name}" marked complete. Next due: ${nextOccurrence ? nextOccurrence.toISOString().split('T')[0] : 'none'}.`,
+    });
+  } catch (error) {
+    console.error('POST /api/v1/recurring-tasks/:id error:', error);
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', message: 'Failed to complete recurring task' },
       { status: 500 },
     );
   }

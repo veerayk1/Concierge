@@ -104,6 +104,7 @@ describe('POST /api/v1/visitors — Sign In', () => {
     visitorName: 'John Williams',
     unitId: '00000000-0000-4000-e000-000000000001',
     purpose: 'personal',
+    visitorType: 'visitor',
     idVerified: true,
   };
 
@@ -119,7 +120,7 @@ describe('POST /api/v1/visitors — Sign In', () => {
     await POST(req);
 
     const createData = mockCreate.mock.calls[0]![0].data;
-    expect(createData.visitorType).toBe('personal'); // Mapped from purpose input
+    expect(createData.visitorType).toBe('visitor');
   });
 
   it('sanitizes visitor name — prevents XSS via name field', async () => {

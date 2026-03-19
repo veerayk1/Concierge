@@ -32,6 +32,8 @@ export const createRecurringTaskSchema = z
     categoryId: z.string().uuid('Select a maintenance category'),
     unitId: z.string().uuid().optional().nullable(),
     areaDescription: z.string().max(200).optional().or(z.literal('')),
+    location: z.string().max(200).optional().or(z.literal('')),
+    notes: z.string().max(4000).optional().or(z.literal('')),
     assignedEmployeeId: z.string().uuid().optional().nullable(),
     assignedVendorId: z.string().uuid().optional().nullable(),
     equipmentId: z.string().uuid().optional().nullable(),
@@ -80,6 +82,8 @@ export const updateRecurringTaskSchema = z.object({
   categoryId: z.string().uuid().optional(),
   unitId: z.string().uuid().optional().nullable(),
   areaDescription: z.string().max(200).optional().nullable(),
+  location: z.string().max(200).optional().nullable(),
+  notes: z.string().max(4000).optional().nullable(),
   assignedEmployeeId: z.string().uuid().optional().nullable(),
   assignedVendorId: z.string().uuid().optional().nullable(),
   equipmentId: z.string().uuid().optional().nullable(),
@@ -93,3 +97,9 @@ export const updateRecurringTaskSchema = z.object({
 });
 
 export type UpdateRecurringTaskInput = z.infer<typeof updateRecurringTaskSchema>;
+
+export const completeRecurringTaskSchema = z.object({
+  notes: z.string().max(2000).optional().or(z.literal('')),
+});
+
+export type CompleteRecurringTaskInput = z.infer<typeof completeRecurringTaskSchema>;

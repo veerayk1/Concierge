@@ -720,6 +720,7 @@ describe('7. Visitor sign-in', () => {
     visitorName: 'Jane Williams',
     unitId: UNIT_A,
     purpose: 'personal',
+    visitorType: 'visitor',
     idVerified: true,
   };
 
@@ -809,7 +810,7 @@ describe('7. Visitor sign-in', () => {
     await POST_VISITOR(req);
 
     const createData = mockVisitorCreate.mock.calls[0]![0].data;
-    expect(createData.visitorType).toBe('personal');
+    expect(createData.visitorType).toBe('visitor');
   });
 });
 
