@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { sendEmail } from '@/server/email';
+import { sendPushToUser } from '@/server/push';
+import { sendSms, formatPhoneNumber } from '@/server/sms';
 import { createLogger } from '@/server/logger';
 
 const logger = createLogger('package-remind');
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (pkg.residentId) {
       const resident = await prisma.user.findUnique({
         where: { id: pkg.residentId },
-        select: { email: true, firstName: true },
+        select: { email: true, firstName: true, phone: true },
       });
 
       if (resident?.email) {
@@ -78,6 +80,34 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           );
         });
       }
+
+      // Send SMS reminder (fire-and-forget)
+      if (resident?.phone) {
+        const normalizedPhone = formatPhoneNumber(resident.phone);
+        if (normalizedPhone) {
+          void sendSms({
+            to: normalizedPhone,
+            body: `Hi${resident.firstName ? ` ${resident.firstName}` : ''}, your package (${pkg.referenceNumber}) is waiting at the front desk. Please pick it up at your earliest convenience. — Concierge`,
+          }).catch((err) => {
+            logger.error(
+              { err, packageId: id, residentId: pkg.residentId },
+              'Failed to send package reminder SMS',
+            );
+          });
+        }
+      }
+
+      // Send push notification (fire-and-forget)
+      void sendPushToUser(pkg.residentId, {
+        title: `Package Reminder — ${pkg.referenceNumber}`,
+        body: `Your package (${pkg.referenceNumber}) is waiting at the front desk.`,
+        data: { packageId: id, screen: 'packages', action: 'view' },
+      }).catch((err) => {
+        logger.error(
+          { err, packageId: id, residentId: pkg.residentId },
+          'Failed to send package reminder push notification',
+        );
+      });
     }
 
     return NextResponse.json({

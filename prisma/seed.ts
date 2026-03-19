@@ -511,7 +511,7 @@ const EVENT_GROUP_DEFINITIONS: EventGroupDef[] = [
 // Main seed function
 // ---------------------------------------------------------------------------
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   console.log('\n========================================');
   console.log('  Concierge — Seeding Database');
   console.log('========================================\n');
@@ -524,7 +524,7 @@ async function main(): Promise<void> {
   // -------------------------------------------------------------------------
   // 1. Super Admin User
   // -------------------------------------------------------------------------
-  log('1/7', 'Creating Super Admin user...');
+  log('1/15', 'Creating Super Admin user...');
 
   const superAdmin = await prisma.user.upsert({
     where: { email: 'admin@concierge.app' },
@@ -551,7 +551,7 @@ async function main(): Promise<void> {
   // -------------------------------------------------------------------------
   // 2. Properties
   // -------------------------------------------------------------------------
-  log('2/7', 'Creating properties...');
+  log('2/15', 'Creating properties...');
 
   const mapleHeights = await prisma.property.upsert({
     where: { id: IDS.mapleHeights },
@@ -624,7 +624,7 @@ async function main(): Promise<void> {
   // -------------------------------------------------------------------------
   // 3. Roles (per property)
   // -------------------------------------------------------------------------
-  log('3/7', 'Creating roles for each property...');
+  log('3/15', 'Creating roles for each property...');
 
   const properties = [
     { property: mapleHeights, prefix: 'mh' as const },
@@ -676,7 +676,7 @@ async function main(): Promise<void> {
   // -------------------------------------------------------------------------
   // 4. Staff Users + UserProperty assignments
   // -------------------------------------------------------------------------
-  log('4/7', 'Creating staff and resident users...');
+  log('4/15', 'Creating staff and resident users...');
 
   interface UserSeed {
     id: string;
@@ -1143,7 +1143,7 @@ async function main(): Promise<void> {
   // -------------------------------------------------------------------------
   // 5. Units (20 per property: floors 1-5, units 01-04)
   // -------------------------------------------------------------------------
-  log('5/7', 'Creating units...');
+  log('5/15', 'Creating units...');
 
   for (const { property } of properties) {
     let unitIndex = 0;
@@ -1180,7 +1180,7 @@ async function main(): Promise<void> {
   // -------------------------------------------------------------------------
   // 6. Event Groups & Event Types
   // -------------------------------------------------------------------------
-  log('6/7', 'Creating event groups and event types...');
+  log('6/15', 'Creating event groups and event types...');
 
   const eventGroupIdMap: Record<string, Record<string, string>> = {};
 
@@ -1260,7 +1260,7 @@ async function main(): Promise<void> {
   // -------------------------------------------------------------------------
   // 7. Property Settings
   // -------------------------------------------------------------------------
-  log('7/7', 'Creating property settings...');
+  log('7/15', 'Creating property settings...');
 
   await prisma.propertySettings.upsert({
     where: { propertyId: mapleHeights.id },
@@ -1375,6 +1375,823 @@ async function main(): Promise<void> {
   log('OK', `  Settings for Lakeshore Towers`);
 
   // -------------------------------------------------------------------------
+  // 8. Courier Types
+  // -------------------------------------------------------------------------
+  log('8/15', 'Creating courier types...');
+
+  const COURIER_DEFINITIONS = [
+    { name: 'Amazon', slug: 'amazon', iconUrl: '/icons/couriers/amazon.svg', color: '#FF9900' },
+    { name: 'FedEx', slug: 'fedex', iconUrl: '/icons/couriers/fedex.svg', color: '#4D148C' },
+    { name: 'UPS', slug: 'ups', iconUrl: '/icons/couriers/ups.svg', color: '#351C15' },
+    {
+      name: 'Canada Post',
+      slug: 'canada-post',
+      iconUrl: '/icons/couriers/canada-post.svg',
+      color: '#DC2626',
+    },
+    { name: 'DHL', slug: 'dhl', iconUrl: '/icons/couriers/dhl.svg', color: '#FFCC00' },
+    {
+      name: 'Purolator',
+      slug: 'purolator',
+      iconUrl: '/icons/couriers/purolator.svg',
+      color: '#E31937',
+    },
+    { name: 'Other', slug: 'other', iconUrl: '/icons/couriers/other.svg', color: '#6B7280' },
+  ];
+
+  const courierMap: Record<string, Record<string, string>> = {};
+
+  for (const { property } of properties) {
+    courierMap[property.id] = {};
+    for (let i = 0; i < COURIER_DEFINITIONS.length; i++) {
+      const cDef = COURIER_DEFINITIONS[i]!;
+      const courierId = `00000000-0000-4000-aa00-${property.id.slice(-6)}${(i + 1).toString().padStart(6, '0')}`;
+      const courier = await prisma.courierType.upsert({
+        where: { id: courierId },
+        update: {
+          name: cDef.name,
+          slug: cDef.slug,
+          iconUrl: cDef.iconUrl,
+          color: cDef.color,
+          sortOrder: i,
+          isActive: true,
+          isSystem: true,
+        },
+        create: {
+          id: courierId,
+          propertyId: property.id,
+          name: cDef.name,
+          slug: cDef.slug,
+          iconUrl: cDef.iconUrl,
+          color: cDef.color,
+          sortOrder: i,
+          isActive: true,
+          isSystem: true,
+        },
+      });
+      courierMap[property.id]![cDef.slug] = courier.id;
+    }
+    log('OK', `  ${COURIER_DEFINITIONS.length} courier types for ${property.name}`);
+  }
+
+  // -------------------------------------------------------------------------
+  // 9. Amenity Groups & Amenities
+  // -------------------------------------------------------------------------
+  log('9/15', 'Creating amenities...');
+
+  const AMENITY_GROUP_ID_MH = '00000000-0000-4000-ab00-000000010001';
+  const AMENITY_GROUP_ID_LT = '00000000-0000-4000-ab00-000000020001';
+
+  const amenityGroupIds: Record<string, string> = {
+    [mapleHeights.id]: AMENITY_GROUP_ID_MH,
+    [lakeshoreTowers.id]: AMENITY_GROUP_ID_LT,
+  };
+
+  for (const { property } of properties) {
+    const groupId = amenityGroupIds[property.id]!;
+
+    await prisma.amenityGroup.upsert({
+      where: { id: groupId },
+      update: { name: 'Building Amenities', displayOrder: 1, isActive: true },
+      create: {
+        id: groupId,
+        propertyId: property.id,
+        name: 'Building Amenities',
+        displayOrder: 1,
+        isActive: true,
+      },
+    });
+
+    const AMENITY_DEFINITIONS = [
+      {
+        name: 'Party Room',
+        description:
+          'Large event space with kitchen, seating for 60, and AV equipment. Perfect for birthdays, anniversaries, and holiday gatherings.',
+        color: '#7C3AED',
+        icon: 'party-popper',
+        bookingStyle: 'fixed_slots',
+        slotDurationMinutes: 240,
+        maxConcurrent: 1,
+        maxGuests: 60,
+      },
+      {
+        name: 'Gym / Fitness Centre',
+        description:
+          'Fully equipped fitness centre with cardio machines, free weights, and stretching area. Open 5:00 AM to 11:00 PM daily.',
+        color: '#DC2626',
+        icon: 'dumbbell',
+        bookingStyle: 'flexible_range',
+        slotDurationMinutes: 60,
+        maxConcurrent: 15,
+        maxGuests: 0,
+      },
+      {
+        name: 'Swimming Pool',
+        description:
+          'Indoor heated pool with adjacent hot tub and sauna. Lifeguard on duty weekends 10 AM - 6 PM.',
+        color: '#0EA5E9',
+        icon: 'waves',
+        bookingStyle: 'fixed_slots',
+        slotDurationMinutes: 90,
+        maxConcurrent: 20,
+        maxGuests: 2,
+      },
+      {
+        name: 'BBQ Area',
+        description:
+          'Outdoor terrace with 3 gas BBQ stations, picnic tables, and a covered seating area overlooking the courtyard.',
+        color: '#F97316',
+        icon: 'flame',
+        bookingStyle: 'fixed_slots',
+        slotDurationMinutes: 180,
+        maxConcurrent: 3,
+        maxGuests: 10,
+      },
+      {
+        name: 'Guest Suite',
+        description:
+          'Fully furnished one-bedroom suite for overnight visitors. Includes queen bed, ensuite bathroom, and basic kitchenette.',
+        color: '#6366F1',
+        icon: 'bed',
+        bookingStyle: 'full_day',
+        slotDurationMinutes: null,
+        maxConcurrent: 1,
+        maxGuests: 2,
+      },
+      {
+        name: 'Rooftop Lounge',
+        description:
+          'Premium rooftop space with panoramic city views, comfortable seating, and a bar area. Available for private events.',
+        color: '#0D9488',
+        icon: 'building',
+        bookingStyle: 'fixed_slots',
+        slotDurationMinutes: 180,
+        maxConcurrent: 1,
+        maxGuests: 30,
+      },
+    ];
+
+    for (let i = 0; i < AMENITY_DEFINITIONS.length; i++) {
+      const aDef = AMENITY_DEFINITIONS[i]!;
+      const amenityId = `00000000-0000-4000-ac00-${property.id.slice(-6)}${(i + 1).toString().padStart(6, '0')}`;
+      await prisma.amenity.upsert({
+        where: { id: amenityId },
+        update: {
+          name: aDef.name,
+          description: aDef.description,
+          color: aDef.color,
+          icon: aDef.icon,
+          bookingStyle: aDef.bookingStyle,
+          slotDurationMinutes: aDef.slotDurationMinutes,
+          maxConcurrent: aDef.maxConcurrent,
+          maxGuests: aDef.maxGuests,
+          displayOrder: i,
+          isActive: true,
+        },
+        create: {
+          id: amenityId,
+          propertyId: property.id,
+          groupId: groupId,
+          name: aDef.name,
+          description: aDef.description,
+          color: aDef.color,
+          icon: aDef.icon,
+          bookingStyle: aDef.bookingStyle,
+          slotDurationMinutes: aDef.slotDurationMinutes,
+          maxConcurrent: aDef.maxConcurrent,
+          maxGuests: aDef.maxGuests,
+          displayOrder: i,
+          isActive: true,
+        },
+      });
+    }
+    log('OK', `  ${AMENITY_DEFINITIONS.length} amenities for ${property.name}`);
+  }
+
+  // -------------------------------------------------------------------------
+  // 10. Maintenance Categories
+  // -------------------------------------------------------------------------
+  log('10/15', 'Creating maintenance categories...');
+
+  const MAINTENANCE_CATEGORIES = [
+    {
+      name: 'Plumbing',
+      icon: 'droplets',
+      color: '#0EA5E9',
+      subCategories: ['Leaking faucet', 'Clogged drain', 'Toilet repair', 'Water heater'],
+      defaultPriority: 'normal',
+    },
+    {
+      name: 'Electrical',
+      icon: 'zap',
+      color: '#F59E0B',
+      subCategories: ['Outlet not working', 'Light fixture', 'Breaker tripped', 'Wiring issue'],
+      defaultPriority: 'high',
+    },
+    {
+      name: 'HVAC',
+      icon: 'thermometer',
+      color: '#6366F1',
+      subCategories: ['No heat', 'No AC', 'Thermostat issue', 'Strange noise'],
+      defaultPriority: 'high',
+    },
+    {
+      name: 'Appliance',
+      icon: 'refrigerator',
+      color: '#8B5CF6',
+      subCategories: ['Dishwasher', 'Washer/Dryer', 'Oven/Stove', 'Refrigerator'],
+      defaultPriority: 'normal',
+    },
+    {
+      name: 'General',
+      icon: 'wrench',
+      color: '#6B7280',
+      subCategories: ['Door/Lock', 'Window', 'Flooring', 'Paint/Walls', 'Pest control'],
+      defaultPriority: 'low',
+    },
+    {
+      name: 'Emergency',
+      icon: 'siren',
+      color: '#DC2626',
+      subCategories: ['Flood', 'Fire damage', 'Gas leak', 'Broken window', 'Lock-out'],
+      defaultPriority: 'critical',
+    },
+  ];
+
+  const maintenanceCatMap: Record<string, Record<string, string>> = {};
+
+  for (const { property } of properties) {
+    maintenanceCatMap[property.id] = {};
+    for (let i = 0; i < MAINTENANCE_CATEGORIES.length; i++) {
+      const mCat = MAINTENANCE_CATEGORIES[i]!;
+      const catId = `00000000-0000-4000-ad00-${property.id.slice(-6)}${(i + 1).toString().padStart(6, '0')}`;
+      const cat = await prisma.maintenanceCategory.upsert({
+        where: { id: catId },
+        update: {
+          name: mCat.name,
+          icon: mCat.icon,
+          color: mCat.color,
+          subCategories: mCat.subCategories,
+          defaultPriority: mCat.defaultPriority,
+          sortOrder: i,
+          isActive: true,
+        },
+        create: {
+          id: catId,
+          propertyId: property.id,
+          name: mCat.name,
+          icon: mCat.icon,
+          color: mCat.color,
+          subCategories: mCat.subCategories,
+          defaultPriority: mCat.defaultPriority,
+          sortOrder: i,
+          isActive: true,
+        },
+      });
+      maintenanceCatMap[property.id]![mCat.name.toLowerCase()] = cat.id;
+    }
+    log('OK', `  ${MAINTENANCE_CATEGORIES.length} maintenance categories for ${property.name}`);
+  }
+
+  // -------------------------------------------------------------------------
+  // 11. Packages (for Maple Heights only — demo data)
+  // -------------------------------------------------------------------------
+  log('11/15', 'Creating demo packages...');
+
+  // Fetch unit IDs for Maple Heights
+  const mhUnits = await prisma.unit.findMany({
+    where: { propertyId: mapleHeights.id },
+    select: { id: true, number: true },
+  });
+
+  // Use first available unit IDs, or generate stable fallbacks
+  const getUnitId = (index: number): string => {
+    if (mhUnits.length > index) return mhUnits[index]!.id;
+    return `00000000-0000-4000-ae00-000000${(index + 1).toString().padStart(6, '0')}`;
+  };
+
+  const PACKAGE_DATA = [
+    {
+      ref: 'PKG-A1B2C3',
+      courier: 'amazon',
+      status: 'unreleased',
+      isPerishable: false,
+      unitIdx: 0,
+      desc: 'Small cardboard box',
+    },
+    {
+      ref: 'PKG-D4E5F6',
+      courier: 'fedex',
+      status: 'unreleased',
+      isPerishable: false,
+      unitIdx: 1,
+      desc: 'Medium envelope',
+    },
+    {
+      ref: 'PKG-G7H8I9',
+      courier: 'ups',
+      status: 'unreleased',
+      isPerishable: true,
+      unitIdx: 2,
+      desc: 'Refrigerated meal kit — perishable',
+    },
+    {
+      ref: 'PKG-J1K2L3',
+      courier: 'canada-post',
+      status: 'released',
+      isPerishable: false,
+      unitIdx: 3,
+      desc: 'Letter-sized package',
+    },
+    {
+      ref: 'PKG-M4N5O6',
+      courier: 'dhl',
+      status: 'released',
+      isPerishable: false,
+      unitIdx: 4,
+      desc: 'International parcel',
+    },
+    {
+      ref: 'PKG-P7Q8R9',
+      courier: 'purolator',
+      status: 'unreleased',
+      isPerishable: false,
+      unitIdx: 5,
+      desc: 'Business document envelope',
+    },
+    {
+      ref: 'PKG-S1T2U3',
+      courier: 'amazon',
+      status: 'unreleased',
+      isPerishable: true,
+      unitIdx: 6,
+      desc: 'Amazon Fresh grocery delivery — perishable',
+    },
+    {
+      ref: 'PKG-V4W5X6',
+      courier: 'amazon',
+      status: 'released',
+      isPerishable: false,
+      unitIdx: 7,
+      desc: 'Large box (electronics)',
+    },
+    {
+      ref: 'PKG-Y7Z8A9',
+      courier: 'fedex',
+      status: 'unreleased',
+      isPerishable: false,
+      unitIdx: 8,
+      desc: 'Oversized flat box',
+    },
+    {
+      ref: 'PKG-B1C2D3',
+      courier: 'ups',
+      status: 'released',
+      isPerishable: false,
+      unitIdx: 9,
+      desc: 'Multi-box shipment (1 of 3)',
+    },
+    {
+      ref: 'PKG-E4F5G6',
+      courier: 'canada-post',
+      status: 'unreleased',
+      isPerishable: false,
+      unitIdx: 0,
+      desc: 'Registered mail',
+    },
+    {
+      ref: 'PKG-H7I8J9',
+      courier: 'amazon',
+      status: 'unreleased',
+      isPerishable: true,
+      unitIdx: 1,
+      desc: 'Fresh flowers — perishable',
+    },
+  ];
+
+  const now = new Date();
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+  const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+
+  for (let i = 0; i < PACKAGE_DATA.length; i++) {
+    const pkg = PACKAGE_DATA[i]!;
+    const pkgId = `00000000-0000-4000-af00-000000${(i + 1).toString().padStart(6, '0')}`;
+    const courierId = courierMap[mapleHeights.id]?.[pkg.courier];
+
+    await prisma.package.upsert({
+      where: { id: pkgId },
+      update: {
+        status: pkg.status,
+        description: pkg.desc,
+        isPerishable: pkg.isPerishable,
+      },
+      create: {
+        id: pkgId,
+        propertyId: mapleHeights.id,
+        unitId: getUnitId(pkg.unitIdx),
+        referenceNumber: pkg.ref,
+        direction: 'incoming',
+        status: pkg.status,
+        courierId: courierId ?? null,
+        description: pkg.desc,
+        isPerishable: pkg.isPerishable,
+        isOversized: i === 8, // One oversized package
+        createdById: IDS.mh_frontDesk1User,
+        releasedById: pkg.status === 'released' ? IDS.mh_frontDesk1User : null,
+        releasedAt: pkg.status === 'released' ? oneHourAgo : null,
+        releasedToName: pkg.status === 'released' ? 'Resident' : null,
+      },
+    });
+  }
+  log('OK', `  ${PACKAGE_DATA.length} packages for Maple Heights`);
+
+  // -------------------------------------------------------------------------
+  // 12. Maintenance Requests (for Maple Heights)
+  // -------------------------------------------------------------------------
+  log('12/15', 'Creating maintenance requests...');
+
+  const MAINTENANCE_REQUESTS = [
+    {
+      ref: 'SR-2026-00001',
+      title: 'Kitchen faucet leaking',
+      description:
+        'The kitchen faucet has been dripping steadily for 2 days. Water is pooling under the sink cabinet. Please fix ASAP.',
+      category: 'plumbing',
+      status: 'open',
+      priority: 'high',
+      unitIdx: 0,
+      residentId: IDS.mh_resident01,
+    },
+    {
+      ref: 'SR-2026-00002',
+      title: 'Bedroom outlet not working',
+      description:
+        'The outlet in the master bedroom stopped working yesterday. Other outlets in the room work fine. No breaker is tripped.',
+      category: 'electrical',
+      status: 'in_progress',
+      priority: 'normal',
+      unitIdx: 1,
+      residentId: IDS.mh_resident02,
+    },
+    {
+      ref: 'SR-2026-00003',
+      title: 'No heat in unit',
+      description:
+        'The heating system is not producing warm air. Thermostat is set to 22C but room temperature reads 16C. Very cold.',
+      category: 'hvac',
+      status: 'open',
+      priority: 'critical',
+      unitIdx: 2,
+      residentId: IDS.mh_resident03,
+    },
+    {
+      ref: 'SR-2026-00004',
+      title: 'Dishwasher not draining',
+      description:
+        'The dishwasher completes its cycle but standing water remains at the bottom. Started 3 days ago.',
+      category: 'appliance',
+      status: 'on_hold',
+      priority: 'normal',
+      unitIdx: 3,
+      residentId: IDS.mh_resident04,
+    },
+    {
+      ref: 'SR-2026-00005',
+      title: 'Front door lock sticking',
+      description:
+        'The unit front door lock requires multiple attempts to turn. Key goes in fine but the deadbolt is very stiff.',
+      category: 'general',
+      status: 'closed',
+      priority: 'low',
+      unitIdx: 4,
+      residentId: IDS.mh_resident05,
+    },
+    {
+      ref: 'SR-2026-00006',
+      title: 'Bathroom ceiling water stain',
+      description:
+        'Brown water stain appeared on the bathroom ceiling. Possibly a leak from the unit above. Stain is growing.',
+      category: 'plumbing',
+      status: 'in_progress',
+      priority: 'high',
+      unitIdx: 5,
+      residentId: IDS.mh_resident06,
+    },
+    {
+      ref: 'SR-2026-00007',
+      title: 'Hallway light flickering',
+      description:
+        'The hallway light in the common area on floor 3 has been flickering intermittently for a week.',
+      category: 'electrical',
+      status: 'open',
+      priority: 'low',
+      unitIdx: 6,
+      residentId: IDS.mh_resident07,
+    },
+  ];
+
+  for (let i = 0; i < MAINTENANCE_REQUESTS.length; i++) {
+    const mr = MAINTENANCE_REQUESTS[i]!;
+    const mrId = `00000000-0000-4000-b100-000000${(i + 1).toString().padStart(6, '0')}`;
+    const categoryId =
+      maintenanceCatMap[mapleHeights.id]?.[mr.category] ?? `00000000-0000-4000-ad00-000001000001`;
+
+    await prisma.maintenanceRequest.upsert({
+      where: { id: mrId },
+      update: {
+        title: mr.title,
+        status: mr.status,
+        priority: mr.priority,
+      },
+      create: {
+        id: mrId,
+        propertyId: mapleHeights.id,
+        unitId: getUnitId(mr.unitIdx),
+        residentId: mr.residentId,
+        referenceNumber: mr.ref,
+        categoryId: categoryId,
+        title: mr.title,
+        description: mr.description,
+        status: mr.status,
+        priority: mr.priority,
+        permissionToEnter: 'yes',
+        source: 'resident',
+        dateReported: threeDaysAgo,
+        completedDate: mr.status === 'closed' ? oneHourAgo : null,
+        resolutionNotes:
+          mr.status === 'closed'
+            ? 'Lock mechanism replaced and tested. Working smoothly now.'
+            : null,
+      },
+    });
+  }
+  log('OK', `  ${MAINTENANCE_REQUESTS.length} maintenance requests for Maple Heights`);
+
+  // -------------------------------------------------------------------------
+  // 13. Announcements (for Maple Heights)
+  // -------------------------------------------------------------------------
+  log('13/15', 'Creating announcements...');
+
+  const ANNOUNCEMENTS = [
+    {
+      title: 'Annual Fire Drill — March 25, 2026',
+      content:
+        '<p>A mandatory fire drill will take place on <strong>March 25, 2026 at 10:00 AM</strong>. All residents must evacuate via stairwells when the alarm sounds. Please do not use elevators. Assembly point is the main lobby.</p>',
+      status: 'published',
+      priority: 'high',
+      publishedAt: twoDaysAgo,
+    },
+    {
+      title: 'Pool Maintenance Closure — April 1-5',
+      content:
+        '<p>The swimming pool and hot tub will be closed for annual maintenance from <strong>April 1 through April 5, 2026</strong>. The gym and sauna will remain open. We apologize for the inconvenience.</p>',
+      status: 'scheduled',
+      priority: 'normal',
+      scheduledAt: new Date('2026-03-28T09:00:00'),
+    },
+    {
+      title: 'New Recycling Guidelines',
+      content:
+        '<p>Starting April 2026, the City of Toronto has updated recycling guidelines. Key changes:</p><ul><li>Soft plastics now accepted in blue bin</li><li>Styrofoam must go to designated drop-off</li><li>Coffee pods — remove foil lid, compost grounds, recycle pod</li></ul><p>Updated signage will be posted in the recycling room.</p>',
+      status: 'draft',
+      priority: 'normal',
+      publishedAt: null,
+    },
+    {
+      title: 'Lobby Renovation Update',
+      content:
+        '<p>The lobby renovation project is on track. Phase 2 (seating area and mailroom) begins next week. Temporary mail pickup will be at the concierge desk. Thank you for your patience.</p>',
+      status: 'published',
+      priority: 'normal',
+      publishedAt: threeDaysAgo,
+    },
+  ];
+
+  for (let i = 0; i < ANNOUNCEMENTS.length; i++) {
+    const ann = ANNOUNCEMENTS[i]!;
+    const annId = `00000000-0000-4000-b200-000000${(i + 1).toString().padStart(6, '0')}`;
+
+    await prisma.announcement.upsert({
+      where: { id: annId },
+      update: {
+        title: ann.title,
+        status: ann.status,
+        priority: ann.priority,
+      },
+      create: {
+        id: annId,
+        propertyId: mapleHeights.id,
+        title: ann.title,
+        content: ann.content,
+        status: ann.status,
+        priority: ann.priority,
+        channels: ['web', 'email'],
+        publishedAt: ann.publishedAt,
+        scheduledAt: ann.status === 'scheduled' ? ann.scheduledAt : null,
+        createdById: IDS.mh_managerUser,
+      },
+    });
+  }
+  log('OK', `  ${ANNOUNCEMENTS.length} announcements for Maple Heights`);
+
+  // -------------------------------------------------------------------------
+  // 14. Visitor Entries (for Maple Heights)
+  // -------------------------------------------------------------------------
+  log('14/15', 'Creating visitor entries...');
+
+  const VISITORS = [
+    {
+      name: 'John Anderson',
+      type: 'visitor',
+      unitIdx: 0,
+      departureAt: null,
+      comments: 'Visiting family for dinner',
+    },
+    {
+      name: 'Maria Santos (PlumbRight Inc.)',
+      type: 'contractor',
+      unitIdx: 2,
+      departureAt: null,
+      comments: 'Plumbing repair — unit 302',
+    },
+    {
+      name: 'FedEx Driver',
+      type: 'delivery_person',
+      unitIdx: 3,
+      departureAt: oneHourAgo,
+      comments: 'Package delivery',
+    },
+    {
+      name: 'Jane Cooper',
+      type: 'visitor',
+      unitIdx: 1,
+      departureAt: twoDaysAgo,
+      comments: 'Social visit',
+    },
+    {
+      name: 'Tom Reynolds (Royal LePage)',
+      type: 'real_estate_agent',
+      unitIdx: 4,
+      departureAt: oneHourAgo,
+      comments: 'Unit showing for potential buyer',
+    },
+    {
+      name: 'Sarah Kim',
+      type: 'visitor',
+      unitIdx: 5,
+      departureAt: null,
+      comments: 'Weekend guest — staying in guest suite',
+    },
+    {
+      name: 'Mike Electrician (Volt Services)',
+      type: 'contractor',
+      unitIdx: 1,
+      departureAt: threeDaysAgo,
+      comments: 'Outlet repair — completed',
+    },
+  ];
+
+  for (let i = 0; i < VISITORS.length; i++) {
+    const v = VISITORS[i]!;
+    const vId = `00000000-0000-4000-b300-000000${(i + 1).toString().padStart(6, '0')}`;
+
+    await prisma.visitorEntry.upsert({
+      where: { id: vId },
+      update: {
+        visitorName: v.name,
+        visitorType: v.type,
+        departureAt: v.departureAt,
+        comments: v.comments,
+      },
+      create: {
+        id: vId,
+        propertyId: mapleHeights.id,
+        unitId: getUnitId(v.unitIdx),
+        visitorName: v.name,
+        visitorType: v.type,
+        arrivalAt: v.departureAt
+          ? new Date(v.departureAt.getTime() - 2 * 60 * 60 * 1000)
+          : oneHourAgo,
+        departureAt: v.departureAt,
+        notifyResident: true,
+        comments: v.comments,
+      },
+    });
+  }
+  log('OK', `  ${VISITORS.length} visitor entries for Maple Heights`);
+
+  // -------------------------------------------------------------------------
+  // 15. Security Shifts & Shift Log Entries (for Maple Heights)
+  // -------------------------------------------------------------------------
+  log('15/15', 'Creating security shifts and log entries...');
+
+  const shiftId1 = '00000000-0000-4000-b400-000000000001';
+  const shiftId2 = '00000000-0000-4000-b400-000000000002';
+
+  const shiftStart1 = new Date(now.getTime() - 8 * 60 * 60 * 1000); // 8 hours ago
+  const shiftEnd1 = now;
+  const shiftStart2 = new Date(now.getTime() - 16 * 60 * 60 * 1000); // 16 hours ago
+  const shiftEnd2 = shiftStart1;
+
+  await prisma.securityShift.upsert({
+    where: { id: shiftId1 },
+    update: { status: 'active' },
+    create: {
+      id: shiftId1,
+      propertyId: mapleHeights.id,
+      guardId: IDS.mh_guard1User,
+      startTime: shiftStart1,
+      endTime: shiftEnd1,
+      status: 'active',
+      openingNotes:
+        'All clear at shift start. Lobby cameras operational. 3 packages pending pickup.',
+      equipmentReceived: 'Radio, master key set, flashlight, incident report forms',
+    },
+  });
+
+  await prisma.securityShift.upsert({
+    where: { id: shiftId2 },
+    update: { status: 'completed' },
+    create: {
+      id: shiftId2,
+      propertyId: mapleHeights.id,
+      guardId: IDS.mh_guard2User,
+      startTime: shiftStart2,
+      endTime: shiftEnd2,
+      actualEndTime: shiftEnd2,
+      relievingGuardId: IDS.mh_guard1User,
+      status: 'completed',
+      openingNotes: 'Received report of noise complaint on floor 4. Will monitor.',
+      closingNotes:
+        'Noise complaint resolved — residents spoke with each other. All quiet after 10 PM. Completed 3 patrol rounds.',
+      equipmentReceived: 'Radio, master key set, flashlight',
+      equipmentReturned: 'Radio, master key set, flashlight',
+    },
+  });
+
+  log('OK', `  2 security shifts for Maple Heights`);
+
+  // Shift Log Entries
+  const LOG_ENTRIES = [
+    {
+      shiftId: shiftId1,
+      category: 'general',
+      entryText: 'Shift started. Received handoff from Amir (night shift). All systems normal.',
+      entryTime: shiftStart1,
+    },
+    {
+      shiftId: shiftId1,
+      category: 'patrol_round',
+      entryText:
+        'Completed patrol round — all floors, parking garage, and rooftop. No issues found.',
+      entryTime: new Date(shiftStart1.getTime() + 2 * 60 * 60 * 1000),
+    },
+    {
+      shiftId: shiftId1,
+      category: 'resident_interaction',
+      entryText:
+        'Resident in unit 201 reported a suspicious vehicle in visitor parking (grey sedan, no plate visible). Investigated — vehicle belongs to contractor working in unit 302.',
+      entryTime: new Date(shiftStart1.getTime() + 3 * 60 * 60 * 1000),
+    },
+    {
+      shiftId: shiftId2,
+      category: 'general',
+      entryText: 'Night shift started. Building quiet. Checked all emergency exits — all secured.',
+      entryTime: shiftStart2,
+    },
+    {
+      shiftId: shiftId2,
+      category: 'alarm_response',
+      entryText:
+        'Fire alarm triggered on floor 4 at 11:42 PM. Investigated — cooking smoke from unit 408. Reset alarm. No evacuation required.',
+      entryTime: new Date(shiftStart2.getTime() + 4 * 60 * 60 * 1000),
+    },
+  ];
+
+  for (let i = 0; i < LOG_ENTRIES.length; i++) {
+    const entry = LOG_ENTRIES[i]!;
+    const entryId = `00000000-0000-4000-b500-000000${(i + 1).toString().padStart(6, '0')}`;
+
+    await prisma.shiftLogEntry.upsert({
+      where: { id: entryId },
+      update: {
+        category: entry.category,
+        entryText: entry.entryText,
+      },
+      create: {
+        id: entryId,
+        shiftId: entry.shiftId,
+        entryTime: entry.entryTime,
+        category: entry.category,
+        entryText: entry.entryText,
+        createdById: entry.shiftId === shiftId1 ? IDS.mh_guard1User : IDS.mh_guard2User,
+      },
+    });
+  }
+  log('OK', `  ${LOG_ENTRIES.length} shift log entries for Maple Heights`);
+
+  // -------------------------------------------------------------------------
   // Summary
   // -------------------------------------------------------------------------
   console.log('\n========================================');
@@ -1394,20 +2211,37 @@ async function main(): Promise<void> {
     - 10 staff users + 10 residents
     - 20 units (floors 1-5, 4 per floor)
     - 5 event groups, 15 event types
+    - 7 courier types (Amazon, FedEx, UPS, Canada Post, DHL, Purolator, Other)
+    - 6 amenities (Party Room, Gym, Pool, BBQ, Guest Suite, Rooftop Lounge)
+    - 6 maintenance categories
     - Property settings with operational toggles
+
+  Maple Heights demo data:
+    - 12 packages (mix of unreleased/released, some perishable)
+    - 7 maintenance requests (various statuses)
+    - 4 announcements (draft, published, scheduled)
+    - 7 visitor entries (active + signed out)
+    - 2 security shifts with 5 log entries
 `);
 }
 
 // ---------------------------------------------------------------------------
-// Execute
+// Execute (only when run directly, not when imported)
 // ---------------------------------------------------------------------------
 
-main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (error) => {
-    console.error('\nSeed failed:', error);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+const isMainModule =
+  typeof process !== 'undefined' &&
+  process.argv[1] &&
+  (process.argv[1].includes('seed.ts') || process.argv[1].includes('seed.js'));
+
+if (isMainModule) {
+  main()
+    .then(async () => {
+      await prisma.$disconnect();
+    })
+    .catch(async (error) => {
+      console.error('\nSeed failed:', error);
+      await prisma.$disconnect();
+      process.exit(1);
+    });
+}

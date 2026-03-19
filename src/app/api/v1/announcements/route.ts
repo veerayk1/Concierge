@@ -8,6 +8,10 @@ import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { sendPushToProperty } from '@/server/push';
+import { createLogger } from '@/server/logger';
+
+const logger = createLogger('announcements');
 
 const createAnnouncementSchema = z.object({
   propertyId: z.string().uuid(),
@@ -105,6 +109,20 @@ export async function POST(request: NextRequest) {
         publishedAt: input.status === 'published' ? new Date() : null,
       },
     });
+
+    // Send push notification for published announcements with push channel
+    if (input.status === 'published' && input.channels.includes('push')) {
+      void sendPushToProperty(input.propertyId, {
+        title: announcement.title,
+        body: input.content.substring(0, 200),
+        data: { announcementId: announcement.id, screen: 'announcements', action: 'view' },
+      }).catch((err) => {
+        logger.error(
+          { err, announcementId: announcement.id },
+          'Failed to send announcement push notification',
+        );
+      });
+    }
 
     return NextResponse.json(
       { data: announcement, message: 'Announcement created.' },

@@ -113,6 +113,27 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Store attachments if provided (photo/document uploads via presigned URL)
+    if (input.attachments && input.attachments.length > 0) {
+      await Promise.all(
+        input.attachments.map((attachment) =>
+          prisma.attachment.create({
+            data: {
+              propertyId: input.propertyId,
+              attachableType: 'maintenance_request',
+              attachableId: req.id,
+              fileName: attachment.fileName,
+              fileType: attachment.contentType,
+              fileSizeBytes: attachment.fileSizeBytes,
+              storageUrl: attachment.key,
+              uploadedById: auth.user.userId,
+              maintenanceRequestId: req.id,
+            },
+          }),
+        ),
+      );
+    }
+
     return NextResponse.json(
       { data: req, message: `Request ${referenceNumber} created.` },
       { status: 201 },
