@@ -1,6 +1,7 @@
 'use client';
 
-import { use, useState } from 'react';
+import { useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -21,7 +22,10 @@ import {
   User,
   Users,
   Wrench,
+  AlertCircle,
 } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -101,193 +105,30 @@ interface HistoryEvent {
   timestamp: string;
 }
 
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_UNIT = {
-  number: '1501',
-  floor: 15,
-  building: 'Tower A',
-  type: 'Residential' as const,
-  status: 'occupied' as const,
-  sqft: 1850,
-  enterPhoneCode: '*1501',
-  parkingSpot: 'P1-15',
-  locker: 'L-42',
-  keyTag: 'KT-1501-A',
-  customFields: {
-    'Move-in Date': '2022-06-01',
-    'Lease Expiry': '2027-05-31',
-    'Insurance Policy': 'POL-88421',
-    'Intercom Code': '1501#',
-  },
-};
-
-const MOCK_INSTRUCTIONS: Instruction[] = [
-  {
-    id: '1',
-    text: 'Has a small dog (Daisy) — may bark at visitors. Ring doorbell twice, resident is slightly hard of hearing.',
-    priority: 'important',
-    createdBy: 'Mike Johnson',
-    createdAt: '2024-11-15T10:00:00',
-  },
-  {
-    id: '2',
-    text: 'Resident prefers packages left at the door. Do not buzz unless perishable.',
-    priority: 'normal',
-    createdBy: 'Sarah Lee',
-    createdAt: '2025-01-20T14:30:00',
-  },
-  {
-    id: '3',
-    text: 'Water shut-off valve is behind the washer. Emergency plumber: 416-555-7777.',
-    priority: 'critical',
-    createdBy: 'Admin',
-    createdAt: '2025-08-01T09:00:00',
-  },
-];
-
-const MOCK_OCCUPANTS: Occupant[] = [
-  {
-    id: '1',
-    name: 'Janet Smith',
-    type: 'Owner',
-    email: 'janet.smith@email.com',
-    phone: '416-555-0123',
-    moveInDate: '2022-06-01',
-    status: 'active',
-  },
-  {
-    id: '2',
-    name: 'Tom Smith',
-    type: 'Family',
-    email: 'tom.s@email.com',
-    phone: '416-555-0124',
-    moveInDate: '2022-06-01',
-    status: 'active',
-  },
-];
-
-const MOCK_PACKAGES: UnitPackage[] = [
-  {
-    id: '1',
-    referenceNumber: 'PKG-4821',
-    courier: 'Amazon',
-    status: 'unreleased',
-    receivedAt: '2026-03-18T09:15:00',
-    releasedTo: null,
-  },
-  {
-    id: '2',
-    referenceNumber: 'PKG-4798',
-    courier: 'FedEx',
-    status: 'released',
-    receivedAt: '2026-03-16T14:30:00',
-    releasedTo: 'Janet Smith',
-  },
-  {
-    id: '3',
-    referenceNumber: 'PKG-4755',
-    courier: 'UPS',
-    status: 'unreleased',
-    receivedAt: '2026-03-15T11:00:00',
-    releasedTo: null,
-  },
-];
-
-const MOCK_MAINTENANCE: MaintenanceRequest[] = [
-  {
-    id: '1',
-    referenceNumber: 'MR-0841',
-    category: 'Plumbing',
-    status: 'open',
-    priority: 'high',
-    createdAt: '2026-03-18T08:00:00',
-  },
-  {
-    id: '2',
-    referenceNumber: 'MR-0790',
-    category: 'HVAC',
-    status: 'resolved',
-    priority: 'medium',
-    createdAt: '2026-02-20T10:00:00',
-  },
-];
-
-const MOCK_FOBS: FOB[] = [
-  { serial: 'SN-3201', type: 'Main Entry', status: 'active', issuedAt: '2022-06-01' },
-  { serial: 'SN-3202', type: 'Parking', status: 'active', issuedAt: '2022-06-01' },
-];
-
-const MOCK_BUZZER_CODES = [
-  { code: '1501', type: 'Unit Buzzer', active: true },
-  { code: '9901', type: 'Visitor Entry', active: true },
-];
-
-const MOCK_GARAGE_CLICKERS = [
-  { serial: 'GC-0481', type: 'Underground Parking', status: 'active' as const },
-];
-
-const MOCK_EMERGENCY_CONTACTS = [
-  { name: 'Michael Smith', relationship: 'Brother', phone: '416-555-9999' },
-  { name: 'Lisa Johnson', relationship: 'Neighbour', phone: '416-555-8888' },
-];
-
-const MOCK_VEHICLE: Vehicle = {
-  make: 'Tesla',
-  model: 'Model 3',
-  year: 2024,
-  color: 'White',
-  plate: 'ABCD 123',
-  parkingSpot: 'P1-15',
-};
-
-const MOCK_PET: Pet = {
-  type: 'Dog',
-  breed: 'Pomeranian',
-  name: 'Daisy',
-  weight: '4.5 kg',
-  registrationNumber: 'PET-2024-0312',
-};
-
-const MOCK_HISTORY: HistoryEvent[] = [
-  {
-    id: '1',
-    action: 'maintenance',
-    detail: 'Maintenance request MR-0841 created — Plumbing',
-    actor: 'Janet Smith',
-    timestamp: '2026-03-18T08:00:00',
-  },
-  {
-    id: '2',
-    action: 'package',
-    detail: 'Package PKG-4821 received from Amazon',
-    actor: 'Mike Johnson',
-    timestamp: '2026-03-18T09:15:00',
-  },
-  {
-    id: '3',
-    action: 'package',
-    detail: 'Package PKG-4798 released to Janet Smith',
-    actor: 'Mike Johnson',
-    timestamp: '2026-03-16T15:00:00',
-  },
-  {
-    id: '4',
-    action: 'move_in',
-    detail: 'Tom Smith added as Family member',
-    actor: 'Admin',
-    timestamp: '2022-06-01T10:00:00',
-  },
-  {
-    id: '5',
-    action: 'move_in',
-    detail: 'Janet Smith moved in as Owner',
-    actor: 'Admin',
-    timestamp: '2022-06-01T09:00:00',
-  },
-];
+interface UnitDetail {
+  number: string;
+  floor: number;
+  building: string;
+  type: string;
+  status: string;
+  sqft: number;
+  enterPhoneCode: string;
+  parkingSpot: string;
+  locker: string;
+  keyTag: string;
+  customFields: Record<string, string>;
+  instructions: Instruction[];
+  occupants: Occupant[];
+  packages: UnitPackage[];
+  maintenance: MaintenanceRequest[];
+  fobs: FOB[];
+  buzzerCodes: { code: string; type: string; active: boolean }[];
+  garageClickers: { serial: string; type: string; status: string }[];
+  emergencyContacts: { name: string; relationship: string; phone: string }[];
+  vehicles: Vehicle[];
+  pets: Pet[];
+  history: HistoryEvent[];
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -321,16 +162,101 @@ function getHistoryIcon(action: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Skeleton Loader
+// ---------------------------------------------------------------------------
+
+function UnitDetailSkeleton() {
+  return (
+    <div className="flex animate-pulse flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <div className="h-4 w-24 rounded bg-neutral-200" />
+        <div className="h-8 w-48 rounded bg-neutral-200" />
+        <div className="h-4 w-64 rounded bg-neutral-200" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-20 rounded-xl bg-neutral-100" />
+        ))}
+      </div>
+      <div className="h-10 w-full rounded bg-neutral-100" />
+      <div className="h-64 rounded-xl bg-neutral-100" />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-interface UnitDetailPageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function UnitDetailPage({ params }: UnitDetailPageProps) {
-  const { id } = use(params);
+export default function UnitDetailPage() {
+  const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('overview');
+
+  const {
+    data: unit,
+    loading,
+    error,
+  } = useApi<UnitDetail>(apiUrl(`/api/v1/units/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+
+  // -- Loading State --
+  if (loading) {
+    return <UnitDetailSkeleton />;
+  }
+
+  // -- Error State --
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="bg-error-50 flex h-16 w-16 items-center justify-center rounded-full">
+          <AlertCircle className="text-error-600 h-8 w-8" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">
+          {error.includes('404') ? 'Unit Not Found' : 'Failed to Load Unit'}
+        </h2>
+        <p className="max-w-md text-center text-[14px] text-neutral-500">{error}</p>
+        <Link href="/units">
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to units
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // -- 404 State --
+  if (!unit) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+          <Building2 className="h-8 w-8 text-neutral-400" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">Unit Not Found</h2>
+        <p className="text-[14px] text-neutral-500">
+          The unit you are looking for does not exist or has been removed.
+        </p>
+        <Link href="/units">
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to units
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const occupants = unit.occupants ?? [];
+  const packages = unit.packages ?? [];
+  const maintenance = unit.maintenance ?? [];
+  const instructions = unit.instructions ?? [];
+  const fobs = unit.fobs ?? [];
+  const buzzerCodes = unit.buzzerCodes ?? [];
+  const garageClickers = unit.garageClickers ?? [];
+  const emergencyContacts = unit.emergencyContacts ?? [];
+  const vehicles = unit.vehicles ?? [];
+  const pets = unit.pets ?? [];
+  const history = unit.history ?? [];
+  const customFields = unit.customFields ?? {};
 
   // -- Occupants columns --
   const occupantColumns: Column<Occupant>[] = [
@@ -561,15 +487,15 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
           </Link>
           <div className="flex items-center gap-3">
             <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
-              Unit {MOCK_UNIT.number}
+              Unit {unit.number}
             </h1>
-            <Badge variant="success" size="lg" dot>
-              Occupied
+            <Badge variant={unit.status === 'occupied' ? 'success' : 'default'} size="lg" dot>
+              {unit.status.charAt(0).toUpperCase() + unit.status.slice(1)}
             </Badge>
           </div>
           <p className="text-[14px] text-neutral-500">
-            {MOCK_UNIT.building} &middot; Floor {MOCK_UNIT.floor} &middot; {MOCK_UNIT.type} &middot;{' '}
-            {MOCK_UNIT.sqft} sq ft
+            {unit.building} &middot; Floor {unit.floor} &middot; {unit.type} &middot; {unit.sqft} sq
+            ft
           </p>
         </div>
         <Button variant="secondary" size="sm">
@@ -583,14 +509,14 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
         {[
           {
             label: 'Unreleased Packages',
-            value: MOCK_PACKAGES.filter((p) => p.status === 'unreleased').length,
+            value: packages.filter((p) => p.status === 'unreleased').length,
             icon: Package,
             color: 'text-warning-600',
             bg: 'bg-warning-50',
           },
           {
             label: 'Open Requests',
-            value: MOCK_MAINTENANCE.filter((m) => m.status === 'open' || m.status === 'in_progress')
+            value: maintenance.filter((m) => m.status === 'open' || m.status === 'in_progress')
               .length,
             icon: Wrench,
             color: 'text-error-600',
@@ -598,7 +524,7 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
           },
           {
             label: 'Occupants',
-            value: MOCK_OCCUPANTS.length,
+            value: occupants.length,
             icon: Users,
             color: 'text-info-600',
             bg: 'bg-info-50',
@@ -641,22 +567,25 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
                 <CardContent>
                   <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
                     {[
-                      { label: 'Number', value: MOCK_UNIT.number },
-                      { label: 'Floor', value: String(MOCK_UNIT.floor) },
-                      { label: 'Type', value: MOCK_UNIT.type },
-                      { label: 'Status', value: 'Occupied' },
-                      { label: 'Square Footage', value: `${MOCK_UNIT.sqft} sq ft` },
-                      { label: 'Enter Phone Code', value: MOCK_UNIT.enterPhoneCode },
-                      { label: 'Parking Spot', value: MOCK_UNIT.parkingSpot },
-                      { label: 'Locker', value: MOCK_UNIT.locker },
-                      { label: 'Key Tag', value: MOCK_UNIT.keyTag },
+                      { label: 'Number', value: unit.number },
+                      { label: 'Floor', value: String(unit.floor) },
+                      { label: 'Type', value: unit.type },
+                      {
+                        label: 'Status',
+                        value: unit.status.charAt(0).toUpperCase() + unit.status.slice(1),
+                      },
+                      { label: 'Square Footage', value: `${unit.sqft} sq ft` },
+                      { label: 'Enter Phone Code', value: unit.enterPhoneCode },
+                      { label: 'Parking Spot', value: unit.parkingSpot },
+                      { label: 'Locker', value: unit.locker },
+                      { label: 'Key Tag', value: unit.keyTag },
                     ].map((item) => (
                       <div key={item.label}>
                         <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                           {item.label}
                         </p>
                         <p className="mt-1 text-[15px] font-medium text-neutral-900">
-                          {item.value}
+                          {item.value || '—'}
                         </p>
                       </div>
                     ))}
@@ -669,33 +598,42 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
                 <div className="mb-4 flex items-center gap-2">
                   <StickyNote className="h-4 w-4 text-neutral-400" />
                   <h2 className="text-[14px] font-semibold text-neutral-900">
-                    Front Desk Instructions ({MOCK_INSTRUCTIONS.length})
+                    Front Desk Instructions ({instructions.length})
                   </h2>
                 </div>
                 <CardContent>
-                  <div className="flex flex-col gap-3">
-                    {MOCK_INSTRUCTIONS.map((instr) => (
-                      <div
-                        key={instr.id}
-                        className={`rounded-xl border p-4 ${priorityBorderMap[instr.priority]}`}
-                      >
-                        <div className="mb-1 flex items-center gap-2">
-                          <Badge variant={priorityBadgeMap[instr.priority]} size="sm">
-                            {instr.priority}
-                          </Badge>
-                          <span className="text-[12px] text-neutral-400">
-                            by {instr.createdBy} &middot;{' '}
-                            {new Date(instr.createdAt).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
-                          </span>
+                  {instructions.length > 0 ? (
+                    <div className="flex flex-col gap-3">
+                      {instructions.map((instr) => (
+                        <div
+                          key={instr.id}
+                          className={`rounded-xl border p-4 ${priorityBorderMap[instr.priority] ?? 'border-neutral-200'}`}
+                        >
+                          <div className="mb-1 flex items-center gap-2">
+                            <Badge
+                              variant={priorityBadgeMap[instr.priority] ?? 'default'}
+                              size="sm"
+                            >
+                              {instr.priority}
+                            </Badge>
+                            <span className="text-[12px] text-neutral-400">
+                              by {instr.createdBy} &middot;{' '}
+                              {new Date(instr.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-[14px] leading-relaxed text-neutral-700">
+                            {instr.text}
+                          </p>
                         </div>
-                        <p className="text-[14px] leading-relaxed text-neutral-700">{instr.text}</p>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[14px] text-neutral-400">No front desk instructions.</p>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -705,16 +643,20 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
               <Card>
                 <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Custom Fields</h2>
                 <CardContent>
-                  <div className="flex flex-col gap-4">
-                    {Object.entries(MOCK_UNIT.customFields).map(([key, value]) => (
-                      <div key={key}>
-                        <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                          {key}
-                        </p>
-                        <p className="mt-1 text-[15px] text-neutral-900">{value}</p>
-                      </div>
-                    ))}
-                  </div>
+                  {Object.keys(customFields).length > 0 ? (
+                    <div className="flex flex-col gap-4">
+                      {Object.entries(customFields).map(([key, value]) => (
+                        <div key={key}>
+                          <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                            {key}
+                          </p>
+                          <p className="mt-1 text-[15px] text-neutral-900">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[14px] text-neutral-400">No custom fields configured.</p>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -725,23 +667,23 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
         <TabsContent value="occupants">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-[14px] text-neutral-500">
-              {MOCK_OCCUPANTS.length} resident{MOCK_OCCUPANTS.length !== 1 ? 's' : ''} in this unit
+              {occupants.length} resident{occupants.length !== 1 ? 's' : ''} in this unit
             </p>
             <Button size="sm">
               <Plus className="h-4 w-4" />
               Add Occupant
             </Button>
           </div>
-          <DataTable columns={occupantColumns} data={MOCK_OCCUPANTS} emptyMessage="No occupants." />
+          <DataTable columns={occupantColumns} data={occupants} emptyMessage="No occupants." />
         </TabsContent>
 
         {/* Tab 3: Packages */}
         <TabsContent value="packages">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-[14px] text-neutral-500">
-              Packages from the last 30 days ({MOCK_PACKAGES.length})
+              Packages from the last 30 days ({packages.length})
             </p>
-            <Link href={`/packages?unit=${MOCK_UNIT.number}`}>
+            <Link href={`/packages?unit=${unit.number}`}>
               <Button variant="secondary" size="sm">
                 View All Packages
               </Button>
@@ -749,7 +691,7 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
           </div>
           <DataTable
             columns={packageColumns}
-            data={MOCK_PACKAGES}
+            data={packages}
             emptyMessage="No recent packages."
             emptyIcon={<Package className="h-6 w-6" />}
           />
@@ -759,10 +701,10 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
         <TabsContent value="maintenance">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-[14px] text-neutral-500">
-              {MOCK_MAINTENANCE.length} maintenance request
-              {MOCK_MAINTENANCE.length !== 1 ? 's' : ''}
+              {maintenance.length} maintenance request
+              {maintenance.length !== 1 ? 's' : ''}
             </p>
-            <Link href={`/maintenance?unit=${MOCK_UNIT.number}`}>
+            <Link href={`/maintenance?unit=${unit.number}`}>
               <Button size="sm">
                 <Plus className="h-4 w-4" />
                 New Request
@@ -771,7 +713,7 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
           </div>
           <DataTable
             columns={maintenanceColumns}
-            data={MOCK_MAINTENANCE}
+            data={maintenance}
             emptyMessage="No maintenance requests."
             emptyIcon={<Wrench className="h-6 w-6" />}
           />
@@ -784,36 +726,38 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
             <Card>
               <div className="mb-4 flex items-center gap-2">
                 <Key className="h-4 w-4 text-neutral-400" />
-                <h2 className="text-[14px] font-semibold text-neutral-900">
-                  FOBs ({MOCK_FOBS.length})
-                </h2>
+                <h2 className="text-[14px] font-semibold text-neutral-900">FOBs ({fobs.length})</h2>
               </div>
               <CardContent>
-                <div className="flex flex-col gap-3">
-                  {MOCK_FOBS.map((f, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
-                    >
-                      <div>
-                        <p className="font-mono text-[13px] font-medium text-neutral-900">
-                          {f.serial}
-                        </p>
-                        <p className="text-[12px] text-neutral-500">
-                          {f.type} &middot; Issued{' '}
-                          {new Date(f.issuedAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </p>
+                {fobs.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {fobs.map((f, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
+                      >
+                        <div>
+                          <p className="font-mono text-[13px] font-medium text-neutral-900">
+                            {f.serial}
+                          </p>
+                          <p className="text-[12px] text-neutral-500">
+                            {f.type} &middot; Issued{' '}
+                            {new Date(f.issuedAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                        <Badge variant={f.status === 'active' ? 'success' : 'error'} size="sm" dot>
+                          {f.status}
+                        </Badge>
                       </div>
-                      <Badge variant={f.status === 'active' ? 'success' : 'error'} size="sm" dot>
-                        {f.status}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[14px] text-neutral-400">No FOBs assigned.</p>
+                )}
               </CardContent>
             </Card>
 
@@ -822,28 +766,32 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
               <div className="mb-4 flex items-center gap-2">
                 <Bell className="h-4 w-4 text-neutral-400" />
                 <h2 className="text-[14px] font-semibold text-neutral-900">
-                  Buzzer Codes ({MOCK_BUZZER_CODES.length})
+                  Buzzer Codes ({buzzerCodes.length})
                 </h2>
               </div>
               <CardContent>
-                <div className="flex flex-col gap-3">
-                  {MOCK_BUZZER_CODES.map((b, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
-                    >
-                      <div>
-                        <p className="font-mono text-[15px] font-medium text-neutral-900">
-                          {b.code}
-                        </p>
-                        <p className="text-[12px] text-neutral-500">{b.type}</p>
+                {buzzerCodes.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {buzzerCodes.map((b, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
+                      >
+                        <div>
+                          <p className="font-mono text-[15px] font-medium text-neutral-900">
+                            {b.code}
+                          </p>
+                          <p className="text-[12px] text-neutral-500">{b.type}</p>
+                        </div>
+                        <Badge variant={b.active ? 'success' : 'default'} size="sm" dot>
+                          {b.active ? 'Active' : 'Inactive'}
+                        </Badge>
                       </div>
-                      <Badge variant={b.active ? 'success' : 'default'} size="sm" dot>
-                        {b.active ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[14px] text-neutral-400">No buzzer codes.</p>
+                )}
               </CardContent>
             </Card>
 
@@ -852,28 +800,32 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
               <div className="mb-4 flex items-center gap-2">
                 <Car className="h-4 w-4 text-neutral-400" />
                 <h2 className="text-[14px] font-semibold text-neutral-900">
-                  Garage Clickers ({MOCK_GARAGE_CLICKERS.length})
+                  Garage Clickers ({garageClickers.length})
                 </h2>
               </div>
               <CardContent>
-                <div className="flex flex-col gap-3">
-                  {MOCK_GARAGE_CLICKERS.map((g, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
-                    >
-                      <div>
-                        <p className="font-mono text-[13px] font-medium text-neutral-900">
-                          {g.serial}
-                        </p>
-                        <p className="text-[12px] text-neutral-500">{g.type}</p>
+                {garageClickers.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {garageClickers.map((g, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
+                      >
+                        <div>
+                          <p className="font-mono text-[13px] font-medium text-neutral-900">
+                            {g.serial}
+                          </p>
+                          <p className="text-[12px] text-neutral-500">{g.type}</p>
+                        </div>
+                        <Badge variant={g.status === 'active' ? 'success' : 'error'} size="sm" dot>
+                          {g.status}
+                        </Badge>
                       </div>
-                      <Badge variant={g.status === 'active' ? 'success' : 'error'} size="sm" dot>
-                        {g.status}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[14px] text-neutral-400">No garage clickers.</p>
+                )}
               </CardContent>
             </Card>
 
@@ -882,22 +834,26 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
               <div className="mb-4 flex items-center gap-2">
                 <Shield className="h-4 w-4 text-neutral-400" />
                 <h2 className="text-[14px] font-semibold text-neutral-900">
-                  Emergency Contacts ({MOCK_EMERGENCY_CONTACTS.length})
+                  Emergency Contacts ({emergencyContacts.length})
                 </h2>
               </div>
               <CardContent>
-                <div className="flex flex-col gap-3">
-                  {MOCK_EMERGENCY_CONTACTS.map((c, i) => (
-                    <div key={i} className="rounded-xl border border-neutral-100 p-4">
-                      <p className="text-[14px] font-medium text-neutral-900">{c.name}</p>
-                      <p className="text-[13px] text-neutral-500">{c.relationship}</p>
-                      <p className="mt-1 flex items-center gap-1 text-[13px] text-neutral-600">
-                        <Phone className="h-3 w-3" />
-                        {c.phone}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                {emergencyContacts.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {emergencyContacts.map((c, i) => (
+                      <div key={i} className="rounded-xl border border-neutral-100 p-4">
+                        <p className="text-[14px] font-medium text-neutral-900">{c.name}</p>
+                        <p className="text-[13px] text-neutral-500">{c.relationship}</p>
+                        <p className="mt-1 flex items-center gap-1 text-[13px] text-neutral-600">
+                          <Phone className="h-3 w-3" />
+                          {c.phone}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[14px] text-neutral-400">No emergency contacts.</p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -910,30 +866,40 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
             <Card>
               <div className="mb-4 flex items-center gap-2">
                 <Car className="h-4 w-4 text-neutral-400" />
-                <h2 className="text-[14px] font-semibold text-neutral-900">Vehicles (1)</h2>
+                <h2 className="text-[14px] font-semibold text-neutral-900">
+                  Vehicles ({vehicles.length})
+                </h2>
               </div>
               <CardContent>
-                <div className="rounded-xl border border-neutral-100 p-4">
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                    {[
-                      { label: 'Make', value: MOCK_VEHICLE.make },
-                      { label: 'Model', value: MOCK_VEHICLE.model },
-                      { label: 'Year', value: String(MOCK_VEHICLE.year) },
-                      { label: 'Color', value: MOCK_VEHICLE.color },
-                      { label: 'Plate', value: MOCK_VEHICLE.plate },
-                      { label: 'Parking Spot', value: MOCK_VEHICLE.parkingSpot },
-                    ].map((item) => (
-                      <div key={item.label}>
-                        <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                          {item.label}
-                        </p>
-                        <p className="mt-0.5 text-[14px] font-medium text-neutral-900">
-                          {item.value}
-                        </p>
+                {vehicles.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {vehicles.map((v, i) => (
+                      <div key={i} className="rounded-xl border border-neutral-100 p-4">
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                          {[
+                            { label: 'Make', value: v.make },
+                            { label: 'Model', value: v.model },
+                            { label: 'Year', value: String(v.year) },
+                            { label: 'Color', value: v.color },
+                            { label: 'Plate', value: v.plate },
+                            { label: 'Parking Spot', value: v.parkingSpot },
+                          ].map((item) => (
+                            <div key={item.label}>
+                              <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                                {item.label}
+                              </p>
+                              <p className="mt-0.5 text-[14px] font-medium text-neutral-900">
+                                {item.value}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
+                ) : (
+                  <p className="text-[14px] text-neutral-400">No vehicles registered.</p>
+                )}
               </CardContent>
             </Card>
 
@@ -941,29 +907,37 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
             <Card>
               <div className="mb-4 flex items-center gap-2">
                 <Dog className="h-4 w-4 text-neutral-400" />
-                <h2 className="text-[14px] font-semibold text-neutral-900">Pets (1)</h2>
+                <h2 className="text-[14px] font-semibold text-neutral-900">Pets ({pets.length})</h2>
               </div>
               <CardContent>
-                <div className="rounded-xl border border-neutral-100 p-4">
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                    {[
-                      { label: 'Name', value: MOCK_PET.name },
-                      { label: 'Type', value: MOCK_PET.type },
-                      { label: 'Breed', value: MOCK_PET.breed },
-                      { label: 'Weight', value: MOCK_PET.weight },
-                      { label: 'Registration #', value: MOCK_PET.registrationNumber },
-                    ].map((item) => (
-                      <div key={item.label}>
-                        <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                          {item.label}
-                        </p>
-                        <p className="mt-0.5 text-[14px] font-medium text-neutral-900">
-                          {item.value}
-                        </p>
+                {pets.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {pets.map((p, i) => (
+                      <div key={i} className="rounded-xl border border-neutral-100 p-4">
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                          {[
+                            { label: 'Name', value: p.name },
+                            { label: 'Type', value: p.type },
+                            { label: 'Breed', value: p.breed },
+                            { label: 'Weight', value: p.weight },
+                            { label: 'Registration #', value: p.registrationNumber },
+                          ].map((item) => (
+                            <div key={item.label}>
+                              <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                                {item.label}
+                              </p>
+                              <p className="mt-0.5 text-[14px] font-medium text-neutral-900">
+                                {item.value}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
+                ) : (
+                  <p className="text-[14px] text-neutral-400">No pets registered.</p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -974,32 +948,36 @@ export default function UnitDetailPage({ params }: UnitDetailPageProps) {
           <Card>
             <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Unit Timeline</h2>
             <CardContent>
-              <div className="relative">
-                <div className="absolute top-2 bottom-2 left-[11px] w-px bg-neutral-200" />
-                <div className="flex flex-col gap-4">
-                  {MOCK_HISTORY.map((event) => (
-                    <div key={event.id} className="relative flex gap-3">
-                      <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-neutral-100">
-                        {getHistoryIcon(event.action)}
+              {history.length > 0 ? (
+                <div className="relative">
+                  <div className="absolute top-2 bottom-2 left-[11px] w-px bg-neutral-200" />
+                  <div className="flex flex-col gap-4">
+                    {history.map((event) => (
+                      <div key={event.id} className="relative flex gap-3">
+                        <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-neutral-100">
+                          {getHistoryIcon(event.action)}
+                        </div>
+                        <div className="flex flex-col gap-0.5 pt-0.5">
+                          <p className="text-[13px] font-medium text-neutral-900">{event.detail}</p>
+                          <p className="text-[12px] text-neutral-400">
+                            {new Date(event.timestamp).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                            {' \u00B7 '}
+                            {event.actor}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex flex-col gap-0.5 pt-0.5">
-                        <p className="text-[13px] font-medium text-neutral-900">{event.detail}</p>
-                        <p className="text-[12px] text-neutral-400">
-                          {new Date(event.timestamp).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                          {' \u00B7 '}
-                          {event.actor}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No history events.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

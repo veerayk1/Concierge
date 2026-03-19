@@ -10,6 +10,7 @@ import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { sendPushToProperty } from '@/server/push';
 import { createLogger } from '@/server/logger';
+import type { Role } from '@/types';
 
 const logger = createLogger('announcements');
 
@@ -44,7 +45,17 @@ export async function GET(request: NextRequest) {
     }
 
     const where: Record<string, unknown> = { propertyId, deletedAt: null };
-    if (status) where.status = status;
+
+    // GAP 9.2 — Residents only see published announcements (not draft/scheduled)
+    const ADMIN_ROLES: Role[] = ['super_admin', 'property_admin', 'property_manager'];
+    const isAdmin = ADMIN_ROLES.includes(auth.user.role);
+    if (status) {
+      where.status = status;
+    } else if (!isAdmin) {
+      // Non-admins only see published announcements by default
+      where.status = 'published';
+    }
+
     if (search) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },

@@ -673,8 +673,8 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Weather Widget */}
-          <Card>
+          {/* Weather Widget — GAP 14.1 placeholder (no real API yet) */}
+          <Card data-testid="weather-widget">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <CloudSun className="text-info-500 h-4 w-4" />
@@ -684,8 +684,15 @@ export default function DashboardPage() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[24px] font-bold text-neutral-900">8&deg;C</p>
-                  <p className="text-[13px] text-neutral-500">Partly cloudy</p>
+                  <p
+                    data-testid="weather-temperature"
+                    className="text-[24px] font-bold text-neutral-900"
+                  >
+                    8&deg;C
+                  </p>
+                  <p data-testid="weather-condition" className="text-[13px] text-neutral-500">
+                    Partly cloudy
+                  </p>
                 </div>
                 <div className="text-right text-[12px] text-neutral-500">
                   <p>H: 12&deg; L: 3&deg;</p>
