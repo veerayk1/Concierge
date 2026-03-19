@@ -3,11 +3,13 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
+  AlertCircle,
   AlertTriangle,
   Calendar,
   CheckCircle2,
   Clock,
   Filter,
+  Loader2,
   Megaphone,
   MessageSquare,
   Moon,
@@ -24,146 +26,28 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — mapped from API response (Prisma Event model)
 // ---------------------------------------------------------------------------
 
 interface ShiftEntry {
   id: string;
-  author: string;
-  role: string;
-  shift: 'morning' | 'afternoon' | 'night';
-  content: string;
-  priority: 'normal' | 'important';
-  createdAt: string;
-}
-
-interface PassOnNote {
-  id: string;
-  author: string;
-  content: string;
-  createdAt: string;
-  isRead: boolean;
-  priority: 'normal' | 'critical';
-}
-
-interface StaffBulletin {
-  id: string;
   title: string;
-  content: string;
-  author: string;
+  description: string | null;
+  priority: string;
+  referenceNo: string | null;
   createdAt: string;
-  pinned: boolean;
+  createdById: string | null;
+  customFields: {
+    category?: string;
+    pinned?: boolean;
+    readBy?: string[];
+    mentionedUnitId?: string;
+  } | null;
+  eventType: { name: string } | null;
 }
-
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_ENTRIES: ShiftEntry[] = [
-  {
-    id: '1',
-    author: 'Guard Patel',
-    role: 'Security Guard',
-    shift: 'morning',
-    content:
-      'Elevator B still out of service. Technician expected by 2pm. Route residents to Elevator A. Update posted in lobby.',
-    priority: 'important',
-    createdAt: '2026-03-18T07:00:00',
-  },
-  {
-    id: '2',
-    author: 'Guard Martinez',
-    role: 'Security Guard',
-    shift: 'night',
-    content:
-      'Lobby doors were sticking around 11pm. Applied WD-40 as temporary fix. Maintenance ticket MR-0845 created. Use side entrance if it recurs.',
-    priority: 'important',
-    createdAt: '2026-03-17T23:30:00',
-  },
-  {
-    id: '3',
-    author: 'Guard Chen',
-    role: 'Security Guard',
-    shift: 'night',
-    content:
-      'Quiet night. All patrols completed on schedule. P2 garage camera #3 has intermittent static — IT notified.',
-    priority: 'normal',
-    createdAt: '2026-03-17T22:00:00',
-  },
-  {
-    id: '4',
-    author: 'Mike Johnson',
-    role: 'Front Desk',
-    shift: 'afternoon',
-    content:
-      'Unit 1501 (Janet Smith) expecting a furniture delivery tomorrow between 10am-12pm. Moving company: AllStar Movers. They will need elevator booking.',
-    priority: 'normal',
-    createdAt: '2026-03-17T16:00:00',
-  },
-  {
-    id: '5',
-    author: 'Angela Davis',
-    role: 'Front Desk',
-    shift: 'morning',
-    content:
-      'Received 12 packages from Amazon bulk delivery. All logged and notified. Storage shelf A is getting full — start using shelf D for overflow.',
-    priority: 'normal',
-    createdAt: '2026-03-17T10:30:00',
-  },
-];
-
-const MOCK_PASS_ON_NOTES: PassOnNote[] = [
-  {
-    id: 'pon-1',
-    author: 'Guard Martinez',
-    content:
-      'Resident in Unit 302 reported a suspicious person in the parking garage around 10pm. CCTV footage saved. Follow up with property manager.',
-    createdAt: '2026-03-17T23:45:00',
-    isRead: false,
-    priority: 'critical',
-  },
-  {
-    id: 'pon-2',
-    author: 'Angela Davis',
-    content:
-      'Delivery for Unit 1802 (perishable — frozen food) arrived at 3pm. Resident not home. Stored in staff fridge. Must be picked up today.',
-    createdAt: '2026-03-17T15:10:00',
-    isRead: false,
-    priority: 'critical',
-  },
-  {
-    id: 'pon-3',
-    author: 'Mike Johnson',
-    content:
-      'Fire alarm test scheduled for tomorrow 9am-11am. Notify any residents who call about it.',
-    createdAt: '2026-03-17T14:00:00',
-    isRead: true,
-    priority: 'normal',
-  },
-];
-
-const MOCK_BULLETINS: StaffBulletin[] = [
-  {
-    id: 'bul-1',
-    title: 'New Package Logging Procedure',
-    content:
-      'Effective March 20th, all packages must be photographed upon intake. Use the camera icon in the package form. See updated SOP in the library.',
-    author: 'Property Manager',
-    createdAt: '2026-03-15T09:00:00',
-    pinned: true,
-  },
-  {
-    id: 'bul-2',
-    title: 'Holiday Schedule - Easter Weekend',
-    content:
-      'Building office closed April 18-21. Skeleton security staff on duty. All non-emergency maintenance requests will be handled April 22.',
-    author: 'HR Department',
-    createdAt: '2026-03-14T10:00:00',
-    pinned: true,
-  },
-];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -181,8 +65,7 @@ const SHIFT_ICONS = {
   night: Moon,
 };
 
-type ShiftFilter = 'all' | 'morning' | 'afternoon' | 'night';
-type EntryTypeFilter = 'all' | 'important' | 'normal';
+type EntryTypeFilter = 'all' | 'important' | 'normal' | 'urgent';
 
 function getCurrentShift(): 'morning' | 'afternoon' | 'night' {
   const hour = new Date().getHours();
@@ -208,23 +91,21 @@ function getShiftTimes(shift: 'morning' | 'afternoon' | 'night') {
 
 export default function ShiftLogPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [shiftFilter, setShiftFilter] = useState<ShiftFilter>('all');
   const [entryTypeFilter, setEntryTypeFilter] = useState<EntryTypeFilter>('all');
-  const [passOnNotes, setPassOnNotes] = useState(MOCK_PASS_ON_NOTES);
 
-  const { data: apiEntries, refetch } = useApi<ShiftEntry[]>(
-    apiUrl('/api/v1/shift-log', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiEntries,
+    loading,
+    error,
+    refetch,
+  } = useApi<ShiftEntry[]>(
+    apiUrl('/api/v1/shift-log', {
+      propertyId: DEMO_PROPERTY_ID,
+      priority: entryTypeFilter !== 'all' ? entryTypeFilter : undefined,
+    }),
   );
 
-  const allEntries = useMemo<ShiftEntry[]>(() => apiEntries ?? MOCK_ENTRIES, [apiEntries]);
-
-  const filteredEntries = useMemo(() => {
-    return allEntries.filter((entry) => {
-      if (shiftFilter !== 'all' && entry.shift !== shiftFilter) return false;
-      if (entryTypeFilter !== 'all' && entry.priority !== entryTypeFilter) return false;
-      return true;
-    });
-  }, [allEntries, shiftFilter, entryTypeFilter]);
+  const allEntries = useMemo<ShiftEntry[]>(() => apiEntries ?? [], [apiEntries]);
 
   const currentShift = getCurrentShift();
   const shiftTimes = getShiftTimes(currentShift);

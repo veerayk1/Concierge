@@ -152,6 +152,7 @@ export async function POST(request: NextRequest) {
         description: body.description.trim(),
         estimatedDurationMinutes: body.estimatedMinutes,
         category: body.category || null,
+        courseType: body.courseType || 'standard', // GAP 11.2 — standard, product_update, compliance
         difficulty: body.difficulty || 'beginner',
         passThreshold: body.passThreshold || 70,
         mandatory: body.mandatory || false,

@@ -14,6 +14,8 @@ export const createMaintenanceSchema = z.object({
   contactPhone: z.string().max(20).optional().or(z.literal('')),
   /** GAP 5.1 — Hide from resident portal (default: false = visible to residents) */
   hideFromResident: z.boolean().default(false),
+  /** GAP 5.2 — When true, response includes redirect:'create' to keep form open */
+  addAnother: z.boolean().default(false),
   /** S3 keys of files uploaded via presigned URL (max 10 attachments). */
   attachments: z
     .array(

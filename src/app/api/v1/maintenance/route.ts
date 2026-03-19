@@ -148,10 +148,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(
-      { data: req, message: `Request ${referenceNumber} created.` },
-      { status: 201 },
-    );
+    // GAP 5.2 — Save & Add Another: include redirect hint for UI
+    const responseBody: Record<string, unknown> = {
+      data: req,
+      message: `Request ${referenceNumber} created.`,
+    };
+    if (input.addAnother) {
+      responseBody.redirect = 'create';
+    }
+
+    return NextResponse.json(responseBody, { status: 201 });
   } catch (error) {
     console.error('POST /api/v1/maintenance error:', error);
     return NextResponse.json(

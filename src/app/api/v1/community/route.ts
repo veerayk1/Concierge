@@ -119,6 +119,10 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // GAP 12.2 — Auto-set expiration to 30 days from now
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ad = await (prisma.classifiedAd.create as any)({
       data: {
@@ -135,6 +139,7 @@ export async function POST(request: NextRequest) {
         contactEmail: input.contactEmail || null,
         userId: auth.user.userId,
         status: 'active',
+        expirationDate: expiresAt,
       },
     });
 

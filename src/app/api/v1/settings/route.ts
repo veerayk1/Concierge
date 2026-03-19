@@ -125,6 +125,22 @@ export async function PATCH(request: NextRequest) {
       data: updateData,
     });
 
+    // GAP 13.3 — Persist operational toggles (e.g. selfServeVisitorParking) to PropertySettings
+    if (updates.operationalToggles && typeof updates.operationalToggles === 'object') {
+      await prisma.propertySettings.upsert({
+        where: { propertyId },
+        create: {
+          propertyId,
+          operationalToggles: updates.operationalToggles,
+          updatedById: auth.user.userId,
+        },
+        update: {
+          operationalToggles: updates.operationalToggles,
+          updatedById: auth.user.userId,
+        },
+      });
+    }
+
     // Invalidate cached settings for this property
     appCache.invalidateByTag(`property:${propertyId}`);
 
