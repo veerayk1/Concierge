@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import {
   Activity,
+  AlertTriangle,
   TrendingUp,
   Users,
   Package,
@@ -12,98 +13,130 @@ import {
   Shield,
   Calendar,
   Download,
+  Clock,
+  Bell,
+  BarChart3,
 } from 'lucide-react';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ---------------------------------------------------------------------------
-// KPI Data
+// Types (aligned with /api/v1/dashboard response)
 // ---------------------------------------------------------------------------
 
-interface KpiCard {
+interface DashboardKpis {
+  unreleasedPackages: number;
+  activeVisitors: number;
+  openMaintenanceRequests: number;
+  todayEvents: number;
+  pendingBookingApprovals: number;
+  unreadAnnouncements: number;
+  overdueMaintenanceRequests: number;
+  monthlyPackageVolume: number;
+  avgResolutionTimeHours: number;
+}
+
+interface RecentActivityItem {
+  id: string;
+  type: string;
+  title: string;
+  unit?: string;
+  status: string;
+  createdAt: string;
+}
+
+interface DashboardResponse {
+  kpis: DashboardKpis;
+  recentActivity: RecentActivityItem[];
+}
+
+// ---------------------------------------------------------------------------
+// KPI Card Definitions
+// ---------------------------------------------------------------------------
+
+interface KpiCardDef {
+  key: keyof DashboardKpis;
   label: string;
-  value: string;
-  change?: string;
-  changeType?: 'positive' | 'negative' | 'neutral';
   icon: typeof Activity;
   iconColor: string;
   iconBg: string;
+  format?: (v: number) => string;
+  changeLabel?: (v: number, kpis: DashboardKpis) => string | null;
+  changeType?: (v: number, kpis: DashboardKpis) => 'positive' | 'negative' | 'neutral';
 }
 
-const KPI_CARDS: KpiCard[] = [
+const KPI_DEFS: KpiCardDef[] = [
   {
-    label: 'Total Residents',
-    value: '487',
-    change: '+12 this month',
-    changeType: 'positive',
-    icon: Users,
-    iconColor: 'text-primary-600',
-    iconBg: 'bg-primary-50',
-  },
-  {
-    label: 'Packages Today',
-    value: '23',
-    change: '+5 vs yesterday',
-    changeType: 'positive',
+    key: 'monthlyPackageVolume',
+    label: 'Packages This Month',
     icon: Package,
     iconColor: 'text-info-600',
     iconBg: 'bg-info-50',
   },
   {
+    key: 'unreleasedPackages',
+    label: 'Unreleased Packages',
+    icon: Package,
+    iconColor: 'text-warning-600',
+    iconBg: 'bg-warning-50',
+    changeLabel: (v) => (v > 0 ? `${v} awaiting pickup` : null),
+    changeType: (v) => (v > 5 ? 'negative' : v > 0 ? 'neutral' : 'positive'),
+  },
+  {
+    key: 'openMaintenanceRequests',
     label: 'Open Maintenance',
-    value: '14',
-    change: '3 overdue',
-    changeType: 'negative',
     icon: Wrench,
     iconColor: 'text-warning-600',
     iconBg: 'bg-warning-50',
+    changeLabel: (_, kpis) =>
+      kpis.overdueMaintenanceRequests > 0 ? `${kpis.overdueMaintenanceRequests} overdue` : null,
+    changeType: (_, kpis) => (kpis.overdueMaintenanceRequests > 0 ? 'negative' : 'positive'),
   },
   {
-    label: 'Security Events Today',
-    value: '7',
-    change: 'Normal activity',
-    changeType: 'neutral',
+    key: 'activeVisitors',
+    label: 'Active Visitors',
+    icon: Users,
+    iconColor: 'text-primary-600',
+    iconBg: 'bg-primary-50',
+    changeLabel: (v) => (v > 0 ? `${v} currently in building` : null),
+    changeType: () => 'neutral',
+  },
+  {
+    key: 'todayEvents',
+    label: 'Events Today',
     icon: Shield,
     iconColor: 'text-error-600',
     iconBg: 'bg-error-50',
   },
   {
-    label: 'Amenity Bookings This Week',
-    value: '34',
-    change: '+8 vs last week',
-    changeType: 'positive',
+    key: 'pendingBookingApprovals',
+    label: 'Pending Bookings',
     icon: Calendar,
     iconColor: 'text-success-600',
     iconBg: 'bg-success-50',
+    changeLabel: (v) => (v > 0 ? `${v} awaiting approval` : null),
+    changeType: (v) => (v > 0 ? 'neutral' : 'positive'),
   },
   {
-    label: 'Overdue Tasks',
-    value: '5',
-    change: '2 critical',
-    changeType: 'negative',
-    icon: Activity,
-    iconColor: 'text-error-600',
-    iconBg: 'bg-error-50',
+    key: 'unreadAnnouncements',
+    label: 'Active Announcements',
+    icon: Bell,
+    iconColor: 'text-info-600',
+    iconBg: 'bg-info-50',
   },
   {
-    label: 'Vendor Compliance %',
-    value: '92%',
-    change: '+2% this month',
-    changeType: 'positive',
-    icon: TrendingUp,
-    iconColor: 'text-success-600',
-    iconBg: 'bg-success-50',
-  },
-  {
-    label: 'Response Rate',
-    value: '96%',
-    change: 'Above target',
-    changeType: 'positive',
-    icon: Activity,
+    key: 'avgResolutionTimeHours',
+    label: 'Avg Resolution Time',
+    icon: Clock,
     iconColor: 'text-primary-600',
     iconBg: 'bg-primary-50',
+    format: (v) => (v > 0 ? `${v}h` : '--'),
+    changeLabel: (v) => (v > 0 ? (v <= 48 ? 'Within SLA' : 'Above SLA') : null),
+    changeType: (v) => (v <= 48 ? 'positive' : 'negative'),
   },
 ];
 
@@ -142,10 +175,83 @@ const CHART_SECTIONS: ChartSection[] = [
 export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState<string>('month');
 
-  // Pre-wire API hook for future integration
-  const { data: _apiData } = useApi<Record<string, unknown>>(
-    apiUrl('/api/v1/analytics', { propertyId: DEMO_PROPERTY_ID }),
-  );
+  const {
+    data: apiData,
+    loading,
+    error,
+    refetch,
+  } = useApi<DashboardResponse>(apiUrl('/api/v1/dashboard', { propertyId: DEMO_PROPERTY_ID }));
+
+  // Parse the dashboard data
+  const dashboardData = useMemo<DashboardResponse | null>(() => {
+    if (!apiData) return null;
+    const raw = apiData as unknown as { data?: DashboardResponse; kpis?: DashboardKpis };
+    if (raw.data?.kpis) return raw.data;
+    if (raw.kpis) return raw as unknown as DashboardResponse;
+    return null;
+  }, [apiData]);
+
+  const kpis = dashboardData?.kpis;
+  const recentActivity = dashboardData?.recentActivity || [];
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <PageShell
+        title="Building Analytics"
+        description="Insights and trends across all building operations."
+      >
+        <Skeleton className="mb-6 h-10 w-64 rounded-lg" />
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-2xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-72 rounded-2xl" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell
+        title="Building Analytics"
+        description="Insights and trends across all building operations."
+      >
+        <EmptyState
+          icon={<AlertTriangle className="h-6 w-6" />}
+          title="Failed to load analytics"
+          description={error}
+          action={
+            <Button variant="secondary" size="sm" onClick={refetch}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
+
+  // Empty state
+  if (!kpis) {
+    return (
+      <PageShell
+        title="Building Analytics"
+        description="Insights and trends across all building operations."
+      >
+        <EmptyState
+          icon={<BarChart3 className="h-6 w-6" />}
+          title="No analytics data"
+          description="Analytics will appear here once there is activity on this property."
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell
@@ -174,29 +280,36 @@ export default function AnalyticsPage() {
 
       {/* KPI Cards Grid */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {KPI_CARDS.map((kpi) => {
-          const Icon = kpi.icon;
+        {KPI_DEFS.map((def) => {
+          const Icon = def.icon;
+          const value = kpis[def.key];
+          const displayValue = def.format ? def.format(value) : String(value);
+          const changeLabel = def.changeLabel ? def.changeLabel(value, kpis) : null;
+          const changeType = def.changeType ? def.changeType(value, kpis) : 'neutral';
+
           return (
-            <Card key={kpi.label} padding="sm" className="flex items-center gap-4">
+            <Card key={def.key} padding="sm" className="flex items-center gap-4">
               <div
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${kpi.iconBg}`}
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${def.iconBg}`}
               >
-                <Icon className={`h-5 w-5 ${kpi.iconColor}`} />
+                <Icon className={`h-5 w-5 ${def.iconColor}`} />
               </div>
               <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">{kpi.value}</p>
-                <p className="text-[13px] text-neutral-500">{kpi.label}</p>
-                {kpi.change && (
+                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                  {displayValue}
+                </p>
+                <p className="text-[13px] text-neutral-500">{def.label}</p>
+                {changeLabel && (
                   <p
                     className={`text-[11px] ${
-                      kpi.changeType === 'positive'
+                      changeType === 'positive'
                         ? 'text-success-600'
-                        : kpi.changeType === 'negative'
+                        : changeType === 'negative'
                           ? 'text-error-600'
                           : 'text-neutral-400'
                     }`}
                   >
-                    {kpi.change}
+                    {changeLabel}
                   </p>
                 )}
               </div>
@@ -204,6 +317,49 @@ export default function AnalyticsPage() {
           );
         })}
       </div>
+
+      {/* Recent Activity Feed */}
+      {recentActivity.length > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-[14px] font-semibold text-neutral-900">Recent Activity</h2>
+          <Card>
+            <div className="divide-y divide-neutral-100">
+              {recentActivity.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                >
+                  <div className="flex items-center gap-3">
+                    <Activity className="h-4 w-4 text-neutral-400" />
+                    <div>
+                      <p className="text-[14px] font-medium text-neutral-900">
+                        {item.title || item.type}
+                      </p>
+                      <p className="text-[12px] text-neutral-500">
+                        {item.type}
+                        {item.unit ? ` - Unit ${item.unit}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant={item.status === 'open' ? 'warning' : 'success'} size="sm">
+                      {item.status}
+                    </Badge>
+                    <span className="text-[12px] text-neutral-400">
+                      {new Date(item.createdAt).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Chart Sections */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
