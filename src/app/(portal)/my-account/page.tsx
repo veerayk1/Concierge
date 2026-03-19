@@ -1,9 +1,22 @@
 'use client';
 
-import { Bell, Globe, Key, Lock, Mail, Phone, Shield, Smartphone, User } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import {
+  Bell,
+  Globe,
+  Key,
+  Lock,
+  Mail,
+  Phone,
+  Shield,
+  Smartphone,
+  User,
+  AlertTriangle,
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { apiClient, ApiClientError } from '@/lib/api-client';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -37,6 +50,31 @@ interface ProfileResponse {
   updatedAt: string;
 }
 
+interface NotificationPreference {
+  id: string;
+  module: string;
+  channel: string;
+  enabled: boolean;
+  digestMode: string;
+}
+
+// Module display config for notification preferences
+const NOTIFICATION_MODULES = [
+  {
+    module: 'packages',
+    label: 'Package Notifications',
+    description: 'When a package arrives for you',
+  },
+  {
+    module: 'maintenance',
+    label: 'Maintenance Updates',
+    description: 'Status changes on your requests',
+  },
+  { module: 'announcements', label: 'Announcements', description: 'Building-wide announcements' },
+  { module: 'amenities', label: 'Amenity Reminders', description: 'Upcoming booking reminders' },
+  { module: 'community', label: 'Community Updates', description: 'New classified ads and events' },
+];
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -51,10 +89,61 @@ export default function MyAccountPage() {
   );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
-  // Form state — initialised when dialog opens
+  // Form state -- initialised when dialog opens
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+
+  // Notification preferences from API
+  const {
+    data: prefsData,
+    loading: prefsLoading,
+    error: prefsError,
+    refetch: refetchPrefs,
+  } = useApi<NotificationPreference[]>(
+    apiUrl('/api/v1/resident/notifications', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  // Parse preferences, handling the useApi unwrap behavior
+  const preferences = useMemo<NotificationPreference[]>(() => {
+    if (!prefsData) return [];
+    const raw = prefsData as unknown as { data?: NotificationPreference[] };
+    const prefs = raw.data ?? (prefsData as unknown as NotificationPreference[]);
+    return Array.isArray(prefs) ? prefs : [];
+  }, [prefsData]);
+
+  // Build a map: module -> enabled (using email channel as primary)
+  const prefMap = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    for (const pref of preferences) {
+      if (pref.channel === 'email') {
+        map[pref.module] = pref.enabled;
+      }
+    }
+    return map;
+  }, [preferences]);
+
+  const [togglingPref, setTogglingPref] = useState<string | null>(null);
+
+  const togglePreference = useCallback(
+    async (module: string, currentEnabled: boolean) => {
+      setTogglingPref(module);
+      try {
+        await apiRequest('/api/v1/resident/notifications', {
+          method: 'PATCH',
+          body: {
+            preferences: [{ module, channel: 'email', enabled: !currentEnabled }],
+          },
+        });
+        refetchPrefs();
+      } catch {
+        // Silently fail - the toggle will revert on refetch
+      } finally {
+        setTogglingPref(null);
+      }
+    },
+    [refetchPrefs],
+  );
 
   const openDialog = useCallback(() => {
     if (!user) return;
@@ -241,52 +330,50 @@ export default function MyAccountPage() {
               </h2>
             </div>
             <CardContent>
-              <div className="flex flex-col gap-3">
-                {[
-                  {
-                    label: 'Package Notifications',
-                    description: 'When a package arrives for you',
-                    enabled: true,
-                  },
-                  {
-                    label: 'Maintenance Updates',
-                    description: 'Status changes on your requests',
-                    enabled: true,
-                  },
-                  {
-                    label: 'Announcements',
-                    description: 'Building-wide announcements',
-                    enabled: true,
-                  },
-                  {
-                    label: 'Amenity Reminders',
-                    description: 'Upcoming booking reminders',
-                    enabled: false,
-                  },
-                  {
-                    label: 'Community Updates',
-                    description: 'New classified ads and events',
-                    enabled: false,
-                  },
-                ].map((pref) => (
-                  <div
-                    key={pref.label}
-                    className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
-                  >
-                    <div>
-                      <p className="text-[14px] font-medium text-neutral-900">{pref.label}</p>
-                      <p className="text-[13px] text-neutral-500">{pref.description}</p>
-                    </div>
-                    <div
-                      className={`relative h-6 w-11 rounded-full transition-colors ${pref.enabled ? 'bg-primary-500' : 'bg-neutral-200'}`}
-                    >
+              {prefsLoading ? (
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-16 rounded-xl" />
+                  ))}
+                </div>
+              ) : prefsError ? (
+                <div className="flex flex-col items-center gap-3 py-6 text-center">
+                  <AlertTriangle className="h-5 w-5 text-neutral-400" />
+                  <p className="text-[14px] text-neutral-500">Failed to load preferences.</p>
+                  <Button variant="secondary" size="sm" onClick={refetchPrefs}>
+                    Try Again
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {NOTIFICATION_MODULES.map((mod) => {
+                    const isEnabled = prefMap[mod.module] ?? true; // Default to enabled if not set
+                    const isToggling = togglingPref === mod.module;
+                    return (
                       <div
-                        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${pref.enabled ? 'left-[22px]' : 'left-0.5'}`}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                        key={mod.module}
+                        className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
+                      >
+                        <div>
+                          <p className="text-[14px] font-medium text-neutral-900">{mod.label}</p>
+                          <p className="text-[13px] text-neutral-500">{mod.description}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => togglePreference(mod.module, isEnabled)}
+                          disabled={isToggling}
+                          className={`relative h-6 w-11 rounded-full transition-colors ${isEnabled ? 'bg-primary-500' : 'bg-neutral-200'} ${isToggling ? 'opacity-50' : ''}`}
+                          aria-label={`${isEnabled ? 'Disable' : 'Enable'} ${mod.label}`}
+                        >
+                          <div
+                            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${isEnabled ? 'left-[22px]' : 'left-0.5'}`}
+                          />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

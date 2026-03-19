@@ -201,8 +201,14 @@ export default function AlterationDetailPage() {
 
   if (!alt) return null;
 
-  const statusCfg = STATUS_CONFIG[alt.status] || STATUS_CONFIG.submitted;
-  const momentumCfg = MOMENTUM_CONFIG[alt.momentum || 'stopped'] || MOMENTUM_CONFIG.stopped;
+  const statusCfg = STATUS_CONFIG[alt.status] ?? {
+    variant: 'default' as const,
+    label: 'Submitted',
+  };
+  const momentumCfg = MOMENTUM_CONFIG[alt.momentum || 'stopped'] ?? {
+    variant: 'error' as const,
+    label: 'Stopped',
+  };
   const timeline = alt.timeline || [];
   const documents = alt.documents || [];
   const refNumber = alt.referenceNumber || `ALT-${alt.id.slice(0, 8)}`;

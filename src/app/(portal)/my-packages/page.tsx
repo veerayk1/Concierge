@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback, useState } from 'react';
 import { CheckCircle2, Clock, Package, AlertTriangle } from 'lucide-react';
-import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';

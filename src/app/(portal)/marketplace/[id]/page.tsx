@@ -189,9 +189,14 @@ export default function MarketplaceDetailPage() {
 
   if (!listing) return null;
 
-  const statusCfg = STATUS_CONFIG[listing.status] || STATUS_CONFIG.active;
-  const conditionCfg =
-    CONDITION_CONFIG[listing.condition || 'not_applicable'] || CONDITION_CONFIG.not_applicable;
+  const statusCfg = STATUS_CONFIG[listing.status] ?? {
+    variant: 'success' as const,
+    label: 'Active',
+  };
+  const conditionCfg = CONDITION_CONFIG[listing.condition || 'not_applicable'] ?? {
+    variant: 'default' as const,
+    label: 'N/A',
+  };
   const price = listing.price ?? 0;
   const images = listing.images || [];
 

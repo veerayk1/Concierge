@@ -169,7 +169,10 @@ export default function ForumThreadDetailPage() {
 
   if (!thread) return null;
 
-  const statusCfg = THREAD_STATUS_CONFIG[thread.status] || THREAD_STATUS_CONFIG.active;
+  const statusCfg = THREAD_STATUS_CONFIG[thread.status] ?? {
+    variant: 'success' as const,
+    label: 'Open',
+  };
   const replies = thread.replies || [];
   const isLocked = thread.isLocked || false;
   const isPinned = thread.isPinned || false;

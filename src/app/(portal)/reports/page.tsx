@@ -7,7 +7,6 @@ import {
   Calendar,
   Clock,
   Download,
-  FileSpreadsheet,
   FileText,
   Package,
   Shield,
@@ -15,7 +14,7 @@ import {
   Users,
   Wrench,
 } from 'lucide-react';
-import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -336,7 +335,7 @@ export default function ReportsPage() {
 
       {/* Category Groups */}
       {categories.map((category) => {
-        const reports = groupedReports[category];
+        const reports = groupedReports[category] ?? [];
         return (
           <div key={category} className="mb-8">
             <h2 className="mb-3 text-[14px] font-semibold text-neutral-900">{category}</h2>

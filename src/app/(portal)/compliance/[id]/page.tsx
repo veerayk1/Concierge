@@ -277,9 +277,14 @@ export default function ComplianceFrameworkDetailPage() {
             <CardContent>
               <div className="flex flex-col gap-2">
                 {framework.controls.map((control) => {
-                  const statusCfg =
-                    CONTROL_STATUS_CONFIG[control.status] || CONTROL_STATUS_CONFIG.not_assessed;
-                  const critCfg = CRITICALITY_CONFIG[control.criticality] || CRITICALITY_CONFIG.low;
+                  const statusCfg = CONTROL_STATUS_CONFIG[control.status] ?? {
+                    variant: 'default' as const,
+                    label: 'Not Assessed',
+                  };
+                  const critCfg = CRITICALITY_CONFIG[control.criticality] ?? {
+                    variant: 'default' as const,
+                    label: 'Low',
+                  };
                   return (
                     <div
                       key={control.id}
@@ -321,8 +326,10 @@ export default function ComplianceFrameworkDetailPage() {
               <CardContent>
                 <div className="flex flex-col gap-3">
                   {nonCompliantControls.map((control) => {
-                    const ctrlCfg =
-                      CONTROL_STATUS_CONFIG[control.status] || CONTROL_STATUS_CONFIG.not_assessed;
+                    const ctrlCfg = CONTROL_STATUS_CONFIG[control.status] ?? {
+                      variant: 'default' as const,
+                      label: 'Not Assessed',
+                    };
                     return (
                       <div
                         key={control.id}

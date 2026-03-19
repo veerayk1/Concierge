@@ -189,7 +189,10 @@ export default function GovernanceMeetingDetailPage() {
 
   if (!meeting) return null;
 
-  const statusCfg = MEETING_STATUS_CONFIG[meeting.status] || MEETING_STATUS_CONFIG.scheduled;
+  const statusCfg = MEETING_STATUS_CONFIG[meeting.status] ?? {
+    variant: 'info' as const,
+    label: 'Scheduled',
+  };
   const agendaItems = meeting.agendaItems || [];
   const resolutions = meeting.resolutions || [];
   const documents = meeting.documents || [];
@@ -348,8 +351,10 @@ export default function GovernanceMeetingDetailPage() {
               <CardContent>
                 <div className="flex flex-col gap-3">
                   {resolutions.map((res) => {
-                    const resCfg =
-                      RESOLUTION_STATUS_CONFIG[res.status] || RESOLUTION_STATUS_CONFIG.pending;
+                    const resCfg = RESOLUTION_STATUS_CONFIG[res.status] ?? {
+                      variant: 'default' as const,
+                      label: 'Pending',
+                    };
                     return (
                       <div
                         key={res.id}

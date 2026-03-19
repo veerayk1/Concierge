@@ -212,9 +212,12 @@ export default function IncidentDetailPage() {
 
   if (!incident) return null;
 
-  const status = statusMap[incident.status || 'open'] || statusMap.open;
+  const status = statusMap[incident.status || 'open'] ?? {
+    variant: 'warning' as const,
+    label: 'Open',
+  };
   const priority = incident.priority || 'medium';
-  const priorityVariant = priorityMap[priority] || 'default';
+  const priorityVariant = priorityMap[priority] ?? ('default' as const);
   const refNumber = incident.referenceNumber || `EVT-${incident.id?.slice(0, 8)}`;
   const typeName = incident.eventType?.name || incident.type || 'Incident';
 
