@@ -122,7 +122,8 @@ model Property {
   surveys         Survey[]
   libraryFolders  LibraryFolder[]
   forumTopics     ForumTopic[]
-  photoAlbums     PhotoAlbum[]
+  photoAlbums            PhotoAlbum[]
+  digitalSignageContents DigitalSignageContent[]
 
   // Dashboard & Reports module relations
   dashboardLayouts     DashboardLayout[]
@@ -141,6 +142,14 @@ model Property {
   customFieldDefinitions CustomFieldDefinition[]
   residentGroups         ResidentGroup[]
   integrationConfigs     IntegrationConfig[]
+
+  // Governance module relations
+  boardMeetings       BoardMeeting[]
+  financialReports    FinancialReport[]
+  budgetLineItems     BudgetLineItem[]
+  boardResolutions    BoardResolution[]
+  governanceDocuments GovernanceDocument[]
+  boardMemberRecords  BoardMemberRecord[]
 
   @@index([type])
   @@index([slug])
@@ -2581,17 +2590,62 @@ model PhotoAlbum {
   createdById  String  @db.Uuid
   title        String  @db.VarChar(100)
   description  String? @db.VarChar(300)
-  visibility   String  @default("public") @db.VarChar(10) // public, internal
+  visibility   String  @default("public") @db.VarChar(10) // public, private
   coverPhotoId String? @db.Uuid
+  eventDate    DateTime?
   photoCount   Int     @default(0)
+  deletedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property     @relation(fields: [propertyId], references: [id])
+  photos   AlbumPhoto[]
+
+  @@index([propertyId])
+  @@map("photo_albums")
+}
+
+model AlbumPhoto {
+  id         String  @id @default(uuid()) @db.Uuid
+  albumId    String  @db.Uuid
+  filePath   String  @db.VarChar(500)
+  caption    String? @db.VarChar(200)
+  sortOrder  Int     @default(0)
+  uploadedBy String  @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  album PhotoAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  @@index([albumId])
+  @@map("album_photos")
+}
+
+model DigitalSignageContent {
+  id             String    @id @default(uuid()) @db.Uuid
+  propertyId     String    @db.Uuid
+  title          String    @db.VarChar(150)
+  contentType    String    @db.VarChar(20) // text, image, announcement, event, weather
+  body           String?   @db.Text
+  imageUrl       String?   @db.VarChar(500)
+  zone           String    @db.VarChar(30) // lobby, elevator, mailroom
+  priority       Int       @default(0)
+  durationSeconds Int      @default(10)
+  startDate      DateTime
+  endDate        DateTime
+  isActive       Boolean   @default(true)
+  createdById    String    @db.Uuid
+  deletedAt      DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   property Property @relation(fields: [propertyId], references: [id])
 
-  @@index([propertyId])
-  @@map("photo_albums")
+  @@index([propertyId, zone])
+  @@index([startDate, endDate])
+  @@map("digital_signage_content")
 }
 
 model CommunityComment {
@@ -3469,4 +3523,187 @@ model InspectionItem {
 
   @@index([inspectionId])
   @@map("inspection_items")
+}
+
+// ---------------------------------------------------------------------------
+// GOVERNANCE: Board Meetings, Voting, Financials, Resolutions
+// ---------------------------------------------------------------------------
+
+model BoardMeeting {
+  id          String    @id @default(uuid()) @db.Uuid
+  propertyId  String    @db.Uuid
+  title       String    @db.VarChar(200)
+  description String?   @db.Text
+  scheduledAt DateTime  @map("scheduled_at")
+  location    String?   @db.VarChar(200)
+  status      String    @default("scheduled") @db.VarChar(20) // scheduled, in_progress, completed, cancelled
+  type        String    @default("regular") @db.VarChar(20) // regular, special, agm, emergency
+  createdBy   String    @map("created_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  agendaItems    AgendaItem[]
+  votes          BoardVote[]
+  minutes        MeetingMinutes[]
+  resolutions    BoardResolution[]
+  documents      GovernanceDocument[]
+  property       Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([scheduledAt])
+  @@map("board_meetings")
+}
+
+model AgendaItem {
+  id           String  @id @default(uuid()) @db.Uuid
+  meetingId    String  @map("meeting_id") @db.Uuid
+  title        String  @db.VarChar(300)
+  description  String? @db.Text
+  sortOrder    Int     @default(0) @map("sort_order")
+  requiresVote Boolean @default(false) @map("requires_vote")
+  status       String  @default("pending") @db.VarChar(20) // pending, discussed, voted, deferred
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  meeting BoardMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  votes   BoardVote[]
+
+  @@index([meetingId])
+  @@map("agenda_items")
+}
+
+model BoardVote {
+  id           String   @id @default(uuid()) @db.Uuid
+  meetingId    String   @map("meeting_id") @db.Uuid
+  agendaItemId String   @map("agenda_item_id") @db.Uuid
+  propertyId   String   @db.Uuid
+  voterId      String   @map("voter_id") @db.Uuid
+  vote         String   @db.VarChar(10) // approve, reject, abstain
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  meeting    BoardMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  agendaItem AgendaItem   @relation(fields: [agendaItemId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, agendaItemId, voterId])
+  @@index([meetingId])
+  @@index([agendaItemId])
+  @@map("board_votes")
+}
+
+model MeetingMinutes {
+  id         String   @id @default(uuid()) @db.Uuid
+  meetingId  String   @map("meeting_id") @db.Uuid
+  propertyId String   @db.Uuid
+  content    String   @db.Text
+  attendees  String[] // user IDs of attendees
+  recordedBy String   @map("recorded_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  meeting BoardMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@map("meeting_minutes")
+}
+
+model FinancialReport {
+  id            String   @id @default(uuid()) @db.Uuid
+  propertyId    String   @db.Uuid
+  period        String   @db.VarChar(20) // e.g. "2026-Q1", "2026"
+  totalRevenue  Int      @map("total_revenue")
+  totalExpenses Int      @map("total_expenses")
+  netIncome     Int      @map("net_income")
+  categories    Json     @db.JsonB
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([period])
+  @@map("financial_reports")
+}
+
+model BudgetLineItem {
+  id              String @id @default(uuid()) @db.Uuid
+  propertyId      String @db.Uuid
+  category        String @db.VarChar(100)
+  plannedAmount   Int    @map("planned_amount")
+  actualAmount    Int    @map("actual_amount")
+  period          String @db.VarChar(20) // e.g. "2026"
+  variance        Int
+  variancePercent Float  @map("variance_percent")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([period])
+  @@map("budget_line_items")
+}
+
+model BoardResolution {
+  id                     String    @id @default(uuid()) @db.Uuid
+  propertyId             String    @db.Uuid
+  title                  String    @db.VarChar(300)
+  description            String?   @db.Text
+  status                 String    @default("pending") @db.VarChar(20) // pending, approved, rejected, implemented
+  meetingId              String?   @map("meeting_id") @db.Uuid
+  approvedAt             DateTime? @map("approved_at")
+  implementationDeadline DateTime? @map("implementation_deadline")
+  createdBy              String    @map("created_by") @db.Uuid
+  deletedAt              DateTime? @map("deleted_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  meeting  BoardMeeting? @relation(fields: [meetingId], references: [id])
+  property Property      @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([meetingId])
+  @@map("board_resolutions")
+}
+
+model GovernanceDocument {
+  id          String   @id @default(uuid()) @db.Uuid
+  propertyId  String   @db.Uuid
+  title       String   @db.VarChar(300)
+  type        String   @db.VarChar(30) // meeting_minutes, financial_statement, resolution, bylaw, policy, other
+  filePath    String   @map("file_path") @db.VarChar(1000)
+  description String?  @db.VarChar(2000)
+  meetingId   String?  @map("meeting_id") @db.Uuid
+  uploadedBy  String   @map("uploaded_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  meeting  BoardMeeting? @relation(fields: [meetingId], references: [id])
+  property Property      @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([meetingId])
+  @@map("governance_documents")
+}
+
+model BoardMemberRecord {
+  id         String    @id @default(uuid()) @db.Uuid
+  propertyId String    @db.Uuid
+  userId     String    @db.Uuid
+  name       String    @db.VarChar(200)
+  email      String?   @db.VarChar(254)
+  boardRole  String    @map("board_role") @db.VarChar(30) // president, vice_president, secretary, treasurer, director
+  termStart  DateTime  @map("term_start")
+  termEnd    DateTime  @map("term_end")
+  status     String    @default("active") @db.VarChar(20) // active, expired, resigned
+  deletedAt  DateTime? @map("deleted_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([userId])
+  @@map("board_member_records")
 }

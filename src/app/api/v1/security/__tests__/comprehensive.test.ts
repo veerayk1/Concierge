@@ -241,6 +241,7 @@ import {
 import { GET as GET_PARKING } from '../../parking/route';
 import { PATCH as PATCH_VIOLATION } from '../../parking/violations/[id]/route';
 import { GET as GET_SEARCH } from '../../search/route';
+import { appCache } from '@/server/cache';
 
 // ===========================================================================
 // Constants
@@ -262,6 +263,7 @@ const EVENT_TYPE_CLEANING = '00000000-0000-4000-d000-000000000003';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  appCache.clear();
 
   // Default empty results for all mocks
   mockEventFindMany.mockResolvedValue([]);

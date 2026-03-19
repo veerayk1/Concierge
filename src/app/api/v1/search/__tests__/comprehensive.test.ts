@@ -88,6 +88,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
 // ---------------------------------------------------------------------------
 
 import { GET, DELETE } from '../../search/route';
+import { appCache } from '@/server/cache';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -128,6 +129,7 @@ function searchReq(params: Record<string, string>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  appCache.clear();
   authOk();
   clearModuleMocks();
 });

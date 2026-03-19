@@ -58,9 +58,11 @@ vi.mock('@/server/middleware/api-guard', () => ({
 }));
 
 import { GET } from '../route';
+import { appCache } from '@/server/cache';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  appCache.clear();
   mockUserFindMany.mockResolvedValue([]);
   mockUnitFindMany.mockResolvedValue([]);
   mockPackageFindMany.mockResolvedValue([]);

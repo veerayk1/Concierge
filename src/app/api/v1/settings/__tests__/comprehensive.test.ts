@@ -104,6 +104,7 @@ import {
 import { GET as GET_ROLES } from '../../roles/route';
 import { GET as GET_TEMPLATES, POST as POST_TEMPLATE } from '../../notifications/templates/route';
 import { GET as GET_FLAGS, PATCH as PATCH_FLAGS } from '../../feature-flags/route';
+import { appCache } from '@/server/cache';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -171,6 +172,7 @@ function makeEventType(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  appCache.clear();
   adminAuth();
   mockPropertyFindUnique.mockResolvedValue(makeProperty());
   mockEventTypeFindMany.mockResolvedValue([]);
