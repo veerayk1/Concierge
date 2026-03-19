@@ -393,9 +393,9 @@ export default function CompliancePage() {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {frameworks.map((framework) => {
                       const statusCfg =
-                        STATUS_CONFIG[framework.status] ?? STATUS_CONFIG.not_applicable;
-                      const riskCfg = RISK_CONFIG[framework.riskLevel] ?? RISK_CONFIG.low;
-                      const StatusIcon = statusCfg.icon;
+                        STATUS_CONFIG[framework.status] ?? STATUS_CONFIG['not_applicable']!;
+                      const riskCfg = RISK_CONFIG[framework.riskLevel] ?? RISK_CONFIG['low']!;
+                      const StatusIcon = statusCfg!.icon;
 
                       return (
                         <Card key={framework.id} hoverable>
@@ -406,8 +406,8 @@ export default function CompliancePage() {
                               </h3>
                               <div className="mt-1.5 flex items-center gap-1.5">
                                 <StatusIcon className="h-3.5 w-3.5" />
-                                <Badge variant={statusCfg.variant} size="sm">
-                                  {statusCfg.label}
+                                <Badge variant={statusCfg!.variant} size="sm">
+                                  {statusCfg!.label}
                                 </Badge>
                               </div>
                             </div>
@@ -445,8 +445,8 @@ export default function CompliancePage() {
 
                             <div className="flex items-center justify-between text-[11px]">
                               <span className="text-neutral-500">Risk Level</span>
-                              <Badge variant={riskCfg.variant} size="sm">
-                                {riskCfg.label}
+                              <Badge variant={riskCfg!.variant} size="sm">
+                                {riskCfg!.label}
                               </Badge>
                             </div>
 

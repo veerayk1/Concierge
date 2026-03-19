@@ -4,151 +4,100 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
-import { BookOpen, Plus, Download, Search, X, FileText, Folder, File } from 'lucide-react';
+import {
+  AlertTriangle,
+  BookOpen,
+  Plus,
+  Download,
+  Search,
+  X,
+  FileText,
+  Folder,
+  File,
+} from 'lucide-react';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types (aligned with API response from /api/v1/library)
 // ---------------------------------------------------------------------------
 
-interface LibraryItem {
+interface LibraryFolder {
   id: string;
   name: string;
-  type: 'document' | 'policy' | 'form' | 'notice' | 'manual';
-  category: 'governance' | 'maintenance' | 'safety' | 'financial' | 'operations' | 'general';
-  fileType: 'pdf' | 'doc' | 'xlsx' | 'jpg' | 'png';
-  fileSize: string;
-  uploadedBy: string;
-  uploadedAt: string;
-  lastModified: string;
-  downloadCount: number;
-  isPublic: boolean;
+  description: string | null;
+  _count?: { files: number; childFolders: number };
 }
 
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
+interface LibraryFile {
+  id: string;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
+  description: string | null;
+  downloadCount: number;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  folder: { id: string; name: string; description: string | null } | null;
+}
 
-const MOCK_ITEMS: LibraryItem[] = [
-  {
-    id: '1',
-    name: 'Building Bylaws & Declaration',
-    type: 'policy',
-    category: 'governance',
-    fileType: 'pdf',
-    fileSize: '2.4 MB',
-    uploadedBy: 'Admin',
-    uploadedAt: '2026-01-15T10:00:00',
-    lastModified: '2026-03-01T14:30:00',
-    downloadCount: 87,
-    isPublic: true,
-  },
-  {
-    id: '2',
-    name: 'Fire Safety Manual',
-    type: 'manual',
-    category: 'safety',
-    fileType: 'pdf',
-    fileSize: '5.1 MB',
-    uploadedBy: 'Admin',
-    uploadedAt: '2026-02-10T09:00:00',
-    lastModified: '2026-02-10T09:00:00',
-    downloadCount: 42,
-    isPublic: true,
-  },
-  {
-    id: '3',
-    name: 'Move-In/Move-Out Checklist',
-    type: 'form',
-    category: 'operations',
-    fileType: 'doc',
-    fileSize: '340 KB',
-    uploadedBy: 'Sarah Wilson',
-    uploadedAt: '2026-02-20T11:00:00',
-    lastModified: '2026-03-05T16:00:00',
-    downloadCount: 156,
-    isPublic: true,
-  },
-  {
-    id: '4',
-    name: '2026 Annual Budget Report',
-    type: 'document',
-    category: 'financial',
-    fileType: 'xlsx',
-    fileSize: '1.8 MB',
-    uploadedBy: 'Admin',
-    uploadedAt: '2026-01-30T08:00:00',
-    lastModified: '2026-01-30T08:00:00',
-    downloadCount: 34,
-    isPublic: false,
-  },
-  {
-    id: '5',
-    name: 'Maintenance Request Form',
-    type: 'form',
-    category: 'maintenance',
-    fileType: 'pdf',
-    fileSize: '220 KB',
-    uploadedBy: 'Mike Johnson',
-    uploadedAt: '2026-03-01T13:00:00',
-    lastModified: '2026-03-10T10:00:00',
-    downloadCount: 73,
-    isPublic: true,
-  },
-  {
-    id: '6',
-    name: 'Pool & Amenity Rules',
-    type: 'notice',
-    category: 'general',
-    fileType: 'pdf',
-    fileSize: '450 KB',
-    uploadedBy: 'Admin',
-    uploadedAt: '2026-03-12T09:30:00',
-    lastModified: '2026-03-12T09:30:00',
-    downloadCount: 21,
-    isPublic: true,
-  },
-];
+interface LibraryResponse {
+  files: LibraryFile[];
+  folders: LibraryFolder[];
+}
 
 // ---------------------------------------------------------------------------
 // Badge Helpers
 // ---------------------------------------------------------------------------
 
-const TYPE_VARIANTS: Record<
-  LibraryItem['type'],
-  'default' | 'primary' | 'info' | 'warning' | 'success'
-> = {
-  document: 'default',
-  policy: 'primary',
-  form: 'info',
-  notice: 'warning',
-  manual: 'success',
-};
-
 const CATEGORY_VARIANTS: Record<
-  LibraryItem['category'],
+  string,
   'default' | 'primary' | 'info' | 'warning' | 'success' | 'error'
 > = {
-  governance: 'primary',
-  maintenance: 'warning',
+  rules: 'primary',
+  policies: 'primary',
+  procedures: 'info',
+  minutes: 'default',
   safety: 'error',
-  financial: 'info',
-  operations: 'default',
-  general: 'success',
+  insurance: 'warning',
+  financials: 'info',
+  forms: 'success',
+  notices: 'warning',
+  other: 'default',
 };
 
-const FILE_ICONS: Record<LibraryItem['fileType'], typeof FileText> = {
-  pdf: FileText,
-  doc: File,
-  xlsx: File,
-  jpg: File,
-  png: File,
-};
+function getMimeIcon(mimeType: string): typeof FileText {
+  if (mimeType.includes('pdf')) return FileText;
+  if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return File;
+  return File;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getFileExtension(mimeType: string): string {
+  const map: Record<string, string> = {
+    'application/pdf': 'PDF',
+    'application/msword': 'DOC',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+    'application/vnd.ms-excel': 'XLS',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+    'text/plain': 'TXT',
+    'image/jpeg': 'JPG',
+    'image/png': 'PNG',
+  };
+  return map[mimeType] || mimeType.split('/').pop()?.toUpperCase() || 'FILE';
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -157,95 +106,94 @@ const FILE_ICONS: Record<LibraryItem['fileType'], typeof FileText> = {
 export default function LibraryPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [currentFolderId, setCurrentFolderId] = useState<string>('');
 
-  const { data: apiItems } = useApi<LibraryItem[]>(
-    apiUrl('/api/v1/library', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiData,
+    loading,
+    error,
+    refetch,
+  } = useApi<LibraryResponse>(
+    apiUrl('/api/v1/library', {
+      propertyId: DEMO_PROPERTY_ID,
+      folderId: currentFolderId || null,
+      category: categoryFilter || null,
+      search: searchQuery || null,
+    }),
   );
 
-  const allItems = useMemo<LibraryItem[]>(() => apiItems ?? MOCK_ITEMS, [apiItems]);
+  // The useApi hook unwraps .data, so apiData is { files, folders } or wrapped
+  const libraryData = useMemo<LibraryResponse>(() => {
+    if (!apiData) return { files: [], folders: [] };
+    const raw = apiData as unknown as {
+      data?: LibraryResponse;
+      files?: LibraryFile[];
+      folders?: LibraryFolder[];
+    };
+    if (raw.data) return raw.data;
+    if (raw.files) return { files: raw.files, folders: raw.folders || [] };
+    return { files: [], folders: [] };
+  }, [apiData]);
 
-  const filteredItems = useMemo(() => {
-    return allItems.filter((item) => {
-      if (typeFilter !== 'all' && item.type !== typeFilter) return false;
-      if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return item.name.toLowerCase().includes(q) || item.uploadedBy.toLowerCase().includes(q);
-      }
-      return true;
-    });
-  }, [allItems, typeFilter, categoryFilter, searchQuery]);
+  const { files, folders } = libraryData;
 
-  const totalDocuments = allItems.length;
-  const publicCount = allItems.filter((i) => i.isPublic).length;
-  const downloadedToday = allItems.reduce((sum, i) => sum + (i.downloadCount > 50 ? 1 : 0), 0);
+  const totalDocuments = files.length;
+  const totalFolders = folders.length;
 
-  const columns: Column<LibraryItem>[] = [
+  const columns: Column<LibraryFile>[] = [
     {
       id: 'name',
       header: 'Name',
-      accessorKey: 'name',
+      accessorKey: 'fileName',
       sortable: true,
       cell: (row) => {
-        const Icon = FILE_ICONS[row.fileType] || File;
+        const Icon = getMimeIcon(row.mimeType);
         return (
           <span className="flex items-center gap-2">
             <Icon className="h-4 w-4 text-neutral-400" />
-            <span className="font-semibold text-neutral-900">{row.name}</span>
+            <span className="font-semibold text-neutral-900">{row.fileName}</span>
           </span>
         );
       },
     },
     {
-      id: 'type',
-      header: 'Type',
-      accessorKey: 'type',
+      id: 'folder',
+      header: 'Folder',
+      accessorKey: 'folder',
       sortable: true,
       cell: (row) => (
-        <Badge variant={TYPE_VARIANTS[row.type]} size="sm">
-          {row.type.charAt(0).toUpperCase() + row.type.slice(1)}
-        </Badge>
-      ),
-    },
-    {
-      id: 'category',
-      header: 'Category',
-      accessorKey: 'category',
-      sortable: true,
-      cell: (row) => (
-        <Badge variant={CATEGORY_VARIANTS[row.category]} size="sm">
-          {row.category.charAt(0).toUpperCase() + row.category.slice(1)}
+        <Badge variant={CATEGORY_VARIANTS[row.folder?.name || ''] || 'default'} size="sm">
+          {row.folder?.name || 'Root'}
         </Badge>
       ),
     },
     {
       id: 'fileType',
       header: 'File Type',
-      accessorKey: 'fileType',
-      cell: (row) => <span className="text-[13px] text-neutral-500 uppercase">{row.fileType}</span>,
+      accessorKey: 'mimeType',
+      cell: (row) => (
+        <span className="text-[13px] text-neutral-500 uppercase">
+          {getFileExtension(row.mimeType)}
+        </span>
+      ),
     },
     {
       id: 'fileSize',
       header: 'Size',
       accessorKey: 'fileSize',
-      cell: (row) => <span className="text-[13px] text-neutral-500">{row.fileSize}</span>,
-    },
-    {
-      id: 'uploadedBy',
-      header: 'Uploaded By',
-      accessorKey: 'uploadedBy',
-      sortable: true,
+      cell: (row) => (
+        <span className="text-[13px] text-neutral-500">{formatFileSize(row.fileSize)}</span>
+      ),
     },
     {
       id: 'lastModified',
       header: 'Last Modified',
-      accessorKey: 'lastModified',
+      accessorKey: 'updatedAt',
       sortable: true,
       cell: (row) => (
         <span className="text-[13px] text-neutral-500">
-          {new Date(row.lastModified).toLocaleDateString('en-US', {
+          {new Date(row.updatedAt).toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
             year: 'numeric',
@@ -270,6 +218,8 @@ export default function LibraryPage() {
           size="sm"
           onClick={(e) => {
             e.stopPropagation();
+            // In a real app, this would trigger a download via the file path
+            window.open(row.filePath, '_blank');
           }}
         >
           <Download className="h-3.5 w-3.5" />
@@ -278,6 +228,39 @@ export default function LibraryPage() {
       ),
     },
   ];
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <PageShell title="Library" description="Building documents, policies, and shared files.">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+        </div>
+        <Skeleton className="h-10 rounded-xl" />
+        <Skeleton className="mt-4 h-64 rounded-2xl" />
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="Library" description="Building documents, policies, and shared files.">
+        <EmptyState
+          icon={<AlertTriangle className="h-6 w-6" />}
+          title="Failed to load documents"
+          description={error}
+          action={
+            <Button variant="secondary" size="sm" onClick={refetch}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell
@@ -306,16 +289,16 @@ export default function LibraryPage() {
             <p className="text-[24px] font-bold tracking-tight text-neutral-900">
               {totalDocuments}
             </p>
-            <p className="text-[13px] text-neutral-500">Total Documents</p>
+            <p className="text-[13px] text-neutral-500">Documents</p>
           </div>
         </Card>
         <Card padding="sm" className="flex items-center gap-4">
           <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <FileText className="text-info-600 h-5 w-5" />
+            <Folder className="text-info-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{publicCount}</p>
-            <p className="text-[13px] text-neutral-500">Public</p>
+            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalFolders}</p>
+            <p className="text-[13px] text-neutral-500">Folders</p>
           </div>
         </Card>
         <Card padding="sm" className="flex items-center gap-4">
@@ -324,12 +307,48 @@ export default function LibraryPage() {
           </div>
           <div>
             <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {downloadedToday}
+              {files.reduce((sum, f) => sum + f.downloadCount, 0)}
             </p>
-            <p className="text-[13px] text-neutral-500">Downloaded Today</p>
+            <p className="text-[13px] text-neutral-500">Total Downloads</p>
           </div>
         </Card>
       </div>
+
+      {/* Folder Navigation */}
+      {folders.length > 0 && (
+        <div className="mb-4">
+          <h3 className="mb-2 text-[13px] font-semibold tracking-wide text-neutral-500 uppercase">
+            Folders
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {currentFolderId && (
+              <button
+                type="button"
+                onClick={() => setCurrentFolderId('')}
+                className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[13px] font-medium text-neutral-700 transition hover:bg-neutral-50"
+              >
+                &larr; Back to Root
+              </button>
+            )}
+            {folders.map((folder) => (
+              <button
+                key={folder.id}
+                type="button"
+                onClick={() => setCurrentFolderId(folder.id)}
+                className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[13px] font-medium text-neutral-700 transition hover:bg-neutral-50"
+              >
+                <Folder className="h-4 w-4 text-neutral-400" />
+                {folder.name}
+                {folder._count && (
+                  <span className="text-[11px] text-neutral-400">
+                    ({folder._count.files} files)
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Search + Filters */}
       <div className="mb-4 flex items-center gap-3">
@@ -353,44 +372,40 @@ export default function LibraryPage() {
           )}
         </div>
         <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-2 focus:outline-none"
-        >
-          <option value="all">All Types</option>
-          <option value="document">Document</option>
-          <option value="policy">Policy</option>
-          <option value="form">Form</option>
-          <option value="notice">Notice</option>
-          <option value="manual">Manual</option>
-        </select>
-        <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
           className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-2 focus:outline-none"
         >
-          <option value="all">All Categories</option>
-          <option value="governance">Governance</option>
-          <option value="maintenance">Maintenance</option>
+          <option value="">All Categories</option>
+          <option value="rules">Rules</option>
+          <option value="policies">Policies</option>
+          <option value="procedures">Procedures</option>
+          <option value="minutes">Minutes</option>
           <option value="safety">Safety</option>
-          <option value="financial">Financial</option>
-          <option value="operations">Operations</option>
-          <option value="general">General</option>
+          <option value="insurance">Insurance</option>
+          <option value="financials">Financials</option>
+          <option value="forms">Forms</option>
+          <option value="notices">Notices</option>
+          <option value="other">Other</option>
         </select>
       </div>
 
       {/* Data Table */}
-      {filteredItems.length > 0 ? (
+      {files.length > 0 ? (
         <DataTable
           columns={columns}
-          data={filteredItems}
+          data={files}
           onRowClick={(row) => router.push(`/library/${row.id}` as never)}
         />
       ) : (
         <EmptyState
           icon={<BookOpen className="h-6 w-6" />}
           title="No documents found"
-          description="Upload building documents, policies, and shared files to get started."
+          description={
+            searchQuery || categoryFilter
+              ? 'No documents match your search or filter criteria.'
+              : 'Upload building documents, policies, and shared files to get started.'
+          }
         />
       )}
     </PageShell>
