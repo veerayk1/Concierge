@@ -163,6 +163,10 @@ model Property {
   assets                    Asset[]
   assetAudits               AssetAudit[]
 
+  // Know Your Residents module relations
+  kyrSessions      KyrSession[]
+  kyrLeaderboard   KyrLeaderboard[]
+
   @@index([type])
   @@index([slug])
   @@index([propertyCode])
@@ -193,12 +197,15 @@ model User {
   deletedAt DateTime?
 
   // Relations
-  userProperties   UserProperty[]
-  sessions         Session[]
-  refreshTokens    RefreshToken[]
-  loginAudits      LoginAudit[]
-  passwordHistory  PasswordHistory[]
-  devicePushTokens DevicePushToken[]
+  userProperties       UserProperty[]
+  sessions             Session[]
+  refreshTokens        RefreshToken[]
+  loginAudits          LoginAudit[]
+  passwordHistory      PasswordHistory[]
+  devicePushTokens     DevicePushToken[]
+  occupancyRecords     OccupancyRecord[]
+  kyrSessions          KyrSession[]
+  kyrLeaderboardEntries KyrLeaderboard[]
 
   @@map("users")
 }
@@ -531,8 +538,10 @@ model OccupancyRecord {
   updatedAt DateTime @updatedAt
 
   unit Unit @relation(fields: [unitId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([unitId])
+  @@index([userId])
   @@index([propertyId, moveOutDate])
   @@map("occupancy_records")
 }
@@ -3958,4 +3967,76 @@ model AssetAudit {
   @@index([propertyId])
   @@index([propertyId, auditDate])
   @@map("asset_audits")
+}
+
+// ---------------------------------------------------------------------------
+// TRAINING: Know Your Residents — Gamified Staff Training
+// ---------------------------------------------------------------------------
+
+model KyrSession {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @db.Uuid
+  propertyId      String   @db.Uuid
+  difficulty      String   @default("easy") @db.VarChar(10) // easy, medium, hard
+  totalQuestions  Int      @default(0)
+  correctAnswers  Int      @default(0)
+  wrongAnswers    Int      @default(0)
+  currentStreak   Int      @default(0)
+  bestStreak      Int      @default(0)
+  totalScore      Int      @default(0)
+  totalTimeMs     Int      @default(0)
+  status          String   @default("active") @db.VarChar(20) // active, completed, abandoned
+  questionStartedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id])
+  property Property    @relation(fields: [propertyId], references: [id])
+  answers  KyrAnswer[]
+
+  @@index([userId])
+  @@index([propertyId])
+  @@index([userId, propertyId])
+  @@map("kyr_sessions")
+}
+
+model KyrAnswer {
+  id            String  @id @default(uuid()) @db.Uuid
+  sessionId     String  @db.Uuid
+  occupancyId   String  @db.Uuid
+  givenAnswer   String  @db.VarChar(200)
+  correctAnswer String  @db.VarChar(200)
+  isCorrect     Boolean @default(false)
+  timeMs        Int     @default(0)
+  points        Int     @default(0)
+  timedOut       Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  session KyrSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId])
+  @@map("kyr_answers")
+}
+
+model KyrLeaderboard {
+  id         String @id @default(uuid()) @db.Uuid
+  userId     String @db.Uuid
+  propertyId String @db.Uuid
+  highScore  Int    @default(0)
+  bestStreak Int    @default(0)
+  totalGames Int    @default(0)
+  avgTimeMs  Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([userId, propertyId])
+  @@index([propertyId])
+  @@index([propertyId, highScore])
+  @@map("kyr_leaderboard")
 }
