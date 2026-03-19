@@ -17,7 +17,11 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const type = searchParams.get('type'); // production, demo, sandbox
 
-    const where: Record<string, unknown> = { deletedAt: null, isActive: true };
+    // Super Admin sees all properties (including inactive); others see only active
+    const where: Record<string, unknown> = { deletedAt: null };
+    if (auth.user.role !== 'super_admin') {
+      where.isActive = true;
+    }
     if (type) where.type = type.toUpperCase();
     if (search) {
       where.OR = [

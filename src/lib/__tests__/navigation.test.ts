@@ -137,13 +137,14 @@ describe('Navigation System', () => {
     });
 
     // 15
-    it('super_admin sees all major groups', () => {
+    it('super_admin sees platform-level groups only (not property-level OPERATIONS/COMMUNITY)', () => {
       const labels = groupLabels('super_admin');
       expect(labels).toContain('SYSTEM');
       expect(labels).toContain('OVERVIEW');
-      expect(labels).toContain('OPERATIONS');
-      expect(labels).toContain('COMMUNITY');
       expect(labels).toContain('MANAGEMENT');
+      // Super Admin is a platform-level role — should NOT see property-level groups
+      expect(labels).not.toContain('OPERATIONS');
+      expect(labels).not.toContain('COMMUNITY');
     });
 
     // 16

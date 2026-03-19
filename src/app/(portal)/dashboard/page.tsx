@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   Clock,
   CloudSun,
+  CreditCard,
   FileText,
   Key,
   Megaphone,
@@ -420,21 +421,48 @@ export default function DashboardPage() {
   const effectiveRole: Role = user?.role ?? demoRole ?? 'front_desk';
   const effectiveName = user?.firstName ?? (demoRole ? (DEMO_NAMES[demoRole] ?? 'User') : 'User');
 
-  // Fetch real dashboard data from API
+  // Super Admin gets platform-level dashboard — no property-specific API calls
+  const isSuperAdmin = effectiveRole === 'super_admin';
+
+  // Fetch real dashboard data from API (skip for super_admin)
   const { data: apiData } = useApi<DashboardApiData>(
-    apiUrl('/api/v1/dashboard', { propertyId: DEMO_PROPERTY_ID, role: effectiveRole }),
+    isSuperAdmin
+      ? null
+      : apiUrl('/api/v1/dashboard', { propertyId: DEMO_PROPERTY_ID, role: effectiveRole }),
   );
 
-  // Fetch upcoming tasks from the recurring-tasks API (next 7 days)
+  // Fetch platform-level data for super_admin
+  const { data: platformProperties } = useApi<
+    { id: string; isActive: boolean; unitCount: number }[]
+  >(isSuperAdmin ? '/api/v1/properties' : null);
+
+  // Fetch upcoming tasks from the recurring-tasks API (next 7 days) — skip for super_admin
   const { data: upcomingTasksData, loading: tasksLoading } = useApi<UpcomingTaskItem[]>(
-    apiUrl('/api/v1/recurring-tasks/upcoming', {
-      propertyId: DEMO_PROPERTY_ID,
-      days: '7',
-    }),
+    isSuperAdmin
+      ? null
+      : apiUrl('/api/v1/recurring-tasks/upcoming', {
+          propertyId: DEMO_PROPERTY_ID,
+          days: '7',
+        }),
   );
 
   // Map KPI names to real values from the API, falling back to em-dash
   const kpiValues: Record<string, string> = useMemo(() => {
+    // Super Admin platform-level KPIs
+    if (isSuperAdmin) {
+      const props = Array.isArray(platformProperties) ? platformProperties : [];
+      const activeProps = props.filter((p) => p.isActive);
+      const totalUnits = props.reduce((sum, p) => sum + (p.unitCount || 0), 0);
+      return {
+        'Total Properties': String(activeProps.length),
+        'Total Users': String(totalUnits), // approximate via units
+        'Platform Health': '99.7%',
+        'Active Subscriptions': String(activeProps.length),
+        'AI Spend': '\u2014',
+        'Active Users': String(totalUnits),
+      };
+    }
+
     if (!apiData?.kpis) return {} as Record<string, string>;
     const k = apiData.kpis;
     const map: Record<string, string> = {
@@ -455,7 +483,7 @@ export default function DashboardPage() {
       'Equipment Alerts': String(k.overdueMaintenanceRequests),
     };
     return map;
-  }, [apiData, upcomingTasksData]);
+  }, [apiData, upcomingTasksData, isSuperAdmin, platformProperties]);
 
   if (loading && !demoRole) {
     return <DashboardSkeleton />;
@@ -464,6 +492,188 @@ export default function DashboardPage() {
   const config = DASHBOARD_CONFIGS[effectiveRole];
   const greeting = getGreeting();
   const buildingHealthScore = 87;
+
+  // -------------------------------------------------------------------------
+  // Super Admin — Platform-level dashboard
+  // -------------------------------------------------------------------------
+  if (isSuperAdmin) {
+    const platformKpis = [
+      {
+        label: 'Total Properties',
+        icon: Building2,
+        color: 'text-primary-600',
+        bgColor: 'bg-primary-50',
+      },
+      { label: 'Active Users', icon: Users, color: 'text-success-600', bgColor: 'bg-success-50' },
+      {
+        label: 'Platform Health',
+        icon: Activity,
+        color: 'text-success-600',
+        bgColor: 'bg-success-50',
+      },
+      {
+        label: 'Active Subscriptions',
+        icon: CreditCard,
+        color: 'text-info-600',
+        bgColor: 'bg-info-50',
+      },
+    ];
+
+    return (
+      <div className="flex flex-col gap-8">
+        {/* Greeting */}
+        <div className="flex items-end justify-between">
+          <div>
+            <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
+              {greeting}, {effectiveName}
+            </h1>
+            <p className="mt-1 text-[15px] text-neutral-500">
+              Platform Overview &middot; {ROLE_DISPLAY_NAMES[effectiveRole]}
+            </p>
+          </div>
+          <p className="hidden text-[13px] text-neutral-400 xl:block">
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </p>
+        </div>
+
+        {/* Platform KPI Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {platformKpis.map((kpi) => {
+            const Icon = kpi.icon;
+            return (
+              <Card key={kpi.label} hoverable className="group cursor-pointer">
+                <div className="flex items-start justify-between">
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpi.bgColor}`}
+                  >
+                    <Icon className={`h-5 w-5 ${kpi.color}`} />
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-neutral-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-neutral-500" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-[13px] font-medium text-neutral-500">{kpi.label}</p>
+                  <p className="mt-1 text-[24px] font-bold tracking-tight text-neutral-900">
+                    {kpiValues[kpi.label] ?? '\u2014'}
+                  </p>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Quick Actions */}
+        <div>
+          <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
+            Quick Actions
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: 'View Properties', href: '/system/properties' },
+              { label: 'Platform Health', href: '/system/health' },
+              { label: 'AI Dashboard', href: '/system/ai' },
+              { label: 'Billing Overview', href: '/system/billing' },
+              { label: 'User Management', href: '/users' },
+              { label: 'Compliance', href: '/compliance' },
+            ].map((action) => (
+              <Link
+                key={action.label}
+                href={action.href as never}
+                className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
+              >
+                {action.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent System Events */}
+        <div>
+          <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
+            Recent System Events
+          </h2>
+          <Card padding="none">
+            <div className="divide-y divide-neutral-100">
+              {[
+                {
+                  id: '1',
+                  title: 'New property onboarded: Lakeview Towers',
+                  type: 'System',
+                  time: '2 hrs ago',
+                  status: 'completed',
+                },
+                {
+                  id: '2',
+                  title: 'Subscription upgraded: Maple Heights (Professional)',
+                  type: 'Billing',
+                  time: '5 hrs ago',
+                  status: 'completed',
+                },
+                {
+                  id: '3',
+                  title: 'API rate limit alert: Developer key dk_abc123',
+                  type: 'Alert',
+                  time: '8 hrs ago',
+                  status: 'warning',
+                },
+                {
+                  id: '4',
+                  title: 'Data migration completed: Riverside Condos',
+                  type: 'System',
+                  time: '1 day ago',
+                  status: 'completed',
+                },
+                {
+                  id: '5',
+                  title: 'SSL certificate renewal: *.concierge.app',
+                  type: 'Infrastructure',
+                  time: '2 days ago',
+                  status: 'completed',
+                },
+              ].map((event) => (
+                <div
+                  key={event.id}
+                  className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-neutral-50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                        event.status === 'warning' ? 'bg-warning-50' : 'bg-primary-50'
+                      }`}
+                    >
+                      {event.status === 'warning' ? (
+                        <AlertTriangle className="text-warning-600 h-4 w-4" />
+                      ) : (
+                        <CheckCircle2 className="text-primary-600 h-4 w-4" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[14px] font-medium text-neutral-900">{event.title}</p>
+                      <p className="text-[12px] text-neutral-500">{event.type}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant={event.status === 'warning' ? 'warning' : 'success'} size="sm">
+                      {event.status === 'warning' ? 'Alert' : 'OK'}
+                    </Badge>
+                    <span className="text-[12px] text-neutral-400">{event.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Property-level dashboard (all other roles)
+  // -------------------------------------------------------------------------
 
   return (
     <div className="flex flex-col gap-8">

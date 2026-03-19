@@ -526,14 +526,14 @@ describe('Navigation groups structure', () => {
     }
   });
 
-  it('super_admin sees the most navigation items', () => {
-    const superAdminItems = getFlatNavigationForRole('super_admin');
+  it('property_admin sees the most navigation items (super_admin is platform-level only)', () => {
+    const propertyAdminItems = getFlatNavigationForRole('property_admin');
     for (const role of ALL_ROLES) {
-      if (role === 'super_admin') continue;
+      if (role === 'property_admin') continue;
       const roleItems = getFlatNavigationForRole(role);
       expect(
-        superAdminItems.length,
-        `super_admin should see more items than ${role}`,
+        propertyAdminItems.length,
+        `property_admin should see at least as many items as ${role}`,
       ).toBeGreaterThanOrEqual(roleItems.length);
     }
   });

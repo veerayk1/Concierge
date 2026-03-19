@@ -61,9 +61,14 @@ export async function guardRoute(
     if (allowDemo && process.env.NODE_ENV !== 'production') {
       const demoRole = request.headers.get('x-demo-role');
       if (demoRole) {
+        // Super Admin is a platform-level role — not bound to a single property.
+        // Use a special sentinel value so API routes can detect cross-property access.
+        const isSuperAdmin = demoRole === 'super_admin';
         const demoUser: AuthenticatedUser = {
           userId: 'demo-user',
-          propertyId: '00000000-0000-4000-b000-000000000001',
+          propertyId: isSuperAdmin
+            ? '00000000-0000-0000-0000-000000000000' // sentinel: all properties
+            : '00000000-0000-4000-b000-000000000001',
           role: demoRole as Role,
           permissions: ['*'],
           mfaVerified: true,

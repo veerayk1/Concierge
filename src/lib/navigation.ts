@@ -181,16 +181,16 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Units & Residents',
         href: '/units',
         icon: Building2,
-        // 7.1 Super Admin, 7.2 Property Admin, 7.4 Property Manager
-        roles: ['super_admin', 'property_admin', 'property_manager'],
+        // 7.2 Property Admin, 7.4 Property Manager (Super Admin sees multi-property view instead)
+        roles: ['property_admin', 'property_manager'],
       },
       {
         id: 'amenities',
         label: 'Amenities',
         href: '/amenities',
         icon: CalendarDays,
-        // 7.1, 7.2, 7.3 Board Member, 7.4 Property Manager
-        roles: ['super_admin', 'property_admin', 'board_member', 'property_manager'],
+        // 7.2, 7.3 Board Member, 7.4 Property Manager (Super Admin is platform-level)
+        roles: ['property_admin', 'board_member', 'property_manager'],
       },
     ],
   },
@@ -246,9 +246,8 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Security Console',
         href: '/security',
         icon: Shield,
-        // 7.1, 7.2, 7.4, 7.5 Security Supervisor, 7.6 Security Guard, 7.7 Front Desk
+        // 7.2, 7.4, 7.5 Security Supervisor, 7.6 Security Guard, 7.7 Front Desk (Super Admin is platform-level)
         roles: [
-          'super_admin',
           'property_admin',
           'property_manager',
           'security_supervisor',
@@ -262,9 +261,8 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         href: '/packages',
         icon: Package,
         badgeKey: 'unreleased_packages',
-        // 7.1, 7.2, 7.4, 7.5, 7.6, 7.7 Front Desk
+        // 7.2, 7.4, 7.5, 7.6, 7.7 Front Desk (Super Admin is platform-level)
         roles: [
-          'super_admin',
           'property_admin',
           'property_manager',
           'security_supervisor',
@@ -277,28 +275,16 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Service Requests',
         href: '/maintenance',
         icon: Wrench,
-        // 7.1, 7.2, 7.4, 7.8 Maintenance Staff (assigned), 7.9 Superintendent
-        roles: [
-          'super_admin',
-          'property_admin',
-          'property_manager',
-          'maintenance_staff',
-          'superintendent',
-        ],
+        // 7.2, 7.4, 7.8 Maintenance Staff (assigned), 7.9 Superintendent (Super Admin is platform-level)
+        roles: ['property_admin', 'property_manager', 'maintenance_staff', 'superintendent'],
       },
       {
         id: 'announcements',
         label: 'Announcements',
         href: '/announcements',
         icon: Megaphone,
-        // 7.1, 7.2, 7.4 (create), 7.7 Front Desk (view), 7.9 Superintendent (view)
-        roles: [
-          'super_admin',
-          'property_admin',
-          'property_manager',
-          'front_desk',
-          'superintendent',
-        ],
+        // 7.2, 7.4 (create), 7.7 Front Desk (view), 7.9 Superintendent (view) (Super Admin is platform-level)
+        roles: ['property_admin', 'property_manager', 'front_desk', 'superintendent'],
       },
       {
         id: 'parking',
@@ -321,8 +307,8 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Visitors',
         href: '/visitors',
         icon: Users,
+        // Property-level — Super Admin excluded
         roles: [
-          'super_admin',
           'property_admin',
           'property_manager',
           'security_supervisor',
@@ -335,8 +321,8 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Keys & FOBs',
         href: '/keys',
         icon: Key,
+        // Property-level — Super Admin excluded
         roles: [
-          'super_admin',
           'property_admin',
           'property_manager',
           'security_supervisor',
@@ -349,54 +335,48 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Vendors',
         href: '/vendors',
         icon: Truck,
-        roles: ['super_admin', 'property_admin', 'property_manager', 'superintendent'],
+        // Property-level — Super Admin excluded
+        roles: ['property_admin', 'property_manager', 'superintendent'],
       },
       {
         id: 'inspections',
         label: 'Inspections',
         href: '/inspections',
         icon: ClipboardCheck,
-        roles: [
-          'super_admin',
-          'property_admin',
-          'property_manager',
-          'superintendent',
-          'maintenance_staff',
-        ],
+        // Property-level — Super Admin excluded
+        roles: ['property_admin', 'property_manager', 'superintendent', 'maintenance_staff'],
       },
       {
         id: 'equipment-ops',
         label: 'Equipment',
         href: '/equipment',
         icon: HardHat,
-        roles: ['super_admin', 'property_admin', 'property_manager', 'maintenance_staff'],
+        // Property-level — Super Admin excluded
+        roles: ['property_admin', 'property_manager', 'maintenance_staff'],
       },
       {
         id: 'recurring-tasks',
         label: 'Recurring Tasks',
         href: '/recurring-tasks',
         icon: Repeat,
-        roles: [
-          'super_admin',
-          'property_admin',
-          'property_manager',
-          'superintendent',
-          'maintenance_staff',
-        ],
+        // Property-level — Super Admin excluded
+        roles: ['property_admin', 'property_manager', 'superintendent', 'maintenance_staff'],
       },
       {
         id: 'alterations',
         label: 'Alterations',
         href: '/alterations',
         icon: Hammer,
-        roles: ['super_admin', 'property_admin', 'property_manager'],
+        // Property-level — Super Admin excluded
+        roles: ['property_admin', 'property_manager'],
       },
       {
         id: 'purchase-orders',
         label: 'Purchase Orders',
         href: '/purchase-orders',
         icon: ShoppingCart,
-        roles: ['super_admin', 'property_admin', 'property_manager', 'superintendent'],
+        // Property-level — Super Admin excluded
+        roles: ['property_admin', 'property_manager', 'superintendent'],
       },
     ],
   },
@@ -505,53 +485,56 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Events',
         href: '/events',
         icon: CalendarClock,
-        // 7.1, 7.2, 7.4
-        roles: ['super_admin', 'property_admin', 'property_manager'],
+        // 7.2, 7.4 (Super Admin is platform-level, not property-level)
+        roles: ['property_admin', 'property_manager'],
       },
       {
         id: 'marketplace',
         label: 'Marketplace',
         href: '/marketplace',
         icon: Store,
-        // 7.1, 7.2, 7.4
-        roles: ['super_admin', 'property_admin', 'property_manager'],
+        // 7.2, 7.4 (Super Admin is platform-level)
+        roles: ['property_admin', 'property_manager'],
       },
       {
         id: 'library',
         label: 'Library',
         href: '/library',
         icon: BookOpen,
-        // 7.1, 7.2, 7.4
-        roles: ['super_admin', 'property_admin', 'property_manager'],
+        // 7.2, 7.4 (Super Admin keeps platform-level Library in MANAGEMENT)
+        roles: ['property_admin', 'property_manager'],
       },
       {
         id: 'surveys',
         label: 'Surveys',
         href: '/surveys',
         icon: ClipboardList,
-        // 7.1, 7.2, 7.4
-        roles: ['super_admin', 'property_admin', 'property_manager'],
+        // 7.2, 7.4 (Super Admin is platform-level)
+        roles: ['property_admin', 'property_manager'],
       },
       {
         id: 'forum',
         label: 'Forum',
         href: '/forum',
         icon: MessageSquare,
-        roles: ['super_admin', 'property_admin', 'property_manager'],
+        // 7.2, 7.4 (Super Admin is platform-level)
+        roles: ['property_admin', 'property_manager'],
       },
       {
         id: 'photo-albums',
         label: 'Photo Albums',
         href: '/photo-albums',
         icon: Image,
-        roles: ['super_admin', 'property_admin', 'property_manager'],
+        // 7.2, 7.4 (Super Admin is platform-level)
+        roles: ['property_admin', 'property_manager'],
       },
       {
         id: 'idea-board',
         label: 'Idea Board',
         href: '/ideas',
         icon: Lightbulb,
-        roles: ['super_admin', 'property_admin', 'property_manager'],
+        // 7.2, 7.4 (Super Admin is platform-level)
+        roles: ['property_admin', 'property_manager'],
       },
     ],
   },
@@ -707,7 +690,8 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Assets',
         href: '/assets',
         icon: FileBox,
-        roles: ['super_admin', 'property_admin', 'property_manager', 'superintendent'],
+        // Property-level — Super Admin excluded
+        roles: ['property_admin', 'property_manager', 'superintendent'],
       },
       {
         id: 'building-directory',
@@ -728,7 +712,8 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Resident Cards',
         href: '/resident-cards',
         icon: IdCard,
-        roles: ['super_admin', 'property_admin'],
+        // Property-level — Super Admin excluded
+        roles: ['property_admin'],
       },
       {
         id: 'compliance',

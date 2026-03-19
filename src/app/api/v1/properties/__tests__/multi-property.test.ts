@@ -301,7 +301,7 @@ describe('GET /properties — filter by type', () => {
 // =========================================================================
 
 describe('GET /properties — filter by status', () => {
-  it('default GET returns only active properties (deletedAt: null, isActive: true)', async () => {
+  it('default GET for super_admin returns all non-deleted properties (no isActive filter)', async () => {
     mockPropertyFindMany.mockResolvedValue([sampleProperty()]);
 
     const req = createGetRequest('/api/v1/properties', {
@@ -309,14 +309,17 @@ describe('GET /properties — filter by status', () => {
     });
     await GET(req);
 
+    // Super Admin sees all properties including inactive — only deletedAt: null is applied
     expect(mockPropertyFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           deletedAt: null,
-          isActive: true,
         }),
       }),
     );
+    // Verify isActive is NOT in the where clause for super_admin
+    const callArgs = mockPropertyFindMany.mock.calls[0][0];
+    expect(callArgs.where).not.toHaveProperty('isActive');
   });
 });
 

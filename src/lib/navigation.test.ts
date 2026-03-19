@@ -36,27 +36,28 @@ describe('Super Admin navigation (Section 7.1)', () => {
     expect(labels).toContain('Billing');
   });
 
-  it('sees OVERVIEW group items', () => {
+  it('sees OVERVIEW group items (Dashboard only — no property-level items)', () => {
     const labels = getLabelsForRole(role);
     expect(labels).toContain('Dashboard');
-    expect(labels).toContain('Units & Residents');
-    expect(labels).toContain('Amenities');
+    // Super Admin no longer sees property-level items in OVERVIEW
+    expect(labels).not.toContain('Units & Residents');
+    expect(labels).not.toContain('Amenities');
   });
 
-  it('sees OPERATIONS group items', () => {
+  it('does NOT see OPERATIONS group (property-level)', () => {
+    const groups = getGroupLabelsForRole(role);
+    expect(groups).not.toContain('OPERATIONS');
     const labels = getLabelsForRole(role);
-    expect(labels).toContain('Security Console');
-    expect(labels).toContain('Packages');
-    expect(labels).toContain('Service Requests');
-    expect(labels).toContain('Announcements');
+    expect(labels).not.toContain('Security Console');
+    expect(labels).not.toContain('Packages');
   });
 
-  it('sees COMMUNITY group items', () => {
+  it('does NOT see COMMUNITY group (property-level)', () => {
+    const groups = getGroupLabelsForRole(role);
+    expect(groups).not.toContain('COMMUNITY');
     const labels = getLabelsForRole(role);
-    expect(labels).toContain('Events');
-    expect(labels).toContain('Marketplace');
-    expect(labels).toContain('Library');
-    expect(labels).toContain('Surveys');
+    expect(labels).not.toContain('Events');
+    expect(labels).not.toContain('Marketplace');
   });
 
   it('sees MANAGEMENT group items', () => {
@@ -72,9 +73,10 @@ describe('Super Admin navigation (Section 7.1)', () => {
     const groups = getGroupLabelsForRole(role);
     expect(groups).toContain('SYSTEM');
     expect(groups).toContain('OVERVIEW');
-    expect(groups).toContain('OPERATIONS');
-    expect(groups).toContain('COMMUNITY');
     expect(groups).toContain('MANAGEMENT');
+    // Super Admin no longer has property-level groups
+    expect(groups).not.toContain('OPERATIONS');
+    expect(groups).not.toContain('COMMUNITY');
   });
 });
 

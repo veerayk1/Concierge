@@ -236,21 +236,21 @@ describe('Sidebar accessibility', () => {
 
 describe('Sidebar badge counts', () => {
   it('shows badge count when provided', () => {
-    renderSidebar('super_admin', {
+    renderSidebar('front_desk', {
       badgeCounts: { unreleased_packages: 5 },
     });
     expect(screen.getByText('5')).toBeInTheDocument();
   });
 
   it('shows 99+ for counts over 99', () => {
-    renderSidebar('super_admin', {
+    renderSidebar('front_desk', {
       badgeCounts: { unreleased_packages: 150 },
     });
     expect(screen.getByText('99+')).toBeInTheDocument();
   });
 
   it('does not show badge for zero count', () => {
-    renderSidebar('super_admin', {
+    renderSidebar('front_desk', {
       badgeCounts: { unreleased_packages: 0 },
     });
     expect(screen.queryByText('0')).not.toBeInTheDocument();
