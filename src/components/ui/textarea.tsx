@@ -16,7 +16,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label ? (
           <label htmlFor={textareaId} className="text-body-sm text-text-primary font-medium">
             {label}
-            {props.required ? <span className="text-status-error ml-0.5">*</span> : null}
+            {props.required ? (
+              <span className="text-status-error ml-0.5" aria-hidden="true">
+                *
+              </span>
+            ) : null}
           </label>
         ) : null}
         <textarea

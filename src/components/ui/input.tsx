@@ -19,7 +19,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700"
           >
             {label}
-            {props.required ? <span className="text-error-500 ml-0.5">*</span> : null}
+            {props.required ? (
+              <span className="text-error-500 ml-0.5" aria-hidden="true">
+                *
+              </span>
+            ) : null}
           </label>
         ) : null}
         <input

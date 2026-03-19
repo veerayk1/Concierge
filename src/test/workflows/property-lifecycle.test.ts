@@ -161,7 +161,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn().mockResolvedValue({
     user: {
       userId: 'admin-001',
-      propertyId: 'prop-new-001',
+      propertyId: '550e8400-e29b-41d4-a716-446655440099',
       role: 'property_admin',
       permissions: ['*'],
       mfaVerified: true,
@@ -176,7 +176,7 @@ vi.mock('@/server/billing', () => ({
     url: 'https://checkout.stripe.com/pay/cs_test_001',
     customer: 'cus_test_001',
     subscription: null,
-    metadata: { propertyId: 'prop-new-001', tier: 'professional' },
+    metadata: { propertyId: '550e8400-e29b-41d4-a716-446655440099', tier: 'professional' },
   }),
   verifyWebhookSignature: vi.fn().mockResolvedValue(true),
   TIER_PRICE_IDS: {
@@ -214,7 +214,7 @@ import { GET as listInvoices } from '@/app/api/v1/billing/invoices/route';
 // Constants
 // ---------------------------------------------------------------------------
 
-const PROPERTY_ID = 'prop-new-001';
+const PROPERTY_ID = '550e8400-e29b-41d4-a716-446655440099';
 
 // ---------------------------------------------------------------------------
 // Reset

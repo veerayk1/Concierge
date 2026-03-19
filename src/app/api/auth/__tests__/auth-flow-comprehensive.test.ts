@@ -153,6 +153,7 @@ function mockActiveUser(overrides: Record<string, unknown> = {}) {
         propertyId: PROPERTY_ID,
       },
     ],
+    ...overrides,
   };
 }
 
