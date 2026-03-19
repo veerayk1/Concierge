@@ -1,4 +1,5 @@
 import type { TokenPayload } from '@/types';
+import { prisma } from '@/server/db';
 
 /**
  * Session management service.
@@ -30,39 +31,74 @@ export async function createSession(input: CreateSessionInput): Promise<SessionI
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24h default
 
-  // TODO: Insert into sessions table via Prisma
+  const session = await prisma.session.create({
+    data: {
+      userId: input.userId,
+      deviceFingerprint: input.deviceFingerprint,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+      lastActiveAt: now,
+      expiresAt,
+    },
+  });
+
   return {
-    id: crypto.randomUUID(),
-    userId: input.userId,
-    deviceFingerprint: input.deviceFingerprint,
-    ipAddress: input.ipAddress,
-    userAgent: input.userAgent,
-    lastActiveAt: now,
-    expiresAt,
-    createdAt: now,
+    id: session.id,
+    userId: session.userId,
+    deviceFingerprint: session.deviceFingerprint,
+    ipAddress: session.ipAddress,
+    userAgent: session.userAgent,
+    lastActiveAt: session.lastActiveAt,
+    expiresAt: session.expiresAt,
+    createdAt: session.createdAt,
   };
 }
 
 /**
  * List active sessions for a user. Per A.6.5
  */
-export async function listUserSessions(_userId: string): Promise<SessionInfo[]> {
-  // TODO: Query sessions table via Prisma
-  return [];
+export async function listUserSessions(userId: string): Promise<SessionInfo[]> {
+  const sessions = await prisma.session.findMany({
+    where: {
+      userId,
+      revokedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+  });
+
+  return sessions.map((session) => ({
+    id: session.id,
+    userId: session.userId,
+    deviceFingerprint: session.deviceFingerprint,
+    ipAddress: session.ipAddress,
+    userAgent: session.userAgent,
+    lastActiveAt: session.lastActiveAt,
+    expiresAt: session.expiresAt,
+    createdAt: session.createdAt,
+  }));
 }
 
 /**
  * Revoke a specific session. Per A.6.4
  */
-export async function revokeSession(_sessionId: string): Promise<void> {
-  // TODO: Set revokedAt on session record
+export async function revokeSession(sessionId: string): Promise<void> {
+  await prisma.session.update({
+    where: { id: sessionId },
+    data: { revokedAt: new Date() },
+  });
 }
 
 /**
  * Revoke all sessions for a user (e.g., password change). Per A.6.6
  */
-export async function revokeAllUserSessions(_userId: string): Promise<void> {
-  // TODO: Set revokedAt on all user sessions
+export async function revokeAllUserSessions(userId: string): Promise<void> {
+  await prisma.session.updateMany({
+    where: {
+      userId,
+      revokedAt: null,
+    },
+    data: { revokedAt: new Date() },
+  });
 }
 
 /**
@@ -80,7 +116,14 @@ export function generateDeviceFingerprint(userAgent: string, ip: string): string
 /**
  * Validate a token payload against active sessions.
  */
-export async function validateSession(_payload: TokenPayload): Promise<boolean> {
-  // TODO: Check session exists and is not revoked
-  return true;
+export async function validateSession(payload: TokenPayload): Promise<boolean> {
+  const session = await prisma.session.findFirst({
+    where: {
+      userId: payload.sub,
+      revokedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+  });
+
+  return session !== null;
 }

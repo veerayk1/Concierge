@@ -11,6 +11,7 @@
  */
 
 import { createLogger, sanitizeLogData } from '@/server/logger';
+import { prisma } from '@/server/db';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -108,6 +109,24 @@ export async function logAudit(entry: AuditEntry): Promise<void> {
     `AUDIT: ${entry.action} ${entry.resource}/${entry.resourceId} by ${entry.userId}`,
   );
 
-  // TODO: Prisma insert
-  // await prisma.auditLog.create({ data: { ...entry, createdAt: new Date() } });
+  try {
+    await prisma.auditEntry.create({
+      data: {
+        userId: entry.userId,
+        propertyId: entry.propertyId,
+        action: entry.action.toLowerCase(),
+        resource: entry.resource,
+        resourceId: entry.resourceId,
+        fields: entry.fields ?? undefined,
+        ipAddress: entry.ip ?? 'unknown',
+        userAgent: entry.userAgent ?? undefined,
+        piiAccessed: false,
+      },
+    });
+  } catch (err) {
+    logger.error(
+      { err, userId: entry.userId, action: entry.action, resource: entry.resource },
+      'Failed to persist audit entry to database',
+    );
+  }
 }
