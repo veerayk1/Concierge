@@ -110,18 +110,32 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send push notification for published announcements with push channel
-    if (input.status === 'published' && input.channels.includes('push')) {
-      void sendPushToProperty(input.propertyId, {
-        title: announcement.title,
-        body: input.content.substring(0, 200),
-        data: { announcementId: announcement.id, screen: 'announcements', action: 'view' },
-      }).catch((err) => {
-        logger.error(
-          { err, announcementId: announcement.id },
-          'Failed to send announcement push notification',
-        );
-      });
+    // Create delivery records for published announcements only.
+    // Draft and scheduled announcements do NOT get delivery records at creation time.
+    // Scheduled announcements will have records created by a cron job at publishedAt.
+    if (input.status === 'published') {
+      await createDeliveryRecords(announcement.id, input.propertyId, input.channels).catch(
+        (err: unknown) => {
+          logger.error(
+            { err, announcementId: announcement.id },
+            'Failed to create announcement delivery records',
+          );
+        },
+      );
+
+      // Send push notification for published announcements with push channel
+      if (input.channels.includes('push')) {
+        void sendPushToProperty(input.propertyId, {
+          title: announcement.title,
+          body: input.content.substring(0, 200),
+          data: { announcementId: announcement.id, screen: 'announcements', action: 'view' },
+        }).catch((err) => {
+          logger.error(
+            { err, announcementId: announcement.id },
+            'Failed to send announcement push notification',
+          );
+        });
+      }
     }
 
     return NextResponse.json(
@@ -135,4 +149,115 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Delivery Record Creation
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates AnnouncementDelivery records for all target users in a property.
+ *
+ * For each user, checks their notification preferences to determine which
+ * channels they have enabled. Only creates delivery records for channels
+ * that are both requested by the announcement AND enabled by the user.
+ *
+ * Deduplicates by user+channel combination to prevent double-sends.
+ */
+async function createDeliveryRecords(
+  announcementId: string,
+  propertyId: string,
+  channels: string[],
+): Promise<void> {
+  // Deduplicate channels from input
+  const uniqueChannels = [...new Set(channels)];
+
+  // Deliverable channels only (exclude 'web' — it's a display-only channel)
+  const deliverableChannels = uniqueChannels.filter((ch) => ch !== 'web');
+
+  if (deliverableChannels.length === 0) return;
+
+  // Get all users in the property
+  const userProperties = await prisma.userProperty.findMany({
+    where: { propertyId, deletedAt: null },
+    select: { userId: true },
+  });
+
+  if (userProperties.length === 0) return;
+
+  const userIds = userProperties.map((up: { userId: string }) => up.userId);
+
+  // Get notification preferences for all users in this property for announcements
+  const preferences = await prisma.notificationPreference.findMany({
+    where: {
+      userId: { in: userIds },
+      module: 'announcements',
+      channel: { in: deliverableChannels },
+    },
+  });
+
+  // Build a lookup: userId -> Set of enabled channels
+  const enabledChannels = new Map<string, Set<string>>();
+  for (const pref of preferences) {
+    if (pref.enabled) {
+      if (!enabledChannels.has(pref.userId)) {
+        enabledChannels.set(pref.userId, new Set());
+      }
+      enabledChannels.get(pref.userId)!.add(pref.channel);
+    }
+  }
+
+  // For users with no preference records, default to all deliverable channels enabled
+  for (const userId of userIds) {
+    if (!enabledChannels.has(userId)) {
+      // Check if user has ANY preference records
+      const hasPrefs = preferences.some((p: { userId: string }) => p.userId === userId);
+      if (!hasPrefs) {
+        enabledChannels.set(userId, new Set(deliverableChannels));
+      }
+    }
+  }
+
+  // Build delivery records — one per user per enabled channel
+  const seen = new Set<string>();
+  const deliveryData: Array<{
+    announcementId: string;
+    recipientId: string;
+    channel: string;
+    status: string;
+    sentAt: null;
+  }> = [];
+
+  for (const userId of userIds) {
+    const userChannels = enabledChannels.get(userId);
+    if (!userChannels) continue;
+
+    for (const channel of deliverableChannels) {
+      if (!userChannels.has(channel)) continue;
+
+      const key = `${userId}:${channel}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      deliveryData.push({
+        announcementId,
+        recipientId: userId,
+        channel,
+        status: 'pending',
+        sentAt: null,
+      });
+    }
+  }
+
+  if (deliveryData.length === 0) return;
+
+  await prisma.announcementDelivery.createMany({
+    data: deliveryData,
+    skipDuplicates: true,
+  });
+
+  logger.info(
+    { announcementId, deliveryCount: deliveryData.length },
+    'Delivery records created for announcement',
+  );
 }
