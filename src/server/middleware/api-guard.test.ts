@@ -171,7 +171,7 @@ describe('guardRoute — Demo Mode', () => {
 
     expect(result.error).toBeNull();
     expect(result.user?.role).toBe('property_admin');
-    expect(result.user?.userId).toBe('demo-user');
+    expect(result.user?.userId).toBe('00000000-0000-4000-a000-000000000001');
   });
 
   it('enforces role checks even in demo mode', async () => {

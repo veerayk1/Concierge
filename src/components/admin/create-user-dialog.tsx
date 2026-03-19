@@ -7,7 +7,7 @@
  * sendWelcomeEmail, languagePreference
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, UserPlus } from 'lucide-react';
@@ -17,25 +17,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { createUserSchema, type CreateUserInput } from '@/schemas/user';
+import { apiRequest } from '@/lib/hooks/use-api';
 
 // ---------------------------------------------------------------------------
-// Mock data — will be replaced with API calls
+// Role type from API
 // ---------------------------------------------------------------------------
 
-const MOCK_ROLES = [
-  { id: 'role-1', name: 'Property Admin', slug: 'property_admin' },
-  { id: 'role-2', name: 'Property Manager', slug: 'property_manager' },
-  { id: 'role-3', name: 'Front Desk', slug: 'front_desk' },
-  { id: 'role-4', name: 'Security Guard', slug: 'security_guard' },
-  { id: 'role-5', name: 'Security Supervisor', slug: 'security_supervisor' },
-  { id: 'role-6', name: 'Maintenance Staff', slug: 'maintenance_staff' },
-  { id: 'role-7', name: 'Superintendent', slug: 'superintendent' },
-  { id: 'role-8', name: 'Board Member', slug: 'board_member' },
-  { id: 'role-9', name: 'Resident (Owner)', slug: 'resident_owner' },
-  { id: 'role-10', name: 'Resident (Tenant)', slug: 'resident_tenant' },
-  { id: 'role-11', name: 'Family Member', slug: 'family_member' },
-  { id: 'role-12', name: 'Offsite Owner', slug: 'offsite_owner' },
-];
+interface RoleFromApi {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+}
 
 const RESIDENT_ROLE_SLUGS = ['resident_owner', 'resident_tenant', 'family_member', 'offsite_owner'];
 
@@ -57,6 +50,30 @@ export function CreateUserDialog({
   onSuccess,
 }: CreateUserDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [roles, setRoles] = useState<RoleFromApi[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+
+  // Fetch roles from API when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    setRolesLoading(true);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (typeof window !== 'undefined' && localStorage.getItem('demo_role')) {
+      headers['x-demo-role'] = localStorage.getItem('demo_role')!;
+    }
+    fetch(`/api/v1/roles?propertyId=${propertyId}`, { headers })
+      .then((res) => res.json())
+      .then((result) => {
+        if (result.data && Array.isArray(result.data)) {
+          setRoles(result.data);
+        }
+      })
+      .catch(() => {
+        // Silently fail — roles dropdown will be empty
+      })
+      .finally(() => setRolesLoading(false));
+  }, [open, propertyId]);
 
   const {
     register,
@@ -86,24 +103,19 @@ export function CreateUserDialog({
   });
 
   const selectedRoleId = watch('roleId');
-  const selectedRole = MOCK_ROLES.find((r) => r.id === selectedRoleId);
+  const selectedRole = roles.find((r) => r.id === selectedRoleId);
   const isResidentRole = selectedRole ? RESIDENT_ROLE_SLUGS.includes(selectedRole.slug) : false;
   const sendWelcome = watch('sendWelcomeEmail');
   const requireAssistance = watch('requireAssistance');
 
   async function onSubmit(data: CreateUserInput) {
     setServerError(null);
+    setSuccessMsg(null);
 
     try {
-      const response = await fetch('/api/v1/users', {
+      const response = await apiRequest('/api/v1/users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
-            ? { 'x-demo-role': localStorage.getItem('demo_role')! }
-            : {}),
-        },
-        body: JSON.stringify(data),
+        body: data,
       });
 
       const result = await response.json();
@@ -120,9 +132,13 @@ export function CreateUserDialog({
         return;
       }
 
-      reset();
-      onOpenChange(false);
-      onSuccess?.();
+      setSuccessMsg(result.message || 'Account created successfully.');
+      setTimeout(() => {
+        reset();
+        setSuccessMsg(null);
+        onOpenChange(false);
+        onSuccess?.();
+      }, 1500);
     } catch {
       setServerError('An unexpected error occurred. Please try again.');
     }
@@ -144,6 +160,11 @@ export function CreateUserDialog({
           {serverError && (
             <div className="border-error-200 bg-error-50 text-error-700 rounded-xl border px-4 py-3 text-[14px]">
               {serverError}
+            </div>
+          )}
+          {successMsg && (
+            <div className="border-success-200 bg-success-50 text-success-700 rounded-xl border px-4 py-3 text-[14px]">
+              {successMsg}
             </div>
           )}
 
@@ -198,12 +219,13 @@ export function CreateUserDialog({
               </label>
               <select
                 {...register('roleId')}
+                disabled={rolesLoading}
                 className={`focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none ${
                   errors.roleId ? 'border-error-300' : 'border-neutral-200 hover:border-neutral-300'
                 }`}
               >
-                <option value="">Select a role...</option>
-                {MOCK_ROLES.map((role) => (
+                <option value="">{rolesLoading ? 'Loading roles...' : 'Select a role...'}</option>
+                {roles.map((role) => (
                   <option key={role.id} value={role.id}>
                     {role.name}
                   </option>

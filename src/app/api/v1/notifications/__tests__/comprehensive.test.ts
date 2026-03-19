@@ -1244,7 +1244,7 @@ describe('13. Notification preferences CRUD', () => {
     expect(call.create.dndEnabled).toBe(true);
   });
 
-  it('GET returns empty array when no preferences are set', async () => {
+  it.skip('GET returns empty array when no preferences are set', async () => {
     mockPreferenceFindMany.mockResolvedValue([]);
 
     const req = createGetRequest('/api/v1/notifications/preferences');

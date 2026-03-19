@@ -86,6 +86,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Generate a unique slug from the name if not provided
+    const baseSlug =
+      body.slug ||
+      body.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+    const slug = `${baseSlug}-${Date.now().toString(36)}`;
+
+    // Generate a unique property code (max 7 chars per schema)
+    const propertyCode = body.propertyCode || `P${Date.now().toString(36).slice(-6).toUpperCase()}`;
+
     const property = await prisma.property.create({
       data: {
         name: body.name,
@@ -97,10 +109,10 @@ export async function POST(request: NextRequest) {
         unitCount: body.unitCount || 0,
         timezone: body.timezone || 'America/Toronto',
         logo: body.logo || null,
-        type: body.type || 'PRODUCTION',
-        slug: body.slug || null,
-        branding: body.branding || null,
-        propertyCode: body.propertyCode || null,
+        type: 'PRODUCTION',
+        slug,
+        branding: body.branding || {},
+        propertyCode,
       },
     });
 

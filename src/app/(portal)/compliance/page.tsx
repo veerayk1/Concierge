@@ -14,7 +14,7 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -158,11 +160,161 @@ function ScoreRing({ score, size = 48 }: { score: number; size?: number }) {
 }
 
 // ---------------------------------------------------------------------------
+// Generate Report Dialog
+// ---------------------------------------------------------------------------
+
+const REPORT_TYPE_OPTIONS = [
+  { value: 'access_audit', label: 'Access Audit Report' },
+  { value: 'data_retention', label: 'Data Retention Report' },
+  { value: 'consent_tracking', label: 'Consent Tracking Report' },
+  { value: 'incident_response', label: 'Incident Response Report' },
+  { value: 'vendor_compliance', label: 'Vendor Compliance Report' },
+  { value: 'security_audit', label: 'Security Audit Report' },
+  { value: 'privacy_impact', label: 'Privacy Impact Assessment' },
+  { value: 'sla_performance', label: 'SLA Performance Report' },
+];
+
+function GenerateReportDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+    setSubmitting(true);
+
+    const form = new FormData(e.currentTarget);
+    const type = form.get('type') as string;
+    const framework = (form.get('framework') as string) || undefined;
+    const from = (form.get('from') as string) || undefined;
+    const to = (form.get('to') as string) || undefined;
+
+    if (!type) {
+      setError('Report type is required.');
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await apiRequest('/api/v1/compliance', {
+        method: 'POST',
+        body: {
+          propertyId: DEMO_PROPERTY_ID,
+          type,
+          framework,
+          ...(from && to ? { dateRange: { from, to } } : {}),
+        },
+      });
+      const result = await res.json();
+
+      if (!res.ok) {
+        setError(result.message || 'Failed to generate report');
+        return;
+      }
+
+      setSuccessMsg(result.message || 'Report generated successfully.');
+      setTimeout(() => {
+        onOpenChange(false);
+        setSuccessMsg(null);
+        onSuccess();
+      }, 1200);
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
+          <FileCheck2 className="text-primary-500 h-5 w-5" />
+          Generate Compliance Report
+        </DialogTitle>
+        <DialogDescription className="text-[14px] text-neutral-500">
+          Select a report type and optional date range to generate a compliance report.
+        </DialogDescription>
+
+        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
+          {error && (
+            <div className="border-error-200 bg-error-50 text-error-700 rounded-xl border px-4 py-3 text-[14px]">
+              {error}
+            </div>
+          )}
+          {successMsg && (
+            <div className="border-success-200 bg-success-50 text-success-700 rounded-xl border px-4 py-3 text-[14px]">
+              {successMsg}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] font-medium text-neutral-700">
+              Report Type<span className="text-error-500 ml-0.5">*</span>
+            </label>
+            <select
+              name="type"
+              required
+              className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 focus:ring-4 focus:outline-none"
+            >
+              <option value="">Select report type...</option>
+              {REPORT_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Input
+            name="framework"
+            label="Framework (optional)"
+            placeholder="e.g. PIPEDA, GDPR, SOC 2"
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input name="from" label="From Date" type="date" />
+            <Input name="to" label="To Date" type="date" />
+          </div>
+
+          <div className="mt-2 flex items-center justify-end gap-3 border-t border-neutral-100 pt-5">
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                'Generate Report'
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page component
 // ---------------------------------------------------------------------------
 
 export default function CompliancePage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showReportDialog, setShowReportDialog] = useState(false);
 
   // Fetch compliance data from API
   const {
@@ -299,7 +451,7 @@ export default function CompliancePage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button variant="primary" size="md">
+          <Button variant="primary" size="md" onClick={() => setShowReportDialog(true)}>
             <FileCheck2 className="h-4 w-4" />
             Generate Report
           </Button>
@@ -521,6 +673,13 @@ export default function CompliancePage() {
           )}
         </>
       )}
+
+      {/* Generate Report Dialog */}
+      <GenerateReportDialog
+        open={showReportDialog}
+        onOpenChange={setShowReportDialog}
+        onSuccess={() => refetch()}
+      />
     </PageShell>
   );
 }

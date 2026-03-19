@@ -1,8 +1,17 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Building2, Plus, Upload, Search, Activity, BarChart3, AlertTriangle } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useState, useMemo, useCallback } from 'react';
+import {
+  Building2,
+  Plus,
+  Upload,
+  Search,
+  Activity,
+  BarChart3,
+  AlertTriangle,
+  Loader2,
+} from 'lucide-react';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +19,8 @@ import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 // ---------------------------------------------------------------------------
 // Types (aligned with API response from /api/v1/properties)
@@ -156,8 +167,206 @@ const columns: Column<PropertyFromApi>[] = [
 // Component
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Create Property Dialog
+// ---------------------------------------------------------------------------
+
+const PROPERTY_TYPES = ['PRODUCTION', 'DEMO', 'SANDBOX'] as const;
+const TIMEZONES = [
+  'America/Toronto',
+  'America/Vancouver',
+  'America/Edmonton',
+  'America/Winnipeg',
+  'America/Halifax',
+  'America/St_Johns',
+];
+
+interface CreatePropertyDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+function CreatePropertyDialog({ open, onOpenChange, onSuccess }: CreatePropertyDialogProps) {
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setServerError(null);
+    setSuccessMsg(null);
+    setSubmitting(true);
+
+    const form = new FormData(e.currentTarget);
+    const body = {
+      name: form.get('name') as string,
+      slug: (form.get('slug') as string) || undefined,
+      address: form.get('address') as string,
+      city: form.get('city') as string,
+      province: form.get('province') as string,
+      postalCode: form.get('postalCode') as string,
+      country: (form.get('country') as string) || 'CA',
+      type: form.get('type') as string,
+      unitCount: parseInt((form.get('unitCount') as string) || '0', 10),
+      timezone: form.get('timezone') as string,
+      phone: (form.get('phone') as string) || undefined,
+      email: (form.get('email') as string) || undefined,
+    };
+
+    try {
+      const res = await apiRequest('/api/v1/properties', { method: 'POST', body });
+      const result = await res.json();
+
+      if (!res.ok) {
+        setServerError(result.message || 'Failed to create property');
+        return;
+      }
+
+      setSuccessMsg(`Property "${result.data?.name || body.name}" created successfully.`);
+      setTimeout(() => {
+        onOpenChange(false);
+        setSuccessMsg(null);
+        onSuccess();
+      }, 1200);
+    } catch {
+      setServerError('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+        <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
+          <Building2 className="text-primary-500 h-5 w-5" />
+          Add Property
+        </DialogTitle>
+        <DialogDescription className="text-[14px] text-neutral-500">
+          Create a new property. Required fields are marked with an asterisk.
+        </DialogDescription>
+
+        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
+          {serverError && (
+            <div className="border-error-200 bg-error-50 text-error-700 rounded-xl border px-4 py-3 text-[14px]">
+              {serverError}
+            </div>
+          )}
+          {successMsg && (
+            <div className="border-success-200 bg-success-50 text-success-700 rounded-xl border px-4 py-3 text-[14px]">
+              {successMsg}
+            </div>
+          )}
+
+          <p className="text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
+            Property Information
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              name="name"
+              label="Property Name"
+              placeholder="e.g. Maple Heights Condominiums"
+              required
+            />
+            <Input name="slug" label="Slug (optional)" placeholder="e.g. maple-heights" />
+          </div>
+
+          <Input
+            name="address"
+            label="Street Address"
+            placeholder="e.g. 100 Maple Avenue"
+            required
+          />
+
+          <div className="grid grid-cols-3 gap-4">
+            <Input name="city" label="City" placeholder="e.g. Toronto" required />
+            <Input name="province" label="Province" placeholder="e.g. Ontario" required />
+            <Input name="postalCode" label="Postal Code" placeholder="e.g. M5V 2H1" required />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input name="country" label="Country" defaultValue="CA" placeholder="CA" />
+            <Input
+              name="unitCount"
+              label="Total Units"
+              type="number"
+              defaultValue="0"
+              placeholder="0"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">
+                Type<span className="text-error-500 ml-0.5">*</span>
+              </label>
+              <select
+                name="type"
+                defaultValue="PRODUCTION"
+                className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
+              >
+                {PROPERTY_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t.charAt(0) + t.slice(1).toLowerCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">Timezone</label>
+              <select
+                name="timezone"
+                defaultValue="America/Toronto"
+                className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
+              >
+                {TIMEZONES.map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz.replace('_', ' ')}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <p className="mt-2 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
+            Contact (Optional)
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input name="phone" label="Phone" placeholder="+1 416-555-0100" />
+            <Input name="email" label="Email" type="email" placeholder="admin@property.com" />
+          </div>
+
+          <div className="mt-2 flex items-center justify-end gap-3 border-t border-neutral-100 pt-5">
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Property'
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main Page Component
+// ---------------------------------------------------------------------------
+
 export default function PropertiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // Fetch properties from API with search param
   const {
@@ -176,6 +385,10 @@ export default function PropertiesPage() {
     return Array.isArray(apiProperties) ? apiProperties : [];
   }, [apiProperties]);
 
+  const handlePropertyCreated = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
   const totalProperties = properties.length;
   const activeProperties = properties.filter((p) => p.isActive).length;
   const demoProperties = properties.filter((p) => p.type === 'DEMO' || p.type === 'SANDBOX').length;
@@ -193,7 +406,7 @@ export default function PropertiesPage() {
               <Upload className="h-4 w-4" />
               Import Property
             </Button>
-            <Button>
+            <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4" />
               Add Property
             </Button>
@@ -207,6 +420,11 @@ export default function PropertiesPage() {
           <Skeleton className="h-20 rounded-2xl" />
         </div>
         <Skeleton className="mt-6 h-64 rounded-2xl" />
+        <CreatePropertyDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onSuccess={handlePropertyCreated}
+        />
       </PageShell>
     );
   }
@@ -225,6 +443,11 @@ export default function PropertiesPage() {
             </Button>
           }
         />
+        <CreatePropertyDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onSuccess={handlePropertyCreated}
+        />
       </PageShell>
     );
   }
@@ -239,7 +462,7 @@ export default function PropertiesPage() {
             <Upload className="h-4 w-4" />
             Import Property
           </Button>
-          <Button>
+          <Button onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             Add Property
           </Button>
@@ -321,7 +544,7 @@ export default function PropertiesPage() {
           }
           action={
             !searchQuery ? (
-              <Button>
+              <Button onClick={() => setShowCreateDialog(true)}>
                 <Plus className="h-4 w-4" />
                 Add Property
               </Button>
@@ -339,6 +562,13 @@ export default function PropertiesPage() {
           }}
         />
       )}
+
+      {/* Create Property Dialog */}
+      <CreatePropertyDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSuccess={handlePropertyCreated}
+      />
     </PageShell>
   );
 }

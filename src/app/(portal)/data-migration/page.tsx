@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import {
   DatabaseZap,
@@ -23,6 +23,8 @@ import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 // ---------------------------------------------------------------------------
 // Types (aligned with API response)
@@ -135,11 +137,167 @@ function formatDateTime(dateStr: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Start Import Dialog
+// ---------------------------------------------------------------------------
+
+const IMPORT_DATA_TYPES = [
+  { value: 'units', label: 'Units' },
+  { value: 'residents', label: 'Residents' },
+  { value: 'packages', label: 'Packages' },
+  { value: 'maintenance', label: 'Maintenance Requests' },
+  { value: 'fobs', label: 'FOBs / Keys' },
+  { value: 'emergency_contacts', label: 'Emergency Contacts' },
+];
+
+function StartImportDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+    setSubmitting(true);
+
+    const form = new FormData(e.currentTarget);
+    const dataType = form.get('dataType') as string;
+    const fileName = (form.get('fileName') as string).trim();
+    const fileFormat = form.get('fileFormat') as string;
+
+    if (!dataType || !fileName) {
+      setError('Data type and file name are required.');
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await apiRequest('/api/v1/data-migration', {
+        method: 'POST',
+        body: {
+          propertyId: DEMO_PROPERTY_ID,
+          type: 'import',
+          dataType,
+          fileName,
+          fileFormat: fileFormat || 'csv',
+        },
+      });
+      const result = await res.json();
+
+      if (!res.ok) {
+        setError(result.message || 'Failed to create import job');
+        return;
+      }
+
+      setSuccessMsg('Import job created successfully. Processing will begin shortly.');
+      setTimeout(() => {
+        onOpenChange(false);
+        setSuccessMsg(null);
+        onSuccess();
+      }, 1200);
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
+          <Upload className="text-primary-500 h-5 w-5" />
+          Start Import
+        </DialogTitle>
+        <DialogDescription className="text-[14px] text-neutral-500">
+          Create a new data import job. Select the data type and provide the file name.
+        </DialogDescription>
+
+        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
+          {error && (
+            <div className="border-error-200 bg-error-50 text-error-700 rounded-xl border px-4 py-3 text-[14px]">
+              {error}
+            </div>
+          )}
+          {successMsg && (
+            <div className="border-success-200 bg-success-50 text-success-700 rounded-xl border px-4 py-3 text-[14px]">
+              {successMsg}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] font-medium text-neutral-700">
+              Data Type<span className="text-error-500 ml-0.5">*</span>
+            </label>
+            <select
+              name="dataType"
+              required
+              className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 focus:ring-4 focus:outline-none"
+            >
+              <option value="">Select data type...</option>
+              {IMPORT_DATA_TYPES.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Input
+            name="fileName"
+            label="File Name"
+            placeholder="e.g. residents-march-2026.csv"
+            required
+          />
+
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] font-medium text-neutral-700">File Format</label>
+            <select
+              name="fileFormat"
+              defaultValue="csv"
+              className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 focus:ring-4 focus:outline-none"
+            >
+              <option value="csv">CSV</option>
+              <option value="xlsx">Excel (XLSX)</option>
+            </select>
+          </div>
+
+          <div className="mt-2 flex items-center justify-end gap-3 border-t border-neutral-100 pt-5">
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Start Import'
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function DataMigrationPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const {
     data: apiResponse,
@@ -384,7 +542,7 @@ export default function DataMigrationPage() {
             <Download className="h-4 w-4" />
             Full Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowImportDialog(true)}>
             <Upload className="h-4 w-4" />
             New Import
           </Button>
@@ -443,7 +601,14 @@ export default function DataMigrationPage() {
                 <h3 className="text-[15px] font-semibold text-neutral-900">{action.title}</h3>
                 <p className="text-[13px] text-neutral-500">{action.description}</p>
               </div>
-              <Button variant="secondary" size="sm" className="shrink-0 self-center">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="shrink-0 self-center"
+                onClick={() => {
+                  if (action.buttonLabel === 'Import') setShowImportDialog(true);
+                }}
+              >
                 {action.buttonLabel}
               </Button>
             </Card>
@@ -501,7 +666,7 @@ export default function DataMigrationPage() {
                   Clear Search
                 </Button>
               ) : (
-                <Button size="sm">
+                <Button size="sm" onClick={() => setShowImportDialog(true)}>
                   <Upload className="h-4 w-4" />
                   New Import
                 </Button>
@@ -510,6 +675,13 @@ export default function DataMigrationPage() {
           />
         )}
       </div>
+
+      {/* Start Import Dialog */}
+      <StartImportDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onSuccess={() => refetch()}
+      />
     </PageShell>
   );
 }

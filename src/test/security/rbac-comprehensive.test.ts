@@ -1381,7 +1381,7 @@ describe('Demo mode — RBAC is still enforced', () => {
     });
     expect(result.error).toBeNull();
     expect(result.user!.role).toBe('front_desk');
-    expect(result.user!.userId).toBe('demo-user');
+    expect(result.user!.userId).toBe('00000000-0000-4000-a000-000000000001');
   });
 
   it('demo user with visitor role is denied admin routes', async () => {

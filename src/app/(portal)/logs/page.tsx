@@ -13,6 +13,7 @@ import {
   Clock,
   Shield,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -23,19 +24,31 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types matching the actual AuditEntry from /api/v1/audit-log
 // ---------------------------------------------------------------------------
 
-interface LogEntry {
+interface AuditEntry {
   id: string;
-  action: 'login' | 'logout' | 'create' | 'update' | 'delete' | 'view' | 'export' | 'import';
-  module: string;
-  description: string;
-  user: string;
-  userRole: string;
+  propertyId: string;
+  userId: string;
+  action: string; // READ, CREATE, UPDATE, DELETE
+  resource: string; // table name e.g. "event", "unit", "maintenance_request"
+  resourceId: string;
+  fields: unknown;
   ipAddress: string;
-  timestamp: string;
-  severity: 'info' | 'warning' | 'error' | 'critical';
+  userAgent?: string;
+  piiAccessed: boolean;
+  createdAt: string;
+}
+
+interface AuditResponse {
+  data: AuditEntry[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -43,24 +56,13 @@ interface LogEntry {
 // ---------------------------------------------------------------------------
 
 const ACTION_VARIANTS: Record<
-  LogEntry['action'],
+  string,
   'default' | 'primary' | 'info' | 'warning' | 'success' | 'error'
 > = {
-  login: 'success',
-  logout: 'default',
-  create: 'primary',
-  update: 'info',
-  delete: 'error',
-  view: 'default',
-  export: 'warning',
-  import: 'info',
-};
-
-const SEVERITY_VARIANTS: Record<LogEntry['severity'], 'default' | 'warning' | 'error'> = {
-  info: 'default',
-  warning: 'warning',
-  error: 'error',
-  critical: 'error',
+  READ: 'default',
+  CREATE: 'success',
+  UPDATE: 'info',
+  DELETE: 'error',
 };
 
 // ---------------------------------------------------------------------------
@@ -70,54 +72,74 @@ const SEVERITY_VARIANTS: Record<LogEntry['severity'], 'default' | 'warning' | 'e
 export default function LogsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
-  const [severityFilter, setSeverityFilter] = useState<string>('all');
-  const [moduleFilter, setModuleFilter] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<string>('today');
+  const [resourceFilter, setResourceFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(1);
+
+  const queryParams: Record<string, string | undefined> = {
+    propertyId: DEMO_PROPERTY_ID,
+    page: String(page),
+    pageSize: '50',
+  };
+  if (actionFilter !== 'all') queryParams.action = actionFilter;
+  if (resourceFilter !== 'all') queryParams.resource = resourceFilter;
 
   const {
-    data: apiLogs,
+    data: apiResponse,
     loading,
     error,
     refetch,
-  } = useApi<LogEntry[]>(apiUrl('/api/v1/events', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<AuditResponse>(apiUrl('/api/v1/audit-log', queryParams));
 
-  const allLogs = useMemo<LogEntry[]>(() => apiLogs ?? [], [apiLogs]);
+  // The audit-log API returns { data: [...], meta: {...} } directly (not wrapped in another .data)
+  // useApi extracts .data, so apiResponse is the full { data, meta } object
+  const allLogs = useMemo<AuditEntry[]>(() => {
+    if (!apiResponse) return [];
+    // Handle both shapes: if apiResponse has .data array, use it; otherwise treat apiResponse as the array
+    if (Array.isArray(apiResponse)) return apiResponse;
+    if (
+      apiResponse &&
+      'data' in apiResponse &&
+      Array.isArray((apiResponse as AuditResponse).data)
+    ) {
+      return (apiResponse as AuditResponse).data;
+    }
+    return [];
+  }, [apiResponse]);
+
+  const meta = useMemo(() => {
+    if (!apiResponse) return null;
+    if (apiResponse && 'meta' in apiResponse) return (apiResponse as AuditResponse).meta;
+    return null;
+  }, [apiResponse]);
 
   const filteredLogs = useMemo(() => {
-    return allLogs.filter((log) => {
-      if (actionFilter !== 'all' && log.action !== actionFilter) return false;
-      if (severityFilter !== 'all' && log.severity !== severityFilter) return false;
-      if (moduleFilter !== 'all' && log.module !== moduleFilter) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return (
-          log.description.toLowerCase().includes(q) ||
-          log.user.toLowerCase().includes(q) ||
-          log.module.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-  }, [allLogs, actionFilter, severityFilter, moduleFilter, searchQuery]);
+    if (!searchQuery) return allLogs;
+    const q = searchQuery.toLowerCase();
+    return allLogs.filter(
+      (log) =>
+        log.resource.toLowerCase().includes(q) ||
+        log.action.toLowerCase().includes(q) ||
+        log.userId.toLowerCase().includes(q) ||
+        log.ipAddress.includes(q),
+    );
+  }, [allLogs, searchQuery]);
 
-  const totalEventsToday = allLogs.length;
-  const warningCount = allLogs.filter((l) => l.severity === 'warning').length;
-  const errorCount = allLogs.filter(
-    (l) => l.severity === 'error' || l.severity === 'critical',
-  ).length;
+  const totalCount = meta?.total ?? allLogs.length;
+  const piiCount = allLogs.filter((l) => l.piiAccessed).length;
+  const deleteCount = allLogs.filter((l) => l.action === 'DELETE').length;
 
-  const modules = [...new Set(allLogs.map((l) => l.module))];
+  const resources = [...new Set(allLogs.map((l) => l.resource))];
 
-  const columns: Column<LogEntry>[] = [
+  const columns: Column<AuditEntry>[] = [
     {
-      id: 'timestamp',
+      id: 'createdAt',
       header: 'Timestamp',
-      accessorKey: 'timestamp',
+      accessorKey: 'createdAt',
       sortable: true,
       cell: (row) => (
         <span className="font-mono text-[13px] text-neutral-500">
-          {new Date(row.timestamp).toLocaleString('en-US', {
+          {new Date(row.createdAt).toLocaleString('en-US', {
             month: 'short',
             day: 'numeric',
             hour: 'numeric',
@@ -133,43 +155,42 @@ export default function LogsPage() {
       accessorKey: 'action',
       sortable: true,
       cell: (row) => (
-        <Badge variant={ACTION_VARIANTS[row.action]} size="sm">
-          {row.action.charAt(0).toUpperCase() + row.action.slice(1)}
+        <Badge variant={ACTION_VARIANTS[row.action] || 'default'} size="sm">
+          {row.action}
         </Badge>
       ),
     },
     {
-      id: 'module',
-      header: 'Module',
-      accessorKey: 'module',
-      sortable: true,
-    },
-    {
-      id: 'description',
-      header: 'Description',
-      accessorKey: 'description',
-      cell: (row) => <span className="text-[13px] text-neutral-700">{row.description}</span>,
-    },
-    {
-      id: 'user',
-      header: 'User',
-      accessorKey: 'user',
+      id: 'resource',
+      header: 'Resource',
+      accessorKey: 'resource',
       sortable: true,
       cell: (row) => (
-        <span className="flex items-center gap-1.5">
-          <User className="h-3.5 w-3.5 text-neutral-400" />
-          {row.user}
+        <span className="text-[13px] font-medium text-neutral-700">
+          {row.resource.replace(/_/g, ' ')}
         </span>
       ),
     },
     {
-      id: 'userRole',
-      header: 'Role',
-      accessorKey: 'userRole',
+      id: 'resourceId',
+      header: 'Resource ID',
+      accessorKey: 'resourceId',
       cell: (row) => (
-        <Badge variant="default" size="sm">
-          {row.userRole}
-        </Badge>
+        <span className="font-mono text-[12px] text-neutral-400">
+          {row.resourceId.slice(0, 8)}...
+        </span>
+      ),
+    },
+    {
+      id: 'userId',
+      header: 'User',
+      accessorKey: 'userId',
+      sortable: true,
+      cell: (row) => (
+        <span className="flex items-center gap-1.5">
+          <User className="h-3.5 w-3.5 text-neutral-400" />
+          <span className="font-mono text-[12px]">{row.userId.slice(0, 8)}...</span>
+        </span>
       ),
     },
     {
@@ -181,22 +202,24 @@ export default function LogsPage() {
       ),
     },
     {
-      id: 'severity',
-      header: 'Severity',
-      accessorKey: 'severity',
-      sortable: true,
-      cell: (row) => (
-        <Badge variant={SEVERITY_VARIANTS[row.severity]} size="sm" dot>
-          {row.severity.charAt(0).toUpperCase() + row.severity.slice(1)}
-        </Badge>
-      ),
+      id: 'piiAccessed',
+      header: 'PII',
+      accessorKey: 'piiAccessed',
+      cell: (row) =>
+        row.piiAccessed ? (
+          <Badge variant="warning" size="sm" dot>
+            PII
+          </Badge>
+        ) : (
+          <span className="text-[12px] text-neutral-300">--</span>
+        ),
     },
   ];
 
   return (
     <PageShell
-      title="Logs"
-      description="System audit trail and activity logs."
+      title="Audit Log"
+      description="Immutable record of all administrative actions across the platform."
       actions={
         <Button variant="secondary" size="sm">
           <Download className="h-4 w-4" />
@@ -227,7 +250,7 @@ export default function LogsPage() {
       {!loading && error && (
         <EmptyState
           icon={<AlertTriangle className="h-6 w-6" />}
-          title="Failed to load logs"
+          title="Failed to load audit logs"
           description={error}
           action={
             <Button variant="secondary" size="sm" onClick={() => refetch()}>
@@ -247,9 +270,9 @@ export default function LogsPage() {
               </div>
               <div>
                 <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {totalEventsToday}
+                  {totalCount}
                 </p>
-                <p className="text-[13px] text-neutral-500">Total Events Today</p>
+                <p className="text-[13px] text-neutral-500">Total Entries</p>
               </div>
             </Card>
             <Card padding="sm" className="flex items-center gap-4">
@@ -257,10 +280,8 @@ export default function LogsPage() {
                 <Shield className="text-warning-600 h-5 w-5" />
               </div>
               <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {warningCount}
-                </p>
-                <p className="text-[13px] text-neutral-500">Warnings</p>
+                <p className="text-[24px] font-bold tracking-tight text-neutral-900">{piiCount}</p>
+                <p className="text-[13px] text-neutral-500">PII Access</p>
               </div>
             </Card>
             <Card padding="sm" className="flex items-center gap-4">
@@ -269,9 +290,9 @@ export default function LogsPage() {
               </div>
               <div>
                 <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {errorCount}
+                  {deleteCount}
                 </p>
-                <p className="text-[13px] text-neutral-500">Errors</p>
+                <p className="text-[13px] text-neutral-500">Deletions</p>
               </div>
             </Card>
           </div>
@@ -282,7 +303,7 @@ export default function LogsPage() {
               <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
               <input
                 type="text"
-                placeholder="Search logs..."
+                placeholder="Search audit logs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
@@ -305,18 +326,6 @@ export default function LogsPage() {
               <Filter className="h-4 w-4" />
               Filters
             </Button>
-            <div className="flex items-center gap-1.5">
-              {(['today', 'week', 'month', 'custom'] as const).map((range) => (
-                <button
-                  key={range}
-                  type="button"
-                  onClick={() => setDateRange(range)}
-                  className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 ${dateRange === range ? 'bg-primary-500 text-white shadow-sm' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
-                >
-                  {range.charAt(0).toUpperCase() + range.slice(1)}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Filter Bar */}
@@ -324,39 +333,30 @@ export default function LogsPage() {
             <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50/80 p-4">
               <select
                 value={actionFilter}
-                onChange={(e) => setActionFilter(e.target.value)}
+                onChange={(e) => {
+                  setActionFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-2 focus:outline-none"
               >
                 <option value="all">All Actions</option>
-                <option value="login">Login</option>
-                <option value="logout">Logout</option>
-                <option value="create">Create</option>
-                <option value="update">Update</option>
-                <option value="delete">Delete</option>
-                <option value="view">View</option>
-                <option value="export">Export</option>
-                <option value="import">Import</option>
+                <option value="READ">Read</option>
+                <option value="CREATE">Create</option>
+                <option value="UPDATE">Update</option>
+                <option value="DELETE">Delete</option>
               </select>
               <select
-                value={severityFilter}
-                onChange={(e) => setSeverityFilter(e.target.value)}
+                value={resourceFilter}
+                onChange={(e) => {
+                  setResourceFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-2 focus:outline-none"
               >
-                <option value="all">All Severity</option>
-                <option value="info">Info</option>
-                <option value="warning">Warning</option>
-                <option value="error">Error</option>
-                <option value="critical">Critical</option>
-              </select>
-              <select
-                value={moduleFilter}
-                onChange={(e) => setModuleFilter(e.target.value)}
-                className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-2 focus:outline-none"
-              >
-                <option value="all">All Modules</option>
-                {modules.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
+                <option value="all">All Resources</option>
+                {resources.map((r) => (
+                  <option key={r} value={r}>
+                    {r.replace(/_/g, ' ')}
                   </option>
                 ))}
               </select>
@@ -365,9 +365,9 @@ export default function LogsPage() {
                 size="sm"
                 onClick={() => {
                   setActionFilter('all');
-                  setSeverityFilter('all');
-                  setModuleFilter('all');
+                  setResourceFilter('all');
                   setSearchQuery('');
+                  setPage(1);
                 }}
               >
                 Clear filters
@@ -377,12 +377,40 @@ export default function LogsPage() {
 
           {/* Data Table */}
           {filteredLogs.length > 0 ? (
-            <DataTable columns={columns} data={filteredLogs} />
+            <>
+              <DataTable columns={columns} data={filteredLogs} />
+              {/* Pagination */}
+              {meta && meta.totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-[13px] text-neutral-500">
+                    Page {meta.page} of {meta.totalPages} ({meta.total} total entries)
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={page >= meta.totalPages}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <EmptyState
               icon={<ScrollText className="h-6 w-6" />}
-              title="No log entries found"
-              description="System activity logs will appear here as users interact with the platform."
+              title="No audit log entries found"
+              description="Audit entries will appear here as administrative actions are performed on the platform."
             />
           )}
         </>

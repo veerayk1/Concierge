@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useState, useMemo, useCallback } from 'react';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import {
   Code2,
@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,9 @@ import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Search } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -123,12 +127,179 @@ const docIconMap = {
 };
 
 // ---------------------------------------------------------------------------
+// Create API Key Dialog
+// ---------------------------------------------------------------------------
+
+const AVAILABLE_SCOPES = [
+  { value: 'read', label: 'Read', description: 'Read-only access to property data' },
+  { value: 'write', label: 'Write', description: 'Create and update records' },
+  { value: 'admin', label: 'Admin', description: 'Full administrative access' },
+] as const;
+
+interface CreateApiKeyDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+function CreateApiKeyDialog({ open, onOpenChange, onSuccess }: CreateApiKeyDialogProps) {
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [createdKey, setCreatedKey] = useState<string | null>(null);
+  const [selectedScopes, setSelectedScopes] = useState<string[]>(['read']);
+
+  function toggleScope(scope: string) {
+    setSelectedScopes((prev) =>
+      prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope],
+    );
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setServerError(null);
+    setCreatedKey(null);
+    setSubmitting(true);
+
+    const form = new FormData(e.currentTarget);
+    const name = form.get('name') as string;
+
+    if (!name.trim()) {
+      setServerError('Name is required.');
+      setSubmitting(false);
+      return;
+    }
+    if (selectedScopes.length === 0) {
+      setServerError('At least one scope is required.');
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await apiRequest('/api/v1/developer/api-keys', {
+        method: 'POST',
+        body: {
+          propertyId: DEMO_PROPERTY_ID,
+          name: name.trim(),
+          scopes: selectedScopes,
+        },
+      });
+      const result = await res.json();
+
+      if (!res.ok) {
+        setServerError(result.message || 'Failed to create API key');
+        return;
+      }
+
+      // Show the key — it will never be shown again
+      setCreatedKey(result.data?.key || null);
+      onSuccess();
+    } catch {
+      setServerError('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function handleClose() {
+    setCreatedKey(null);
+    setServerError(null);
+    setSelectedScopes(['read']);
+    onOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-lg">
+        <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
+          <Key className="text-primary-500 h-5 w-5" />
+          Generate API Key
+        </DialogTitle>
+        <DialogDescription className="text-[14px] text-neutral-500">
+          Create a new API key for programmatic access to this property&apos;s data.
+        </DialogDescription>
+
+        {createdKey ? (
+          <div className="mt-4 flex flex-col gap-4">
+            <div className="border-success-200 bg-success-50 rounded-xl border px-4 py-3">
+              <p className="text-success-700 text-[14px] font-medium">
+                API key created. Copy it now — it will not be shown again.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 overflow-x-auto rounded-lg bg-neutral-100 px-3 py-2 font-mono text-[13px] text-neutral-800">
+                {createdKey}
+              </code>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigator.clipboard.writeText(createdKey)}
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Copy
+              </Button>
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button onClick={handleClose}>Done</Button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-5">
+            {serverError && (
+              <div className="border-error-200 bg-error-50 text-error-700 rounded-xl border px-4 py-3 text-[14px]">
+                {serverError}
+              </div>
+            )}
+
+            <Input name="name" label="Key Name" placeholder="e.g. Production API Key" required />
+
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">
+                Scopes<span className="text-error-500 ml-0.5">*</span>
+              </label>
+              <div className="flex flex-col gap-2">
+                {AVAILABLE_SCOPES.map((scope) => (
+                  <Checkbox
+                    key={scope.value}
+                    id={`scope-${scope.value}`}
+                    checked={selectedScopes.includes(scope.value)}
+                    onCheckedChange={() => toggleScope(scope.value)}
+                    label={scope.label}
+                    description={scope.description}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-center justify-end gap-3 border-t border-neutral-100 pt-5">
+              <Button type="button" variant="secondary" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  'Generate Key'
+                )}
+              </Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function DeveloperPortalPage() {
   const [activeTab, setActiveTab] = useState<Tab>('api-keys');
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
+  const [showCreateKeyDialog, setShowCreateKeyDialog] = useState(false);
 
   // Fetch API keys
   const {
@@ -451,7 +622,7 @@ export default function DeveloperPortalPage() {
       actions={
         <>
           {activeTab === 'api-keys' && (
-            <Button size="sm">
+            <Button size="sm" onClick={() => setShowCreateKeyDialog(true)}>
               <Plus className="h-4 w-4" />
               Generate API Key
             </Button>
@@ -533,7 +704,7 @@ export default function DeveloperPortalPage() {
               title="No API keys created yet"
               description="Generate your first API key to start integrating with the platform."
               action={
-                <Button size="sm">
+                <Button size="sm" onClick={() => setShowCreateKeyDialog(true)}>
                   <Plus className="h-4 w-4" />
                   Generate API Key
                 </Button>
@@ -599,6 +770,13 @@ export default function DeveloperPortalPage() {
           })}
         </div>
       )}
+
+      {/* Create API Key Dialog */}
+      <CreateApiKeyDialog
+        open={showCreateKeyDialog}
+        onOpenChange={setShowCreateKeyDialog}
+        onSuccess={() => refetchKeys()}
+      />
     </PageShell>
   );
 }

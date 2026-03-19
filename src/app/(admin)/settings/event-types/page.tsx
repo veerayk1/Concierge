@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -11,13 +11,16 @@ import {
   MessageSquare,
   UserCheck,
   Circle,
+  Plus,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
@@ -144,10 +147,231 @@ const COLOR_MAP: Record<string, { color: string; bgColor: string }> = {
 };
 
 // ---------------------------------------------------------------------------
+// Create Event Type Dialog
+// ---------------------------------------------------------------------------
+
+interface EventGroupOption {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+function CreateEventTypeDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}) {
+  const [groups, setGroups] = useState<EventGroupOption[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Fetch event groups when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    setGroupsLoading(true);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (typeof window !== 'undefined' && localStorage.getItem('demo_role')) {
+      headers['x-demo-role'] = localStorage.getItem('demo_role')!;
+    }
+    fetch(`/api/v1/event-groups?propertyId=${DEMO_PROPERTY_ID}`, { headers })
+      .then((res) => res.json())
+      .then((result) => {
+        if (result.data && Array.isArray(result.data)) {
+          setGroups(result.data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setGroupsLoading(false));
+  }, [open]);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+    setSubmitting(true);
+
+    const form = new FormData(e.currentTarget);
+    const name = (form.get('name') as string).trim();
+    const slug = (form.get('slug') as string).trim();
+    const eventGroupId = form.get('eventGroupId') as string;
+    const icon = (form.get('icon') as string) || 'circle';
+    const color = (form.get('color') as string) || 'blue';
+
+    // Validate slug pattern
+    if (!slug || !/^[a-z0-9_]+$/.test(slug)) {
+      setError(
+        'Slug must contain only lowercase letters, numbers, and underscores (e.g. package_delivery)',
+      );
+      setSubmitting(false);
+      return;
+    }
+
+    if (!name) {
+      setError('Name is required');
+      setSubmitting(false);
+      return;
+    }
+
+    if (!eventGroupId) {
+      setError('Event group is required');
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await apiRequest('/api/v1/event-types', {
+        method: 'POST',
+        body: {
+          propertyId: DEMO_PROPERTY_ID,
+          name,
+          slug,
+          eventGroupId,
+          icon,
+          color,
+          isActive: true,
+          notifyOnCreate: true,
+        },
+      });
+      const result = await res.json();
+
+      if (!res.ok) {
+        setError(result.message || 'Failed to create event type');
+        return;
+      }
+
+      setSuccessMsg(`Event type "${name}" created.`);
+      setTimeout(() => {
+        onOpenChange(false);
+        setSuccessMsg(null);
+        onSuccess();
+      }, 1000);
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
+          <Plus className="text-primary-500 h-5 w-5" />
+          Add Event Type
+        </DialogTitle>
+        <DialogDescription className="text-[14px] text-neutral-500">
+          Create a new event type for the security console and event log.
+        </DialogDescription>
+
+        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
+          {error && (
+            <div className="border-error-200 bg-error-50 text-error-700 rounded-xl border px-4 py-3 text-[14px]">
+              {error}
+            </div>
+          )}
+          {successMsg && (
+            <div className="border-success-200 bg-success-50 text-success-700 rounded-xl border px-4 py-3 text-[14px]">
+              {successMsg}
+            </div>
+          )}
+
+          <Input name="name" label="Name" placeholder="e.g. Package Delivery" required />
+          <Input
+            name="slug"
+            label="Slug"
+            placeholder="e.g. package_delivery"
+            required
+            helperText="Lowercase letters, numbers, and underscores only"
+          />
+
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] font-medium text-neutral-700">
+              Event Group<span className="text-error-500 ml-0.5">*</span>
+            </label>
+            <select
+              name="eventGroupId"
+              disabled={groupsLoading}
+              className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 focus:ring-4 focus:outline-none"
+              required
+            >
+              <option value="">{groupsLoading ? 'Loading groups...' : 'Select a group...'}</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">Icon</label>
+              <select
+                name="icon"
+                defaultValue="circle"
+                className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 focus:ring-4 focus:outline-none"
+              >
+                <option value="circle">Circle</option>
+                <option value="box">Box</option>
+                <option value="user-check">User Check</option>
+                <option value="file-warning">File Warning</option>
+                <option value="key">Key</option>
+                <option value="message-square">Message</option>
+                <option value="brush">Brush</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">Color</label>
+              <select
+                name="color"
+                defaultValue="blue"
+                className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 focus:ring-4 focus:outline-none"
+              >
+                <option value="blue">Blue</option>
+                <option value="green">Green</option>
+                <option value="red">Red</option>
+                <option value="yellow">Yellow</option>
+                <option value="orange">Orange</option>
+                <option value="purple">Purple</option>
+                <option value="cyan">Cyan</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-2 flex items-center justify-end gap-3 border-t border-neutral-100 pt-5">
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Event Type'
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function EventTypesPage() {
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+
   const {
     data: apiEventTypes,
     loading,
@@ -219,8 +443,9 @@ export default function EventTypesPage() {
             Configure event types, groups, icons, and notification templates.
           </p>
         </div>
-        <Button variant="secondary" size="sm">
-          + Add Event Type
+        <Button variant="secondary" size="sm" onClick={() => setShowCreateDialog(true)}>
+          <Plus className="h-4 w-4" />
+          Add Event Type
         </Button>
       </div>
 
@@ -292,6 +517,13 @@ export default function EventTypesPage() {
       <div className="flex justify-end pt-2">
         <Button size="lg">Save Changes</Button>
       </div>
+
+      {/* Create Event Type Dialog */}
+      <CreateEventTypeDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }

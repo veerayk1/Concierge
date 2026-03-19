@@ -445,7 +445,7 @@ describe('guardRoute — comprehensive', () => {
       const req = makeRequest({ 'x-demo-role': 'property_admin' });
       const result = await guardRoute(req, { allowDemo: true });
 
-      expect(result.user!.userId).toBe('demo-user');
+      expect(result.user!.userId).toBe('00000000-0000-4000-a000-000000000001');
     });
 
     it('returns error as NextResponse type', async () => {

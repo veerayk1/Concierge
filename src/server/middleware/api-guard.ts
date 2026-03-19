@@ -65,9 +65,9 @@ export async function guardRoute(
         // Use a special sentinel value so API routes can detect cross-property access.
         const isSuperAdmin = demoRole === 'super_admin';
         const demoUser: AuthenticatedUser = {
-          userId: 'demo-user',
+          userId: '00000000-0000-4000-a000-000000000001', // seeded Super Admin UUID
           propertyId: isSuperAdmin
-            ? '00000000-0000-0000-0000-000000000000' // sentinel: all properties
+            ? '00000000-0000-4000-b000-000000000001' // default to Maple Heights (Super Admin can switch)
             : '00000000-0000-4000-b000-000000000001',
           role: demoRole as Role,
           permissions: ['*'],

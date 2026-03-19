@@ -35,6 +35,39 @@ export async function GET(request: NextRequest) {
       orderBy: [{ module: 'asc' }, { channel: 'asc' }],
     });
 
+    // If no preferences exist, return sensible defaults per PRD 08 Section 3.1.8
+    if (preferences.length === 0) {
+      const defaultModules = [
+        'packages',
+        'maintenance',
+        'amenities',
+        'announcements',
+        'security',
+        'events',
+        'visitors',
+        'community',
+        'billing',
+        'system',
+      ];
+      const defaultChannels = ['email', 'sms', 'push'] as const;
+      const defaults = defaultModules.flatMap((module) =>
+        defaultChannels.map((channel) => ({
+          id: null,
+          userId,
+          propertyId,
+          module,
+          channel,
+          enabled: channel === 'email', // email on by default, sms/push off
+          digestMode: 'instant',
+          digestTime: null,
+          dndEnabled: false,
+          dndStart: null,
+          dndEnd: null,
+        })),
+      );
+      return NextResponse.json({ data: defaults });
+    }
+
     return NextResponse.json({ data: preferences });
   } catch (error) {
     console.error('GET /api/v1/notifications/preferences error:', error);
