@@ -915,6 +915,7 @@ model KeyCheckout {
   eventId        String?   @unique @db.Uuid
   propertyId     String    @db.Uuid
   keyId          String    @db.Uuid
+  unitId         String?   @db.Uuid
   checkedOutTo   String    @db.VarChar(100)
   company        String?   @db.VarChar(100)
   idType         String    @db.VarChar(50)
@@ -935,6 +936,7 @@ model KeyCheckout {
 
   @@index([propertyId])
   @@index([keyId])
+  @@index([unitId])
   @@map("key_checkouts")
 }
 
@@ -1744,20 +1746,50 @@ model NotificationTemplate {
 model EmergencyBroadcast {
   id                String    @id @default(uuid()) @db.Uuid
   propertyId        String    @db.Uuid
-  announcementId    String    @db.Uuid
+  title             String    @db.VarChar(200)
+  body              String    @db.Text
+  severity          String    @db.VarChar(20) // low, medium, high, critical
+  status            String    @default("sending") @db.VarChar(20) // sending, completed, cancelled, all_clear
   cascadeConfig     Json?     @db.JsonB
-  totalRecipients   Int       @default(0)
+  totalTargeted     Int       @default(0)
+  pushSent          Int       @default(0)
+  smsSent           Int       @default(0)
+  voiceSent         Int       @default(0)
   acknowledgedCount Int       @default(0)
   cascadeStatus     String    @default("push_phase") @db.VarChar(20) // push_phase, sms_phase, voice_phase, completed
   startedAt         DateTime  @default(now())
   completedAt       DateTime?
+  cancelledAt       DateTime?
+  cancelledById     String?   @db.Uuid
+  allClearAt        DateTime?
+  allClearById      String?   @db.Uuid
+  allClearMessage   String?   @db.Text
   initiatedById     String    @db.Uuid
   createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
 
-  property Property @relation(fields: [propertyId], references: [id])
+  property        Property                       @relation(fields: [propertyId], references: [id])
+  acknowledgments EmergencyBroadcastAcknowledgment[]
 
   @@index([propertyId])
+  @@index([status])
   @@map("emergency_broadcasts")
+}
+
+model EmergencyBroadcastAcknowledgment {
+  id          String   @id @default(uuid()) @db.Uuid
+  broadcastId String   @db.Uuid
+  userId      String   @db.Uuid
+  channel     String   @db.VarChar(20) // push, sms, voice
+  acknowledgedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  broadcast EmergencyBroadcast @relation(fields: [broadcastId], references: [id])
+
+  @@unique([broadcastId, userId])
+  @@index([broadcastId])
+  @@map("emergency_broadcast_acknowledgments")
 }
 
 // ---------------------------------------------------------------------------
@@ -2154,6 +2186,7 @@ model ClassifiedAd {
   title           String    @db.VarChar(120)
   description     String    @db.Text
   categoryId      String?   @db.Uuid
+  category        String?   @db.VarChar(50) // furniture, electronics, services, free, other
   price           Decimal?  @db.Decimal(8, 2)
   priceType       String    @default("fixed") @db.VarChar(20) // fixed, negotiable, free, contact
   condition       String?   @db.VarChar(20) // new, like_new, good, fair, not_applicable
@@ -2172,6 +2205,7 @@ model ClassifiedAd {
 
   property Property            @relation(fields: [propertyId], references: [id])
   images   ClassifiedAdImage[]
+  flags    ClassifiedAdFlag[]
 
   @@index([propertyId, status])
   @@index([userId])
@@ -2200,7 +2234,8 @@ model Idea {
   title             String    @db.VarChar(150)
   description       String    @db.VarChar(2000)
   categoryId        String?   @db.Uuid
-  status            String    @default("open") @db.VarChar(20) // open, under_review, planned, in_progress, completed, declined
+  category          String?   @db.VarChar(100) // amenities, maintenance, security, community, other
+  status            String    @default("submitted") @db.VarChar(20) // submitted, under_review, planned, completed, declined
   adminResponse     String?   @db.VarChar(2000)
   adminResponseById String?   @db.Uuid
   adminResponseAt   DateTime?
@@ -2208,6 +2243,7 @@ model Idea {
   isPinned          Boolean   @default(false)
   mergedIntoId      String?   @db.Uuid
   moderationFlags   Json?     @db.JsonB
+  deletedAt         DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2230,6 +2266,35 @@ model IdeaVote {
 
   @@unique([ideaId, userId])
   @@map("idea_votes")
+}
+
+model ClassifiedAdFlag {
+  id          String   @id @default(uuid()) @db.Uuid
+  adId        String   @db.Uuid
+  userId      String   @db.Uuid
+  reason      String   @db.VarChar(50) // spam, inappropriate, scam, prohibited_item, other
+  description String?  @db.VarChar(1000)
+  resolved    Boolean  @default(false)
+  resolvedById String? @db.Uuid
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  ad ClassifiedAd @relation(fields: [adId], references: [id])
+
+  @@index([adId])
+  @@map("classified_ad_flags")
+}
+
+model IdeaComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  ideaId    String   @db.Uuid
+  userId    String   @db.Uuid
+  content   String   @db.VarChar(2000)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ideaId])
+  @@map("idea_comments")
 }
 
 model CommunityEvent {
@@ -3187,4 +3252,20 @@ model OnboardingProgress {
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   @@map("onboarding_progress")
+}
+
+// ---------------------------------------------------------------------------
+// Search History — PRD 15 Search & Navigation
+// ---------------------------------------------------------------------------
+
+model SearchHistory {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  propertyId String   @map("property_id") @db.Uuid
+  query      String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([propertyId])
+  @@map("search_history")
 }

@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
     const sort = searchParams.get('sort') || 'newest'; // newest, popular
+    const category = searchParams.get('category');
 
     if (!propertyId) {
       return NextResponse.json(
@@ -33,8 +34,12 @@ export async function GET(request: NextRequest) {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, any> = { propertyId, deletedAt: null };
+    if (category) where.category = category;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ideas = await (prisma.idea.findMany as any)({
-      where: { propertyId, deletedAt: null },
+      where,
       include: {
         author: { select: { id: true, firstName: true, lastName: true } },
         votes: { select: { id: true, userId: true } },
@@ -69,14 +74,15 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
-    const idea = await prisma.idea.create({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const idea = await (prisma.idea.create as any)({
       data: {
         propertyId: input.propertyId,
         title: stripControlChars(stripHtml(input.title)),
         description: stripControlChars(stripHtml(input.description)),
-        categoryId: input.category || null,
+        category: input.category || null,
         userId: auth.user.userId,
-        status: 'open',
+        status: 'submitted',
         voteCount: 0,
       },
     });
