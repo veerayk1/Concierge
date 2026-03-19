@@ -122,7 +122,8 @@ export async function processPerishableEscalation(
     data: {
       packageId: pkg.id,
       action: nextStep.action,
-      detail: `Escalation: ${nextStep.description} (${nextStep.hoursAfterReceipt}h after receipt)`,
+      details: `Escalation: ${nextStep.description} (${nextStep.hoursAfterReceipt}h after receipt)`,
+      actorId: '00000000-0000-0000-0000-000000000000', // System actor
       actorName: 'System',
     },
   });

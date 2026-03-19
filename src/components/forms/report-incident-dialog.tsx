@@ -67,7 +67,8 @@ export function ReportIncidentDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<IncidentInput>({
-    resolver: zodResolver(incidentSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(incidentSchema) as any,
     defaultValues: {
       title: '',
       description: '',

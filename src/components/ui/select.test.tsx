@@ -1,7 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeAll } from 'vitest';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
+
+// Radix Select uses DOM APIs that jsdom doesn't support
+beforeAll(() => {
+  HTMLElement.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
+  HTMLElement.prototype.setPointerCapture = vi.fn();
+  HTMLElement.prototype.releasePointerCapture = vi.fn();
+  HTMLElement.prototype.scrollIntoView = vi.fn();
+});
 
 function renderSelect({
   placeholder = 'Pick one',

@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from './select';
 
-const meta: Meta = {
+const meta: Meta<{ size: 'sm' | 'md' | 'lg'; error: boolean; disabled: boolean }> = {
   title: 'UI/Select',
   argTypes: {
     size: { control: 'select', options: ['sm', 'md', 'lg'] },
@@ -19,7 +19,7 @@ const meta: Meta = {
 };
 
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   render: (args) => (

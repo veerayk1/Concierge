@@ -6,7 +6,7 @@
  * The escalation chain MUST fire on time.
  */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   getCurrentEscalationLevel,
   getNextEscalationStep,
@@ -126,8 +126,8 @@ describe('Perishable Escalation — Chain Configuration', () => {
 
   it('steps are in chronological order', () => {
     for (let i = 1; i < PERISHABLE_ESCALATION_CHAIN.length; i++) {
-      expect(PERISHABLE_ESCALATION_CHAIN[i].hoursAfterReceipt).toBeGreaterThan(
-        PERISHABLE_ESCALATION_CHAIN[i - 1].hoursAfterReceipt,
+      expect(PERISHABLE_ESCALATION_CHAIN[i]!.hoursAfterReceipt).toBeGreaterThan(
+        PERISHABLE_ESCALATION_CHAIN[i - 1]!.hoursAfterReceipt,
       );
     }
   });

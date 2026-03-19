@@ -112,9 +112,9 @@ describe('DataTable — Sorting', () => {
     // After ascending sort: Alice, Bob, Charlie
     const rows = screen.getAllByRole('row');
     // First row is header, data starts at index 1
-    expect(within(rows[1]).getByText('Alice')).toBeInTheDocument();
-    expect(within(rows[2]).getByText('Bob')).toBeInTheDocument();
-    expect(within(rows[3]).getByText('Charlie')).toBeInTheDocument();
+    expect(within(rows[1]!).getByText('Alice')).toBeInTheDocument();
+    expect(within(rows[2]!).getByText('Bob')).toBeInTheDocument();
+    expect(within(rows[3]!).getByText('Charlie')).toBeInTheDocument();
   });
 
   it('sorts descending on second click', async () => {
@@ -125,8 +125,8 @@ describe('DataTable — Sorting', () => {
     await user.click(screen.getByText('Name'));
 
     const rows = screen.getAllByRole('row');
-    expect(within(rows[1]).getByText('Charlie')).toBeInTheDocument();
-    expect(within(rows[3]).getByText('Alice')).toBeInTheDocument();
+    expect(within(rows[1]!).getByText('Charlie')).toBeInTheDocument();
+    expect(within(rows[3]!).getByText('Alice')).toBeInTheDocument();
   });
 
   it('sorts numeric data correctly (not lexicographic)', async () => {
@@ -137,9 +137,9 @@ describe('DataTable — Sorting', () => {
 
     const rows = screen.getAllByRole('row');
     // Ascending: 2, 5, 8
-    expect(within(rows[1]).getByText('2')).toBeInTheDocument();
-    expect(within(rows[2]).getByText('5')).toBeInTheDocument();
-    expect(within(rows[3]).getByText('8')).toBeInTheDocument();
+    expect(within(rows[1]!).getByText('2')).toBeInTheDocument();
+    expect(within(rows[2]!).getByText('5')).toBeInTheDocument();
+    expect(within(rows[3]!).getByText('8')).toBeInTheDocument();
   });
 });
 
@@ -150,7 +150,7 @@ describe('DataTable — Row Interaction', () => {
     render(<DataTable columns={columns} data={data} onRowClick={onClick} />);
 
     const rows = screen.getAllByRole('row');
-    await user.click(rows[1]); // First data row
+    await user.click(rows[1]!); // First data row
 
     expect(onClick).toHaveBeenCalledWith(data[0]);
   });
@@ -159,12 +159,12 @@ describe('DataTable — Row Interaction', () => {
     render(<DataTable columns={columns} data={data} onRowClick={vi.fn()} />);
     const rows = screen.getAllByRole('row');
     // Data rows should have cursor-pointer class
-    expect(rows[1].className).toContain('cursor-pointer');
+    expect(rows[1]!.className).toContain('cursor-pointer');
   });
 
   it('does NOT add hover cursor when onRowClick is not provided', () => {
     render(<DataTable columns={columns} data={data} />);
     const rows = screen.getAllByRole('row');
-    expect(rows[1].className).not.toContain('cursor-pointer');
+    expect(rows[1]!.className).not.toContain('cursor-pointer');
   });
 });

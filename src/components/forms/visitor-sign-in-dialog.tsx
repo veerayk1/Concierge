@@ -52,7 +52,8 @@ export function VisitorSignInDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<VisitorInput>({
-    resolver: zodResolver(visitorSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(visitorSchema) as any,
     defaultValues: {
       visitorName: '',
       unitId: '',

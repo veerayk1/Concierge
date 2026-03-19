@@ -59,7 +59,7 @@ vi.mock('@/server/logger', () => ({
 import { requireAuth } from '@/server/middleware/auth';
 import { checkRateLimit } from '@/server/middleware/rate-limit';
 import { requireRole } from '@/server/middleware/rbac';
-import { AuthError, ForbiddenError, ValidationError, RateLimitError } from '@/server/errors';
+import { AuthError, ForbiddenError, RateLimitError } from '@/server/errors';
 
 // ---------------------------------------------------------------------------
 // Helpers

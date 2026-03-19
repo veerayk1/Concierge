@@ -159,10 +159,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (query.length >= 2 && results[selectedIndex]) {
-          router.push(results[selectedIndex].href);
+          router.push(results[selectedIndex].href as never);
           onOpenChange(false);
         } else if (query.length < 2 && QUICK_ACTIONS[selectedIndex]) {
-          router.push(QUICK_ACTIONS[selectedIndex].href);
+          router.push(QUICK_ACTIONS[selectedIndex].href as never);
           onOpenChange(false);
         }
       } else if (e.key === 'Escape') {
@@ -233,7 +233,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                       key={result.id}
                       type="button"
                       onClick={() => {
-                        router.push(result.href);
+                        router.push(result.href as never);
                         onOpenChange(false);
                       }}
                       className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
@@ -270,7 +270,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     key={action.label}
                     type="button"
                     onClick={() => {
-                      router.push(action.href);
+                      router.push(action.href as never);
                       onOpenChange(false);
                     }}
                     className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition-all ${

@@ -6,11 +6,10 @@
  * Per Security Rulebook C.4.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 import { checkRateLimit, RATE_LIMITS } from '@/server/middleware/rate-limit';
 import type { RateLimitGroup } from '@/server/middleware/rate-limit';
-import { RateLimitError } from '@/server/errors';
 
 // ---------------------------------------------------------------------------
 // Configuration tests

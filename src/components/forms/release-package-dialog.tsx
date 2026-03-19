@@ -46,7 +46,8 @@ export function ReleasePackageDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ReleasePackageInput>({
-    resolver: zodResolver(releasePackageSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(releasePackageSchema) as any,
     defaultValues: {
       releasedToName: recipientName,
       idVerified: false,
