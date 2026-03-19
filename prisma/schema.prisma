@@ -151,6 +151,18 @@ model Property {
   governanceDocuments GovernanceDocument[]
   boardMemberRecords  BoardMemberRecord[]
 
+  // Financial module relations
+  purchaseOrders PurchaseOrder[]
+
+  // Resident Cards & Passports module relations
+  residentCards ResidentCard[]
+
+  // Building Directory & Asset Management module relations
+  directoryEntries          DirectoryEntry[]
+  propertyEmergencyContacts PropertyEmergencyContact[]
+  assets                    Asset[]
+  assetAudits               AssetAudit[]
+
   @@index([type])
   @@index([slug])
   @@index([propertyCode])
@@ -1226,6 +1238,7 @@ model Vendor {
   maintenanceRequests MaintenanceRequest[]
   alterationProjects  AlterationProject[]
   documents           VendorDocument[]
+  purchaseOrders      PurchaseOrder[]
 
   @@index([propertyId])
   @@map("vendors")
@@ -3706,4 +3719,243 @@ model BoardMemberRecord {
   @@index([propertyId])
   @@index([userId])
   @@map("board_member_records")
+}
+
+// ---------------------------------------------------------------------------
+// FINANCIAL: Purchase Orders
+// ---------------------------------------------------------------------------
+
+model PurchaseOrder {
+  id              String    @id @default(uuid()) @db.Uuid
+  propertyId      String    @db.Uuid
+  vendorId        String    @db.Uuid
+  referenceNumber String    @unique @db.VarChar(20)
+  status          String    @default("draft") @db.VarChar(20) // draft, submitted, approved, ordered, received, closed
+  budgetCategory  String    @db.VarChar(100)
+  totalAmount     Float     @default(0)
+  notes           String?   @db.VarChar(2000)
+
+  // Invoice matching
+  invoiceNumber   String?   @db.VarChar(100)
+  invoiceDate     DateTime?
+  invoiceAmount   Float?
+
+  // Approval
+  approvedById    String?   @db.Uuid
+  approvedAt      DateTime?
+  approvalNotes   String?   @db.VarChar(1000)
+
+  // Audit
+  createdById     String    @db.Uuid
+  updatedById     String?   @db.Uuid
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  property    Property              @relation(fields: [propertyId], references: [id])
+  vendor      Vendor                @relation(fields: [vendorId], references: [id])
+  items       PurchaseOrderItem[]
+  attachments PurchaseOrderAttachment[]
+
+  @@index([propertyId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([referenceNumber])
+  @@index([budgetCategory])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String @id @default(uuid()) @db.Uuid
+  purchaseOrderId String @db.Uuid
+  description     String @db.VarChar(500)
+  quantity        Int
+  unitPrice       Float
+  total           Float
+
+  createdAt DateTime @default(now())
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
+  @@map("purchase_order_items")
+}
+
+model PurchaseOrderAttachment {
+  id              String @id @default(uuid()) @db.Uuid
+  purchaseOrderId String @db.Uuid
+  propertyId      String @db.Uuid
+  fileName        String @db.VarChar(255)
+  fileType        String @db.VarChar(100)
+  fileSizeBytes   Int
+  storageUrl      String @db.VarChar(500)
+  uploadedById    String @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
+  @@map("purchase_order_attachments")
+}
+
+// ---------------------------------------------------------------------------
+// RESIDENT CARDS & PASSPORTS
+// ---------------------------------------------------------------------------
+
+model ResidentCard {
+  id             String    @id @default(uuid()) @db.Uuid
+  propertyId     String    @db.Uuid
+  residentId     String    @db.Uuid
+  unitId         String    @db.Uuid
+  residentName   String    @db.VarChar(200)
+  photoUrl       String?   @db.VarChar(500)
+  accessLevel    String    @db.VarChar(30) // full, limited, temporary, restricted
+  status         String    @default("active") @db.VarChar(20) // active, expired, revoked, lost
+  qrCode         String    @unique @db.VarChar(100)
+  designTemplate String    @default("standard") @map("design_template") @db.VarChar(100)
+  expiresAt      DateTime  @map("expires_at")
+
+  // Revocation / loss
+  revokedAt      DateTime? @map("revoked_at")
+  revokedReason  String?   @map("revoked_reason") @db.VarChar(500)
+  replacesCardId String?   @map("replaces_card_id") @db.Uuid
+
+  // Passport data (denormalized for quick lookup by security)
+  moveInDate     DateTime? @map("move_in_date")
+
+  // Audit
+  issuedById     String?   @map("issued_by_id") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([residentId])
+  @@index([unitId])
+  @@index([status])
+  @@index([qrCode])
+  @@map("resident_cards")
+}
+
+// ---------------------------------------------------------------------------
+// BUILDING DIRECTORY: Staff & Vendor directory entries
+// ---------------------------------------------------------------------------
+
+model DirectoryEntry {
+  id               String  @id @default(uuid()) @db.Uuid
+  propertyId       String  @db.Uuid
+  userId           String? @db.Uuid
+  type             String  @db.VarChar(20) // staff, vendor
+  firstName        String  @db.VarChar(100)
+  lastName         String  @default("") @db.VarChar(100)
+  role             String? @db.VarChar(50) // property_manager, concierge, security, etc.
+  department       String? @db.VarChar(100)
+  specialty        String? @db.VarChar(50) // For vendors: plumbing, electrical, etc.
+  complianceStatus String? @db.VarChar(30) // For vendors: compliant, expired, etc.
+  email            String? @db.VarChar(254)
+  phone            String? @db.VarChar(50)
+  photoUrl         String? @db.VarChar(500)
+  bio              String? @db.Text
+  scheduleNotes    String? @db.VarChar(1000)
+  isActive         Boolean @default(true)
+  createdById      String? @db.Uuid
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([propertyId, type])
+  @@index([propertyId, role])
+  @@map("directory_entries")
+}
+
+// ---------------------------------------------------------------------------
+// BUILDING DIRECTORY: Property-level emergency contacts
+// ---------------------------------------------------------------------------
+
+model PropertyEmergencyContact {
+  id          String  @id @default(uuid()) @db.Uuid
+  propertyId  String  @db.Uuid
+  contactType String  @db.VarChar(50) // fire_department, police, utility_gas, etc.
+  name        String  @db.VarChar(200)
+  phone       String  @db.VarChar(50)
+  altPhone    String? @db.VarChar(50)
+  notes       String? @db.VarChar(1000)
+  createdById String? @db.Uuid
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([propertyId, contactType])
+  @@map("property_emergency_contacts")
+}
+
+// ---------------------------------------------------------------------------
+// ASSET MANAGEMENT: Physical asset tracking
+// ---------------------------------------------------------------------------
+
+model Asset {
+  id              String    @id @default(uuid()) @db.Uuid
+  propertyId      String    @db.Uuid
+  tagNumber       String    @db.VarChar(50)
+  description     String    @db.VarChar(500)
+  category        String    @db.VarChar(30) // furniture, appliance, it, building_system
+  status          String    @default("in_use") @db.VarChar(20) // in_use, in_storage, under_repair, disposed
+  location        String    @db.VarChar(200)
+  assignmentType  String?   @db.VarChar(20) // common_area, unit
+  assignedToId    String?   @db.Uuid // unit ID if assigned to a unit
+  purchaseDate    DateTime?
+  purchaseValue   Float?
+  usefulLifeYears Int?
+  manufacturer    String?   @db.VarChar(200)
+  modelNumber     String?   @db.VarChar(200)
+  serialNumber    String?   @db.VarChar(200)
+  notes           String?   @db.Text
+  createdById     String?   @db.Uuid
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([propertyId, tagNumber])
+  @@index([propertyId])
+  @@index([propertyId, category])
+  @@index([propertyId, status])
+  @@index([propertyId, assignmentType])
+  @@map("assets")
+}
+
+// ---------------------------------------------------------------------------
+// ASSET MANAGEMENT: Physical inventory audits
+// ---------------------------------------------------------------------------
+
+model AssetAudit {
+  id            String   @id @default(uuid()) @db.Uuid
+  propertyId    String   @db.Uuid
+  auditDate     DateTime
+  conductedById String   @db.Uuid
+  findings      Json     @db.JsonB // Array of { assetId, found, condition, notes }
+  summary       Json     @db.JsonB // { total, found, missing, discrepancyRate }
+  createdById   String?  @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([propertyId, auditDate])
+  @@map("asset_audits")
 }
