@@ -5,7 +5,14 @@ const nextConfig: NextConfig = {
 
   output: 'standalone',
 
-  serverExternalPackages: ['argon2', 'pino', 'pino-pretty'],
+  serverExternalPackages: [
+    'argon2',
+    'pino',
+    'pino-pretty',
+    'isomorphic-dompurify',
+    'jsdom',
+    'dompurify',
+  ],
 
   images: {
     formats: ['image/avif', 'image/webp'],
