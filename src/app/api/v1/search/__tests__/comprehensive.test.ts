@@ -412,7 +412,9 @@ describe('4. Relevance ranking', () => {
     mockUnitFindMany.mockResolvedValue([{ id: 'unit1', number: null, status: 'vacant' }]);
 
     const res = await GET(searchReq({ propertyId: PROPERTY_A, q: 'test' }));
-    const body = await parseResponse<{ data: { results: Array<{ score: number }> } }>(res);
+    const body = await parseResponse<{ data: { results: Array<{ id: string; score: number }> } }>(
+      res,
+    );
 
     const unitResult = body.data.results.find((r) => r.id === 'unit1');
     if (unitResult) {
