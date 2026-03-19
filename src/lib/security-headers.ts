@@ -7,6 +7,53 @@
  * @see https://owasp.org/www-project-secure-headers/
  */
 
+import { env } from '@/lib/env';
+
+// ---------------------------------------------------------------------------
+// CORS Configuration
+// ---------------------------------------------------------------------------
+
+const CORS_METHODS = 'GET, POST, PATCH, DELETE, OPTIONS';
+const CORS_HEADERS = 'Content-Type, Authorization, X-Request-ID';
+const CORS_MAX_AGE = '86400'; // 24 hours
+
+/**
+ * Returns CORS headers for a given origin and HTTP method.
+ *
+ * Only origins listed in `CORS_ORIGINS` (env) receive the
+ * `Access-Control-Allow-Origin` header. Unrecognised origins get
+ * an empty object — the browser will block the cross-origin request.
+ *
+ * @param origin  - The value of the `Origin` request header.
+ * @param method  - The HTTP method (used to detect preflight).
+ * @returns A plain object mapping header names to their values.
+ */
+export function getCorsHeaders(
+  origin: string | null | undefined,
+  method: string,
+): Record<string, string> {
+  // No origin header means same-origin or non-browser request — skip CORS.
+  if (!origin) return {};
+
+  const allowedOrigins: string[] = env.CORS_ORIGINS;
+  if (!allowedOrigins.includes(origin)) return {};
+
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Credentials': 'true',
+    Vary: 'Origin',
+  };
+
+  // Preflight requests get the full set of CORS response headers.
+  if (method === 'OPTIONS') {
+    headers['Access-Control-Allow-Methods'] = CORS_METHODS;
+    headers['Access-Control-Allow-Headers'] = CORS_HEADERS;
+    headers['Access-Control-Max-Age'] = CORS_MAX_AGE;
+  }
+
+  return headers;
+}
+
 // ---------------------------------------------------------------------------
 // Content Security Policy Builder
 // ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@
  * 1. Generating a per-request nonce for CSP script-src.
  * 2. Generating a unique request ID (UUID) for tracing.
  * 3. Attaching all security headers to the response.
+ * 4. Handling CORS for /api/ routes.
  *
  * This file MUST remain edge-compatible (no Node.js APIs that are
  * unavailable in the Edge Runtime).
@@ -15,13 +16,28 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-import { getSecurityHeaders } from '@/lib/security-headers';
+import { getSecurityHeaders, getCorsHeaders } from '@/lib/security-headers';
 
 // ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
 
 export function middleware(request: NextRequest): NextResponse {
+  const { pathname } = request.nextUrl;
+  const isApiRoute = pathname.startsWith('/api/');
+  const origin = request.headers.get('origin');
+  const method = request.method;
+
+  // -- CORS preflight: return 204 immediately for OPTIONS on API routes -----
+  if (isApiRoute && method === 'OPTIONS') {
+    const preflightResponse = new NextResponse(null, { status: 204 });
+    const corsHeaders = getCorsHeaders(origin, method);
+    for (const [name, value] of Object.entries(corsHeaders)) {
+      preflightResponse.headers.set(name, value);
+    }
+    return preflightResponse;
+  }
+
   // 1. Generate a per-request nonce (base64, 16 bytes = 128 bits)
   const nonceBytes = new Uint8Array(16);
   crypto.getRandomValues(nonceBytes);
@@ -47,7 +63,15 @@ export function middleware(request: NextRequest): NextResponse {
     response.headers.set(name, value);
   }
 
-  // 6. Expose request ID on response for client-side error reporting
+  // 6. Attach CORS headers for API routes
+  if (isApiRoute) {
+    const corsHeaders = getCorsHeaders(origin, method);
+    for (const [name, value] of Object.entries(corsHeaders)) {
+      response.headers.set(name, value);
+    }
+  }
+
+  // 7. Expose request ID on response for client-side error reporting
   response.headers.set('x-request-id', requestId);
 
   return response;
