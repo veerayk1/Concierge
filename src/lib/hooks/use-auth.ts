@@ -29,6 +29,7 @@ export interface AuthUser {
   email: string;
   firstName: string;
   lastName: string;
+  phone?: string | null;
   role: Role;
 }
 
@@ -66,6 +67,8 @@ export interface UseAuthReturn {
   logout: () => Promise<void>;
   /** Manually refresh the access token. Returns true on success. */
   refreshAccessToken: () => Promise<boolean>;
+  /** Update local user state (e.g. after profile edit). */
+  setUser: (user: AuthUser) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -186,6 +189,7 @@ export function useAuth(): UseAuthReturn {
       login,
       logout,
       refreshAccessToken,
+      setUser,
     }),
     [user, loading, isAuthenticated, login, logout, refreshAccessToken],
   );

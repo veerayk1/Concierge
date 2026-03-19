@@ -82,3 +82,30 @@ export const changeStatusSchema = z.object({
 });
 
 export type ChangeStatusInput = z.infer<typeof changeStatusSchema>;
+
+/**
+ * Self-update schema — fields a user can edit on their own profile.
+ * Does NOT allow changing email (requires verification) or role.
+ */
+export const updateMyProfileSchema = z.object({
+  firstName: z
+    .string()
+    .min(1, 'First name is required')
+    .max(50, 'First name cannot exceed 50 characters')
+    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, 'First name contains invalid characters')
+    .optional(),
+  lastName: z
+    .string()
+    .min(1, 'Last name is required')
+    .max(50, 'Last name cannot exceed 50 characters')
+    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, 'Last name contains invalid characters')
+    .optional(),
+  phone: z
+    .string()
+    .max(20, 'Phone number cannot exceed 20 characters')
+    .regex(/^[+\d\s()-]*$/, 'Enter a valid phone number')
+    .optional()
+    .or(z.literal('')),
+});
+
+export type UpdateMyProfileInput = z.infer<typeof updateMyProfileSchema>;

@@ -99,7 +99,11 @@ describe('createApiHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset default mock implementations after clearing
-    vi.mocked(checkRateLimit).mockResolvedValue(undefined);
+    vi.mocked(checkRateLimit).mockResolvedValue({
+      limit: 100,
+      remaining: 99,
+      reset: Math.floor(Date.now() / 1000) + 900,
+    });
     vi.mocked(requireAuth).mockResolvedValue({
       sub: 'user-1',
       pid: 'prop-1',
@@ -119,6 +123,7 @@ describe('createApiHandler', () => {
 
     vi.mocked(checkRateLimit).mockImplementation(async () => {
       callOrder.push('rateLimit');
+      return { limit: 100, remaining: 99, reset: Math.floor(Date.now() / 1000) + 900 };
     });
     vi.mocked(requireAuth).mockImplementation(async () => {
       callOrder.push('auth');

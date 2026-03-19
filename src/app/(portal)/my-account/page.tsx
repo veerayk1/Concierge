@@ -1,7 +1,9 @@
 'use client';
 
 import { Bell, Globe, Key, Lock, Mail, Phone, Shield, Smartphone, User } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { apiClient, ApiClientError } from '@/lib/api-client';
 import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -9,13 +11,123 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface ProfileUpdatePayload {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+}
+
+interface ProfileResponse {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  avatarUrl: string | null;
+  mfaEnabled: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function MyAccountPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, setUser } = useAuth();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null,
+  );
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+
+  // Form state — initialised when dialog opens
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+
+  const openDialog = useCallback(() => {
+    if (!user) return;
+    setFirstName(user.firstName);
+    setLastName(user.lastName);
+    setPhone(user.phone ?? '');
+    setFieldErrors({});
+    setFeedback(null);
+    setDialogOpen(true);
+  }, [user]);
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!user) return;
+
+      setSaving(true);
+      setFeedback(null);
+      setFieldErrors({});
+
+      try {
+        const payload: ProfileUpdatePayload = {};
+        if (firstName !== user.firstName) payload.firstName = firstName;
+        if (lastName !== user.lastName) payload.lastName = lastName;
+        if ((phone || '') !== (user.phone ?? '')) payload.phone = phone;
+
+        if (Object.keys(payload).length === 0) {
+          setFeedback({ type: 'success', message: 'No changes to save.' });
+          setSaving(false);
+          return;
+        }
+
+        const updated = await apiClient<ProfileResponse>('/api/v1/users/me', {
+          method: 'PATCH',
+          body: payload,
+        });
+
+        // Update local auth state so the UI refreshes immediately
+        setUser({
+          ...user,
+          firstName: updated.firstName,
+          lastName: updated.lastName,
+          phone: updated.phone,
+        });
+
+        setFeedback({ type: 'success', message: 'Profile updated successfully.' });
+
+        // Auto-close dialog after a brief delay so user sees the success message
+        setTimeout(() => {
+          setDialogOpen(false);
+        }, 1200);
+      } catch (err) {
+        if (err instanceof ApiClientError && err.fields) {
+          // Map field-level validation errors from API
+          const mapped: Record<string, string[]> = {};
+          for (const fe of err.fields) {
+            const existing = mapped[fe.field] ?? [];
+            existing.push(fe.message);
+            mapped[fe.field] = existing;
+          }
+          setFieldErrors(mapped);
+          setFeedback({ type: 'error', message: 'Please fix the errors below.' });
+        } else if (err instanceof ApiClientError) {
+          setFeedback({ type: 'error', message: err.message });
+        } else {
+          setFeedback({ type: 'error', message: 'An unexpected error occurred.' });
+        }
+      } finally {
+        setSaving(false);
+      }
+    },
+    [user, firstName, lastName, phone, setUser],
+  );
 
   if (loading || !user) {
     return (
@@ -51,13 +163,19 @@ export default function MyAccountPage() {
                 <Mail className="h-4 w-4 text-neutral-400" />
                 <span className="text-neutral-700">{user.email}</span>
               </div>
+              {user.phone && (
+                <div className="flex items-center gap-3 text-[14px]">
+                  <Phone className="h-4 w-4 text-neutral-400" />
+                  <span className="text-neutral-700">{user.phone}</span>
+                </div>
+              )}
               <div className="flex items-center gap-3 text-[14px]">
                 <Shield className="h-4 w-4 text-neutral-400" />
                 <span className="text-neutral-700">{user.role.replace(/_/g, ' ')}</span>
               </div>
             </div>
           </div>
-          <Button variant="secondary" fullWidth className="mt-6">
+          <Button variant="secondary" fullWidth className="mt-6" onClick={openDialog}>
             Edit Profile
           </Button>
         </Card>
@@ -173,6 +291,77 @@ export default function MyAccountPage() {
           </Card>
         </div>
       </div>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogTitle>Edit Profile</DialogTitle>
+          <DialogDescription>
+            Update your personal information. Email changes require a separate verification process.
+          </DialogDescription>
+
+          {feedback && (
+            <div
+              className={`mt-4 rounded-lg px-4 py-3 text-[14px] font-medium ${
+                feedback.type === 'success'
+                  ? 'bg-green-50 text-green-800'
+                  : 'bg-red-50 text-red-800'
+              }`}
+              role="alert"
+            >
+              {feedback.message}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+            <Input
+              label="First Name"
+              required
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              error={fieldErrors.firstName?.[0]}
+              disabled={saving}
+            />
+            <Input
+              label="Last Name"
+              required
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              error={fieldErrors.lastName?.[0]}
+              disabled={saving}
+            />
+            <Input
+              label="Phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              error={fieldErrors.phone?.[0]}
+              helperText="Optional. Format: +1 (555) 123-4567"
+              disabled={saving}
+            />
+            <Input
+              label="Email"
+              value={user.email}
+              disabled
+              helperText="Email changes require a verification process. Contact your administrator."
+            />
+
+            <div className="mt-2 flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setDialogOpen(false)}
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
