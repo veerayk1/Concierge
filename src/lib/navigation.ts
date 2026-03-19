@@ -52,6 +52,7 @@ import {
   MessageSquare,
   Landmark,
   Image,
+  Lightbulb,
 } from 'lucide-react';
 import type { Role } from '@/types';
 
@@ -477,6 +478,13 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         roles: ['resident_owner', 'resident_tenant'],
       },
       {
+        id: 'resident-ideas',
+        label: 'Idea Board',
+        href: '/ideas',
+        icon: Lightbulb,
+        roles: ['resident_owner', 'resident_tenant'],
+      },
+      {
         id: 'resident-photo-albums',
         label: 'Photo Albums',
         href: '/photo-albums',
@@ -536,6 +544,13 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Photo Albums',
         href: '/photo-albums',
         icon: Image,
+        roles: ['super_admin', 'property_admin', 'property_manager'],
+      },
+      {
+        id: 'idea-board',
+        label: 'Idea Board',
+        href: '/ideas',
+        icon: Lightbulb,
         roles: ['super_admin', 'property_admin', 'property_manager'],
       },
     ],
