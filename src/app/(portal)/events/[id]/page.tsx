@@ -1,130 +1,365 @@
 'use client';
 
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Bell, Clock, Edit2, MessageSquare, User } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bell,
+  Calendar,
+  Camera,
+  Clock,
+  Download,
+  Edit2,
+  MapPin,
+  MessageSquare,
+  Tag,
+  User,
+  Users,
+  X as XIcon,
+} from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTable, type Column } from '@/components/ui/data-table';
 
-const MOCK = {
-  type: 'visitor',
-  typeLabel: 'Visitor',
-  typeColor: 'text-success-600',
-  typeBg: 'bg-success-50',
-  title: 'John Williams — Visiting Unit 1501',
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type EventStatus = 'upcoming' | 'in_progress' | 'completed' | 'cancelled';
+type RsvpStatus = 'attending' | 'maybe' | 'declined';
+
+interface Rsvp {
+  id: string;
+  name: string;
+  unit: string;
+  status: RsvpStatus;
+  rsvpDate: string;
+}
+
+interface Comment {
+  id: string;
+  author: string;
+  text: string;
+  createdAt: string;
+}
+
+interface CommunityEvent {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  category: string;
+  organizer: string;
+  status: EventStatus;
+  capacity: number | null;
+  attendingCount: number;
+  maybeCount: number;
+  declinedCount: number;
+  rsvps: Rsvp[];
+  comments: Comment[];
+}
+
+// ---------------------------------------------------------------------------
+// Mock Data
+// ---------------------------------------------------------------------------
+
+const MOCK_EVENT: CommunityEvent = {
+  id: '1',
+  title: 'Summer BBQ & Pool Party',
   description:
-    'Expected guest. Resident Janet Smith confirmed via intercom at 9:28 AM. Visitor presented government ID.',
-  unit: '1501',
-  resident: 'Janet Smith',
-  status: 'open' as const,
-  createdBy: 'Guard Patel',
-  createdAt: '2026-03-18T09:30:00',
+    'Join us for our annual summer BBQ and pool party on the rooftop terrace! Burgers, hot dogs, veggie options, and refreshments will be provided. Bring your swimsuit and sunscreen. Kids are welcome. DJ entertainment starts at 2 PM. Please RSVP by June 15th so we can plan food quantities. Residents may bring up to 2 guests each.',
+  date: '2026-06-20',
+  startTime: '12:00 PM',
+  endTime: '5:00 PM',
+  location: 'Rooftop Terrace & Pool Deck',
+  category: 'Social',
+  organizer: 'Building Social Committee',
+  status: 'upcoming',
+  capacity: 100,
+  attendingCount: 3,
+  maybeCount: 1,
+  declinedCount: 1,
+  rsvps: [
+    {
+      id: 'rsvp-1',
+      name: 'Janet Smith',
+      unit: '1501',
+      status: 'attending',
+      rsvpDate: '2026-03-12',
+    },
+    {
+      id: 'rsvp-2',
+      name: 'David Chen',
+      unit: '802',
+      status: 'attending',
+      rsvpDate: '2026-03-13',
+    },
+    {
+      id: 'rsvp-3',
+      name: 'Maria Garcia',
+      unit: '1203',
+      status: 'maybe',
+      rsvpDate: '2026-03-14',
+    },
+    {
+      id: 'rsvp-4',
+      name: 'James Okonkwo',
+      unit: '405',
+      status: 'attending',
+      rsvpDate: '2026-03-15',
+    },
+    {
+      id: 'rsvp-5',
+      name: 'Sarah Thompson',
+      unit: '610',
+      status: 'declined',
+      rsvpDate: '2026-03-16',
+    },
+  ],
   comments: [
     {
-      id: '1',
-      author: 'Guard Patel',
-      text: 'Visitor arrived. ID verified. Directed to elevators.',
-      createdAt: '2026-03-18T09:30:00',
+      id: 'c-1',
+      author: 'Janet Smith',
+      text: 'Looking forward to this! Will there be a vegetarian option?',
+      createdAt: '2026-03-12T14:30:00',
+    },
+    {
+      id: 'c-2',
+      author: 'Building Social Committee',
+      text: 'Absolutely! We will have veggie burgers, grilled vegetables, and salad options.',
+      createdAt: '2026-03-12T15:10:00',
+    },
+    {
+      id: 'c-3',
+      author: 'David Chen',
+      text: 'Can we bring our own drinks or is everything provided?',
+      createdAt: '2026-03-13T09:45:00',
     },
   ],
 };
 
-interface EventDetailPageProps {
-  params: Promise<{ id: string }>;
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const EVENT_STATUS_CONFIG: Record<
+  EventStatus,
+  { variant: 'success' | 'error' | 'warning' | 'default' | 'info' | 'primary'; label: string }
+> = {
+  upcoming: { variant: 'info', label: 'Upcoming' },
+  in_progress: { variant: 'success', label: 'In Progress' },
+  completed: { variant: 'default', label: 'Completed' },
+  cancelled: { variant: 'error', label: 'Cancelled' },
+};
+
+const RSVP_STATUS_CONFIG: Record<
+  RsvpStatus,
+  { variant: 'success' | 'error' | 'warning' | 'default'; label: string }
+> = {
+  attending: { variant: 'success', label: 'Attending' },
+  maybe: { variant: 'warning', label: 'Maybe' },
+  declined: { variant: 'error', label: 'Declined' },
+};
+
+function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">{label}</p>
+      <div className="mt-1 text-[14px] text-neutral-900">{value}</div>
+    </div>
+  );
 }
 
-export default function EventDetailPage({ params }: EventDetailPageProps) {
-  const { id } = use(params);
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export default function EventDetailPage() {
+  const { id } = useParams<{ id: string }>();
+
+  const { data: apiEvent } = useApi<CommunityEvent>(
+    apiUrl(`/api/v1/events/${id}`, { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const event = apiEvent ?? MOCK_EVENT;
+  const statusCfg = EVENT_STATUS_CONFIG[event.status];
+
+  const rsvpColumns: Column<Rsvp>[] = [
+    {
+      id: 'name',
+      header: 'Name',
+      accessorKey: 'name',
+      sortable: true,
+      cell: (row) => <span className="text-[13px] font-semibold text-neutral-900">{row.name}</span>,
+    },
+    {
+      id: 'unit',
+      header: 'Unit',
+      accessorKey: 'unit',
+      sortable: true,
+      cell: (row) => <span className="text-[13px] font-medium text-neutral-700">{row.unit}</span>,
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      accessorKey: 'status',
+      sortable: true,
+      cell: (row) => {
+        const cfg = RSVP_STATUS_CONFIG[row.status];
+        return (
+          <Badge variant={cfg.variant} size="sm" dot>
+            {cfg.label}
+          </Badge>
+        );
+      },
+    },
+    {
+      id: 'rsvpDate',
+      header: 'RSVP Date',
+      accessorKey: 'rsvpDate',
+      sortable: true,
+      cell: (row) => (
+        <span className="text-[13px] text-neutral-500">
+          {new Date(row.rsvpDate).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })}
+        </span>
+      ),
+    },
+  ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between">
-        <div className="flex flex-col gap-3">
-          <Link
-            href="/events"
-            className="inline-flex items-center gap-1.5 text-[14px] font-medium text-neutral-500 transition-colors hover:text-neutral-700"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to event log
-          </Link>
-          <div className="flex items-center gap-3">
-            <Badge variant="success" size="lg" className={`${MOCK.typeBg} ${MOCK.typeColor}`}>
-              {MOCK.typeLabel}
-            </Badge>
-            <h1 className="text-[24px] font-bold tracking-tight text-neutral-900">{MOCK.title}</h1>
-            <Badge variant={MOCK.status === 'open' ? 'warning' : 'default'} size="lg" dot>
-              {MOCK.status === 'open' ? 'Open' : 'Closed'}
-            </Badge>
-          </div>
-        </div>
+    <PageShell
+      title={event.title}
+      description="Community Event"
+      actions={
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm">
             <Edit2 className="h-4 w-4" />
-            Edit
+            Edit Event
           </Button>
-          <Button size="sm">Close Event</Button>
         </div>
+      }
+    >
+      {/* Back link */}
+      <div className="-mt-4 mb-4">
+        <Link
+          href="/events"
+          className="inline-flex items-center gap-1.5 text-[14px] font-medium text-neutral-500 transition-colors hover:text-neutral-700"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to events
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        {/* ---- Left Column ---- */}
         <div className="flex flex-col gap-6 xl:col-span-2">
+          {/* Event Details */}
           <Card>
+            <CardHeader>
+              <CardTitle>Event Details</CardTitle>
+            </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Unit
-                  </p>
-                  <p className="mt-1 text-[15px] font-medium text-neutral-900">Unit {MOCK.unit}</p>
+              <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <InfoRow label="Title" value={event.title} />
                 </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Resident
-                  </p>
-                  <p className="mt-1 text-[15px] text-neutral-900">{MOCK.resident}</p>
+                <div className="sm:col-span-2">
+                  <InfoRow
+                    label="Description"
+                    value={<p className="leading-relaxed text-neutral-700">{event.description}</p>}
+                  />
                 </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Logged By
-                  </p>
-                  <p className="mt-1 text-[15px] text-neutral-900">{MOCK.createdBy}</p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Time
-                  </p>
-                  <p className="mt-1 text-[15px] text-neutral-900">
-                    {new Date(MOCK.createdAt).toLocaleString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Details
-                  </p>
-                  <p className="mt-1 text-[15px] leading-relaxed text-neutral-700">
-                    {MOCK.description}
-                  </p>
-                </div>
+                <InfoRow
+                  label="Date"
+                  value={
+                    <span className="inline-flex items-center gap-1">
+                      <Calendar className="h-3.5 w-3.5 text-neutral-400" />
+                      {new Date(event.date).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  }
+                />
+                <InfoRow
+                  label="Time"
+                  value={
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5 text-neutral-400" />
+                      {event.startTime} &ndash; {event.endTime}
+                    </span>
+                  }
+                />
+                <InfoRow
+                  label="Location"
+                  value={
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5 text-neutral-400" />
+                      {event.location}
+                    </span>
+                  }
+                />
+                <InfoRow
+                  label="Category"
+                  value={
+                    <Badge variant="primary" size="lg">
+                      {event.category}
+                    </Badge>
+                  }
+                />
+                <InfoRow
+                  label="Organizer"
+                  value={
+                    <span className="inline-flex items-center gap-1">
+                      <User className="h-3.5 w-3.5 text-neutral-400" />
+                      {event.organizer}
+                    </span>
+                  }
+                />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* RSVP List */}
+          <Card>
+            <CardHeader>
+              <CardTitle>RSVP List</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={rsvpColumns}
+                data={event.rsvps}
+                emptyMessage="No RSVPs yet."
+                emptyIcon={<Users className="h-6 w-6" />}
+                compact
+              />
             </CardContent>
           </Card>
 
           {/* Comments */}
           <Card>
-            <div className="mb-4 flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-neutral-400" />
-              <h2 className="text-[14px] font-semibold text-neutral-900">Comments</h2>
-            </div>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-neutral-400" />
+                <CardTitle>Comments</CardTitle>
+              </div>
+            </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-4">
-                {MOCK.comments.map((c) => (
+                {event.comments.map((c) => (
                   <div key={c.id} className="flex gap-3">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100">
                       <User className="h-4 w-4 text-neutral-500" />
@@ -136,6 +371,8 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
                         </span>
                         <span className="text-[12px] text-neutral-400">
                           {new Date(c.createdAt).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
                             hour: 'numeric',
                             minute: '2-digit',
                           })}
@@ -158,21 +395,155 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
           </Card>
         </div>
 
+        {/* ---- Right Column ---- */}
         <div className="flex flex-col gap-6">
+          {/* Status */}
           <Card>
-            <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Actions</h2>
+            <CardHeader>
+              <CardTitle>Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div
+                  className={`flex h-16 w-16 items-center justify-center rounded-2xl ${
+                    statusCfg.variant === 'success'
+                      ? 'bg-success-50'
+                      : statusCfg.variant === 'error'
+                        ? 'bg-error-50'
+                        : statusCfg.variant === 'info'
+                          ? 'bg-info-50'
+                          : 'bg-neutral-100'
+                  }`}
+                >
+                  <Calendar
+                    className={`h-8 w-8 ${
+                      statusCfg.variant === 'success'
+                        ? 'text-success-600'
+                        : statusCfg.variant === 'error'
+                          ? 'text-error-600'
+                          : statusCfg.variant === 'info'
+                            ? 'text-info-600'
+                            : 'text-neutral-400'
+                    }`}
+                  />
+                </div>
+                <Badge variant={statusCfg.variant} size="lg" dot>
+                  {statusCfg.label}
+                </Badge>
+                <p className="text-[13px] text-neutral-500">
+                  {new Date(event.date).toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Attendance */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Attendance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-3">
+                {[
+                  {
+                    label: 'Attending',
+                    count: event.attendingCount,
+                    color: 'text-success-600',
+                    bg: 'bg-success-50',
+                  },
+                  {
+                    label: 'Maybe',
+                    count: event.maybeCount,
+                    color: 'text-warning-600',
+                    bg: 'bg-warning-50',
+                  },
+                  {
+                    label: 'Declined',
+                    count: event.declinedCount,
+                    color: 'text-error-600',
+                    bg: 'bg-error-50',
+                  },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <span className="text-[13px] text-neutral-600">{item.label}</span>
+                    <span className={`text-[15px] font-bold ${item.color}`}>{item.count}</span>
+                  </div>
+                ))}
+                <div className="mt-1 border-t border-neutral-100 pt-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] font-medium text-neutral-700">Capacity</span>
+                    <span className="text-[15px] font-bold text-neutral-900">
+                      {event.capacity ? `${event.attendingCount} / ${event.capacity}` : 'Unlimited'}
+                    </span>
+                  </div>
+                  {event.capacity && (
+                    <div className="mt-2 h-2 rounded-full bg-neutral-100">
+                      <div
+                        className="bg-primary-500 h-2 rounded-full"
+                        style={{
+                          width: `${Math.min((event.attendingCount / event.capacity) * 100, 100)}%`,
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Actions</CardTitle>
+            </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button fullWidth>Close Event</Button>
+                <Button fullWidth>
+                  <Edit2 className="h-4 w-4" />
+                  Edit Event
+                </Button>
+                <Button variant="secondary" fullWidth>
+                  <XIcon className="h-4 w-4" />
+                  Cancel Event
+                </Button>
                 <Button variant="secondary" fullWidth>
                   <Bell className="h-4 w-4" />
-                  Send Notification
+                  Send Reminder
+                </Button>
+                <Button variant="secondary" fullWidth>
+                  <Download className="h-4 w-4" />
+                  Export RSVP List
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Photo Gallery Placeholder */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Photo Gallery</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-neutral-200 py-8 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100">
+                  <Camera className="h-6 w-6 text-neutral-400" />
+                </div>
+                <p className="text-[13px] text-neutral-500">
+                  Photos will be available after the event
+                </p>
+                <Button variant="secondary" size="sm">
+                  <Camera className="h-3.5 w-3.5" />
+                  Upload Photos
                 </Button>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
