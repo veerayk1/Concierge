@@ -326,142 +326,21 @@ function getGreeting(): string {
 }
 
 // ---------------------------------------------------------------------------
-// Mock data for new sections
+// Activity type icon/color mapping
 // ---------------------------------------------------------------------------
 
-const MOCK_UPCOMING_TASKS = [
-  {
-    id: 't1',
-    title: 'Fire alarm test',
-    time: '9:00 AM',
-    type: 'maintenance',
-    priority: 'high' as const,
-  },
-  {
-    id: 't2',
-    title: 'Elevator B technician visit',
-    time: '2:00 PM',
-    type: 'maintenance',
-    priority: 'high' as const,
-  },
-  {
-    id: 't3',
-    title: 'Pool filter inspection',
-    time: '3:30 PM',
-    type: 'inspection',
-    priority: 'normal' as const,
-  },
-  {
-    id: 't4',
-    title: 'Lobby plant watering',
-    time: '4:00 PM',
-    type: 'routine',
-    priority: 'low' as const,
-  },
-];
+const ACTIVITY_TYPE_CONFIG: Record<string, { icon: LucideIcon; color: string; bg: string }> = {
+  Package: { icon: Package, color: 'text-primary-600', bg: 'bg-primary-50' },
+  Visitor: { icon: Users, color: 'text-success-600', bg: 'bg-success-50' },
+  Maintenance: { icon: Wrench, color: 'text-warning-600', bg: 'bg-warning-50' },
+  Security: { icon: Shield, color: 'text-error-600', bg: 'bg-error-50' },
+  Announcement: { icon: Megaphone, color: 'text-primary-600', bg: 'bg-primary-50' },
+  'Shift Log': { icon: Clock, color: 'text-info-600', bg: 'bg-info-50' },
+  Incident: { icon: AlertTriangle, color: 'text-error-600', bg: 'bg-error-50' },
+  Inspection: { icon: CheckCircle2, color: 'text-info-600', bg: 'bg-info-50' },
+};
 
-const MOCK_RECENT_ACTIVITY = [
-  {
-    id: 'ra1',
-    type: 'Package',
-    title: 'Amazon delivery for Unit 1205',
-    status: 'Logged',
-    time: '5 min ago',
-    icon: Package,
-    color: 'text-primary-600',
-    bg: 'bg-primary-50',
-  },
-  {
-    id: 'ra2',
-    type: 'Visitor',
-    title: 'John Smith signed in to visit Unit 802',
-    status: 'Active',
-    time: '12 min ago',
-    icon: Users,
-    color: 'text-success-600',
-    bg: 'bg-success-50',
-  },
-  {
-    id: 'ra3',
-    type: 'Maintenance',
-    title: 'Leaking faucet reported - Unit 1501',
-    status: 'Open',
-    time: '25 min ago',
-    icon: Wrench,
-    color: 'text-warning-600',
-    bg: 'bg-warning-50',
-  },
-  {
-    id: 'ra4',
-    type: 'Security',
-    title: 'Parking violation logged - P1 Spot 42',
-    status: 'Open',
-    time: '45 min ago',
-    icon: Shield,
-    color: 'text-error-600',
-    bg: 'bg-error-50',
-  },
-  {
-    id: 'ra5',
-    type: 'Announcement',
-    title: 'Easter weekend schedule posted',
-    status: 'Published',
-    time: '1 hr ago',
-    icon: Megaphone,
-    color: 'text-primary-600',
-    bg: 'bg-primary-50',
-  },
-  {
-    id: 'ra6',
-    type: 'Package',
-    title: 'FedEx delivery for Unit 405',
-    status: 'Logged',
-    time: '1.5 hrs ago',
-    icon: Package,
-    color: 'text-primary-600',
-    bg: 'bg-primary-50',
-  },
-  {
-    id: 'ra7',
-    type: 'Shift Log',
-    title: 'Morning shift started - Guard Patel',
-    status: 'Active',
-    time: '2 hrs ago',
-    icon: Clock,
-    color: 'text-info-600',
-    bg: 'bg-info-50',
-  },
-  {
-    id: 'ra8',
-    type: 'Visitor',
-    title: 'Delivery driver signed out',
-    status: 'Complete',
-    time: '2.5 hrs ago',
-    icon: Users,
-    color: 'text-success-600',
-    bg: 'bg-success-50',
-  },
-  {
-    id: 'ra9',
-    type: 'Maintenance',
-    title: 'Hallway light replaced - Floor 12',
-    status: 'Closed',
-    time: '3 hrs ago',
-    icon: Wrench,
-    color: 'text-warning-600',
-    bg: 'bg-warning-50',
-  },
-  {
-    id: 'ra10',
-    type: 'Package',
-    title: 'UPS bulk delivery (8 packages)',
-    status: 'Logged',
-    time: '3.5 hrs ago',
-    icon: Package,
-    color: 'text-primary-600',
-    bg: 'bg-primary-50',
-  },
-];
+const DEFAULT_ACTIVITY_CONFIG = { icon: Activity, color: 'text-neutral-500', bg: 'bg-neutral-100' };
 
 // ---------------------------------------------------------------------------
 // Quick Action Links
@@ -485,10 +364,14 @@ const QUICK_ACTION_LINKS: Record<string, { href: string; icon: LucideIcon }> = {
 interface DashboardApiData {
   kpis: {
     unreleasedPackages: number;
+    activeVisitors: number;
     openMaintenanceRequests: number;
-    openEvents: number;
-    totalUnits: number;
-    activeUsers: number;
+    todayEvents: number;
+    pendingBookingApprovals: number;
+    unreadAnnouncements: number;
+    overdueMaintenanceRequests: number;
+    monthlyPackageVolume: number;
+    avgResolutionTimeHours: number;
   };
   recentActivity: {
     id: string;
@@ -498,6 +381,17 @@ interface DashboardApiData {
     status: string;
     createdAt: string;
   }[];
+}
+
+interface UpcomingTaskItem {
+  taskId: string;
+  taskName: string;
+  date: string;
+  category: { id: string; name: string } | null;
+  equipment: { id: string; name: string } | null;
+  assignedEmployeeId: string | null;
+  defaultPriority: string;
+  isOverdue: boolean;
 }
 
 function getBuildingHealthColor(score: number): string {
@@ -533,6 +427,14 @@ export default function DashboardPage() {
     apiUrl('/api/v1/dashboard', { propertyId: DEMO_PROPERTY_ID, role: effectiveRole }),
   );
 
+  // Fetch upcoming tasks from the recurring-tasks API (next 7 days)
+  const { data: upcomingTasksData, loading: tasksLoading } = useApi<UpcomingTaskItem[]>(
+    apiUrl('/api/v1/recurring-tasks/upcoming', {
+      propertyId: DEMO_PROPERTY_ID,
+      days: '7',
+    }),
+  );
+
   // Map KPI names to real values from the API, falling back to em-dash
   const kpiValues: Record<string, string> = useMemo(() => {
     if (!apiData?.kpis) return {} as Record<string, string>;
@@ -540,18 +442,22 @@ export default function DashboardPage() {
     const map: Record<string, string> = {
       'Unreleased Packages': String(k.unreleasedPackages),
       'Open Requests': String(k.openMaintenanceRequests),
-      'Active Visitors': String(k.openEvents),
-      'Resident Count': String(k.totalUnits),
-      'Active Users': String(k.activeUsers),
+      'Active Visitors': String(k.activeVisitors),
+      'Resident Count': '\u2014',
+      'Active Users': '\u2014',
       'Total Properties': '1',
       'My Packages': String(k.unreleasedPackages),
       'Assigned Requests': String(k.openMaintenanceRequests),
-      'Pending Items': String(k.openEvents),
-      'Expected Visitors': String(k.openEvents),
-      Bookings: '\u2014',
+      'Pending Items': String(k.pendingBookingApprovals),
+      'Expected Visitors': String(k.activeVisitors),
+      Bookings: String(k.pendingBookingApprovals),
+      Announcements: String(k.unreadAnnouncements),
+      'Incident Count': String(k.todayEvents),
+      'Scheduled Tasks': upcomingTasksData ? String(upcomingTasksData.length) : '\u2014',
+      'Equipment Alerts': String(k.overdueMaintenanceRequests),
     };
     return map;
-  }, [apiData]);
+  }, [apiData, upcomingTasksData]);
 
   if (loading && !demoRole) {
     return <DashboardSkeleton />;
@@ -778,46 +684,88 @@ export default function DashboardPage() {
           <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
             Upcoming Tasks
           </h2>
-          <Card padding="none">
-            <div className="divide-y divide-neutral-100">
-              {MOCK_UPCOMING_TASKS.map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-neutral-50"
-                >
-                  <div className="flex items-center gap-3">
+          {tasksLoading ? (
+            <UpcomingTasksSkeleton />
+          ) : upcomingTasksData && upcomingTasksData.length > 0 ? (
+            <Card padding="none">
+              <div className="divide-y divide-neutral-100">
+                {upcomingTasksData.slice(0, 8).map((task, idx) => {
+                  const priority = task.defaultPriority;
+                  const taskDate = new Date(task.date);
+                  const timeStr = taskDate.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  });
+                  const dateStr = taskDate.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                  });
+                  const isToday = taskDate.toDateString() === new Date().toDateString();
+
+                  return (
                     <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                        task.priority === 'high'
-                          ? 'bg-error-50'
-                          : task.priority === 'normal'
-                            ? 'bg-warning-50'
-                            : 'bg-neutral-100'
-                      }`}
+                      key={`${task.taskId}-${idx}`}
+                      className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-neutral-50"
                     >
-                      <Calendar
-                        className={`h-4 w-4 ${
-                          task.priority === 'high'
-                            ? 'text-error-600'
-                            : task.priority === 'normal'
-                              ? 'text-warning-600'
-                              : 'text-neutral-400'
-                        }`}
-                      />
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                            task.isOverdue || priority === 'urgent' || priority === 'high'
+                              ? 'bg-error-50'
+                              : priority === 'medium'
+                                ? 'bg-warning-50'
+                                : 'bg-neutral-100'
+                          }`}
+                        >
+                          <Calendar
+                            className={`h-4 w-4 ${
+                              task.isOverdue || priority === 'urgent' || priority === 'high'
+                                ? 'text-error-600'
+                                : priority === 'medium'
+                                  ? 'text-warning-600'
+                                  : 'text-neutral-400'
+                            }`}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-[14px] font-medium text-neutral-900">
+                            {task.taskName}
+                          </p>
+                          <p className="text-[12px] text-neutral-500">
+                            {task.category?.name ?? 'General'}
+                            {task.isOverdue ? (
+                              <span className="text-error-600 ml-1 font-medium">— Overdue</span>
+                            ) : null}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-right">
+                        <Clock className="h-3.5 w-3.5 text-neutral-400" />
+                        <div>
+                          <span className="text-[13px] font-medium text-neutral-600">
+                            {isToday ? timeStr : dateStr}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[14px] font-medium text-neutral-900">{task.title}</p>
-                      <p className="text-[12px] text-neutral-500 capitalize">{task.type}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-3.5 w-3.5 text-neutral-400" />
-                    <span className="text-[13px] font-medium text-neutral-600">{task.time}</span>
-                  </div>
+                  );
+                })}
+              </div>
+            </Card>
+          ) : (
+            <Card>
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
+                  <CheckCircle2 className="h-5 w-5 text-neutral-400" />
                 </div>
-              ))}
-            </div>
-          </Card>
+                <p className="text-[14px] font-medium text-neutral-600">All caught up</p>
+                <p className="mt-1 text-[12px] text-neutral-400">
+                  No upcoming tasks in the next 7 days
+                </p>
+              </div>
+            </Card>
+          )}
         </div>
 
         {/* Recent Activity Feed */}
@@ -825,38 +773,15 @@ export default function DashboardPage() {
           <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
             Recent Activity
           </h2>
-          {apiData?.recentActivity && apiData.recentActivity.length > 0 ? (
-            <div className="space-y-2">
-              {apiData.recentActivity.map((event) => (
-                <Card key={event.id} hoverable className="cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100">
-                        <Activity className="h-4 w-4 text-neutral-500" />
-                      </div>
-                      <div>
-                        <p className="text-[14px] font-medium text-neutral-900">{event.title}</p>
-                        <p className="text-[12px] text-neutral-500">
-                          {event.type}
-                          {event.unit ? ` \u00B7 Unit ${event.unit}` : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-[12px] text-neutral-400">
-                      {new Date(event.createdAt).toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : (
+          {!apiData ? (
+            <RecentActivitySkeleton />
+          ) : apiData.recentActivity && apiData.recentActivity.length > 0 ? (
             <Card padding="none">
               <div className="divide-y divide-neutral-100">
-                {MOCK_RECENT_ACTIVITY.map((event) => {
-                  const EventIcon = event.icon;
+                {apiData.recentActivity.map((event) => {
+                  const typeConfig = ACTIVITY_TYPE_CONFIG[event.type] ?? DEFAULT_ACTIVITY_CONFIG;
+                  const EventIcon = typeConfig.icon;
+
                   return (
                     <div
                       key={event.id}
@@ -864,23 +789,26 @@ export default function DashboardPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${event.bg}`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${typeConfig.bg}`}
                         >
-                          <EventIcon className={`h-4 w-4 ${event.color}`} />
+                          <EventIcon className={`h-4 w-4 ${typeConfig.color}`} />
                         </div>
                         <div>
                           <p className="text-[14px] font-medium text-neutral-900">{event.title}</p>
-                          <p className="text-[12px] text-neutral-500">{event.type}</p>
+                          <p className="text-[12px] text-neutral-500">
+                            {event.type}
+                            {event.unit ? ` \u00B7 Unit ${event.unit}` : ''}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge
                           variant={
-                            event.status === 'Active' || event.status === 'Published'
+                            event.status === 'active' || event.status === 'published'
                               ? 'success'
-                              : event.status === 'Open'
+                              : event.status === 'open'
                                 ? 'warning'
-                                : event.status === 'Closed' || event.status === 'Complete'
+                                : event.status === 'closed' || event.status === 'resolved'
                                   ? 'default'
                                   : 'info'
                           }
@@ -888,17 +816,106 @@ export default function DashboardPage() {
                         >
                           {event.status}
                         </Badge>
-                        <span className="text-[12px] text-neutral-400">{event.time}</span>
+                        <span className="text-[12px] text-neutral-400">
+                          {formatRelativeTime(event.createdAt)}
+                        </span>
                       </div>
                     </div>
                   );
                 })}
               </div>
             </Card>
+          ) : (
+            <Card>
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
+                  <Activity className="h-5 w-5 text-neutral-400" />
+                </div>
+                <p className="text-[14px] font-medium text-neutral-600">No recent activity</p>
+                <p className="mt-1 text-[12px] text-neutral-400">
+                  Events will appear here as they occur
+                </p>
+              </div>
+            </Card>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Relative time formatter
+// ---------------------------------------------------------------------------
+
+function formatRelativeTime(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+
+  if (diffMin < 1) return 'Just now';
+  if (diffMin < 60) return `${diffMin} min ago`;
+
+  const diffHrs = Math.floor(diffMin / 60);
+  if (diffHrs < 24) return `${diffHrs} hr${diffHrs > 1 ? 's' : ''} ago`;
+
+  const diffDays = Math.floor(diffHrs / 24);
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Section-level loading skeletons
+// ---------------------------------------------------------------------------
+
+function UpcomingTasksSkeleton() {
+  return (
+    <Card padding="none">
+      <div className="divide-y divide-neutral-100">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-center justify-between px-5 py-3.5">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-8 w-8 rounded-lg" />
+              <div>
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="mt-1.5 h-3 w-24" />
+              </div>
+            </div>
+            <Skeleton className="h-4 w-16" />
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function RecentActivitySkeleton() {
+  return (
+    <Card padding="none">
+      <div className="divide-y divide-neutral-100">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex items-center justify-between px-5 py-3.5">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-8 w-8 rounded-lg" />
+              <div>
+                <Skeleton className="h-4 w-56" />
+                <Skeleton className="mt-1.5 h-3 w-28" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-3 w-14" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

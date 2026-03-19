@@ -1,0 +1,60 @@
+version: 2
+
+updates:
+  # npm dependencies (via pnpm)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Toronto
+    open-pull-requests-limit: 10
+    reviewers:
+      - yaswanth
+    labels:
+      - dependencies
+      - automated
+    commit-message:
+      prefix: "deps"
+      include: scope
+    groups:
+      # Group minor/patch updates to reduce PR noise
+      radix-ui:
+        patterns:
+          - "@radix-ui/*"
+      testing:
+        patterns:
+          - "vitest"
+          - "@testing-library/*"
+          - "@playwright/test"
+          - "@axe-core/*"
+          - "msw"
+      storybook:
+        patterns:
+          - "storybook"
+          - "@storybook/*"
+      eslint:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "@typescript-eslint/*"
+      aws:
+        patterns:
+          - "@aws-sdk/*"
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Toronto
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
+      - automated
+    commit-message:
+      prefix: "ci"

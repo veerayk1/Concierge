@@ -1,0 +1,46 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build output
+.next
+out
+dist
+
+# Dev/test files
+.env
+.env.local
+.env.development
+.env.test
+*.test.ts
+*.test.tsx
+*.spec.ts
+__tests__
+tests/
+src/test/
+coverage/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Docs (not needed in production image)
+docs/
+CLAUDE.md
+README.md
+*.md
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
