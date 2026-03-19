@@ -10,6 +10,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { createSupportTicketSchema } from '@/schemas/help';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { randomInt } from 'crypto';
 import type { Role } from '@/types';
 
 const ADMIN_ROLES: Role[] = ['super_admin', 'property_admin', 'property_manager'];
@@ -94,10 +96,18 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Auto-generate ticket number TKT-XXXXXX
+    const ticketNumber = `TKT-${randomInt(100000, 999999).toString()}`;
+
+    // XSS sanitization on user-provided strings
+    const sanitizedSubject = stripControlChars(stripHtml(input.subject));
+    const sanitizedDescription = stripControlChars(stripHtml(input.description));
+
     const ticket = await prisma.supportTicket.create({
       data: {
-        subject: input.subject,
-        description: input.description,
+        ticketNumber,
+        subject: sanitizedSubject,
+        description: sanitizedDescription,
         category: input.category,
         priority: input.priority,
         status: 'open',

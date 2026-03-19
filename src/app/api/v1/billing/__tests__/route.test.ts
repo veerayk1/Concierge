@@ -27,6 +27,8 @@ const mockInvoiceCreate = vi.fn();
 const mockInvoiceFindFirst = vi.fn();
 const mockInvoiceUpdate = vi.fn();
 const mockPropertyUpdate = vi.fn();
+const mockUnitCount = vi.fn();
+const mockUserPropertyCount = vi.fn();
 
 vi.mock('@/server/db', () => ({
   prisma: {
@@ -44,6 +46,12 @@ vi.mock('@/server/db', () => ({
     },
     property: {
       update: (...args: unknown[]) => mockPropertyUpdate(...args),
+    },
+    unit: {
+      count: (...args: unknown[]) => mockUnitCount(...args),
+    },
+    userProperty: {
+      count: (...args: unknown[]) => mockUserPropertyCount(...args),
     },
   },
 }));
@@ -256,6 +264,8 @@ beforeEach(() => {
   mockInvoiceCount.mockResolvedValue(0);
   mockInvoiceFindFirst.mockResolvedValue(null);
   mockVerifyWebhookSignature.mockResolvedValue(true);
+  mockUnitCount.mockResolvedValue(10);
+  mockUserPropertyCount.mockResolvedValue(3);
 });
 
 // ===========================================================================

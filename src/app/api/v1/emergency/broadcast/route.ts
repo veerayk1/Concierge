@@ -9,11 +9,21 @@ import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
+const BROADCAST_CHANNELS = ['push', 'sms', 'email', 'voice', 'lobby_display'] as const;
+const BROADCAST_TARGETS = ['all', 'specific_floors', 'specific_units', 'staff_only'] as const;
+
 const createBroadcastSchema = z.object({
   propertyId: z.string().uuid(),
   title: z.string().min(1, 'Title is required').max(200),
-  body: z.string().min(1, 'Body is required').max(10000),
+  body: z
+    .string()
+    .min(10, 'Message must be at least 10 characters')
+    .max(2000, 'Message must be at most 2000 characters'),
   severity: z.enum(['low', 'medium', 'high', 'critical']),
+  channels: z.array(z.enum(BROADCAST_CHANNELS)).min(1, 'At least one channel is required'),
+  targetAudience: z.enum(BROADCAST_TARGETS).default('all'),
+  targetFloors: z.array(z.number().int().positive()).optional(),
+  targetUnitIds: z.array(z.string().uuid()).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -74,13 +84,51 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
-    // Get all active users in the property for targeting
+    // Validate target-specific fields
+    if (
+      input.targetAudience === 'specific_floors' &&
+      (!input.targetFloors || input.targetFloors.length === 0)
+    ) {
+      return NextResponse.json(
+        {
+          error: 'VALIDATION_ERROR',
+          message: 'targetFloors required when targetAudience is specific_floors',
+        },
+        { status: 400 },
+      );
+    }
+    if (
+      input.targetAudience === 'specific_units' &&
+      (!input.targetUnitIds || input.targetUnitIds.length === 0)
+    ) {
+      return NextResponse.json(
+        {
+          error: 'VALIDATION_ERROR',
+          message: 'targetUnitIds required when targetAudience is specific_units',
+        },
+        { status: 400 },
+      );
+    }
+
+    // Get targeted users based on audience
+    const userPropertyWhere: Record<string, unknown> = {
+      propertyId: input.propertyId,
+      deletedAt: null,
+    };
+
+    if (input.targetAudience === 'staff_only') {
+      userPropertyWhere.role = {
+        in: ['property_admin', 'front_desk', 'security_guard', 'maintenance_staff'],
+      };
+    }
+
     const userProperties = await prisma.userProperty.findMany({
-      where: { propertyId: input.propertyId, deletedAt: null },
+      where: userPropertyWhere,
       select: { userId: true },
     });
 
     const totalTargeted = userProperties.length;
+    const hasPush = input.channels.includes('push');
 
     const broadcast = await prisma.emergencyBroadcast.create({
       data: {
@@ -88,14 +136,22 @@ export async function POST(request: NextRequest) {
         title: stripControlChars(stripHtml(input.title)),
         body: stripControlChars(stripHtml(input.body)),
         severity: input.severity,
-        status: 'sending',
+        status: 'active',
         totalTargeted,
-        pushSent: totalTargeted, // Push is sent immediately to all targets
+        pushSent: hasPush ? totalTargeted : 0,
         smsSent: 0,
         voiceSent: 0,
         acknowledgedCount: 0,
-        cascadeStatus: 'push_phase',
+        cascadeStatus: hasPush
+          ? 'push_phase'
+          : input.channels.includes('sms')
+            ? 'sms_phase'
+            : 'voice_phase',
         cascadeConfig: {
+          channels: input.channels,
+          targetAudience: input.targetAudience,
+          targetFloors: input.targetFloors ?? [],
+          targetUnitIds: input.targetUnitIds ?? [],
           sms_delay_minutes: 2,
           voice_delay_minutes: 5,
         },

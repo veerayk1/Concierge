@@ -3356,6 +3356,7 @@ model HelpArticle {
   body           String // MDX content
   category       String
   tags           String[]
+  isFeatured     Boolean   @default(false) @map("is_featured")
   sortOrder      Int       @default(0) @map("sort_order")
   contextPages   String[]  @map("context_pages") // pages where this article is contextually relevant
   roleVisibility String[]  @map("role_visibility") // which roles can see this
@@ -3374,9 +3375,10 @@ model HelpArticle {
 }
 
 model SupportTicket {
-  id          String    @id @default(uuid()) @db.Uuid
-  subject     String
-  description String
+  id           String    @id @default(uuid()) @db.Uuid
+  ticketNumber String    @unique @map("ticket_number") // TKT-XXXXXX
+  subject      String
+  description  String
   category    String
   status      String    @default("open") // open | in_progress | resolved | closed
   priority    String    @default("medium") // low | medium | high | urgent

@@ -166,7 +166,7 @@ describe('GET /api/v1/help/articles — Sorted List', () => {
 
     // Verify ordering params
     const orderBy = mockArticleFindMany.mock.calls[0]![0].orderBy;
-    expect(orderBy).toEqual([{ sortOrder: 'asc' }, { createdAt: 'desc' }]);
+    expect(orderBy).toEqual([{ isFeatured: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }]);
   });
 
   it('returns paginated results with meta information', async () => {
@@ -377,13 +377,13 @@ describe('POST /api/v1/help/articles — Title Validation', () => {
       id: 'art-min',
       slug: 'faq',
       title: 'FAQ',
-      body: 'Frequently asked questions content here.',
+      body: 'Frequently asked questions content here. Read this for more info.',
       category: 'getting_started',
     });
 
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'FAQ',
-      body: 'Frequently asked questions content here.',
+      body: 'Frequently asked questions content here. Read this for more info.',
       category: 'getting_started',
     });
     const res = await POST_ARTICLES(req);
@@ -397,10 +397,10 @@ describe('POST /api/v1/help/articles — Title Validation', () => {
 // ===========================================================================
 
 describe('POST /api/v1/help/articles — Body Validation', () => {
-  it('rejects body shorter than 10 characters', async () => {
+  it('rejects body shorter than 50 characters', async () => {
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'Short Body Test',
-      body: 'Too short',
+      body: 'This body is too short to pass.',
       category: 'packages',
     });
     const res = await POST_ARTICLES(req);
@@ -411,18 +411,19 @@ describe('POST /api/v1/help/articles — Body Validation', () => {
     expect(body.fields.body).toBeDefined();
   });
 
-  it('accepts body exactly 10 characters', async () => {
+  it('accepts body exactly 50 characters', async () => {
+    const body50 = 'A'.repeat(50);
     mockArticleCreate.mockResolvedValue({
       id: 'art-min-body',
       slug: 'min-body',
       title: 'Minimum Body',
-      body: '1234567890',
+      body: body50,
       category: 'admin',
     });
 
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'Minimum Body',
-      body: '1234567890',
+      body: body50,
       category: 'admin',
     });
     const res = await POST_ARTICLES(req);
@@ -441,12 +442,12 @@ describe('PATCH /api/v1/help/articles/:id — Update Article', () => {
     mockArticleUpdate.mockResolvedValue({
       ...sampleArticle,
       title: 'Updated Title',
-      body: 'Updated body content with enough length.',
+      body: 'Updated body content with enough length to pass the validation check.',
     });
 
     const req = createPatchRequest('/api/v1/help/articles/art-1', {
       title: 'Updated Title',
-      body: 'Updated body content with enough length.',
+      body: 'Updated body content with enough length to pass the validation check.',
     });
     const res = await PATCH_ARTICLE(req, { params: Promise.resolve({ id: 'art-1' }) });
 
@@ -599,7 +600,7 @@ describe('POST /api/v1/help/articles — Tags', () => {
 
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'Tag Test Article',
-      body: 'This article has multiple tags for testing purposes.',
+      body: 'This article has multiple tags for testing purposes. It needs to be longer.',
       category: 'packages',
       tags,
     });
@@ -618,7 +619,7 @@ describe('POST /api/v1/help/articles — Tags', () => {
 
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'No Tags Article',
-      body: 'This article has no tags for testing defaults.',
+      body: 'This article has no tags for testing defaults. It needs to be at least fifty.',
       category: 'admin',
     });
     await POST_ARTICLES(req);
@@ -630,7 +631,7 @@ describe('POST /api/v1/help/articles — Tags', () => {
   it('limits to max 10 tags', async () => {
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'Too Many Tags',
-      body: 'This article has too many tags and should fail.',
+      body: 'This article has too many tags and should fail the validation check.',
       category: 'admin',
       tags: Array.from({ length: 11 }, (_, i) => `tag-${i}`),
     });
@@ -1097,7 +1098,7 @@ describe('POST /api/v1/help/articles — Category Validation', () => {
   it('rejects invalid category', async () => {
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'Invalid Category Test',
-      body: 'This should fail because the category does not exist.',
+      body: 'This should fail because the category does not exist in the system.',
       category: 'nonexistent_category',
     });
     const res = await POST_ARTICLES(req);
@@ -1117,7 +1118,7 @@ describe('POST /api/v1/help/articles — Category Validation', () => {
       id: `art-${category}`,
       title: `${category} article`,
       slug: `${category}-article`,
-      body: `Content for ${category} category testing.`,
+      body: `Content for ${category} category testing. This must be at least fifty characters.`,
       category,
       tags: [],
       sortOrder: 0,
@@ -1126,7 +1127,7 @@ describe('POST /api/v1/help/articles — Category Validation', () => {
 
     const req = createPostRequest('/api/v1/help/articles', {
       title: `${category} article`,
-      body: `Content for ${category} category testing.`,
+      body: `Content for ${category} category testing. This must be at least fifty characters.`,
       category,
     });
     const res = await POST_ARTICLES(req);
@@ -1148,7 +1149,7 @@ describe('POST /api/v1/help/articles — Role Enforcement', () => {
 
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'Resident Attempt',
-      body: 'Residents should not be able to create help articles.',
+      body: 'Residents should not be able to create help articles in the system.',
       category: 'packages',
     });
     const res = await POST_ARTICLES(req);
@@ -1167,7 +1168,7 @@ describe('POST /api/v1/help/articles — Locale and Role Visibility', () => {
       id: 'art-locale',
       slug: 'french-article',
       title: 'Article en francais',
-      body: 'Contenu de article pour les utilisateurs francophones.',
+      body: 'Contenu de article pour les utilisateurs francophones. Il faut au moins cinquante caracteres.',
       category: 'getting_started',
       locale: 'fr-CA',
       roleVisibility: ['resident_owner', 'resident_tenant'],
@@ -1175,7 +1176,7 @@ describe('POST /api/v1/help/articles — Locale and Role Visibility', () => {
 
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'Article en francais',
-      body: 'Contenu de article pour les utilisateurs francophones.',
+      body: 'Contenu de article pour les utilisateurs francophones. Il faut au moins cinquante caracteres.',
       category: 'getting_started',
       locale: 'fr-CA',
       roleVisibility: ['resident_owner', 'resident_tenant'],
@@ -1192,14 +1193,14 @@ describe('POST /api/v1/help/articles — Locale and Role Visibility', () => {
       id: 'art-en',
       slug: 'english-default',
       title: 'Default Locale Test',
-      body: 'This article should default to English locale.',
+      body: 'This article should default to English locale and needs fifty chars minimum.',
       category: 'admin',
       locale: 'en',
     });
 
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'Default Locale Test',
-      body: 'This article should default to English locale.',
+      body: 'This article should default to English locale and needs fifty chars minimum.',
       category: 'admin',
     });
     await POST_ARTICLES(req);

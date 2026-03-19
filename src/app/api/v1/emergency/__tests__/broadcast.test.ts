@@ -190,6 +190,7 @@ describe('POST /api/v1/emergency/broadcast — Create Emergency Broadcast', () =
       title: 'Fire Alarm - Building A',
       body: 'Evacuate immediately via stairwell B.',
       severity: 'critical',
+      channels: ['push'],
     });
     const res = await POST(req);
 
@@ -207,11 +208,12 @@ describe('POST /api/v1/emergency/broadcast — Create Emergency Broadcast', () =
       title: 'Gas Leak',
       body: 'Gas leak detected on floor 3.',
       severity: 'critical',
+      channels: ['push'],
     });
     await POST(req);
 
     const createData = mockBroadcastCreate.mock.calls[0]![0].data;
-    expect(createData.status).toBe('sending');
+    expect(createData.status).toBe('active');
   });
 
   it('sets initiatedById to the authenticated user', async () => {
@@ -222,6 +224,7 @@ describe('POST /api/v1/emergency/broadcast — Create Emergency Broadcast', () =
       title: 'Test',
       body: 'Test body message for emergency.',
       severity: 'high',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -249,6 +252,7 @@ describe('POST /api/v1/emergency/broadcast — Message Validation', () => {
       propertyId: PROPERTY_ID,
       body: 'Evacuate immediately.',
       severity: 'critical',
+      channels: ['push'],
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -261,6 +265,7 @@ describe('POST /api/v1/emergency/broadcast — Message Validation', () => {
       propertyId: PROPERTY_ID,
       title: 'Fire Alarm',
       severity: 'critical',
+      channels: ['push'],
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -274,6 +279,7 @@ describe('POST /api/v1/emergency/broadcast — Message Validation', () => {
       title: 'A'.repeat(201),
       body: 'Evacuate immediately.',
       severity: 'critical',
+      channels: ['push'],
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -319,6 +325,7 @@ describe('POST /api/v1/emergency/broadcast — Severity Validation', () => {
         title: 'Test',
         body: 'Test body message.',
         severity,
+        channels: ['push'],
       });
       const res = await POST(req);
       expect(res.status).toBe(201);
@@ -403,6 +410,7 @@ describe('POST /api/v1/emergency/broadcast — Cascade Configuration', () => {
       title: 'Test',
       body: 'Test body for cascade.',
       severity: 'critical',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -418,6 +426,7 @@ describe('POST /api/v1/emergency/broadcast — Cascade Configuration', () => {
       title: 'Test',
       body: 'Test body for cascade config.',
       severity: 'critical',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -443,6 +452,7 @@ describe('POST /api/v1/emergency/broadcast — Cascade Configuration', () => {
       title: 'Test',
       body: 'Immediate push test.',
       severity: 'high',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -752,6 +762,7 @@ describe('POST /api/v1/emergency/broadcast — Targeting', () => {
       title: 'Test',
       body: 'Test body for targeting.',
       severity: 'high',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -778,6 +789,7 @@ describe('POST /api/v1/emergency/broadcast — Targeting', () => {
       title: 'Test',
       body: 'Test targeting count.',
       severity: 'high',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -794,6 +806,7 @@ describe('POST /api/v1/emergency/broadcast — Targeting', () => {
       title: 'Empty Building Alert',
       body: 'No one to notify.',
       severity: 'low',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -815,6 +828,7 @@ describe('Emergency Broadcast — Priority and Authorization', () => {
       title: 'Test',
       body: 'Test authorization check.',
       severity: 'high',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -844,6 +858,7 @@ describe('Emergency Broadcast — Priority and Authorization', () => {
       title: 'Intruder Alert',
       body: 'Suspicious person in lobby.',
       severity: 'high',
+      channels: ['push'],
     });
     const res = await POST(req);
     expect(res.status).toBe(201);
@@ -864,6 +879,7 @@ describe('Emergency Broadcast — Priority and Authorization', () => {
       title: 'Test',
       body: 'Test forbidden access.',
       severity: 'high',
+      channels: ['push'],
     });
     const res = await POST(req);
     expect(res.status).toBe(403);
@@ -884,6 +900,7 @@ describe('Emergency Broadcast — Priority and Authorization', () => {
       title: 'Fake Emergency',
       body: 'Not a real emergency.',
       severity: 'critical',
+      channels: ['push'],
     });
     const res = await POST(req);
     expect(res.status).toBe(403);
@@ -1115,6 +1132,7 @@ describe('Emergency Broadcast — Tenant Isolation', () => {
       title: 'Test Isolation',
       body: 'Test tenant isolation.',
       severity: 'low',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -1130,6 +1148,7 @@ describe('Emergency Broadcast — Tenant Isolation', () => {
       title: 'Test',
       body: 'Test user targeting.',
       severity: 'medium',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -1162,6 +1181,7 @@ describe('Emergency Broadcast — Template support', () => {
       title: 'FIRE ALARM ACTIVATED',
       body: 'The fire alarm has been activated. Please evacuate the building immediately using the nearest stairwell. Do not use elevators.',
       severity: 'critical',
+      channels: ['push'],
     });
     const res = await POST(req);
     expect(res.status).toBe(201);
@@ -1181,6 +1201,7 @@ describe('Emergency Broadcast — Template support', () => {
       title: 'WATER SHUTOFF NOTICE',
       body: 'Water will be shut off for emergency repairs. Please fill containers for drinking water. Estimated duration: 2 hours.',
       severity: 'medium',
+      channels: ['push'],
     });
     const res = await POST(req);
     expect(res.status).toBe(201);
@@ -1206,6 +1227,7 @@ describe('Emergency Broadcast — Staff targeting', () => {
       title: 'Building-Wide Alert',
       body: 'All residents and staff please be advised.',
       severity: 'high',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -1228,6 +1250,7 @@ describe('Emergency Broadcast — Error Handling', () => {
       title: 'Test',
       body: 'Test error handling.',
       severity: 'high',
+      channels: ['push'],
     });
     const res = await POST(req);
 
@@ -1295,6 +1318,7 @@ describe('Emergency Broadcast — XSS Sanitization', () => {
       title: '<script>alert("xss")</script>Fire Alarm',
       body: '<img onerror="hack()" src=x>Evacuate now.',
       severity: 'critical',
+      channels: ['push'],
     });
     await POST(req);
 

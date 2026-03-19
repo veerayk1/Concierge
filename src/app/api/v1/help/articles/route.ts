@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const search = searchParams.get('search') || '';
+    const featured = searchParams.get('featured');
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '50', 10);
 
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (category) where.category = category;
+    if (featured === 'true') where.isFeatured = true;
 
     if (search) {
       where.OR = [
@@ -50,7 +52,7 @@ export async function GET(request: NextRequest) {
     const [articles, total] = await Promise.all([
       prisma.helpArticle.findMany({
         where,
-        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+        orderBy: [{ isFeatured: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
@@ -115,6 +117,7 @@ export async function POST(request: NextRequest) {
         body: input.body,
         category: input.category,
         tags: input.tags,
+        isFeatured: input.isFeatured,
         sortOrder: input.sortOrder,
         contextPages: input.contextPages,
         roleVisibility: input.roleVisibility,

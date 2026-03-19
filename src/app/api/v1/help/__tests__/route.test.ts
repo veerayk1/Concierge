@@ -177,7 +177,7 @@ describe('GET /api/v1/help/articles — List Articles', () => {
     await GET_ARTICLES(req);
 
     const orderBy = mockArticleFindMany.mock.calls[0]![0].orderBy;
-    expect(orderBy).toEqual([{ sortOrder: 'asc' }, { createdAt: 'desc' }]);
+    expect(orderBy).toEqual([{ isFeatured: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }]);
   });
 });
 
@@ -286,7 +286,7 @@ describe('POST /api/v1/help/articles — Create Article', () => {
 
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'Test',
-      body: 'Test body content here',
+      body: 'Test body content here with enough characters to meet the minimum length requirement.',
       category: 'packages',
     });
     const res = await POST_ARTICLES(req);
@@ -303,7 +303,7 @@ describe('Help Article Categories', () => {
   it('rejects invalid category on article creation', async () => {
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'Invalid Category Test',
-      body: 'This should fail validation.',
+      body: 'This should fail validation but has enough characters to pass body check.',
       category: 'nonexistent_category',
     });
     const res = await POST_ARTICLES(req);
@@ -323,7 +323,7 @@ describe('Help Article Categories', () => {
       id: 'a-cat',
       title: `${category} article`,
       slug: `${category}-article`,
-      body: 'Content here for testing.',
+      body: 'Content here for testing purposes. This body must be at least fifty characters long.',
       category,
       tags: [],
       sortOrder: 0,
@@ -332,7 +332,7 @@ describe('Help Article Categories', () => {
 
     const req = createPostRequest('/api/v1/help/articles', {
       title: `${category} article`,
-      body: 'Content here for testing.',
+      body: 'Content here for testing purposes. This body must be at least fifty characters long.',
       category,
     });
     const res = await POST_ARTICLES(req);
@@ -351,7 +351,7 @@ describe('Help Article Field Structure', () => {
       id: 'a-sort',
       title: 'Sorted Article',
       slug: 'sorted-article',
-      body: 'Content here for sorting test.',
+      body: 'Content here for sorting test. This body must be at least fifty characters long.',
       category: 'getting_started',
       tags: ['intro'],
       sortOrder: 10,
@@ -360,7 +360,7 @@ describe('Help Article Field Structure', () => {
 
     const req = createPostRequest('/api/v1/help/articles', {
       title: 'Sorted Article',
-      body: 'Content here for sorting test.',
+      body: 'Content here for sorting test. This body must be at least fifty characters long.',
       category: 'getting_started',
       tags: ['intro'],
       sortOrder: 10,

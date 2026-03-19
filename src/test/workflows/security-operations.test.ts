@@ -298,6 +298,7 @@ describe('Scenario 1: Fire Alarm Event — Full Emergency Response', () => {
       title: 'FIRE ALARM — Floor 12',
       body: 'Please evacuate immediately via stairwells.',
       severity: 'critical',
+      channels: ['push'],
     });
 
     const res = await createBroadcast(req);
@@ -480,6 +481,7 @@ describe('Scenario 1: Fire Alarm Event — Full Emergency Response', () => {
         title: 'Fire alarm',
         body: 'Evacuate now',
         severity: 'critical',
+        channels: ['push'],
       }),
     );
     expect(bcRes.status).toBe(201);

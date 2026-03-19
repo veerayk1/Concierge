@@ -25,7 +25,8 @@ export type HelpCategory = (typeof HELP_CATEGORIES)[number];
 
 export const createHelpArticleSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(200),
-  body: z.string().min(10, 'Body must be at least 10 characters'),
+  body: z.string().min(50, 'Body must be at least 50 characters'),
+  isFeatured: z.boolean().default(false),
   category: z.enum(HELP_CATEGORIES),
   tags: z.array(z.string().max(50)).max(10).default([]),
   sortOrder: z.number().int().min(0).default(0),

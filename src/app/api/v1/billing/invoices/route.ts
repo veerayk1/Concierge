@@ -17,8 +17,10 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
+    const status = searchParams.get('status'); // paid, pending, overdue, void
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    const invoiceId = searchParams.get('id'); // For single invoice download URL
 
     if (!propertyId) {
       return NextResponse.json(
@@ -32,16 +34,60 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Single invoice download URL request
+    if (invoiceId) {
+      const invoice = await prisma.invoice.findFirst({
+        where: { id: invoiceId, propertyId },
+      });
+
+      if (!invoice) {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: 'Invoice not found', requestId: '' },
+          { status: 404 },
+        );
+      }
+
+      return NextResponse.json(
+        {
+          data: {
+            id: invoice.id,
+            pdfUrl: invoice.pdfUrl ?? null,
+            status: invoice.status,
+          },
+          requestId: request.headers.get('X-Request-ID') || '',
+        },
+        { status: 200 },
+      );
+    }
+
+    // Build where clause with optional status filter
+    const VALID_STATUSES = ['paid', 'pending', 'overdue', 'void', 'draft', 'open', 'uncollectible'];
+    const where: Record<string, unknown> = { propertyId };
+
+    if (status) {
+      if (!VALID_STATUSES.includes(status)) {
+        return NextResponse.json(
+          {
+            error: 'INVALID_STATUS',
+            message: `Invalid status filter. Must be one of: ${VALID_STATUSES.join(', ')}`,
+            requestId: '',
+          },
+          { status: 400 },
+        );
+      }
+      where.status = status;
+    }
+
     const skip = (page - 1) * pageSize;
 
     const [invoices, total] = await Promise.all([
       prisma.invoice.findMany({
-        where: { propertyId },
+        where,
         orderBy: { createdAt: 'desc' },
         skip,
         take: pageSize,
       }),
-      prisma.invoice.count({ where: { propertyId } }),
+      prisma.invoice.count({ where }),
     ]);
 
     return NextResponse.json(

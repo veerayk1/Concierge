@@ -182,6 +182,7 @@ describe('POST /api/v1/emergency/broadcast — Create Emergency Broadcast', () =
       title: 'Fire Alarm - Building A',
       body: 'Evacuate immediately via stairwell B.',
       severity: 'critical',
+      channels: ['push'],
     });
     const res = await POST(req);
 
@@ -211,6 +212,7 @@ describe('POST /api/v1/emergency/broadcast — Validation', () => {
       propertyId: PROPERTY_ID,
       body: 'Evacuate immediately.',
       severity: 'critical',
+      channels: ['push'],
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -223,6 +225,7 @@ describe('POST /api/v1/emergency/broadcast — Validation', () => {
       propertyId: PROPERTY_ID,
       title: 'Fire Alarm',
       severity: 'critical',
+      channels: ['push'],
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -263,7 +266,7 @@ describe('POST /api/v1/emergency/broadcast — Validation', () => {
         title: 'Test',
         body: 'Test body',
         severity,
-        status: 'sending',
+        status: 'active',
         totalTargeted: 1,
         pushSent: 1,
         smsSent: 0,
@@ -278,8 +281,9 @@ describe('POST /api/v1/emergency/broadcast — Validation', () => {
       const req = createPostRequest('/api/v1/emergency/broadcast', {
         propertyId: PROPERTY_ID,
         title: 'Test',
-        body: 'Test body',
+        body: 'Test body message for broadcast.',
         severity,
+        channels: ['push'],
       });
       const res = await POST(req);
       expect(res.status).toBe(201);
@@ -297,7 +301,7 @@ describe('POST /api/v1/emergency/broadcast — Authorization', () => {
       id: BROADCAST_ID,
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'high',
       status: 'sending',
       totalTargeted: 3,
@@ -314,8 +318,9 @@ describe('POST /api/v1/emergency/broadcast — Authorization', () => {
     const req = createPostRequest('/api/v1/emergency/broadcast', {
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message',
       severity: 'high',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -362,6 +367,7 @@ describe('POST /api/v1/emergency/broadcast — Authorization', () => {
       title: 'Intruder Alert',
       body: 'Suspicious person in lobby.',
       severity: 'high',
+      channels: ['push'],
     });
     const res = await POST(req);
     expect(res.status).toBe(201);
@@ -380,8 +386,9 @@ describe('POST /api/v1/emergency/broadcast — Authorization', () => {
     const req = createPostRequest('/api/v1/emergency/broadcast', {
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'high',
+      channels: ['push'],
     });
     const res = await POST(req);
     expect(res.status).toBe(403);
@@ -417,12 +424,13 @@ describe('POST /api/v1/emergency/broadcast — Record Creation', () => {
       title: 'Gas Leak',
       body: 'Gas leak detected on floor 3.',
       severity: 'critical',
+      channels: ['push'],
     });
     await POST(req);
 
     expect(mockBroadcastCreate).toHaveBeenCalled();
     const createData = mockBroadcastCreate.mock.calls[0]![0].data;
-    expect(createData.status).toBe('sending');
+    expect(createData.status).toBe('active');
   });
 
   it('sets initiatedById to the authenticated user', async () => {
@@ -430,7 +438,7 @@ describe('POST /api/v1/emergency/broadcast — Record Creation', () => {
       id: BROADCAST_ID,
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'high',
       status: 'sending',
       totalTargeted: 3,
@@ -447,8 +455,9 @@ describe('POST /api/v1/emergency/broadcast — Record Creation', () => {
     const req = createPostRequest('/api/v1/emergency/broadcast', {
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'high',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -467,7 +476,7 @@ describe('POST /api/v1/emergency/broadcast — Cascade Configuration', () => {
       id: BROADCAST_ID,
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'critical',
       status: 'sending',
       totalTargeted: 3,
@@ -484,8 +493,9 @@ describe('POST /api/v1/emergency/broadcast — Cascade Configuration', () => {
     const req = createPostRequest('/api/v1/emergency/broadcast', {
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'critical',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -498,7 +508,7 @@ describe('POST /api/v1/emergency/broadcast — Cascade Configuration', () => {
       id: BROADCAST_ID,
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'critical',
       status: 'sending',
       totalTargeted: 3,
@@ -516,8 +526,9 @@ describe('POST /api/v1/emergency/broadcast — Cascade Configuration', () => {
     const req = createPostRequest('/api/v1/emergency/broadcast', {
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'critical',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -541,7 +552,7 @@ describe('POST /api/v1/emergency/broadcast — Targeting', () => {
       id: BROADCAST_ID,
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'high',
       status: 'sending',
       totalTargeted: 3,
@@ -558,8 +569,9 @@ describe('POST /api/v1/emergency/broadcast — Targeting', () => {
     const req = createPostRequest('/api/v1/emergency/broadcast', {
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'high',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -584,7 +596,7 @@ describe('POST /api/v1/emergency/broadcast — Targeting', () => {
       id: BROADCAST_ID,
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'high',
       status: 'sending',
       totalTargeted: 3,
@@ -601,8 +613,9 @@ describe('POST /api/v1/emergency/broadcast — Targeting', () => {
     const req = createPostRequest('/api/v1/emergency/broadcast', {
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'high',
+      channels: ['push'],
     });
     await POST(req);
 
@@ -955,6 +968,7 @@ describe('POST /api/v1/emergency/broadcast — Role Enforcement', () => {
       title: 'Fake Emergency',
       body: 'Not a real emergency.',
       severity: 'critical',
+      channels: ['push'],
     });
     const res = await POST(req);
 
@@ -976,8 +990,9 @@ describe('POST /api/v1/emergency/broadcast — Role Enforcement', () => {
     const req = createPostRequest('/api/v1/emergency/broadcast', {
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'high',
+      channels: ['push'],
     });
     const res = await POST(req);
 
@@ -1174,8 +1189,9 @@ describe('Emergency Broadcast — Error Handling', () => {
     const req = createPostRequest('/api/v1/emergency/broadcast', {
       propertyId: PROPERTY_ID,
       title: 'Test',
-      body: 'Test',
+      body: 'Test broadcast body message here.',
       severity: 'high',
+      channels: ['push'],
     });
     const res = await POST(req);
 
