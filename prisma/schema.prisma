@@ -3173,6 +3173,8 @@ model HelpArticle {
   body           String // MDX content
   category       String
   tags           String[]
+  sortOrder      Int       @default(0) @map("sort_order")
+  contextPages   String[]  @map("context_pages") // pages where this article is contextually relevant
   roleVisibility String[]  @map("role_visibility") // which roles can see this
   locale         String    @default("en")
   status         String    @default("draft") // draft | in_review | published | archived
@@ -3186,6 +3188,44 @@ model HelpArticle {
   @@index([category])
   @@index([status])
   @@map("help_articles")
+}
+
+model SupportTicket {
+  id          String    @id @default(uuid()) @db.Uuid
+  subject     String
+  description String
+  category    String
+  status      String    @default("open") // open | in_progress | resolved | closed
+  priority    String    @default("medium") // low | medium | high | urgent
+  userId      String    @map("user_id") @db.Uuid
+  assigneeId  String?   @map("assignee_id") @db.Uuid
+  propertyId  String    @map("property_id") @db.Uuid
+  resolvedAt  DateTime? @map("resolved_at")
+  closedAt    DateTime? @map("closed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  comments TicketComment[]
+
+  @@index([userId])
+  @@index([propertyId])
+  @@index([status])
+  @@map("support_tickets")
+}
+
+model TicketComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  body      String
+  isStaff   Boolean  @default(false) @map("is_staff")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id])
+
+  @@index([ticketId])
+  @@map("ticket_comments")
 }
 
 model FeatureFlag {
