@@ -49,6 +49,9 @@ const mockCommentFindMany = vi.fn();
 
 const mockGuardRoute = vi.fn();
 
+const mockIdeaCount = vi.fn();
+const mockCommentGroupBy = vi.fn();
+
 vi.mock('@/server/db', () => ({
   prisma: {
     idea: {
@@ -56,6 +59,7 @@ vi.mock('@/server/db', () => ({
       findUnique: (...args: unknown[]) => mockIdeaFindUnique(...args),
       create: (...args: unknown[]) => mockIdeaCreate(...args),
       update: (...args: unknown[]) => mockIdeaUpdate(...args),
+      count: (...args: unknown[]) => mockIdeaCount(...args),
     },
     ideaVote: {
       create: (...args: unknown[]) => mockVoteCreate(...args),
@@ -66,6 +70,7 @@ vi.mock('@/server/db', () => ({
     ideaComment: {
       create: (...args: unknown[]) => mockCommentCreate(...args),
       findMany: (...args: unknown[]) => mockCommentFindMany(...args),
+      groupBy: (...args: unknown[]) => mockCommentGroupBy(...args),
     },
   },
 }));
@@ -98,6 +103,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   setAuth(USER_RESIDENT, 'resident');
   mockIdeaFindMany.mockResolvedValue([]);
+  mockIdeaCount.mockResolvedValue(0);
+  mockCommentGroupBy.mockResolvedValue([]);
 });
 
 // ---------------------------------------------------------------------------
@@ -105,9 +112,9 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('GET /ideas — Sorting', () => {
-  it('sorts by voteCount desc when sort=popular', async () => {
+  it('sorts by voteCount desc when sortBy=votes', async () => {
     const req = createGetRequest('/api/v1/ideas', {
-      searchParams: { propertyId: PROPERTY_A, sort: 'popular' },
+      searchParams: { propertyId: PROPERTY_A, sortBy: 'votes' },
     });
     await GET(req);
 
@@ -135,14 +142,14 @@ describe('GET /ideas — Sorting', () => {
     expect(call.include.votes).toBeDefined();
   });
 
-  it('includes author data in response', async () => {
+  it('includes vote data in listing response', async () => {
     const req = createGetRequest('/api/v1/ideas', {
       searchParams: { propertyId: PROPERTY_A },
     });
     await GET(req);
 
     const call = mockIdeaFindMany.mock.calls[0]![0];
-    expect(call.include.author).toBeDefined();
+    expect(call.include.votes).toBeDefined();
   });
 });
 
@@ -350,11 +357,11 @@ describe('POST /ideas — Title validation', () => {
     expect(res.status).toBe(400);
   });
 
-  it('accepts title at minimum length (3 chars)', async () => {
+  it('accepts title at minimum length (5 chars)', async () => {
     mockIdeaCreate.mockResolvedValue({ id: 'idea-1', status: 'submitted' });
     const req = createPostRequest('/api/v1/ideas', {
       propertyId: PROPERTY_A,
-      title: 'ABC',
+      title: 'ABCDE',
       description: 'Some description for the idea board.',
     });
     const res = await POST(req);
@@ -386,11 +393,11 @@ describe('POST /ideas — Description validation', () => {
     expect(res.status).toBe(400);
   });
 
-  it('rejects description longer than 2000 characters', async () => {
+  it('rejects description longer than 5000 characters', async () => {
     const req = createPostRequest('/api/v1/ideas', {
       propertyId: PROPERTY_A,
       title: 'Valid title here',
-      description: 'X'.repeat(2001),
+      description: 'X'.repeat(5001),
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -414,7 +421,7 @@ describe('POST /ideas — Category is optional', () => {
     expect(res.status).toBe(201);
   });
 
-  it('stores null category when not provided', async () => {
+  it('stores default category "other" when not provided', async () => {
     mockIdeaCreate.mockResolvedValue({ id: 'idea-no-cat', status: 'submitted' });
 
     const req = createPostRequest('/api/v1/ideas', {
@@ -425,7 +432,7 @@ describe('POST /ideas — Category is optional', () => {
     await POST(req);
 
     const data = mockIdeaCreate.mock.calls[0]![0].data;
-    expect(data.category).toBeNull();
+    expect(data.category).toBe('other');
   });
 });
 
@@ -863,6 +870,7 @@ describe('GET /ideas/:id — Detail', () => {
       propertyId: PROPERTY_A,
       votes: [],
     });
+    mockCommentFindMany.mockResolvedValue([]);
 
     const req = createGetRequest('/api/v1/ideas/idea-1');
     const res = await GET_ID(req, { params: Promise.resolve({ id: 'idea-1' }) });

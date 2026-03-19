@@ -1,13 +1,40 @@
 /**
  * Building Directory API — List & Create
- * Centralized directory of staff, vendors, and their contact information.
+ * Centralized directory of management, security, maintenance, amenities,
+ * emergency contacts, utilities, and common areas for a property.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { createStaffProfileSchema } from '@/schemas/building-directory';
+import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+
+// ---------------------------------------------------------------------------
+// Validation Schemas
+// ---------------------------------------------------------------------------
+
+const DIRECTORY_CATEGORIES = [
+  'management',
+  'security',
+  'maintenance',
+  'amenity',
+  'emergency',
+  'utility',
+  'common_area',
+] as const;
+
+const createEntrySchema = z.object({
+  propertyId: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  category: z.enum(DIRECTORY_CATEGORIES),
+  phone: z.string().min(1).max(50),
+  email: z.string().email().max(254).optional(),
+  location: z.string().max(200).optional(),
+  hours: z.string().max(200).optional(),
+  contactPerson: z.string().max(100).optional(),
+  notes: z.string().max(1000).optional(),
+});
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/building-directory — List directory entries
@@ -23,9 +50,10 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type');
     const role = searchParams.get('role');
     const department = searchParams.get('department');
-    const query = searchParams.get('query') || '';
+    const category = searchParams.get('category');
+    const query = searchParams.get('query') || searchParams.get('search') || '';
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '50', 10);
+    const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '50', 10), 100);
 
     if (!propertyId) {
       return NextResponse.json(
@@ -35,16 +63,19 @@ export async function GET(request: NextRequest) {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: Record<string, any> = { propertyId };
+    const where: Record<string, any> = { propertyId, deletedAt: null };
 
     if (type) where.type = type;
     if (role) where.role = role;
     if (department) where.department = { contains: department, mode: 'insensitive' };
+    if (category) where.department = { contains: category, mode: 'insensitive' };
     if (query) {
       where.OR = [
         { firstName: { contains: query, mode: 'insensitive' } },
         { lastName: { contains: query, mode: 'insensitive' } },
         { email: { contains: query, mode: 'insensitive' } },
+        { phone: { contains: query, mode: 'insensitive' } },
+        { bio: { contains: query, mode: 'insensitive' } },
       ];
     }
 
@@ -81,7 +112,7 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const parsed = createStaffProfileSchema.safeParse(body);
+    const parsed = createEntrySchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -95,22 +126,22 @@ export async function POST(request: NextRequest) {
     const entry = await (prisma as any).directoryEntry.create({
       data: {
         propertyId: input.propertyId,
-        userId: input.userId,
-        type: 'staff',
-        role: input.role,
-        department: stripControlChars(stripHtml(input.department)),
-        email: input.email,
-        phone: input.phone || null,
-        bio: input.bio ? stripControlChars(stripHtml(input.bio)) : null,
-        photoUrl: input.photoUrl || null,
-        scheduleNotes: input.scheduleNotes
-          ? stripControlChars(stripHtml(input.scheduleNotes))
-          : null,
+        type: input.category === 'emergency' ? 'vendor' : 'staff',
+        firstName: stripControlChars(stripHtml(input.name)),
+        lastName: '',
+        role: input.category,
+        department: input.category,
+        email: input.email || null,
+        phone: input.phone,
+        bio: input.notes ? stripControlChars(stripHtml(input.notes)) : null,
+        scheduleNotes: input.hours ? stripControlChars(stripHtml(input.hours)) : null,
+        specialty: input.location ? stripControlChars(stripHtml(input.location)) : null,
+        isActive: true,
         createdById: auth.user.userId,
       },
     });
 
-    return NextResponse.json({ data: entry, message: `Directory entry created.` }, { status: 201 });
+    return NextResponse.json({ data: entry, message: 'Directory entry created.' }, { status: 201 });
   } catch (error) {
     console.error('POST /api/v1/building-directory error:', error);
     return NextResponse.json(

@@ -726,36 +726,34 @@ describe('POST /api/v1/building-directory/emergency-contacts', () => {
 // POST /api/v1/building-directory — Create directory entry
 // ---------------------------------------------------------------------------
 
-describe('POST /api/v1/building-directory — Create staff profile', () => {
-  const validStaff = {
+describe('POST /api/v1/building-directory — Create directory entry', () => {
+  const validEntry = {
     propertyId: PROPERTY_ID,
-    userId: USER_ID,
-    role: 'property_manager' as const,
-    department: 'Management',
-    email: 'jane@building.com',
+    name: 'Jane Smith',
+    category: 'management' as const,
     phone: '416-555-0100',
-    bio: 'Experienced property manager.',
-    photoUrl: 'https://s3.example.com/photos/jane.jpg',
-    scheduleNotes: 'Mon-Fri 9am-5pm',
+    email: 'jane@building.com',
+    notes: 'Experienced property manager.',
+    hours: 'Mon-Fri 9am-5pm',
   };
 
-  it('creates a staff directory entry', async () => {
+  it('creates a directory entry', async () => {
     mockDirectoryEntryCreate.mockResolvedValue({
       id: ENTRY_ID,
       type: 'staff',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      ...validStaff,
+      firstName: 'Jane Smith',
+      lastName: '',
+      ...validEntry,
     });
 
-    const req = createPostRequest('/api/v1/building-directory', validStaff);
+    const req = createPostRequest('/api/v1/building-directory', validEntry);
     const res = await POST(req);
     expect(res.status).toBe(201);
 
     const createData = mockDirectoryEntryCreate.mock.calls[0]![0].data;
     expect(createData.propertyId).toBe(PROPERTY_ID);
-    expect(createData.role).toBe('property_manager');
-    expect(createData.department).toBe('Management');
+    expect(createData.role).toBe('management');
+    expect(createData.department).toBe('management');
   });
 
   it('rejects missing required fields', async () => {
@@ -767,10 +765,10 @@ describe('POST /api/v1/building-directory — Create staff profile', () => {
     expect(body.error).toBe('VALIDATION_ERROR');
   });
 
-  it('rejects invalid role', async () => {
+  it('rejects invalid category', async () => {
     const req = createPostRequest('/api/v1/building-directory', {
-      ...validStaff,
-      role: 'invalid_role',
+      ...validEntry,
+      category: 'invalid_category',
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -778,44 +776,45 @@ describe('POST /api/v1/building-directory — Create staff profile', () => {
 
   it('rejects invalid email format', async () => {
     const req = createPostRequest('/api/v1/building-directory', {
-      ...validStaff,
+      ...validEntry,
       email: 'not-an-email',
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
-  it('rejects missing department', async () => {
+  it('rejects missing name', async () => {
     const req = createPostRequest('/api/v1/building-directory', {
-      ...validStaff,
-      department: '',
+      ...validEntry,
+      name: '',
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
-  it('accepts all valid staff roles', async () => {
-    const roles = [
-      'property_manager',
-      'concierge',
+  it('accepts all valid categories', async () => {
+    const categories = [
+      'management',
       'security',
       'maintenance',
-      'superintendent',
-      'administrator',
+      'amenity',
+      'emergency',
+      'utility',
+      'common_area',
     ];
 
-    for (const role of roles) {
+    for (const category of categories) {
       vi.clearAllMocks();
       mockDirectoryEntryCreate.mockResolvedValue({
         id: ENTRY_ID,
-        type: 'staff',
-        ...validStaff,
-        role,
+        type: category === 'emergency' ? 'vendor' : 'staff',
+        ...validEntry,
+        category,
       });
 
       const req = createPostRequest('/api/v1/building-directory', {
-        ...validStaff,
-        role,
+        ...validEntry,
+        category,
       });
       const res = await POST(req);
       expect(res.status).toBe(201);
@@ -826,24 +825,24 @@ describe('POST /api/v1/building-directory — Create staff profile', () => {
     mockDirectoryEntryCreate.mockResolvedValue({
       id: ENTRY_ID,
       type: 'staff',
-      ...validStaff,
+      ...validEntry,
     });
 
-    const req = createPostRequest('/api/v1/building-directory', validStaff);
+    const req = createPostRequest('/api/v1/building-directory', validEntry);
     await POST(req);
 
     const createData = mockDirectoryEntryCreate.mock.calls[0]![0].data;
     expect(createData.createdById).toBe('test-staff');
   });
 
-  it('sets type to staff for staff profiles', async () => {
+  it('sets type to staff for non-emergency categories', async () => {
     mockDirectoryEntryCreate.mockResolvedValue({
       id: ENTRY_ID,
       type: 'staff',
-      ...validStaff,
+      ...validEntry,
     });
 
-    const req = createPostRequest('/api/v1/building-directory', validStaff);
+    const req = createPostRequest('/api/v1/building-directory', validEntry);
     await POST(req);
 
     const createData = mockDirectoryEntryCreate.mock.calls[0]![0].data;
@@ -853,7 +852,7 @@ describe('POST /api/v1/building-directory — Create staff profile', () => {
   it('handles database errors gracefully', async () => {
     mockDirectoryEntryCreate.mockRejectedValue(new Error('DB down'));
 
-    const req = createPostRequest('/api/v1/building-directory', validStaff);
+    const req = createPostRequest('/api/v1/building-directory', validEntry);
     const res = await POST(req);
     expect(res.status).toBe(500);
 
@@ -862,21 +861,20 @@ describe('POST /api/v1/building-directory — Create staff profile', () => {
   });
 
   it('creates entry with optional fields omitted', async () => {
-    const minimalStaff = {
+    const minimalEntry = {
       propertyId: PROPERTY_ID,
-      userId: USER_ID,
-      role: 'concierge' as const,
-      department: 'Front Desk',
-      email: 'frontdesk@building.com',
+      name: 'Front Desk',
+      category: 'amenity' as const,
+      phone: '416-555-0200',
     };
 
     mockDirectoryEntryCreate.mockResolvedValue({
       id: ENTRY_ID,
       type: 'staff',
-      ...minimalStaff,
+      ...minimalEntry,
     });
 
-    const req = createPostRequest('/api/v1/building-directory', minimalStaff);
+    const req = createPostRequest('/api/v1/building-directory', minimalEntry);
     const res = await POST(req);
     expect(res.status).toBe(201);
   });

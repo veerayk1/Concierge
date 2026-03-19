@@ -2,8 +2,8 @@
  * Forum Topic Detail — GET, PATCH, DELETE /api/v1/forum/:id
  * Per CLAUDE.md nice-to-have #10 (Discussion Forum)
  *
- * GET    — Fetch topic with replies
- * PATCH  — Edit topic (author within 30 min, or admin anytime), pin/lock (admin only)
+ * GET    — Fetch topic with replies, increment viewCount
+ * PATCH  — Edit topic (author within 30 min, or admin anytime), pin/lock/close/resolve (admin only)
  * DELETE — Soft-delete topic (author or admin)
  */
 
@@ -23,6 +23,7 @@ const updateTopicSchema = z.object({
   body: z.string().min(10).max(10000).optional(),
   isPinned: z.boolean().optional(),
   isLocked: z.boolean().optional(),
+  status: z.enum(['active', 'closed', 'resolved']).optional(),
 });
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -39,6 +40,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         replies: {
           where: { status: 'active' },
           orderBy: { createdAt: 'asc' },
+          select: {
+            id: true,
+            topicId: true,
+            parentReplyId: true,
+            userId: true,
+            body: true,
+            likeCount: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+          },
         },
       },
     });
@@ -46,6 +58,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!topic) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Topic not found' }, { status: 404 });
     }
+
+    // Increment viewCount asynchronously (fire-and-forget to avoid blocking response)
+    void prisma.forumTopic
+      .update({
+        where: { id },
+        data: { viewCount: { increment: 1 } },
+      })
+      .catch(() => {
+        /* silently ignore viewCount increment failures */
+      });
 
     return NextResponse.json({ data: topic });
   } catch (error) {
@@ -82,10 +104,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const isAdmin = ADMIN_ROLES.includes(auth.user.role);
     const isAuthor = (topic as { userId: string }).userId === auth.user.userId;
 
-    // Admin-only fields: isPinned, isLocked
-    if ((input.isPinned !== undefined || input.isLocked !== undefined) && !isAdmin) {
+    // Admin-only fields: isPinned, isLocked, status
+    if (
+      (input.isPinned !== undefined ||
+        input.isLocked !== undefined ||
+        input.status !== undefined) &&
+      !isAdmin
+    ) {
       return NextResponse.json(
-        { error: 'FORBIDDEN', message: 'Only admins can pin or lock topics' },
+        { error: 'FORBIDDEN', message: 'Only admins can pin, lock, close, or resolve topics' },
         { status: 403 },
       );
     }
@@ -121,6 +148,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (input.body !== undefined) updateData.body = stripControlChars(stripHtml(input.body));
     if (input.isPinned !== undefined) updateData.isPinned = input.isPinned;
     if (input.isLocked !== undefined) updateData.isLocked = input.isLocked;
+    if (input.status !== undefined) updateData.status = input.status;
 
     const updated = await prisma.forumTopic.update({
       where: { id },

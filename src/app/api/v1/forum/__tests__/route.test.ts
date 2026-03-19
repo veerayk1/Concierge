@@ -285,7 +285,7 @@ describe('POST /forum — Create topic', () => {
     propertyId: PROPERTY_A,
     title: 'Noise complaint procedure',
     body: 'Can we discuss the process for filing noise complaints? I think we need clearer guidelines.',
-    category: 'building-rules',
+    category: 'general',
   };
 
   it('creates a topic with title, body, and category', async () => {
@@ -487,7 +487,7 @@ describe('POST /forum — category validation', () => {
     expect(data.categoryId).toBe('safety');
   });
 
-  it('sets categoryId to null when no category provided', async () => {
+  it('sets categoryId to general when no category provided', async () => {
     mockTopicCreate.mockResolvedValue({ id: 'topic-1', status: 'active' });
 
     const req = createPostRequest('/api/v1/forum', {
@@ -498,7 +498,7 @@ describe('POST /forum — category validation', () => {
     await POST(req);
 
     const data = mockTopicCreate.mock.calls[0]![0].data;
-    expect(data.categoryId).toBeNull();
+    expect(data.categoryId).toBe('general');
   });
 });
 

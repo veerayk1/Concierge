@@ -641,7 +641,7 @@ describe('16. Forum — create topic', () => {
       propertyId: PROPERTY_A,
       title: 'Noise complaint procedure',
       body: 'Can we discuss the process for filing noise complaints?',
-      category: 'building-rules',
+      category: 'general',
     });
     const res = await FORUM_POST(req);
     expect(res.status).toBe(201);
@@ -1302,6 +1302,7 @@ describe('33. Community engagement — vote removal and idea detail', () => {
         { id: 'v2', userId: 'user-b' },
       ],
     });
+    mockCommentFindMany.mockResolvedValue([]);
 
     const req = createGetRequest('/api/v1/ideas/idea-1');
     const res = await GET_IDEA_ID(req, { params: Promise.resolve({ id: 'idea-1' }) });
