@@ -84,10 +84,37 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
 
   async function onSubmit(data: BookingInput) {
     setServerError(null);
-    // TODO: Wire to API
-    reset();
-    onOpenChange(false);
-    onSuccess?.();
+    try {
+      const response = await fetch(`/api/v1/amenities/${data.amenityId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
+            ? { 'x-demo-role': localStorage.getItem('demo_role')! }
+            : {}),
+        },
+        body: JSON.stringify({
+          startDate: data.date,
+          startTime: data.startTime,
+          endDate: data.date,
+          endTime: data.endTime,
+          guestCount: data.guestCount,
+          requestorComments: data.notes,
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        setServerError(result.message || 'Failed to create booking');
+        return;
+      }
+
+      reset();
+      onOpenChange(false);
+      onSuccess?.();
+    } catch {
+      setServerError('An unexpected error occurred.');
+    }
   }
 
   return (

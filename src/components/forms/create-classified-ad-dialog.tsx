@@ -77,10 +77,36 @@ export function CreateClassifiedAdDialog({
 
   async function onSubmit(data: AdInput) {
     setServerError(null);
-    // TODO: Wire to API
-    reset();
-    onOpenChange(false);
-    onSuccess?.();
+    try {
+      const response = await fetch('/api/v1/community', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
+            ? { 'x-demo-role': localStorage.getItem('demo_role')! }
+            : {}),
+        },
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description,
+          price: data.isFree ? 0 : data.price,
+          priceType: data.isFree ? 'free' : 'fixed',
+          contactMethod: [data.contactMethod === 'message' ? 'in_app' : data.contactMethod],
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        setServerError(result.message || 'Failed to post ad');
+        return;
+      }
+
+      reset();
+      onOpenChange(false);
+      onSuccess?.();
+    } catch {
+      setServerError('An unexpected error occurred.');
+    }
   }
 
   return (

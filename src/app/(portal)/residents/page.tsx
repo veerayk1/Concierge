@@ -184,7 +184,7 @@ export default function ResidentsPage() {
         const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
         return fullName.includes(q) || r.unit.includes(q) || r.email.toLowerCase().includes(q);
       }),
-    [searchQuery],
+    [searchQuery, allResidents],
   );
 
   const columns: Column<Resident>[] = [

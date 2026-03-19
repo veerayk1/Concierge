@@ -76,10 +76,30 @@ export function CreateParkingPermitDialog({
 
   async function onSubmit(data: PermitInput) {
     setServerError(null);
-    // TODO: Wire to POST /api/v1/parking
-    reset();
-    onOpenChange(false);
-    onSuccess?.();
+    try {
+      const response = await fetch('/api/v1/parking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
+            ? { 'x-demo-role': localStorage.getItem('demo_role')! }
+            : {}),
+        },
+        body: JSON.stringify({ ...data, propertyId }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        setServerError(result.message || 'Failed to issue parking permit');
+        return;
+      }
+
+      reset();
+      onOpenChange(false);
+      onSuccess?.();
+    } catch {
+      setServerError('An unexpected error occurred.');
+    }
   }
 
   return (

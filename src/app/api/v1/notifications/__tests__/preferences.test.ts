@@ -2,12 +2,23 @@
  * Notification Preferences API Tests — per PRD 08 Section 3.1.8
  *
  * Users control which notifications they receive per channel.
- * Getting defaults wrong means residents miss package notifications
- * or get spammed with irrelevant alerts.
+ * Preferences are stored per user+property+module+channel.
  */
 
-import { describe, expect, it, vi } from 'vitest';
-import { createGetRequest, parseResponse } from '@/test/helpers/api';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
+
+const mockFindMany = vi.fn();
+const mockUpsert = vi.fn();
+
+vi.mock('@/server/db', () => ({
+  prisma: {
+    notificationPreference: {
+      findMany: (...args: unknown[]) => mockFindMany(...args),
+      upsert: (...args: unknown[]) => mockUpsert(...args),
+    },
+  },
+}));
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn().mockResolvedValue({
@@ -22,74 +33,82 @@ vi.mock('@/server/middleware/api-guard', () => ({
   }),
 }));
 
-import { GET } from '../../notifications/preferences/route';
+import { GET, PUT } from '../../notifications/preferences/route';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('GET /api/v1/notifications/preferences', () => {
-  it('returns 400 without userId', async () => {
+  it('queries preferences for the authenticated user', async () => {
+    mockFindMany.mockResolvedValue([]);
+
     const req = createGetRequest('/api/v1/notifications/preferences');
     const res = await GET(req);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+
+    expect(mockFindMany).toHaveBeenCalledOnce();
+    const where = mockFindMany.mock.calls[0]![0].where;
+    expect(where.userId).toBe('resident-1');
+    expect(where.propertyId).toBe('prop-1');
   });
 
-  it('returns default preferences organized by module', async () => {
-    const req = createGetRequest('/api/v1/notifications/preferences', {
-      searchParams: { userId: 'user-1' },
-    });
+  it('returns preferences array in response data', async () => {
+    mockFindMany.mockResolvedValue([
+      { id: '1', module: 'packages', channel: 'email', enabled: true },
+      { id: '2', module: 'packages', channel: 'sms', enabled: false },
+    ]);
+
+    const req = createGetRequest('/api/v1/notifications/preferences');
     const res = await GET(req);
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{
-      data: { module: string; email: boolean; sms: boolean; push: boolean }[];
+      data: { module: string; channel: string; enabled: boolean }[];
     }>(res);
-    expect(body.data.length).toBeGreaterThan(0);
-
-    // Every preference should have module + 3 channel booleans
-    for (const pref of body.data) {
-      expect(pref.module).toBeDefined();
-      expect(typeof pref.email).toBe('boolean');
-      expect(typeof pref.sms).toBe('boolean');
-      expect(typeof pref.push).toBe('boolean');
-    }
+    expect(body.data).toHaveLength(2);
+    expect(body.data[0]!.module).toBe('packages');
+    expect(body.data[0]!.enabled).toBe(true);
   });
 
-  it('includes package notifications — most important for residents', async () => {
-    const req = createGetRequest('/api/v1/notifications/preferences', {
-      searchParams: { userId: 'user-1' },
-    });
-    const res = await GET(req);
-    const body = await parseResponse<{ data: { module: string; notificationType: string }[] }>(res);
+  it('returns empty array when no preferences set yet', async () => {
+    mockFindMany.mockResolvedValue([]);
 
-    const packagePrefs = body.data.filter((p) => p.module === 'Packages');
-    expect(packagePrefs.length).toBeGreaterThan(0);
-    expect(packagePrefs.some((p) => p.notificationType.includes('Package received'))).toBe(true);
+    const req = createGetRequest('/api/v1/notifications/preferences');
+    const res = await GET(req);
+    const body = await parseResponse<{ data: unknown[] }>(res);
+    expect(body.data).toEqual([]);
   });
 
-  it('includes account security notifications with SMS enabled by default', async () => {
-    const req = createGetRequest('/api/v1/notifications/preferences', {
-      searchParams: { userId: 'user-1' },
-    });
-    const res = await GET(req);
-    const body = await parseResponse<{
-      data: { module: string; notificationType: string; sms: boolean }[];
-    }>(res);
+  it('orders preferences by module then channel', async () => {
+    mockFindMany.mockResolvedValue([]);
 
-    const loginPref = body.data.find((p) => p.notificationType === 'Login from new device');
-    expect(loginPref).toBeDefined();
-    expect(loginPref?.sms).toBe(true); // Security alerts via SMS by default
+    const req = createGetRequest('/api/v1/notifications/preferences');
+    await GET(req);
+
+    const orderBy = mockFindMany.mock.calls[0]![0].orderBy;
+    expect(orderBy).toEqual([{ module: 'asc' }, { channel: 'asc' }]);
   });
+});
 
-  it('covers all required modules per PRD 08', async () => {
-    const req = createGetRequest('/api/v1/notifications/preferences', {
-      searchParams: { userId: 'user-1' },
+describe('PUT /api/v1/notifications/preferences', () => {
+  it('upserts each preference for the authenticated user', async () => {
+    mockUpsert.mockResolvedValue({ id: '1', module: 'packages', channel: 'email', enabled: true });
+
+    const req = createPostRequest('/api/v1/notifications/preferences', {
+      preferences: [{ module: 'packages', channel: 'email', enabled: true }],
     });
-    const res = await GET(req);
-    const body = await parseResponse<{ data: { module: string }[] }>(res);
+    // Override method to PUT
+    Object.defineProperty(req, 'method', { value: 'PUT' });
 
-    const modules = [...new Set(body.data.map((p) => p.module))];
-    expect(modules).toContain('Packages');
-    expect(modules).toContain('Maintenance');
-    expect(modules).toContain('Amenities');
-    expect(modules).toContain('Announcements');
-    expect(modules).toContain('Account');
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+
+    expect(mockUpsert).toHaveBeenCalledOnce();
+    const call = mockUpsert.mock.calls[0]![0];
+    expect(call.where.userId_propertyId_module_channel.userId).toBe('resident-1');
+    expect(call.create.module).toBe('packages');
+    expect(call.create.channel).toBe('email');
+    expect(call.create.enabled).toBe(true);
   });
 });

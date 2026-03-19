@@ -8,17 +8,19 @@ import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
 
+const preferenceItemSchema = z.object({
+  module: z.string(),
+  channel: z.enum(['email', 'sms', 'push']),
+  enabled: z.boolean(),
+  digestMode: z.enum(['instant', 'daily', 'weekly']).optional(),
+  digestTime: z.string().nullable().optional(),
+  dndEnabled: z.boolean().optional(),
+  dndStart: z.string().nullable().optional(),
+  dndEnd: z.string().nullable().optional(),
+});
+
 const updatePreferencesSchema = z.object({
-  userId: z.string().uuid(),
-  preferences: z.array(
-    z.object({
-      module: z.string(),
-      notificationType: z.string(),
-      email: z.boolean(),
-      sms: z.boolean(),
-      push: z.boolean(),
-    }),
-  ),
+  preferences: z.array(preferenceItemSchema),
 });
 
 export async function GET(request: NextRequest) {
@@ -26,112 +28,14 @@ export async function GET(request: NextRequest) {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
-    const userId = new URL(request.url).searchParams.get('userId');
+    const { userId, propertyId } = auth.user;
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'MISSING_USER', message: 'userId is required' },
-        { status: 400 },
-      );
-    }
+    const preferences = await prisma.notificationPreference.findMany({
+      where: { userId, propertyId },
+      orderBy: [{ module: 'asc' }, { channel: 'asc' }],
+    });
 
-    // Return default preferences structure per PRD 08 Section 3.1.8
-    // In production, these would be stored in a NotificationPreference table
-    const defaults = [
-      {
-        module: 'Packages',
-        notificationType: 'Package received',
-        email: true,
-        sms: false,
-        push: true,
-      },
-      {
-        module: 'Packages',
-        notificationType: 'Package unclaimed reminder',
-        email: true,
-        sms: false,
-        push: false,
-      },
-      {
-        module: 'Maintenance',
-        notificationType: 'Request status update',
-        email: true,
-        sms: false,
-        push: true,
-      },
-      {
-        module: 'Maintenance',
-        notificationType: 'Request assigned',
-        email: true,
-        sms: false,
-        push: true,
-      },
-      {
-        module: 'Amenities',
-        notificationType: 'Booking confirmed',
-        email: true,
-        sms: false,
-        push: true,
-      },
-      {
-        module: 'Amenities',
-        notificationType: 'Booking cancelled',
-        email: true,
-        sms: false,
-        push: false,
-      },
-      {
-        module: 'Amenities',
-        notificationType: 'Booking reminder (24h)',
-        email: true,
-        sms: false,
-        push: true,
-      },
-      {
-        module: 'Announcements',
-        notificationType: 'New announcement',
-        email: true,
-        sms: false,
-        push: true,
-      },
-      {
-        module: 'Events',
-        notificationType: 'New event posted',
-        email: true,
-        sms: false,
-        push: false,
-      },
-      {
-        module: 'Security',
-        notificationType: 'Visitor signed in',
-        email: true,
-        sms: false,
-        push: true,
-      },
-      {
-        module: 'Community',
-        notificationType: 'Reply to classified ad',
-        email: true,
-        sms: false,
-        push: false,
-      },
-      {
-        module: 'Account',
-        notificationType: 'Login from new device',
-        email: true,
-        sms: true,
-        push: false,
-      },
-      {
-        module: 'Account',
-        notificationType: 'Password changed',
-        email: true,
-        sms: true,
-        push: false,
-      },
-    ];
-
-    return NextResponse.json({ data: defaults });
+    return NextResponse.json({ data: preferences });
   } catch (error) {
     console.error('GET /api/v1/notifications/preferences error:', error);
     return NextResponse.json(
@@ -146,6 +50,8 @@ export async function PUT(request: NextRequest) {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
+    const { userId, propertyId } = auth.user;
+
     const body = await request.json();
     const parsed = updatePreferencesSchema.safeParse(body);
 
@@ -156,9 +62,48 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // TODO: Store preferences in database
-    // For now, just acknowledge the update
-    return NextResponse.json({ message: 'Preferences updated.' });
+    const results = await Promise.all(
+      parsed.data.preferences.map((pref) =>
+        prisma.notificationPreference.upsert({
+          where: {
+            userId_propertyId_module_channel: {
+              userId,
+              propertyId,
+              module: pref.module,
+              channel: pref.channel,
+            },
+          },
+          create: {
+            userId,
+            propertyId,
+            module: pref.module,
+            channel: pref.channel,
+            enabled: pref.enabled,
+            digestMode: pref.digestMode ?? 'instant',
+            digestTime: pref.digestTime ? new Date(`1970-01-01T${pref.digestTime}`) : null,
+            dndEnabled: pref.dndEnabled ?? false,
+            dndStart: pref.dndStart ? new Date(`1970-01-01T${pref.dndStart}`) : null,
+            dndEnd: pref.dndEnd ? new Date(`1970-01-01T${pref.dndEnd}`) : null,
+          },
+          update: {
+            enabled: pref.enabled,
+            ...(pref.digestMode !== undefined && { digestMode: pref.digestMode }),
+            ...(pref.digestTime !== undefined && {
+              digestTime: pref.digestTime ? new Date(`1970-01-01T${pref.digestTime}`) : null,
+            }),
+            ...(pref.dndEnabled !== undefined && { dndEnabled: pref.dndEnabled }),
+            ...(pref.dndStart !== undefined && {
+              dndStart: pref.dndStart ? new Date(`1970-01-01T${pref.dndStart}`) : null,
+            }),
+            ...(pref.dndEnd !== undefined && {
+              dndEnd: pref.dndEnd ? new Date(`1970-01-01T${pref.dndEnd}`) : null,
+            }),
+          },
+        }),
+      ),
+    );
+
+    return NextResponse.json({ data: results, message: 'Preferences updated.' });
   } catch (error) {
     console.error('PUT /api/v1/notifications/preferences error:', error);
     return NextResponse.json(
