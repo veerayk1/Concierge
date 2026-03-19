@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { sendEmail } from '@/server/email';
+import { sendSms, formatPhoneNumber } from '@/server/sms';
 import { createLogger } from '@/server/logger';
 
 const logger = createLogger('incident-escalate');
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         role: { slug: 'property_manager' },
         user: { isActive: true, deletedAt: null },
       },
-      select: { user: { select: { email: true, firstName: true } } },
+      select: { user: { select: { email: true, firstName: true, phone: true } } },
     });
 
     for (const pu of targetUsers) {
@@ -89,6 +90,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           'Failed to send escalation email',
         );
       });
+
+      // Send SMS to property manager (fire-and-forget)
+      if (pu.user.phone) {
+        const normalizedPhone = formatPhoneNumber(pu.user.phone);
+        if (normalizedPhone) {
+          void sendSms({
+            to: normalizedPhone,
+            body: `URGENT: Incident "${event.title}" escalated (${input.priority}). Reason: ${input.reason}. Please review ASAP. — Concierge`,
+          }).catch((err) => {
+            logger.error(
+              { err, eventId: id, recipientPhone: pu.user.phone },
+              'Failed to send escalation SMS',
+            );
+          });
+        }
+      }
     }
 
     return NextResponse.json({

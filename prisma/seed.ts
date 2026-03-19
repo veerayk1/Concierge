@@ -668,7 +668,7 @@ export async function main(): Promise<void> {
         },
       });
 
-      roleMap[property.id][roleDef.slug] = role.id;
+      roleMap[property.id]![roleDef.slug] = role.id;
     }
     log('OK', `  ${ROLE_DEFINITIONS.length} roles for ${property.name}`);
   }
@@ -716,7 +716,7 @@ export async function main(): Promise<void> {
         },
       });
 
-      const roleId = roleMap[property.id][u.roleSlug];
+      const roleId = roleMap[property.id]![u.roleSlug];
       if (!roleId) {
         console.error(`    WARNING: Role "${u.roleSlug}" not found for property ${property.id}`);
         continue;
@@ -741,7 +741,7 @@ export async function main(): Promise<void> {
 
   // Also link Super Admin to both properties
   for (const { property } of properties) {
-    const saRoleId = roleMap[property.id]['super_admin'];
+    const saRoleId = roleMap[property.id]!['super_admin'];
     if (saRoleId) {
       await prisma.userProperty.upsert({
         where: {
@@ -1216,7 +1216,7 @@ export async function main(): Promise<void> {
         },
       });
 
-      eventGroupIdMap[property.id][groupDef.slug] = group.id;
+      eventGroupIdMap[property.id]![groupDef.slug] = group.id;
 
       // Create event types for this group
       for (const typeDef of groupDef.types) {
@@ -1447,7 +1447,7 @@ export async function main(): Promise<void> {
     [lakeshoreTowers.id]: AMENITY_GROUP_ID_LT,
   };
 
-  for (const { property } of properties) {
+  for (const { property, prefix } of properties) {
     const groupId = amenityGroupIds[property.id]!;
 
     await prisma.amenityGroup.upsert({
@@ -1562,6 +1562,7 @@ export async function main(): Promise<void> {
           maxGuests: aDef.maxGuests,
           displayOrder: i,
           isActive: true,
+          createdById: prefix === 'mh' ? IDS.mh_adminUser : IDS.lt_adminUser,
         },
       });
     }
