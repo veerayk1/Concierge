@@ -11,6 +11,7 @@ import {
   Clock,
   Download,
   Filter,
+  Loader2,
   Pause,
   Plus,
   Search,
@@ -44,81 +45,13 @@ interface MaintenanceRequest {
 }
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// API response shape
 // ---------------------------------------------------------------------------
 
-const MOCK_REQUESTS: MaintenanceRequest[] = [
-  {
-    id: '1',
-    referenceNumber: 'MR-0841',
-    unit: '1501',
-    resident: 'Janet Smith',
-    category: 'Plumbing',
-    description: 'Kitchen sink leaking under cabinet. Water pooling on floor.',
-    status: 'open',
-    priority: 'high',
-    createdAt: '2026-03-18T08:00:00',
-    updatedAt: '2026-03-18T08:00:00',
-    permissionToEnter: true,
-  },
-  {
-    id: '2',
-    referenceNumber: 'MR-0840',
-    unit: '305',
-    resident: 'Robert Kim',
-    category: 'Electrical',
-    description: 'Bathroom light fixture flickering intermittently.',
-    status: 'assigned',
-    priority: 'medium',
-    assignedTo: 'Mike Thompson',
-    createdAt: '2026-03-17T14:30:00',
-    updatedAt: '2026-03-17T16:00:00',
-    permissionToEnter: true,
-  },
-  {
-    id: '3',
-    referenceNumber: 'MR-0839',
-    unit: '802',
-    resident: 'David Chen',
-    category: 'HVAC',
-    description: 'Air conditioning not cooling. Thermostat set to 21 but reads 26.',
-    status: 'in_progress',
-    priority: 'high',
-    assignedTo: 'Mike Thompson',
-    vendor: 'CoolAir HVAC Services',
-    createdAt: '2026-03-16T10:00:00',
-    updatedAt: '2026-03-18T09:00:00',
-    permissionToEnter: false,
-  },
-  {
-    id: '4',
-    referenceNumber: 'MR-0838',
-    unit: '1105',
-    resident: 'Lisa Brown',
-    category: 'Appliance',
-    description: 'Dishwasher making grinding noise during wash cycle.',
-    status: 'on_hold',
-    priority: 'low',
-    assignedTo: 'James Wilson',
-    createdAt: '2026-03-15T09:00:00',
-    updatedAt: '2026-03-17T11:00:00',
-    permissionToEnter: true,
-  },
-  {
-    id: '5',
-    referenceNumber: 'MR-0835',
-    unit: '422',
-    resident: 'Jane Doe',
-    category: 'General',
-    description: 'Front door deadbolt difficult to turn. Needs lubrication or replacement.',
-    status: 'resolved',
-    priority: 'medium',
-    assignedTo: 'Mike Thompson',
-    createdAt: '2026-03-14T16:00:00',
-    updatedAt: '2026-03-16T14:00:00',
-    permissionToEnter: true,
-  },
-];
+interface MaintenanceApiResponse {
+  data: Array<Record<string, unknown>>;
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -130,51 +63,54 @@ export default function MaintenancePage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiRequests, refetch } = useApi<MaintenanceRequest[]>(
-    apiUrl('/api/v1/maintenance', { propertyId: DEMO_PROPERTY_ID }),
-  );
+  // Build API URL with search/filter params passed to the server
+  const requestUrl = useMemo(() => {
+    const params: Record<string, string | undefined | null> = {
+      propertyId: DEMO_PROPERTY_ID,
+    };
+    if (searchQuery.trim()) params.search = searchQuery.trim();
+    if (statusFilter !== 'all') params.status = statusFilter;
+    return apiUrl('/api/v1/maintenance', params);
+  }, [searchQuery, statusFilter]);
 
-  const allRequests = useMemo(() => {
-    if (apiRequests && Array.isArray(apiRequests) && apiRequests.length > 0) {
-      return apiRequests.map((r: MaintenanceRequest) => {
-        const raw = r as unknown as Record<string, unknown>;
-        return {
-          id: r.id as string,
-          referenceNumber: r.referenceNumber as string,
-          unit: (raw.unit as Record<string, string>)?.number || '',
-          resident: '',
-          category: (raw.category as Record<string, string>)?.name || 'General',
-          description: r.description as string,
-          status: r.status as string as MaintenanceRequest['status'],
-          priority: r.priority as string as MaintenanceRequest['priority'],
-          assignedTo: raw.assignedEmployeeId as string | undefined,
-          createdAt: r.createdAt as string,
-          updatedAt: r.updatedAt as string,
-          permissionToEnter: (r.permissionToEnter as boolean) || false,
-        };
-      });
-    }
-    return MOCK_REQUESTS;
-  }, [apiRequests]);
+  const {
+    data: apiResponse,
+    loading,
+    error,
+    refetch,
+  } = useApi<MaintenanceApiResponse | Array<Record<string, unknown>>>(requestUrl);
 
-  const filteredRequests = useMemo(
-    () =>
-      allRequests.filter((r) => {
-        if (statusFilter !== 'all' && r.status !== statusFilter) return false;
-        if (searchQuery) {
-          const q = searchQuery.toLowerCase();
-          return (
-            r.referenceNumber.toLowerCase().includes(q) ||
-            r.resident.toLowerCase().includes(q) ||
-            r.unit.toLowerCase().includes(q) ||
-            r.description.toLowerCase().includes(q) ||
-            r.category.toLowerCase().includes(q)
-          );
-        }
-        return true;
-      }),
-    [searchQuery, statusFilter],
-  );
+  // Normalize API response — the API returns { data: [...], meta: {...} }
+  // but useApi already extracts .data, so apiResponse could be the array
+  // directly OR the full response object depending on shape.
+  const allRequests: MaintenanceRequest[] = useMemo(() => {
+    if (!apiResponse) return [];
+
+    // useApi extracts .data from the response, so apiResponse is the array of requests
+    const rawList: Array<Record<string, unknown>> = Array.isArray(apiResponse)
+      ? apiResponse
+      : ((apiResponse as MaintenanceApiResponse).data ?? []);
+
+    return rawList.map((r) => ({
+      id: (r.id as string) || '',
+      referenceNumber: (r.referenceNumber as string) || '',
+      unit: (r.unit as Record<string, string>)?.number || (r.unitId as string) || '',
+      resident: (r.residentId as string) || '',
+      category: (r.category as Record<string, string>)?.name || 'General',
+      description: (r.description as string) || '',
+      status: (r.status as MaintenanceRequest['status']) || 'open',
+      priority: (r.priority as MaintenanceRequest['priority']) || 'medium',
+      assignedTo: (r.assignedEmployeeId as string) || undefined,
+      vendor: (r.assignedVendorId as string) || undefined,
+      createdAt: (r.createdAt as string) || '',
+      updatedAt: (r.updatedAt as string) || '',
+      permissionToEnter: r.permissionToEnter === true || r.permissionToEnter === 'yes',
+    }));
+  }, [apiResponse]);
+
+  // Client-side search filtering is no longer needed since the API handles
+  // search and status filtering. We pass the full list to the table.
+  const filteredRequests = allRequests;
 
   const statusCounts = {
     open: allRequests.filter((r) => r.status === 'open').length,
@@ -348,7 +284,9 @@ export default function MaintenancePage() {
               <stat.icon className={`h-5 w-5 ${stat.color}`} />
             </div>
             <div>
-              <p className="text-[24px] font-bold tracking-tight text-neutral-900">{stat.value}</p>
+              <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                {loading ? '-' : stat.value}
+              </p>
               <p className="text-[13px] text-neutral-500">{stat.label}</p>
             </div>
           </Card>
@@ -401,19 +339,41 @@ export default function MaintenancePage() {
         </div>
       </div>
 
-      {/* Request Table */}
-      <DataTable
-        columns={columns}
-        data={filteredRequests}
-        emptyMessage="No maintenance requests found."
-        emptyIcon={<Wrench className="h-6 w-6" />}
-        onRowClick={(row) => router.push(`/maintenance/${row.id}` as never)}
-      />
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+          <p className="mt-3 text-[14px] text-neutral-500">Loading maintenance requests...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {!loading && error && (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-red-200 bg-red-50 py-12">
+          <AlertCircle className="h-8 w-8 text-red-400" />
+          <p className="mt-3 text-[14px] font-medium text-red-700">Failed to load requests</p>
+          <p className="mt-1 text-[13px] text-red-500">{error}</p>
+          <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </div>
+      )}
+
+      {/* Request Table — shown when not loading and no error */}
+      {!loading && !error && (
+        <DataTable
+          columns={columns}
+          data={filteredRequests}
+          emptyMessage="No maintenance requests found."
+          emptyIcon={<Wrench className="h-6 w-6" />}
+          onRowClick={(row) => router.push(`/maintenance/${row.id}` as never)}
+        />
+      )}
 
       <CreateMaintenanceDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId="00000000-0000-4000-b000-000000000001"
+        propertyId={DEMO_PROPERTY_ID}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

@@ -1,12 +1,11 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
   ArrowLeft,
   Bell,
-  Calendar,
   Camera,
   CheckCircle2,
   Clock,
@@ -14,6 +13,7 @@ import {
   FileText,
   ImageIcon,
   Link2,
+  Loader2,
   MapPin,
   MessageSquare,
   Paperclip,
@@ -30,108 +30,41 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// Types
 // ---------------------------------------------------------------------------
 
-const MOCK_REQUEST = {
-  id: '1',
-  referenceNumber: 'MR-0841',
-  title: 'Kitchen Sink Leak — Unit 1501',
-  unit: '1501',
-  building: 'Tower A',
-  resident: 'Janet Smith',
-  residentPhone: '416-555-0123',
-  residentEmail: 'janet.smith@email.com',
-  category: 'Plumbing',
-  description:
-    'Kitchen sink leaking under cabinet. Water pooling on floor. Started noticing yesterday evening. The leak seems to come from the U-bend pipe connection. Towels placed underneath to absorb water for now.',
-  areaDescription: 'Kitchen — under the sink cabinet, left side near dishwasher connection',
-  status: 'open' as const,
-  priority: 'high' as const,
-  permissionToEnter: true,
-  entryInstructions:
-    'Key is with front desk. Dog Daisy will be in the bedroom — do not let her out.',
-  assignedStaff: 'Carlos Rivera',
-  assignedStaffPhone: '416-555-0456',
-  assignedStaffEmail: 'c.rivera@concierge.app',
-  assignedVendor: undefined as string | undefined,
-  scheduledDate: undefined as string | undefined,
-  createdAt: '2026-03-18T08:00:00',
-  updatedAt: '2026-03-18T14:22:00',
-  sla: {
-    targetHours: 48,
-    reportedAt: '2026-03-18T08:00:00',
-    status: 'on_track' as 'on_track' | 'at_risk' | 'breached',
-  },
-  linkedEquipment: {
-    id: 'eq-102',
-    name: 'Kitchen Sink Faucet — Moen #7594',
-    location: 'Unit 1501, Kitchen',
-  },
-  linkedEvent: {
-    id: 'evt-3891',
-    type: 'Water Leak Report',
-    date: '2026-03-17',
-  },
-  comments: [
-    {
-      id: 'c1',
-      author: 'Janet Smith',
-      role: 'Resident',
-      timestamp: '2026-03-18T08:00:00',
-      message:
-        'The leak started last night around 10pm. I placed towels but the floor is getting warped. Please address ASAP.',
-    },
-    {
-      id: 'c2',
-      author: 'Mike Johnson',
-      role: 'Concierge',
-      timestamp: '2026-03-18T09:15:00',
-      message:
-        'Thank you Janet. I have escalated this to maintenance. Carlos will be assigned shortly. In the meantime, please turn off the water valve under the sink if possible.',
-    },
-    {
-      id: 'c3',
-      author: 'Carlos Rivera',
-      role: 'Maintenance Staff',
-      timestamp: '2026-03-18T14:22:00',
-      message:
-        'Inspected the unit. The U-bend connection is corroded and needs replacement. I have ordered the part — expected delivery tomorrow morning. Will return to complete the repair.',
-    },
-  ],
-  history: [
-    {
-      id: 'h1',
-      action: 'created',
-      detail: 'Request submitted by Janet Smith',
-      actor: 'Janet Smith',
-      timestamp: '2026-03-18T08:00:00',
-    },
-    {
-      id: 'h2',
-      action: 'notification',
-      detail: 'Email notification sent to property management',
-      actor: 'System',
-      timestamp: '2026-03-18T08:00:30',
-    },
-    {
-      id: 'h3',
-      action: 'assigned',
-      detail: 'Assigned to Carlos Rivera (Maintenance Staff)',
-      actor: 'Mike Johnson',
-      timestamp: '2026-03-18T09:20:00',
-    },
-    {
-      id: 'h4',
-      action: 'comment',
-      detail: 'Carlos Rivera added a comment',
-      actor: 'Carlos Rivera',
-      timestamp: '2026-03-18T14:22:00',
-    },
-  ],
-};
+interface MaintenanceDetail {
+  id: string;
+  referenceNumber: string;
+  title: string;
+  description: string;
+  status: 'open' | 'assigned' | 'in_progress' | 'on_hold' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  permissionToEnter: boolean | string;
+  entryInstructions: string | null;
+  createdAt: string;
+  updatedAt: string;
+  residentId: string | null;
+  assignedEmployeeId: string | null;
+  assignedVendorId: string | null;
+  completedDate: string | null;
+  unit: { id: string; number: string } | null;
+  category: { id: string; name: string } | null;
+}
+
+interface MaintenanceComment {
+  id: string;
+  requestId: string;
+  authorId: string;
+  body: string;
+  visibleToResident: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 // ---------------------------------------------------------------------------
 // Timeline icon helper
@@ -187,6 +120,23 @@ function getSlaLabel(status: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// SLA calculation (client-side)
+// ---------------------------------------------------------------------------
+
+function computeSla(createdAt: string, priority: string) {
+  const targetHours =
+    priority === 'urgent' ? 4 : priority === 'high' ? 24 : priority === 'medium' ? 48 : 72;
+  const elapsedMs = Date.now() - new Date(createdAt).getTime();
+  const elapsedHours = Math.floor(elapsedMs / (1000 * 60 * 60));
+  const remainingHours = Math.max(0, targetHours - elapsedHours);
+  const pct = Math.min(100, (elapsedHours / targetHours) * 100);
+  let status: 'on_track' | 'at_risk' | 'breached' = 'on_track';
+  if (remainingHours <= 0) status = 'breached';
+  else if (pct >= 75) status = 'at_risk';
+  return { targetHours, elapsedHours, remainingHours, pct, status };
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -197,6 +147,47 @@ interface MaintenanceDetailPageProps {
 export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageProps) {
   const { id } = use(params);
   const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  // Fetch maintenance request detail
+  const {
+    data: req,
+    loading,
+    error,
+    refetch,
+  } = useApi<MaintenanceDetail>(`/api/v1/maintenance/${id}`);
+
+  // Fetch comments
+  const {
+    data: commentsData,
+    loading: commentsLoading,
+    refetch: refetchComments,
+  } = useApi<MaintenanceComment[]>(`/api/v1/maintenance/${id}/comments`);
+
+  const comments = useMemo(() => {
+    if (!commentsData) return [];
+    return Array.isArray(commentsData) ? commentsData : [];
+  }, [commentsData]);
+
+  // Submit a new comment
+  const handleSubmitComment = async () => {
+    if (!commentText.trim()) return;
+    setSubmittingComment(true);
+    try {
+      const response = await apiRequest(`/api/v1/maintenance/${id}/comments`, {
+        method: 'POST',
+        body: { body: commentText.trim(), visibleToResident: true },
+      });
+      if (response.ok) {
+        setCommentText('');
+        refetchComments();
+      }
+    } catch {
+      // error silently handled; user can retry
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
 
   const statusMap = {
     open: { variant: 'warning' as const, label: 'Open' },
@@ -213,15 +204,51 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
     urgent: { variant: 'error' as const, label: 'Urgent' },
   };
 
-  const req = { ...MOCK_REQUEST, id };
-  const status = statusMap[req.status];
-  const priority = priorityMap[req.priority];
-  const reportedDate = new Date(req.createdAt);
+  // -----------------------------------------------------------------------
+  // Loading state
+  // -----------------------------------------------------------------------
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+        <p className="mt-3 text-[14px] text-neutral-500">Loading request details...</p>
+      </div>
+    );
+  }
 
-  // SLA time calculations
-  const slaElapsedMs = Date.now() - new Date(req.sla.reportedAt).getTime();
-  const slaElapsedHours = Math.floor(slaElapsedMs / (1000 * 60 * 60));
-  const slaRemainingHours = Math.max(0, req.sla.targetHours - slaElapsedHours);
+  // -----------------------------------------------------------------------
+  // Error state
+  // -----------------------------------------------------------------------
+  if (error || !req) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <AlertCircle className="h-8 w-8 text-red-400" />
+        <p className="mt-3 text-[14px] font-medium text-red-700">{error || 'Request not found'}</p>
+        <div className="mt-4 flex items-center gap-3">
+          <Link
+            href="/maintenance"
+            className="text-primary-600 hover:text-primary-700 text-[14px] font-medium"
+          >
+            Back to requests
+          </Link>
+          <Button variant="secondary" size="sm" onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // -----------------------------------------------------------------------
+  // Derived data
+  // -----------------------------------------------------------------------
+  const status = statusMap[req.status] || statusMap.open;
+  const priority = priorityMap[req.priority] || priorityMap.medium;
+  const reportedDate = new Date(req.createdAt);
+  const sla = computeSla(req.createdAt, req.priority);
+  const permissionToEnter = req.permissionToEnter === true || req.permissionToEnter === 'yes';
+  const unitNumber = req.unit?.number || '';
+  const categoryName = req.category?.name || 'General';
 
   return (
     <div className="flex flex-col gap-6">
@@ -284,16 +311,18 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   </p>
                   <p className="mt-1">
                     <Badge variant="default" size="md">
-                      {req.category}
+                      {categoryName}
                     </Badge>
                   </p>
                 </div>
-                <div className="col-span-2">
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Title
-                  </p>
-                  <p className="mt-1 text-[15px] font-medium text-neutral-900">{req.title}</p>
-                </div>
+                {req.title && (
+                  <div className="col-span-2">
+                    <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                      Title
+                    </p>
+                    <p className="mt-1 text-[15px] font-medium text-neutral-900">{req.title}</p>
+                  </div>
+                )}
                 <div className="col-span-2">
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Description
@@ -307,14 +336,14 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                     Unit
                   </p>
                   <p className="mt-1 text-[15px] font-medium text-neutral-900">
-                    {req.building} &middot; Unit {req.unit}
+                    {unitNumber ? `Unit ${unitNumber}` : 'N/A'}
                   </p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Reported By
                   </p>
-                  <p className="mt-1 text-[15px] text-neutral-900">{req.resident}</p>
+                  <p className="mt-1 text-[15px] text-neutral-900">{req.residentId || 'Unknown'}</p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
@@ -335,23 +364,19 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                     Permission to Enter
                   </p>
                   <p className="mt-1">
-                    <Badge variant={req.permissionToEnter ? 'success' : 'error'} size="md" dot>
-                      {req.permissionToEnter ? 'Yes' : 'No'}
+                    <Badge variant={permissionToEnter ? 'success' : 'error'} size="md" dot>
+                      {permissionToEnter ? 'Yes' : 'No'}
                     </Badge>
                   </p>
                 </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Entry Instructions
-                  </p>
-                  <p className="mt-1 text-[15px] text-neutral-700">{req.entryInstructions}</p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Area Description
-                  </p>
-                  <p className="mt-1 text-[15px] text-neutral-700">{req.areaDescription}</p>
-                </div>
+                {req.entryInstructions && (
+                  <div>
+                    <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                      Entry Instructions
+                    </p>
+                    <p className="mt-1 text-[15px] text-neutral-700">{req.entryInstructions}</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -389,12 +414,26 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
             <div className="mb-4 flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-neutral-400" />
               <h2 className="text-[14px] font-semibold text-neutral-900">
-                Comments ({req.comments.length})
+                Comments ({comments.length})
               </h2>
             </div>
             <CardContent>
               <div className="flex flex-col gap-4">
-                {req.comments.map((comment) => (
+                {commentsLoading && (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
+                    <span className="ml-2 text-[13px] text-neutral-500">Loading comments...</span>
+                  </div>
+                )}
+
+                {!commentsLoading && comments.length === 0 && (
+                  <div className="flex flex-col items-center py-6">
+                    <MessageSquare className="h-6 w-6 text-neutral-300" />
+                    <p className="mt-2 text-[13px] text-neutral-400">No comments yet</p>
+                  </div>
+                )}
+
+                {comments.map((comment) => (
                   <div
                     key={comment.id}
                     className="rounded-lg border border-neutral-200 bg-neutral-50 p-4"
@@ -402,22 +441,16 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="bg-primary-100 text-primary-700 flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold">
-                          {comment.author
-                            .split(' ')
-                            .map((n) => n[0])
-                            .join('')}
+                          <User className="h-3.5 w-3.5" />
                         </div>
                         <div>
                           <span className="text-[13px] font-semibold text-neutral-900">
-                            {comment.author}
-                          </span>
-                          <span className="ml-1.5 text-[11px] text-neutral-400">
-                            {comment.role}
+                            {comment.authorId}
                           </span>
                         </div>
                       </div>
                       <span className="text-[12px] text-neutral-400">
-                        {new Date(comment.timestamp).toLocaleString('en-US', {
+                        {new Date(comment.createdAt).toLocaleString('en-US', {
                           month: 'short',
                           day: 'numeric',
                           hour: 'numeric',
@@ -426,7 +459,7 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                       </span>
                     </div>
                     <p className="mt-2 text-[14px] leading-relaxed text-neutral-700">
-                      {comment.message}
+                      {comment.body}
                     </p>
                   </div>
                 ))}
@@ -441,9 +474,17 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                     rows={3}
                   />
                   <div className="mt-3 flex justify-end">
-                    <Button size="sm" disabled={!commentText.trim()}>
-                      <Send className="h-4 w-4" />
-                      Submit Comment
+                    <Button
+                      size="sm"
+                      disabled={!commentText.trim() || submittingComment}
+                      onClick={handleSubmitComment}
+                    >
+                      {submittingComment ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      {submittingComment ? 'Submitting...' : 'Submit Comment'}
                     </Button>
                   </div>
                 </div>
@@ -464,7 +505,10 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   <p className="mb-1.5 text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Update Status
                   </p>
-                  <select className="focus:ring-primary-500 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[14px] text-neutral-700 focus:ring-2 focus:outline-none">
+                  <select
+                    defaultValue={req.status}
+                    className="focus:ring-primary-500 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[14px] text-neutral-700 focus:ring-2 focus:outline-none"
+                  >
                     <option value="open">Open</option>
                     <option value="assigned">Assigned</option>
                     <option value="in_progress">In Progress</option>
@@ -481,9 +525,6 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   </p>
                   <select className="focus:ring-primary-500 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[14px] text-neutral-700 focus:ring-2 focus:outline-none">
                     <option value="">Select staff member...</option>
-                    <option value="carlos">Carlos Rivera</option>
-                    <option value="sarah">Sarah Chen</option>
-                    <option value="james">James Wilson</option>
                   </select>
                 </div>
 
@@ -494,9 +535,6 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   </p>
                   <select className="focus:ring-primary-500 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[14px] text-neutral-700 focus:ring-2 focus:outline-none">
                     <option value="">Select vendor...</option>
-                    <option value="acme">Acme Plumbing Co.</option>
-                    <option value="elite">Elite HVAC Services</option>
-                    <option value="pro">Pro Electric Ltd.</option>
                   </select>
                 </div>
 
@@ -532,31 +570,18 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
               <h2 className="text-[14px] font-semibold text-neutral-900">Currently Assigned</h2>
             </div>
             <CardContent>
-              {req.assignedStaff ? (
+              {req.assignedEmployeeId ? (
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-3">
                     <div className="bg-primary-100 text-primary-700 flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-bold">
-                      {req.assignedStaff
-                        .split(' ')
-                        .map((n) => n[0])
-                        .join('')}
+                      <User className="h-4 w-4" />
                     </div>
                     <div>
                       <p className="text-[14px] font-semibold text-neutral-900">
-                        {req.assignedStaff}
+                        {req.assignedEmployeeId}
                       </p>
-                      <p className="text-[12px] text-neutral-500">Maintenance Staff</p>
+                      <p className="text-[12px] text-neutral-500">Assigned Staff</p>
                     </div>
-                  </div>
-                  <div className="flex flex-col gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                    <p className="flex items-center gap-1.5 text-[13px] text-neutral-600">
-                      <Phone className="h-3 w-3 text-neutral-400" />
-                      {req.assignedStaffPhone}
-                    </p>
-                    <p className="text-primary-600 flex items-center gap-1.5 text-[13px]">
-                      <Settings className="h-3 w-3 text-neutral-400" />
-                      {req.assignedStaffEmail}
-                    </p>
                   </div>
                 </div>
               ) : (
@@ -565,13 +590,13 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   <p className="mt-2 text-[13px] text-neutral-400">Not yet assigned</p>
                 </div>
               )}
-              {req.assignedVendor && (
+              {req.assignedVendorId && (
                 <div className="mt-3 border-t border-neutral-200 pt-3">
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Vendor
                   </p>
                   <p className="mt-1 text-[14px] font-medium text-neutral-900">
-                    {req.assignedVendor}
+                    {req.assignedVendorId}
                   </p>
                 </div>
               )}
@@ -590,8 +615,8 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   <span className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Status
                   </span>
-                  <Badge variant={getSlaVariant(req.sla.status)} size="lg" dot>
-                    {getSlaLabel(req.sla.status)}
+                  <Badge variant={getSlaVariant(sla.status)} size="lg" dot>
+                    {getSlaLabel(sla.status)}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
@@ -611,14 +636,14 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   <span className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Target Resolution
                   </span>
-                  <span className="text-[13px] text-neutral-700">{req.sla.targetHours}h</span>
+                  <span className="text-[13px] text-neutral-700">{sla.targetHours}h</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Time Elapsed
                   </span>
                   <span className="text-[13px] font-semibold text-neutral-900">
-                    {slaElapsedHours}h
+                    {sla.elapsedHours}h
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -627,14 +652,14 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   </span>
                   <span
                     className={`text-[13px] font-semibold ${
-                      slaRemainingHours <= 0
+                      sla.remainingHours <= 0
                         ? 'text-error-600'
-                        : slaRemainingHours <= 12
+                        : sla.remainingHours <= 12
                           ? 'text-warning-600'
                           : 'text-success-600'
                     }`}
                   >
-                    {slaRemainingHours}h
+                    {sla.remainingHours}h
                   </span>
                 </div>
                 {/* Progress bar */}
@@ -642,89 +667,15 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   <div className="h-2 w-full rounded-full bg-neutral-100">
                     <div
                       className={`h-2 rounded-full transition-all ${
-                        req.sla.status === 'breached'
+                        sla.status === 'breached'
                           ? 'bg-error-500'
-                          : req.sla.status === 'at_risk'
+                          : sla.status === 'at_risk'
                             ? 'bg-warning-500'
                             : 'bg-success-500'
                       }`}
-                      style={{
-                        width: `${Math.min(100, (slaElapsedHours / req.sla.targetHours) * 100)}%`,
-                      }}
+                      style={{ width: `${sla.pct}%` }}
                     />
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Related Items */}
-          <Card>
-            <div className="mb-4 flex items-center gap-2">
-              <Link2 className="h-4 w-4 text-neutral-400" />
-              <h2 className="text-[14px] font-semibold text-neutral-900">Related Items</h2>
-            </div>
-            <CardContent>
-              <div className="flex flex-col gap-3">
-                {req.linkedEquipment && (
-                  <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                    <p className="text-[11px] font-medium tracking-wide text-neutral-400 uppercase">
-                      Linked Equipment
-                    </p>
-                    <p className="text-primary-600 mt-1 text-[13px] font-medium">
-                      {req.linkedEquipment.name}
-                    </p>
-                    <p className="mt-0.5 flex items-center gap-1 text-[12px] text-neutral-500">
-                      <MapPin className="h-3 w-3" />
-                      {req.linkedEquipment.location}
-                    </p>
-                  </div>
-                )}
-                {req.linkedEvent && (
-                  <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                    <p className="text-[11px] font-medium tracking-wide text-neutral-400 uppercase">
-                      Linked Event
-                    </p>
-                    <p className="text-primary-600 mt-1 text-[13px] font-medium">
-                      {req.linkedEvent.type}
-                    </p>
-                    <p className="mt-0.5 flex items-center gap-1 text-[12px] text-neutral-500">
-                      <Calendar className="h-3 w-3" />
-                      {req.linkedEvent.date}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* History Timeline */}
-          <Card>
-            <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">History</h2>
-            <CardContent>
-              <div className="relative">
-                <div className="absolute top-2 bottom-2 left-[11px] w-px bg-neutral-200" />
-                <div className="flex flex-col gap-4">
-                  {req.history.map((event) => (
-                    <div key={event.id} className="relative flex gap-3">
-                      <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-neutral-100">
-                        {getTimelineIcon(event.action)}
-                      </div>
-                      <div className="flex flex-col gap-0.5 pt-0.5">
-                        <p className="text-[13px] font-medium text-neutral-900">{event.detail}</p>
-                        <p className="text-[12px] text-neutral-400">
-                          {new Date(event.timestamp).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                          {' \u00B7 '}
-                          {event.actor}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </CardContent>

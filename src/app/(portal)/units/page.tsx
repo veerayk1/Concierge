@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Download, Grid3X3, List, Search, Users, X } from 'lucide-react';
+import { Building2, Download, Grid3X3, List, Plus, Search, Users, X } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
@@ -10,150 +10,51 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — matches API response shape from GET /api/v1/units
 // ---------------------------------------------------------------------------
+
+interface ApiUnit {
+  id: string;
+  number: string;
+  floor: number | null;
+  unitType: string;
+  status: string;
+  squareFootage: string | null;
+  building: { id: string; name: string } | null;
+  unitInstructions: { id: string; instructionText: string; priority: string }[];
+}
+
+interface ApiResponse {
+  data: ApiUnit[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 interface UnitItem {
   id: string;
   number: string;
   floor: number;
   building: string;
-  type: 'studio' | '1br' | '2br' | '3br' | 'penthouse';
+  type: string;
   occupantCount: number;
   primaryResident: string;
-  status: 'occupied' | 'vacant' | 'owner_occupied' | 'rented';
-  unreleasedPackages: number;
-  openRequests: number;
+  status: 'occupied' | 'vacant' | 'owner_occupied' | 'rented' | 'under_renovation';
   hasInstructions: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_UNITS: UnitItem[] = [
-  {
-    id: '1',
-    number: '101',
-    floor: 1,
-    building: 'Tower A',
-    type: '1br',
-    occupantCount: 1,
-    primaryResident: 'Alice Wong',
-    status: 'occupied',
-    unreleasedPackages: 0,
-    openRequests: 0,
-    hasInstructions: false,
-  },
-  {
-    id: '2',
-    number: '305',
-    floor: 3,
-    building: 'Tower A',
-    type: '2br',
-    occupantCount: 2,
-    primaryResident: 'Robert Kim',
-    status: 'rented',
-    unreleasedPackages: 1,
-    openRequests: 1,
-    hasInstructions: true,
-  },
-  {
-    id: '3',
-    number: '422',
-    floor: 4,
-    building: 'Tower A',
-    type: '1br',
-    occupantCount: 1,
-    primaryResident: 'Jane Doe',
-    status: 'owner_occupied',
-    unreleasedPackages: 0,
-    openRequests: 0,
-    hasInstructions: false,
-  },
-  {
-    id: '4',
-    number: '710',
-    floor: 7,
-    building: 'Tower A',
-    type: '2br',
-    occupantCount: 3,
-    primaryResident: 'Sarah Wilson',
-    status: 'occupied',
-    unreleasedPackages: 0,
-    openRequests: 0,
-    hasInstructions: true,
-  },
-  {
-    id: '5',
-    number: '802',
-    floor: 8,
-    building: 'Tower A',
-    type: '3br',
-    occupantCount: 4,
-    primaryResident: 'David Chen',
-    status: 'occupied',
-    unreleasedPackages: 1,
-    openRequests: 1,
-    hasInstructions: false,
-  },
-  {
-    id: '6',
-    number: '910',
-    floor: 9,
-    building: 'Tower A',
-    type: 'studio',
-    occupantCount: 0,
-    primaryResident: '',
-    status: 'vacant',
-    unreleasedPackages: 0,
-    openRequests: 0,
-    hasInstructions: false,
-  },
-  {
-    id: '7',
-    number: '1105',
-    floor: 11,
-    building: 'Tower A',
-    type: '2br',
-    occupantCount: 2,
-    primaryResident: 'Lisa Brown',
-    status: 'rented',
-    unreleasedPackages: 0,
-    openRequests: 1,
-    hasInstructions: false,
-  },
-  {
-    id: '8',
-    number: '1203',
-    floor: 12,
-    building: 'Tower A',
-    type: '1br',
-    occupantCount: 1,
-    primaryResident: 'Maria Garcia',
-    status: 'occupied',
-    unreleasedPackages: 1,
-    openRequests: 0,
-    hasInstructions: false,
-  },
-  {
-    id: '9',
-    number: '1501',
-    floor: 15,
-    building: 'Tower A',
-    type: 'penthouse',
-    occupantCount: 2,
-    primaryResident: 'Janet Smith',
-    status: 'owner_occupied',
-    unreleasedPackages: 2,
-    openRequests: 1,
-    hasInstructions: true,
-  },
-];
-
 const TYPE_LABELS: Record<string, string> = {
+  residential: 'Residential',
+  commercial: 'Commercial',
+  storage: 'Storage',
+  parking: 'Parking',
   studio: 'Studio',
   '1br': '1 Bed',
   '2br': '2 Bed',
@@ -170,47 +71,37 @@ export default function UnitsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
-  const { data: apiUnits } = useApi<UnitItem[]>(
-    apiUrl('/api/v1/units', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiResponse,
+    loading,
+    error,
+    refetch,
+  } = useApi<ApiResponse>(
+    apiUrl('/api/v1/units', {
+      propertyId: DEMO_PROPERTY_ID,
+      search: searchQuery || undefined,
+      pageSize: '200',
+    }),
   );
 
-  const dbUnits = useMemo(() => {
-    if (apiUnits && Array.isArray(apiUnits) && apiUnits.length > 0) {
-      return apiUnits.map((u: UnitItem) => {
-        const raw = u as unknown as Record<string, unknown>;
-        return {
-          id: u.id as string,
-          number: u.number as string,
-          floor: (u.floor as number) || 1,
-          building: (raw.building as Record<string, string>)?.name || 'Tower A',
-          type: ((raw.unitType as string) || 'residential') as UnitItem['type'],
-          occupantCount: 0,
-          primaryResident: '',
-          status: (u.status as string) === 'occupied' ? ('occupied' as const) : ('vacant' as const),
-          unreleasedPackages: 0,
-          openRequests: 0,
-          hasInstructions: ((raw.unitInstructions as unknown[]) || []).length > 0,
-        };
-      });
-    }
-    return MOCK_UNITS;
-  }, [apiUnits]);
+  const units = useMemo<UnitItem[]>(() => {
+    const rawUnits = apiResponse?.data ?? (apiResponse as unknown as ApiUnit[]);
+    if (!rawUnits || !Array.isArray(rawUnits)) return [];
 
-  const filteredUnits = useMemo(
-    () =>
-      dbUnits.filter((u) => {
-        if (!searchQuery) return true;
-        const q = searchQuery.toLowerCase();
-        return (
-          u.number.toLowerCase().includes(q) ||
-          u.primaryResident.toLowerCase().includes(q) ||
-          u.building.toLowerCase().includes(q)
-        );
-      }),
-    [searchQuery],
-  );
+    return rawUnits.map((u) => ({
+      id: u.id,
+      number: u.number,
+      floor: u.floor ?? 1,
+      building: u.building?.name || 'Main',
+      type: u.unitType || 'residential',
+      occupantCount: 0, // Would need a separate count or join; not in current API response
+      primaryResident: '', // Would need occupancy records; not in current API response
+      status: normalizeUnitStatus(u.status),
+      hasInstructions: (u.unitInstructions?.length ?? 0) > 0,
+    }));
+  }, [apiResponse]);
 
-  const occupiedCount = dbUnits.filter((u) => u.status !== 'vacant').length;
+  const occupiedCount = units.filter((u) => u.status !== 'vacant').length;
 
   const columns: Column<UnitItem>[] = [
     {
@@ -237,34 +128,18 @@ export default function UnitsPage() {
       sortable: true,
     },
     {
+      id: 'building',
+      header: 'Building',
+      accessorKey: 'building',
+      sortable: true,
+      cell: (row) => <span className="text-neutral-600">{row.building}</span>,
+    },
+    {
       id: 'type',
       header: 'Type',
       accessorKey: 'type',
       sortable: true,
-      cell: (row) => <span className="text-neutral-600">{TYPE_LABELS[row.type]}</span>,
-    },
-    {
-      id: 'primaryResident',
-      header: 'Primary Resident',
-      accessorKey: 'primaryResident',
-      sortable: true,
-      cell: (row) => (
-        <span className={row.primaryResident ? 'text-neutral-900' : 'text-neutral-400 italic'}>
-          {row.primaryResident || 'Vacant'}
-        </span>
-      ),
-    },
-    {
-      id: 'occupantCount',
-      header: 'Occupants',
-      accessorKey: 'occupantCount',
-      sortable: true,
-      cell: (row) => (
-        <div className="flex items-center gap-1.5">
-          <Users className="h-3.5 w-3.5 text-neutral-400" />
-          <span>{row.occupantCount}</span>
-        </div>
-      ),
+      cell: (row) => <span className="text-neutral-600">{TYPE_LABELS[row.type] || row.type}</span>,
     },
     {
       id: 'status',
@@ -272,13 +147,17 @@ export default function UnitsPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
-        const map = {
-          occupied: { variant: 'success' as const, label: 'Occupied' },
-          vacant: { variant: 'default' as const, label: 'Vacant' },
-          owner_occupied: { variant: 'primary' as const, label: 'Owner' },
-          rented: { variant: 'info' as const, label: 'Rented' },
+        const map: Record<
+          string,
+          { variant: 'success' | 'default' | 'primary' | 'info' | 'warning'; label: string }
+        > = {
+          occupied: { variant: 'success', label: 'Occupied' },
+          vacant: { variant: 'default', label: 'Vacant' },
+          owner_occupied: { variant: 'primary', label: 'Owner' },
+          rented: { variant: 'info', label: 'Rented' },
+          under_renovation: { variant: 'warning', label: 'Renovation' },
         };
-        const s = map[row.status];
+        const s = map[row.status] || { variant: 'default' as const, label: row.status };
         return (
           <Badge variant={s.variant} size="sm">
             {s.label}
@@ -287,37 +166,52 @@ export default function UnitsPage() {
       },
     },
     {
-      id: 'packages',
-      header: 'Packages',
-      accessorKey: 'unreleasedPackages',
+      id: 'instructions',
+      header: '',
       cell: (row) =>
-        row.unreleasedPackages > 0 ? (
-          <Badge variant="warning" size="sm" dot>
-            {row.unreleasedPackages}
+        row.hasInstructions ? (
+          <Badge variant="warning" size="sm">
+            Instructions
           </Badge>
-        ) : (
-          <span className="text-neutral-300">\u2014</span>
-        ),
-    },
-    {
-      id: 'requests',
-      header: 'Requests',
-      accessorKey: 'openRequests',
-      cell: (row) =>
-        row.openRequests > 0 ? (
-          <Badge variant="error" size="sm" dot>
-            {row.openRequests}
-          </Badge>
-        ) : (
-          <span className="text-neutral-300">\u2014</span>
-        ),
+        ) : null,
     },
   ];
+
+  // Loading state
+  if (loading) {
+    return (
+      <PageShell title="Unit Directory" description="Loading...">
+        <div className="space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="Unit Directory" description="Error loading units">
+        <EmptyState
+          icon={<Building2 className="h-6 w-6" />}
+          title="Failed to load units"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell
       title="Unit Directory"
-      description={`${dbUnits.length} units \u00B7 ${occupiedCount} occupied \u00B7 ${dbUnits.length - occupiedCount} vacant`}
+      description={`${units.length} units \u00B7 ${occupiedCount} occupied \u00B7 ${units.length - occupiedCount} vacant`}
       actions={
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg border border-neutral-200 bg-white p-0.5">
@@ -349,7 +243,7 @@ export default function UnitsPage() {
           <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
           <input
             type="text"
-            placeholder="Search by unit number or resident..."
+            placeholder="Search by unit number..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
@@ -366,56 +260,76 @@ export default function UnitsPage() {
         </div>
       </div>
 
-      {viewMode === 'table' ? (
+      {units.length === 0 && !searchQuery ? (
+        <EmptyState
+          icon={<Building2 className="h-6 w-6" />}
+          title="No units found"
+          description="Units will appear here once they are added to this property."
+        />
+      ) : viewMode === 'table' ? (
         <DataTable
           columns={columns}
-          data={filteredUnits}
-          emptyMessage="No units found."
+          data={units}
+          emptyMessage="No units match your search."
           emptyIcon={<Building2 className="h-6 w-6" />}
           onRowClick={(row) => router.push(`/units/${row.id}` as never)}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredUnits.map((unit) => (
-            <Card
-              key={unit.id}
-              hoverable
-              className="cursor-pointer"
-              onClick={() => router.push(`/units/${unit.id}` as never)}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-[20px] font-bold text-neutral-900">{unit.number}</p>
-                  <p className="text-[13px] text-neutral-500">
-                    Floor {unit.floor} &middot; {TYPE_LABELS[unit.type]}
-                  </p>
+          {units.length === 0 ? (
+            <div className="col-span-full">
+              <EmptyState
+                icon={<Building2 className="h-6 w-6" />}
+                title="No units match your search"
+              />
+            </div>
+          ) : (
+            units.map((unit) => (
+              <Card
+                key={unit.id}
+                hoverable
+                className="cursor-pointer"
+                onClick={() => router.push(`/units/${unit.id}` as never)}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-[20px] font-bold text-neutral-900">{unit.number}</p>
+                    <p className="text-[13px] text-neutral-500">
+                      Floor {unit.floor} &middot; {TYPE_LABELS[unit.type] || unit.type}
+                    </p>
+                  </div>
+                  <Badge variant={unit.status === 'vacant' ? 'default' : 'success'} size="sm">
+                    {unit.status === 'vacant' ? 'Vacant' : 'Occupied'}
+                  </Badge>
                 </div>
-                <Badge variant={unit.status === 'vacant' ? 'default' : 'success'} size="sm">
-                  {unit.status === 'vacant' ? 'Vacant' : 'Occupied'}
-                </Badge>
-              </div>
-              {unit.primaryResident && (
-                <p className="mt-3 text-[14px] text-neutral-700">{unit.primaryResident}</p>
-              )}
-              <div className="mt-3 flex items-center gap-3 text-[12px] text-neutral-500">
-                <span className="flex items-center gap-1">
-                  <Users className="h-3 w-3" /> {unit.occupantCount}
-                </span>
-                {unit.unreleasedPackages > 0 && (
-                  <Badge variant="warning" size="sm">
-                    {unit.unreleasedPackages} pkg
-                  </Badge>
+                <p className="mt-2 text-[13px] text-neutral-500">{unit.building}</p>
+                {unit.hasInstructions && (
+                  <div className="mt-2">
+                    <Badge variant="warning" size="sm">
+                      Has Instructions
+                    </Badge>
+                  </div>
                 )}
-                {unit.openRequests > 0 && (
-                  <Badge variant="error" size="sm">
-                    {unit.openRequests} req
-                  </Badge>
-                )}
-              </div>
-            </Card>
-          ))}
+              </Card>
+            ))
+          )}
         </div>
       )}
     </PageShell>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function normalizeUnitStatus(status: string): UnitItem['status'] {
+  const map: Record<string, UnitItem['status']> = {
+    occupied: 'occupied',
+    vacant: 'vacant',
+    owner_occupied: 'owner_occupied',
+    rented: 'rented',
+    under_renovation: 'under_renovation',
+  };
+  return map[status] || 'vacant';
 }

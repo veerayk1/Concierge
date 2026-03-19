@@ -11,10 +11,34 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — matches API response shape from GET /api/v1/residents
 // ---------------------------------------------------------------------------
+
+interface ApiResident {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  avatarUrl: string | null;
+  role: { name: string; slug: string } | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+}
+
+interface ApiResponse {
+  data: ApiResident[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 interface Resident {
   id: string;
@@ -22,124 +46,12 @@ interface Resident {
   lastName: string;
   email: string;
   phone: string;
-  unit: string;
+  avatarUrl: string | null;
   role: 'owner' | 'tenant' | 'family_member';
+  roleLabel: string;
   status: 'active' | 'inactive';
-  moveInDate: string;
-  hasPets: boolean;
-  hasVehicle: boolean;
+  createdAt: string;
 }
-
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_RESIDENTS: Resident[] = [
-  {
-    id: '1',
-    firstName: 'Janet',
-    lastName: 'Smith',
-    email: 'janet.smith@email.com',
-    phone: '416-555-0123',
-    unit: '1501',
-    role: 'owner',
-    status: 'active',
-    moveInDate: '2022-06-01',
-    hasPets: true,
-    hasVehicle: true,
-  },
-  {
-    id: '2',
-    firstName: 'David',
-    lastName: 'Chen',
-    email: 'david.chen@email.com',
-    phone: '416-555-0456',
-    unit: '802',
-    role: 'tenant',
-    status: 'active',
-    moveInDate: '2024-01-15',
-    hasPets: false,
-    hasVehicle: true,
-  },
-  {
-    id: '3',
-    firstName: 'Maria',
-    lastName: 'Garcia',
-    email: 'maria.g@email.com',
-    phone: '416-555-0789',
-    unit: '1203',
-    role: 'tenant',
-    status: 'active',
-    moveInDate: '2023-09-01',
-    hasPets: true,
-    hasVehicle: false,
-  },
-  {
-    id: '4',
-    firstName: 'Robert',
-    lastName: 'Kim',
-    email: 'rkim@email.com',
-    phone: '416-555-1234',
-    unit: '305',
-    role: 'tenant',
-    status: 'active',
-    moveInDate: '2025-02-01',
-    hasPets: false,
-    hasVehicle: false,
-  },
-  {
-    id: '5',
-    firstName: 'Sarah',
-    lastName: 'Wilson',
-    email: 's.wilson@email.com',
-    phone: '416-555-5678',
-    unit: '710',
-    role: 'owner',
-    status: 'active',
-    moveInDate: '2021-03-15',
-    hasPets: false,
-    hasVehicle: true,
-  },
-  {
-    id: '6',
-    firstName: 'Lisa',
-    lastName: 'Brown',
-    email: 'lisa.brown@email.com',
-    phone: '416-555-9012',
-    unit: '1105',
-    role: 'tenant',
-    status: 'active',
-    moveInDate: '2024-06-01',
-    hasPets: false,
-    hasVehicle: false,
-  },
-  {
-    id: '7',
-    firstName: 'Jane',
-    lastName: 'Doe',
-    email: 'jane.doe@email.com',
-    phone: '416-555-3456',
-    unit: '422',
-    role: 'owner',
-    status: 'active',
-    moveInDate: '2020-11-01',
-    hasPets: true,
-    hasVehicle: true,
-  },
-  {
-    id: '8',
-    firstName: 'Alice',
-    lastName: 'Wong',
-    email: 'alice.w@email.com',
-    phone: '416-555-7890',
-    unit: '101',
-    role: 'tenant',
-    status: 'active',
-    moveInDate: '2025-01-01',
-    hasPets: false,
-    hasVehicle: false,
-  },
-];
 
 // ---------------------------------------------------------------------------
 // Component
@@ -150,42 +62,36 @@ export default function ResidentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
 
-  const { data: apiResidents, refetch } = useApi<Resident[]>(
-    apiUrl('/api/v1/residents', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiResponse,
+    loading,
+    error,
+    refetch,
+  } = useApi<ApiResponse>(
+    apiUrl('/api/v1/residents', {
+      propertyId: DEMO_PROPERTY_ID,
+      search: searchQuery || undefined,
+      pageSize: '100',
+    }),
   );
 
-  const allResidents = useMemo(() => {
-    if (apiResidents && Array.isArray(apiResidents) && apiResidents.length > 0) {
-      return apiResidents.map((r: Resident) => {
-        const raw = r as unknown as Record<string, unknown>;
-        return {
-          id: r.id as string,
-          firstName: r.firstName as string,
-          lastName: r.lastName as string,
-          email: r.email as string,
-          phone: (r.phone as string) || '',
-          unit: '',
-          role: ((raw.role as Record<string, string>)?.slug as Resident['role']) || 'tenant',
-          status: 'active' as const,
-          moveInDate: (r.moveInDate as string) || '2025-01-01',
-          hasPets: false,
-          hasVehicle: false,
-        };
-      });
-    }
-    return MOCK_RESIDENTS;
-  }, [apiResidents]);
+  const residents = useMemo<Resident[]>(() => {
+    const rawResidents = apiResponse?.data ?? (apiResponse as unknown as ApiResident[]);
+    if (!rawResidents || !Array.isArray(rawResidents)) return [];
 
-  const filteredResidents = useMemo(
-    () =>
-      allResidents.filter((r) => {
-        if (!searchQuery) return true;
-        const q = searchQuery.toLowerCase();
-        const fullName = `${r.firstName} ${r.lastName}`.toLowerCase();
-        return fullName.includes(q) || r.unit.includes(q) || r.email.toLowerCase().includes(q);
-      }),
-    [searchQuery, allResidents],
-  );
+    return rawResidents.map((r) => ({
+      id: r.id,
+      firstName: r.firstName,
+      lastName: r.lastName,
+      email: r.email,
+      phone: r.phone || '',
+      avatarUrl: r.avatarUrl || null,
+      role: normalizeRole(r.role?.slug),
+      roleLabel: r.role?.name || 'Resident',
+      status: 'active' as const,
+      createdAt: r.createdAt,
+    }));
+  }, [apiResponse]);
 
   const columns: Column<Resident>[] = [
     {
@@ -206,24 +112,17 @@ export default function ResidentsPage() {
       ),
     },
     {
-      id: 'unit',
-      header: 'Unit',
-      accessorKey: 'unit',
-      sortable: true,
-      cell: (row) => <span className="font-medium">{row.unit}</span>,
-    },
-    {
       id: 'role',
       header: 'Type',
       accessorKey: 'role',
       sortable: true,
       cell: (row) => {
-        const map = {
-          owner: { variant: 'primary' as const, label: 'Owner' },
-          tenant: { variant: 'info' as const, label: 'Tenant' },
-          family_member: { variant: 'default' as const, label: 'Family' },
+        const map: Record<string, { variant: 'primary' | 'info' | 'default'; label: string }> = {
+          owner: { variant: 'primary', label: 'Owner' },
+          tenant: { variant: 'info', label: 'Tenant' },
+          family_member: { variant: 'default', label: 'Family' },
         };
-        const r = map[row.role];
+        const r = map[row.role] || { variant: 'default' as const, label: row.roleLabel };
         return (
           <Badge variant={r.variant} size="sm">
             {r.label}
@@ -235,43 +134,28 @@ export default function ResidentsPage() {
       id: 'phone',
       header: 'Phone',
       accessorKey: 'phone',
-      cell: (row) => (
-        <span className="flex items-center gap-1 text-[13px] text-neutral-600">
-          <Phone className="h-3 w-3 text-neutral-400" />
-          {row.phone}
-        </span>
-      ),
+      cell: (row) =>
+        row.phone ? (
+          <span className="flex items-center gap-1 text-[13px] text-neutral-600">
+            <Phone className="h-3 w-3 text-neutral-400" />
+            {row.phone}
+          </span>
+        ) : (
+          <span className="text-[13px] text-neutral-300">{'\u2014'}</span>
+        ),
     },
     {
-      id: 'moveIn',
-      header: 'Move-in',
-      accessorKey: 'moveInDate',
+      id: 'joined',
+      header: 'Joined',
+      accessorKey: 'createdAt',
       sortable: true,
       cell: (row) => (
         <span className="text-[13px] text-neutral-500">
-          {new Date(row.moveInDate).toLocaleDateString('en-US', {
+          {new Date(row.createdAt).toLocaleDateString('en-US', {
             month: 'short',
             year: 'numeric',
           })}
         </span>
-      ),
-    },
-    {
-      id: 'flags',
-      header: '',
-      cell: (row) => (
-        <div className="flex gap-1">
-          {row.hasPets && (
-            <Badge variant="default" size="sm">
-              Pets
-            </Badge>
-          )}
-          {row.hasVehicle && (
-            <Badge variant="default" size="sm">
-              Vehicle
-            </Badge>
-          )}
-        </div>
       ),
     },
     {
@@ -286,10 +170,41 @@ export default function ResidentsPage() {
     },
   ];
 
+  // Loading state
+  if (loading) {
+    return (
+      <PageShell title="Resident Directory" description="Loading...">
+        <div className="space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="Resident Directory" description="Error loading residents">
+        <EmptyState
+          icon={<Users className="h-6 w-6" />}
+          title="Failed to load residents"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
+
   return (
     <PageShell
       title="Resident Directory"
-      description={`${allResidents.length} residents across ${new Set(allResidents.map((r) => r.unit)).size} units`}
+      description={`${residents.length} residents`}
       actions={
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm">
@@ -308,7 +223,7 @@ export default function ResidentsPage() {
           <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
           <input
             type="text"
-            placeholder="Search by name, unit, or email..."
+            placeholder="Search by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
@@ -324,18 +239,33 @@ export default function ResidentsPage() {
           )}
         </div>
       </div>
-      <DataTable
-        columns={columns}
-        data={filteredResidents}
-        emptyMessage="No residents found."
-        emptyIcon={<Users className="h-6 w-6" />}
-        onRowClick={(row) => router.push(`/residents/${row.id}` as never)}
-      />
+
+      {residents.length === 0 && !searchQuery ? (
+        <EmptyState
+          icon={<Users className="h-6 w-6" />}
+          title="No residents found"
+          description="Residents will appear here once they are added to this property."
+          action={
+            <Button size="sm" onClick={() => setShowAddDialog(true)}>
+              <Plus className="h-4 w-4" />
+              Add Resident
+            </Button>
+          }
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={residents}
+          emptyMessage="No residents match your search."
+          emptyIcon={<Users className="h-6 w-6" />}
+          onRowClick={(row) => router.push(`/residents/${row.id}` as never)}
+        />
+      )}
 
       <AddResidentDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        propertyId="00000000-0000-4000-b000-000000000001"
+        propertyId={DEMO_PROPERTY_ID}
         onSuccess={() => {
           setShowAddDialog(false);
           refetch();
@@ -343,4 +273,18 @@ export default function ResidentsPage() {
       />
     </PageShell>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function normalizeRole(slug: string | undefined): Resident['role'] {
+  const map: Record<string, Resident['role']> = {
+    resident_owner: 'owner',
+    resident_tenant: 'tenant',
+    family_member: 'family_member',
+    offsite_owner: 'owner',
+  };
+  return map[slug || ''] || 'tenant';
 }

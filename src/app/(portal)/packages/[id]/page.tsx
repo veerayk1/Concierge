@@ -2,6 +2,8 @@
 
 import { use, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useApi } from '@/lib/hooks/use-api';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -12,6 +14,7 @@ import {
   Edit2,
   ImageIcon,
   Inbox,
+  Loader2,
   Mail,
   MapPin,
   Package,
@@ -25,63 +28,40 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ReleasePackageDialog } from '@/components/forms/release-package-dialog';
 
 // ---------------------------------------------------------------------------
-// Mock Package Detail
+// API Response Types
 // ---------------------------------------------------------------------------
 
-const MOCK_PACKAGE = {
-  id: '1',
-  referenceNumber: 'PKG-4821',
-  status: 'unreleased' as const,
-  direction: 'incoming' as const,
-  courier: 'Amazon',
-  trackingNumber: 'TBA123456789012',
-  category: 'Medium Box',
-  description: 'Brown cardboard box, approx 30x20x15cm',
-  unit: '1501',
-  building: 'Tower A',
-  recipient: 'Janet Smith',
-  recipientPhone: '416-555-0123',
-  recipientEmail: 'janet.smith@email.com',
-  storageSpot: 'Shelf A-3',
-  isPerishable: true,
-  isOversized: true,
-  receivedAt: '2026-03-18T09:15:00',
-  receivedBy: 'Mike Johnson',
-  notes: 'Resident requested to hold until Saturday. Do not leave outside the door.',
-  history: [
-    {
-      id: '1',
-      action: 'created',
-      timestamp: '2026-03-18T09:15:00',
-      actor: 'Mike Johnson',
-      detail: 'Package received from Amazon',
-    },
-    {
-      id: '2',
-      action: 'notification_sent',
-      timestamp: '2026-03-18T09:15:30',
-      actor: 'System',
-      detail: 'Email notification sent to janet.smith@email.com',
-    },
-    {
-      id: '3',
-      action: 'notification_sent',
-      timestamp: '2026-03-18T09:15:31',
-      actor: 'System',
-      detail: 'Push notification sent',
-    },
-    {
-      id: '4',
-      action: 'edited',
-      timestamp: '2026-03-18T10:30:00',
-      actor: 'Mike Johnson',
-      detail: 'Storage location updated to Shelf A-3',
-    },
-  ],
-};
+interface ApiPackageDetail {
+  id: string;
+  referenceNumber: string;
+  status: 'unreleased' | 'released' | 'returned' | 'disposed';
+  direction: 'incoming' | 'outgoing';
+  description: string | null;
+  trackingNumber: string | null;
+  isPerishable: boolean;
+  isOversized: boolean;
+  createdAt: string;
+  releasedAt: string | null;
+  releasedToName: string | null;
+  releasedById: string | null;
+  releaseComments: string | null;
+  unit: { id: string; number: string } | null;
+  courier: { id: string; name: string; iconUrl?: string; color?: string } | null;
+  storageSpot: { id: string; name: string; code?: string } | null;
+  parcelCategory: { id: string; name: string } | null;
+  photos: { id: string; fileUrl: string; photoType: string; uploadedAt: string }[];
+  history: {
+    id: string;
+    action: string;
+    details: string | null;
+    actorName: string | null;
+    createdAt: string;
+  }[];
+}
 
 // ---------------------------------------------------------------------------
 // Courier badge color helper
@@ -133,9 +113,71 @@ interface PackageDetailPageProps {
 
 export default function PackageDetailPage({ params }: PackageDetailPageProps) {
   const { id } = use(params);
-  const pkg = { ...MOCK_PACKAGE, id };
+  const router = useRouter();
   const [showReleaseDialog, setShowReleaseDialog] = useState(false);
 
+  const { data: pkg, loading, error, refetch } = useApi<ApiPackageDetail>(`/api/v1/packages/${id}`);
+
+  // ---------------------------------------------------------------------------
+  // Loading State
+  // ---------------------------------------------------------------------------
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32">
+        <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+        <p className="mt-3 text-[14px] text-neutral-500">Loading package details...</p>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Error State
+  // ---------------------------------------------------------------------------
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32">
+        <AlertTriangle className="text-error-500 h-8 w-8" />
+        <p className="mt-3 text-[14px] font-medium text-neutral-900">Failed to load package</p>
+        <p className="mt-1 text-[13px] text-neutral-500">{error}</p>
+        <div className="mt-4 flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => refetch()}>
+            Try again
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => router.push('/packages')}>
+            Back to packages
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Not Found State
+  // ---------------------------------------------------------------------------
+  if (!pkg) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32">
+        <EmptyState
+          icon={<Package className="h-6 w-6" />}
+          title="Package not found"
+          description="This package may have been deleted or you may not have access."
+        />
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-4"
+          onClick={() => router.push('/packages')}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to packages
+        </Button>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Derived display values
+  // ---------------------------------------------------------------------------
   const statusBadge = {
     unreleased: { variant: 'warning' as const, label: 'Unreleased' },
     released: { variant: 'success' as const, label: 'Released' },
@@ -143,10 +185,14 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
     disposed: { variant: 'error' as const, label: 'Disposed' },
   };
 
-  const status = statusBadge[pkg.status];
-  const receivedDate = new Date(pkg.receivedAt);
+  const status = statusBadge[pkg.status] ?? statusBadge.unreleased;
+  const receivedDate = new Date(pkg.createdAt);
   const ageMs = Date.now() - receivedDate.getTime();
-  const ageHours = Math.floor(ageMs / (1000 * 60 * 60));
+  const ageHours = Math.max(0, Math.floor(ageMs / (1000 * 60 * 60)));
+  const courierName = pkg.courier?.name ?? 'Unknown';
+  const unitNumber = pkg.unit?.number ?? 'N/A';
+  const storageName = pkg.storageSpot?.name ?? 'Not assigned';
+  const categoryName = pkg.parcelCategory?.name ?? pkg.description ?? '';
 
   return (
     <div className="flex flex-col gap-6">
@@ -223,8 +269,8 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
                     Courier
                   </p>
                   <p className="mt-1">
-                    <Badge variant={getCourierVariant(pkg.courier)} size="lg">
-                      {pkg.courier}
+                    <Badge variant={getCourierVariant(courierName)} size="lg">
+                      {courierName}
                     </Badge>
                   </p>
                 </div>
@@ -232,7 +278,9 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Description / Type
                   </p>
-                  <p className="mt-1 text-[15px] text-neutral-700">{pkg.description}</p>
+                  <p className="mt-1 text-[15px] text-neutral-700">
+                    {categoryName || 'No description'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
@@ -240,7 +288,7 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] font-medium text-neutral-900">
                     <MapPin className="h-3.5 w-3.5 text-neutral-400" />
-                    {pkg.storageSpot}
+                    {storageName}
                   </p>
                 </div>
                 <div>
@@ -272,7 +320,7 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
                     Tracking Number
                   </p>
                   <p className="text-primary-600 mt-1 font-mono text-[14px]">
-                    {pkg.trackingNumber}
+                    {pkg.trackingNumber || '\u2014'}
                   </p>
                 </div>
                 <div>
@@ -305,33 +353,15 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Name
                   </p>
-                  <p className="mt-1 text-[15px] font-medium text-neutral-900">{pkg.recipient}</p>
+                  <p className="mt-1 text-[15px] font-medium text-neutral-900">
+                    {pkg.releasedToName || '\u2014'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Unit
                   </p>
-                  <p className="mt-1 text-[15px] font-medium text-neutral-900">
-                    {pkg.building} &middot; Unit {pkg.unit}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Email
-                  </p>
-                  <p className="text-primary-600 mt-1 flex items-center gap-1.5 text-[15px]">
-                    <Mail className="h-3.5 w-3.5 text-neutral-400" />
-                    {pkg.recipientEmail}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Phone
-                  </p>
-                  <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
-                    <Phone className="h-3.5 w-3.5 text-neutral-400" />
-                    {pkg.recipientPhone}
-                  </p>
+                  <p className="mt-1 text-[15px] font-medium text-neutral-900">Unit {unitNumber}</p>
                 </div>
               </div>
             </CardContent>
@@ -384,17 +414,10 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
               <h2 className="text-[14px] font-semibold text-neutral-900">Notes / Comments</h2>
             </div>
             <CardContent>
-              {pkg.notes ? (
+              {pkg.releaseComments || pkg.description ? (
                 <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-                  <p className="text-[14px] leading-relaxed text-neutral-700">{pkg.notes}</p>
-                  <p className="mt-2 text-[12px] text-neutral-400">
-                    Added by {pkg.receivedBy} &middot;{' '}
-                    {receivedDate.toLocaleString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
+                  <p className="text-[14px] leading-relaxed text-neutral-700">
+                    {pkg.releaseComments || pkg.description}
                   </p>
                 </div>
               ) : (
@@ -441,33 +464,38 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
           <Card>
             <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Timeline</h2>
             <CardContent>
-              <div className="relative">
-                {/* Timeline line */}
-                <div className="absolute top-2 bottom-2 left-[11px] w-px bg-neutral-200" />
+              {pkg.history && pkg.history.length > 0 ? (
+                <div className="relative">
+                  {/* Timeline line */}
+                  <div className="absolute top-2 bottom-2 left-[11px] w-px bg-neutral-200" />
 
-                <div className="flex flex-col gap-4">
-                  {pkg.history.map((event) => (
-                    <div key={event.id} className="relative flex gap-3 pl-0">
-                      <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-neutral-100">
-                        {getTimelineIcon(event.action)}
+                  <div className="flex flex-col gap-4">
+                    {pkg.history.map((event) => (
+                      <div key={event.id} className="relative flex gap-3 pl-0">
+                        <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-neutral-100">
+                          {getTimelineIcon(event.action)}
+                        </div>
+                        <div className="flex flex-col gap-0.5 pt-0.5">
+                          <p className="text-[13px] font-medium text-neutral-900">
+                            {event.details || event.action}
+                          </p>
+                          <p className="text-[12px] text-neutral-400">
+                            {new Date(event.createdAt).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                            {event.actorName && ` \u00B7 ${event.actorName}`}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex flex-col gap-0.5 pt-0.5">
-                        <p className="text-[13px] font-medium text-neutral-900">{event.detail}</p>
-                        <p className="text-[12px] text-neutral-400">
-                          {new Date(event.timestamp).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                          {' \u00B7 '}
-                          {event.actor}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p className="text-[13px] text-neutral-400">No history recorded yet.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -475,16 +503,33 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
           <Card>
             <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Photos</h2>
             <CardContent>
-              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-50 px-4 py-8">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100">
-                  <ImageIcon className="h-5 w-5 text-neutral-400" />
+              {pkg.photos && pkg.photos.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {pkg.photos.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="overflow-hidden rounded-lg border border-neutral-200"
+                    >
+                      <img
+                        src={photo.fileUrl}
+                        alt={`Package photo — ${photo.photoType}`}
+                        className="h-32 w-full object-cover"
+                      />
+                    </div>
+                  ))}
                 </div>
-                <p className="mt-3 text-[13px] font-medium text-neutral-500">No photos yet</p>
-                <Button variant="secondary" size="sm" className="mt-3">
-                  <Camera className="h-4 w-4" />
-                  Upload Photo
-                </Button>
-              </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-50 px-4 py-8">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100">
+                    <ImageIcon className="h-5 w-5 text-neutral-400" />
+                  </div>
+                  <p className="mt-3 text-[13px] font-medium text-neutral-500">No photos yet</p>
+                  <Button variant="secondary" size="sm" className="mt-3">
+                    <Camera className="h-4 w-4" />
+                    Upload Photo
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -495,11 +540,11 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
         onOpenChange={setShowReleaseDialog}
         packageId={pkg.id}
         packageRef={pkg.referenceNumber}
-        recipientName={pkg.recipient}
-        unitNumber={pkg.unit}
+        recipientName={pkg.releasedToName ?? ''}
+        unitNumber={unitNumber}
         onSuccess={() => {
           setShowReleaseDialog(false);
-          window.location.reload();
+          refetch();
         }}
       />
     </div>

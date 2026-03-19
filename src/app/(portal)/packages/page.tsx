@@ -11,6 +11,7 @@ import {
   Download,
   Filter,
   Inbox,
+  Loader2,
   Package,
   Plus,
   Search,
@@ -30,6 +31,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 // Types
 // ---------------------------------------------------------------------------
 
+/** Shape after normalizing the API response for display */
 interface PackageItem {
   id: string;
   referenceNumber: string;
@@ -48,102 +50,50 @@ interface PackageItem {
   releasedBy?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
+/** Raw shape returned from GET /api/v1/packages */
+interface ApiPackage {
+  id: string;
+  referenceNumber: string;
+  status: string;
+  description: string | null;
+  isPerishable: boolean;
+  isOversized: boolean;
+  createdAt: string;
+  releasedAt: string | null;
+  releasedToName: string | null;
+  releasedById: string | null;
+  unit: { id: string; number: string } | null;
+  courier: { id: string; name: string; iconUrl?: string; color?: string } | null;
+  storageSpot: { id: string; name: string; code?: string } | null;
+  parcelCategory: { id: string; name: string } | null;
+}
 
-const MOCK_PACKAGES: PackageItem[] = [
-  {
-    id: '1',
-    referenceNumber: 'PKG-4821',
-    unit: '1501',
-    recipient: 'Janet Smith',
-    courier: 'Amazon',
-    description: 'Medium Box',
-    receivedAt: '2026-03-18T09:15:00',
-    ageHours: 3,
-    storageSpot: 'Shelf A-3',
-    isPerishable: false,
-    isOversized: false,
-    status: 'unreleased',
-  },
-  {
-    id: '2',
-    referenceNumber: 'PKG-4822',
-    unit: '802',
-    recipient: 'David Chen',
-    courier: 'FedEx',
-    description: 'Large Envelope',
-    receivedAt: '2026-03-18T08:30:00',
-    ageHours: 4,
-    storageSpot: 'Shelf B-1',
-    isPerishable: false,
-    isOversized: false,
-    status: 'unreleased',
-  },
-  {
-    id: '3',
-    referenceNumber: 'PKG-4823',
-    unit: '1203',
-    recipient: 'Maria Garcia',
-    courier: 'Uber Eats',
-    description: 'Perishable Container',
-    receivedAt: '2026-03-18T11:45:00',
-    ageHours: 1,
-    storageSpot: 'Fridge',
-    isPerishable: true,
-    isOversized: false,
-    status: 'unreleased',
-  },
-  {
-    id: '4',
-    referenceNumber: 'PKG-4824',
-    unit: '305',
-    recipient: 'Robert Kim',
-    courier: 'Canada Post',
-    description: 'Small Box',
-    receivedAt: '2026-03-17T14:00:00',
-    ageHours: 26,
-    storageSpot: 'Shelf A-1',
-    isPerishable: false,
-    isOversized: false,
-    status: 'unreleased',
-  },
-  {
-    id: '5',
-    referenceNumber: 'PKG-4818',
-    unit: '710',
-    recipient: 'Sarah Wilson',
-    courier: 'UPS',
-    description: 'Large Box',
-    receivedAt: '2026-03-17T10:00:00',
-    ageHours: 0,
-    storageSpot: 'Floor',
-    isPerishable: false,
-    isOversized: true,
-    status: 'released',
-    releasedTo: 'Sarah Wilson',
-    releasedAt: '2026-03-17T18:30:00',
-    releasedBy: 'Mike Johnson',
-  },
-  {
-    id: '6',
-    referenceNumber: 'PKG-4815',
-    unit: '1105',
-    recipient: 'Lisa Brown',
-    courier: 'DHL',
-    description: 'Small Envelope',
-    receivedAt: '2026-03-16T16:00:00',
-    ageHours: 0,
-    storageSpot: 'Shelf C-2',
-    isPerishable: false,
-    isOversized: false,
-    status: 'released',
-    releasedTo: 'Lisa Brown',
-    releasedAt: '2026-03-17T09:15:00',
-    releasedBy: 'Angela Davis',
-  },
-];
+/**
+ * Normalize the API response into the flat PackageItem shape used by the UI.
+ */
+function normalizePackage(raw: ApiPackage): PackageItem {
+  const receivedDate = new Date(raw.createdAt);
+  const ageMs = Date.now() - receivedDate.getTime();
+  const ageHours =
+    raw.status === 'unreleased' ? Math.max(0, Math.floor(ageMs / (1000 * 60 * 60))) : 0;
+
+  return {
+    id: raw.id,
+    referenceNumber: raw.referenceNumber,
+    unit: raw.unit?.number ?? 'N/A',
+    recipient: raw.releasedToName ?? '',
+    courier: raw.courier?.name ?? 'Other',
+    description: raw.parcelCategory?.name ?? raw.description ?? '',
+    receivedAt: raw.createdAt,
+    ageHours,
+    storageSpot: raw.storageSpot?.name ?? '',
+    isPerishable: raw.isPerishable,
+    isOversized: raw.isOversized,
+    status: raw.status as PackageItem['status'],
+    releasedTo: raw.releasedToName ?? undefined,
+    releasedAt: raw.releasedAt ?? undefined,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Courier Colors
@@ -184,52 +134,52 @@ function getAgeDisplay(hours: number): { text: string; variant: 'success' | 'war
 export default function PackagesPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [courierFilter, setCourierFilter] = useState<string>('');
+  const [perishableOnly, setPerishableOnly] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showBatchDialog, setShowBatchDialog] = useState(false);
   const [releaseTarget, setReleaseTarget] = useState<PackageItem | null>(null);
 
-  const { data: apiPackages, refetch } = useApi<PackageItem[]>(
-    apiUrl('/api/v1/packages', { propertyId: DEMO_PROPERTY_ID }),
+  // Debounce search input so we don't fire API calls on every keystroke
+  const searchTimerRef = useState<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (searchTimerRef[0]) clearTimeout(searchTimerRef[0]);
+    searchTimerRef[0] = setTimeout(() => setDebouncedSearch(value), 300);
+  };
+
+  // Build API URL with all active filters
+  const fetchUrl = useMemo(
+    () =>
+      apiUrl('/api/v1/packages', {
+        propertyId: DEMO_PROPERTY_ID,
+        search: debouncedSearch || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        courierId: courierFilter || undefined,
+        perishable: perishableOnly ? 'true' : undefined,
+        pageSize: '200',
+      }),
+    [debouncedSearch, statusFilter, courierFilter, perishableOnly],
   );
 
-  const allPackages = useMemo<PackageItem[]>(() => apiPackages ?? MOCK_PACKAGES, [apiPackages]);
+  const { data: apiPackages, loading, error, refetch } = useApi<ApiPackage[]>(fetchUrl);
+
+  const allPackages = useMemo<PackageItem[]>(
+    () => (apiPackages ?? []).map(normalizePackage),
+    [apiPackages],
+  );
 
   const unreleasedPackages = useMemo(
-    () =>
-      allPackages.filter((p) => {
-        if (p.status !== 'unreleased') return false;
-        if (searchQuery) {
-          const q = searchQuery.toLowerCase();
-          return (
-            p.referenceNumber.toLowerCase().includes(q) ||
-            p.recipient.toLowerCase().includes(q) ||
-            p.unit.toLowerCase().includes(q) ||
-            p.courier.toLowerCase().includes(q) ||
-            p.description.toLowerCase().includes(q)
-          );
-        }
-        return true;
-      }),
-    [searchQuery, allPackages],
+    () => allPackages.filter((p) => p.status === 'unreleased'),
+    [allPackages],
   );
 
   const releasedPackages = useMemo(
-    () =>
-      allPackages.filter((p) => {
-        if (p.status !== 'released') return false;
-        if (searchQuery) {
-          const q = searchQuery.toLowerCase();
-          return (
-            p.referenceNumber.toLowerCase().includes(q) ||
-            p.recipient.toLowerCase().includes(q) ||
-            p.unit.toLowerCase().includes(q)
-          );
-        }
-        return true;
-      }),
-    [searchQuery, allPackages],
+    () => allPackages.filter((p) => p.status === 'released'),
+    [allPackages],
   );
 
   const unreleasedColumns: Column<PackageItem>[] = [
@@ -485,13 +435,16 @@ export default function PackagesPage() {
             type="text"
             placeholder="Search by name, unit, ref #, or courier..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
           />
           {searchQuery && (
             <button
               type="button"
-              onClick={() => setSearchQuery('')}
+              onClick={() => {
+                setSearchQuery('');
+                setDebouncedSearch('');
+              }}
               className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
             >
               <X className="h-4 w-4" />
@@ -520,7 +473,11 @@ export default function PackagesPage() {
             <option value="unreleased">Unreleased</option>
             <option value="released">Released</option>
           </select>
-          <select className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-2 focus:outline-none">
+          <select
+            value={courierFilter}
+            onChange={(e) => setCourierFilter(e.target.value)}
+            className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-2 focus:outline-none"
+          >
             <option value="">All Couriers</option>
             <option value="amazon">Amazon</option>
             <option value="fedex">FedEx</option>
@@ -529,7 +486,12 @@ export default function PackagesPage() {
             <option value="dhl">DHL</option>
           </select>
           <label className="flex items-center gap-2 text-[13px] text-neutral-600">
-            <input type="checkbox" className="rounded border-neutral-300" />
+            <input
+              type="checkbox"
+              checked={perishableOnly}
+              onChange={(e) => setPerishableOnly(e.target.checked)}
+              className="rounded border-neutral-300"
+            />
             Perishable only
           </label>
           <Button
@@ -537,7 +499,10 @@ export default function PackagesPage() {
             size="sm"
             onClick={() => {
               setStatusFilter('all');
+              setCourierFilter('');
+              setPerishableOnly(false);
               setSearchQuery('');
+              setDebouncedSearch('');
             }}
           >
             Clear filters
@@ -545,52 +510,90 @@ export default function PackagesPage() {
         </div>
       )}
 
-      {/* Unreleased Section */}
-      <div className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-[14px] font-semibold text-neutral-900">Unreleased Packages</h2>
-          <Badge variant="warning" size="sm">
-            {unreleasedPackages.length}
-          </Badge>
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+          <p className="mt-3 text-[14px] text-neutral-500">Loading packages...</p>
         </div>
-        {unreleasedPackages.length > 0 ? (
-          <DataTable
-            columns={unreleasedColumns}
-            data={unreleasedPackages}
-            onRowClick={(row) => router.push(`/packages/${row.id}` as never)}
-          />
-        ) : (
-          <EmptyState
-            icon={<Package className="h-6 w-6" />}
-            title="No unreleased packages"
-            description="All packages have been released. New deliveries will appear here."
-          />
-        )}
-      </div>
+      )}
 
-      {/* Released Section */}
-      <div>
-        <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-[14px] font-semibold text-neutral-900">Released Packages</h2>
-          <Badge variant="success" size="sm">
-            {releasedPackages.length}
-          </Badge>
-          <span className="text-[12px] text-neutral-400">Past 30 days</span>
+      {/* Error State */}
+      {!loading && error && (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-red-200 bg-red-50 py-12">
+          <AlertTriangle className="text-error-500 h-8 w-8" />
+          <p className="mt-3 text-[14px] font-medium text-neutral-900">Failed to load packages</p>
+          <p className="mt-1 text-[13px] text-neutral-500">{error}</p>
+          <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
+            Try again
+          </Button>
         </div>
-        {releasedPackages.length > 0 ? (
-          <DataTable
-            columns={releasedColumns}
-            data={releasedPackages}
-            onRowClick={(row) => router.push(`/packages/${row.id}` as never)}
-          />
-        ) : (
-          <EmptyState
-            icon={<Inbox className="h-6 w-6" />}
-            title="No released packages"
-            description="Released packages from the past 30 days will appear here."
-          />
-        )}
-      </div>
+      )}
+
+      {/* Empty State — no packages at all */}
+      {!loading && !error && allPackages.length === 0 && (
+        <EmptyState
+          icon={<Inbox className="h-6 w-6" />}
+          title="No packages found"
+          description={
+            debouncedSearch || statusFilter !== 'all' || courierFilter || perishableOnly
+              ? 'No packages match your current filters. Try adjusting your search or clearing filters.'
+              : 'No packages have been logged yet. Click "New Package" to get started.'
+          }
+        />
+      )}
+
+      {/* Package Tables — only shown when data is loaded */}
+      {!loading && !error && allPackages.length > 0 && (
+        <>
+          {/* Unreleased Section */}
+          <div className="mb-8">
+            <div className="mb-3 flex items-center gap-2">
+              <h2 className="text-[14px] font-semibold text-neutral-900">Unreleased Packages</h2>
+              <Badge variant="warning" size="sm">
+                {unreleasedPackages.length}
+              </Badge>
+            </div>
+            {unreleasedPackages.length > 0 ? (
+              <DataTable
+                columns={unreleasedColumns}
+                data={unreleasedPackages}
+                onRowClick={(row) => router.push(`/packages/${row.id}` as never)}
+              />
+            ) : (
+              <EmptyState
+                icon={<Package className="h-6 w-6" />}
+                title="No unreleased packages"
+                description="All packages have been released. New deliveries will appear here."
+              />
+            )}
+          </div>
+
+          {/* Released Section */}
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <h2 className="text-[14px] font-semibold text-neutral-900">Released Packages</h2>
+              <Badge variant="success" size="sm">
+                {releasedPackages.length}
+              </Badge>
+              <span className="text-[12px] text-neutral-400">Past 30 days</span>
+            </div>
+            {releasedPackages.length > 0 ? (
+              <DataTable
+                columns={releasedColumns}
+                data={releasedPackages}
+                onRowClick={(row) => router.push(`/packages/${row.id}` as never)}
+              />
+            ) : (
+              <EmptyState
+                icon={<Inbox className="h-6 w-6" />}
+                title="No released packages"
+                description="Released packages from the past 30 days will appear here."
+              />
+            )}
+          </div>
+        </>
+      )}
 
       <CreatePackageDialog
         open={showCreateDialog}

@@ -1,17 +1,53 @@
 'use client';
 
-import { useState } from 'react';
-import { AlertTriangle, Download, Filter, Plus, Search, ShieldAlert, X } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Download, Plus, Search, ShieldAlert, X, Loader2 } from 'lucide-react';
 import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — matches API response shape from GET /api/v1/events
 // ---------------------------------------------------------------------------
+
+interface ApiEvent {
+  id: string;
+  referenceNo: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  createdById: string;
+  closedById: string | null;
+  createdAt: string;
+  closedAt: string | null;
+  eventType: {
+    id: string;
+    name: string;
+    icon: string;
+    color: string;
+  };
+  unit: {
+    id: string;
+    number: string;
+  } | null;
+}
+
+interface ApiResponse {
+  data: ApiEvent[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 interface Incident {
   id: string;
@@ -28,62 +64,6 @@ interface Incident {
 }
 
 // ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_INCIDENTS: Incident[] = [
-  {
-    id: '1',
-    referenceNumber: 'INC-0089',
-    title: 'Noise Complaint — Floor 8',
-    description: 'Resident in 803 reports excessive noise from 805. Verbal warning issued.',
-    category: 'Noise',
-    unit: '805',
-    status: 'investigating',
-    priority: 'medium',
-    reportedBy: 'Guard Patel',
-    assignedTo: 'Guard Patel',
-    reportedAt: '2026-03-18T08:15:00',
-  },
-  {
-    id: '2',
-    referenceNumber: 'INC-0090',
-    title: 'Suspicious Vehicle — P2 Parking',
-    description: 'White sedan with no visible permit parked in reserved spot P2-45.',
-    category: 'Security',
-    status: 'open',
-    priority: 'high',
-    reportedBy: 'Guard Chen',
-    reportedAt: '2026-03-18T10:00:00',
-  },
-  {
-    id: '3',
-    referenceNumber: 'INC-0088',
-    title: 'Lobby Camera #2 Offline',
-    description: 'Security camera feed lost at 6:15 AM. IT team notified.',
-    category: 'Equipment',
-    status: 'investigating',
-    priority: 'high',
-    reportedBy: 'Guard Martinez',
-    assignedTo: 'IT Team',
-    reportedAt: '2026-03-17T06:15:00',
-  },
-  {
-    id: '4',
-    referenceNumber: 'INC-0087',
-    title: 'Water Leak — Parking Level P1',
-    description:
-      'Water dripping from ceiling near spots P1-20 through P1-25. Appears to be from floor above.',
-    category: 'Maintenance',
-    status: 'resolved',
-    priority: 'medium',
-    reportedBy: 'Guard Chen',
-    assignedTo: 'Mike Thompson',
-    reportedAt: '2026-03-16T22:00:00',
-  },
-];
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -91,17 +71,41 @@ export default function IncidentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showReportDialog, setShowReportDialog] = useState(false);
 
-  const filteredIncidents = MOCK_INCIDENTS.filter((i) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      i.title.toLowerCase().includes(q) ||
-      i.description.toLowerCase().includes(q) ||
-      i.referenceNumber.toLowerCase().includes(q)
-    );
-  });
+  // Fetch security events from the unified event model
+  // The events API filters by eventGroup when we pass the security event types
+  const {
+    data: apiResponse,
+    loading,
+    error,
+    refetch,
+  } = useApi<ApiResponse>(
+    apiUrl('/api/v1/events', {
+      propertyId: DEMO_PROPERTY_ID,
+      search: searchQuery || undefined,
+      pageSize: '100',
+    }),
+  );
 
-  const openCount = MOCK_INCIDENTS.filter(
+  const incidents = useMemo<Incident[]>(() => {
+    const events = apiResponse?.data ?? (apiResponse as unknown as ApiEvent[]);
+    if (!events || !Array.isArray(events)) return [];
+
+    return events.map((evt) => ({
+      id: evt.id,
+      referenceNumber: evt.referenceNo || 'N/A',
+      title: evt.title,
+      description: evt.description || '',
+      category: evt.eventType?.name || 'General',
+      unit: evt.unit?.number,
+      status: normalizeStatus(evt.status),
+      priority: normalizePriority(evt.priority),
+      reportedBy: 'Staff', // createdById is a UUID; display name not included in response
+      assignedTo: evt.closedById ? 'Assigned' : undefined,
+      reportedAt: evt.createdAt,
+    }));
+  }, [apiResponse]);
+
+  const openCount = incidents.filter(
     (i) => i.status === 'open' || i.status === 'investigating',
   ).length;
 
@@ -180,12 +184,10 @@ export default function IncidentsPage() {
       },
     },
     {
-      id: 'assignedTo',
-      header: 'Assigned',
-      accessorKey: 'assignedTo',
-      cell: (row) => (
-        <span className="text-[13px] text-neutral-500">{row.assignedTo || 'Unassigned'}</span>
-      ),
+      id: 'unit',
+      header: 'Unit',
+      accessorKey: 'unit',
+      cell: (row) => <span className="text-[13px] text-neutral-500">{row.unit || '\u2014'}</span>,
     },
     {
       id: 'reportedAt',
@@ -205,10 +207,41 @@ export default function IncidentsPage() {
     },
   ];
 
+  // Loading state
+  if (loading) {
+    return (
+      <PageShell title="Incident Reports" description="Loading...">
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="Incident Reports" description="Error loading incidents">
+        <EmptyState
+          icon={<ShieldAlert className="h-6 w-6" />}
+          title="Failed to load incidents"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
+
   return (
     <PageShell
       title="Incident Reports"
-      description={`${MOCK_INCIDENTS.length} incidents \u00B7 ${openCount} active`}
+      description={`${incidents.length} incidents \u00B7 ${openCount} active`}
       actions={
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm">
@@ -243,19 +276,64 @@ export default function IncidentsPage() {
           )}
         </div>
       </div>
-      <DataTable
-        columns={columns}
-        data={filteredIncidents}
-        emptyMessage="No incidents found."
-        emptyIcon={<ShieldAlert className="h-6 w-6" />}
-      />
+
+      {incidents.length === 0 && !searchQuery ? (
+        <EmptyState
+          icon={<ShieldAlert className="h-6 w-6" />}
+          title="No incidents reported"
+          description="When incidents are logged through the security console, they will appear here."
+          action={
+            <Button size="sm" onClick={() => setShowReportDialog(true)}>
+              <Plus className="h-4 w-4" />
+              Report Incident
+            </Button>
+          }
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={incidents}
+          emptyMessage="No incidents match your search."
+          emptyIcon={<ShieldAlert className="h-6 w-6" />}
+        />
+      )}
 
       <ReportIncidentDialog
         open={showReportDialog}
         onOpenChange={setShowReportDialog}
-        propertyId="00000000-0000-4000-b000-000000000001"
-        onSuccess={() => setShowReportDialog(false)}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          setShowReportDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function normalizeStatus(status: string): Incident['status'] {
+  const map: Record<string, Incident['status']> = {
+    open: 'open',
+    investigating: 'investigating',
+    in_progress: 'investigating',
+    resolved: 'resolved',
+    closed: 'closed',
+  };
+  return map[status] || 'open';
+}
+
+function normalizePriority(priority: string): Incident['priority'] {
+  const map: Record<string, Incident['priority']> = {
+    low: 'low',
+    normal: 'medium',
+    medium: 'medium',
+    high: 'high',
+    critical: 'critical',
+    urgent: 'critical',
+  };
+  return map[priority] || 'medium';
 }

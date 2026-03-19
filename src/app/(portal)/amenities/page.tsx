@@ -6,11 +6,11 @@ import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { CreateBookingDialog } from '@/components/forms/create-booking-dialog';
 import {
+  AlertCircle,
   Calendar,
   Clock,
   Dumbbell,
-  Grid3X3,
-  List,
+  Loader2,
   MapPin,
   Plus,
   Search,
@@ -23,136 +23,44 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — mapped from API response (Prisma Amenity + relations)
 // ---------------------------------------------------------------------------
+
+interface AmenityBooking {
+  id: string;
+  startDate: string;
+  startTime: string | null;
+  endDate: string;
+  endTime: string | null;
+  status: string;
+}
+
+interface AmenityGroup {
+  id: string;
+  name: string;
+}
 
 interface Amenity {
   id: string;
   name: string;
-  category: string;
-  icon: string;
-  location: string;
-  capacity: number;
+  description: string | null;
+  location: string | null;
+  capacity: number | null;
   requiresApproval: boolean;
-  availableNow: boolean;
-  nextAvailable?: string;
-  bookingsToday: number;
-  fee?: number;
+  fee: number | null;
+  group: AmenityGroup | null;
+  bookings: AmenityBooking[];
 }
 
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_AMENITIES: Amenity[] = [
-  {
-    id: '1',
-    name: 'Rooftop Pool',
-    category: 'Recreation',
-    icon: 'pool',
-    location: 'Floor 25, Rooftop',
-    capacity: 30,
-    requiresApproval: false,
-    availableNow: true,
-    bookingsToday: 4,
-    fee: 0,
-  },
-  {
-    id: '2',
-    name: 'Fitness Center',
-    category: 'Recreation',
-    icon: 'gym',
-    location: 'Floor 2',
-    capacity: 20,
-    requiresApproval: false,
-    availableNow: true,
-    bookingsToday: 8,
-  },
-  {
-    id: '3',
-    name: 'Party Room',
-    category: 'Events',
-    icon: 'party',
-    location: 'Floor 1, Lobby Level',
-    capacity: 50,
-    requiresApproval: true,
-    availableNow: false,
-    nextAvailable: '2026-03-20',
-    bookingsToday: 1,
-    fee: 200,
-  },
-  {
-    id: '4',
-    name: 'Theatre Room',
-    category: 'Entertainment',
-    icon: 'theatre',
-    location: 'Floor 2',
-    capacity: 12,
-    requiresApproval: false,
-    availableNow: true,
-    bookingsToday: 0,
-  },
-  {
-    id: '5',
-    name: 'Guest Suite',
-    category: 'Accommodation',
-    icon: 'guest',
-    location: 'Floor 3, Suite 301',
-    capacity: 2,
-    requiresApproval: true,
-    availableNow: false,
-    nextAvailable: '2026-03-22',
-    bookingsToday: 1,
-    fee: 75,
-  },
-  {
-    id: '6',
-    name: 'BBQ Terrace',
-    category: 'Outdoor',
-    icon: 'bbq',
-    location: 'Floor 25, West Side',
-    capacity: 15,
-    requiresApproval: false,
-    availableNow: true,
-    bookingsToday: 2,
-  },
-  {
-    id: '7',
-    name: 'Yoga Studio',
-    category: 'Recreation',
-    icon: 'yoga',
-    location: 'Floor 2',
-    capacity: 10,
-    requiresApproval: false,
-    availableNow: true,
-    bookingsToday: 3,
-  },
-  {
-    id: '8',
-    name: 'Business Center',
-    category: 'Work',
-    icon: 'business',
-    location: 'Floor 1',
-    capacity: 8,
-    requiresApproval: false,
-    availableNow: true,
-    bookingsToday: 1,
-  },
-];
-
-function getAmenityIcon(icon: string) {
-  switch (icon) {
-    case 'pool':
-      return <Waves className="h-5 w-5" />;
-    case 'gym':
-      return <Dumbbell className="h-5 w-5" />;
-    case 'theatre':
-      return <Tv className="h-5 w-5" />;
-    default:
-      return <Calendar className="h-5 w-5" />;
-  }
+function getAmenityIcon(name: string) {
+  const lower = name.toLowerCase();
+  if (lower.includes('pool') || lower.includes('swim')) return <Waves className="h-5 w-5" />;
+  if (lower.includes('gym') || lower.includes('fitness')) return <Dumbbell className="h-5 w-5" />;
+  if (lower.includes('theatre') || lower.includes('theater')) return <Tv className="h-5 w-5" />;
+  return <Calendar className="h-5 w-5" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -164,17 +72,19 @@ export default function AmenitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showBookingDialog, setShowBookingDialog] = useState(false);
 
-  const { data: apiAmenities, refetch } = useApi<Amenity[]>(
-    apiUrl('/api/v1/amenities', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: amenities,
+    loading,
+    error,
+    refetch,
+  } = useApi<Amenity[]>(
+    apiUrl('/api/v1/amenities', {
+      propertyId: DEMO_PROPERTY_ID,
+      search: searchQuery || undefined,
+    }),
   );
 
-  const allAmenities = useMemo<Amenity[]>(() => apiAmenities ?? MOCK_AMENITIES, [apiAmenities]);
-
-  const filteredAmenities = allAmenities.filter((a) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return a.name.toLowerCase().includes(q) || a.category.toLowerCase().includes(q);
-  });
+  const allAmenities = useMemo<Amenity[]>(() => amenities ?? [], [amenities]);
 
   return (
     <PageShell
@@ -215,66 +125,111 @@ export default function AmenitiesPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredAmenities.map((amenity) => (
-          <Card
-            key={amenity.id}
-            hoverable
-            className="cursor-pointer"
-            onClick={() => router.push(`/amenities/${amenity.id}`)}
-          >
-            <div className="flex items-start justify-between">
-              <div className="bg-primary-50 text-primary-600 flex h-10 w-10 items-center justify-center rounded-xl">
-                {getAmenityIcon(amenity.icon)}
-              </div>
-              <Badge variant={amenity.availableNow ? 'success' : 'default'} size="sm" dot>
-                {amenity.availableNow ? 'Available' : 'Booked'}
-              </Badge>
-            </div>
-            <div className="mt-4">
-              <h3 className="text-[16px] font-semibold text-neutral-900">{amenity.name}</h3>
-              <p className="mt-0.5 text-[13px] text-neutral-500">{amenity.category}</p>
-            </div>
-            <div className="mt-4 flex flex-col gap-2 text-[13px] text-neutral-500">
-              <span className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-neutral-400" />
-                {amenity.location}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5 text-neutral-400" />
-                Capacity: {amenity.capacity}
-              </span>
-              {amenity.bookingsToday > 0 && (
-                <span className="flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 text-neutral-400" />
-                  {amenity.bookingsToday} bookings today
-                </span>
-              )}
-            </div>
-            <div className="mt-4 flex items-center gap-2">
-              {amenity.requiresApproval && (
-                <Badge variant="info" size="sm">
-                  Requires Approval
-                </Badge>
-              )}
-              {amenity.fee !== undefined && amenity.fee > 0 && (
-                <Badge variant="default" size="sm">
-                  ${amenity.fee}/booking
-                </Badge>
-              )}
-              {!amenity.availableNow && amenity.nextAvailable && (
-                <span className="text-[12px] text-neutral-400">
-                  Next:{' '}
-                  {new Date(amenity.nextAvailable).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </span>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-24">
+          <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+          <p className="mt-3 text-[14px] text-neutral-500">Loading amenities...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {!loading && error && (
+        <EmptyState
+          icon={<AlertCircle className="h-6 w-6" />}
+          title="Failed to load amenities"
+          description={error}
+          action={
+            <Button variant="secondary" size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && allAmenities.length === 0 && (
+        <EmptyState
+          icon={<Calendar className="h-6 w-6" />}
+          title="No amenities found"
+          description={
+            searchQuery
+              ? 'Try adjusting your search to find what you are looking for.'
+              : 'No amenities have been set up for this property yet.'
+          }
+          action={
+            searchQuery ? (
+              <Button variant="secondary" size="sm" onClick={() => setSearchQuery('')}>
+                Clear Search
+              </Button>
+            ) : undefined
+          }
+        />
+      )}
+
+      {/* Amenity Cards */}
+      {!loading && !error && allAmenities.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {allAmenities.map((amenity) => {
+            const hasUpcomingBookings = amenity.bookings.length > 0;
+            const category = amenity.group?.name ?? 'General';
+            return (
+              <Card
+                key={amenity.id}
+                hoverable
+                className="cursor-pointer"
+                onClick={() => router.push(`/amenities/${amenity.id}`)}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="bg-primary-50 text-primary-600 flex h-10 w-10 items-center justify-center rounded-xl">
+                    {getAmenityIcon(amenity.name)}
+                  </div>
+                  <Badge variant={!hasUpcomingBookings ? 'success' : 'default'} size="sm" dot>
+                    {!hasUpcomingBookings ? 'Available' : 'Booked'}
+                  </Badge>
+                </div>
+                <div className="mt-4">
+                  <h3 className="text-[16px] font-semibold text-neutral-900">{amenity.name}</h3>
+                  <p className="mt-0.5 text-[13px] text-neutral-500">{category}</p>
+                </div>
+                <div className="mt-4 flex flex-col gap-2 text-[13px] text-neutral-500">
+                  {amenity.location && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-neutral-400" />
+                      {amenity.location}
+                    </span>
+                  )}
+                  {amenity.capacity && (
+                    <span className="flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5 text-neutral-400" />
+                      Capacity: {amenity.capacity}
+                    </span>
+                  )}
+                  {hasUpcomingBookings && (
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5 text-neutral-400" />
+                      {amenity.bookings.length} upcoming booking
+                      {amenity.bookings.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-4 flex items-center gap-2">
+                  {amenity.requiresApproval && (
+                    <Badge variant="info" size="sm">
+                      Requires Approval
+                    </Badge>
+                  )}
+                  {amenity.fee !== null && amenity.fee > 0 && (
+                    <Badge variant="default" size="sm">
+                      ${amenity.fee}/booking
+                    </Badge>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <CreateBookingDialog
         open={showBookingDialog}
