@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -104,89 +105,13 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// API response shape
 // ---------------------------------------------------------------------------
 
-const MOCK_RECURRING_TASKS: RecurringTaskItem[] = [
-  {
-    id: '1',
-    name: 'HVAC Filter Replacement',
-    category: 'maintenance',
-    frequency: 'monthly',
-    assignedTo: 'Mike Chen',
-    location: 'Rooftop Mechanical Room',
-    status: 'active',
-    lastCompleted: '2026-02-15',
-    nextDue: '2026-03-15',
-    completionRate: 92,
-    priority: 'high',
-  },
-  {
-    id: '2',
-    name: 'Lobby Cleaning',
-    category: 'cleaning',
-    frequency: 'daily',
-    assignedTo: 'Sarah Johnson',
-    location: 'Main Lobby',
-    status: 'active',
-    lastCompleted: '2026-03-18',
-    nextDue: '2026-03-19',
-    completionRate: 98,
-    priority: 'medium',
-  },
-  {
-    id: '3',
-    name: 'Fire Extinguisher Check',
-    category: 'safety',
-    frequency: 'monthly',
-    assignedTo: 'David Park',
-    location: 'All Floors',
-    status: 'active',
-    lastCompleted: '2026-02-28',
-    nextDue: '2026-03-28',
-    completionRate: 85,
-    priority: 'high',
-  },
-  {
-    id: '4',
-    name: 'Elevator Inspection',
-    category: 'inspection',
-    frequency: 'quarterly',
-    assignedTo: 'Otis Service Team',
-    location: 'Elevators A & B',
-    status: 'active',
-    lastCompleted: '2026-01-10',
-    nextDue: '2026-04-10',
-    completionRate: 100,
-    priority: 'high',
-  },
-  {
-    id: '5',
-    name: 'Garage Sweeping',
-    category: 'cleaning',
-    frequency: 'weekly',
-    assignedTo: 'Carlos Rivera',
-    location: 'P1 & P2 Parking Garage',
-    status: 'paused',
-    lastCompleted: '2026-03-08',
-    nextDue: '2026-03-15',
-    completionRate: 76,
-    priority: 'low',
-  },
-  {
-    id: '6',
-    name: 'Boiler Flush',
-    category: 'maintenance',
-    frequency: 'annually',
-    assignedTo: 'Apex Mechanical Inc.',
-    location: 'Basement Mechanical Room',
-    status: 'active',
-    lastCompleted: '2025-10-20',
-    nextDue: '2026-10-20',
-    completionRate: 100,
-    priority: 'medium',
-  },
-];
+interface ApiResponse {
+  data: RecurringTaskItem[];
+  meta?: { total: number };
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -200,11 +125,27 @@ export default function RecurringTasksPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiTasks, refetch } = useApi<RecurringTaskItem[]>(
-    apiUrl('/api/v1/recurring-tasks', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiTasks,
+    loading,
+    error,
+    refetch,
+  } = useApi<RecurringTaskItem[] | ApiResponse>(
+    apiUrl('/api/v1/recurring-tasks', {
+      propertyId: DEMO_PROPERTY_ID,
+      search: searchQuery || undefined,
+      category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      frequency: frequencyFilter !== 'all' ? frequencyFilter : undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+    }),
   );
 
-  const allTasks = useMemo<RecurringTaskItem[]>(() => apiTasks ?? MOCK_RECURRING_TASKS, [apiTasks]);
+  const allTasks = useMemo<RecurringTaskItem[]>(() => {
+    if (!apiTasks) return [];
+    if (Array.isArray(apiTasks)) return apiTasks;
+    if (Array.isArray((apiTasks as ApiResponse).data)) return (apiTasks as ApiResponse).data;
+    return [];
+  }, [apiTasks]);
 
   const filteredTasks = useMemo(() => {
     return allTasks.filter((item) => {
@@ -345,6 +286,42 @@ export default function RecurringTasksPage() {
       ),
     },
   ];
+
+  // Loading state
+  if (loading) {
+    return (
+      <PageShell title="Recurring Tasks" description="Loading...">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="Recurring Tasks" description="Error loading recurring tasks">
+        <EmptyState
+          icon={<Repeat className="h-6 w-6" />}
+          title="Failed to load recurring tasks"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

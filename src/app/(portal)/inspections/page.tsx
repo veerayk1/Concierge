@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,73 +52,13 @@ interface InspectionItem {
 }
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// API response shape
 // ---------------------------------------------------------------------------
 
-const MOCK_INSPECTIONS: InspectionItem[] = [
-  {
-    id: '1',
-    title: 'Annual Fire Safety Inspection',
-    type: 'fire_safety',
-    status: 'scheduled',
-    inspector: 'Fire Marshal Rodriguez',
-    location: 'All Floors',
-    scheduledDate: '2026-03-25T09:00:00',
-    checklistProgress: '0/20',
-    findings: '',
-    priority: 'critical',
-  },
-  {
-    id: '2',
-    title: 'Elevator Annual Certification',
-    type: 'elevator',
-    status: 'in_progress',
-    inspector: 'ThyssenKrupp - David Lee',
-    location: 'Elevators A, B, C',
-    scheduledDate: '2026-03-19T10:00:00',
-    checklistProgress: '8/15',
-    findings: 'Minor wear on Elevator B cable — monitoring recommended.',
-    priority: 'high',
-  },
-  {
-    id: '3',
-    title: 'Move-Out Inspection — Unit 1205',
-    type: 'move_out',
-    status: 'completed',
-    inspector: 'James Wilson',
-    location: 'Unit 1205',
-    scheduledDate: '2026-03-17T14:00:00',
-    completedDate: '2026-03-17T15:30:00',
-    checklistProgress: '12/12',
-    findings: 'Scuff marks on hallway wall. Minor stain on bedroom carpet.',
-    priority: 'medium',
-  },
-  {
-    id: '4',
-    title: 'General Hallway & Common Area Inspection',
-    type: 'general',
-    status: 'overdue',
-    inspector: 'Mike Thompson',
-    location: 'Floors 1-10 Common Areas',
-    scheduledDate: '2026-03-14T08:00:00',
-    checklistProgress: '5/18',
-    findings: 'Incomplete — hallway lights on Floor 3 need replacement.',
-    priority: 'low',
-  },
-  {
-    id: '5',
-    title: 'Electrical Panel Inspection — P1 Garage',
-    type: 'electrical',
-    status: 'failed',
-    inspector: 'Spark Electric Co.',
-    location: 'P1 Underground Garage',
-    scheduledDate: '2026-03-16T11:00:00',
-    completedDate: '2026-03-16T13:00:00',
-    checklistProgress: '15/15',
-    findings: 'Panel 3B breaker tripping under load. Immediate repair required.',
-    priority: 'critical',
-  },
-];
+interface ApiResponse {
+  data: InspectionItem[];
+  meta?: { total: number };
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -189,14 +130,28 @@ export default function InspectionsPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiInspections, refetch } = useApi<InspectionItem[]>(
-    apiUrl('/api/v1/inspections', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiInspections,
+    loading,
+    error,
+    refetch,
+  } = useApi<InspectionItem[] | ApiResponse>(
+    apiUrl('/api/v1/inspections', {
+      propertyId: DEMO_PROPERTY_ID,
+      search: searchQuery || undefined,
+      type: typeFilter !== 'all' ? typeFilter : undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+    }),
   );
 
-  const allInspections = useMemo<InspectionItem[]>(
-    () => apiInspections ?? MOCK_INSPECTIONS,
-    [apiInspections],
-  );
+  const allInspections = useMemo<InspectionItem[]>(() => {
+    if (!apiInspections) return [];
+    if (Array.isArray(apiInspections)) return apiInspections;
+    if (Array.isArray((apiInspections as ApiResponse).data))
+      return (apiInspections as ApiResponse).data;
+    return [];
+  }, [apiInspections]);
 
   const filteredInspections = useMemo(
     () =>
@@ -314,6 +269,42 @@ export default function InspectionsPage() {
       ),
     },
   ];
+
+  // Loading state
+  if (loading) {
+    return (
+      <PageShell title="Inspections" description="Loading...">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="Inspections" description="Error loading inspections">
+        <EmptyState
+          icon={<ClipboardCheck className="h-6 w-6" />}
+          title="Failed to load inspections"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

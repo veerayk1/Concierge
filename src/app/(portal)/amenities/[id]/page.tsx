@@ -1,8 +1,9 @@
 'use client';
 
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
+  AlertCircle,
   ArrowLeft,
   Ban,
   Calendar,
@@ -17,74 +18,47 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
-const MOCK = {
-  name: 'Party Room',
-  category: 'Entertainment',
-  location: 'Floor 2, Room 201',
-  capacity: 40,
-  description:
-    'Spacious party room with full kitchen, bar area, and lounge seating. Perfect for birthday parties, family gatherings, and private events. Includes built-in AV system with projector and sound.',
-  hours: 'Mon-Thu: 9:00 AM - 10:00 PM, Fri-Sun: 9:00 AM - 12:00 AM',
-  rules: [
-    'Maximum 40 guests including residents',
-    'Music must be turned off by 11:00 PM on weekdays',
-    'Resident must be present for the entire booking',
-    'Clean-up must be completed within 1 hour after booking ends',
-    'No smoking or vaping inside the party room',
-    'Security deposit will be forfeited if damage occurs',
-  ],
-  fee: 75,
-  securityDeposit: 250,
-  availableNow: true,
-  requiresApproval: true,
-  upcomingBookings: [
-    {
-      id: '1',
-      resident: 'Janet Smith',
-      unit: '1501',
-      date: '2026-03-20',
-      timeSlot: '6:00 PM - 10:00 PM',
-      status: 'confirmed' as const,
-    },
-    {
-      id: '2',
-      resident: 'David Chen',
-      unit: '802',
-      date: '2026-03-22',
-      timeSlot: '2:00 PM - 6:00 PM',
-      status: 'pending' as const,
-    },
-    {
-      id: '3',
-      resident: 'Maria Garcia',
-      unit: '1203',
-      date: '2026-03-25',
-      timeSlot: '5:00 PM - 9:00 PM',
-      status: 'confirmed' as const,
-    },
-    {
-      id: '4',
-      resident: 'James Wilson',
-      unit: '410',
-      date: '2026-03-28',
-      timeSlot: '12:00 PM - 4:00 PM',
-      status: 'cancelled' as const,
-    },
-  ],
-  weekAvailability: [
-    { day: 'Mon', slots: ['9-12', '12-3', '3-6', '6-10'], booked: [false, false, true, false] },
-    { day: 'Tue', slots: ['9-12', '12-3', '3-6', '6-10'], booked: [false, true, false, false] },
-    { day: 'Wed', slots: ['9-12', '12-3', '3-6', '6-10'], booked: [false, false, false, true] },
-    { day: 'Thu', slots: ['9-12', '12-3', '3-6', '6-10'], booked: [true, false, false, false] },
-    { day: 'Fri', slots: ['9-12', '12-3', '3-6', '6-12'], booked: [false, false, true, true] },
-    { day: 'Sat', slots: ['9-12', '12-3', '3-6', '6-12'], booked: [true, true, false, false] },
-    { day: 'Sun', slots: ['9-12', '12-3', '3-6', '6-12'], booked: [false, false, false, false] },
-  ],
-};
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface Booking {
+  id: string;
+  resident: string;
+  unit: string;
+  date: string;
+  timeSlot: string;
+  status: 'confirmed' | 'pending' | 'cancelled';
+}
+
+interface DayAvailability {
+  day: string;
+  slots: string[];
+  booked: boolean[];
+}
+
+interface AmenityDetail {
+  id: string;
+  name: string;
+  category: string;
+  location: string;
+  capacity: number;
+  description: string;
+  hours: string;
+  rules: string[];
+  fee: number;
+  securityDeposit: number;
+  availableNow: boolean;
+  requiresApproval: boolean;
+  upcomingBookings: Booking[];
+  weekAvailability: DayAvailability[];
+}
 
 const statusVariants: Record<string, 'success' | 'warning' | 'error'> = {
   confirmed: 'success',
@@ -92,12 +66,96 @@ const statusVariants: Record<string, 'success' | 'warning' | 'error'> = {
   cancelled: 'error',
 };
 
-interface AmenityDetailPageProps {
-  params: Promise<{ id: string }>;
+// ---------------------------------------------------------------------------
+// Skeleton Loader
+// ---------------------------------------------------------------------------
+
+function AmenityDetailSkeleton() {
+  return (
+    <div className="flex animate-pulse flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <div className="h-4 w-28 rounded bg-neutral-200" />
+        <div className="h-8 w-48 rounded bg-neutral-200" />
+        <div className="h-4 w-40 rounded bg-neutral-200" />
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="flex flex-col gap-6 xl:col-span-2">
+          <div className="h-48 rounded-xl bg-neutral-100" />
+          <div className="h-32 rounded-xl bg-neutral-100" />
+          <div className="h-40 rounded-xl bg-neutral-100" />
+        </div>
+        <div className="flex flex-col gap-6">
+          <div className="h-40 rounded-xl bg-neutral-100" />
+          <div className="h-32 rounded-xl bg-neutral-100" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
-  const { id } = use(params);
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export default function AmenityDetailPage() {
+  const { id } = useParams<{ id: string }>();
+
+  const {
+    data: amenity,
+    loading,
+    error,
+  } = useApi<AmenityDetail>(apiUrl(`/api/v1/amenities/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+
+  // -- Loading State --
+  if (loading) {
+    return <AmenityDetailSkeleton />;
+  }
+
+  // -- Error State --
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="bg-error-50 flex h-16 w-16 items-center justify-center rounded-full">
+          <AlertCircle className="text-error-600 h-8 w-8" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">
+          {error.includes('404') ? 'Amenity Not Found' : 'Failed to Load Amenity'}
+        </h2>
+        <p className="max-w-md text-center text-[14px] text-neutral-500">{error}</p>
+        <Link href="/amenities">
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to amenities
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // -- 404 State --
+  if (!amenity) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+          <Calendar className="h-8 w-8 text-neutral-400" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">Amenity Not Found</h2>
+        <p className="text-[14px] text-neutral-500">
+          The amenity you are looking for does not exist or has been removed.
+        </p>
+        <Link href="/amenities">
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to amenities
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const bookings = amenity.upcomingBookings ?? [];
+  const weekAvailability = amenity.weekAvailability ?? [];
+  const rules = amenity.rules ?? [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -112,18 +170,20 @@ export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
             Back to amenities
           </Link>
           <div className="flex items-center gap-3">
-            <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">{MOCK.name}</h1>
-            <Badge variant={MOCK.availableNow ? 'success' : 'default'} size="lg" dot>
-              {MOCK.availableNow ? 'Available' : 'Booked'}
+            <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
+              {amenity.name}
+            </h1>
+            <Badge variant={amenity.availableNow ? 'success' : 'default'} size="lg" dot>
+              {amenity.availableNow ? 'Available' : 'Booked'}
             </Badge>
-            {MOCK.requiresApproval && (
+            {amenity.requiresApproval && (
               <Badge variant="info" size="lg">
                 Approval Required
               </Badge>
             )}
           </div>
           <p className="text-[14px] text-neutral-500">
-            {MOCK.category} &middot; {MOCK.location}
+            {amenity.category} &middot; {amenity.location}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -158,7 +218,7 @@ export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Name
                   </p>
-                  <p className="mt-1 text-[15px] text-neutral-900">{MOCK.name}</p>
+                  <p className="mt-1 text-[15px] text-neutral-900">{amenity.name}</p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
@@ -166,7 +226,7 @@ export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
                     <MapPin className="h-4 w-4 text-neutral-400" />
-                    {MOCK.location}
+                    {amenity.location}
                   </p>
                 </div>
                 <div>
@@ -175,7 +235,7 @@ export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
                     <Users className="h-4 w-4 text-neutral-400" />
-                    {MOCK.capacity} people
+                    {amenity.capacity} people
                   </p>
                 </div>
                 <div>
@@ -184,7 +244,7 @@ export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
                     <Clock className="h-4 w-4 text-neutral-400" />
-                    {MOCK.hours}
+                    {amenity.hours}
                   </p>
                 </div>
                 <div>
@@ -192,7 +252,7 @@ export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
                     Fee
                   </p>
                   <p className="mt-1 text-[15px] text-neutral-900">
-                    {MOCK.fee === 0 ? 'Free' : `$${MOCK.fee}/booking`}
+                    {amenity.fee === 0 ? 'Free' : `$${amenity.fee}/booking`}
                   </p>
                 </div>
                 <div>
@@ -200,7 +260,7 @@ export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
                     Security Deposit
                   </p>
                   <p className="mt-1 text-[15px] text-neutral-900">
-                    {MOCK.securityDeposit === 0 ? 'None' : `$${MOCK.securityDeposit}`}
+                    {amenity.securityDeposit === 0 ? 'None' : `$${amenity.securityDeposit}`}
                   </p>
                 </div>
                 <div className="col-span-2">
@@ -208,7 +268,7 @@ export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
                     Description
                   </p>
                   <p className="mt-1 text-[15px] leading-relaxed text-neutral-700">
-                    {MOCK.description}
+                    {amenity.description}
                   </p>
                 </div>
               </div>
@@ -221,7 +281,7 @@ export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-neutral-400" />
                 <h2 className="text-[14px] font-semibold text-neutral-900">
-                  Upcoming Bookings ({MOCK.upcomingBookings.length})
+                  Upcoming Bookings ({bookings.length})
                 </h2>
               </div>
               <Button size="sm">
@@ -230,125 +290,131 @@ export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
               </Button>
             </div>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-neutral-100">
-                      <th className="pb-3 text-left text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                        Date
-                      </th>
-                      <th className="pb-3 text-left text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                        Time Slot
-                      </th>
-                      <th className="pb-3 text-left text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                        Resident
-                      </th>
-                      <th className="pb-3 text-left text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                        Unit
-                      </th>
-                      <th className="pb-3 text-left text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                        Status
-                      </th>
-                      <th className="pb-3 text-right text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {MOCK.upcomingBookings.map((b) => (
-                      <tr key={b.id} className="border-b border-neutral-50 last:border-0">
-                        <td className="py-3 text-[14px] text-neutral-900">
-                          {new Date(b.date).toLocaleDateString('en-US', {
-                            weekday: 'short',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </td>
-                        <td className="py-3 text-[14px] text-neutral-600">{b.timeSlot}</td>
-                        <td className="py-3 text-[14px] font-medium text-neutral-900">
-                          {b.resident}
-                        </td>
-                        <td className="py-3 text-[14px] text-neutral-600">{b.unit}</td>
-                        <td className="py-3">
-                          <Badge variant={statusVariants[b.status]} size="sm" dot>
-                            {b.status}
-                          </Badge>
-                        </td>
-                        <td className="py-3 text-right">
-                          {b.status === 'pending' && (
-                            <div className="flex items-center justify-end gap-1">
-                              <Button variant="ghost" size="sm">
-                                <Check className="text-success-600 h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <X className="text-error-600 h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          )}
-                          {b.status === 'confirmed' && (
-                            <Button variant="ghost" size="sm" className="text-error-600">
-                              Cancel
-                            </Button>
-                          )}
-                        </td>
+              {bookings.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-neutral-100">
+                        <th className="pb-3 text-left text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                          Date
+                        </th>
+                        <th className="pb-3 text-left text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                          Time Slot
+                        </th>
+                        <th className="pb-3 text-left text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                          Resident
+                        </th>
+                        <th className="pb-3 text-left text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                          Unit
+                        </th>
+                        <th className="pb-3 text-left text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                          Status
+                        </th>
+                        <th className="pb-3 text-right text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                          Actions
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {bookings.map((b) => (
+                        <tr key={b.id} className="border-b border-neutral-50 last:border-0">
+                          <td className="py-3 text-[14px] text-neutral-900">
+                            {new Date(b.date).toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </td>
+                          <td className="py-3 text-[14px] text-neutral-600">{b.timeSlot}</td>
+                          <td className="py-3 text-[14px] font-medium text-neutral-900">
+                            {b.resident}
+                          </td>
+                          <td className="py-3 text-[14px] text-neutral-600">{b.unit}</td>
+                          <td className="py-3">
+                            <Badge variant={statusVariants[b.status] ?? 'default'} size="sm" dot>
+                              {b.status}
+                            </Badge>
+                          </td>
+                          <td className="py-3 text-right">
+                            {b.status === 'pending' && (
+                              <div className="flex items-center justify-end gap-1">
+                                <Button variant="ghost" size="sm">
+                                  <Check className="text-success-600 h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="sm">
+                                  <X className="text-error-600 h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            )}
+                            {b.status === 'confirmed' && (
+                              <Button variant="ghost" size="sm" className="text-error-600">
+                                Cancel
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No upcoming bookings.</p>
+              )}
             </CardContent>
           </Card>
 
           {/* Weekly Availability */}
-          <Card>
-            <div className="mb-4 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-neutral-400" />
-              <h2 className="text-[14px] font-semibold text-neutral-900">Weekly Availability</h2>
-            </div>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr>
-                      <th className="pb-3 text-left text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                        Day
-                      </th>
-                      {(MOCK.weekAvailability[0]?.slots ?? []).map((slot) => (
-                        <th
-                          key={slot}
-                          className="pb-3 text-center text-[12px] font-medium tracking-wide text-neutral-400 uppercase"
-                        >
-                          {slot}
+          {weekAvailability.length > 0 && (
+            <Card>
+              <div className="mb-4 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-neutral-400" />
+                <h2 className="text-[14px] font-semibold text-neutral-900">Weekly Availability</h2>
+              </div>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr>
+                        <th className="pb-3 text-left text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                          Day
                         </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {MOCK.weekAvailability.map((day) => (
-                      <tr key={day.day} className="border-b border-neutral-50 last:border-0">
-                        <td className="py-2.5 text-[14px] font-medium text-neutral-900">
-                          {day.day}
-                        </td>
-                        {day.booked.map((isBooked, i) => (
-                          <td key={i} className="py-2.5 text-center">
-                            <span
-                              className={`inline-flex h-8 w-full max-w-[80px] items-center justify-center rounded-lg text-[12px] font-medium ${
-                                isBooked
-                                  ? 'bg-error-50 text-error-600'
-                                  : 'bg-success-50 text-success-600'
-                              }`}
-                            >
-                              {isBooked ? 'Booked' : 'Open'}
-                            </span>
-                          </td>
+                        {(weekAvailability[0]?.slots ?? []).map((slot) => (
+                          <th
+                            key={slot}
+                            className="pb-3 text-center text-[12px] font-medium tracking-wide text-neutral-400 uppercase"
+                          >
+                            {slot}
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {weekAvailability.map((day) => (
+                        <tr key={day.day} className="border-b border-neutral-50 last:border-0">
+                          <td className="py-2.5 text-[14px] font-medium text-neutral-900">
+                            {day.day}
+                          </td>
+                          {day.booked.map((isBooked, i) => (
+                            <td key={i} className="py-2.5 text-center">
+                              <span
+                                className={`inline-flex h-8 w-full max-w-[80px] items-center justify-center rounded-lg text-[12px] font-medium ${
+                                  isBooked
+                                    ? 'bg-error-50 text-error-600'
+                                    : 'bg-success-50 text-success-600'
+                                }`}
+                              >
+                                {isBooked ? 'Booked' : 'Open'}
+                              </span>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Right Column */}
@@ -357,14 +423,18 @@ export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
           <Card>
             <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Rules & Guidelines</h2>
             <CardContent>
-              <ul className="flex flex-col gap-2">
-                {MOCK.rules.map((rule, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[14px] text-neutral-700">
-                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400" />
-                    {rule}
-                  </li>
-                ))}
-              </ul>
+              {rules.length > 0 ? (
+                <ul className="flex flex-col gap-2">
+                  {rules.map((rule, i) => (
+                    <li key={i} className="flex items-start gap-2 text-[14px] text-neutral-700">
+                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400" />
+                      {rule}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No rules configured.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -376,25 +446,25 @@ export default function AmenityDetailPage({ params }: AmenityDetailPageProps) {
                 <div className="flex items-center justify-between">
                   <span className="text-[14px] text-neutral-600">Booking Fee</span>
                   <span className="text-[14px] font-medium text-neutral-900">
-                    {MOCK.fee === 0 ? 'Free' : `$${MOCK.fee}`}
+                    {amenity.fee === 0 ? 'Free' : `$${amenity.fee}`}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[14px] text-neutral-600">Security Deposit</span>
                   <span className="text-[14px] font-medium text-neutral-900">
-                    ${MOCK.securityDeposit}
+                    ${amenity.securityDeposit}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[14px] text-neutral-600">Capacity</span>
                   <span className="text-[14px] font-medium text-neutral-900">
-                    {MOCK.capacity} people
+                    {amenity.capacity} people
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[14px] text-neutral-600">Approval</span>
-                  <Badge variant={MOCK.requiresApproval ? 'warning' : 'success'} size="sm">
-                    {MOCK.requiresApproval ? 'Required' : 'Auto-approve'}
+                  <Badge variant={amenity.requiresApproval ? 'warning' : 'success'} size="sm">
+                    {amenity.requiresApproval ? 'Required' : 'Auto-approve'}
                   </Badge>
                 </div>
               </div>

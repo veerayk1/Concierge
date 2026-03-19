@@ -20,6 +20,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CreateEquipmentDialog } from '@/components/forms/create-equipment-dialog';
 
 // ---------------------------------------------------------------------------
@@ -91,81 +93,13 @@ const STATUS_LABELS: Record<EquipmentStatus, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// API response shape
 // ---------------------------------------------------------------------------
 
-const MOCK_EQUIPMENT: EquipmentItem[] = [
-  {
-    id: '1',
-    name: 'Rooftop HVAC Unit #1',
-    category: 'hvac',
-    location: 'Rooftop Mechanical Room',
-    manufacturer: 'Carrier',
-    modelNumber: '50XC-A24',
-    serialNumber: 'CR-2023-44821',
-    status: 'operational',
-    installDate: '2023-06-15',
-    warrantyExpiry: '2028-06-15',
-    lastServiceDate: '2026-01-10',
-    nextServiceDate: '2026-04-10',
-  },
-  {
-    id: '2',
-    name: 'Passenger Elevator A',
-    category: 'elevator',
-    location: 'Main Lobby',
-    manufacturer: 'Otis',
-    modelNumber: 'Gen2-MRL',
-    serialNumber: 'OT-2019-10934',
-    status: 'needs_maintenance',
-    installDate: '2019-03-22',
-    warrantyExpiry: '2024-03-22',
-    lastServiceDate: '2026-02-28',
-    nextServiceDate: '2026-03-28',
-  },
-  {
-    id: '3',
-    name: 'Fire Alarm Panel',
-    category: 'fire_safety',
-    location: 'Ground Floor Security Office',
-    manufacturer: 'Honeywell',
-    modelNumber: 'SWIFT-3200',
-    serialNumber: 'HW-2021-78452',
-    status: 'operational',
-    installDate: '2021-09-01',
-    warrantyExpiry: '2026-09-01',
-    lastServiceDate: '2026-03-01',
-    nextServiceDate: '2026-06-01',
-  },
-  {
-    id: '4',
-    name: 'Security Camera System',
-    category: 'security',
-    location: 'Server Room B2',
-    manufacturer: 'Axis Communications',
-    modelNumber: 'P3245-LVE',
-    serialNumber: 'AX-2022-33019',
-    status: 'operational',
-    installDate: '2022-11-10',
-    warrantyExpiry: '2025-11-10',
-    lastServiceDate: '2026-02-15',
-    nextServiceDate: '2026-05-15',
-  },
-  {
-    id: '5',
-    name: 'Central Boiler',
-    category: 'plumbing',
-    location: 'Basement Mechanical Room',
-    manufacturer: 'Weil-McLain',
-    modelNumber: 'SVF-1500',
-    serialNumber: 'WM-2020-55671',
-    status: 'out_of_service',
-    installDate: '2020-04-18',
-    warrantyExpiry: '2025-04-18',
-    lastServiceDate: '2026-03-10',
-    nextServiceDate: '2026-03-20',
-  },
-];
+interface ApiResponse {
+  data: EquipmentItem[];
+  meta?: { total: number };
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -178,14 +112,27 @@ export default function EquipmentPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiEquipment } = useApi<EquipmentItem[]>(
-    apiUrl('/api/v1/equipment', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiEquipment,
+    loading,
+    error,
+    refetch,
+  } = useApi<EquipmentItem[] | ApiResponse>(
+    apiUrl('/api/v1/equipment', {
+      propertyId: DEMO_PROPERTY_ID,
+      search: searchQuery || undefined,
+      category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+    }),
   );
 
-  const allEquipment = useMemo<EquipmentItem[]>(
-    () => apiEquipment ?? MOCK_EQUIPMENT,
-    [apiEquipment],
-  );
+  const allEquipment = useMemo<EquipmentItem[]>(() => {
+    if (!apiEquipment) return [];
+    if (Array.isArray(apiEquipment)) return apiEquipment;
+    if (Array.isArray((apiEquipment as ApiResponse).data))
+      return (apiEquipment as ApiResponse).data;
+    return [];
+  }, [apiEquipment]);
 
   const filteredEquipment = useMemo(() => {
     return allEquipment.filter((item) => {
@@ -312,6 +259,42 @@ export default function EquipmentPage() {
       },
     },
   ];
+
+  // Loading state
+  if (loading) {
+    return (
+      <PageShell title="Equipment" description="Loading...">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="Equipment" description="Error loading equipment">
+        <EmptyState
+          icon={<Wrench className="h-6 w-6" />}
+          title="Failed to load equipment"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

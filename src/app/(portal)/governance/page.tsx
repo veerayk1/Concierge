@@ -115,102 +115,18 @@ const RESOLUTION_STATUS_LABELS: Record<ResolutionStatus, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// API response shapes
 // ---------------------------------------------------------------------------
 
-const MOCK_MEETINGS: MeetingItem[] = [
-  {
-    id: '1',
-    title: 'Q1 2026 Board Meeting',
-    type: 'regular',
-    date: '2026-04-10',
-    time: '7:00 PM',
-    location: 'Party Room A',
-    status: 'scheduled',
-    attendeeCount: 7,
-    minutesAvailable: false,
-  },
-  {
-    id: '2',
-    title: 'Annual General Meeting 2026',
-    type: 'agm',
-    date: '2026-06-15',
-    time: '6:00 PM',
-    location: 'Main Lobby Conference Hall',
-    status: 'scheduled',
-    attendeeCount: 0,
-    minutesAvailable: false,
-  },
-  {
-    id: '3',
-    title: 'Emergency Session — Water Main Repair',
-    type: 'emergency',
-    date: '2026-03-05',
-    time: '9:00 AM',
-    location: 'Management Office',
-    status: 'completed',
-    attendeeCount: 5,
-    minutesAvailable: true,
-  },
-  {
-    id: '4',
-    title: 'Special Meeting — Lobby Renovation Approval',
-    type: 'special',
-    date: '2026-02-20',
-    time: '7:30 PM',
-    location: 'Party Room B',
-    status: 'completed',
-    attendeeCount: 6,
-    minutesAvailable: true,
-  },
-];
+interface MeetingsApiResponse {
+  data: MeetingItem[];
+  meta?: { total: number };
+}
 
-const MOCK_RESOLUTIONS: ResolutionItem[] = [
-  {
-    id: '1',
-    number: 'RES-2026-014',
-    title: 'Approve lobby renovation budget of $85,000',
-    status: 'passed',
-    proposedBy: 'David Park',
-    proposedDate: '2026-02-20',
-    votesFor: 5,
-    votesAgainst: 1,
-    votesAbstain: 0,
-  },
-  {
-    id: '2',
-    number: 'RES-2026-015',
-    title: 'Increase reserve fund contribution by 3%',
-    status: 'voting',
-    proposedBy: 'Sarah Mitchell',
-    proposedDate: '2026-03-10',
-    votesFor: 3,
-    votesAgainst: 1,
-    votesAbstain: 2,
-  },
-  {
-    id: '3',
-    number: 'RES-2026-016',
-    title: 'Adopt new pet policy — max 2 pets per unit',
-    status: 'proposed',
-    proposedBy: 'James Chen',
-    proposedDate: '2026-03-15',
-    votesFor: 0,
-    votesAgainst: 0,
-    votesAbstain: 0,
-  },
-  {
-    id: '4',
-    number: 'RES-2026-013',
-    title: 'Replace rooftop HVAC units — Phase 1',
-    status: 'tabled',
-    proposedBy: 'David Park',
-    proposedDate: '2026-01-18',
-    votesFor: 2,
-    votesAgainst: 2,
-    votesAbstain: 3,
-  },
-];
+interface ResolutionsApiResponse {
+  data: ResolutionItem[];
+  meta?: { total: number };
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -222,20 +138,46 @@ export default function GovernancePage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data: apiMeetings } = useApi<MeetingItem[]>(
+  const {
+    data: apiMeetings,
+    loading: meetingsLoading,
+    error: meetingsError,
+    refetch: refetchMeetings,
+  } = useApi<MeetingItem[] | MeetingsApiResponse>(
     apiUrl('/api/v1/governance/meetings', { propertyId: DEMO_PROPERTY_ID }),
   );
 
-  const { data: apiResolutions } = useApi<ResolutionItem[]>(
+  const {
+    data: apiResolutions,
+    loading: resolutionsLoading,
+    error: resolutionsError,
+    refetch: refetchResolutions,
+  } = useApi<ResolutionItem[] | ResolutionsApiResponse>(
     apiUrl('/api/v1/governance/resolutions', { propertyId: DEMO_PROPERTY_ID }),
   );
 
-  const allMeetings = useMemo<MeetingItem[]>(() => apiMeetings ?? MOCK_MEETINGS, [apiMeetings]);
+  const loading = meetingsLoading || resolutionsLoading;
+  const error = meetingsError || resolutionsError;
+  const refetch = () => {
+    refetchMeetings();
+    refetchResolutions();
+  };
 
-  const allResolutions = useMemo<ResolutionItem[]>(
-    () => apiResolutions ?? MOCK_RESOLUTIONS,
-    [apiResolutions],
-  );
+  const allMeetings = useMemo<MeetingItem[]>(() => {
+    if (!apiMeetings) return [];
+    if (Array.isArray(apiMeetings)) return apiMeetings;
+    if (Array.isArray((apiMeetings as MeetingsApiResponse).data))
+      return (apiMeetings as MeetingsApiResponse).data;
+    return [];
+  }, [apiMeetings]);
+
+  const allResolutions = useMemo<ResolutionItem[]>(() => {
+    if (!apiResolutions) return [];
+    if (Array.isArray(apiResolutions)) return apiResolutions;
+    if (Array.isArray((apiResolutions as ResolutionsApiResponse).data))
+      return (apiResolutions as ResolutionsApiResponse).data;
+    return [];
+  }, [apiResolutions]);
 
   // ---- Filtered data ----
 
@@ -451,6 +393,43 @@ export default function GovernancePage() {
     setSearchQuery('');
     setStatusFilter('all');
     setShowFilters(false);
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <PageShell title="Governance" description="Loading...">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+        <Skeleton className="mb-6 h-10 w-80" />
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="Governance" description="Error loading governance data">
+        <EmptyState
+          icon={<Landmark className="h-6 w-6" />}
+          title="Failed to load governance data"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
   }
 
   return (
