@@ -14,6 +14,9 @@ const mockFindMany = vi.fn();
 const mockCount = vi.fn();
 const mockFindUnique = vi.fn();
 const mockUpdate = vi.fn();
+const mockUserFindUnique = vi.fn();
+const mockWaitlistFindFirst = vi.fn();
+const mockWaitlistUpdate = vi.fn();
 
 vi.mock('@/server/db', () => ({
   prisma: {
@@ -23,7 +26,18 @@ vi.mock('@/server/db', () => ({
       findUnique: (...args: unknown[]) => mockFindUnique(...args),
       update: (...args: unknown[]) => mockUpdate(...args),
     },
+    user: {
+      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+    },
+    waitlistEntry: {
+      findFirst: (...args: unknown[]) => mockWaitlistFindFirst(...args),
+      update: (...args: unknown[]) => mockWaitlistUpdate(...args),
+    },
   },
+}));
+
+vi.mock('@/server/email', () => ({
+  sendEmail: vi.fn().mockResolvedValue('msg-id'),
 }));
 
 vi.mock('@/server/middleware/api-guard', () => ({
@@ -46,6 +60,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockFindMany.mockResolvedValue([]);
   mockCount.mockResolvedValue(0);
+  mockUserFindUnique.mockResolvedValue({ email: 'resident@example.com', firstName: 'Jane' });
+  mockWaitlistFindFirst.mockResolvedValue(null);
 });
 
 // ---------------------------------------------------------------------------
@@ -78,7 +94,13 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
   const params = Promise.resolve({ id: 'booking-1' });
 
   it('allows pending → approved', async () => {
-    mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'pending' });
+    mockFindUnique.mockResolvedValue({
+      id: 'booking-1',
+      status: 'pending',
+      amenityId: 'amenity-1',
+      residentId: 'resident-1',
+      amenity: { name: 'Pool' },
+    });
     mockUpdate.mockResolvedValue({
       id: 'booking-1',
       status: 'approved',
@@ -91,7 +113,13 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
   });
 
   it('allows pending → declined', async () => {
-    mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'pending' });
+    mockFindUnique.mockResolvedValue({
+      id: 'booking-1',
+      status: 'pending',
+      amenityId: 'amenity-1',
+      residentId: 'resident-1',
+      amenity: { name: 'Pool' },
+    });
     mockUpdate.mockResolvedValue({
       id: 'booking-1',
       status: 'declined',
@@ -104,7 +132,13 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
   });
 
   it('allows pending → cancelled', async () => {
-    mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'pending' });
+    mockFindUnique.mockResolvedValue({
+      id: 'booking-1',
+      status: 'pending',
+      amenityId: 'amenity-1',
+      residentId: 'resident-1',
+      amenity: { name: 'Pool' },
+    });
     mockUpdate.mockResolvedValue({
       id: 'booking-1',
       status: 'cancelled',
@@ -117,7 +151,13 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
   });
 
   it('allows approved → cancelled', async () => {
-    mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'approved' });
+    mockFindUnique.mockResolvedValue({
+      id: 'booking-1',
+      status: 'approved',
+      amenityId: 'amenity-1',
+      residentId: 'resident-1',
+      amenity: { name: 'Pool' },
+    });
     mockUpdate.mockResolvedValue({
       id: 'booking-1',
       status: 'cancelled',
@@ -130,7 +170,13 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
   });
 
   it('allows approved → completed', async () => {
-    mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'approved' });
+    mockFindUnique.mockResolvedValue({
+      id: 'booking-1',
+      status: 'approved',
+      amenityId: 'amenity-1',
+      residentId: 'resident-1',
+      amenity: { name: 'Pool' },
+    });
     mockUpdate.mockResolvedValue({
       id: 'booking-1',
       status: 'completed',
@@ -143,7 +189,13 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
   });
 
   it("REJECTS declined → approved (can't un-decline)", async () => {
-    mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'declined' });
+    mockFindUnique.mockResolvedValue({
+      id: 'booking-1',
+      status: 'declined',
+      amenityId: 'amenity-1',
+      residentId: 'resident-1',
+      amenity: { name: 'Pool' },
+    });
 
     const req = createPatchRequest('/api/v1/bookings/booking-1', { status: 'approved' });
     const res = await PATCH(req, { params });
@@ -154,7 +206,13 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
   });
 
   it("REJECTS cancelled → approved (can't un-cancel)", async () => {
-    mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'cancelled' });
+    mockFindUnique.mockResolvedValue({
+      id: 'booking-1',
+      status: 'cancelled',
+      amenityId: 'amenity-1',
+      residentId: 'resident-1',
+      amenity: { name: 'Pool' },
+    });
 
     const req = createPatchRequest('/api/v1/bookings/booking-1', { status: 'approved' });
     const res = await PATCH(req, { params });
@@ -162,7 +220,13 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
   });
 
   it("REJECTS completed → cancelled (can't cancel after completion)", async () => {
-    mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'completed' });
+    mockFindUnique.mockResolvedValue({
+      id: 'booking-1',
+      status: 'completed',
+      amenityId: 'amenity-1',
+      residentId: 'resident-1',
+      amenity: { name: 'Pool' },
+    });
 
     const req = createPatchRequest('/api/v1/bookings/booking-1', { status: 'cancelled' });
     const res = await PATCH(req, { params });
@@ -170,7 +234,13 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
   });
 
   it('sets approvedById when approving', async () => {
-    mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'pending' });
+    mockFindUnique.mockResolvedValue({
+      id: 'booking-1',
+      status: 'pending',
+      amenityId: 'amenity-1',
+      residentId: 'resident-1',
+      amenity: { name: 'Pool' },
+    });
     mockUpdate.mockResolvedValue({
       id: 'booking-1',
       status: 'approved',
@@ -185,7 +255,13 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
   });
 
   it('sets cancelledAt when cancelling', async () => {
-    mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'pending' });
+    mockFindUnique.mockResolvedValue({
+      id: 'booking-1',
+      status: 'pending',
+      amenityId: 'amenity-1',
+      residentId: 'resident-1',
+      amenity: { name: 'Pool' },
+    });
     mockUpdate.mockResolvedValue({
       id: 'booking-1',
       status: 'cancelled',

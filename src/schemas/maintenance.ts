@@ -29,12 +29,37 @@ export const createMaintenanceSchema = z.object({
 export type CreateMaintenanceInput = z.infer<typeof createMaintenanceSchema>;
 
 export const updateMaintenanceSchema = z.object({
-  status: z.enum(['open', 'assigned', 'in_progress', 'on_hold', 'resolved', 'closed']).optional(),
+  status: z
+    .enum(['open', 'assigned', 'in_progress', 'on_hold', 'completed', 'resolved', 'closed'])
+    .optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   assignedEmployeeId: z.string().uuid().optional(),
   assignedVendorId: z.string().uuid().optional(),
   description: z.string().max(4000).optional(),
   comments: z.string().max(2000).optional(),
+  /** Required when putting a request on hold. */
+  holdReason: z.string().min(1).max(500).optional(),
+  /** Required when completing a request. */
+  resolutionNotes: z.string().min(1).max(2000).optional(),
+  /** Attach photos/documents to an existing request. */
+  attachments: z
+    .array(
+      z.object({
+        key: z.string().min(1),
+        fileName: z.string().min(1).max(255),
+        contentType: z.string().min(1).max(100),
+        fileSizeBytes: z.number().int().positive(),
+      }),
+    )
+    .max(10)
+    .optional(),
 });
 
 export type UpdateMaintenanceInput = z.infer<typeof updateMaintenanceSchema>;
+
+export const createMaintenanceCommentSchema = z.object({
+  body: z.string().min(1, 'Comment cannot be empty').max(2000),
+  visibleToResident: z.boolean().default(true),
+});
+
+export type CreateMaintenanceCommentInput = z.infer<typeof createMaintenanceCommentSchema>;

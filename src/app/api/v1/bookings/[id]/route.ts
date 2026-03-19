@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { sendEmail } from '@/server/email';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -57,7 +58,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         completed: [],
       };
 
-      const booking = await prisma.booking.findUnique({ where: { id } });
+      const booking = await prisma.booking.findUnique({
+        where: { id },
+        include: {
+          amenity: { select: { name: true, approvalMode: true } },
+        },
+      });
       if (!booking) {
         return NextResponse.json(
           { error: 'NOT_FOUND', message: 'Booking not found' },
@@ -91,17 +97,88 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         updateData.cancelledById = auth.user.userId;
         if (body.cancellationReason) updateData.cancellationReason = body.cancellationReason;
       }
+
+      // --- Email notifications ---
+      const amenityName = booking.amenity?.name ?? 'Amenity';
+
+      // Look up the booker's contact info for notifications
+      const booker = await prisma.user.findUnique({
+        where: { id: booking.residentId },
+        select: { email: true, firstName: true },
+      });
+
+      if (body.status === 'approved' && booker?.email) {
+        sendEmail({
+          to: booker.email,
+          subject: `Your booking for ${amenityName} has been approved`,
+          text: `Hi ${booker.firstName ?? 'there'},\n\nYour booking for ${amenityName} has been approved.\n\n— Concierge`,
+        }).catch(() => {
+          /* email failures are non-blocking */
+        });
+      }
+
+      if (body.status === 'declined' && booker?.email) {
+        const reason = body.declinedReason ? `\n\nReason: ${body.declinedReason}` : '';
+        sendEmail({
+          to: booker.email,
+          subject: `Your booking for ${amenityName} has been declined`,
+          text: `Hi ${booker.firstName ?? 'there'},\n\nYour booking for ${amenityName} has been declined.${reason}\n\n— Concierge`,
+        }).catch(() => {
+          /* email failures are non-blocking */
+        });
+      }
+
+      // --- Waitlist notification on cancellation ---
+      if (body.status === 'cancelled') {
+        try {
+          const nextWaitlisted = await prisma.waitlistEntry.findFirst({
+            where: {
+              amenityId: booking.amenityId,
+              status: 'waiting',
+            },
+            orderBy: { position: 'asc' },
+          });
+
+          if (nextWaitlisted) {
+            await prisma.waitlistEntry.update({
+              where: { id: nextWaitlisted.id },
+              data: { status: 'offered', offeredAt: new Date() },
+            });
+
+            // Look up waitlisted user's contact info
+            const waitlistedUser = await prisma.user.findUnique({
+              where: { id: nextWaitlisted.residentId },
+              select: { email: true, firstName: true },
+            });
+
+            if (waitlistedUser?.email) {
+              sendEmail({
+                to: waitlistedUser.email,
+                subject: `A slot for ${amenityName} is now available`,
+                text: `Hi ${waitlistedUser.firstName ?? 'there'},\n\nA booking slot for ${amenityName} is now available. Log in to claim it before it expires.\n\n— Concierge`,
+              }).catch(() => {
+                /* email failures are non-blocking */
+              });
+            }
+          }
+        } catch {
+          // Waitlist notification failures should not block the cancellation
+        }
+      }
     }
 
     if (body.approverComments !== undefined) updateData.approverComments = body.approverComments;
 
-    const booking = await prisma.booking.update({
+    const updatedBooking = await prisma.booking.update({
       where: { id },
       data: updateData,
       include: { amenity: { select: { name: true } } },
     });
 
-    return NextResponse.json({ data: booking, message: `Booking ${body.status || 'updated'}.` });
+    return NextResponse.json({
+      data: updatedBooking,
+      message: `Booking ${body.status || 'updated'}.`,
+    });
   } catch (error) {
     console.error('PATCH /api/v1/bookings/:id error:', error);
     return NextResponse.json(
