@@ -9,9 +9,12 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    exclude: ['src/test/integration/db-integration.test.ts', 'node_modules'],
     environmentMatchGlobs: [
       // Server-side auth modules need Node.js environment (argon2 native, crypto.subtle)
       ['src/server/**/*.{test,spec}.ts', 'node'],
+      // Integration tests need Node.js environment (real database connections)
+      ['src/test/integration/**/*.{test,spec}.ts', 'node'],
     ],
     coverage: {
       provider: 'istanbul',

@@ -119,15 +119,25 @@ export function sanitizeUrl(url: string): string | null {
  * stripHtml('<script>alert("xss")</script>Visible') // 'Visible'
  */
 export function stripHtml(html: string): string {
-  // Use DOMPurify to remove all tags (empty allowlist)
-  const stripped = DOMPurify.sanitize(html, {
+  // Step 1: Remove zero-width characters that can bypass tag detection
+  // These Unicode chars can be inserted inside tag names to evade stripping
+  const cleaned = html.replace(/[\u200B-\u200D\u2060\uFEFF]/g, '');
+
+  // Step 2: Add spaces before block-level closing tags so text doesn't collapse
+  const spaced = cleaned.replace(
+    /<\/(p|div|h[1-6]|li|br|tr|td|th|blockquote|section|article|header|footer|nav|main)>/gi,
+    ' </$1>',
+  );
+
+  // Step 3: Use DOMPurify to remove all tags (empty allowlist)
+  const stripped = DOMPurify.sanitize(spaced, {
     ALLOWED_TAGS: [],
     ALLOWED_ATTR: [],
   });
 
   const text = typeof stripped === 'string' ? stripped : String(stripped);
 
-  // Collapse multiple whitespace chars into single spaces and trim
+  // Step 4: Collapse multiple whitespace chars into single spaces and trim
   return text.replace(/\s+/g, ' ').trim();
 }
 
