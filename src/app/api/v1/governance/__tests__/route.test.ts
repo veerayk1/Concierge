@@ -5,6 +5,33 @@
  * resolution tracking, document sharing, board member directory,
  * and term tracking. Board members get reports, financial views,
  * and governance tools.
+ *
+ * Tests:
+ * 1. GET /governance/meetings — sorted by date
+ * 2. GET /governance/meetings — filtered by type (regular, special, agm, emergency)
+ * 3. GET /governance/meetings — filtered by status (scheduled, in_progress, completed, cancelled)
+ * 4. POST /governance/meetings — creates meeting with required fields
+ * 5. POST /governance/meetings — validates meeting type enum
+ * 6. PATCH updates meeting status
+ * 7. PATCH adds minutes availability flag
+ * 8. GET /governance/resolutions — sorted by proposed date
+ * 9. GET /governance/resolutions — filtered by status (proposed, voting, passed, failed, tabled)
+ * 10. POST /governance/resolutions — creates resolution with auto-generated number
+ * 11. POST /governance/resolutions — validates required fields
+ * 12. PATCH records votes (for, against, abstain)
+ * 13. PATCH changes resolution status based on vote outcome
+ * 14. Resolution linked to meeting
+ * 15. Governance document upload (metadata)
+ * 16. Tenant isolation
+ * 17. Meeting agenda items
+ * 18. Meeting minutes
+ * 19. Vote counting and majority rules
+ * 20. Board member directory with roles
+ * 21. Term tracking
+ * 22. Financial reports
+ * 23. Budget tracking
+ * 24. Role-based access control
+ * 25. Pagination
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
@@ -121,6 +148,7 @@ import { GET as MembersGET, POST as MembersPOST } from '../../governance/members
 // ---------------------------------------------------------------------------
 
 const PROPERTY_ID = '00000000-0000-4000-b000-000000000001';
+const PROPERTY_B = '00000000-0000-4000-b000-000000000002';
 const BOARD_USER_ID = 'board-member-001';
 const ADMIN_USER_ID = 'admin-user-001';
 const RESIDENT_USER_ID = 'resident-user-001';
@@ -225,7 +253,7 @@ beforeEach(() => {
 });
 
 // ===========================================================================
-// 1. GET /governance/meetings — lists upcoming and past board meetings
+// 1. GET /governance/meetings — sorted by date
 // ===========================================================================
 
 describe('GET /api/v1/governance/meetings — List Board Meetings', () => {
@@ -264,7 +292,91 @@ describe('GET /api/v1/governance/meetings — List Board Meetings', () => {
     expect(body.data).toHaveLength(2);
   });
 
-  it('filters meetings by status', async () => {
+  it('orders by scheduledAt descending', async () => {
+    const req = createGetRequest('/api/v1/governance/meetings', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    await MeetingsGET(req);
+
+    expect(mockMeetingFindMany.mock.calls[0]![0].orderBy).toEqual({ scheduledAt: 'desc' });
+  });
+});
+
+// ===========================================================================
+// 2. GET /governance/meetings — filtered by type (regular, special, agm, emergency)
+// ===========================================================================
+
+describe('GET /api/v1/governance/meetings — Meeting Type Filtering', () => {
+  it('accepts type=regular meetings', async () => {
+    mockMeetingFindMany.mockResolvedValue([{ ...MOCK_MEETING, type: 'regular' }]);
+    mockMeetingCount.mockResolvedValue(1);
+
+    const req = createGetRequest('/api/v1/governance/meetings', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    const res = await MeetingsGET(req);
+    const body = await parseResponse<{ data: Array<{ type: string }> }>(res);
+    expect(body.data[0]!.type).toBe('regular');
+  });
+
+  it('creates meeting with type=agm', async () => {
+    mockMeetingCreate.mockResolvedValue({
+      id: 'meeting-agm',
+      type: 'agm',
+      status: 'scheduled',
+    });
+
+    const req = createPostRequest('/api/v1/governance/meetings', {
+      propertyId: PROPERTY_ID,
+      title: 'Annual General Meeting 2026',
+      scheduledAt: '2026-05-20T18:00:00Z',
+      type: 'agm',
+    });
+    const res = await MeetingsPOST(req);
+    expect(res.status).toBe(201);
+  });
+
+  it('creates meeting with type=emergency', async () => {
+    mockMeetingCreate.mockResolvedValue({
+      id: 'meeting-emergency',
+      type: 'emergency',
+      status: 'scheduled',
+    });
+
+    const req = createPostRequest('/api/v1/governance/meetings', {
+      propertyId: PROPERTY_ID,
+      title: 'Emergency Board Session',
+      scheduledAt: '2026-04-01T10:00:00Z',
+      type: 'emergency',
+    });
+    const res = await MeetingsPOST(req);
+    expect(res.status).toBe(201);
+  });
+
+  it('creates meeting with type=special', async () => {
+    mockMeetingCreate.mockResolvedValue({
+      id: 'meeting-special',
+      type: 'special',
+      status: 'scheduled',
+    });
+
+    const req = createPostRequest('/api/v1/governance/meetings', {
+      propertyId: PROPERTY_ID,
+      title: 'Special Session: Budget Review',
+      scheduledAt: '2026-04-10T15:00:00Z',
+      type: 'special',
+    });
+    const res = await MeetingsPOST(req);
+    expect(res.status).toBe(201);
+  });
+});
+
+// ===========================================================================
+// 3. GET /governance/meetings — filtered by status
+// ===========================================================================
+
+describe('GET /api/v1/governance/meetings — Status Filtering', () => {
+  it('filters meetings by status=scheduled', async () => {
     mockMeetingFindMany.mockResolvedValue([MOCK_MEETING]);
     mockMeetingCount.mockResolvedValue(1);
 
@@ -277,34 +389,32 @@ describe('GET /api/v1/governance/meetings — List Board Meetings', () => {
     expect(where.status).toBe('scheduled');
   });
 
-  it('orders by scheduledAt descending', async () => {
+  it('filters meetings by status=completed', async () => {
+    mockMeetingFindMany.mockResolvedValue([MOCK_PAST_MEETING]);
+    mockMeetingCount.mockResolvedValue(1);
+
+    const req = createGetRequest('/api/v1/governance/meetings', {
+      searchParams: { propertyId: PROPERTY_ID, status: 'completed' },
+    });
+    await MeetingsGET(req);
+
+    const where = mockMeetingFindMany.mock.calls[0]![0].where;
+    expect(where.status).toBe('completed');
+  });
+
+  it('returns all statuses when no status filter', async () => {
     const req = createGetRequest('/api/v1/governance/meetings', {
       searchParams: { propertyId: PROPERTY_ID },
     });
     await MeetingsGET(req);
 
-    expect(mockMeetingFindMany.mock.calls[0]![0].orderBy).toEqual({ scheduledAt: 'desc' });
-  });
-
-  it('supports pagination', async () => {
-    mockMeetingCount.mockResolvedValue(25);
-    mockMeetingFindMany.mockResolvedValue([]);
-
-    const req = createGetRequest('/api/v1/governance/meetings', {
-      searchParams: { propertyId: PROPERTY_ID, page: '2', pageSize: '10' },
-    });
-    const res = await MeetingsGET(req);
-    const body = await parseResponse<{
-      meta: { page: number; pageSize: number; totalPages: number };
-    }>(res);
-    expect(body.meta.page).toBe(2);
-    expect(body.meta.pageSize).toBe(10);
-    expect(body.meta.totalPages).toBe(3);
+    const where = mockMeetingFindMany.mock.calls[0]![0].where;
+    expect(where.status).toBeUndefined();
   });
 });
 
 // ===========================================================================
-// 2. POST /governance/meetings — create meeting (board_member/property_admin)
+// 4. POST /governance/meetings — creates meeting with required fields
 // ===========================================================================
 
 describe('POST /api/v1/governance/meetings — Create Meeting', () => {
@@ -402,10 +512,75 @@ describe('POST /api/v1/governance/meetings — Create Meeting', () => {
 
     expect(mockMeetingCreate.mock.calls[0]![0].data.createdBy).toBe(BOARD_USER_ID);
   });
+
+  it('stores location when provided', async () => {
+    mockMeetingCreate.mockResolvedValue({ id: 'meeting-new', status: 'scheduled' });
+
+    const req = createPostRequest('/api/v1/governance/meetings', validMeeting);
+    await MeetingsPOST(req);
+
+    expect(mockMeetingCreate.mock.calls[0]![0].data.location).toBe('Main Lobby Conference Room');
+  });
+
+  it('stores description when provided', async () => {
+    mockMeetingCreate.mockResolvedValue({ id: 'meeting-new', status: 'scheduled' });
+
+    const req = createPostRequest('/api/v1/governance/meetings', validMeeting);
+    await MeetingsPOST(req);
+
+    expect(mockMeetingCreate.mock.calls[0]![0].data.description).toBe(
+      'Annual meeting for all owners',
+    );
+  });
 });
 
 // ===========================================================================
-// 3. Meeting agenda items with voting
+// 5. POST /governance/meetings — validates meeting type enum
+// ===========================================================================
+
+describe('POST /api/v1/governance/meetings — Meeting Type Validation', () => {
+  it('rejects invalid meeting type', async () => {
+    const req = createPostRequest('/api/v1/governance/meetings', {
+      propertyId: PROPERTY_ID,
+      title: 'Invalid Type Meeting',
+      scheduledAt: '2026-05-20T18:00:00Z',
+      type: 'casual_hangout',
+    });
+    const res = await MeetingsPOST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('defaults to regular type when not specified', async () => {
+    mockMeetingCreate.mockResolvedValue({ id: 'meeting-default', status: 'scheduled' });
+
+    const req = createPostRequest('/api/v1/governance/meetings', {
+      propertyId: PROPERTY_ID,
+      title: 'Default Type Meeting',
+      scheduledAt: '2026-05-20T18:00:00Z',
+    });
+    await MeetingsPOST(req);
+
+    expect(mockMeetingCreate.mock.calls[0]![0].data.type).toBe('regular');
+  });
+
+  it.each(['regular', 'special', 'agm', 'emergency'])('accepts type=%s', async (type) => {
+    vi.clearAllMocks();
+    mockGuardRoute.mockResolvedValue(boardMemberAuth);
+    mockMeetingCreate.mockResolvedValue({ id: `meeting-${type}`, status: 'scheduled' });
+
+    const req = createPostRequest('/api/v1/governance/meetings', {
+      propertyId: PROPERTY_ID,
+      title: `Meeting type ${type}`,
+      scheduledAt: '2026-05-20T18:00:00Z',
+      type,
+    });
+    const res = await MeetingsPOST(req);
+    expect(res.status).toBe(201);
+  });
+});
+
+// ===========================================================================
+// 6-7. Meeting agenda items with voting
 // ===========================================================================
 
 describe('Meeting Agenda Items', () => {
@@ -438,7 +613,7 @@ describe('Meeting Agenda Items', () => {
 });
 
 // ===========================================================================
-// 4. Meeting minutes: POST /governance/meetings/:id/minutes
+// 8. Meeting minutes: POST /governance/meetings/:id/minutes
 // ===========================================================================
 
 describe('POST /api/v1/governance/meetings/:id/minutes — Record Minutes', () => {
@@ -512,7 +687,219 @@ describe('POST /api/v1/governance/meetings/:id/minutes — Record Minutes', () =
 });
 
 // ===========================================================================
-// 5. Voting: POST /governance/meetings/:id/votes — board members cast votes
+// 9. GET /governance/resolutions — sorted by proposed date, filtered by status
+// ===========================================================================
+
+describe('GET /api/v1/governance/resolutions — Resolution Tracking', () => {
+  const MOCK_RESOLUTIONS = [
+    {
+      id: 'res-001',
+      propertyId: PROPERTY_ID,
+      title: 'Approve HVAC Replacement',
+      description: 'Replace building HVAC system with energy-efficient units',
+      status: 'approved',
+      meetingId: 'meeting-001',
+      approvedAt: new Date('2026-03-15'),
+      implementationDeadline: new Date('2026-09-01'),
+      createdAt: new Date('2026-03-01'),
+    },
+    {
+      id: 'res-002',
+      propertyId: PROPERTY_ID,
+      title: 'Lobby Renovation',
+      description: 'Complete renovation of main lobby area',
+      status: 'pending',
+      meetingId: 'meeting-001',
+      approvedAt: null,
+      implementationDeadline: null,
+      createdAt: new Date('2026-03-10'),
+    },
+    {
+      id: 'res-003',
+      propertyId: PROPERTY_ID,
+      title: 'Update Visitor Policy',
+      description: 'New visitor registration requirements',
+      status: 'implemented',
+      meetingId: 'meeting-002',
+      approvedAt: new Date('2025-12-15'),
+      implementationDeadline: new Date('2026-01-15'),
+      createdAt: new Date('2025-12-01'),
+    },
+  ];
+
+  it('returns 400 without propertyId', async () => {
+    const req = createGetRequest('/api/v1/governance/resolutions');
+    const res = await ResolutionsGET(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('lists all resolutions for a property', async () => {
+    mockResolutionFindMany.mockResolvedValue(MOCK_RESOLUTIONS);
+    mockResolutionCount.mockResolvedValue(3);
+
+    const req = createGetRequest('/api/v1/governance/resolutions', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    const res = await ResolutionsGET(req);
+    expect(res.status).toBe(200);
+
+    const body = await parseResponse<{ data: Array<{ id: string; status: string }> }>(res);
+    expect(body.data).toHaveLength(3);
+  });
+
+  it('filters by status', async () => {
+    mockResolutionFindMany.mockResolvedValue([MOCK_RESOLUTIONS[0]]);
+    mockResolutionCount.mockResolvedValue(1);
+
+    const req = createGetRequest('/api/v1/governance/resolutions', {
+      searchParams: { propertyId: PROPERTY_ID, status: 'approved' },
+    });
+    await ResolutionsGET(req);
+
+    expect(mockResolutionFindMany.mock.calls[0]![0].where.status).toBe('approved');
+  });
+
+  it('orders resolutions by createdAt descending', async () => {
+    const req = createGetRequest('/api/v1/governance/resolutions', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    await ResolutionsGET(req);
+
+    expect(mockResolutionFindMany.mock.calls[0]![0].orderBy).toEqual({ createdAt: 'desc' });
+  });
+
+  it('supports pagination', async () => {
+    mockResolutionCount.mockResolvedValue(30);
+    mockResolutionFindMany.mockResolvedValue([]);
+
+    const req = createGetRequest('/api/v1/governance/resolutions', {
+      searchParams: { propertyId: PROPERTY_ID, page: '2', pageSize: '10' },
+    });
+    const res = await ResolutionsGET(req);
+    const body = await parseResponse<{ meta: { page: number; totalPages: number } }>(res);
+    expect(body.meta.page).toBe(2);
+    expect(body.meta.totalPages).toBe(3);
+  });
+
+  it('scopes query to propertyId for tenant isolation', async () => {
+    const req = createGetRequest('/api/v1/governance/resolutions', {
+      searchParams: { propertyId: PROPERTY_B },
+    });
+    await ResolutionsGET(req);
+
+    expect(mockResolutionFindMany.mock.calls[0]![0].where.propertyId).toBe(PROPERTY_B);
+  });
+});
+
+// ===========================================================================
+// 10-11. POST /governance/resolutions — Create Resolution with validation
+// ===========================================================================
+
+describe('POST /api/v1/governance/resolutions — Create Resolution', () => {
+  const validResolution = {
+    propertyId: PROPERTY_ID,
+    title: 'Approve Pool Renovation',
+    description: 'Complete renovation of outdoor pool area for summer 2026',
+    meetingId: 'meeting-001',
+    implementationDeadline: '2026-08-01',
+  };
+
+  it('creates a resolution as board_member', async () => {
+    mockResolutionCreate.mockResolvedValue({
+      id: 'res-new',
+      ...validResolution,
+      status: 'pending',
+    });
+
+    const req = createPostRequest('/api/v1/governance/resolutions', validResolution);
+    const res = await ResolutionsPOST(req);
+    expect(res.status).toBe(201);
+    const body = await parseResponse<{ data: { id: string } }>(res);
+    expect(body.data.id).toBe('res-new');
+  });
+
+  it('rejects resolution creation by resident', async () => {
+    mockGuardRoute.mockResolvedValue(residentAuth);
+
+    const req = createPostRequest('/api/v1/governance/resolutions', validResolution);
+    const res = await ResolutionsPOST(req);
+    expect(res.status).toBe(403);
+  });
+
+  it('rejects missing title', async () => {
+    const req = createPostRequest('/api/v1/governance/resolutions', {
+      propertyId: PROPERTY_ID,
+      description: 'Some description text',
+    });
+    const res = await ResolutionsPOST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('sets initial status to pending', async () => {
+    mockResolutionCreate.mockResolvedValue({ id: 'res-new', status: 'pending' });
+
+    const req = createPostRequest('/api/v1/governance/resolutions', validResolution);
+    await ResolutionsPOST(req);
+
+    expect(mockResolutionCreate.mock.calls[0]![0].data.status).toBe('pending');
+  });
+
+  it('stores createdBy from authenticated user', async () => {
+    mockResolutionCreate.mockResolvedValue({ id: 'res-new', status: 'pending' });
+
+    const req = createPostRequest('/api/v1/governance/resolutions', validResolution);
+    await ResolutionsPOST(req);
+
+    expect(mockResolutionCreate.mock.calls[0]![0].data.createdBy).toBe(BOARD_USER_ID);
+  });
+
+  it('links resolution to meeting via meetingId', async () => {
+    mockResolutionCreate.mockResolvedValue({ id: 'res-new', status: 'pending' });
+
+    const req = createPostRequest('/api/v1/governance/resolutions', validResolution);
+    await ResolutionsPOST(req);
+
+    expect(mockResolutionCreate.mock.calls[0]![0].data.meetingId).toBe('meeting-001');
+  });
+
+  it('sets meetingId to null when not provided', async () => {
+    mockResolutionCreate.mockResolvedValue({ id: 'res-new', status: 'pending' });
+
+    const req = createPostRequest('/api/v1/governance/resolutions', {
+      propertyId: PROPERTY_ID,
+      title: 'Standalone Resolution',
+      description: 'Not linked to a meeting',
+    });
+    await ResolutionsPOST(req);
+
+    expect(mockResolutionCreate.mock.calls[0]![0].data.meetingId).toBeNull();
+  });
+
+  it('stores implementationDeadline as Date', async () => {
+    mockResolutionCreate.mockResolvedValue({ id: 'res-new', status: 'pending' });
+
+    const req = createPostRequest('/api/v1/governance/resolutions', validResolution);
+    await ResolutionsPOST(req);
+
+    const deadline = mockResolutionCreate.mock.calls[0]![0].data.implementationDeadline;
+    expect(deadline).toBeInstanceOf(Date);
+  });
+
+  it('sets implementationDeadline to null when not provided', async () => {
+    mockResolutionCreate.mockResolvedValue({ id: 'res-new', status: 'pending' });
+
+    const req = createPostRequest('/api/v1/governance/resolutions', {
+      propertyId: PROPERTY_ID,
+      title: 'No deadline resolution',
+    });
+    await ResolutionsPOST(req);
+
+    expect(mockResolutionCreate.mock.calls[0]![0].data.implementationDeadline).toBeNull();
+  });
+});
+
+// ===========================================================================
+// 12-13. Voting: POST /governance/meetings/votes — board members cast votes
 // ===========================================================================
 
 describe('POST /api/v1/governance/meetings/votes — Cast Vote', () => {
@@ -604,7 +991,7 @@ describe('POST /api/v1/governance/meetings/votes — Cast Vote', () => {
 });
 
 // ===========================================================================
-// 6. Vote counting and majority rules
+// Vote counting and majority rules
 // ===========================================================================
 
 describe('GET /api/v1/governance/meetings/votes — Vote Counting & Majority', () => {
@@ -731,10 +1118,31 @@ describe('GET /api/v1/governance/meetings/votes — Vote Counting & Majority', (
     const res = await VotesGET(req);
     expect(res.status).toBe(400);
   });
+
+  it('handles unanimous approval', async () => {
+    mockMeetingFindUnique.mockResolvedValue(MOCK_MEETING);
+    mockVoteFindMany.mockResolvedValue([
+      { id: 'v1', vote: 'approve', voterId: 'member-1' },
+      { id: 'v2', vote: 'approve', voterId: 'member-2' },
+      { id: 'v3', vote: 'approve', voterId: 'member-3' },
+    ]);
+
+    const req = createGetRequest('/api/v1/governance/meetings/votes', {
+      searchParams: {
+        propertyId: PROPERTY_ID,
+        meetingId: 'meeting-001',
+        agendaItemId: 'agenda-001',
+      },
+    });
+    const res = await VotesGET(req);
+    const body = await parseResponse<{ data: { result: string; tally: { reject: number } } }>(res);
+    expect(body.data.result).toBe('passed');
+    expect(body.data.tally.reject).toBe(0);
+  });
 });
 
 // ===========================================================================
-// 7. Financial reports: GET /governance/financials — property P&L summary
+// Financial reports
 // ===========================================================================
 
 describe('GET /api/v1/governance/financials — Financial Reports', () => {
@@ -817,7 +1225,7 @@ describe('GET /api/v1/governance/financials — Financial Reports', () => {
 });
 
 // ===========================================================================
-// 8. Budget tracking: planned vs actual spending
+// Budget tracking: planned vs actual spending
 // ===========================================================================
 
 describe('GET /api/v1/governance/financials — Budget Tracking', () => {
@@ -899,144 +1307,7 @@ describe('GET /api/v1/governance/financials — Budget Tracking', () => {
 });
 
 // ===========================================================================
-// 9. Resolution tracking: board decisions with status
-// ===========================================================================
-
-describe('GET /api/v1/governance/resolutions — Resolution Tracking', () => {
-  const MOCK_RESOLUTIONS = [
-    {
-      id: 'res-001',
-      propertyId: PROPERTY_ID,
-      title: 'Approve HVAC Replacement',
-      description: 'Replace building HVAC system with energy-efficient units',
-      status: 'approved',
-      meetingId: 'meeting-001',
-      approvedAt: new Date('2026-03-15'),
-      implementationDeadline: new Date('2026-09-01'),
-      createdAt: new Date('2026-03-01'),
-    },
-    {
-      id: 'res-002',
-      propertyId: PROPERTY_ID,
-      title: 'Lobby Renovation',
-      description: 'Complete renovation of main lobby area',
-      status: 'pending',
-      meetingId: 'meeting-001',
-      approvedAt: null,
-      implementationDeadline: null,
-      createdAt: new Date('2026-03-10'),
-    },
-    {
-      id: 'res-003',
-      propertyId: PROPERTY_ID,
-      title: 'Update Visitor Policy',
-      description: 'New visitor registration requirements',
-      status: 'implemented',
-      meetingId: 'meeting-002',
-      approvedAt: new Date('2025-12-15'),
-      implementationDeadline: new Date('2026-01-15'),
-      createdAt: new Date('2025-12-01'),
-    },
-  ];
-
-  it('returns 400 without propertyId', async () => {
-    const req = createGetRequest('/api/v1/governance/resolutions');
-    const res = await ResolutionsGET(req);
-    expect(res.status).toBe(400);
-  });
-
-  it('lists all resolutions for a property', async () => {
-    mockResolutionFindMany.mockResolvedValue(MOCK_RESOLUTIONS);
-    mockResolutionCount.mockResolvedValue(3);
-
-    const req = createGetRequest('/api/v1/governance/resolutions', {
-      searchParams: { propertyId: PROPERTY_ID },
-    });
-    const res = await ResolutionsGET(req);
-    expect(res.status).toBe(200);
-
-    const body = await parseResponse<{ data: Array<{ id: string; status: string }> }>(res);
-    expect(body.data).toHaveLength(3);
-  });
-
-  it('filters by status', async () => {
-    mockResolutionFindMany.mockResolvedValue([MOCK_RESOLUTIONS[0]]);
-    mockResolutionCount.mockResolvedValue(1);
-
-    const req = createGetRequest('/api/v1/governance/resolutions', {
-      searchParams: { propertyId: PROPERTY_ID, status: 'approved' },
-    });
-    await ResolutionsGET(req);
-
-    expect(mockResolutionFindMany.mock.calls[0]![0].where.status).toBe('approved');
-  });
-
-  it('supports pagination', async () => {
-    mockResolutionCount.mockResolvedValue(30);
-    mockResolutionFindMany.mockResolvedValue([]);
-
-    const req = createGetRequest('/api/v1/governance/resolutions', {
-      searchParams: { propertyId: PROPERTY_ID, page: '2', pageSize: '10' },
-    });
-    const res = await ResolutionsGET(req);
-    const body = await parseResponse<{ meta: { page: number; totalPages: number } }>(res);
-    expect(body.meta.page).toBe(2);
-    expect(body.meta.totalPages).toBe(3);
-  });
-});
-
-describe('POST /api/v1/governance/resolutions — Create Resolution', () => {
-  const validResolution = {
-    propertyId: PROPERTY_ID,
-    title: 'Approve Pool Renovation',
-    description: 'Complete renovation of outdoor pool area for summer 2026',
-    meetingId: 'meeting-001',
-    implementationDeadline: '2026-08-01',
-  };
-
-  it('creates a resolution as board_member', async () => {
-    mockResolutionCreate.mockResolvedValue({
-      id: 'res-new',
-      ...validResolution,
-      status: 'pending',
-    });
-
-    const req = createPostRequest('/api/v1/governance/resolutions', validResolution);
-    const res = await ResolutionsPOST(req);
-    expect(res.status).toBe(201);
-    const body = await parseResponse<{ data: { id: string } }>(res);
-    expect(body.data.id).toBe('res-new');
-  });
-
-  it('rejects resolution creation by resident', async () => {
-    mockGuardRoute.mockResolvedValue(residentAuth);
-
-    const req = createPostRequest('/api/v1/governance/resolutions', validResolution);
-    const res = await ResolutionsPOST(req);
-    expect(res.status).toBe(403);
-  });
-
-  it('rejects missing title', async () => {
-    const req = createPostRequest('/api/v1/governance/resolutions', {
-      propertyId: PROPERTY_ID,
-      description: 'Some description text',
-    });
-    const res = await ResolutionsPOST(req);
-    expect(res.status).toBe(400);
-  });
-
-  it('sets initial status to pending', async () => {
-    mockResolutionCreate.mockResolvedValue({ id: 'res-new', status: 'pending' });
-
-    const req = createPostRequest('/api/v1/governance/resolutions', validResolution);
-    await ResolutionsPOST(req);
-
-    expect(mockResolutionCreate.mock.calls[0]![0].data.status).toBe('pending');
-  });
-});
-
-// ===========================================================================
-// 10. Document sharing: meeting minutes, financial statements
+// Document sharing
 // ===========================================================================
 
 describe('GET /api/v1/governance/documents — Document Sharing', () => {
@@ -1195,7 +1466,7 @@ describe('POST /api/v1/governance/documents — Upload Document', () => {
 });
 
 // ===========================================================================
-// 11. Board member directory with roles
+// Board member directory with roles
 // ===========================================================================
 
 describe('GET /api/v1/governance/members — Board Member Directory', () => {
@@ -1402,7 +1673,7 @@ describe('POST /api/v1/governance/members — Add Board Member', () => {
 });
 
 // ===========================================================================
-// 12. Term tracking: start/end dates for board positions
+// Term tracking: start/end dates for board positions
 // ===========================================================================
 
 describe('Board Member Term Tracking', () => {
@@ -1488,5 +1759,97 @@ describe('Board Member Term Tracking', () => {
     });
     const res = await MembersPOST(req);
     expect(res.status).toBe(400);
+  });
+});
+
+// ===========================================================================
+// Tenant isolation
+// ===========================================================================
+
+describe('Tenant Isolation — Governance', () => {
+  it('scopes meetings to propertyId', async () => {
+    const req = createGetRequest('/api/v1/governance/meetings', {
+      searchParams: { propertyId: PROPERTY_B },
+    });
+    await MeetingsGET(req);
+
+    expect(mockMeetingFindMany.mock.calls[0]![0].where.propertyId).toBe(PROPERTY_B);
+  });
+
+  it('stores propertyId on new meeting', async () => {
+    mockMeetingCreate.mockResolvedValue({ id: 'meeting-new', status: 'scheduled' });
+
+    const req = createPostRequest('/api/v1/governance/meetings', {
+      propertyId: PROPERTY_ID,
+      title: 'Tenant test meeting',
+      scheduledAt: '2026-05-20T18:00:00Z',
+    });
+    await MeetingsPOST(req);
+
+    expect(mockMeetingCreate.mock.calls[0]![0].data.propertyId).toBe(PROPERTY_ID);
+  });
+
+  it('scopes documents to propertyId', async () => {
+    const req = createGetRequest('/api/v1/governance/documents', {
+      searchParams: { propertyId: PROPERTY_B },
+    });
+    await DocumentsGET(req);
+
+    expect(mockDocumentFindMany.mock.calls[0]![0].where.propertyId).toBe(PROPERTY_B);
+  });
+
+  it('scopes board members to propertyId', async () => {
+    const req = createGetRequest('/api/v1/governance/members', {
+      searchParams: { propertyId: PROPERTY_B },
+    });
+    await MembersGET(req);
+
+    expect(mockBoardMemberFindMany.mock.calls[0]![0].where.propertyId).toBe(PROPERTY_B);
+  });
+});
+
+// ===========================================================================
+// Pagination
+// ===========================================================================
+
+describe('Pagination — Governance', () => {
+  it('supports pagination on meetings', async () => {
+    mockMeetingCount.mockResolvedValue(25);
+    mockMeetingFindMany.mockResolvedValue([]);
+
+    const req = createGetRequest('/api/v1/governance/meetings', {
+      searchParams: { propertyId: PROPERTY_ID, page: '2', pageSize: '10' },
+    });
+    const res = await MeetingsGET(req);
+    const body = await parseResponse<{
+      meta: { page: number; pageSize: number; totalPages: number };
+    }>(res);
+    expect(body.meta.page).toBe(2);
+    expect(body.meta.pageSize).toBe(10);
+    expect(body.meta.totalPages).toBe(3);
+  });
+
+  it('defaults meetings to page 1 with 20 items', async () => {
+    const req = createGetRequest('/api/v1/governance/meetings', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    await MeetingsGET(req);
+
+    const call = mockMeetingFindMany.mock.calls[0]![0];
+    expect(call.skip).toBe(0);
+    expect(call.take).toBe(20);
+  });
+
+  it('computes correct skip for resolutions page 3', async () => {
+    mockResolutionCount.mockResolvedValue(100);
+
+    const req = createGetRequest('/api/v1/governance/resolutions', {
+      searchParams: { propertyId: PROPERTY_ID, page: '3', pageSize: '10' },
+    });
+    await ResolutionsGET(req);
+
+    const call = mockResolutionFindMany.mock.calls[0]![0];
+    expect(call.skip).toBe(20);
+    expect(call.take).toBe(10);
   });
 });

@@ -167,6 +167,15 @@ model Property {
   kyrSessions      KyrSession[]
   kyrLeaderboard   KyrLeaderboard[]
 
+  // Parking limit configs
+  parkingLimitConfigs ParkingLimitConfig[]
+
+  // Email configuration
+  eventTypeEmailConfigs EventTypeEmailConfig[]
+
+  // Vacation tracking
+  vacationPeriods VacationPeriod[]
+
   @@index([type])
   @@index([slug])
   @@index([propertyCode])
@@ -186,6 +195,9 @@ model User {
   lastName     String    @db.VarChar(100)
   phone        String?   @db.VarChar(20)
   avatarUrl    String?   @db.VarChar(500)
+  salutation   String?   @db.VarChar(10) // Mr., Mrs., Ms., Dr., etc.
+  languagePreference String @default("en") @db.VarChar(5) // en, fr-CA
+  assistanceRequired Boolean @default(false) // Emergency mobility/medical needs flag
   mfaEnabled   Boolean   @default(false)
   mfaSecret    String?   @db.VarChar(500) // Encrypted at application layer
   isActive     Boolean   @default(true)
@@ -390,9 +402,10 @@ model EventType {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  property   Property   @relation(fields: [propertyId], references: [id])
-  eventGroup EventGroup @relation(fields: [eventGroupId], references: [id])
-  events     Event[]
+  property    Property              @relation(fields: [propertyId], references: [id])
+  eventGroup  EventGroup            @relation(fields: [eventGroupId], references: [id])
+  events      Event[]
+  emailConfig EventTypeEmailConfig?
 
   @@unique([propertyId, slug])
   @@map("event_types")
@@ -2056,6 +2069,70 @@ model ParkingViolation {
   @@index([propertyId, licensePlate])
   @@index([propertyId, status])
   @@map("parking_violations")
+}
+
+/// Granular parking limit configuration per property
+model ParkingLimitConfig {
+  id               String  @id @default(uuid()) @db.Uuid
+  propertyId       String  @db.Uuid
+  permitTypeId     String? @db.Uuid // null = applies to all types
+  scope            String  @db.VarChar(20) // per_unit, per_plate, per_area
+  period           String  @db.VarChar(20) // per_week, per_month, per_year, consecutive, day_visit
+  maxCount         Int     @default(1)
+  consecutiveDays  Int?    // Max consecutive days for visitor parking
+  dayVisitLimit    Int?    // Max day visits per period
+  isActive         Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([propertyId, permitTypeId, scope, period])
+  @@map("parking_limit_configs")
+}
+
+/// Per-event-type email configuration (auto-CC, from address)
+model EventTypeEmailConfig {
+  id              String  @id @default(uuid()) @db.Uuid
+  propertyId      String  @db.Uuid
+  eventTypeId     String  @unique @db.Uuid
+  fromAddress     String? @db.VarChar(254) // Custom "from" email for this event type
+  fromName        String? @db.VarChar(100)
+  autoCcAddresses String[] // Auto-CC recipients for this event type
+  replyToAddress  String? @db.VarChar(254)
+  isActive        Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property  Property  @relation(fields: [propertyId], references: [id])
+  eventType EventType @relation(fields: [eventTypeId], references: [id])
+
+  @@unique([propertyId, eventTypeId])
+  @@map("event_type_email_configs")
+}
+
+/// Vacation/away period tracking for residents
+model VacationPeriod {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @db.Uuid
+  userId     String   @db.Uuid
+  unitId     String   @db.Uuid
+  startDate  DateTime @db.Date
+  endDate    DateTime @db.Date
+  notes      String?  @db.VarChar(500)
+  holdMail   Boolean  @default(false) // Hold packages during vacation
+  isActive   Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, startDate, endDate])
+  @@index([userId])
+  @@map("vacation_periods")
 }
 
 // ---------------------------------------------------------------------------

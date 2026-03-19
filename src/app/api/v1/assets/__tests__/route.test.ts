@@ -125,6 +125,39 @@ describe('POST /api/v1/assets — Create asset', () => {
     expect(res.status).toBe(400);
   });
 
+  it('rejects missing description', async () => {
+    const req = createPostRequest('/api/v1/assets', {
+      propertyId: PROPERTY_ID,
+      tagNumber: 'AST-X',
+      category: 'furniture',
+      location: 'Lobby',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects missing location', async () => {
+    const req = createPostRequest('/api/v1/assets', {
+      propertyId: PROPERTY_ID,
+      tagNumber: 'AST-X',
+      description: 'Desk',
+      category: 'furniture',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects missing category', async () => {
+    const req = createPostRequest('/api/v1/assets', {
+      propertyId: PROPERTY_ID,
+      tagNumber: 'AST-X',
+      description: 'Desk',
+      location: 'Lobby',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
   it('returns 201 with asset data and message', async () => {
     mockAssetCreate.mockResolvedValue({
       id: ASSET_ID,
@@ -137,6 +170,48 @@ describe('POST /api/v1/assets — Create asset', () => {
     const body = await parseResponse<{ data: { id: string }; message: string }>(res);
     expect(body.data.id).toBe(ASSET_ID);
     expect(body.message).toContain('AST-001');
+  });
+
+  it('creates asset with all optional fields', async () => {
+    const fullAsset = {
+      ...validAsset,
+      assignmentType: 'common_area',
+      purchaseDate: '2024-01-15T00:00:00Z',
+      purchaseValue: 5000,
+      usefulLifeYears: 10,
+      manufacturer: 'Herman Miller',
+      modelNumber: 'AE-2024',
+      serialNumber: 'SN-12345',
+      notes: 'Premium lobby furniture',
+    };
+
+    mockAssetCreate.mockResolvedValue({
+      id: ASSET_ID,
+      ...fullAsset,
+    });
+
+    const req = createPostRequest('/api/v1/assets', fullAsset);
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    const createData = mockAssetCreate.mock.calls[0]![0].data;
+    expect(createData.manufacturer).toBe('Herman Miller');
+    expect(createData.modelNumber).toBe('AE-2024');
+    expect(createData.serialNumber).toBe('SN-12345');
+    expect(createData.purchaseValue).toBe(5000);
+  });
+
+  it('sets createdById from authenticated user', async () => {
+    mockAssetCreate.mockResolvedValue({
+      id: ASSET_ID,
+      ...validAsset,
+    });
+
+    const req = createPostRequest('/api/v1/assets', validAsset);
+    await POST(req);
+
+    const createData = mockAssetCreate.mock.calls[0]![0].data;
+    expect(createData.createdById).toBe('test-staff');
   });
 
   it('handles database errors gracefully', async () => {
@@ -183,6 +258,18 @@ describe('Asset categories', () => {
       description: 'Invalid',
       category: 'vehicle',
       location: 'Garage',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects another invalid category', async () => {
+    const req = createPostRequest('/api/v1/assets', {
+      propertyId: PROPERTY_ID,
+      tagNumber: 'AST-X',
+      description: 'Invalid',
+      category: 'tool',
+      location: 'Storage',
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -255,6 +342,7 @@ describe('Asset status', () => {
     mockAssetUpdate.mockResolvedValue({
       id: ASSET_ID,
       status: 'under_repair',
+      tagNumber: 'AST-S',
     });
 
     const req = createPatchRequest('/api/v1/assets/update', {
@@ -267,6 +355,30 @@ describe('Asset status', () => {
 
     const updateData = mockAssetUpdate.mock.calls[0]![0].data;
     expect(updateData.status).toBe('under_repair');
+  });
+
+  it('can update status to disposed via PATCH', async () => {
+    mockAssetFindUnique.mockResolvedValue({
+      id: ASSET_ID,
+      propertyId: PROPERTY_ID,
+      status: 'in_use',
+    });
+    mockAssetUpdate.mockResolvedValue({
+      id: ASSET_ID,
+      status: 'disposed',
+      tagNumber: 'AST-DISP',
+    });
+
+    const req = createPatchRequest('/api/v1/assets/update', {
+      status: 'disposed',
+    });
+    const res = await PATCH(req, {
+      params: Promise.resolve({ id: ASSET_ID }),
+    });
+    expect(res.status).toBe(200);
+
+    const updateData = mockAssetUpdate.mock.calls[0]![0].data;
+    expect(updateData.status).toBe('disposed');
   });
 
   it('can filter by status via GET', async () => {
@@ -344,6 +456,7 @@ describe('Asset assignment', () => {
       id: ASSET_ID,
       assignmentType: 'unit',
       assignedToId: UNIT_ID,
+      tagNumber: 'AST-CA',
     });
 
     const req = createPatchRequest('/api/v1/assets/update', {
@@ -358,6 +471,16 @@ describe('Asset assignment', () => {
     const updateData = mockAssetUpdate.mock.calls[0]![0].data;
     expect(updateData.assignmentType).toBe('unit');
     expect(updateData.assignedToId).toBe(UNIT_ID);
+  });
+
+  it('can filter by assignmentType via GET', async () => {
+    const req = createGetRequest('/api/v1/assets', {
+      searchParams: { propertyId: PROPERTY_ID, assignmentType: 'common_area' },
+    });
+    await GET(req);
+
+    const where = mockAssetFindMany.mock.calls[0]![0].where;
+    expect(where.assignmentType).toBe('common_area');
   });
 });
 
@@ -394,6 +517,19 @@ describe('Depreciation tracking', () => {
     expect(result.isFullyDepreciated).toBe(false);
   });
 
+  it('calculates annual depreciation rate correctly', () => {
+    const result = calculateDepreciation(12000, 6, '2025-03-19T00:00:00Z', asOfDate);
+    expect(result.annualDepreciation).toBe(2000);
+  });
+
+  it('clamps depreciation at purchase value for very old assets', () => {
+    const result = calculateDepreciation(3000, 2, '2015-01-01T00:00:00Z', asOfDate);
+
+    expect(result.currentValue).toBe(0);
+    expect(result.accumulatedDepreciation).toBeLessThanOrEqual(3000);
+    expect(result.isFullyDepreciated).toBe(true);
+  });
+
   it('returns depreciation data in asset detail response', async () => {
     mockAssetFindUnique.mockResolvedValue({
       id: ASSET_ID,
@@ -427,6 +563,56 @@ describe('Depreciation tracking', () => {
     expect(body.data.depreciation).toBeDefined();
     expect(body.data.depreciation.annualDepreciation).toBe(200);
     expect(body.data.depreciation.isFullyDepreciated).toBe(false);
+  });
+
+  it('returns null depreciation when purchase data is missing', async () => {
+    mockAssetFindUnique.mockResolvedValue({
+      id: ASSET_ID,
+      propertyId: PROPERTY_ID,
+      tagNumber: 'AST-NODEP',
+      description: 'Old desk',
+      category: 'furniture',
+      status: 'in_use',
+      location: 'Office',
+      purchaseDate: null,
+      purchaseValue: null,
+      usefulLifeYears: null,
+    });
+
+    const req = createGetRequest('/api/v1/assets/detail');
+    const res = await GET_DETAIL(req, {
+      params: Promise.resolve({ id: ASSET_ID }),
+    });
+
+    const body = await parseResponse<{
+      data: { depreciation: null };
+    }>(res);
+    expect(body.data.depreciation).toBeNull();
+  });
+
+  it('returns null depreciation when purchaseValue is present but usefulLifeYears is missing', async () => {
+    mockAssetFindUnique.mockResolvedValue({
+      id: ASSET_ID,
+      propertyId: PROPERTY_ID,
+      tagNumber: 'AST-PARTIAL',
+      description: 'Partial data desk',
+      category: 'furniture',
+      status: 'in_use',
+      location: 'Office',
+      purchaseDate: new Date('2024-01-01'),
+      purchaseValue: 5000,
+      usefulLifeYears: null,
+    });
+
+    const req = createGetRequest('/api/v1/assets/detail');
+    const res = await GET_DETAIL(req, {
+      params: Promise.resolve({ id: ASSET_ID }),
+    });
+
+    const body = await parseResponse<{
+      data: { depreciation: null };
+    }>(res);
+    expect(body.data.depreciation).toBeNull();
   });
 });
 
@@ -486,6 +672,62 @@ describe('POST /api/v1/assets/audit — Physical inventory audit', () => {
     expect(body.data.summary.discrepancyRate).toBe(50);
   });
 
+  it('calculates 0% discrepancy when all assets found', async () => {
+    const allFoundAudit = {
+      ...validAudit,
+      findings: [
+        { assetId: ASSET_ID, found: true, condition: 'good' as const },
+        {
+          assetId: '00000000-0000-4000-a000-000000000002',
+          found: true,
+          condition: 'fair' as const,
+        },
+      ],
+    };
+
+    mockAssetAuditCreate.mockResolvedValue({
+      id: 'audit-3',
+      ...allFoundAudit,
+      summary: { total: 2, found: 2, missing: 0, discrepancyRate: 0 },
+    });
+
+    const req = createPostRequest('/api/v1/assets/audit', allFoundAudit);
+    const res = await POST_AUDIT(req);
+
+    const body = await parseResponse<{
+      data: { summary: { discrepancyRate: number } };
+    }>(res);
+    expect(body.data.summary.discrepancyRate).toBe(0);
+  });
+
+  it('sets createdById from authenticated user', async () => {
+    mockAssetAuditCreate.mockResolvedValue({
+      id: 'audit-4',
+      ...validAudit,
+      summary: { total: 2, found: 1, missing: 1, discrepancyRate: 50 },
+    });
+
+    const req = createPostRequest('/api/v1/assets/audit', validAudit);
+    await POST_AUDIT(req);
+
+    const createData = mockAssetAuditCreate.mock.calls[0]![0].data;
+    expect(createData.createdById).toBe('test-staff');
+  });
+
+  it('returns message with found/total counts', async () => {
+    mockAssetAuditCreate.mockResolvedValue({
+      id: 'audit-5',
+      ...validAudit,
+      summary: { total: 2, found: 1, missing: 1, discrepancyRate: 50 },
+    });
+
+    const req = createPostRequest('/api/v1/assets/audit', validAudit);
+    const res = await POST_AUDIT(req);
+
+    const body = await parseResponse<{ message: string }>(res);
+    expect(body.message).toContain('1/2');
+  });
+
   it('rejects missing required fields', async () => {
     const req = createPostRequest('/api/v1/assets/audit', {});
     const res = await POST_AUDIT(req);
@@ -513,6 +755,22 @@ describe('POST /api/v1/assets/audit — Physical inventory audit', () => {
     }>(res);
     expect(body.data).toHaveLength(1);
     expect(body.data[0]!.summary.discrepancyRate).toBe(4);
+  });
+
+  it('rejects audit listing without propertyId', async () => {
+    const req = createGetRequest('/api/v1/assets/audit');
+    const res = await GET_AUDITS(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('orders audit history by date descending', async () => {
+    const req = createGetRequest('/api/v1/assets/audit', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    await GET_AUDITS(req);
+
+    const orderBy = mockAssetAuditFindMany.mock.calls[0]![0].orderBy;
+    expect(orderBy).toEqual({ auditDate: 'desc' });
   });
 });
 
@@ -592,6 +850,16 @@ describe('GET /api/v1/assets — List assets', () => {
     );
   });
 
+  it('search is case insensitive', async () => {
+    const req = createGetRequest('/api/v1/assets', {
+      searchParams: { propertyId: PROPERTY_ID, search: 'Lobby' },
+    });
+    await GET(req);
+
+    const where = mockAssetFindMany.mock.calls[0]![0].where;
+    expect(where.OR[0].description.mode).toBe('insensitive');
+  });
+
   it('returns paginated results', async () => {
     mockAssetFindMany.mockResolvedValue([
       { id: ASSET_ID, tagNumber: 'AST-001', description: 'Desk' },
@@ -610,6 +878,55 @@ describe('GET /api/v1/assets — List assets', () => {
     }>(res);
     expect(body.data).toHaveLength(1);
     expect(body.meta.total).toBe(1);
+  });
+
+  it('respects custom page and pageSize', async () => {
+    const req = createGetRequest('/api/v1/assets', {
+      searchParams: { propertyId: PROPERTY_ID, page: '3', pageSize: '20' },
+    });
+    await GET(req);
+
+    const call = mockAssetFindMany.mock.calls[0]![0];
+    expect(call.skip).toBe(40);
+    expect(call.take).toBe(20);
+  });
+
+  it('calculates totalPages correctly', async () => {
+    mockAssetFindMany.mockResolvedValue([]);
+    mockAssetCount.mockResolvedValue(95);
+
+    const req = createGetRequest('/api/v1/assets', {
+      searchParams: { propertyId: PROPERTY_ID, pageSize: '10' },
+    });
+    const res = await GET(req);
+
+    const body = await parseResponse<{
+      meta: { totalPages: number };
+    }>(res);
+    expect(body.meta.totalPages).toBe(10);
+  });
+
+  it('orders results by tagNumber ascending', async () => {
+    const req = createGetRequest('/api/v1/assets', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    await GET(req);
+
+    const orderBy = mockAssetFindMany.mock.calls[0]![0].orderBy;
+    expect(orderBy).toEqual({ tagNumber: 'asc' });
+  });
+
+  it('handles database errors gracefully', async () => {
+    mockAssetFindMany.mockRejectedValue(new Error('Connection timeout'));
+
+    const req = createGetRequest('/api/v1/assets', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    const res = await GET(req);
+    expect(res.status).toBe(500);
+
+    const body = await parseResponse<{ message: string }>(res);
+    expect(body.message).not.toContain('Connection timeout');
   });
 });
 
@@ -654,6 +971,139 @@ describe('GET /api/v1/assets/:id — Asset detail', () => {
     });
     expect(res.status).toBe(404);
   });
+
+  it('returns 404 error with NOT_FOUND code', async () => {
+    mockAssetFindUnique.mockResolvedValue(null);
+
+    const req = createGetRequest('/api/v1/assets/detail');
+    const res = await GET_DETAIL(req, {
+      params: Promise.resolve({ id: 'non-existent' }),
+    });
+
+    const body = await parseResponse<{ error: string }>(res);
+    expect(body.error).toBe('NOT_FOUND');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /api/v1/assets/:id — Update asset
+// ---------------------------------------------------------------------------
+
+describe('PATCH /api/v1/assets/:id — Update asset', () => {
+  it('updates asset description', async () => {
+    mockAssetFindUnique.mockResolvedValue({
+      id: ASSET_ID,
+      propertyId: PROPERTY_ID,
+      tagNumber: 'AST-001',
+      description: 'Old description',
+    });
+    mockAssetUpdate.mockResolvedValue({
+      id: ASSET_ID,
+      tagNumber: 'AST-001',
+      description: 'Updated lobby reception desk',
+    });
+
+    const req = createPatchRequest('/api/v1/assets/update', {
+      description: 'Updated lobby reception desk',
+    });
+    const res = await PATCH(req, {
+      params: Promise.resolve({ id: ASSET_ID }),
+    });
+    expect(res.status).toBe(200);
+
+    const updateData = mockAssetUpdate.mock.calls[0]![0].data;
+    expect(updateData.description).toBe('Updated lobby reception desk');
+  });
+
+  it('updates asset location', async () => {
+    mockAssetFindUnique.mockResolvedValue({
+      id: ASSET_ID,
+      propertyId: PROPERTY_ID,
+    });
+    mockAssetUpdate.mockResolvedValue({
+      id: ASSET_ID,
+      tagNumber: 'AST-001',
+      location: 'Second Floor Lounge',
+    });
+
+    const req = createPatchRequest('/api/v1/assets/update', {
+      location: 'Second Floor Lounge',
+    });
+    const res = await PATCH(req, {
+      params: Promise.resolve({ id: ASSET_ID }),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('updates asset notes', async () => {
+    mockAssetFindUnique.mockResolvedValue({
+      id: ASSET_ID,
+      propertyId: PROPERTY_ID,
+    });
+    mockAssetUpdate.mockResolvedValue({
+      id: ASSET_ID,
+      tagNumber: 'AST-001',
+      notes: 'Needs repair in Q2',
+    });
+
+    const req = createPatchRequest('/api/v1/assets/update', {
+      notes: 'Needs repair in Q2',
+    });
+    const res = await PATCH(req, {
+      params: Promise.resolve({ id: ASSET_ID }),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 404 for non-existent asset', async () => {
+    mockAssetFindUnique.mockResolvedValue(null);
+
+    const req = createPatchRequest('/api/v1/assets/update', {
+      status: 'under_repair',
+    });
+    const res = await PATCH(req, {
+      params: Promise.resolve({ id: 'non-existent' }),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns updated asset with message containing tag number', async () => {
+    mockAssetFindUnique.mockResolvedValue({
+      id: ASSET_ID,
+      propertyId: PROPERTY_ID,
+    });
+    mockAssetUpdate.mockResolvedValue({
+      id: ASSET_ID,
+      tagNumber: 'AST-UPD',
+      status: 'in_storage',
+    });
+
+    const req = createPatchRequest('/api/v1/assets/update', {
+      status: 'in_storage',
+    });
+    const res = await PATCH(req, {
+      params: Promise.resolve({ id: ASSET_ID }),
+    });
+
+    const body = await parseResponse<{ message: string }>(res);
+    expect(body.message).toContain('AST-UPD');
+  });
+
+  it('handles database errors gracefully', async () => {
+    mockAssetFindUnique.mockResolvedValue({
+      id: ASSET_ID,
+      propertyId: PROPERTY_ID,
+    });
+    mockAssetUpdate.mockRejectedValue(new Error('Write conflict'));
+
+    const req = createPatchRequest('/api/v1/assets/update', {
+      status: 'disposed',
+    });
+    const res = await PATCH(req, {
+      params: Promise.resolve({ id: ASSET_ID }),
+    });
+    expect(res.status).toBe(500);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -668,5 +1118,25 @@ describe('Tenant isolation', () => {
 
     const body = await parseResponse<{ error: string }>(res);
     expect(body.error).toBe('MISSING_PROPERTY');
+  });
+
+  it('cannot list audits without propertyId', async () => {
+    const req = createGetRequest('/api/v1/assets/audit');
+    const res = await GET_AUDITS(req);
+    expect(res.status).toBe(400);
+
+    const body = await parseResponse<{ error: string }>(res);
+    expect(body.error).toBe('MISSING_PROPERTY');
+  });
+
+  it('asset listing always scoped to provided propertyId', async () => {
+    const otherPropertyId = '00000000-0000-4000-b000-000000000099';
+    const req = createGetRequest('/api/v1/assets', {
+      searchParams: { propertyId: otherPropertyId },
+    });
+    await GET(req);
+
+    const where = mockAssetFindMany.mock.calls[0]![0].where;
+    expect(where.propertyId).toBe(otherPropertyId);
   });
 });

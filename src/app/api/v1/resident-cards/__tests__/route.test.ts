@@ -139,6 +139,116 @@ describe('POST /api/v1/resident-cards — Generate Card', () => {
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
+
+  it('rejects missing residentId', async () => {
+    const req = createPostRequest('/api/v1/resident-cards', {
+      ...validBody,
+      residentId: '',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects missing unitId', async () => {
+    const req = createPostRequest('/api/v1/resident-cards', {
+      ...validBody,
+      unitId: '',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('accepts all valid access levels', async () => {
+    const levels = ['full', 'limited', 'temporary', 'restricted'];
+
+    for (const accessLevel of levels) {
+      vi.clearAllMocks();
+      mockCreate.mockResolvedValue({
+        id: CARD_ID,
+        ...validBody,
+        accessLevel,
+        status: 'active',
+        qrCode: 'qr-token-abc',
+        expiresAt: new Date(Date.now() + 365 * 86400000),
+      });
+
+      const req = createPostRequest('/api/v1/resident-cards', {
+        ...validBody,
+        accessLevel,
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(201);
+    }
+  });
+
+  it('sets issuedById from authenticated user', async () => {
+    mockCreate.mockResolvedValue({
+      id: CARD_ID,
+      ...validBody,
+      status: 'active',
+      qrCode: 'qr-token-abc',
+      expiresAt: new Date(Date.now() + 365 * 86400000),
+    });
+
+    const req = createPostRequest('/api/v1/resident-cards', validBody);
+    await POST(req);
+
+    const createData = mockCreate.mock.calls[0]![0].data;
+    expect(createData.issuedById).toBe('admin-001');
+  });
+
+  it('returns confirmation message with resident name', async () => {
+    mockCreate.mockResolvedValue({
+      id: CARD_ID,
+      ...validBody,
+      status: 'active',
+      qrCode: 'qr-token-abc',
+      expiresAt: new Date(Date.now() + 365 * 86400000),
+    });
+
+    const req = createPostRequest('/api/v1/resident-cards', validBody);
+    const res = await POST(req);
+
+    const body = await parseResponse<{ message: string }>(res);
+    expect(body.message).toContain('Priya Sharma');
+  });
+
+  it('creates card without optional photoUrl', async () => {
+    const noPhotoBody = {
+      propertyId: PROPERTY_ID,
+      residentId: RESIDENT_ID,
+      unitId: UNIT_ID,
+      residentName: 'Bob Chen',
+      accessLevel: 'full',
+    };
+
+    mockCreate.mockResolvedValue({
+      id: CARD_ID,
+      ...noPhotoBody,
+      photoUrl: null,
+      status: 'active',
+      qrCode: 'qr-token-abc',
+      expiresAt: new Date(Date.now() + 365 * 86400000),
+    });
+
+    const req = createPostRequest('/api/v1/resident-cards', noPhotoBody);
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    const createData = mockCreate.mock.calls[0]![0].data;
+    expect(createData.photoUrl).toBeNull();
+  });
+
+  it('handles database errors gracefully', async () => {
+    mockCreate.mockRejectedValue(new Error('Unique constraint violation'));
+
+    const req = createPostRequest('/api/v1/resident-cards', validBody);
+    const res = await POST(req);
+    expect(res.status).toBe(500);
+
+    const body = await parseResponse<{ message: string }>(res);
+    expect(body.message).not.toContain('Unique constraint');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -171,6 +281,26 @@ describe('POST /api/v1/resident-cards — QR Code Generation', () => {
     const body = await parseResponse<{ data: { qrCode: string } }>(res);
     expect(body.data.qrCode).toBeTruthy();
     expect(typeof body.data.qrCode).toBe('string');
+  });
+
+  it('generates a QR code starting with "qr-" prefix', async () => {
+    mockCreate.mockImplementation(async (args: { data: Record<string, unknown> }) => ({
+      id: CARD_ID,
+      ...args.data,
+      createdAt: new Date(),
+    }));
+
+    const req = createPostRequest('/api/v1/resident-cards', {
+      propertyId: PROPERTY_ID,
+      residentId: RESIDENT_ID,
+      unitId: UNIT_ID,
+      residentName: 'Priya Sharma',
+      accessLevel: 'full',
+    });
+    await POST(req);
+
+    const createData = mockCreate.mock.calls[0]![0].data;
+    expect(createData.qrCode).toMatch(/^qr-/);
   });
 });
 
@@ -211,6 +341,26 @@ describe('POST /api/v1/resident-cards — Annual Expiry', () => {
     // Should be approximately 365 days (allow for leap year)
     expect(diffDays).toBeGreaterThanOrEqual(365);
     expect(diffDays).toBeLessThanOrEqual(366);
+  });
+
+  it('sets initial status to active', async () => {
+    mockCreate.mockImplementation(async (args: { data: Record<string, unknown> }) => ({
+      id: CARD_ID,
+      ...args.data,
+      createdAt: new Date(),
+    }));
+
+    const req = createPostRequest('/api/v1/resident-cards', {
+      propertyId: PROPERTY_ID,
+      residentId: RESIDENT_ID,
+      unitId: UNIT_ID,
+      residentName: 'Priya Sharma',
+      accessLevel: 'full',
+    });
+    await POST(req);
+
+    const createData = mockCreate.mock.calls[0]![0].data;
+    expect(createData.status).toBe('active');
   });
 });
 
@@ -286,6 +436,80 @@ describe('GET /api/v1/resident-cards — Status Filtering', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Search by resident name
+// ---------------------------------------------------------------------------
+
+describe('GET /api/v1/resident-cards — Search', () => {
+  it('searches by resident name', async () => {
+    const req = createGetRequest('/api/v1/resident-cards', {
+      searchParams: { propertyId: PROPERTY_ID, search: 'Priya' },
+    });
+    await GET(req);
+
+    const where = mockFindMany.mock.calls[0]![0].where;
+    expect(where.OR).toBeDefined();
+    expect(where.OR).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          residentName: expect.objectContaining({ contains: 'Priya' }),
+        }),
+      ]),
+    );
+  });
+
+  it('search is case insensitive', async () => {
+    const req = createGetRequest('/api/v1/resident-cards', {
+      searchParams: { propertyId: PROPERTY_ID, search: 'priya' },
+    });
+    await GET(req);
+
+    const where = mockFindMany.mock.calls[0]![0].where;
+    expect(where.OR[0].residentName.mode).toBe('insensitive');
+  });
+
+  it('returns paginated results', async () => {
+    mockFindMany.mockResolvedValue([
+      { id: CARD_ID, residentName: 'Priya Sharma', status: 'active' },
+    ]);
+    mockCount.mockResolvedValue(1);
+
+    const req = createGetRequest('/api/v1/resident-cards', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    const res = await GET(req);
+
+    const body = await parseResponse<{
+      data: unknown[];
+      meta: { page: number; total: number; totalPages: number };
+    }>(res);
+    expect(body.data).toHaveLength(1);
+    expect(body.meta.total).toBe(1);
+    expect(body.meta.page).toBe(1);
+  });
+
+  it('respects custom page and pageSize', async () => {
+    const req = createGetRequest('/api/v1/resident-cards', {
+      searchParams: { propertyId: PROPERTY_ID, page: '2', pageSize: '25' },
+    });
+    await GET(req);
+
+    const call = mockFindMany.mock.calls[0]![0];
+    expect(call.skip).toBe(25);
+    expect(call.take).toBe(25);
+  });
+
+  it('orders results by createdAt descending', async () => {
+    const req = createGetRequest('/api/v1/resident-cards', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    await GET(req);
+
+    const orderBy = mockFindMany.mock.calls[0]![0].orderBy;
+    expect(orderBy).toEqual({ createdAt: 'desc' });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 5. Revoke card on move-out
 // ---------------------------------------------------------------------------
 
@@ -345,6 +569,84 @@ describe('PATCH /api/v1/resident-cards/:id — Revoke on Move-Out', () => {
     const body = await parseResponse<{ error: string }>(res);
     expect(body.error).toBe('ALREADY_REVOKED');
   });
+
+  it('rejects invalid status in PATCH', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: CARD_ID,
+      status: 'active',
+    });
+
+    const req = createPatchRequest(`/api/v1/resident-cards/${CARD_ID}`, {
+      status: 'active',
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: CARD_ID }) });
+    expect(res.status).toBe(400);
+  });
+
+  it('sets revokedAt timestamp on revocation', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: CARD_ID,
+      status: 'active',
+      residentName: 'Priya Sharma',
+    });
+    mockUpdate.mockResolvedValue({
+      id: CARD_ID,
+      status: 'revoked',
+      revokedReason: 'security_concern',
+      revokedAt: new Date(),
+    });
+
+    const req = createPatchRequest(`/api/v1/resident-cards/${CARD_ID}`, {
+      status: 'revoked',
+      revokedReason: 'security_concern',
+    });
+    await PATCH(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    const updateData = mockUpdate.mock.calls[0]![0].data;
+    expect(updateData.revokedAt).toBeInstanceOf(Date);
+  });
+
+  it('returns status updated message', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: CARD_ID,
+      status: 'active',
+      residentName: 'Priya Sharma',
+    });
+    mockUpdate.mockResolvedValue({
+      id: CARD_ID,
+      status: 'revoked',
+    });
+
+    const req = createPatchRequest(`/api/v1/resident-cards/${CARD_ID}`, {
+      status: 'revoked',
+      revokedReason: 'move_out',
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    const body = await parseResponse<{ message: string }>(res);
+    expect(body.message).toContain('revoked');
+  });
+
+  it('can expire a card', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: CARD_ID,
+      status: 'active',
+      residentName: 'Priya Sharma',
+    });
+    mockUpdate.mockResolvedValue({
+      id: CARD_ID,
+      status: 'expired',
+    });
+
+    const req = createPatchRequest(`/api/v1/resident-cards/${CARD_ID}`, {
+      status: 'expired',
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    expect(res.status).toBe(200);
+    const updateData = mockUpdate.mock.calls[0]![0].data;
+    expect(updateData.status).toBe('expired');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -393,6 +695,124 @@ describe('PATCH /api/v1/resident-cards/:id — Replace Lost Card', () => {
     }>(res);
     expect(body.data.oldCard.status).toBe('lost');
     expect(body.data.newCard.replacesCardId).toBe(CARD_ID);
+  });
+
+  it('replacement card has active status', async () => {
+    const oldCard = {
+      id: CARD_ID,
+      status: 'active',
+      residentId: RESIDENT_ID,
+      propertyId: PROPERTY_ID,
+      unitId: UNIT_ID,
+      residentName: 'Priya Sharma',
+      accessLevel: 'full',
+      photoUrl: null,
+      designTemplate: 'standard',
+    };
+    mockFindUnique.mockResolvedValue(oldCard);
+
+    mockTransaction.mockResolvedValue({
+      oldCard: { ...oldCard, status: 'lost' },
+      newCard: {
+        id: '00000000-0000-4000-f000-000000000003',
+        status: 'active',
+        residentName: 'Priya Sharma',
+        replacesCardId: CARD_ID,
+      },
+    });
+
+    const req = createPatchRequest(`/api/v1/resident-cards/${CARD_ID}`, {
+      status: 'lost',
+      replaceLost: true,
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    const body = await parseResponse<{
+      data: { newCard: { status: string } };
+    }>(res);
+    expect(body.data.newCard.status).toBe('active');
+  });
+
+  it('returns replacement message', async () => {
+    const oldCard = {
+      id: CARD_ID,
+      status: 'active',
+      residentId: RESIDENT_ID,
+      propertyId: PROPERTY_ID,
+      unitId: UNIT_ID,
+      residentName: 'Bob Chen',
+      accessLevel: 'limited',
+      photoUrl: null,
+      designTemplate: null,
+    };
+    mockFindUnique.mockResolvedValue(oldCard);
+
+    mockTransaction.mockResolvedValue({
+      oldCard: { ...oldCard, status: 'lost' },
+      newCard: {
+        id: '00000000-0000-4000-f000-000000000004',
+        status: 'active',
+        replacesCardId: CARD_ID,
+      },
+    });
+
+    const req = createPatchRequest(`/api/v1/resident-cards/${CARD_ID}`, {
+      status: 'lost',
+      replaceLost: true,
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    const body = await parseResponse<{ message: string }>(res);
+    expect(body.message).toContain('lost');
+    expect(body.message).toContain('Replacement');
+  });
+
+  it('marks lost card without replacement when replaceLost is false', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: CARD_ID,
+      status: 'active',
+      residentName: 'Priya Sharma',
+    });
+    mockUpdate.mockResolvedValue({
+      id: CARD_ID,
+      status: 'lost',
+      revokedAt: new Date(),
+    });
+
+    const req = createPatchRequest(`/api/v1/resident-cards/${CARD_ID}`, {
+      status: 'lost',
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    expect(res.status).toBe(200);
+    expect(mockTransaction).not.toHaveBeenCalled();
+    const updateData = mockUpdate.mock.calls[0]![0].data;
+    expect(updateData.status).toBe('lost');
+  });
+
+  it('handles database errors gracefully during replacement', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: CARD_ID,
+      status: 'active',
+      residentId: RESIDENT_ID,
+      propertyId: PROPERTY_ID,
+      unitId: UNIT_ID,
+      residentName: 'Error Case',
+      accessLevel: 'full',
+      photoUrl: null,
+      designTemplate: null,
+    });
+    mockTransaction.mockRejectedValue(new Error('Transaction failed'));
+
+    const req = createPatchRequest(`/api/v1/resident-cards/${CARD_ID}`, {
+      status: 'lost',
+      replaceLost: true,
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    expect(res.status).toBe(500);
+    const body = await parseResponse<{ message: string }>(res);
+    expect(body.message).not.toContain('Transaction failed');
   });
 });
 
@@ -533,6 +953,24 @@ describe('GET /api/v1/resident-cards/:id — Passport Data Fields', () => {
 
     expect(res.status).toBe(404);
   });
+
+  it('returns card without passport param (basic detail)', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: CARD_ID,
+      residentName: 'Priya Sharma',
+      status: 'active',
+      accessLevel: 'full',
+      unitId: UNIT_ID,
+      propertyId: PROPERTY_ID,
+    });
+
+    const req = createGetRequest(`/api/v1/resident-cards/${CARD_ID}`);
+    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    expect(res.status).toBe(200);
+    const body = await parseResponse<{ data: { residentName: string } }>(res);
+    expect(body.data.residentName).toBe('Priya Sharma');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -564,6 +1002,31 @@ describe('POST /api/v1/resident-cards/:id/verify — QR Verification', () => {
     expect(body.data.residentName).toBe('Priya Sharma');
   });
 
+  it('returns access level and unit info on successful verification', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: CARD_ID,
+      residentName: 'Priya Sharma',
+      status: 'active',
+      accessLevel: 'limited',
+      qrCode: 'qr-token-abc123',
+      unitId: UNIT_ID,
+      propertyId: PROPERTY_ID,
+      expiresAt: new Date(Date.now() + 365 * 86400000),
+      photoUrl: null,
+    });
+
+    const req = createPostRequest(`/api/v1/resident-cards/${CARD_ID}/verify`, {
+      qrCode: 'qr-token-abc123',
+    });
+    const res = await VERIFY(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    const body = await parseResponse<{
+      data: { verified: boolean; accessLevel: string; unitId: string };
+    }>(res);
+    expect(body.data.accessLevel).toBe('limited');
+    expect(body.data.unitId).toBe(UNIT_ID);
+  });
+
   it('rejects invalid QR code', async () => {
     mockFindUnique.mockResolvedValue({
       id: CARD_ID,
@@ -578,8 +1041,9 @@ describe('POST /api/v1/resident-cards/:id/verify — QR Verification', () => {
     const res = await VERIFY(req, { params: Promise.resolve({ id: CARD_ID }) });
 
     expect(res.status).toBe(401);
-    const body = await parseResponse<{ data: { verified: boolean } }>(res);
+    const body = await parseResponse<{ data: { verified: boolean; reason: string } }>(res);
     expect(body.data.verified).toBe(false);
+    expect(body.data.reason).toBe('QR_MISMATCH');
   });
 
   it('rejects verification for expired card', async () => {
@@ -620,6 +1084,44 @@ describe('POST /api/v1/resident-cards/:id/verify — QR Verification', () => {
     expect(body.data.reason).toBe('CARD_NOT_ACTIVE');
   });
 
+  it('rejects verification for lost card', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: CARD_ID,
+      qrCode: 'qr-token-abc123',
+      status: 'lost',
+      expiresAt: new Date(Date.now() + 365 * 86400000),
+    });
+
+    const req = createPostRequest(`/api/v1/resident-cards/${CARD_ID}/verify`, {
+      qrCode: 'qr-token-abc123',
+    });
+    const res = await VERIFY(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    expect(res.status).toBe(401);
+    const body = await parseResponse<{ data: { verified: boolean; reason: string } }>(res);
+    expect(body.data.verified).toBe(false);
+    expect(body.data.reason).toBe('CARD_NOT_ACTIVE');
+  });
+
+  it('rejects verification for active card past expiry date', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: CARD_ID,
+      qrCode: 'qr-token-abc123',
+      status: 'active',
+      expiresAt: new Date(Date.now() - 86400000),
+    });
+
+    const req = createPostRequest(`/api/v1/resident-cards/${CARD_ID}/verify`, {
+      qrCode: 'qr-token-abc123',
+    });
+    const res = await VERIFY(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    expect(res.status).toBe(401);
+    const body = await parseResponse<{ data: { verified: boolean; reason: string } }>(res);
+    expect(body.data.verified).toBe(false);
+    expect(body.data.reason).toBe('CARD_EXPIRED');
+  });
+
   it('returns 404 for non-existent card', async () => {
     mockFindUnique.mockResolvedValue(null);
 
@@ -629,6 +1131,22 @@ describe('POST /api/v1/resident-cards/:id/verify — QR Verification', () => {
     const res = await VERIFY(req, { params: Promise.resolve({ id: 'nonexistent' }) });
 
     expect(res.status).toBe(404);
+  });
+
+  it('rejects missing QR code in request body', async () => {
+    const req = createPostRequest(`/api/v1/resident-cards/${CARD_ID}/verify`, {});
+    const res = await VERIFY(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects empty QR code string', async () => {
+    const req = createPostRequest(`/api/v1/resident-cards/${CARD_ID}/verify`, {
+      qrCode: '',
+    });
+    const res = await VERIFY(req, { params: Promise.resolve({ id: CARD_ID }) });
+
+    expect(res.status).toBe(400);
   });
 });
 
@@ -684,6 +1202,26 @@ describe('POST /api/v1/resident-cards — Bulk Generation', () => {
     expect(body.data.count).toBe(3);
   });
 
+  it('returns message with count of generated cards', async () => {
+    mockCreateMany.mockResolvedValue({
+      count: 2,
+      cards: [],
+    });
+
+    const req = createPostRequest('/api/v1/resident-cards', {
+      propertyId: PROPERTY_ID,
+      bulk: true,
+      residents: [
+        { residentId: 'r-1', unitId: 'u-1', residentName: 'A', accessLevel: 'full' },
+        { residentId: 'r-2', unitId: 'u-2', residentName: 'B', accessLevel: 'full' },
+      ],
+    });
+    const res = await POST(req);
+
+    const body = await parseResponse<{ message: string }>(res);
+    expect(body.message).toContain('2');
+  });
+
   it('rejects bulk request with empty residents array', async () => {
     const req = createPostRequest('/api/v1/resident-cards', {
       propertyId: PROPERTY_ID,
@@ -711,6 +1249,35 @@ describe('POST /api/v1/resident-cards — Bulk Generation', () => {
     const res = await POST(req);
 
     expect(res.status).toBe(400);
+  });
+
+  it('applies design template to bulk cards', async () => {
+    mockCreateMany.mockResolvedValue({ count: 1, cards: [] });
+
+    const req = createPostRequest('/api/v1/resident-cards', {
+      propertyId: PROPERTY_ID,
+      bulk: true,
+      designTemplate: 'premium-blue',
+      residents: [{ residentId: 'r-1', unitId: 'u-1', residentName: 'Alice', accessLevel: 'full' }],
+    });
+    await POST(req);
+
+    const createData = mockCreateMany.mock.calls[0]![0].data;
+    expect(createData[0].designTemplate).toBe('premium-blue');
+  });
+
+  it('uses standard template when none specified in bulk request', async () => {
+    mockCreateMany.mockResolvedValue({ count: 1, cards: [] });
+
+    const req = createPostRequest('/api/v1/resident-cards', {
+      propertyId: PROPERTY_ID,
+      bulk: true,
+      residents: [{ residentId: 'r-1', unitId: 'u-1', residentName: 'Alice', accessLevel: 'full' }],
+    });
+    await POST(req);
+
+    const createData = mockCreateMany.mock.calls[0]![0].data;
+    expect(createData[0].designTemplate).toBe('standard');
   });
 });
 
@@ -772,5 +1339,45 @@ describe('POST /api/v1/resident-cards — Design Templates', () => {
     expect(res.status).toBe(201);
     const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.designTemplate).toBe('standard');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 12. Tenant isolation
+// ---------------------------------------------------------------------------
+
+describe('Tenant isolation', () => {
+  it('cannot list cards without propertyId', async () => {
+    const req = createGetRequest('/api/v1/resident-cards');
+    const res = await GET(req);
+    expect(res.status).toBe(400);
+
+    const body = await parseResponse<{ error: string }>(res);
+    expect(body.error).toBe('MISSING_PROPERTY');
+  });
+
+  it('cards are always scoped to propertyId', async () => {
+    const otherProperty = '00000000-0000-4000-b000-000000000099';
+    const req = createGetRequest('/api/v1/resident-cards', {
+      searchParams: { propertyId: otherProperty },
+    });
+    await GET(req);
+
+    const where = mockFindMany.mock.calls[0]![0].where;
+    expect(where.propertyId).toBe(otherProperty);
+  });
+
+  it('database errors do not leak internal details', async () => {
+    mockFindMany.mockRejectedValue(new Error('Permission denied on tenant schema'));
+
+    const req = createGetRequest('/api/v1/resident-cards', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    const res = await GET(req);
+    expect(res.status).toBe(500);
+
+    const body = await parseResponse<{ message: string }>(res);
+    expect(body.message).not.toContain('Permission denied');
+    expect(body.message).not.toContain('tenant schema');
   });
 });

@@ -1,10 +1,9 @@
 /**
- * Inspections API Route Tests — per CLAUDE.md Phase 2
+ * Inspections API — Comprehensive Tests
  *
  * Mobile-first inspection system with checklists, GPS verification,
- * and auto-maintenance-request creation on failed items. Property managers
- * need to prove fire extinguishers were inspected, HVAC filters changed,
- * and pool chemistry checked — with timestamped evidence and location proof.
+ * auto-maintenance-request creation on failed items, overdue detection,
+ * templates, recurring task linking, and pass/fail reporting. 40+ tests.
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
@@ -105,7 +104,7 @@ const INSPECTOR_ID = '00000000-0000-4000-a000-000000000002';
 const TASK_ID = '00000000-0000-4000-c000-000000000001';
 
 // ---------------------------------------------------------------------------
-// 1. Create inspection with checklist template
+// 1. POST /api/v1/inspections — Create inspection with checklist template
 // ---------------------------------------------------------------------------
 
 describe('POST /api/v1/inspections — Create inspection with checklist', () => {
@@ -179,15 +178,11 @@ describe('POST /api/v1/inspections — Create inspection with checklist', () => 
       status: 'scheduled',
       createdById: 'test-staff',
       createdAt: new Date(),
-      items: bodyWithItems.items.map((item, i) => ({
-        id: `item-${i}`,
-        ...item,
-      })),
+      items: bodyWithItems.items.map((item, i) => ({ id: `item-${i}`, ...item })),
     });
 
     const req = createPostRequest('/api/v1/inspections', bodyWithItems);
     const res = await POST(req);
-
     expect(res.status).toBe(201);
   });
 
@@ -212,6 +207,15 @@ describe('POST /api/v1/inspections — Create inspection with checklist', () => 
     expect(res.status).toBe(400);
   });
 
+  it('rejects missing category', async () => {
+    const req = createPostRequest('/api/v1/inspections', {
+      propertyId: PROPERTY_ID,
+      title: 'Test Inspection',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
   it('handles database errors gracefully', async () => {
     mockInspectionCreate.mockRejectedValue(new Error('DB connection lost'));
 
@@ -222,10 +226,31 @@ describe('POST /api/v1/inspections — Create inspection with checklist', () => 
     const body = await parseResponse<{ message: string }>(res);
     expect(body.message).not.toContain('DB connection lost');
   });
+
+  it('auto-generates reference with scheduled status on creation', async () => {
+    mockInspectionCreate.mockResolvedValue({
+      id: INSPECTION_ID,
+      status: 'scheduled',
+      createdAt: new Date(),
+      items: [],
+    });
+
+    const req = createPostRequest('/api/v1/inspections', {
+      propertyId: PROPERTY_ID,
+      title: 'Elevator Check',
+      category: 'elevator',
+      items: [{ name: 'Door alignment', required: true, type: 'pass_fail' }],
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    const createData = mockInspectionCreate.mock.calls[0]![0].data;
+    expect(createData.status).toBe('scheduled');
+  });
 });
 
 // ---------------------------------------------------------------------------
-// 2. Checklist items: name, required, type (pass_fail, numeric, text, photo)
+// 2. Checklist item types validation
 // ---------------------------------------------------------------------------
 
 describe('Checklist item types', () => {
@@ -291,11 +316,58 @@ describe('Checklist item types', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 3. Start inspection — status=in_progress, startedAt set
+// 3. Inspection type/category validation
+// ---------------------------------------------------------------------------
+
+describe('Inspection category validation', () => {
+  const validCategories = [
+    'fire_safety',
+    'hvac',
+    'elevator',
+    'pool',
+    'general',
+    'plumbing',
+    'electrical',
+    'structural',
+  ] as const;
+
+  it.each(validCategories)('accepts category: %s', async (category) => {
+    mockInspectionCreate.mockResolvedValue({
+      id: INSPECTION_ID,
+      status: 'scheduled',
+      category,
+      createdAt: new Date(),
+      items: [],
+    });
+
+    const req = createPostRequest('/api/v1/inspections', {
+      propertyId: PROPERTY_ID,
+      title: `${category} inspection`,
+      category,
+      items: [{ name: 'Check', required: true, type: 'pass_fail' }],
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+  });
+
+  it('rejects invalid category', async () => {
+    const req = createPostRequest('/api/v1/inspections', {
+      propertyId: PROPERTY_ID,
+      title: 'Bad Category',
+      category: 'invalid_category',
+      items: [{ name: 'Check', required: true, type: 'pass_fail' }],
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4. Start inspection — status=in_progress, startedAt set
 // ---------------------------------------------------------------------------
 
 describe('PATCH /api/v1/inspections/:id — Start inspection', () => {
-  it('transitions scheduled → in_progress and sets startedAt', async () => {
+  it('transitions scheduled -> in_progress and sets startedAt', async () => {
     mockInspectionFindUnique.mockResolvedValue({
       id: INSPECTION_ID,
       propertyId: PROPERTY_ID,
@@ -318,7 +390,6 @@ describe('PATCH /api/v1/inspections/:id — Start inspection', () => {
     const res = await PATCH(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
 
     expect(res.status).toBe(200);
-
     const updateData = mockInspectionUpdate.mock.calls[0]![0].data;
     expect(updateData.status).toBe('in_progress');
     expect(updateData.startedAt).toBeDefined();
@@ -338,15 +409,41 @@ describe('PATCH /api/v1/inspections/:id — Start inspection', () => {
       status: 'in_progress',
     });
     const res = await PATCH(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
-
     expect(res.status).toBe(400);
+
     const body = await parseResponse<{ error: string }>(res);
     expect(body.error).toBe('INVALID_STATUS_TRANSITION');
+  });
+
+  it('rejects starting a cancelled inspection', async () => {
+    mockInspectionFindUnique.mockResolvedValue({
+      id: INSPECTION_ID,
+      propertyId: PROPERTY_ID,
+      status: 'cancelled',
+      deletedAt: null,
+      items: [],
+    });
+
+    const req = createPatchRequest(`/api/v1/inspections/${INSPECTION_ID}`, {
+      status: 'in_progress',
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 for non-existent inspection', async () => {
+    mockInspectionFindUnique.mockResolvedValue(null);
+
+    const req = createPatchRequest(`/api/v1/inspections/${INSPECTION_ID}`, {
+      status: 'in_progress',
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
+    expect(res.status).toBe(404);
   });
 });
 
 // ---------------------------------------------------------------------------
-// 4. Complete checklist item with value and optional photo
+// 5. Complete checklist item with value and optional photo
 // ---------------------------------------------------------------------------
 
 describe('POST /api/v1/inspections/:id/items — Complete checklist item', () => {
@@ -385,7 +482,6 @@ describe('POST /api/v1/inspections/:id/items — Complete checklist item', () =>
     const res = await POST_ITEM(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
 
     expect(res.status).toBe(200);
-
     const updateData = mockItemUpdate.mock.calls[0]![0].data;
     expect(updateData.value).toBe('pass');
     expect(updateData.passed).toBe(true);
@@ -465,10 +561,26 @@ describe('POST /api/v1/inspections/:id/items — Complete checklist item', () =>
     const body = await parseResponse<{ error: string }>(res);
     expect(body.error).toBe('INSPECTION_NOT_IN_PROGRESS');
   });
+
+  it('returns 404 if item does not belong to the inspection', async () => {
+    mockItemFindUnique.mockResolvedValue({
+      id: ITEM_ID,
+      inspectionId: 'different-inspection',
+      name: 'Unrelated item',
+    });
+
+    const req = createPostRequest(`/api/v1/inspections/${INSPECTION_ID}/items`, {
+      itemId: ITEM_ID,
+      value: 'pass',
+      passed: true,
+    });
+    const res = await POST_ITEM(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
+    expect(res.status).toBe(404);
+  });
 });
 
 // ---------------------------------------------------------------------------
-// 5. GPS location captured per inspection (lat/lng)
+// 6. GPS location capture
 // ---------------------------------------------------------------------------
 
 describe('GPS location capture', () => {
@@ -493,7 +605,6 @@ describe('GPS location capture', () => {
 
     const req = createPostRequest('/api/v1/inspections', bodyWithGps);
     const res = await POST(req);
-
     expect(res.status).toBe(201);
 
     const createData = mockInspectionCreate.mock.calls[0]![0].data;
@@ -527,19 +638,44 @@ describe('GPS location capture', () => {
     const res = await PATCH(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
 
     expect(res.status).toBe(200);
-
     const updateData = mockInspectionUpdate.mock.calls[0]![0].data;
     expect(updateData.gpsLatitude).toBe(43.6532);
     expect(updateData.gpsLongitude).toBe(-79.3832);
   });
 
-  it('rejects invalid GPS coordinates', async () => {
+  it('rejects latitude > 90 (invalid GPS)', async () => {
     const req = createPostRequest('/api/v1/inspections', {
       propertyId: PROPERTY_ID,
       title: 'Bad GPS',
       category: 'general',
-      gpsLatitude: 200, // Invalid: must be -90 to 90
+      gpsLatitude: 200,
       gpsLongitude: -79.3832,
+      items: [{ name: 'Check', required: true, type: 'pass_fail' }],
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects latitude < -90 (invalid GPS)', async () => {
+    const req = createPostRequest('/api/v1/inspections', {
+      propertyId: PROPERTY_ID,
+      title: 'Bad GPS',
+      category: 'general',
+      gpsLatitude: -100,
+      gpsLongitude: -79.3832,
+      items: [{ name: 'Check', required: true, type: 'pass_fail' }],
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects longitude > 180 (invalid GPS)', async () => {
+    const req = createPostRequest('/api/v1/inspections', {
+      propertyId: PROPERTY_ID,
+      title: 'Bad GPS',
+      category: 'general',
+      gpsLatitude: 43.6,
+      gpsLongitude: 200,
       items: [{ name: 'Check', required: true, type: 'pass_fail' }],
     });
     const res = await POST(req);
@@ -548,11 +684,11 @@ describe('GPS location capture', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 6. Complete inspection — status=completed, completedAt set
+// 7. Complete inspection — status=completed, completedAt set
 // ---------------------------------------------------------------------------
 
 describe('PATCH /api/v1/inspections/:id — Complete inspection', () => {
-  it('transitions in_progress → completed and sets completedAt', async () => {
+  it('transitions in_progress -> completed and sets completedAt', async () => {
     mockInspectionFindUnique.mockResolvedValue({
       id: INSPECTION_ID,
       propertyId: PROPERTY_ID,
@@ -577,7 +713,6 @@ describe('PATCH /api/v1/inspections/:id — Complete inspection', () => {
     const res = await PATCH(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
 
     expect(res.status).toBe(200);
-
     const updateData = mockInspectionUpdate.mock.calls[0]![0].data;
     expect(updateData.status).toBe('completed');
     expect(updateData.completedAt).toBeDefined();
@@ -611,7 +746,7 @@ describe('PATCH /api/v1/inspections/:id — Complete inspection', () => {
       deletedAt: null,
       items: [
         { id: 'item-1', required: true, passed: true, completedAt: new Date() },
-        { id: 'item-2', required: true, passed: null, completedAt: null }, // Not completed
+        { id: 'item-2', required: true, passed: null, completedAt: null },
       ],
     });
 
@@ -624,14 +759,38 @@ describe('PATCH /api/v1/inspections/:id — Complete inspection', () => {
     const body = await parseResponse<{ error: string }>(res);
     expect(body.error).toBe('INCOMPLETE_REQUIRED_ITEMS');
   });
+
+  it('allows completing when optional items are not finished', async () => {
+    mockInspectionFindUnique.mockResolvedValue({
+      id: INSPECTION_ID,
+      propertyId: PROPERTY_ID,
+      status: 'in_progress',
+      deletedAt: null,
+      items: [
+        { id: 'item-1', required: true, passed: true, completedAt: new Date() },
+        { id: 'item-2', required: false, passed: null, completedAt: null }, // optional, not completed
+      ],
+    });
+    mockInspectionUpdate.mockResolvedValue({
+      id: INSPECTION_ID,
+      status: 'completed',
+      completedAt: new Date(),
+    });
+
+    const req = createPatchRequest(`/api/v1/inspections/${INSPECTION_ID}`, {
+      status: 'completed',
+    });
+    const res = await PATCH(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
+    expect(res.status).toBe(200);
+  });
 });
 
 // ---------------------------------------------------------------------------
-// 7. Failed items flagged — auto-create maintenance request
+// 8. Failed items auto-create maintenance request
 // ---------------------------------------------------------------------------
 
 describe('Failed items auto-create maintenance request', () => {
-  it('creates a maintenance request when completing an inspection with failed items', async () => {
+  it('creates a maintenance request when completing with failed items', async () => {
     mockInspectionFindUnique.mockResolvedValue({
       id: INSPECTION_ID,
       propertyId: PROPERTY_ID,
@@ -725,13 +884,40 @@ describe('Failed items auto-create maintenance request', () => {
       status: 'completed',
     });
     await PATCH(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
-
     expect(mockMaintenanceCreate).not.toHaveBeenCalled();
+  });
+
+  it('creates multiple maintenance requests for multiple failed items', async () => {
+    mockInspectionFindUnique.mockResolvedValue({
+      id: INSPECTION_ID,
+      propertyId: PROPERTY_ID,
+      title: 'Comprehensive Check',
+      category: 'general',
+      status: 'in_progress',
+      deletedAt: null,
+      items: [
+        { id: 'item-1', name: 'Check A', required: true, passed: false, completedAt: new Date() },
+        { id: 'item-2', name: 'Check B', required: true, passed: false, completedAt: new Date() },
+        { id: 'item-3', name: 'Check C', required: true, passed: true, completedAt: new Date() },
+      ],
+    });
+
+    mockInspectionUpdate.mockResolvedValue({
+      id: INSPECTION_ID,
+      status: 'completed',
+      completedAt: new Date(),
+    });
+    mockMaintenanceCreate.mockResolvedValue({ id: 'mr-auto' });
+
+    const req = createPatchRequest(`/api/v1/inspections/${INSPECTION_ID}`, { status: 'completed' });
+    await PATCH(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
+
+    expect(mockMaintenanceCreate).toHaveBeenCalledTimes(2);
   });
 });
 
 // ---------------------------------------------------------------------------
-// 8. Inspection templates: reusable checklists per category
+// 9. Inspection templates
 // ---------------------------------------------------------------------------
 
 describe('POST /api/v1/inspections/templates — Create template', () => {
@@ -760,7 +946,6 @@ describe('POST /api/v1/inspections/templates — Create template', () => {
     const res = await POST_TEMPLATE(req);
 
     expect(res.status).toBe(201);
-
     const body = await parseResponse<{ data: { id: string; name: string }; message: string }>(res);
     expect(body.data.name).toBe('Monthly Fire Safety Checklist');
     expect(body.message).toContain('created');
@@ -772,6 +957,16 @@ describe('POST /api/v1/inspections/templates — Create template', () => {
       name: 'Empty Template',
       category: 'fire_safety',
       items: [],
+    });
+    const res = await POST_TEMPLATE(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects template without name', async () => {
+    const req = createPostRequest('/api/v1/inspections/templates', {
+      propertyId: PROPERTY_ID,
+      category: 'fire_safety',
+      items: [{ name: 'Check', required: true, type: 'pass_fail' }],
     });
     const res = await POST_TEMPLATE(req);
     expect(res.status).toBe(400);
@@ -837,7 +1032,7 @@ describe('GET /api/v1/inspections/templates — List templates', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 9. Schedule inspections linked to recurring tasks
+// 10. Recurring task linking
 // ---------------------------------------------------------------------------
 
 describe('Schedule inspections linked to recurring tasks', () => {
@@ -870,10 +1065,10 @@ describe('Schedule inspections linked to recurring tasks', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 10. Generate inspection report with pass/fail summary
+// 11. Inspection report with pass/fail summary
 // ---------------------------------------------------------------------------
 
-describe('GET /api/v1/inspections/:id — Inspection report with pass/fail summary', () => {
+describe('GET /api/v1/inspections/:id — Inspection report', () => {
   it('returns inspection with pass/fail summary in report', async () => {
     mockInspectionFindUnique.mockResolvedValue({
       id: INSPECTION_ID,
@@ -983,7 +1178,7 @@ describe('GET /api/v1/inspections/:id — Inspection report with pass/fail summa
 });
 
 // ---------------------------------------------------------------------------
-// 11. Overdue inspections flagged
+// 12. Overdue detection
 // ---------------------------------------------------------------------------
 
 describe('GET /api/v1/inspections — Overdue flagging', () => {
@@ -1007,9 +1202,7 @@ describe('GET /api/v1/inspections — Overdue flagging', () => {
     const res = await GET(req);
 
     expect(res.status).toBe(200);
-    const body = await parseResponse<{
-      data: Array<{ isOverdue: boolean }>;
-    }>(res);
+    const body = await parseResponse<{ data: Array<{ isOverdue: boolean }> }>(res);
     expect(body.data[0]!.isOverdue).toBe(true);
   });
 
@@ -1032,9 +1225,7 @@ describe('GET /api/v1/inspections — Overdue flagging', () => {
     });
     const res = await GET(req);
 
-    const body = await parseResponse<{
-      data: Array<{ isOverdue: boolean }>;
-    }>(res);
+    const body = await parseResponse<{ data: Array<{ isOverdue: boolean }> }>(res);
     expect(body.data[0]!.isOverdue).toBe(false);
   });
 
@@ -1057,15 +1248,51 @@ describe('GET /api/v1/inspections — Overdue flagging', () => {
     });
     const res = await GET(req);
 
-    const body = await parseResponse<{
-      data: Array<{ isOverdue: boolean }>;
-    }>(res);
+    const body = await parseResponse<{ data: Array<{ isOverdue: boolean }> }>(res);
+    expect(body.data[0]!.isOverdue).toBe(false);
+  });
+
+  it('flags in_progress inspection as overdue if past scheduledDate', async () => {
+    const pastDate = new Date();
+    pastDate.setDate(pastDate.getDate() - 1);
+
+    mockInspectionFindMany.mockResolvedValue([
+      {
+        id: INSPECTION_ID,
+        title: 'Delayed Inspection',
+        status: 'in_progress',
+        scheduledDate: pastDate,
+      },
+    ]);
+    mockInspectionCount.mockResolvedValue(1);
+
+    const req = createGetRequest('/api/v1/inspections', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    const res = await GET(req);
+
+    const body = await parseResponse<{ data: Array<{ isOverdue: boolean }> }>(res);
+    expect(body.data[0]!.isOverdue).toBe(true);
+  });
+
+  it('does not flag as overdue when scheduledDate is null', async () => {
+    mockInspectionFindMany.mockResolvedValue([
+      { id: INSPECTION_ID, title: 'No Date', status: 'scheduled', scheduledDate: null },
+    ]);
+    mockInspectionCount.mockResolvedValue(1);
+
+    const req = createGetRequest('/api/v1/inspections', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    const res = await GET(req);
+
+    const body = await parseResponse<{ data: Array<{ isOverdue: boolean }> }>(res);
     expect(body.data[0]!.isOverdue).toBe(false);
   });
 });
 
 // ---------------------------------------------------------------------------
-// 12. Inspector assignment from staff list
+// 13. Inspector assignment
 // ---------------------------------------------------------------------------
 
 describe('Inspector assignment', () => {
@@ -1124,11 +1351,11 @@ describe('Inspector assignment', () => {
 });
 
 // ---------------------------------------------------------------------------
-// GET /api/v1/inspections — List with filtering
+// 14. GET /api/v1/inspections — Filtering & Pagination & Tenant Isolation
 // ---------------------------------------------------------------------------
 
 describe('GET /api/v1/inspections — Filtering & Pagination', () => {
-  it('REJECTS without propertyId', async () => {
+  it('rejects without propertyId', async () => {
     const req = createGetRequest('/api/v1/inspections');
     const res = await GET(req);
     expect(res.status).toBe(400);
@@ -1193,10 +1420,21 @@ describe('GET /api/v1/inspections — Filtering & Pagination', () => {
     expect(body.meta.page).toBe(2);
     expect(body.meta.totalPages).toBe(4);
   });
+
+  it('defaults to page 1 and pageSize 50', async () => {
+    const req = createGetRequest('/api/v1/inspections', {
+      searchParams: { propertyId: PROPERTY_ID },
+    });
+    await GET(req);
+
+    const call = mockInspectionFindMany.mock.calls[0]![0];
+    expect(call.skip).toBe(0);
+    expect(call.take).toBe(50);
+  });
 });
 
 // ---------------------------------------------------------------------------
-// GET /api/v1/inspections/:id/items — List checklist items
+// 15. GET /api/v1/inspections/:id/items — List checklist items
 // ---------------------------------------------------------------------------
 
 describe('GET /api/v1/inspections/:id/items — List checklist items', () => {
@@ -1225,5 +1463,20 @@ describe('GET /api/v1/inspections/:id/items — List checklist items', () => {
     const req = createGetRequest(`/api/v1/inspections/${INSPECTION_ID}/items`);
     const res = await GET_ITEMS(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
     expect(res.status).toBe(404);
+  });
+
+  it('orders items by sortOrder ascending', async () => {
+    mockInspectionFindUnique.mockResolvedValue({
+      id: INSPECTION_ID,
+      propertyId: PROPERTY_ID,
+      deletedAt: null,
+    });
+    mockItemFindMany.mockResolvedValue([]);
+
+    const req = createGetRequest(`/api/v1/inspections/${INSPECTION_ID}/items`);
+    await GET_ITEMS(req, { params: Promise.resolve({ id: INSPECTION_ID }) });
+
+    const orderBy = mockItemFindMany.mock.calls[0]![0].orderBy;
+    expect(orderBy).toEqual({ sortOrder: 'asc' });
   });
 });
