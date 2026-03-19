@@ -136,20 +136,23 @@ export default function MaintenancePage() {
 
   const allRequests = useMemo(() => {
     if (apiRequests && Array.isArray(apiRequests) && apiRequests.length > 0) {
-      return apiRequests.map((r: Record<string, unknown>) => ({
-        id: r.id as string,
-        referenceNumber: r.referenceNumber as string,
-        unit: (r.unit as Record<string, string>)?.number || '',
-        resident: '',
-        category: (r.category as Record<string, string>)?.name || 'General',
-        description: r.description as string,
-        status: r.status as MaintenanceRequest['status'],
-        priority: r.priority as MaintenanceRequest['priority'],
-        assignedTo: r.assignedEmployeeId as string | undefined,
-        createdAt: r.createdAt as string,
-        updatedAt: r.updatedAt as string,
-        permissionToEnter: (r.permissionToEnter as boolean) || false,
-      }));
+      return apiRequests.map((r: MaintenanceRequest) => {
+        const raw = r as unknown as Record<string, unknown>;
+        return {
+          id: r.id as string,
+          referenceNumber: r.referenceNumber as string,
+          unit: (raw.unit as Record<string, string>)?.number || '',
+          resident: '',
+          category: (raw.category as Record<string, string>)?.name || 'General',
+          description: r.description as string,
+          status: r.status as string as MaintenanceRequest['status'],
+          priority: r.priority as string as MaintenanceRequest['priority'],
+          assignedTo: raw.assignedEmployeeId as string | undefined,
+          createdAt: r.createdAt as string,
+          updatedAt: r.updatedAt as string,
+          permissionToEnter: (r.permissionToEnter as boolean) || false,
+        };
+      });
     }
     return MOCK_REQUESTS;
   }, [apiRequests]);
@@ -404,7 +407,7 @@ export default function MaintenancePage() {
         data={filteredRequests}
         emptyMessage="No maintenance requests found."
         emptyIcon={<Wrench className="h-6 w-6" />}
-        onRowClick={(row) => router.push(`/maintenance/${row.id}`)}
+        onRowClick={(row) => router.push(`/maintenance/${row.id}` as never)}
       />
 
       <CreateMaintenanceDialog

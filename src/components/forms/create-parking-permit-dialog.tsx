@@ -58,7 +58,8 @@ export function CreateParkingPermitDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<PermitInput>({
-    resolver: zodResolver(permitSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(permitSchema) as any,
     defaultValues: {
       unitId: '',
       type: 'resident',

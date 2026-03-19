@@ -97,7 +97,7 @@ describe('createUserSchema', () => {
   });
 
   it('defaults sendWelcomeEmail to true', () => {
-    const { sendWelcomeEmail, ...rest } = validInput;
+    const { sendWelcomeEmail: _sendWelcomeEmail, ...rest } = validInput;
     const result = createUserSchema.safeParse(rest);
     expect(result.success).toBe(true);
     if (result.success) {
@@ -106,7 +106,7 @@ describe('createUserSchema', () => {
   });
 
   it('defaults languagePreference to en', () => {
-    const { languagePreference, ...rest } = validInput;
+    const { languagePreference: _languagePreference, ...rest } = validInput;
     const result = createUserSchema.safeParse(rest);
     expect(result.success).toBe(true);
     if (result.success) {

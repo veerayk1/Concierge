@@ -164,7 +164,7 @@ describe('GET /api/v1/search — Cross-Module Search', () => {
     });
     await GET(req);
 
-    const userWhere = mockUserFindMany.mock.calls[0][0].where;
+    const userWhere = mockUserFindMany.mock.calls[0]![0].where;
     expect(userWhere.deletedAt).toBeNull();
     expect(userWhere.userProperties).toEqual({
       some: { propertyId, deletedAt: null },
@@ -177,7 +177,7 @@ describe('GET /api/v1/search — Cross-Module Search', () => {
     });
     await GET(req);
 
-    const userWhere = mockUserFindMany.mock.calls[0][0].where;
+    const userWhere = mockUserFindMany.mock.calls[0]![0].where;
     expect(userWhere.OR).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ firstName: { contains: 'janet', mode: 'insensitive' } }),
@@ -193,7 +193,7 @@ describe('GET /api/v1/search — Cross-Module Search', () => {
     });
     await GET(req);
 
-    const unitWhere = mockUnitFindMany.mock.calls[0][0].where;
+    const unitWhere = mockUnitFindMany.mock.calls[0]![0].where;
     expect(unitWhere.propertyId).toBe(propertyId);
     expect(unitWhere.deletedAt).toBeNull();
     expect(unitWhere.number).toEqual({ contains: '1501', mode: 'insensitive' });
@@ -205,7 +205,7 @@ describe('GET /api/v1/search — Cross-Module Search', () => {
     });
     await GET(req);
 
-    const pkgWhere = mockPackageFindMany.mock.calls[0][0].where;
+    const pkgWhere = mockPackageFindMany.mock.calls[0]![0].where;
     expect(pkgWhere.propertyId).toBe(propertyId);
     expect(pkgWhere.OR).toEqual(
       expect.arrayContaining([
@@ -221,7 +221,7 @@ describe('GET /api/v1/search — Cross-Module Search', () => {
     });
     await GET(req);
 
-    const eventWhere = mockEventFindMany.mock.calls[0][0].where;
+    const eventWhere = mockEventFindMany.mock.calls[0]![0].where;
     expect(eventWhere.propertyId).toBe(propertyId);
     expect(eventWhere.OR).toEqual(
       expect.arrayContaining([
@@ -237,7 +237,7 @@ describe('GET /api/v1/search — Cross-Module Search', () => {
     });
     await GET(req);
 
-    const announcementWhere = mockAnnouncementFindMany.mock.calls[0][0].where;
+    const announcementWhere = mockAnnouncementFindMany.mock.calls[0]![0].where;
     expect(announcementWhere.propertyId).toBe(propertyId);
     expect(announcementWhere.OR).toEqual(
       expect.arrayContaining([
@@ -254,11 +254,11 @@ describe('GET /api/v1/search — Cross-Module Search', () => {
     await GET(req);
 
     // Every module query must filter out deleted records
-    expect(mockUserFindMany.mock.calls[0][0].where.deletedAt).toBeNull();
-    expect(mockUnitFindMany.mock.calls[0][0].where.deletedAt).toBeNull();
-    expect(mockPackageFindMany.mock.calls[0][0].where.deletedAt).toBeNull();
-    expect(mockEventFindMany.mock.calls[0][0].where.deletedAt).toBeNull();
-    expect(mockAnnouncementFindMany.mock.calls[0][0].where.deletedAt).toBeNull();
+    expect(mockUserFindMany.mock.calls[0]![0].where.deletedAt).toBeNull();
+    expect(mockUnitFindMany.mock.calls[0]![0].where.deletedAt).toBeNull();
+    expect(mockPackageFindMany.mock.calls[0]![0].where.deletedAt).toBeNull();
+    expect(mockEventFindMany.mock.calls[0]![0].where.deletedAt).toBeNull();
+    expect(mockAnnouncementFindMany.mock.calls[0]![0].where.deletedAt).toBeNull();
   });
 });
 
@@ -276,11 +276,11 @@ describe('GET /api/v1/search — Result Limiting', () => {
     await GET(req);
 
     // Each module query should use take: 5
-    expect(mockUserFindMany.mock.calls[0][0].take).toBe(5);
-    expect(mockUnitFindMany.mock.calls[0][0].take).toBe(5);
-    expect(mockPackageFindMany.mock.calls[0][0].take).toBe(5);
-    expect(mockEventFindMany.mock.calls[0][0].take).toBe(5);
-    expect(mockAnnouncementFindMany.mock.calls[0][0].take).toBe(5);
+    expect(mockUserFindMany.mock.calls[0]![0].take).toBe(5);
+    expect(mockUnitFindMany.mock.calls[0]![0].take).toBe(5);
+    expect(mockPackageFindMany.mock.calls[0]![0].take).toBe(5);
+    expect(mockEventFindMany.mock.calls[0]![0].take).toBe(5);
+    expect(mockAnnouncementFindMany.mock.calls[0]![0].take).toBe(5);
   });
 
   it('respects custom limit parameter', async () => {
@@ -289,8 +289,8 @@ describe('GET /api/v1/search — Result Limiting', () => {
     });
     await GET(req);
 
-    expect(mockUserFindMany.mock.calls[0][0].take).toBe(10);
-    expect(mockUnitFindMany.mock.calls[0][0].take).toBe(10);
+    expect(mockUserFindMany.mock.calls[0]![0].take).toBe(10);
+    expect(mockUnitFindMany.mock.calls[0]![0].take).toBe(10);
   });
 });
 
@@ -330,9 +330,9 @@ describe('GET /api/v1/search — Response Shape', () => {
     }>(res);
 
     expect(body.data.users).toHaveLength(1);
-    expect(body.data.users[0].firstName).toBe('Janet');
+    expect(body.data.users[0]!.firstName).toBe('Janet');
     expect(body.data.units).toHaveLength(1);
-    expect(body.data.units[0].number).toBe('1501');
+    expect(body.data.units[0]!.number).toBe('1501');
     expect(body.data.packages).toHaveLength(0);
     expect(body.data.events).toHaveLength(1);
     expect(body.data.announcements).toHaveLength(0);
@@ -361,7 +361,7 @@ describe('GET /api/v1/search — Response Shape', () => {
     await GET(req);
 
     // User select should NOT include passwordHash or sensitive fields
-    const userSelect = mockUserFindMany.mock.calls[0][0].select;
+    const userSelect = mockUserFindMany.mock.calls[0]![0].select;
     expect(userSelect.id).toBe(true);
     expect(userSelect.firstName).toBe(true);
     expect(userSelect.lastName).toBe(true);

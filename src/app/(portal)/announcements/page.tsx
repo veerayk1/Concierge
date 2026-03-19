@@ -140,7 +140,7 @@ export default function AnnouncementsPage() {
 
   const allAnnouncements = useMemo(() => {
     if (apiAnnouncements && Array.isArray(apiAnnouncements) && apiAnnouncements.length > 0) {
-      return apiAnnouncements.map((a: Record<string, unknown>) => ({
+      return apiAnnouncements.map((a: Announcement) => ({
         id: a.id as string,
         title: a.title as string,
         body: a.body as string,
@@ -254,7 +254,7 @@ export default function AnnouncementsPage() {
                 key={announcement.id}
                 hoverable
                 className="cursor-pointer transition-all duration-200"
-                onClick={() => router.push(`/announcements/${announcement.id}`)}
+                onClick={() => router.push(`/announcements/${announcement.id}` as never)}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">

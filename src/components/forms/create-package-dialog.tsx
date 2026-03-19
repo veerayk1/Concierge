@@ -82,7 +82,8 @@ export function CreatePackageDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreatePackageInput>({
-    resolver: zodResolver(createPackageSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createPackageSchema) as any,
     defaultValues: {
       propertyId,
       unitId: '',

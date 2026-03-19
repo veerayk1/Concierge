@@ -176,16 +176,20 @@ export default function UsersPage() {
   // Merge API users with mock data as fallback
   const allUsers = useMemo(() => {
     if (apiUsers && Array.isArray(apiUsers) && apiUsers.length > 0) {
-      return apiUsers.map((u: Record<string, unknown>) => ({
+      return apiUsers.map((u: UserAccount) => ({
         id: u.id as string,
         firstName: u.firstName as string,
         lastName: u.lastName as string,
         email: u.email as string,
-        role: (u.role as Record<string, string>)?.slug || 'front_desk',
-        roleDisplay: (u.role as Record<string, string>)?.name || 'Staff',
-        status: (u.status as string) || 'active',
+        role:
+          ((u as unknown as Record<string, unknown>).role as Record<string, string>)?.slug ||
+          'front_desk',
+        roleDisplay:
+          ((u as unknown as Record<string, unknown>).role as Record<string, string>)?.name ||
+          'Staff',
+        status: ((u.status as string) || 'active') as UserAccount['status'],
         mfaEnabled: (u.mfaEnabled as boolean) || false,
-        lastLogin: u.lastLoginAt as string | undefined,
+        lastLogin: (u as unknown as Record<string, unknown>).lastLoginAt as string | undefined,
         createdAt: u.createdAt as string,
       }));
     }

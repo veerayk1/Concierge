@@ -38,7 +38,7 @@ describe('createMaintenanceSchema', () => {
   });
 
   it('defaults priority to medium', () => {
-    const { priority, ...rest } = validInput;
+    const { priority: _priority, ...rest } = validInput;
     const result = createMaintenanceSchema.safeParse(rest);
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.priority).toBe('medium');
@@ -51,7 +51,7 @@ describe('createMaintenanceSchema', () => {
   });
 
   it('defaults permissionToEnter to false', () => {
-    const { permissionToEnter, ...rest } = validInput;
+    const { permissionToEnter: _permissionToEnter, ...rest } = validInput;
     const result = createMaintenanceSchema.safeParse(rest);
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.permissionToEnter).toBe(false);

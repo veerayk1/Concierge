@@ -70,7 +70,8 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
     reset,
     formState: { errors, isSubmitting },
   } = useForm<BookingInput>({
-    resolver: zodResolver(bookingSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(bookingSchema) as any,
     defaultValues: {
       amenityId: '',
       date: '',

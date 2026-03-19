@@ -51,7 +51,8 @@ export function CreateMaintenanceDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateMaintenanceInput>({
-    resolver: zodResolver(createMaintenanceSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createMaintenanceSchema) as any,
     defaultValues: {
       propertyId,
       unitId: '',

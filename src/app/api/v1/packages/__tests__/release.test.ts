@@ -72,7 +72,7 @@ describe('Package Release — PATCH with action=release', () => {
     const res = await PATCH(req, { params });
 
     expect(res.status).toBe(200);
-    const updateData = mockUpdate.mock.calls[0][0].data;
+    const updateData = mockUpdate.mock.calls[0]![0].data;
     expect(updateData.status).toBe('released');
     expect(updateData.releasedAt).toBeInstanceOf(Date);
     expect(updateData.releasedToName).toBe('Janet Smith');
@@ -88,7 +88,7 @@ describe('Package Release — PATCH with action=release', () => {
     });
     await PATCH(req, { params });
 
-    expect(mockUpdate.mock.calls[0][0].data.releasedById).toBe('staff-mike');
+    expect(mockUpdate.mock.calls[0]![0].data.releasedById).toBe('staff-mike');
   });
 
   it('stores idVerified flag — per building security policy', async () => {
@@ -102,7 +102,7 @@ describe('Package Release — PATCH with action=release', () => {
     });
     await PATCH(req, { params });
 
-    expect(mockUpdate.mock.calls[0][0].data.idVerified).toBe(true);
+    expect(mockUpdate.mock.calls[0]![0].data.idVerified).toBe(true);
   });
 
   it('stores isAuthorizedDelegate flag — someone else picking up', async () => {
@@ -116,7 +116,7 @@ describe('Package Release — PATCH with action=release', () => {
     });
     await PATCH(req, { params });
 
-    expect(mockUpdate.mock.calls[0][0].data.isAuthorizedDelegate).toBe(true);
+    expect(mockUpdate.mock.calls[0]![0].data.isAuthorizedDelegate).toBe(true);
   });
 
   it('creates PackageHistory entry on release — audit trail', async () => {
@@ -168,7 +168,7 @@ describe('Package Delete — Soft Delete', () => {
     const res = await DELETE(req, { params: Promise.resolve({ id: 'pkg-1' }) });
 
     expect(res.status).toBe(200);
-    expect(mockUpdate.mock.calls[0][0].data.deletedAt).toBeInstanceOf(Date);
+    expect(mockUpdate.mock.calls[0]![0].data.deletedAt).toBeInstanceOf(Date);
   });
 
   it('logs deletion in PackageHistory', async () => {

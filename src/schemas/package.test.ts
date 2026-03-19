@@ -20,7 +20,7 @@ describe('createPackageSchema', () => {
   });
 
   it('requires propertyId', () => {
-    const { propertyId, ...rest } = validInput;
+    const { propertyId: _propertyId, ...rest } = validInput;
     expect(createPackageSchema.safeParse(rest).success).toBe(false);
   });
 
@@ -32,7 +32,7 @@ describe('createPackageSchema', () => {
   });
 
   it('defaults direction to incoming', () => {
-    const { direction, ...rest } = validInput;
+    const { direction: _direction, ...rest } = validInput;
     const result = createPackageSchema.safeParse(rest);
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.direction).toBe('incoming');
@@ -75,7 +75,7 @@ describe('createPackageSchema', () => {
   });
 
   it('defaults isPerishable to false', () => {
-    const { isPerishable, ...rest } = validInput;
+    const { isPerishable: _isPerishable, ...rest } = validInput;
     const result = createPackageSchema.safeParse(rest);
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.isPerishable).toBe(false);

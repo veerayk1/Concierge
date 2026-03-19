@@ -70,7 +70,8 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
 
   // Demo mode — use mock user based on selected role
   if (demoRole) {
-    const demoUser = DEMO_USERS[demoRole] || DEMO_USERS.front_desk;
+    const demoUser = DEMO_USERS[demoRole] ?? DEMO_USERS.front_desk;
+    if (!demoUser) return <PortalSkeleton />;
     return (
       <AppShell
         user={{
@@ -87,7 +88,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
         badgeCounts={{ unreleased_packages: 4 }}
         onLogout={() => {
           localStorage.removeItem('demo_role');
-          router.push('/login');
+          router.push('/login' as never);
         }}
         onSearchOpen={handleSearchOpen}
       >
@@ -99,7 +100,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
 
   // Real auth mode
   if (!loading && !isAuthenticated) {
-    router.replace('/login');
+    router.replace('/login' as never);
     return null;
   }
 

@@ -64,7 +64,7 @@ describe('GET /api/v1/bookings — Tenant Isolation', () => {
       searchParams: { propertyId: '00000000-0000-4000-b000-000000000001' },
     });
     await GET(req);
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.propertyId).toBe('00000000-0000-4000-b000-000000000001');
     expect(where.deletedAt).toBeNull();
   });
@@ -180,7 +180,7 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
     const req = createPatchRequest('/api/v1/bookings/booking-1', { status: 'approved' });
     await PATCH(req, { params });
 
-    const updateData = mockUpdate.mock.calls[0][0].data;
+    const updateData = mockUpdate.mock.calls[0]![0].data;
     expect(updateData.approvedById).toBe('test-admin');
   });
 
@@ -195,7 +195,7 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
     const req = createPatchRequest('/api/v1/bookings/booking-1', { status: 'cancelled' });
     await PATCH(req, { params });
 
-    const updateData = mockUpdate.mock.calls[0][0].data;
+    const updateData = mockUpdate.mock.calls[0]![0].data;
     expect(updateData.cancelledAt).toBeInstanceOf(Date);
   });
 

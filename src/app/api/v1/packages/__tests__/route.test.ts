@@ -69,7 +69,7 @@ describe('GET /api/v1/packages — Tenant Isolation', () => {
     const req = createGetRequest('/api/v1/packages', { searchParams: { propertyId } });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.propertyId).toBe(propertyId);
     expect(where.deletedAt).toBeNull();
   });
@@ -87,7 +87,7 @@ describe('GET /api/v1/packages — Filtering', () => {
       searchParams: { propertyId, status: 'unreleased' },
     });
     await GET(req);
-    expect(mockFindMany.mock.calls[0][0].where.status).toBe('unreleased');
+    expect(mockFindMany.mock.calls[0]![0].where.status).toBe('unreleased');
   });
 
   it('filters by courierId — "show me all Amazon packages"', async () => {
@@ -96,7 +96,7 @@ describe('GET /api/v1/packages — Filtering', () => {
       searchParams: { propertyId, courierId },
     });
     await GET(req);
-    expect(mockFindMany.mock.calls[0][0].where.courierId).toBe(courierId);
+    expect(mockFindMany.mock.calls[0]![0].where.courierId).toBe(courierId);
   });
 
   it('filters by unitId — resident portal shows only their packages', async () => {
@@ -105,7 +105,7 @@ describe('GET /api/v1/packages — Filtering', () => {
       searchParams: { propertyId, unitId },
     });
     await GET(req);
-    expect(mockFindMany.mock.calls[0][0].where.unitId).toBe(unitId);
+    expect(mockFindMany.mock.calls[0]![0].where.unitId).toBe(unitId);
   });
 
   it('filters perishable=true — perishable packages need urgent attention', async () => {
@@ -113,7 +113,7 @@ describe('GET /api/v1/packages — Filtering', () => {
       searchParams: { propertyId, perishable: 'true' },
     });
     await GET(req);
-    expect(mockFindMany.mock.calls[0][0].where.isPerishable).toBe(true);
+    expect(mockFindMany.mock.calls[0]![0].where.isPerishable).toBe(true);
   });
 
   it('search covers referenceNumber, trackingNumber, AND description', async () => {
@@ -122,7 +122,7 @@ describe('GET /api/v1/packages — Filtering', () => {
     });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.OR).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ referenceNumber: { contains: 'PKG-4821', mode: 'insensitive' } }),
@@ -136,7 +136,7 @@ describe('GET /api/v1/packages — Filtering', () => {
     const req = createGetRequest('/api/v1/packages', { searchParams: { propertyId } });
     await GET(req);
 
-    const include = mockFindMany.mock.calls[0][0].include;
+    const include = mockFindMany.mock.calls[0]![0].include;
     expect(include.courier).toBeDefined();
     expect(include.courier.select.name).toBe(true);
     expect(include.courier.select.icon).toBe(true);
@@ -147,7 +147,7 @@ describe('GET /api/v1/packages — Filtering', () => {
     const req = createGetRequest('/api/v1/packages', { searchParams: { propertyId } });
     await GET(req);
 
-    const include = mockFindMany.mock.calls[0][0].include;
+    const include = mockFindMany.mock.calls[0]![0].include;
     expect(include.unit).toBeDefined();
     expect(include.unit.select.number).toBe(true);
   });
@@ -156,7 +156,7 @@ describe('GET /api/v1/packages — Filtering', () => {
     const req = createGetRequest('/api/v1/packages', { searchParams: { propertyId } });
     await GET(req);
 
-    const include = mockFindMany.mock.calls[0][0].include;
+    const include = mockFindMany.mock.calls[0]![0].include;
     expect(include.storageSpot).toBeDefined();
   });
 
@@ -164,7 +164,7 @@ describe('GET /api/v1/packages — Filtering', () => {
     const req = createGetRequest('/api/v1/packages', { searchParams: { propertyId } });
     await GET(req);
 
-    expect(mockFindMany.mock.calls[0][0].orderBy).toEqual({ createdAt: 'desc' });
+    expect(mockFindMany.mock.calls[0]![0].orderBy).toEqual({ createdAt: 'desc' });
   });
 });
 
@@ -244,7 +244,7 @@ describe('POST /api/v1/packages — Package Creation', () => {
     const req = createPostRequest('/api/v1/packages', validBody);
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.referenceNumber).toMatch(/^PKG-[A-Z0-9]+$/);
   });
 
@@ -262,7 +262,7 @@ describe('POST /api/v1/packages — Package Creation', () => {
     const req = createPostRequest('/api/v1/packages', validBody);
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.status).toBe('unreleased');
   });
 
@@ -302,7 +302,7 @@ describe('POST /api/v1/packages — Package Creation', () => {
     const req = createPostRequest('/api/v1/packages', { ...validBody, isPerishable: true });
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.isPerishable).toBe(true);
   });
 
@@ -321,7 +321,7 @@ describe('POST /api/v1/packages — Package Creation', () => {
     const req = createPostRequest('/api/v1/packages', { ...validBody, isOversized: true });
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.isOversized).toBe(true);
   });
 

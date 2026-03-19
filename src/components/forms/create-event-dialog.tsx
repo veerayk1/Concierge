@@ -100,7 +100,8 @@ export function CreateEventDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateEventInput>({
-    resolver: zodResolver(createEventSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createEventSchema) as any,
     defaultValues: {
       propertyId,
       eventTypeId: '',

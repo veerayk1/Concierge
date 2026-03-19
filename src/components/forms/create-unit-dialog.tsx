@@ -49,7 +49,8 @@ export function CreateUnitDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<UnitInput>({
-    resolver: zodResolver(unitSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(unitSchema) as any,
     defaultValues: {
       number: '',
       unitType: 'residential',

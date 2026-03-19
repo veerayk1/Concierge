@@ -84,7 +84,7 @@ describe('GET /api/v1/announcements — Tenant Isolation', () => {
     const req = createGetRequest('/api/v1/announcements', { searchParams: { propertyId } });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.propertyId).toBe(propertyId);
     expect(where.deletedAt).toBeNull();
   });
@@ -95,7 +95,7 @@ describe('GET /api/v1/announcements — Tenant Isolation', () => {
     });
     await GET(req);
 
-    const orderBy = mockFindMany.mock.calls[0][0].orderBy;
+    const orderBy = mockFindMany.mock.calls[0]![0].orderBy;
     expect(orderBy).toEqual({ createdAt: 'desc' });
   });
 });
@@ -114,7 +114,7 @@ describe('GET /api/v1/announcements — Filtering', () => {
     });
     await GET(req);
 
-    expect(mockFindMany.mock.calls[0][0].where.status).toBe('published');
+    expect(mockFindMany.mock.calls[0]![0].where.status).toBe('published');
   });
 
   it('searches across title AND body — case insensitive', async () => {
@@ -126,7 +126,7 @@ describe('GET /api/v1/announcements — Filtering', () => {
     });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.OR).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ title: { contains: 'water shutoff', mode: 'insensitive' } }),
@@ -141,7 +141,7 @@ describe('GET /api/v1/announcements — Filtering', () => {
     });
     await GET(req);
 
-    const include = mockFindMany.mock.calls[0][0].include;
+    const include = mockFindMany.mock.calls[0]![0].include;
     expect(include.category).toBeDefined();
     expect(include.category.select).toMatchObject({ id: true, name: true });
   });
@@ -181,7 +181,7 @@ describe('GET /api/v1/announcements — Pagination', () => {
     });
     await GET(req);
 
-    const call = mockFindMany.mock.calls[0][0];
+    const call = mockFindMany.mock.calls[0]![0];
     expect(call.skip).toBe(10); // (2-1) * 10
     expect(call.take).toBe(10);
   });
@@ -341,7 +341,7 @@ describe('POST /api/v1/announcements — XSS Prevention', () => {
     expect(stripControlChars).toHaveBeenCalled();
 
     // Verify the create call uses sanitized values (not raw input)
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.title).not.toContain('<script>');
     expect(createData.body).not.toContain('onerror');
   });
@@ -362,7 +362,7 @@ describe('POST /api/v1/announcements — XSS Prevention', () => {
     });
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.body).not.toContain('<script>');
   });
 });
@@ -395,7 +395,7 @@ describe('POST /api/v1/announcements — Publishing', () => {
     });
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.publishedAt).toBeInstanceOf(Date);
   });
 
@@ -415,7 +415,7 @@ describe('POST /api/v1/announcements — Publishing', () => {
     });
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.publishedAt).toBeNull();
   });
 
@@ -432,7 +432,7 @@ describe('POST /api/v1/announcements — Publishing', () => {
     const req = createPostRequest('/api/v1/announcements', baseBody);
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.status).toBe('draft');
     expect(createData.publishedAt).toBeNull();
   });
@@ -452,7 +452,7 @@ describe('POST /api/v1/announcements — Publishing', () => {
     });
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.authorId).toBe('test-admin');
   });
 
@@ -474,7 +474,7 @@ describe('POST /api/v1/announcements — Publishing', () => {
     });
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.scheduledFor).toEqual(new Date(scheduledFor));
   });
 
@@ -494,7 +494,7 @@ describe('POST /api/v1/announcements — Publishing', () => {
     });
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.scheduledFor).toBeNull();
   });
 });

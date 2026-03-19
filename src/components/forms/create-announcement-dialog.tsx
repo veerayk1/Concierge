@@ -53,7 +53,8 @@ export function CreateAnnouncementDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<AnnouncementFormInput>({
-    resolver: zodResolver(announcementSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(announcementSchema) as any,
     defaultValues: {
       title: '',
       body: '',

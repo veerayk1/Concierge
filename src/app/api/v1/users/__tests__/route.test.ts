@@ -87,7 +87,7 @@ describe('GET /api/v1/users — Tenant Isolation', () => {
     await GET(req);
 
     // Verify the Prisma query includes propertyId in the where clause
-    const findManyCall = mockFindMany.mock.calls[0][0];
+    const findManyCall = mockFindMany.mock.calls[0]![0];
     expect(findManyCall.where).toMatchObject({
       deletedAt: null, // Soft-delete filter — never return deleted users
       userProperties: {
@@ -108,7 +108,7 @@ describe('GET /api/v1/users — Tenant Isolation', () => {
     });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.deletedAt).toBeNull(); // Must filter out deleted records
   });
 });
@@ -127,7 +127,7 @@ describe('GET /api/v1/users — Search', () => {
     });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.OR).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ firstName: { contains: 'janet', mode: 'insensitive' } }),
@@ -146,7 +146,7 @@ describe('GET /api/v1/users — Search', () => {
     });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     // All search fields must use insensitive mode
     for (const condition of where.OR) {
       const field = Object.keys(condition)[0];
@@ -163,7 +163,7 @@ describe('GET /api/v1/users — Search', () => {
     });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.isActive).toBe(true);
     expect(where.activatedAt).toEqual({ not: null }); // Must have completed onboarding
   });
@@ -177,7 +177,7 @@ describe('GET /api/v1/users — Search', () => {
     });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.activatedAt).toBeNull(); // Never completed onboarding
   });
 });
@@ -230,7 +230,7 @@ describe('GET /api/v1/users — Pagination', () => {
     });
     await GET(req);
 
-    const call = mockFindMany.mock.calls[0][0];
+    const call = mockFindMany.mock.calls[0]![0];
     expect(call.skip).toBe(20); // (3-1) * 10
     expect(call.take).toBe(10);
   });
@@ -266,7 +266,7 @@ describe('GET /api/v1/users — Account Status Lifecycle', () => {
     });
     const res = await GET(req);
     const body = await parseResponse<{ data: { status: string }[] }>(res);
-    expect(body.data[0].status).toBe('pending');
+    expect(body.data[0]!.status).toBe('pending');
   });
 
   it('status=active when activatedAt exists and isActive=true', async () => {
@@ -278,7 +278,7 @@ describe('GET /api/v1/users — Account Status Lifecycle', () => {
     });
     const res = await GET(req);
     const body = await parseResponse<{ data: { status: string }[] }>(res);
-    expect(body.data[0].status).toBe('active');
+    expect(body.data[0]!.status).toBe('active');
   });
 
   it('status=suspended when activatedAt exists but isActive=false', async () => {
@@ -290,7 +290,7 @@ describe('GET /api/v1/users — Account Status Lifecycle', () => {
     });
     const res = await GET(req);
     const body = await parseResponse<{ data: { status: string }[] }>(res);
-    expect(body.data[0].status).toBe('suspended');
+    expect(body.data[0]!.status).toBe('suspended');
   });
 });
 

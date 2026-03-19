@@ -129,7 +129,7 @@ export default function SettingsPage() {
                     padding="none"
                     hoverable
                     className="cursor-pointer"
-                    onClick={() => router.push(item.href)}
+                    onClick={() => router.push(item.href as never)}
                   >
                     <div className="flex items-center gap-4 p-4">
                       <div

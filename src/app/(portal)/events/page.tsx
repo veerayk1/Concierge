@@ -172,8 +172,9 @@ export default function EventsPage() {
 
   const allEvents = useMemo(() => {
     if (apiEvents && Array.isArray(apiEvents) && apiEvents.length > 0) {
-      return apiEvents.map((e: Record<string, unknown>) => {
-        const et = e.eventType as Record<string, string> | null;
+      return apiEvents.map((e: EventLogEntry) => {
+        const raw = e as unknown as Record<string, unknown>;
+        const et = raw.eventType as Record<string, string> | null;
         return {
           id: e.id as string,
           type: et?.name?.toLowerCase().replace(/[/ ]/g, '_') || 'note',
@@ -181,7 +182,7 @@ export default function EventsPage() {
           typeColor: 'text-neutral-600',
           typeBgColor: 'bg-neutral-100',
           title: e.title as string,
-          unit: (e.unit as Record<string, string>)?.number,
+          unit: (raw.unit as Record<string, string>)?.number,
           resident: undefined,
           status: e.status as string as 'open' | 'closed',
           notificationSent: false,
@@ -345,7 +346,7 @@ export default function EventsPage() {
         data={filteredEvents}
         emptyMessage="No events logged."
         emptyIcon={<Layers className="h-6 w-6" />}
-        onRowClick={(row) => router.push(`/events/${row.id}`)}
+        onRowClick={(row) => router.push(`/events/${row.id}` as never)}
       />
     </PageShell>
   );

@@ -79,7 +79,7 @@ describe('GET /api/v1/visitors — Tenant Isolation', () => {
     const req = createGetRequest('/api/v1/visitors', { searchParams: { propertyId: PROPERTY_ID } });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.signedOutAt).toBeNull(); // Only show visitors still in building
   });
 
@@ -89,7 +89,7 @@ describe('GET /api/v1/visitors — Tenant Isolation', () => {
     });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.signedOutAt).toEqual({ not: null });
   });
 });
@@ -118,7 +118,7 @@ describe('POST /api/v1/visitors — Sign In', () => {
     const req = createPostRequest('/api/v1/visitors', validBody);
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.signedInById).toBe('guard-patel'); // From auth, not hardcoded
   });
 
@@ -137,7 +137,7 @@ describe('POST /api/v1/visitors — Sign In', () => {
     });
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.visitorName).not.toContain('<script>');
   });
 
@@ -190,7 +190,7 @@ describe('PATCH /api/v1/visitors/:id — Sign Out', () => {
     const res = await PATCH(req, { params: Promise.resolve({ id: 'v-1' }) });
 
     expect(res.status).toBe(200);
-    const updateData = mockUpdate.mock.calls[0][0].data;
+    const updateData = mockUpdate.mock.calls[0]![0].data;
     expect(updateData.signedOutAt).toBeInstanceOf(Date);
     expect(updateData.signedOutById).toBe('guard-patel');
   });

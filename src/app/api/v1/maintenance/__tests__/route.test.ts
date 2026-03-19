@@ -72,7 +72,7 @@ describe('GET /api/v1/maintenance — Tenant Isolation', () => {
     });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.propertyId).toBe(PROPERTY_ID);
     expect(where.deletedAt).toBeNull();
   });
@@ -88,7 +88,7 @@ describe('GET /api/v1/maintenance — Filtering', () => {
       searchParams: { propertyId: PROPERTY_ID, status: 'open' },
     });
     await GET(req);
-    expect(mockFindMany.mock.calls[0][0].where.status).toBe('open');
+    expect(mockFindMany.mock.calls[0]![0].where.status).toBe('open');
   });
 
   it('filters by priority — urgent plumbing leak must surface above low-priority cosmetic issues', async () => {
@@ -96,7 +96,7 @@ describe('GET /api/v1/maintenance — Filtering', () => {
       searchParams: { propertyId: PROPERTY_ID, priority: 'urgent' },
     });
     await GET(req);
-    expect(mockFindMany.mock.calls[0][0].where.priority).toBe('urgent');
+    expect(mockFindMany.mock.calls[0]![0].where.priority).toBe('urgent');
   });
 
   it('search covers referenceNumber AND description — staff searches by either', async () => {
@@ -105,7 +105,7 @@ describe('GET /api/v1/maintenance — Filtering', () => {
     });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.OR).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ referenceNumber: { contains: 'leaking', mode: 'insensitive' } }),
@@ -120,7 +120,7 @@ describe('GET /api/v1/maintenance — Filtering', () => {
     });
     await GET(req);
 
-    const include = mockFindMany.mock.calls[0][0].include;
+    const include = mockFindMany.mock.calls[0]![0].include;
     expect(include.unit).toBeDefined();
     expect(include.category).toBeDefined();
   });
@@ -130,7 +130,7 @@ describe('GET /api/v1/maintenance — Filtering', () => {
       searchParams: { propertyId: PROPERTY_ID },
     });
     await GET(req);
-    expect(mockFindMany.mock.calls[0][0].orderBy).toEqual({ createdAt: 'desc' });
+    expect(mockFindMany.mock.calls[0]![0].orderBy).toEqual({ createdAt: 'desc' });
   });
 });
 
@@ -214,7 +214,7 @@ describe('POST /api/v1/maintenance — Request Creation', () => {
     const req = createPostRequest('/api/v1/maintenance', validBody);
     await POST(req);
 
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.referenceNumber).toMatch(/^MR-[A-Z0-9]+$/);
   });
 
@@ -231,7 +231,7 @@ describe('POST /api/v1/maintenance — Request Creation', () => {
     const req = createPostRequest('/api/v1/maintenance', validBody);
     await POST(req);
 
-    expect(mockCreate.mock.calls[0][0].data.status).toBe('open');
+    expect(mockCreate.mock.calls[0]![0].data.status).toBe('open');
   });
 
   it('stores permissionToEnter — critical for staff safety and legal liability', async () => {
@@ -247,7 +247,7 @@ describe('POST /api/v1/maintenance — Request Creation', () => {
     const req = createPostRequest('/api/v1/maintenance', validBody);
     await POST(req);
 
-    const data = mockCreate.mock.calls[0][0].data;
+    const data = mockCreate.mock.calls[0]![0].data;
     expect(data.permissionToEnter).toBe(true);
     expect(data.entryInstructions).toBe('Key at front desk. Dog in bedroom.');
   });

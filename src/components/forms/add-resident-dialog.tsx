@@ -50,7 +50,8 @@ export function AddResidentDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ResidentInput>({
-    resolver: zodResolver(residentSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(residentSchema) as any,
     defaultValues: {
       firstName: '',
       lastName: '',

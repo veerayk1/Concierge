@@ -66,7 +66,8 @@ export function CreateUserDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateUserInput>({
-    resolver: zodResolver(createUserSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createUserSchema) as any,
     defaultValues: {
       firstName: '',
       lastName: '',

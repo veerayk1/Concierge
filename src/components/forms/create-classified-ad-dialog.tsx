@@ -61,7 +61,8 @@ export function CreateClassifiedAdDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<AdInput>({
-    resolver: zodResolver(adSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(adSchema) as any,
     defaultValues: {
       title: '',
       description: '',

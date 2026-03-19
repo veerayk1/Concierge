@@ -63,7 +63,8 @@ export function KeyCheckoutDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<KeyCheckoutInput>({
-    resolver: zodResolver(keyCheckoutSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(keyCheckoutSchema) as any,
     defaultValues: {
       action: 'checkout',
       serialNumber: '',

@@ -70,7 +70,7 @@ describe('GET /api/v1/events — Tenant Isolation', () => {
     const req = createGetRequest('/api/v1/events', { searchParams: { propertyId } });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.propertyId).toBe(propertyId);
     expect(where.deletedAt).toBeNull();
   });
@@ -81,7 +81,7 @@ describe('GET /api/v1/events — Tenant Isolation', () => {
     });
     await GET(req);
 
-    const orderBy = mockFindMany.mock.calls[0][0].orderBy;
+    const orderBy = mockFindMany.mock.calls[0]![0].orderBy;
     expect(orderBy).toEqual({ createdAt: 'desc' });
   });
 });
@@ -100,7 +100,7 @@ describe('GET /api/v1/events — Filtering', () => {
     });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.eventTypeId).toBe('type-incident');
   });
 
@@ -113,7 +113,7 @@ describe('GET /api/v1/events — Filtering', () => {
     });
     await GET(req);
 
-    expect(mockFindMany.mock.calls[0][0].where.status).toBe('open');
+    expect(mockFindMany.mock.calls[0]![0].where.status).toBe('open');
   });
 
   it('filters by priority — urgent events surface first during emergencies', async () => {
@@ -125,7 +125,7 @@ describe('GET /api/v1/events — Filtering', () => {
     });
     await GET(req);
 
-    expect(mockFindMany.mock.calls[0][0].where.priority).toBe('urgent');
+    expect(mockFindMany.mock.calls[0]![0].where.priority).toBe('urgent');
   });
 
   it('filters by unitId — front desk checks events for a specific unit', async () => {
@@ -138,7 +138,7 @@ describe('GET /api/v1/events — Filtering', () => {
     });
     await GET(req);
 
-    expect(mockFindMany.mock.calls[0][0].where.unitId).toBe(unitId);
+    expect(mockFindMany.mock.calls[0]![0].where.unitId).toBe(unitId);
   });
 
   it('search covers title, description, AND reference number', async () => {
@@ -150,7 +150,7 @@ describe('GET /api/v1/events — Filtering', () => {
     });
     await GET(req);
 
-    const where = mockFindMany.mock.calls[0][0].where;
+    const where = mockFindMany.mock.calls[0]![0].where;
     expect(where.OR).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ title: { contains: 'noise complaint', mode: 'insensitive' } }),
@@ -170,7 +170,7 @@ describe('GET /api/v1/events — Filtering', () => {
     });
     await GET(req);
 
-    const include = mockFindMany.mock.calls[0][0].include;
+    const include = mockFindMany.mock.calls[0]![0].include;
     expect(include.eventType).toBeDefined();
     expect(include.eventType.select).toMatchObject({
       id: true,
@@ -186,7 +186,7 @@ describe('GET /api/v1/events — Filtering', () => {
     });
     await GET(req);
 
-    const include = mockFindMany.mock.calls[0][0].include;
+    const include = mockFindMany.mock.calls[0]![0].include;
     expect(include.unit).toBeDefined();
     expect(include.unit.select.number).toBe(true);
   });
@@ -258,7 +258,7 @@ describe('POST /api/v1/events — Event Creation Flow', () => {
     const req = createPostRequest('/api/v1/events', validBody);
     await POST(req);
 
-    const createCall = mockCreate.mock.calls[0][0];
+    const createCall = mockCreate.mock.calls[0]![0];
     expect(createCall.data.referenceNo).toMatch(/^EVT-[A-Z0-9]+$/);
   });
 
@@ -339,7 +339,7 @@ describe('POST /api/v1/events — Event Creation Flow', () => {
     expect(res.status).toBe(201);
 
     // Verify customFields were passed to Prisma
-    const createData = mockCreate.mock.calls[0][0].data;
+    const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.customFields).toEqual(customFields);
   });
 

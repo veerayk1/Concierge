@@ -49,7 +49,8 @@ export function CreateShiftEntryDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ShiftEntryInput>({
-    resolver: zodResolver(shiftEntrySchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(shiftEntrySchema) as any,
     defaultValues: {
       content: '',
       shift: defaultShift as 'morning' | 'afternoon' | 'night',
