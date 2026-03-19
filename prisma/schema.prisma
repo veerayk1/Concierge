@@ -1811,44 +1811,50 @@ model ParkingSpot {
 }
 
 model ParkingPermit {
-  id              String    @id @default(uuid()) @db.Uuid
-  propertyId      String    @db.Uuid
-  permitTypeId    String    @db.Uuid
-  unitId          String    @db.Uuid
-  residentId      String    @db.Uuid
-  licensePlate    String    @db.VarChar(15)
-  vehicleMake     String?   @db.VarChar(50)
-  vehicleModel    String?   @db.VarChar(50)
-  vehicleYear     Int?      @db.SmallInt
-  vehicleColor    String?   @db.VarChar(30)
-  areaId          String?   @db.Uuid
-  spotId          String?   @db.Uuid
-  status          String    @default("draft") @db.VarChar(20) // draft, pending_review, active, expired, revoked, denied
-  validFrom       DateTime  @db.Date
-  validUntil      DateTime  @db.Date
-  autoRenew       Boolean   @default(false)
-  notes           String?   @db.VarChar(500)
-  approvedById    String?   @db.Uuid
-  approvedAt      DateTime?
-  deniedReason    String?   @db.VarChar(500)
-  revokedReason   String?   @db.VarChar(500)
-  revokedById     String?   @db.Uuid
-  revokedAt       DateTime?
-  referenceNumber String    @db.VarChar(20)
-  createdById     String    @db.Uuid
-  aiMetadata      Json?     @db.JsonB
+  id                String    @id @default(uuid()) @db.Uuid
+  propertyId        String    @db.Uuid
+  permitTypeId      String    @db.Uuid
+  unitId            String    @db.Uuid
+  residentId        String    @db.Uuid
+  vehicleId         String?   @db.Uuid
+  licensePlate      String    @db.VarChar(15)
+  vehicleMake       String?   @db.VarChar(50)
+  vehicleModel      String?   @db.VarChar(50)
+  vehicleYear       Int?      @db.SmallInt
+  vehicleColor      String?   @db.VarChar(30)
+  areaId            String?   @db.Uuid
+  spotId            String?   @db.Uuid
+  status            String    @default("draft") @db.VarChar(20) // draft, pending_review, active, suspended, expired, cancelled, revoked, denied
+  validFrom         DateTime  @db.Date
+  validUntil        DateTime  @db.Date
+  autoRenew         Boolean   @default(false)
+  notes             String?   @db.VarChar(500)
+  approvedById      String?   @db.Uuid
+  approvedAt        DateTime?
+  deniedReason      String?   @db.VarChar(500)
+  suspensionReason  String?   @db.VarChar(500)
+  revokedReason     String?   @db.VarChar(500)
+  revokedById       String?   @db.Uuid
+  revokedAt         DateTime?
+  renewedFromId     String?   @db.Uuid
+  referenceNumber   String    @db.VarChar(20)
+  createdById       String    @db.Uuid
+  aiMetadata        Json?     @db.JsonB
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  property   Property   @relation(fields: [propertyId], references: [id])
-  unit       Unit       @relation(fields: [unitId], references: [id])
-  permitType PermitType @relation(fields: [permitTypeId], references: [id])
+  property    Property       @relation(fields: [propertyId], references: [id])
+  unit        Unit           @relation(fields: [unitId], references: [id])
+  permitType  PermitType     @relation(fields: [permitTypeId], references: [id])
+  renewedFrom ParkingPermit? @relation("PermitRenewal", fields: [renewedFromId], references: [id])
+  renewals    ParkingPermit[] @relation("PermitRenewal")
 
   @@index([propertyId, licensePlate])
   @@index([propertyId, status, validUntil])
   @@index([unitId])
+  @@index([vehicleId])
   @@map("parking_permits")
 }
 
@@ -3174,6 +3180,7 @@ model OnboardingProgress {
   propertyId     String    @unique @map("property_id") @db.Uuid
   currentStep    Int       @default(1) @map("current_step")
   completedSteps Int[]     @map("completed_steps")
+  skippedSteps   Int[]     @default([]) @map("skipped_steps")
   stepData       Json      @default("{}") @map("step_data") @db.JsonB
   completedAt    DateTime? @map("completed_at")
   createdAt      DateTime  @default(now()) @map("created_at")
