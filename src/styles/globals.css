@@ -222,3 +222,116 @@ body {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
+
+/* ============================================================================
+ * Print Styles
+ * Applied when printing work orders, reports, package labels, and invoices.
+ * ============================================================================ */
+
+@media print {
+  /* Hide navigation, sidebar, and interactive elements */
+  nav,
+  aside,
+  header,
+  footer,
+  button:not([data-print]),
+  [role='navigation'],
+  [data-no-print],
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset page layout */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Ensure content fills the page */
+  .flex-1 {
+    flex: none !important;
+  }
+
+  /* Remove shadows, borders, and rounded corners for clean printing */
+  .shadow-sm,
+  .shadow-xs,
+  .shadow-md {
+    box-shadow: none !important;
+  }
+
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-lg {
+    border-radius: 0 !important;
+  }
+
+  /* Ensure tables print properly */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  th,
+  td {
+    border: 1px solid #ddd;
+    padding: 6px 8px;
+  }
+
+  /* Page break controls */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+
+  /* Links: show URL in print */
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 10pt;
+    color: #666;
+  }
+
+  /* Badge colors: ensure readable in B&W */
+  [class*='bg-success'],
+  [class*='bg-primary'],
+  [class*='bg-warning'],
+  [class*='bg-error'] {
+    background-color: #f0f0f0 !important;
+    color: black !important;
+    border: 1px solid #999 !important;
+  }
+
+  /* Page margins */
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  /* Print header for work orders */
+  .print-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid black;
+    padding-bottom: 10px;
+  }
+}
