@@ -114,92 +114,13 @@ const MOMENTUM_LABELS: Record<AlterationMomentum, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// API response shape
 // ---------------------------------------------------------------------------
 
-const MOCK_ALTERATIONS: AlterationItem[] = [
-  {
-    id: '1',
-    referenceNumber: 'ALT-2026-001',
-    unit: '1204',
-    resident: 'Margaret Chen',
-    description:
-      'Full kitchen renovation including new cabinetry, countertops, and appliance upgrades',
-    type: 'renovation',
-    status: 'approved',
-    momentum: 'ok',
-    startDate: '2026-04-01',
-    expectedEnd: '2026-06-15',
-    contractorName: 'Elite Renovations Inc.',
-    hasPermit: true,
-    hasInsurance: true,
-    createdAt: '2026-03-01',
-  },
-  {
-    id: '2',
-    referenceNumber: 'ALT-2026-002',
-    unit: '807',
-    resident: 'David Okonkwo',
-    description: 'Bathroom remodel with walk-in shower conversion and new tiling',
-    type: 'renovation',
-    status: 'in_progress',
-    momentum: 'slow',
-    startDate: '2026-02-15',
-    expectedEnd: '2026-04-30',
-    contractorName: 'ProBuild Contractors',
-    hasPermit: true,
-    hasInsurance: true,
-    createdAt: '2026-02-01',
-  },
-  {
-    id: '3',
-    referenceNumber: 'ALT-2026-003',
-    unit: '302',
-    resident: 'Sarah Leblanc',
-    description: 'Balcony railing repair and waterproofing membrane replacement',
-    type: 'repair',
-    status: 'under_review',
-    momentum: 'stalled',
-    startDate: '',
-    expectedEnd: '2026-05-15',
-    contractorName: 'BalconyPro Services',
-    hasPermit: false,
-    hasInsurance: true,
-    createdAt: '2026-03-10',
-  },
-  {
-    id: '4',
-    referenceNumber: 'ALT-2026-004',
-    unit: '1501',
-    resident: 'James Hartwell',
-    description: 'Non-load-bearing wall removal between kitchen and dining room for open concept',
-    type: 'removal',
-    status: 'submitted',
-    momentum: 'stopped',
-    startDate: '',
-    expectedEnd: '2026-07-01',
-    contractorName: 'UrbanSpace Design Build',
-    hasPermit: false,
-    hasInsurance: false,
-    createdAt: '2026-03-15',
-  },
-  {
-    id: '5',
-    referenceNumber: 'ALT-2026-005',
-    unit: '610',
-    resident: 'Priya Sharma',
-    description: 'Hardwood flooring replacement throughout unit including living room and bedrooms',
-    type: 'renovation',
-    status: 'completed',
-    momentum: 'ok',
-    startDate: '2026-01-10',
-    expectedEnd: '2026-02-28',
-    contractorName: 'FloorCraft Toronto',
-    hasPermit: true,
-    hasInsurance: true,
-    createdAt: '2025-12-20',
-  },
-];
+interface ApiResponse {
+  data: AlterationItem[];
+  meta?: { total: number };
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -213,14 +134,28 @@ export default function AlterationsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiAlterations, refetch } = useApi<AlterationItem[]>(
-    apiUrl('/api/v1/alterations', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiAlterations,
+    loading,
+    error,
+    refetch,
+  } = useApi<AlterationItem[] | ApiResponse>(
+    apiUrl('/api/v1/alterations', {
+      propertyId: DEMO_PROPERTY_ID,
+      search: searchQuery || undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      type: typeFilter !== 'all' ? typeFilter : undefined,
+      momentum: momentumFilter !== 'all' ? momentumFilter : undefined,
+    }),
   );
 
-  const allAlterations = useMemo<AlterationItem[]>(
-    () => apiAlterations ?? MOCK_ALTERATIONS,
-    [apiAlterations],
-  );
+  const allAlterations = useMemo<AlterationItem[]>(() => {
+    if (!apiAlterations) return [];
+    if (Array.isArray(apiAlterations)) return apiAlterations;
+    if (Array.isArray((apiAlterations as ApiResponse).data))
+      return (apiAlterations as ApiResponse).data;
+    return [];
+  }, [apiAlterations]);
 
   const filteredAlterations = useMemo(() => {
     return allAlterations.filter((item) => {
@@ -351,6 +286,42 @@ export default function AlterationsPage() {
         ),
     },
   ];
+
+  // Loading state
+  if (loading) {
+    return (
+      <PageShell title="Alterations" description="Loading...">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="Alterations" description="Error loading alterations">
+        <EmptyState
+          icon={<Hammer className="h-6 w-6" />}
+          title="Failed to load alterations"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

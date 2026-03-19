@@ -99,7 +99,7 @@ interface ApiResponse {
 // ---------------------------------------------------------------------------
 
 function formatRelativeTime(dateStr: string): string {
-  const now = new Date('2026-03-19T10:00:00');
+  const now = new Date();
   const date = new Date(dateStr);
   const diffMs = now.getTime() - date.getTime();
   const diffMinutes = Math.floor(diffMs / 60000);
@@ -162,7 +162,8 @@ export default function ForumPage() {
   const totalCount = allThreads.length;
   const activeTodayCount = allThreads.filter((t) => {
     const lastReply = new Date(t.lastReplyAt);
-    const today = new Date('2026-03-19T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     return lastReply >= today;
   }).length;
   const pinnedCount = allThreads.filter((t) => t.isPinned).length;

@@ -1,27 +1,60 @@
 'use client';
 
-import { useMemo } from 'react';
-import { CheckCircle2, Clock, Package } from 'lucide-react';
+import { useMemo, useCallback, useState } from 'react';
+import { CheckCircle2, Clock, Package, AlertTriangle } from 'lucide-react';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types (aligned with API response from /api/v1/resident/packages)
 // ---------------------------------------------------------------------------
+
+interface PackageCourier {
+  id: string;
+  name: string;
+  iconUrl: string | null;
+  color: string | null;
+}
+
+interface PackageStorageSpot {
+  id: string;
+  name: string;
+  code: string | null;
+}
+
+interface PackageUnit {
+  id: string;
+  number: string;
+}
 
 interface MyPackage {
   id: string;
   referenceNumber: string;
-  courier: string;
-  description: string;
-  receivedAt: string;
-  ageHours: number;
-  storageSpot: string;
-  status: 'waiting' | 'picked_up';
-  pickedUpAt?: string;
+  description: string | null;
+  status: string;
+  isPerishable: boolean;
+  createdAt: string;
+  releasedAt: string | null;
+  courier: PackageCourier | null;
+  storageSpot: PackageStorageSpot | null;
+  unit: PackageUnit | null;
+}
+
+interface PackagesResponse {
+  data: MyPackage[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -36,59 +69,14 @@ const COURIER_COLORS: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Mock Data — resident's own packages
-// ---------------------------------------------------------------------------
-
-const MOCK_MY_PACKAGES: MyPackage[] = [
-  {
-    id: '1',
-    referenceNumber: 'PKG-4821',
-    courier: 'Amazon',
-    description: 'Medium Box',
-    receivedAt: '2026-03-19T09:15:00',
-    ageHours: 3,
-    storageSpot: 'Shelf A-3',
-    status: 'waiting',
-  },
-  {
-    id: '2',
-    referenceNumber: 'PKG-4830',
-    courier: 'FedEx',
-    description: 'Large Envelope',
-    receivedAt: '2026-03-18T14:30:00',
-    ageHours: 22,
-    storageSpot: 'Shelf B-1',
-    status: 'waiting',
-  },
-  {
-    id: '3',
-    referenceNumber: 'PKG-4798',
-    courier: 'Canada Post',
-    description: 'Small Parcel',
-    receivedAt: '2026-03-15T11:00:00',
-    ageHours: 0,
-    storageSpot: 'Shelf C-2',
-    status: 'picked_up',
-    pickedUpAt: '2026-03-15T18:45:00',
-  },
-  {
-    id: '4',
-    referenceNumber: 'PKG-4785',
-    courier: 'UPS',
-    description: 'Large Box',
-    receivedAt: '2026-03-12T08:00:00',
-    ageHours: 0,
-    storageSpot: 'Floor',
-    status: 'picked_up',
-    pickedUpAt: '2026-03-12T19:10:00',
-  },
-];
-
-// ---------------------------------------------------------------------------
 // Age Display Helper
 // ---------------------------------------------------------------------------
 
-function getAgeDisplay(hours: number): { text: string; variant: 'success' | 'warning' | 'error' } {
+function getAgeDisplay(createdAt: string): {
+  text: string;
+  variant: 'success' | 'warning' | 'error';
+} {
+  const hours = Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60));
   if (hours < 24) {
     return { text: `${hours}h`, variant: 'success' };
   } else if (hours < 72) {
@@ -105,11 +93,35 @@ function getAgeDisplay(hours: number): { text: string; variant: 'success' | 'war
 // ---------------------------------------------------------------------------
 
 export default function MyPackagesPage() {
-  const waitingPackages = useMemo(() => MOCK_MY_PACKAGES.filter((p) => p.status === 'waiting'), []);
+  const [statusFilter, setStatusFilter] = useState<string>('');
 
-  const pickedUpPackages = useMemo(
-    () => MOCK_MY_PACKAGES.filter((p) => p.status === 'picked_up'),
-    [],
+  const {
+    data: response,
+    loading,
+    error,
+    refetch,
+  } = useApi<PackagesResponse>(
+    apiUrl('/api/v1/resident/packages', {
+      propertyId: DEMO_PROPERTY_ID,
+      status: statusFilter || null,
+    }),
+  );
+
+  const packages = useMemo<MyPackage[]>(() => {
+    if (!response) return [];
+    // useApi unwraps .data already, so response may be the inner object
+    const raw =
+      (response as unknown as { data?: MyPackage[] }).data ?? (response as unknown as MyPackage[]);
+    return Array.isArray(raw) ? raw : [];
+  }, [response]);
+
+  const waitingCount = useMemo(
+    () => packages.filter((p) => p.status === 'unreleased').length,
+    [packages],
+  );
+  const pickedUpCount = useMemo(
+    () => packages.filter((p) => p.status === 'released').length,
+    [packages],
   );
 
   const columns: Column<MyPackage>[] = [
@@ -130,12 +142,13 @@ export default function MyPackagesPage() {
       accessorKey: 'courier',
       sortable: true,
       cell: (row) => {
-        const colorClass = COURIER_COLORS[row.courier] || 'bg-neutral-100 text-neutral-700';
+        const name = row.courier?.name || 'Unknown';
+        const colorClass = COURIER_COLORS[name] || 'bg-neutral-100 text-neutral-700';
         return (
           <span
             className={`inline-flex items-center rounded-lg px-2 py-0.5 text-[12px] font-semibold ${colorClass}`}
           >
-            {row.courier}
+            {name}
           </span>
         );
       },
@@ -144,16 +157,16 @@ export default function MyPackagesPage() {
       id: 'description',
       header: 'Description',
       accessorKey: 'description',
-      cell: (row) => <span className="text-neutral-600">{row.description}</span>,
+      cell: (row) => <span className="text-neutral-600">{row.description || 'Package'}</span>,
     },
     {
       id: 'receivedAt',
       header: 'Received',
-      accessorKey: 'receivedAt',
+      accessorKey: 'createdAt',
       sortable: true,
       cell: (row) => (
         <span className="text-[13px] text-neutral-500">
-          {new Date(row.receivedAt).toLocaleString('en-US', {
+          {new Date(row.createdAt).toLocaleString('en-US', {
             month: 'short',
             day: 'numeric',
             hour: 'numeric',
@@ -165,13 +178,13 @@ export default function MyPackagesPage() {
     {
       id: 'age',
       header: 'Age',
-      accessorKey: 'ageHours',
+      accessorKey: 'createdAt',
       sortable: true,
       cell: (row) => {
-        if (row.status === 'picked_up') {
+        if (row.status === 'released') {
           return <span className="text-[13px] text-neutral-400">&mdash;</span>;
         }
-        const age = getAgeDisplay(row.ageHours);
+        const age = getAgeDisplay(row.createdAt);
         return (
           <Badge variant={age.variant} size="sm" dot>
             {age.text}
@@ -183,7 +196,11 @@ export default function MyPackagesPage() {
       id: 'storage',
       header: 'Storage',
       accessorKey: 'storageSpot',
-      cell: (row) => <span className="text-[13px] text-neutral-500">{row.storageSpot}</span>,
+      cell: (row) => (
+        <span className="text-[13px] text-neutral-500">
+          {row.storageSpot?.name || row.storageSpot?.code || '--'}
+        </span>
+      ),
     },
     {
       id: 'status',
@@ -191,7 +208,7 @@ export default function MyPackagesPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
-        if (row.status === 'picked_up') {
+        if (row.status === 'released') {
           return (
             <Badge variant="success" size="sm" dot>
               Picked Up
@@ -210,28 +227,56 @@ export default function MyPackagesPage() {
       header: '',
       className: 'text-right',
       cell: (row) => {
-        if (row.status === 'waiting') {
+        if (row.status !== 'released' && row.releasedAt) {
+          return null;
+        }
+        if (row.releasedAt) {
           return (
-            <Button variant="secondary" size="sm">
-              Mark Picked Up
-            </Button>
+            <span className="text-[13px] text-neutral-400">
+              {new Date(row.releasedAt).toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+              })}
+            </span>
           );
         }
-        return (
-          <span className="text-[13px] text-neutral-400">
-            {row.pickedUpAt
-              ? new Date(row.pickedUpAt).toLocaleString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                })
-              : ''}
-          </span>
-        );
+        return null;
       },
     },
   ];
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <PageShell title="My Packages" description="Track your deliveries and pickups.">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+        </div>
+        <Skeleton className="h-64 rounded-2xl" />
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="My Packages" description="Track your deliveries and pickups.">
+        <EmptyState
+          icon={<AlertTriangle className="h-6 w-6" />}
+          title="Failed to load packages"
+          description={error}
+          action={
+            <Button variant="secondary" size="sm" onClick={refetch}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell title="My Packages" description="Track your deliveries and pickups.">
@@ -242,9 +287,7 @@ export default function MyPackagesPage() {
             <Clock className="text-warning-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {waitingPackages.length}
-            </p>
+            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{waitingCount}</p>
             <p className="text-[13px] text-neutral-500">Waiting for Pickup</p>
           </div>
         </Card>
@@ -253,21 +296,53 @@ export default function MyPackagesPage() {
             <CheckCircle2 className="text-success-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {pickedUpPackages.length}
-            </p>
-            <p className="text-[13px] text-neutral-500">Picked Up This Month</p>
+            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{pickedUpCount}</p>
+            <p className="text-[13px] text-neutral-500">Picked Up</p>
           </div>
         </Card>
       </div>
 
+      {/* Status Filter */}
+      <div className="mb-4 flex items-center gap-1.5">
+        {[
+          { value: '', label: 'All' },
+          { value: 'unreleased', label: 'Waiting' },
+          { value: 'released', label: 'Picked Up' },
+        ].map((filter) => (
+          <button
+            key={filter.value}
+            type="button"
+            onClick={() => setStatusFilter(filter.value)}
+            className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 ${
+              statusFilter === filter.value
+                ? 'bg-primary-500 text-white shadow-sm'
+                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+            }`}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
+
       {/* Packages Table */}
-      <DataTable
-        columns={columns}
-        data={MOCK_MY_PACKAGES}
-        emptyMessage="You have no packages."
-        emptyIcon={<Package className="h-6 w-6" />}
-      />
+      {packages.length > 0 ? (
+        <DataTable
+          columns={columns}
+          data={packages}
+          emptyMessage="You have no packages."
+          emptyIcon={<Package className="h-6 w-6" />}
+        />
+      ) : (
+        <EmptyState
+          icon={<Package className="h-6 w-6" />}
+          title="No packages"
+          description={
+            statusFilter
+              ? 'No packages match the selected filter.'
+              : 'You have no packages at this time.'
+          }
+        />
+      )}
     </PageShell>
   );
 }

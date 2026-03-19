@@ -1,8 +1,9 @@
 'use client';
 
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
+  AlertCircle,
   ArrowLeft,
   Award,
   BookOpen,
@@ -18,86 +19,59 @@ import {
   Users,
   Video,
 } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
 // ---------------------------------------------------------------------------
-// Mock Data — Fire Safety Fundamentals
+// Types
 // ---------------------------------------------------------------------------
 
-const MOCK_COURSE = {
-  id: '1',
-  title: 'Fire Safety Fundamentals',
-  description:
-    'Comprehensive training on fire safety protocols, evacuation procedures, and fire extinguisher usage for all building staff. This course covers fire prevention best practices, emergency response procedures, proper use of fire suppression equipment, and regulatory compliance requirements. Upon completion, staff will be able to identify fire hazards, execute evacuation plans, and operate fire extinguishers safely.',
-  learningPath: 'Safety & Compliance',
-  duration: '2h 30m',
-  difficulty: 'intermediate' as const,
-  mandatory: true,
-  deadline: '2026-04-15',
-  createdAt: '2026-01-10T09:00:00',
-  updatedAt: '2026-03-18T14:00:00',
-  completionPercentage: 60,
-  modulesCompleted: 3,
-  totalModules: 5,
-  timeSpent: '1h 28m',
-  modules: [
-    {
-      id: 'm1',
-      title: 'Introduction to Fire Safety',
-      type: 'video' as const,
-      duration: '18 min',
-      status: 'completed' as const,
-    },
-    {
-      id: 'm2',
-      title: 'Fire Prevention & Hazard Identification',
-      type: 'reading' as const,
-      duration: '25 min',
-      status: 'completed' as const,
-    },
-    {
-      id: 'm3',
-      title: 'Evacuation Procedures & Routes',
-      type: 'interactive' as const,
-      duration: '30 min',
-      status: 'completed' as const,
-    },
-    {
-      id: 'm4',
-      title: 'Fire Extinguisher Operation',
-      type: 'video' as const,
-      duration: '22 min',
-      status: 'in_progress' as const,
-    },
-    {
-      id: 'm5',
-      title: 'Final Assessment',
-      type: 'quiz' as const,
-      duration: '35 min',
-      status: 'locked' as const,
-    },
-  ],
-  quizResults: {
-    score: null as number | null,
-    passed: null as boolean | null,
-    attempts: 0,
-    dateCompleted: null as string | null,
-    passingScore: 80,
-  },
-  assignedRoles: ['Front Desk / Concierge', 'Security Guard', 'Maintenance Staff'],
-  relatedCourses: [
-    { id: 'c2', title: 'Emergency Evacuation Drills', difficulty: 'beginner', duration: '1h 15m' },
-    {
-      id: 'c3',
-      title: 'First Aid & CPR Certification',
-      difficulty: 'intermediate',
-      duration: '3h 00m',
-    },
-    { id: 'c4', title: 'Hazardous Materials Handling', difficulty: 'advanced', duration: '2h 45m' },
-  ],
-};
+interface CourseModule {
+  id: string;
+  title: string;
+  type: string;
+  duration: string;
+  status: string;
+}
+
+interface QuizResults {
+  score: number | null;
+  passed: boolean | null;
+  attempts: number;
+  dateCompleted: string | null;
+  passingScore: number;
+}
+
+interface RelatedCourse {
+  id: string;
+  title: string;
+  difficulty: string;
+  duration: string;
+}
+
+interface TrainingCourse {
+  id: string;
+  title: string;
+  description: string;
+  learningPath: string;
+  duration: string;
+  difficulty: string;
+  mandatory: boolean;
+  deadline: string;
+  createdAt: string;
+  updatedAt: string;
+  completionPercentage: number;
+  modulesCompleted: number;
+  totalModules: number;
+  timeSpent: string;
+  modules: CourseModule[];
+  quizResults: QuizResults;
+  assignedRoles: string[];
+  relatedCourses: RelatedCourse[];
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -162,16 +136,102 @@ function getModuleStatusBadge(status: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Skeleton Loader
+// ---------------------------------------------------------------------------
+
+function TrainingDetailSkeleton() {
+  return (
+    <div className="flex animate-pulse flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <div className="h-4 w-24 rounded bg-neutral-200" />
+        <div className="h-7 w-64 rounded bg-neutral-200" />
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="flex flex-col gap-6 xl:col-span-2">
+          <div className="h-48 rounded-xl bg-neutral-100" />
+          <div className="h-40 rounded-xl bg-neutral-100" />
+          <div className="h-32 rounded-xl bg-neutral-100" />
+        </div>
+        <div className="flex flex-col gap-6">
+          <div className="h-36 rounded-xl bg-neutral-100" />
+          <div className="h-32 rounded-xl bg-neutral-100" />
+          <div className="h-28 rounded-xl bg-neutral-100" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-interface TrainingDetailPageProps {
-  params: Promise<{ id: string }>;
-}
+export default function TrainingDetailPage() {
+  const { id } = useParams<{ id: string }>();
 
-export default function TrainingDetailPage({ params }: TrainingDetailPageProps) {
-  const { id } = use(params);
-  const course = { ...MOCK_COURSE, id };
+  const {
+    data: course,
+    loading,
+    error,
+  } = useApi<TrainingCourse>(apiUrl(`/api/v1/training/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+
+  // -- Loading State --
+  if (loading) {
+    return <TrainingDetailSkeleton />;
+  }
+
+  // -- Error State --
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="bg-error-50 flex h-16 w-16 items-center justify-center rounded-full">
+          <AlertCircle className="text-error-600 h-8 w-8" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">
+          {error.includes('404') ? 'Course Not Found' : 'Failed to Load Course'}
+        </h2>
+        <p className="max-w-md text-center text-[14px] text-neutral-500">{error}</p>
+        <Link href="/training">
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to training
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // -- 404 State --
+  if (!course) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+          <GraduationCap className="h-8 w-8 text-neutral-400" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">Course Not Found</h2>
+        <p className="text-[14px] text-neutral-500">
+          The training course you are looking for does not exist or has been removed.
+        </p>
+        <Link href="/training">
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to training
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const modules = course.modules ?? [];
+  const quizResults = course.quizResults ?? {
+    score: null,
+    passed: null,
+    attempts: 0,
+    dateCompleted: null,
+    passingScore: 80,
+  };
+  const assignedRoles = course.assignedRoles ?? [];
+  const relatedCourses = course.relatedCourses ?? [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -267,11 +327,13 @@ export default function TrainingDetailPage({ params }: TrainingDetailPageProps) 
                     Deadline
                   </p>
                   <p className="mt-1 text-[15px] font-medium text-neutral-900">
-                    {new Date(course.deadline).toLocaleDateString('en-US', {
-                      month: 'long',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
+                    {course.deadline
+                      ? new Date(course.deadline).toLocaleDateString('en-US', {
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })
+                      : 'No deadline'}
                   </p>
                 </div>
               </div>
@@ -283,35 +345,39 @@ export default function TrainingDetailPage({ params }: TrainingDetailPageProps) 
             <div className="mb-4 flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-neutral-400" />
               <h2 className="text-[14px] font-semibold text-neutral-900">
-                Modules ({course.modules.length})
+                Modules ({modules.length})
               </h2>
             </div>
             <CardContent>
-              <div className="flex flex-col divide-y divide-neutral-100">
-                {course.modules.map((mod, index) => (
-                  <div
-                    key={mod.id}
-                    className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-[13px] font-semibold text-neutral-500">
-                        {index + 1}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {getModuleTypeIcon(mod.type)}
-                        <div>
-                          <p className="text-[14px] font-medium text-neutral-900">{mod.title}</p>
-                          <p className="text-[12px] text-neutral-500">
-                            {mod.type.charAt(0).toUpperCase() + mod.type.slice(1)} &middot;{' '}
-                            {mod.duration}
-                          </p>
+              {modules.length > 0 ? (
+                <div className="flex flex-col divide-y divide-neutral-100">
+                  {modules.map((mod, index) => (
+                    <div
+                      key={mod.id}
+                      className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-[13px] font-semibold text-neutral-500">
+                          {index + 1}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getModuleTypeIcon(mod.type)}
+                          <div>
+                            <p className="text-[14px] font-medium text-neutral-900">{mod.title}</p>
+                            <p className="text-[12px] text-neutral-500">
+                              {mod.type.charAt(0).toUpperCase() + mod.type.slice(1)} &middot;{' '}
+                              {mod.duration}
+                            </p>
+                          </div>
                         </div>
                       </div>
+                      {getModuleStatusBadge(mod.status)}
                     </div>
-                    {getModuleStatusBadge(mod.status)}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No modules in this course.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -322,14 +388,14 @@ export default function TrainingDetailPage({ params }: TrainingDetailPageProps) 
               <h2 className="text-[14px] font-semibold text-neutral-900">Quiz Results</h2>
             </div>
             <CardContent>
-              {course.quizResults.score !== null ? (
+              {quizResults.score !== null ? (
                 <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                   <div>
                     <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                       Score
                     </p>
                     <p className="mt-1 text-[20px] font-bold text-neutral-900">
-                      {course.quizResults.score}%
+                      {quizResults.score}%
                     </p>
                   </div>
                   <div>
@@ -337,12 +403,8 @@ export default function TrainingDetailPage({ params }: TrainingDetailPageProps) 
                       Result
                     </p>
                     <p className="mt-1">
-                      <Badge
-                        variant={course.quizResults.passed ? 'success' : 'error'}
-                        size="lg"
-                        dot
-                      >
-                        {course.quizResults.passed ? 'Passed' : 'Failed'}
+                      <Badge variant={quizResults.passed ? 'success' : 'error'} size="lg" dot>
+                        {quizResults.passed ? 'Passed' : 'Failed'}
                       </Badge>
                     </p>
                   </div>
@@ -350,17 +412,15 @@ export default function TrainingDetailPage({ params }: TrainingDetailPageProps) 
                     <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                       Attempts
                     </p>
-                    <p className="mt-1 text-[15px] text-neutral-900">
-                      {course.quizResults.attempts}
-                    </p>
+                    <p className="mt-1 text-[15px] text-neutral-900">{quizResults.attempts}</p>
                   </div>
                   <div>
                     <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                       Date Completed
                     </p>
                     <p className="mt-1 text-[15px] text-neutral-900">
-                      {course.quizResults.dateCompleted
-                        ? new Date(course.quizResults.dateCompleted).toLocaleDateString('en-US', {
+                      {quizResults.dateCompleted
+                        ? new Date(quizResults.dateCompleted).toLocaleDateString('en-US', {
                             month: 'long',
                             day: 'numeric',
                             year: 'numeric',
@@ -378,7 +438,7 @@ export default function TrainingDetailPage({ params }: TrainingDetailPageProps) 
                     Quiz not yet attempted
                   </p>
                   <p className="mt-1 text-[12px] text-neutral-400">
-                    Passing score: {course.quizResults.passingScore}%
+                    Passing score: {quizResults.passingScore}%
                   </p>
                 </div>
               )}
@@ -398,7 +458,7 @@ export default function TrainingDetailPage({ params }: TrainingDetailPageProps) 
               <div className="flex flex-col gap-4">
                 <div className="text-center">
                   <p className="text-[36px] font-bold text-neutral-900">
-                    {course.completionPercentage}%
+                    {course.completionPercentage ?? 0}%
                   </p>
                   <p className="text-[13px] text-neutral-500">Complete</p>
                 </div>
@@ -407,7 +467,7 @@ export default function TrainingDetailPage({ params }: TrainingDetailPageProps) 
                   <div className="h-3 w-full rounded-full bg-neutral-100">
                     <div
                       className="bg-primary-500 h-3 rounded-full transition-all"
-                      style={{ width: `${course.completionPercentage}%` }}
+                      style={{ width: `${course.completionPercentage ?? 0}%` }}
                     />
                   </div>
                 </div>
@@ -416,7 +476,7 @@ export default function TrainingDetailPage({ params }: TrainingDetailPageProps) 
                     Modules Completed
                   </span>
                   <span className="text-[14px] font-semibold text-neutral-900">
-                    {course.modulesCompleted} / {course.totalModules}
+                    {course.modulesCompleted ?? 0} / {course.totalModules ?? 0}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -424,7 +484,7 @@ export default function TrainingDetailPage({ params }: TrainingDetailPageProps) 
                     Time Spent
                   </span>
                   <span className="text-[14px] font-semibold text-neutral-900">
-                    {course.timeSpent}
+                    {course.timeSpent ?? '0m'}
                   </span>
                 </div>
               </div>
@@ -463,17 +523,21 @@ export default function TrainingDetailPage({ params }: TrainingDetailPageProps) 
               <h2 className="text-[14px] font-semibold text-neutral-900">Assigned To</h2>
             </div>
             <CardContent>
-              <div className="flex flex-col gap-2">
-                {course.assignedRoles.map((role) => (
-                  <div
-                    key={role}
-                    className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2"
-                  >
-                    <Shield className="h-3.5 w-3.5 text-neutral-400" />
-                    <span className="text-[13px] font-medium text-neutral-700">{role}</span>
-                  </div>
-                ))}
-              </div>
+              {assignedRoles.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {assignedRoles.map((role) => (
+                    <div
+                      key={role}
+                      className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2"
+                    >
+                      <Shield className="h-3.5 w-3.5 text-neutral-400" />
+                      <span className="text-[13px] font-medium text-neutral-700">{role}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No roles assigned.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -484,23 +548,27 @@ export default function TrainingDetailPage({ params }: TrainingDetailPageProps) 
               <h2 className="text-[14px] font-semibold text-neutral-900">Related Courses</h2>
             </div>
             <CardContent>
-              <div className="flex flex-col gap-3">
-                {course.relatedCourses.map((related) => (
-                  <Link
-                    key={related.id}
-                    href={`/training/${related.id}` as never}
-                    className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 transition-colors hover:bg-neutral-100"
-                  >
-                    <p className="text-primary-600 text-[13px] font-medium">{related.title}</p>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <Badge variant={getDifficultyVariant(related.difficulty)} size="sm">
-                        {related.difficulty.charAt(0).toUpperCase() + related.difficulty.slice(1)}
-                      </Badge>
-                      <span className="text-[11px] text-neutral-400">{related.duration}</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              {relatedCourses.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {relatedCourses.map((related) => (
+                    <Link
+                      key={related.id}
+                      href={`/training/${related.id}` as never}
+                      className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 transition-colors hover:bg-neutral-100"
+                    >
+                      <p className="text-primary-600 text-[13px] font-medium">{related.title}</p>
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <Badge variant={getDifficultyVariant(related.difficulty)} size="sm">
+                          {related.difficulty.charAt(0).toUpperCase() + related.difficulty.slice(1)}
+                        </Badge>
+                        <span className="text-[11px] text-neutral-400">{related.duration}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No related courses.</p>
+              )}
             </CardContent>
           </Card>
         </div>
