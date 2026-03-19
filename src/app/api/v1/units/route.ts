@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const propertyId = searchParams.get('propertyId');
     const search = searchParams.get('search') || '';
     const buildingId = searchParams.get('buildingId');
+    const floor = searchParams.get('floor');
     const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '100', 10);
@@ -29,6 +30,10 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = { propertyId, deletedAt: null };
     if (buildingId) where.buildingId = buildingId;
+    if (floor !== null && floor !== undefined && floor !== '') {
+      const floorNum = parseInt(floor, 10);
+      if (!Number.isNaN(floorNum)) where.floor = floorNum;
+    }
     if (status) where.status = status;
     if (search) {
       where.OR = [{ number: { contains: search, mode: 'insensitive' } }];

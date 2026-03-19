@@ -9,6 +9,8 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,74 +28,6 @@ interface ClassifiedAd {
   createdAt: string;
   imageCount: number;
 }
-
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_ADS: ClassifiedAd[] = [
-  {
-    id: '1',
-    title: 'IKEA KALLAX Shelf Unit — White',
-    description: 'Moving out sale. 4x4 KALLAX in excellent condition. Must pick up from unit.',
-    category: 'Furniture',
-    price: 80,
-    isFree: false,
-    author: 'Lisa B.',
-    unit: '1105',
-    createdAt: '2026-03-18T10:00:00',
-    imageCount: 3,
-  },
-  {
-    id: '2',
-    title: 'Free Moving Boxes — Various Sizes',
-    description:
-      'Just moved in and have about 20 boxes to give away. First come first served. Leave a message.',
-    category: 'Free Stuff',
-    isFree: true,
-    author: 'Alice W.',
-    unit: '101',
-    createdAt: '2026-03-17T15:00:00',
-    imageCount: 1,
-  },
-  {
-    id: '3',
-    title: 'Dog Walker Available — Weekdays',
-    description:
-      'Experienced dog walker, available Mon-Fri 10am-4pm. Flexible rates. References available.',
-    category: 'Services',
-    price: 25,
-    isFree: false,
-    author: 'Maria G.',
-    unit: '1203',
-    createdAt: '2026-03-16T09:00:00',
-    imageCount: 0,
-  },
-  {
-    id: '4',
-    title: 'Looking for Carpool — Downtown',
-    description: 'Working at King & Bay, looking for carpool partner. Leave 8am, return 5:30pm.',
-    category: 'Wanted',
-    isFree: true,
-    author: 'Robert K.',
-    unit: '305',
-    createdAt: '2026-03-15T12:00:00',
-    imageCount: 0,
-  },
-  {
-    id: '5',
-    title: 'Peloton Bike — Like New',
-    description:
-      'Barely used Peloton bike with screen. Selling due to relocation. Paid $2,200, asking $1,200 OBO.',
-    category: 'Fitness',
-    price: 1200,
-    isFree: false,
-    author: 'David C.',
-    unit: '802',
-    createdAt: '2026-03-14T18:00:00',
-    imageCount: 4,
-  },
-];
 
 const CATEGORIES = [
   'All',
@@ -114,11 +48,14 @@ export default function CommunityPage() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [showPostDialog, setShowPostDialog] = useState(false);
 
-  const { data: apiAds, refetch } = useApi<ClassifiedAd[]>(
-    apiUrl('/api/v1/community', { propertyId: DEMO_PROPERTY_ID }),
-  );
+  const {
+    data: apiAds,
+    loading,
+    error,
+    refetch,
+  } = useApi<ClassifiedAd[]>(apiUrl('/api/v1/community', { propertyId: DEMO_PROPERTY_ID }));
 
-  const allAds = useMemo<ClassifiedAd[]>(() => apiAds ?? MOCK_ADS, [apiAds]);
+  const allAds = useMemo<ClassifiedAd[]>(() => apiAds ?? [], [apiAds]);
 
   const filteredAds = allAds.filter((ad) => {
     if (categoryFilter !== 'All' && ad.category !== categoryFilter) return false;
@@ -174,57 +111,120 @@ export default function CommunityPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredAds.map((ad) => (
-          <Card key={ad.id} hoverable className="cursor-pointer">
-            {/* Image placeholder */}
-            {ad.imageCount > 0 && (
-              <div className="mb-4 flex h-40 items-center justify-center rounded-xl bg-neutral-100">
-                <ShoppingBag className="h-8 w-8 text-neutral-300" />
-                <span className="absolute right-2 bottom-2 rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                  {ad.imageCount} photos
+      {/* Loading State */}
+      {loading && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i}>
+              <Skeleton className="mb-4 h-40 w-full" />
+              <Skeleton className="mb-2 h-5 w-3/4" />
+              <Skeleton className="mb-3 h-4 w-full" />
+              <Skeleton className="h-6 w-1/3" />
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Error State */}
+      {!loading && error && (
+        <EmptyState
+          icon={<ShoppingBag className="h-6 w-6" />}
+          title="Failed to load listings"
+          description={error}
+          action={
+            <Button variant="secondary" size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && filteredAds.length === 0 && (
+        <EmptyState
+          icon={<ShoppingBag className="h-6 w-6" />}
+          title="No listings found"
+          description={
+            searchQuery || categoryFilter !== 'All'
+              ? 'Try adjusting your search or category filter.'
+              : 'Be the first to post a classified ad in your community.'
+          }
+          action={
+            searchQuery || categoryFilter !== 'All' ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('');
+                  setCategoryFilter('All');
+                }}
+              >
+                Clear Filters
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => setShowPostDialog(true)}>
+                <Plus className="h-4 w-4" />
+                Post Ad
+              </Button>
+            )
+          }
+        />
+      )}
+
+      {/* Content */}
+      {!loading && !error && filteredAds.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredAds.map((ad) => (
+            <Card key={ad.id} hoverable className="cursor-pointer">
+              {/* Image placeholder */}
+              {ad.imageCount > 0 && (
+                <div className="mb-4 flex h-40 items-center justify-center rounded-xl bg-neutral-100">
+                  <ShoppingBag className="h-8 w-8 text-neutral-300" />
+                  <span className="absolute right-2 bottom-2 rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                    {ad.imageCount} photos
+                  </span>
+                </div>
+              )}
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-[15px] font-semibold text-neutral-900">{ad.title}</h3>
+                  <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-neutral-600">
+                    {ad.description}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" size="sm">
+                    <Tag className="h-2.5 w-2.5" />
+                    {ad.category}
+                  </Badge>
+                  {ad.isFree ? (
+                    <Badge variant="success" size="sm">
+                      Free
+                    </Badge>
+                  ) : (
+                    ad.price && (
+                      <span className="text-[16px] font-bold text-neutral-900">${ad.price}</span>
+                    )
+                  )}
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-3 text-[12px] text-neutral-400">
+                <span>
+                  {ad.author} · Unit {ad.unit}
+                </span>
+                <span>
+                  {new Date(ad.createdAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
                 </span>
               </div>
-            )}
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-[15px] font-semibold text-neutral-900">{ad.title}</h3>
-                <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-neutral-600">
-                  {ad.description}
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant="default" size="sm">
-                  <Tag className="h-2.5 w-2.5" />
-                  {ad.category}
-                </Badge>
-                {ad.isFree ? (
-                  <Badge variant="success" size="sm">
-                    Free
-                  </Badge>
-                ) : (
-                  ad.price && (
-                    <span className="text-[16px] font-bold text-neutral-900">${ad.price}</span>
-                  )
-                )}
-              </div>
-            </div>
-            <div className="mt-3 flex items-center gap-3 text-[12px] text-neutral-400">
-              <span>
-                {ad.author} · Unit {ad.unit}
-              </span>
-              <span>
-                {new Date(ad.createdAt).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </span>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <CreateClassifiedAdDialog
         open={showPostDialog}

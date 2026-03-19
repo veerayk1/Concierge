@@ -14,7 +14,6 @@ import {
   Clock,
   FileSpreadsheet,
   ArrowRight,
-  Play,
   Loader2,
 } from 'lucide-react';
 import { PageShell } from '@/components/layout/page-shell';
@@ -23,90 +22,50 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types (aligned with API response)
 // ---------------------------------------------------------------------------
 
 interface MigrationJob {
   id: string;
-  type: 'import' | 'export' | 'migration' | 'dsar';
-  source: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
-  recordsTotal: number;
-  recordsProcessed: number;
-  recordsFailed: number;
-  startedAt: string;
-  completedAt: string | null;
-  initiatedBy: string;
-  errorLog: string | null;
+  jobType: string; // 'import' | 'export' | 'migration' | 'dsar'
+  type?: string;
+  fileName?: string;
+  status: string; // 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+  totalRecords?: number;
+  processedRecords?: number;
+  failedRecords?: number;
+  createdAt: string;
+  completedAt?: string | null;
+  createdBy?: string;
+  errorLog?: string | null;
+  // Fallback fields from different table shapes
+  recordsTotal?: number;
+  recordsProcessed?: number;
+  recordsFailed?: number;
+  startedAt?: string;
+  initiatedBy?: string;
+  source?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_JOBS: MigrationJob[] = [
-  {
-    id: '1',
-    type: 'import',
-    source: 'residents_march_2026.csv',
-    status: 'completed',
-    recordsTotal: 342,
-    recordsProcessed: 342,
-    recordsFailed: 0,
-    startedAt: '2026-03-18T09:15:00Z',
-    completedAt: '2026-03-18T09:18:32Z',
-    initiatedBy: 'Sarah Chen',
-    errorLog: null,
-  },
-  {
-    id: '2',
-    type: 'export',
-    source: 'Full Property Export',
-    status: 'completed',
-    recordsTotal: 1847,
-    recordsProcessed: 1847,
-    recordsFailed: 0,
-    startedAt: '2026-03-17T14:30:00Z',
-    completedAt: '2026-03-17T14:35:12Z',
-    initiatedBy: 'David Park',
-    errorLog: null,
-  },
-  {
-    id: '3',
-    type: 'import',
-    source: 'units_bulk_update.csv',
-    status: 'processing',
-    recordsTotal: 1200,
-    recordsProcessed: 450,
-    recordsFailed: 3,
-    startedAt: '2026-03-19T10:00:00Z',
-    completedAt: null,
-    initiatedBy: 'Sarah Chen',
-    errorLog: null,
-  },
-  {
-    id: '4',
-    type: 'import',
-    source: 'amenities_import.csv',
-    status: 'failed',
-    recordsTotal: 58,
-    recordsProcessed: 12,
-    recordsFailed: 46,
-    startedAt: '2026-03-16T11:20:00Z',
-    completedAt: '2026-03-16T11:20:45Z',
-    initiatedBy: 'David Park',
-    errorLog: 'Row 13: Invalid date format in "available_from". Expected YYYY-MM-DD.',
-  },
-];
+interface MigrationResponse {
+  data: MigrationJob[];
+  meta?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 const TYPE_CONFIG: Record<
-  MigrationJob['type'],
+  string,
   { variant: 'primary' | 'info' | 'warning' | 'default'; label: string }
 > = {
   import: { variant: 'primary', label: 'Import' },
@@ -116,7 +75,7 @@ const TYPE_CONFIG: Record<
 };
 
 const STATUS_CONFIG: Record<
-  MigrationJob['status'],
+  string,
   { variant: 'default' | 'info' | 'success' | 'error' | 'warning'; label: string }
 > = {
   pending: { variant: 'default', label: 'Pending' },
@@ -126,7 +85,35 @@ const STATUS_CONFIG: Record<
   cancelled: { variant: 'warning', label: 'Cancelled' },
 };
 
-function formatDuration(startedAt: string, completedAt: string | null): string {
+function getJobType(job: MigrationJob): string {
+  return job.jobType || job.type || 'import';
+}
+
+function getJobSource(job: MigrationJob): string {
+  return job.source || job.fileName || job.type || '--';
+}
+
+function getRecordsTotal(job: MigrationJob): number {
+  return job.recordsTotal ?? job.totalRecords ?? 0;
+}
+
+function getRecordsProcessed(job: MigrationJob): number {
+  return job.recordsProcessed ?? job.processedRecords ?? 0;
+}
+
+function getRecordsFailed(job: MigrationJob): number {
+  return job.recordsFailed ?? job.failedRecords ?? 0;
+}
+
+function getStartedAt(job: MigrationJob): string {
+  return job.startedAt || job.createdAt;
+}
+
+function getInitiatedBy(job: MigrationJob): string {
+  return job.initiatedBy || job.createdBy || '--';
+}
+
+function formatDuration(startedAt: string, completedAt: string | null | undefined): string {
   const start = new Date(startedAt).getTime();
   const end = completedAt ? new Date(completedAt).getTime() : Date.now();
   const diffMs = end - start;
@@ -154,16 +141,24 @@ function formatDateTime(dateStr: string): string {
 export default function DataMigrationPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: apiJobs } = useApi<MigrationJob[]>(
-    apiUrl('/api/v1/data-migration/jobs', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiResponse,
+    loading,
+    error,
+    refetch,
+  } = useApi<MigrationJob[] | MigrationResponse>(
+    apiUrl('/api/v1/data-migration', { propertyId: DEMO_PROPERTY_ID }),
   );
 
-  const allJobs = useMemo(() => {
-    if (apiJobs && Array.isArray(apiJobs) && apiJobs.length > 0) {
-      return apiJobs;
+  const allJobs: MigrationJob[] = useMemo(() => {
+    if (!apiResponse) return [];
+    // Handle both array response and { data: [...] } response
+    if (Array.isArray(apiResponse)) return apiResponse;
+    if (Array.isArray((apiResponse as MigrationResponse).data)) {
+      return (apiResponse as MigrationResponse).data;
     }
-    return MOCK_JOBS;
-  }, [apiJobs]);
+    return [];
+  }, [apiResponse]);
 
   const filteredJobs = useMemo(
     () =>
@@ -171,9 +166,9 @@ export default function DataMigrationPage() {
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
           return (
-            j.source.toLowerCase().includes(q) ||
-            j.initiatedBy.toLowerCase().includes(q) ||
-            j.type.toLowerCase().includes(q) ||
+            getJobSource(j).toLowerCase().includes(q) ||
+            getInitiatedBy(j).toLowerCase().includes(q) ||
+            getJobType(j).toLowerCase().includes(q) ||
             j.status.toLowerCase().includes(q)
           );
         }
@@ -185,32 +180,33 @@ export default function DataMigrationPage() {
   const totalMigrations = allJobs.length;
   const successfulCount = allJobs.filter((j) => j.status === 'completed').length;
   const totalRecordsImported = allJobs
-    .filter((j) => j.type === 'import' && j.status === 'completed')
-    .reduce((sum, j) => sum + j.recordsProcessed, 0);
+    .filter((j) => getJobType(j) === 'import' && j.status === 'completed')
+    .reduce((sum, j) => sum + getRecordsProcessed(j), 0);
 
   const columns: Column<MigrationJob>[] = [
     {
       id: 'type',
       header: 'Type',
-      accessorKey: 'type',
-      sortable: true,
       cell: (row) => {
-        const cfg = TYPE_CONFIG[row.type];
+        const jobType = getJobType(row);
+        const cfg = TYPE_CONFIG[jobType] ?? { variant: 'default' as const, label: jobType };
         return (
           <Badge variant={cfg.variant} size="sm">
             {cfg.label}
           </Badge>
         );
       },
+      sortable: true,
+      accessorKey: 'jobType',
     },
     {
       id: 'source',
       header: 'Source / Target',
-      accessorKey: 'source',
-      sortable: true,
       cell: (row) => (
-        <span className="text-[13px] font-semibold text-neutral-900">{row.source}</span>
+        <span className="text-[13px] font-semibold text-neutral-900">{getJobSource(row)}</span>
       ),
+      sortable: true,
+      accessorKey: 'fileName',
     },
     {
       id: 'status',
@@ -218,10 +214,11 @@ export default function DataMigrationPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
-        const cfg = STATUS_CONFIG[row.status];
+        const cfg = STATUS_CONFIG[row.status] ?? { variant: 'default' as const, label: row.status };
         if (row.status === 'processing') {
-          const pct =
-            row.recordsTotal > 0 ? Math.round((row.recordsProcessed / row.recordsTotal) * 100) : 0;
+          const total = getRecordsTotal(row);
+          const processed = getRecordsProcessed(row);
+          const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
           return (
             <div className="flex items-center gap-2">
               <Loader2 className="text-info-500 h-3.5 w-3.5 animate-spin" />
@@ -249,33 +246,34 @@ export default function DataMigrationPage() {
       header: 'Records',
       cell: (row) => (
         <span className="text-[13px] text-neutral-700">
-          {row.recordsProcessed.toLocaleString()}/{row.recordsTotal.toLocaleString()}
+          {getRecordsProcessed(row).toLocaleString()}/{getRecordsTotal(row).toLocaleString()}
         </span>
       ),
     },
     {
       id: 'failed',
       header: 'Failed',
-      accessorKey: 'recordsFailed',
-      sortable: true,
-      cell: (row) => (
-        <span
-          className={`text-[13px] font-medium ${
-            row.recordsFailed > 0 ? 'text-error-600' : 'text-neutral-400'
-          }`}
-        >
-          {row.recordsFailed}
-        </span>
-      ),
+      cell: (row) => {
+        const failed = getRecordsFailed(row);
+        return (
+          <span
+            className={`text-[13px] font-medium ${
+              failed > 0 ? 'text-error-600' : 'text-neutral-400'
+            }`}
+          >
+            {failed}
+          </span>
+        );
+      },
     },
     {
       id: 'startedAt',
       header: 'Started',
-      accessorKey: 'startedAt',
-      sortable: true,
       cell: (row) => (
-        <span className="text-[13px] text-neutral-500">{formatDateTime(row.startedAt)}</span>
+        <span className="text-[13px] text-neutral-500">{formatDateTime(getStartedAt(row))}</span>
       ),
+      sortable: true,
+      accessorKey: 'createdAt',
     },
     {
       id: 'duration',
@@ -285,10 +283,10 @@ export default function DataMigrationPage() {
           {row.status === 'processing' ? (
             <span className="text-info-600 flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {formatDuration(row.startedAt, null)}
+              {formatDuration(getStartedAt(row), null)}
             </span>
           ) : row.completedAt ? (
-            formatDuration(row.startedAt, row.completedAt)
+            formatDuration(getStartedAt(row), row.completedAt)
           ) : (
             '-'
           )}
@@ -298,9 +296,7 @@ export default function DataMigrationPage() {
     {
       id: 'initiatedBy',
       header: 'Initiated By',
-      accessorKey: 'initiatedBy',
-      sortable: true,
-      cell: (row) => <span className="text-[13px] text-neutral-700">{row.initiatedBy}</span>,
+      cell: (row) => <span className="text-[13px] text-neutral-700">{getInitiatedBy(row)}</span>,
     },
   ];
 
@@ -338,6 +334,45 @@ export default function DataMigrationPage() {
       bg: 'bg-success-50',
     },
   ];
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <PageShell
+        title="Data Migration"
+        description="Import, export, and migrate data between systems."
+      >
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+        </div>
+        <Skeleton className="mb-8 h-40 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell
+        title="Data Migration"
+        description="Import, export, and migrate data between systems."
+      >
+        <EmptyState
+          icon={<AlertTriangle className="h-6 w-6" />}
+          title="Failed to load migration jobs"
+          description={error}
+          action={
+            <Button variant="secondary" size="sm" onClick={refetch}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell
@@ -455,11 +490,22 @@ export default function DataMigrationPage() {
           <EmptyState
             icon={<DatabaseZap className="h-6 w-6" />}
             title="No migration jobs found"
-            description="Try adjusting your search or start a new import to get started."
+            description={
+              searchQuery
+                ? 'Try adjusting your search or start a new import to get started.'
+                : 'Start an import or export to see migration jobs here.'
+            }
             action={
-              <Button variant="secondary" size="sm" onClick={() => setSearchQuery('')}>
-                Clear Search
-              </Button>
+              searchQuery ? (
+                <Button variant="secondary" size="sm" onClick={() => setSearchQuery('')}>
+                  Clear Search
+                </Button>
+              ) : (
+                <Button size="sm">
+                  <Upload className="h-4 w-4" />
+                  New Import
+                </Button>
+              )
             }
           />
         )}

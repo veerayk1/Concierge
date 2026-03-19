@@ -1,11 +1,24 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Edit, Wrench, QrCode, Trash2, FileBox, Shield, StickyNote } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Edit,
+  Wrench,
+  QrCode,
+  Trash2,
+  FileBox,
+  Shield,
+  StickyNote,
+} from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -56,68 +69,6 @@ interface AssetDetail {
   notes: string;
   maintenanceHistory: MaintenanceRecord[];
 }
-
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_ASSET: AssetDetail = {
-  id: '1',
-  assetTag: 'AST-001',
-  name: 'Lobby Furniture Set',
-  category: 'furniture',
-  location: 'Main Lobby',
-  status: 'in_service',
-  manufacturer: 'Steelcase',
-  modelNumber: 'LC-4500-SET',
-  serialNumber: 'SC-2024-0315-7842',
-  purchaseDate: '2024-03-15',
-  purchasePrice: 12500,
-  currentValue: 9800,
-  depreciationMethod: 'Straight-Line',
-  annualDepreciation: 1350,
-  usefulLife: 10,
-  yearsRemaining: 8,
-  condition: 'good',
-  conditionDescription:
-    'Minor wear on armrests of two lounge chairs. Fabric in good condition overall. Coffee table surface has light scratches.',
-  warrantyStatus: 'active',
-  warrantyProvider: 'Steelcase Warranty Services',
-  warrantyExpiry: '2027-03-15',
-  warrantyPolicyNumber: 'WRN-SC-2024-88431',
-  notes:
-    'Includes 3 lounge chairs, 1 sofa, 2 side tables, and 1 coffee table. Fabric colour: Charcoal Grey (CG-440). Replacement cushions ordered Q4 2025.',
-  maintenanceHistory: [
-    {
-      date: '2026-02-10',
-      type: 'Repair',
-      description: 'Replaced cushion foam on lounge chair #2',
-      cost: 180,
-      vendor: 'UpholsteryCo',
-    },
-    {
-      date: '2025-11-05',
-      type: 'Cleaning',
-      description: 'Professional deep clean of all fabric surfaces',
-      cost: 350,
-      vendor: 'CleanPro Services',
-    },
-    {
-      date: '2025-06-20',
-      type: 'Inspection',
-      description: 'Annual condition assessment — rated Good',
-      cost: 0,
-      vendor: 'In-House',
-    },
-    {
-      date: '2024-12-01',
-      type: 'Repair',
-      description: 'Tightened loose leg on coffee table',
-      cost: 0,
-      vendor: 'In-House',
-    },
-  ],
-};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -171,18 +122,84 @@ const conditionConfig: Record<
 };
 
 // ---------------------------------------------------------------------------
+// Skeleton
+// ---------------------------------------------------------------------------
+
+function AssetDetailSkeleton() {
+  return (
+    <PageShell title="" description="">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <Card padding="md">
+            <CardContent>
+              <Skeleton className="mb-4 h-6 w-1/3" />
+              <div className="grid grid-cols-2 gap-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="flex flex-col gap-6">
+          <Card padding="md">
+            <CardContent>
+              <Skeleton className="h-20 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </PageShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function AssetDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const _id = params.id as string;
+  const id = params.id as string;
 
-  // In production this would fetch by id
-  const asset = MOCK_ASSET;
-  const status = statusConfig[asset.status];
-  const condition = conditionConfig[asset.condition];
+  const {
+    data: asset,
+    loading,
+    error,
+    refetch,
+  } = useApi<AssetDetail>(apiUrl(`/api/v1/assets/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+
+  if (loading) return <AssetDetailSkeleton />;
+
+  if (error || !asset) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+        <AlertTriangle className="text-error-500 h-12 w-12" />
+        <h1 className="text-[20px] font-bold text-neutral-900">
+          {error ? 'Error loading asset' : 'Asset not found'}
+        </h1>
+        <p className="text-[14px] text-neutral-500">
+          {error || 'The asset you are looking for does not exist.'}
+        </p>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => refetch()}>
+            Try Again
+          </Button>
+          <Button variant="secondary" onClick={() => router.push('/assets')}>
+            <ArrowLeft className="h-4 w-4" />
+            Back to Assets
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const status = statusConfig[asset.status] || { label: asset.status, variant: 'default' as const };
+  const condition = conditionConfig[asset.condition] || {
+    label: asset.condition,
+    variant: 'default' as const,
+  };
+  const maintenanceHistory = asset.maintenanceHistory ?? [];
 
   return (
     <PageShell
@@ -196,9 +213,7 @@ export default function AssetDetailPage() {
       }
     >
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* ---------------------------------------------------------------- */}
         {/* LEFT COLUMN (2/3) */}
-        {/* ---------------------------------------------------------------- */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           {/* Asset Details */}
           <Card padding="md">
@@ -224,7 +239,9 @@ export default function AssetDetailPage() {
                     Category
                   </dt>
                   <dd className="mt-1">
-                    <Badge variant="default">{categoryLabels[asset.category]}</Badge>
+                    <Badge variant="default">
+                      {categoryLabels[asset.category] || asset.category}
+                    </Badge>
                   </dd>
                 </div>
                 <div>
@@ -247,14 +264,16 @@ export default function AssetDetailPage() {
                   <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
                     Manufacturer
                   </dt>
-                  <dd className="mt-1 text-[14px] text-neutral-900">{asset.manufacturer}</dd>
+                  <dd className="mt-1 text-[14px] text-neutral-900">
+                    {asset.manufacturer || 'N/A'}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
                     Model Number
                   </dt>
                   <dd className="mt-1 font-mono text-[14px] text-neutral-900">
-                    {asset.modelNumber}
+                    {asset.modelNumber || 'N/A'}
                   </dd>
                 </div>
                 <div>
@@ -262,7 +281,7 @@ export default function AssetDetailPage() {
                     Serial Number
                   </dt>
                   <dd className="mt-1 font-mono text-[14px] text-neutral-900">
-                    {asset.serialNumber}
+                    {asset.serialNumber || 'N/A'}
                   </dd>
                 </div>
                 <div>
@@ -270,7 +289,7 @@ export default function AssetDetailPage() {
                     Purchase Date
                   </dt>
                   <dd className="mt-1 text-[14px] text-neutral-900">
-                    {formatDate(asset.purchaseDate)}
+                    {asset.purchaseDate ? formatDate(asset.purchaseDate) : 'N/A'}
                   </dd>
                 </div>
                 <div>
@@ -278,7 +297,7 @@ export default function AssetDetailPage() {
                     Purchase Price
                   </dt>
                   <dd className="mt-1 text-[14px] font-medium text-neutral-900">
-                    {formatCurrency(asset.purchasePrice)}
+                    {asset.purchasePrice != null ? formatCurrency(asset.purchasePrice) : 'N/A'}
                   </dd>
                 </div>
               </dl>
@@ -286,107 +305,123 @@ export default function AssetDetailPage() {
           </Card>
 
           {/* Depreciation */}
-          <Card padding="md">
-            <CardHeader>
-              <CardTitle>Depreciation</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-                <div>
-                  <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                    Current Value
-                  </dt>
-                  <dd className="mt-1 text-[18px] font-bold text-neutral-900">
-                    {formatCurrency(asset.currentValue)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                    Depreciation Method
-                  </dt>
-                  <dd className="mt-1 text-[14px] text-neutral-900">{asset.depreciationMethod}</dd>
-                </div>
-                <div>
-                  <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                    Annual Depreciation
-                  </dt>
-                  <dd className="mt-1 text-[14px] text-neutral-900">
-                    {formatCurrency(asset.annualDepreciation)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                    Useful Life
-                  </dt>
-                  <dd className="mt-1 text-[14px] text-neutral-900">{asset.usefulLife} years</dd>
-                </div>
-                <div>
-                  <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                    Years Remaining
-                  </dt>
-                  <dd className="mt-1 text-[14px] text-neutral-900">
-                    {asset.yearsRemaining} years
-                  </dd>
-                </div>
-              </dl>
-            </CardContent>
-          </Card>
+          {asset.currentValue != null && (
+            <Card padding="md">
+              <CardHeader>
+                <CardTitle>Depreciation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                      Current Value
+                    </dt>
+                    <dd className="mt-1 text-[18px] font-bold text-neutral-900">
+                      {formatCurrency(asset.currentValue)}
+                    </dd>
+                  </div>
+                  {asset.depreciationMethod && (
+                    <div>
+                      <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                        Depreciation Method
+                      </dt>
+                      <dd className="mt-1 text-[14px] text-neutral-900">
+                        {asset.depreciationMethod}
+                      </dd>
+                    </div>
+                  )}
+                  {asset.annualDepreciation != null && (
+                    <div>
+                      <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                        Annual Depreciation
+                      </dt>
+                      <dd className="mt-1 text-[14px] text-neutral-900">
+                        {formatCurrency(asset.annualDepreciation)}
+                      </dd>
+                    </div>
+                  )}
+                  {asset.usefulLife != null && (
+                    <div>
+                      <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                        Useful Life
+                      </dt>
+                      <dd className="mt-1 text-[14px] text-neutral-900">
+                        {asset.usefulLife} years
+                      </dd>
+                    </div>
+                  )}
+                  {asset.yearsRemaining != null && (
+                    <div>
+                      <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                        Years Remaining
+                      </dt>
+                      <dd className="mt-1 text-[14px] text-neutral-900">
+                        {asset.yearsRemaining} years
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Maintenance History */}
-          <Card padding="md">
-            <CardHeader>
-              <CardTitle>Maintenance History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-neutral-100">
-                      <th className="pb-3 text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                        Date
-                      </th>
-                      <th className="pb-3 text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                        Type
-                      </th>
-                      <th className="pb-3 text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                        Description
-                      </th>
-                      <th className="pb-3 text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                        Cost
-                      </th>
-                      <th className="pb-3 text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                        Vendor
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {asset.maintenanceHistory.map((record, idx) => (
-                      <tr key={idx} className="border-b border-neutral-50 last:border-0">
-                        <td className="py-3 text-[13px] text-neutral-600">
-                          {formatDate(record.date)}
-                        </td>
-                        <td className="py-3">
-                          <Badge variant="default" size="sm">
-                            {record.type}
-                          </Badge>
-                        </td>
-                        <td className="py-3 text-[13px] text-neutral-700">{record.description}</td>
-                        <td className="py-3 text-[13px] font-medium text-neutral-900">
-                          {record.cost > 0 ? formatCurrency(record.cost) : '--'}
-                        </td>
-                        <td className="py-3 text-[13px] text-neutral-600">{record.vendor}</td>
+          {maintenanceHistory.length > 0 && (
+            <Card padding="md">
+              <CardHeader>
+                <CardTitle>Maintenance History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-neutral-100">
+                        <th className="pb-3 text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                          Date
+                        </th>
+                        <th className="pb-3 text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                          Type
+                        </th>
+                        <th className="pb-3 text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                          Description
+                        </th>
+                        <th className="pb-3 text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                          Cost
+                        </th>
+                        <th className="pb-3 text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                          Vendor
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {maintenanceHistory.map((record, idx) => (
+                        <tr key={idx} className="border-b border-neutral-50 last:border-0">
+                          <td className="py-3 text-[13px] text-neutral-600">
+                            {formatDate(record.date)}
+                          </td>
+                          <td className="py-3">
+                            <Badge variant="default" size="sm">
+                              {record.type}
+                            </Badge>
+                          </td>
+                          <td className="py-3 text-[13px] text-neutral-700">
+                            {record.description}
+                          </td>
+                          <td className="py-3 text-[13px] font-medium text-neutral-900">
+                            {record.cost > 0 ? formatCurrency(record.cost) : '--'}
+                          </td>
+                          <td className="py-3 text-[13px] text-neutral-600">{record.vendor}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
-        {/* ---------------------------------------------------------------- */}
         {/* RIGHT COLUMN (1/3) */}
-        {/* ---------------------------------------------------------------- */}
         <div className="flex flex-col gap-6">
           {/* Status Card */}
           <Card padding="md" className="flex flex-col items-center gap-3 text-center">
@@ -426,47 +461,55 @@ export default function AssetDetailPage() {
           </Card>
 
           {/* Warranty */}
-          <Card padding="md">
-            <CardHeader>
-              <CardTitle>Warranty</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="flex flex-col gap-3">
-                <div>
-                  <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                    Status
-                  </dt>
-                  <dd className="mt-1">
-                    <Badge variant={asset.warrantyStatus === 'active' ? 'success' : 'error'} dot>
-                      {asset.warrantyStatus === 'active' ? 'Active' : 'Expired'}
-                    </Badge>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                    Provider
-                  </dt>
-                  <dd className="mt-1 text-[14px] text-neutral-900">{asset.warrantyProvider}</dd>
-                </div>
-                <div>
-                  <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                    Expiry Date
-                  </dt>
-                  <dd className="mt-1 text-[14px] text-neutral-900">
-                    {formatDate(asset.warrantyExpiry)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                    Policy Number
-                  </dt>
-                  <dd className="mt-1 font-mono text-[13px] text-neutral-700">
-                    {asset.warrantyPolicyNumber}
-                  </dd>
-                </div>
-              </dl>
-            </CardContent>
-          </Card>
+          {asset.warrantyExpiry && (
+            <Card padding="md">
+              <CardHeader>
+                <CardTitle>Warranty</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="flex flex-col gap-3">
+                  <div>
+                    <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                      Status
+                    </dt>
+                    <dd className="mt-1">
+                      <Badge variant={asset.warrantyStatus === 'active' ? 'success' : 'error'} dot>
+                        {asset.warrantyStatus === 'active' ? 'Active' : 'Expired'}
+                      </Badge>
+                    </dd>
+                  </div>
+                  {asset.warrantyProvider && (
+                    <div>
+                      <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                        Provider
+                      </dt>
+                      <dd className="mt-1 text-[14px] text-neutral-900">
+                        {asset.warrantyProvider}
+                      </dd>
+                    </div>
+                  )}
+                  <div>
+                    <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                      Expiry Date
+                    </dt>
+                    <dd className="mt-1 text-[14px] text-neutral-900">
+                      {formatDate(asset.warrantyExpiry)}
+                    </dd>
+                  </div>
+                  {asset.warrantyPolicyNumber && (
+                    <div>
+                      <dt className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                        Policy Number
+                      </dt>
+                      <dd className="mt-1 font-mono text-[13px] text-neutral-700">
+                        {asset.warrantyPolicyNumber}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Condition */}
           <Card padding="md">
@@ -478,25 +521,29 @@ export default function AssetDetailPage() {
                 <Badge variant={condition.variant} size="lg" dot>
                   {condition.label}
                 </Badge>
-                <p className="text-[13px] leading-relaxed text-neutral-600">
-                  {asset.conditionDescription}
-                </p>
+                {asset.conditionDescription && (
+                  <p className="text-[13px] leading-relaxed text-neutral-600">
+                    {asset.conditionDescription}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
 
           {/* Notes */}
-          <Card padding="md">
-            <CardHeader>
-              <CardTitle>Notes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-start gap-2">
-                <StickyNote className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" />
-                <p className="text-[13px] leading-relaxed text-neutral-600">{asset.notes}</p>
-              </div>
-            </CardContent>
-          </Card>
+          {asset.notes && (
+            <Card padding="md">
+              <CardHeader>
+                <CardTitle>Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start gap-2">
+                  <StickyNote className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" />
+                  <p className="text-[13px] leading-relaxed text-neutral-600">{asset.notes}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </PageShell>

@@ -2,12 +2,24 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, Clock, Download, File, FileText, User } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Calendar,
+  Clock,
+  Download,
+  File,
+  FileText,
+  User,
+} from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,10 +59,7 @@ interface DocumentDetail {
 // Constants
 // ---------------------------------------------------------------------------
 
-const TYPE_VARIANTS: Record<
-  DocumentDetail['type'],
-  'default' | 'primary' | 'info' | 'warning' | 'success'
-> = {
+const TYPE_VARIANTS: Record<string, 'default' | 'primary' | 'info' | 'warning' | 'success'> = {
   document: 'default',
   policy: 'primary',
   form: 'info',
@@ -59,7 +68,7 @@ const TYPE_VARIANTS: Record<
 };
 
 const CATEGORY_VARIANTS: Record<
-  DocumentDetail['category'],
+  string,
   'default' | 'primary' | 'info' | 'warning' | 'success' | 'error'
 > = {
   governance: 'primary',
@@ -71,42 +80,38 @@ const CATEGORY_VARIANTS: Record<
 };
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// Skeleton
 // ---------------------------------------------------------------------------
 
-const MOCK_DOCUMENT: DocumentDetail = {
-  id: '1',
-  name: 'Building Bylaws & Declaration',
-  type: 'policy',
-  category: 'governance',
-  fileType: 'pdf',
-  fileSize: '2.4 MB',
-  uploadedBy: 'Admin',
-  uploadedAt: '2026-01-15T10:00:00',
-  lastModified: '2026-03-01T14:30:00',
-  downloadCount: 87,
-  versions: [
-    {
-      id: 'v-2',
-      version: 'v2.0',
-      uploadedBy: 'Admin',
-      uploadedAt: '2026-03-01T14:30:00',
-      fileSize: '2.4 MB',
-    },
-    {
-      id: 'v-1',
-      version: 'v1.0',
-      uploadedBy: 'Admin',
-      uploadedAt: '2026-01-15T10:00:00',
-      fileSize: '2.1 MB',
-    },
-  ],
-  relatedDocuments: [
-    { id: '6', name: 'Pool & Amenity Rules', fileType: 'pdf', fileSize: '450 KB' },
-    { id: '7', name: 'Board Meeting Minutes — Feb 2026', fileType: 'pdf', fileSize: '180 KB' },
-    { id: '8', name: 'AGM Notice 2026', fileType: 'pdf', fileSize: '320 KB' },
-  ],
-};
+function DocumentSkeleton() {
+  return (
+    <PageShell title="" description="Library">
+      <div className="-mt-4 mb-4">
+        <Skeleton className="h-5 w-32" />
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="flex flex-col gap-6 xl:col-span-2">
+          <Card>
+            <CardContent>
+              <Skeleton className="h-[400px] w-full" />
+            </CardContent>
+          </Card>
+        </div>
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardContent>
+              <div className="flex flex-col gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </PageShell>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -115,7 +120,45 @@ const MOCK_DOCUMENT: DocumentDetail = {
 export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
 
-  const doc = MOCK_DOCUMENT;
+  const {
+    data: doc,
+    loading,
+    error,
+    refetch,
+  } = useApi<DocumentDetail>(apiUrl(`/api/v1/library/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+
+  if (loading) return <DocumentSkeleton />;
+
+  if (error || !doc) {
+    return (
+      <PageShell title="Document" description="Library">
+        <div className="-mt-4 mb-4">
+          <Link
+            href="/library"
+            className="inline-flex items-center gap-1.5 text-[14px] font-medium text-neutral-500 transition-colors hover:text-neutral-700"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to library
+          </Link>
+        </div>
+        <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+          <AlertTriangle className="text-error-500 h-12 w-12" />
+          <h1 className="text-[20px] font-bold text-neutral-900">
+            {error ? 'Error loading document' : 'Document not found'}
+          </h1>
+          <p className="text-[14px] text-neutral-500">
+            {error || 'The document you are looking for does not exist or has been removed.'}
+          </p>
+          <Button variant="secondary" onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </div>
+      </PageShell>
+    );
+  }
+
+  const versions = doc.versions ?? [];
+  const relatedDocuments = doc.relatedDocuments ?? [];
 
   const versionColumns: Column<DocumentVersion>[] = [
     {
@@ -211,54 +254,58 @@ export default function DocumentDetailPage() {
           </Card>
 
           {/* Version History */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-neutral-400" />
-                <CardTitle>Version History ({doc.versions.length})</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <DataTable
-                columns={versionColumns}
-                data={doc.versions}
-                emptyMessage="No version history."
-                emptyIcon={<File className="h-6 w-6" />}
-                compact
-              />
-            </CardContent>
-          </Card>
+          {versions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-neutral-400" />
+                  <CardTitle>Version History ({versions.length})</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <DataTable
+                  columns={versionColumns}
+                  data={versions}
+                  emptyMessage="No version history."
+                  emptyIcon={<File className="h-6 w-6" />}
+                  compact
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Related Documents */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Related Documents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-3">
-                {doc.relatedDocuments.map((rd) => (
-                  <Link
-                    key={rd.id}
-                    href={`/library/${rd.id}`}
-                    className="flex items-center justify-between rounded-xl border border-neutral-100 p-3 transition-colors hover:bg-neutral-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100">
-                        <FileText className="h-4 w-4 text-neutral-400" />
+          {relatedDocuments.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Related Documents</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-3">
+                  {relatedDocuments.map((rd) => (
+                    <Link
+                      key={rd.id}
+                      href={`/library/${rd.id}`}
+                      className="flex items-center justify-between rounded-xl border border-neutral-100 p-3 transition-colors hover:bg-neutral-50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100">
+                          <FileText className="h-4 w-4 text-neutral-400" />
+                        </div>
+                        <div>
+                          <p className="text-[13px] font-semibold text-neutral-900">{rd.name}</p>
+                          <p className="text-[12px] text-neutral-400">
+                            {rd.fileType.toUpperCase()} &middot; {rd.fileSize}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-[13px] font-semibold text-neutral-900">{rd.name}</p>
-                        <p className="text-[12px] text-neutral-400">
-                          {rd.fileType.toUpperCase()} &middot; {rd.fileSize}
-                        </p>
-                      </div>
-                    </div>
-                    <Download className="h-4 w-4 text-neutral-300" />
-                  </Link>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                      <Download className="h-4 w-4 text-neutral-300" />
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* ---- Right Column ---- */}
@@ -281,7 +328,7 @@ export default function DocumentDetailPage() {
                     Type
                   </p>
                   <div className="mt-1">
-                    <Badge variant={TYPE_VARIANTS[doc.type]} size="sm">
+                    <Badge variant={TYPE_VARIANTS[doc.type] || 'default'} size="sm">
                       {doc.type.charAt(0).toUpperCase() + doc.type.slice(1)}
                     </Badge>
                   </div>
@@ -291,7 +338,7 @@ export default function DocumentDetailPage() {
                     Category
                   </p>
                   <div className="mt-1">
-                    <Badge variant={CATEGORY_VARIANTS[doc.category]} size="sm">
+                    <Badge variant={CATEGORY_VARIANTS[doc.category] || 'default'} size="sm">
                       {doc.category.charAt(0).toUpperCase() + doc.category.slice(1)}
                     </Badge>
                   </div>
@@ -347,7 +394,7 @@ export default function DocumentDetailPage() {
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Downloads
                   </p>
-                  <p className="mt-1 text-[14px] text-neutral-900">{doc.downloadCount}</p>
+                  <p className="mt-1 text-[14px] text-neutral-900">{doc.downloadCount ?? 0}</p>
                 </div>
               </div>
             </CardContent>

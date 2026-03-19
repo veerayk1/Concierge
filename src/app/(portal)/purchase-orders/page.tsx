@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Clock,
   DollarSign,
+  Loader2,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
@@ -20,6 +21,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CreatePurchaseOrderDialog } from '@/components/forms/create-purchase-order-dialog';
 
 // ---------------------------------------------------------------------------
@@ -27,10 +30,34 @@ import { CreatePurchaseOrderDialog } from '@/components/forms/create-purchase-or
 // ---------------------------------------------------------------------------
 
 type POCategory = 'maintenance' | 'cleaning' | 'office' | 'safety' | 'landscaping' | 'other';
-
 type POStatus = 'draft' | 'pending_approval' | 'approved' | 'ordered' | 'received' | 'cancelled';
-
 type POPriority = 'low' | 'normal' | 'high' | 'urgent';
+
+/** Raw shape from GET /api/v1/purchase-orders */
+interface ApiPurchaseOrder {
+  id: string;
+  referenceNumber: string;
+  status: string;
+  budgetCategory: string;
+  priority: string;
+  totalAmount: number;
+  notes: string | null;
+  expectedDelivery: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdById: string | null;
+  approvedById: string | null;
+  approvedAt: string | null;
+  vendor: { id: string; companyName: string } | null;
+  items: Array<{
+    id: string;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
+  attachments: unknown[];
+}
 
 interface PurchaseOrderItem {
   id: string;
@@ -46,6 +73,36 @@ interface PurchaseOrderItem {
   approvedDate: string | null;
   expectedDelivery: string | null;
   priority: POPriority;
+}
+
+// ---------------------------------------------------------------------------
+// Normalizer
+// ---------------------------------------------------------------------------
+
+function normalizePO(raw: ApiPurchaseOrder): PurchaseOrderItem {
+  const categoryMap: Record<string, POCategory> = {
+    maintenance: 'maintenance',
+    cleaning: 'cleaning',
+    office: 'office',
+    safety: 'safety',
+    landscaping: 'landscaping',
+  };
+
+  return {
+    id: raw.id,
+    poNumber: raw.referenceNumber,
+    vendor: raw.vendor?.companyName ?? 'Unknown Vendor',
+    description: raw.items?.[0]?.description ?? raw.notes ?? '',
+    category: categoryMap[raw.budgetCategory?.toLowerCase()] ?? 'other',
+    status: raw.status as POStatus,
+    amount: raw.totalAmount,
+    requestedBy: raw.createdById ?? 'System',
+    requestedDate: raw.createdAt,
+    approvedBy: raw.approvedById ?? null,
+    approvedDate: raw.approvedAt ?? null,
+    expectedDelivery: raw.expectedDelivery,
+    priority: (raw.priority as POPriority) || 'normal',
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -103,91 +160,6 @@ const PRIORITY_LABELS: Record<POPriority, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_PURCHASE_ORDERS: PurchaseOrderItem[] = [
-  {
-    id: '1',
-    poNumber: 'PO-2026-001',
-    vendor: 'AirFlow HVAC Supplies',
-    description: 'HVAC filters for quarterly replacement — MERV-13, 20x25x4 (qty 48)',
-    category: 'maintenance',
-    status: 'approved',
-    amount: 2340.0,
-    requestedBy: 'James Chen',
-    requestedDate: '2026-03-01',
-    approvedBy: 'Sarah Mitchell',
-    approvedDate: '2026-03-03',
-    expectedDelivery: '2026-03-15',
-    priority: 'normal',
-  },
-  {
-    id: '2',
-    poNumber: 'PO-2026-002',
-    vendor: 'CleanPro Distribution',
-    description:
-      'Cleaning supplies — floor cleaner, glass cleaner, disinfectant, microfiber cloths',
-    category: 'cleaning',
-    status: 'pending_approval',
-    amount: 876.5,
-    requestedBy: 'Maria Santos',
-    requestedDate: '2026-03-10',
-    approvedBy: null,
-    approvedDate: null,
-    expectedDelivery: null,
-    priority: 'normal',
-  },
-  {
-    id: '3',
-    poNumber: 'PO-2026-003',
-    vendor: 'Modern Office Furnishings',
-    description: 'Lobby furniture replacement — 2 lounge chairs, 1 coffee table, side table',
-    category: 'office',
-    status: 'ordered',
-    amount: 8750.0,
-    requestedBy: 'Sarah Mitchell',
-    requestedDate: '2026-02-20',
-    approvedBy: 'David Park',
-    approvedDate: '2026-02-22',
-    expectedDelivery: '2026-04-01',
-    priority: 'low',
-  },
-  {
-    id: '4',
-    poNumber: 'PO-2026-004',
-    vendor: 'SafeGuard Fire Equipment',
-    description:
-      'Fire extinguisher replacement — ABC dry chemical, 10lb (qty 24) for annual compliance',
-    category: 'safety',
-    status: 'draft',
-    amount: 3120.0,
-    requestedBy: 'James Chen',
-    requestedDate: '2026-03-15',
-    approvedBy: null,
-    approvedDate: null,
-    expectedDelivery: null,
-    priority: 'high',
-  },
-  {
-    id: '5',
-    poNumber: 'PO-2026-005',
-    vendor: 'GreenScape Landscaping',
-    description:
-      'Annual landscaping maintenance contract — spring planting, weekly mowing, snow removal',
-    category: 'landscaping',
-    status: 'received',
-    amount: 15400.0,
-    requestedBy: 'Sarah Mitchell',
-    requestedDate: '2026-01-15',
-    approvedBy: 'David Park',
-    approvedDate: '2026-01-18',
-    expectedDelivery: '2026-02-01',
-    priority: 'normal',
-  },
-];
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -211,12 +183,17 @@ export default function PurchaseOrdersPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiPurchaseOrders, refetch } = useApi<PurchaseOrderItem[]>(
-    apiUrl('/api/v1/purchase-orders', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiPurchaseOrders,
+    loading,
+    error,
+    refetch,
+  } = useApi<ApiPurchaseOrder[]>(
+    apiUrl('/api/v1/purchase-orders', { propertyId: DEMO_PROPERTY_ID, pageSize: '200' }),
   );
 
   const allPurchaseOrders = useMemo<PurchaseOrderItem[]>(
-    () => apiPurchaseOrders ?? MOCK_PURCHASE_ORDERS,
+    () => (apiPurchaseOrders ?? []).map(normalizePO),
     [apiPurchaseOrders],
   );
 
@@ -311,13 +288,6 @@ export default function PurchaseOrdersPage() {
       ),
     },
     {
-      id: 'requestedBy',
-      header: 'Requested By',
-      accessorKey: 'requestedBy',
-      sortable: true,
-      cell: (row) => <span className="text-[13px] text-neutral-600">{row.requestedBy}</span>,
-    },
-    {
       id: 'requestedDate',
       header: 'Date',
       accessorKey: 'requestedDate',
@@ -369,7 +339,11 @@ export default function PurchaseOrdersPage() {
             <ShoppingCart className="h-5 w-5 text-neutral-600" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalCount}</p>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalCount}</p>
+            )}
             <p className="text-[13px] text-neutral-500">Total POs</p>
           </div>
         </Card>
@@ -378,7 +352,13 @@ export default function PurchaseOrdersPage() {
             <Clock className="text-warning-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{pendingCount}</p>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                {pendingCount}
+              </p>
+            )}
             <p className="text-[13px] text-neutral-500">Pending Approval</p>
           </div>
         </Card>
@@ -387,9 +367,13 @@ export default function PurchaseOrdersPage() {
             <DollarSign className="text-success-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {formatCurrency(totalSpend)}
-            </p>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                {formatCurrency(totalSpend)}
+              </p>
+            )}
             <p className="text-[13px] text-neutral-500">Total Spend</p>
           </div>
         </Card>
@@ -508,13 +492,53 @@ export default function PurchaseOrdersPage() {
         </div>
       )}
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+          <p className="mt-3 text-[14px] text-neutral-500">Loading purchase orders...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {!loading && error && (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-red-200 bg-red-50 py-12">
+          <AlertTriangle className="text-error-500 h-8 w-8" />
+          <p className="mt-3 text-[14px] font-medium text-neutral-900">
+            Failed to load purchase orders
+          </p>
+          <p className="mt-1 text-[13px] text-neutral-500">{error}</p>
+          <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && allPurchaseOrders.length === 0 && (
+        <EmptyState
+          icon={<ShoppingCart className="h-6 w-6" />}
+          title="No purchase orders yet"
+          description="Create your first purchase order to track building expenses."
+          action={
+            <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4" />
+              New PO
+            </Button>
+          }
+        />
+      )}
+
       {/* Data Table */}
-      <DataTable
-        columns={columns}
-        data={filteredPurchaseOrders}
-        emptyMessage="No purchase orders found."
-        emptyIcon={<ShoppingCart className="h-6 w-6" />}
-      />
+      {!loading && !error && allPurchaseOrders.length > 0 && (
+        <DataTable
+          columns={columns}
+          data={filteredPurchaseOrders}
+          emptyMessage="No purchase orders found."
+          emptyIcon={<ShoppingCart className="h-6 w-6" />}
+        />
+      )}
+
       <CreatePurchaseOrderDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}

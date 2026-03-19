@@ -35,10 +35,11 @@ describe('PageShell', () => {
 
   it('does not render actions container when actions are not provided', () => {
     const { container } = render(<PageShell title="Test">Content</PageShell>);
-    // The actions wrapper div should not exist
-    const headerDiv = container.querySelector('.flex.items-start.justify-between');
-    // Only the title column div should exist, no actions div
-    expect(headerDiv?.children).toHaveLength(1);
+    // The header div should only contain the title column, no actions wrapper
+    const headerDiv = container.querySelector('h1')?.parentElement?.parentElement;
+    // No actions div — only the title column exists
+    const actionsDivs = headerDiv?.querySelectorAll('[class*="shrink-0"]');
+    expect(actionsDivs?.length ?? 0).toBe(0);
   });
 
   it('renders children content', () => {

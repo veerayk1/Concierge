@@ -9,16 +9,20 @@ interface PageShellProps {
 
 export function PageShell({ title, description, actions, children }: PageShellProps) {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6 md:gap-8">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1">
-          <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">{title}</h1>
+          <h1 className="text-[24px] font-bold tracking-tight text-neutral-900 md:text-[28px]">
+            {title}
+          </h1>
           {description && (
-            <p className="text-[15px] leading-relaxed text-neutral-500">{description}</p>
+            <p className="text-[14px] leading-relaxed text-neutral-500 md:text-[15px]">
+              {description}
+            </p>
           )}
         </div>
-        {actions && <div className="flex items-center gap-3">{actions}</div>}
+        {actions && <div className="flex shrink-0 items-center gap-3">{actions}</div>}
       </div>
 
       {/* Content */}

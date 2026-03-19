@@ -16,11 +16,15 @@ import {
   ThumbsUp,
   HelpCircle,
   X as XIcon,
+  AlertTriangle,
 } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,47 +57,37 @@ interface CommunityEventDetail {
 }
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// Skeleton
 // ---------------------------------------------------------------------------
 
-const MOCK_EVENT: CommunityEventDetail = {
-  id: '1',
-  title: 'Summer BBQ',
-  description:
-    'Join us for a fun-filled afternoon of grilling, music, and community bonding on the rooftop terrace! Burgers, hot dogs, veggie options, and refreshments will be provided. Kids are welcome. Bring your appetite and your best summer vibes. This is a great opportunity to meet your neighbours and enjoy the beautiful weather. Please RSVP so we can plan food quantities accordingly.',
-  date: '2026-07-12',
-  startTime: '12:00 PM',
-  endTime: '4:00 PM',
-  location: 'Rooftop Terrace',
-  organizer: 'Building Social Committee',
-  category: 'Social',
-  goingCount: 34,
-  maybeCount: 12,
-  cantCount: 8,
-  comments: [
-    {
-      id: 'c-1',
-      author: 'Lisa B.',
-      unit: '1105',
-      text: 'This sounds amazing! Will there be music?',
-      createdAt: '2026-03-14T10:15:00',
-    },
-    {
-      id: 'c-2',
-      author: 'David C.',
-      unit: '802',
-      text: "Can we bring a guest who doesn't live in the building?",
-      createdAt: '2026-03-14T11:30:00',
-    },
-    {
-      id: 'c-3',
-      author: 'Maria G.',
-      unit: '1203',
-      text: 'Looking forward to it! I can bring my portable speaker if needed.',
-      createdAt: '2026-03-15T09:00:00',
-    },
-  ],
-};
+function DetailSkeleton() {
+  return (
+    <PageShell title="" description="Community Event">
+      <div className="-mt-4 mb-4">
+        <Skeleton className="h-5 w-40" />
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="flex flex-col gap-6 xl:col-span-2">
+          <Card>
+            <CardContent>
+              <Skeleton className="mb-4 h-6 w-2/3" />
+              <Skeleton className="mb-2 h-4 w-full" />
+              <Skeleton className="mb-2 h-4 w-full" />
+              <Skeleton className="h-4 w-1/2" />
+            </CardContent>
+          </Card>
+        </div>
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardContent>
+              <Skeleton className="h-32 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </PageShell>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -103,13 +97,52 @@ export default function CommunityEventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [rsvpChoice, setRsvpChoice] = useState<RsvpChoice | null>(null);
 
-  const event = MOCK_EVENT;
+  const {
+    data: event,
+    loading,
+    error,
+    refetch,
+  } = useApi<CommunityEventDetail>(
+    apiUrl(`/api/v1/community/${id}`, { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  if (loading) return <DetailSkeleton />;
+
+  if (error || !event) {
+    return (
+      <PageShell title="Event" description="Community Event">
+        <div className="-mt-4 mb-4">
+          <Link
+            href="/community"
+            className="inline-flex items-center gap-1.5 text-[14px] font-medium text-neutral-500 transition-colors hover:text-neutral-700"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to community
+          </Link>
+        </div>
+        <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+          <AlertTriangle className="text-error-500 h-12 w-12" />
+          <h1 className="text-[20px] font-bold text-neutral-900">
+            {error ? 'Error loading event' : 'Event not found'}
+          </h1>
+          <p className="text-[14px] text-neutral-500">
+            {error || 'The community event you are looking for does not exist or has been removed.'}
+          </p>
+          <Button variant="secondary" onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </div>
+      </PageShell>
+    );
+  }
 
   const rsvpButtons: { key: RsvpChoice; label: string; icon: typeof ThumbsUp }[] = [
     { key: 'going', label: "I'll be there", icon: ThumbsUp },
     { key: 'maybe', label: 'Maybe', icon: HelpCircle },
     { key: 'cant', label: "Can't make it", icon: XIcon },
   ];
+
+  const comments = event.comments ?? [];
 
   return (
     <PageShell
@@ -218,36 +251,42 @@ export default function CommunityEventDetailPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-neutral-400" />
-                <CardTitle>Comments ({event.comments.length})</CardTitle>
+                <CardTitle>Comments ({comments.length})</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col gap-4">
-                {event.comments.map((c) => (
-                  <div key={c.id} className="flex gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-                      <User className="h-4 w-4 text-neutral-500" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-semibold text-neutral-900">
-                          {c.author}
-                        </span>
-                        <span className="text-[12px] text-neutral-400">Unit {c.unit}</span>
-                        <span className="text-[12px] text-neutral-400">
-                          {new Date(c.createdAt).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                        </span>
+              {comments.length === 0 ? (
+                <p className="py-6 text-center text-[14px] text-neutral-400">
+                  No comments yet. Be the first to share your thoughts.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {comments.map((c) => (
+                    <div key={c.id} className="flex gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+                        <User className="h-4 w-4 text-neutral-500" />
                       </div>
-                      <p className="mt-1 text-[14px] text-neutral-700">{c.text}</p>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13px] font-semibold text-neutral-900">
+                            {c.author}
+                          </span>
+                          <span className="text-[12px] text-neutral-400">Unit {c.unit}</span>
+                          <span className="text-[12px] text-neutral-400">
+                            {new Date(c.createdAt).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[14px] text-neutral-700">{c.text}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
               <div className="mt-4 flex gap-2">
                 <input
                   type="text"
@@ -296,15 +335,21 @@ export default function CommunityEventDetailPage() {
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] text-neutral-600">Going</span>
-                  <span className="text-success-600 text-[15px] font-bold">{event.goingCount}</span>
+                  <span className="text-success-600 text-[15px] font-bold">
+                    {event.goingCount ?? 0}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] text-neutral-600">Maybe</span>
-                  <span className="text-warning-600 text-[15px] font-bold">{event.maybeCount}</span>
+                  <span className="text-warning-600 text-[15px] font-bold">
+                    {event.maybeCount ?? 0}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] text-neutral-600">Can&apos;t Make It</span>
-                  <span className="text-error-600 text-[15px] font-bold">{event.cantCount}</span>
+                  <span className="text-error-600 text-[15px] font-bold">
+                    {event.cantCount ?? 0}
+                  </span>
                 </div>
               </div>
             </CardContent>

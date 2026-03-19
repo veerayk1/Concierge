@@ -2,7 +2,18 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Image, Plus, Search, X, Camera, Calendar, Eye, Lock } from 'lucide-react';
+import {
+  Image,
+  Plus,
+  Search,
+  X,
+  Camera,
+  Calendar,
+  Eye,
+  Lock,
+  Loader2,
+  AlertTriangle,
+} from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
@@ -10,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CreateAlbumDialog } from '@/components/forms/create-album-dialog';
 
 // ---------------------------------------------------------------------------
@@ -18,6 +30,23 @@ import { CreateAlbumDialog } from '@/components/forms/create-album-dialog';
 
 type AlbumCategory = 'events' | 'building' | 'amenities' | 'renovations' | 'community' | 'seasonal';
 type AlbumVisibility = 'public' | 'residents_only' | 'staff_only';
+
+/** Raw shape from GET /api/v1/photo-albums */
+interface ApiAlbum {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  visibility: string;
+  createdById: string | null;
+  createdAt: string;
+  updatedAt: string;
+  photoCount: number;
+  viewCount: number;
+  coverPhotoId: string | null;
+  eventDate: string | null;
+  photos: Array<{ id: string; filePath: string; caption: string | null; sortOrder: number }>;
+}
 
 interface AlbumItem {
   id: string;
@@ -33,83 +62,38 @@ interface AlbumItem {
 }
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// Normalizer
 // ---------------------------------------------------------------------------
 
-const MOCK_ALBUMS: AlbumItem[] = [
-  {
-    id: '1',
-    title: 'Holiday Party 2025',
-    description: 'Annual holiday celebration in the main lobby with residents and staff.',
-    coverColor: 'bg-red-100',
-    photoCount: 42,
-    category: 'events',
-    createdBy: 'Sarah M.',
-    createdAt: '2025-12-20T18:00:00',
-    visibility: 'public',
-    viewCount: 328,
-  },
-  {
-    id: '2',
-    title: 'Lobby Renovation',
-    description: 'Before and after photos of the lobby renovation completed in February.',
-    coverColor: 'bg-amber-100',
-    photoCount: 27,
-    category: 'renovations',
-    createdBy: 'James P.',
-    createdAt: '2026-02-15T10:00:00',
-    visibility: 'residents_only',
-    viewCount: 156,
-  },
-  {
-    id: '3',
-    title: 'Pool Area',
-    description: 'Rooftop pool and lounge area amenity photos for resident orientation.',
-    coverColor: 'bg-sky-100',
-    photoCount: 18,
-    category: 'amenities',
-    createdBy: 'Admin',
-    createdAt: '2026-01-10T14:00:00',
-    visibility: 'public',
-    viewCount: 210,
-  },
-  {
-    id: '4',
-    title: 'Garden Terrace',
-    description: 'Seasonal photos of the garden terrace across all four seasons.',
-    coverColor: 'bg-green-100',
-    photoCount: 35,
-    category: 'seasonal',
-    createdBy: 'Lisa K.',
-    createdAt: '2026-03-01T09:00:00',
-    visibility: 'public',
-    viewCount: 189,
-  },
-  {
-    id: '5',
-    title: 'Annual BBQ',
-    description: 'Summer BBQ event with games, food, and community bonding.',
-    coverColor: 'bg-orange-100',
-    photoCount: 53,
-    category: 'community',
-    createdBy: 'Mike R.',
-    createdAt: '2025-08-12T16:00:00',
-    visibility: 'residents_only',
-    viewCount: 274,
-  },
-  {
-    id: '6',
-    title: 'Building Exterior',
-    description: 'Professional exterior photos of the building for marketing and records.',
-    coverColor: 'bg-slate-100',
-    photoCount: 12,
-    category: 'building',
-    createdBy: 'Admin',
-    createdAt: '2026-01-05T11:00:00',
-    visibility: 'staff_only',
-    viewCount: 45,
-  },
+const COVER_COLORS = [
+  'bg-red-100',
+  'bg-amber-100',
+  'bg-sky-100',
+  'bg-green-100',
+  'bg-orange-100',
+  'bg-slate-100',
+  'bg-violet-100',
+  'bg-teal-100',
 ];
+
+function normalizeAlbum(raw: ApiAlbum, index: number): AlbumItem {
+  return {
+    id: raw.id,
+    title: raw.title,
+    description: raw.description ?? '',
+    coverColor: COVER_COLORS[index % COVER_COLORS.length] ?? 'bg-neutral-100',
+    photoCount: raw.photoCount,
+    category: (raw.category as AlbumCategory) || 'community',
+    createdBy: raw.createdById ?? 'Admin',
+    createdAt: raw.createdAt,
+    visibility: (raw.visibility as AlbumVisibility) || 'public',
+    viewCount: raw.viewCount,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
 const CATEGORIES: { label: string; value: 'All' | AlbumCategory }[] = [
   { label: 'All', value: 'All' },
@@ -149,11 +133,16 @@ export default function PhotoAlbumsPage() {
   const [categoryFilter, setCategoryFilter] = useState<'All' | AlbumCategory>('All');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiAlbums, refetch } = useApi<AlbumItem[]>(
-    apiUrl('/api/v1/photo-albums', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiAlbums,
+    loading,
+    error,
+    refetch,
+  } = useApi<ApiAlbum[]>(
+    apiUrl('/api/v1/photo-albums', { propertyId: DEMO_PROPERTY_ID, pageSize: '200' }),
   );
 
-  const allAlbums = useMemo<AlbumItem[]>(() => apiAlbums ?? MOCK_ALBUMS, [apiAlbums]);
+  const allAlbums = useMemo<AlbumItem[]>(() => (apiAlbums ?? []).map(normalizeAlbum), [apiAlbums]);
 
   const filteredAlbums = useMemo(() => {
     return allAlbums.filter((album) => {
@@ -192,7 +181,11 @@ export default function PhotoAlbumsPage() {
             <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
               Total Albums
             </p>
-            <p className="text-[22px] font-bold text-neutral-900">{totalAlbums}</p>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <p className="text-[22px] font-bold text-neutral-900">{totalAlbums}</p>
+            )}
           </div>
         </Card>
         <Card className="flex items-center gap-4">
@@ -203,7 +196,11 @@ export default function PhotoAlbumsPage() {
             <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
               Total Photos
             </p>
-            <p className="text-[22px] font-bold text-neutral-900">{totalPhotos}</p>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <p className="text-[22px] font-bold text-neutral-900">{totalPhotos}</p>
+            )}
           </div>
         </Card>
         <Card className="flex items-center gap-4">
@@ -214,7 +211,11 @@ export default function PhotoAlbumsPage() {
             <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
               Public Albums
             </p>
-            <p className="text-[22px] font-bold text-neutral-900">{publicAlbums}</p>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <p className="text-[22px] font-bold text-neutral-900">{publicAlbums}</p>
+            )}
           </div>
         </Card>
       </div>
@@ -254,37 +255,66 @@ export default function PhotoAlbumsPage() {
         </div>
       </div>
 
-      {/* Album Grid */}
-      {filteredAlbums.length === 0 ? (
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+          <p className="mt-3 text-[14px] text-neutral-500">Loading photo albums...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {!loading && error && (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-red-200 bg-red-50 py-12">
+          <AlertTriangle className="text-error-500 h-8 w-8" />
+          <p className="mt-3 text-[14px] font-medium text-neutral-900">
+            Failed to load photo albums
+          </p>
+          <p className="mt-1 text-[13px] text-neutral-500">{error}</p>
+          <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && allAlbums.length === 0 && (
+        <EmptyState
+          icon={<Image className="h-6 w-6" />}
+          title="No albums yet"
+          description="Create your first photo album to get started."
+          action={
+            <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4" />
+              New Album
+            </Button>
+          }
+        />
+      )}
+
+      {/* Albums loaded but filtered to 0 */}
+      {!loading && !error && allAlbums.length > 0 && filteredAlbums.length === 0 && (
         <EmptyState
           icon={<Image className="h-6 w-6" />}
           title="No albums found"
-          description={
-            searchQuery || categoryFilter !== 'All'
-              ? 'Try adjusting your search or filter criteria.'
-              : 'Create your first photo album to get started.'
-          }
+          description="Try adjusting your search or filter criteria."
           action={
-            searchQuery || categoryFilter !== 'All' ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  setSearchQuery('');
-                  setCategoryFilter('All');
-                }}
-              >
-                Clear Filters
-              </Button>
-            ) : (
-              <Button size="sm" onClick={() => setShowCreateDialog(true)}>
-                <Plus className="h-4 w-4" />
-                New Album
-              </Button>
-            )
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setSearchQuery('');
+                setCategoryFilter('All');
+              }}
+            >
+              Clear Filters
+            </Button>
           }
         />
-      ) : (
+      )}
+
+      {/* Album Grid */}
+      {!loading && !error && filteredAlbums.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredAlbums.map((album) => (
             <Card
@@ -342,6 +372,7 @@ export default function PhotoAlbumsPage() {
           ))}
         </div>
       )}
+
       <CreateAlbumDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}

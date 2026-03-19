@@ -41,6 +41,8 @@ export const createUserSchema = z.object({
     .or(z.literal('')),
   sendWelcomeEmail: z.boolean().default(true),
   languagePreference: z.enum(['en', 'fr']).default('en'),
+  /** GAP 7.5 — Salutation (Mr., Mrs., Ms., Dr., Prof., Rev., Hon., Mx.) */
+  salutation: z.enum(['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Rev.', 'Hon.', 'Mx.']).optional(),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
@@ -69,6 +71,11 @@ export const updateUserSchema = z.object({
   requireAssistance: z.boolean().optional(),
   frontDeskInstructions: z.string().max(500).optional().or(z.literal('')),
   languagePreference: z.enum(['en', 'fr']).optional(),
+  /** GAP 7.5 — Salutation (Mr., Mrs., Ms., Dr., Prof., Rev., Hon., Mx.) */
+  salutation: z
+    .enum(['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Rev.', 'Hon.', 'Mx.'])
+    .optional()
+    .nullable(),
   /** GAP 8.1 — Rich HTML email signature for staff members */
   emailSignature: z
     .string()

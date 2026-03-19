@@ -25,6 +25,10 @@ const createAdSchema = z.object({
   contactMethod: z.array(z.enum(['in_app', 'phone', 'email'])).default(['in_app']),
   contactPhone: z.string().max(20).optional(),
   contactEmail: z.string().email().max(254).optional(),
+  /** GAP 12.1 — Residents must accept marketplace terms before posting */
+  termsAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'You must accept the marketplace terms' }),
+  }),
 });
 
 // ---------------------------------------------------------------------------

@@ -304,6 +304,25 @@ const templates: Record<string, TemplateDefinition> = {
   },
 
   // -----------------------------------------------------------------------
+  // Announcement Distribution
+  // -----------------------------------------------------------------------
+  announcement: {
+    requiredVars: ['title', 'body', 'propertyName', 'publishedBy'],
+    render: (vars) =>
+      baseLayout(
+        `Announcement — ${v(vars, 'title')}`,
+        `<h1>${v(vars, 'title')}</h1>
+        <p>${v(vars, 'body')}</p>
+        <dl class="info-card">
+          <dt>Property</dt>
+          <dd>${v(vars, 'propertyName')}</dd>
+          <dt>Published By</dt>
+          <dd>${v(vars, 'publishedBy')}</dd>
+        </dl>`,
+      ),
+  },
+
+  // -----------------------------------------------------------------------
   // Notification Digest (demonstrates loop support)
   // -----------------------------------------------------------------------
   notification_digest: {

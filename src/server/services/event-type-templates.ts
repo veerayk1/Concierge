@@ -204,6 +204,67 @@ const SECURITY_TEMPLATES: EventTypeTemplate[] = [
     description: 'Parking violation incidents with vehicle identification and enforcement tracking',
     customFieldsSchema: null,
   },
+  {
+    name: 'Valet Parking',
+    slug: 'valet-parking',
+    category: 'security',
+    icon: 'car-front',
+    color: '#7C3AED', // Violet-600
+    defaultPriority: 'low',
+    description:
+      'Valet parking service tracking for resident and guest vehicles with ticket management',
+    customFieldsSchema: {
+      type: 'object',
+      required: ['ticketNumber', 'vehicleMake'],
+      properties: {
+        ticketNumber: {
+          type: 'string',
+          minLength: 1,
+          description: 'Valet ticket number issued to the vehicle owner',
+        },
+        vehicleMake: {
+          type: 'string',
+          minLength: 1,
+          description: 'Vehicle make (e.g., Toyota, BMW, Honda)',
+        },
+        vehicleModel: {
+          type: 'string',
+          description: 'Vehicle model (e.g., Camry, X5, Civic)',
+        },
+        vehicleColor: {
+          type: 'string',
+          description: 'Vehicle color for identification',
+        },
+        licensePlate: {
+          type: 'string',
+          description: 'Vehicle license plate number',
+        },
+        valetStatus: {
+          type: 'string',
+          enum: ['parked', 'retrieved', 'waiting'],
+          description: 'Current valet status: parked, waiting for retrieval, or retrieved',
+        },
+        parkingLocation: {
+          type: 'string',
+          description: 'Where the vehicle is parked (level, spot number)',
+        },
+        parkedAt: {
+          type: 'string',
+          format: 'date-time',
+          description: 'Time the vehicle was parked',
+        },
+        retrievedAt: {
+          type: 'string',
+          format: 'date-time',
+          description: 'Time the vehicle was retrieved',
+        },
+        valetAttendant: {
+          type: 'string',
+          description: 'Name of the valet attendant handling the vehicle',
+        },
+      },
+    },
+  },
 ];
 
 // ---------------------------------------------------------------------------

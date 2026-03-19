@@ -12,6 +12,8 @@ import {
   Clock,
   Users,
   BarChart3,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
@@ -21,14 +23,30 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 type SurveyType = 'poll' | 'survey' | 'feedback';
-
 type SurveyStatus = 'draft' | 'active' | 'closed' | 'archived';
+
+/** Raw shape from GET /api/v1/surveys */
+interface ApiSurvey {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  anonymous: boolean;
+  responseCount: number;
+  expiryDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdById: string | null;
+  questionCount: number;
+  questions: unknown[];
+}
 
 interface SurveyItem {
   id: string;
@@ -42,6 +60,29 @@ interface SurveyItem {
   createdAt: string;
   closesAt: string;
   responseRate: number;
+}
+
+// ---------------------------------------------------------------------------
+// Normalizer
+// ---------------------------------------------------------------------------
+
+function normalizeSurvey(raw: ApiSurvey): SurveyItem {
+  const targetCount = 150; // Default target; could be property-specific
+  const responseRate = targetCount > 0 ? Math.round((raw.responseCount / targetCount) * 100) : 0;
+
+  return {
+    id: raw.id,
+    title: raw.title,
+    description: raw.description ?? '',
+    type: 'survey', // API doesn't have type field yet; default to survey
+    status: (raw.status as SurveyStatus) || 'draft',
+    responseCount: raw.responseCount,
+    targetCount,
+    createdBy: raw.createdById ?? 'System',
+    createdAt: raw.createdAt,
+    closesAt: raw.expiryDate ?? raw.createdAt,
+    responseRate,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -75,83 +116,6 @@ const STATUS_LABELS: Record<SurveyStatus, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_SURVEYS: SurveyItem[] = [
-  {
-    id: '1',
-    title: 'Annual Building Satisfaction Survey',
-    description:
-      'Comprehensive survey covering maintenance quality, amenity satisfaction, staff performance, and overall living experience.',
-    type: 'survey',
-    status: 'active',
-    responseCount: 87,
-    targetCount: 150,
-    createdBy: 'Property Manager',
-    createdAt: '2026-03-01T09:00:00',
-    closesAt: '2026-03-31T23:59:00',
-    responseRate: 58,
-  },
-  {
-    id: '2',
-    title: 'Amenity Feedback — Gym Equipment',
-    description:
-      'Tell us what new gym equipment you would like to see and how satisfied you are with current offerings.',
-    type: 'feedback',
-    status: 'active',
-    responseCount: 42,
-    targetCount: 100,
-    createdBy: 'James Chen',
-    createdAt: '2026-03-10T10:00:00',
-    closesAt: '2026-03-25T23:59:00',
-    responseRate: 42,
-  },
-  {
-    id: '3',
-    title: 'Holiday Decoration Poll — Spring 2026',
-    description:
-      'Vote on your preferred lobby decoration theme for the spring season. Choose from 4 options.',
-    type: 'poll',
-    status: 'closed',
-    responseCount: 112,
-    targetCount: 150,
-    createdBy: 'Social Committee',
-    createdAt: '2026-02-15T09:00:00',
-    closesAt: '2026-03-01T23:59:00',
-    responseRate: 75,
-  },
-  {
-    id: '4',
-    title: 'Pet Policy Feedback',
-    description:
-      'Share your thoughts on current pet policies including designated areas, size restrictions, and noise complaints process.',
-    type: 'feedback',
-    status: 'draft',
-    responseCount: 0,
-    targetCount: 150,
-    createdBy: 'Property Manager',
-    createdAt: '2026-03-18T14:00:00',
-    closesAt: '2026-04-18T23:59:00',
-    responseRate: 0,
-  },
-  {
-    id: '5',
-    title: 'Parking Improvement Survey',
-    description:
-      'Help us plan parking improvements. Topics include EV charging, visitor parking allocation, and signage clarity.',
-    type: 'survey',
-    status: 'active',
-    responseCount: 63,
-    targetCount: 120,
-    createdBy: 'James Chen',
-    createdAt: '2026-03-05T08:00:00',
-    closesAt: '2026-03-28T23:59:00',
-    responseRate: 53,
-  },
-];
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -161,11 +125,19 @@ export default function SurveysPage() {
   const [typeFilter, setTypeFilter] = useState<SurveyType | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<SurveyStatus | 'all'>('all');
 
-  const { data: apiSurveys } = useApi<SurveyItem[]>(
-    apiUrl('/api/v1/surveys', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiSurveys,
+    loading,
+    error,
+    refetch,
+  } = useApi<ApiSurvey[]>(
+    apiUrl('/api/v1/surveys', { propertyId: DEMO_PROPERTY_ID, pageSize: '200' }),
   );
 
-  const allSurveys = useMemo<SurveyItem[]>(() => apiSurveys ?? MOCK_SURVEYS, [apiSurveys]);
+  const allSurveys = useMemo<SurveyItem[]>(
+    () => (apiSurveys ?? []).map(normalizeSurvey),
+    [apiSurveys],
+  );
 
   const filteredSurveys = useMemo(() => {
     return allSurveys.filter((survey) => {
@@ -322,7 +294,11 @@ export default function SurveysPage() {
             <ClipboardList className="h-5 w-5 text-neutral-600" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalCount}</p>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalCount}</p>
+            )}
             <p className="text-[13px] text-neutral-500">Total Surveys</p>
           </div>
         </Card>
@@ -331,7 +307,11 @@ export default function SurveysPage() {
             <CheckCircle2 className="text-success-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{activeCount}</p>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <p className="text-[24px] font-bold tracking-tight text-neutral-900">{activeCount}</p>
+            )}
             <p className="text-[13px] text-neutral-500">Active</p>
           </div>
         </Card>
@@ -340,9 +320,13 @@ export default function SurveysPage() {
             <Users className="text-info-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {avgResponseRate}%
-            </p>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                {avgResponseRate}%
+              </p>
+            )}
             <p className="text-[13px] text-neutral-500">Avg Response Rate</p>
           </div>
         </Card>
@@ -407,13 +391,50 @@ export default function SurveysPage() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+          <p className="mt-3 text-[14px] text-neutral-500">Loading surveys...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {!loading && error && (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-red-200 bg-red-50 py-12">
+          <AlertTriangle className="text-error-500 h-8 w-8" />
+          <p className="mt-3 text-[14px] font-medium text-neutral-900">Failed to load surveys</p>
+          <p className="mt-1 text-[13px] text-neutral-500">{error}</p>
+          <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && allSurveys.length === 0 && (
+        <EmptyState
+          icon={<ClipboardList className="h-6 w-6" />}
+          title="No surveys yet"
+          description="Create your first survey to start gathering resident feedback."
+          action={
+            <Button size="sm">
+              <Plus className="h-4 w-4" />
+              Create Survey
+            </Button>
+          }
+        />
+      )}
+
       {/* Data Table */}
-      <DataTable
-        columns={columns}
-        data={filteredSurveys}
-        emptyMessage="No surveys found."
-        emptyIcon={<ClipboardList className="h-6 w-6" />}
-      />
+      {!loading && !error && allSurveys.length > 0 && (
+        <DataTable
+          columns={columns}
+          data={filteredSurveys}
+          emptyMessage="No surveys found."
+          emptyIcon={<ClipboardList className="h-6 w-6" />}
+        />
+      )}
     </PageShell>
   );
 }

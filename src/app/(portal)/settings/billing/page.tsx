@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Check,
   CreditCard,
@@ -10,22 +10,63 @@ import {
   Zap,
   Building2,
   ChevronRight,
+  AlertTriangle,
 } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types (aligned with API responses)
 // ---------------------------------------------------------------------------
+
+interface SubscriptionData {
+  id?: string;
+  propertyId: string;
+  tier: string | null;
+  status: string;
+  billingCycle?: string;
+  price?: number; // cents per unit
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  nextBillingDate?: string;
+  canceledAt?: string | null;
+  trialEndsAt?: string | null;
+  usage?: {
+    unitCount: number;
+    userCount: number;
+    maxUnits: number | null;
+    maxUsers: number | null;
+    features: string[];
+  };
+}
 
 interface Invoice {
   id: string;
-  number: string;
-  date: string;
   amount: number;
-  status: 'paid' | 'pending' | 'overdue';
+  tax: number;
+  currency: string;
+  status: string;
+  pdfUrl: string | null;
+  periodStart: string;
+  periodEnd: string;
+  paidAt: string | null;
+  createdAt: string;
+}
+
+interface InvoicesResponse {
+  data: Invoice[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 interface PlanTier {
@@ -39,32 +80,8 @@ interface PlanTier {
 }
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// Static plan tiers (these are marketing info, not from API)
 // ---------------------------------------------------------------------------
-
-const MOCK_INVOICES: Invoice[] = [
-  {
-    id: '1',
-    number: 'INV-2026-003',
-    date: '2026-03-01',
-    amount: 1368.0,
-    status: 'pending',
-  },
-  {
-    id: '2',
-    number: 'INV-2026-002',
-    date: '2026-02-01',
-    amount: 1368.0,
-    status: 'paid',
-  },
-  {
-    id: '3',
-    number: 'INV-2026-001',
-    date: '2026-01-01',
-    amount: 1368.0,
-    status: 'paid',
-  },
-];
 
 const PLAN_TIERS: PlanTier[] = [
   {
@@ -98,7 +115,6 @@ const PLAN_TIERS: PlanTier[] = [
       'API access',
     ],
     highlighted: true,
-    current: true,
   },
   {
     name: 'Enterprise',
@@ -124,11 +140,11 @@ const PLAN_TIERS: PlanTier[] = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatCurrency(amount: number) {
+function formatCurrency(amount: number, currency = 'CAD') {
   return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'CAD',
-  }).format(amount);
+    currency,
+  }).format(amount / 100);
 }
 
 function formatDate(dateStr: string) {
@@ -139,14 +155,20 @@ function formatDate(dateStr: string) {
   });
 }
 
-function statusVariant(status: Invoice['status']): 'success' | 'warning' | 'error' {
-  switch (status) {
+function statusVariant(status: string): 'success' | 'warning' | 'error' | 'default' {
+  switch (status.toLowerCase()) {
     case 'paid':
       return 'success';
     case 'pending':
+    case 'open':
+    case 'draft':
       return 'warning';
     case 'overdue':
+    case 'uncollectible':
+    case 'void':
       return 'error';
+    default:
+      return 'default';
   }
 }
 
@@ -156,6 +178,99 @@ function statusVariant(status: Invoice['status']): 'success' | 'warning' | 'erro
 
 export default function BillingPage() {
   const [selectedPlan] = useState('Professional');
+
+  // Fetch subscription data
+  const {
+    data: subscription,
+    loading: subLoading,
+    error: subError,
+    refetch: refetchSub,
+  } = useApi<SubscriptionData>(apiUrl('/api/v1/billing', { propertyId: DEMO_PROPERTY_ID }));
+
+  // Fetch invoices
+  const {
+    data: invoicesResponse,
+    loading: invLoading,
+    error: invError,
+    refetch: refetchInv,
+  } = useApi<InvoicesResponse>(
+    apiUrl('/api/v1/billing/invoices', { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  const invoices: Invoice[] = useMemo(() => {
+    if (!invoicesResponse) return [];
+    // The useApi hook extracts .data automatically, but invoicesResponse may be the full response or just data
+    if (Array.isArray(invoicesResponse)) return invoicesResponse as unknown as Invoice[];
+    if (Array.isArray((invoicesResponse as InvoicesResponse).data))
+      return (invoicesResponse as InvoicesResponse).data;
+    return [];
+  }, [invoicesResponse]);
+
+  const loading = subLoading || invLoading;
+  const error = subError || invError;
+
+  // Mark current plan tier
+  const planTiers = useMemo(() => {
+    const currentTier = subscription?.tier?.toLowerCase() ?? 'professional';
+    return PLAN_TIERS.map((tier) => ({
+      ...tier,
+      current: tier.name.toLowerCase() === currentTier,
+      highlighted: tier.name.toLowerCase() === currentTier,
+    }));
+  }, [subscription]);
+
+  const unitCount = subscription?.usage?.unitCount ?? 0;
+  const maxUnits = subscription?.usage?.maxUnits ?? 500;
+  const pricePerUnit = subscription?.price ?? 800; // cents
+  const monthlyTotal = unitCount * pricePerUnit;
+  const tierName = subscription?.tier
+    ? subscription.tier.charAt(0).toUpperCase() + subscription.tier.slice(1)
+    : 'Professional';
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <PageShell
+        title="Billing & Subscription"
+        description="Manage your subscription, payment methods, and invoices."
+      >
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Skeleton className="h-56 rounded-2xl" />
+          <Skeleton className="h-56 rounded-2xl" />
+        </div>
+        <Skeleton className="mt-6 h-32 rounded-2xl" />
+        <Skeleton className="mt-6 h-64 rounded-2xl" />
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell
+        title="Billing & Subscription"
+        description="Manage your subscription, payment methods, and invoices."
+      >
+        <EmptyState
+          icon={<AlertTriangle className="h-6 w-6" />}
+          title="Failed to load billing information"
+          description={error}
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                refetchSub();
+                refetchInv();
+              }}
+            >
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell
@@ -169,30 +284,41 @@ export default function BillingPage() {
           <CardHeader>
             <CardTitle>Current Plan</CardTitle>
             <Badge variant="primary" size="md">
-              Professional
+              {tierName}
             </Badge>
           </CardHeader>
           <div className="flex flex-col gap-4">
             <div className="flex items-baseline gap-2">
-              <span className="text-[36px] font-bold tracking-tight text-neutral-900">$1,368</span>
+              <span className="text-[36px] font-bold tracking-tight text-neutral-900">
+                {formatCurrency(monthlyTotal)}
+              </span>
               <span className="text-[14px] text-neutral-500">/month</span>
             </div>
             <div className="flex flex-col gap-2 text-[14px]">
               <div className="flex justify-between">
                 <span className="text-neutral-500">Billing period</span>
-                <span className="font-medium text-neutral-900">Monthly</span>
+                <span className="font-medium text-neutral-900">
+                  {subscription?.billingCycle
+                    ? subscription.billingCycle.charAt(0).toUpperCase() +
+                      subscription.billingCycle.slice(1)
+                    : 'Monthly'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500">Unit count</span>
-                <span className="font-medium text-neutral-900">171 units</span>
+                <span className="font-medium text-neutral-900">{unitCount} units</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500">Per-unit rate</span>
-                <span className="font-medium text-neutral-900">$8.00 /unit</span>
+                <span className="font-medium text-neutral-900">
+                  {formatCurrency(pricePerUnit)} /unit
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500">Next billing date</span>
-                <span className="font-medium text-neutral-900">Apr 1, 2026</span>
+                <span className="font-medium text-neutral-900">
+                  {subscription?.nextBillingDate ? formatDate(subscription.nextBillingDate) : '--'}
+                </span>
               </div>
             </div>
             <Button variant="secondary" className="mt-2">
@@ -215,38 +341,45 @@ export default function BillingPage() {
                   <Building2 className="h-4 w-4 text-neutral-400" />
                   <span className="text-neutral-700">Units</span>
                 </div>
-                <span className="font-medium text-neutral-900">171 / 500</span>
+                <span className="font-medium text-neutral-900">
+                  {unitCount} / {maxUnits ?? 'Unlimited'}
+                </span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
-                <div className="bg-primary-500 h-full rounded-full" style={{ width: '34.2%' }} />
+                <div
+                  className="bg-primary-500 h-full rounded-full"
+                  style={{
+                    width: `${maxUnits ? Math.min((unitCount / maxUnits) * 100, 100) : 0}%`,
+                  }}
+                />
               </div>
             </div>
 
-            {/* Storage */}
+            {/* Storage placeholder — not tracked in current API */}
             <div>
               <div className="mb-2 flex items-center justify-between text-[14px]">
                 <div className="flex items-center gap-2">
                   <HardDrive className="h-4 w-4 text-neutral-400" />
                   <span className="text-neutral-700">Storage</span>
                 </div>
-                <span className="font-medium text-neutral-900">12.4 GB / 50 GB</span>
+                <span className="font-medium text-neutral-900">-- / --</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
-                <div className="bg-info-500 h-full rounded-full" style={{ width: '24.8%' }} />
+                <div className="bg-info-500 h-full rounded-full" style={{ width: '0%' }} />
               </div>
             </div>
 
-            {/* API Calls */}
+            {/* API Calls placeholder */}
             <div>
               <div className="mb-2 flex items-center justify-between text-[14px]">
                 <div className="flex items-center gap-2">
                   <Zap className="h-4 w-4 text-neutral-400" />
                   <span className="text-neutral-700">API Calls (this month)</span>
                 </div>
-                <span className="font-medium text-neutral-900">8,421 / 50,000</span>
+                <span className="font-medium text-neutral-900">-- / --</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
-                <div className="bg-success-500 h-full rounded-full" style={{ width: '16.8%' }} />
+                <div className="bg-success-500 h-full rounded-full" style={{ width: '0%' }} />
               </div>
             </div>
           </div>
@@ -267,8 +400,12 @@ export default function BillingPage() {
               <CreditCard className="h-5 w-5 text-neutral-600" />
             </div>
             <div>
-              <p className="text-[14px] font-medium text-neutral-900">Visa ending in 4242</p>
-              <p className="text-[13px] text-neutral-500">Expires 12/2027</p>
+              <p className="text-[14px] font-medium text-neutral-900">
+                {subscription?.status === 'none'
+                  ? 'No payment method on file'
+                  : 'Payment method on file'}
+              </p>
+              <p className="text-[13px] text-neutral-500">Managed via Stripe billing portal</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -289,55 +426,73 @@ export default function BillingPage() {
             <CardTitle>Invoice History</CardTitle>
           </CardHeader>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-neutral-100 bg-neutral-50/80">
-                <th className="px-6 py-3 text-left text-[12px] font-semibold tracking-[0.04em] text-neutral-500 uppercase">
-                  Invoice
-                </th>
-                <th className="px-6 py-3 text-left text-[12px] font-semibold tracking-[0.04em] text-neutral-500 uppercase">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-[12px] font-semibold tracking-[0.04em] text-neutral-500 uppercase">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-[12px] font-semibold tracking-[0.04em] text-neutral-500 uppercase">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-right text-[12px] font-semibold tracking-[0.04em] text-neutral-500 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {MOCK_INVOICES.map((invoice) => (
-                <tr key={invoice.id} className="transition-colors hover:bg-neutral-50/50">
-                  <td className="px-6 py-4 text-[14px] font-medium text-neutral-900">
-                    {invoice.number}
-                  </td>
-                  <td className="px-6 py-4 text-[14px] text-neutral-600">
-                    {formatDate(invoice.date)}
-                  </td>
-                  <td className="px-6 py-4 text-[14px] font-medium text-neutral-900">
-                    {formatCurrency(invoice.amount)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge variant={statusVariant(invoice.status)} size="sm" dot>
-                      {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <Button variant="ghost" size="sm">
-                      <Download className="h-4 w-4" />
-                      Download
-                    </Button>
-                  </td>
+        {invoices.length === 0 ? (
+          <div className="px-6 pb-6">
+            <EmptyState
+              icon={<CreditCard className="h-6 w-6" />}
+              title="No invoices yet"
+              description="Invoices will appear here once your first billing cycle completes."
+            />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-neutral-100 bg-neutral-50/80">
+                  <th className="px-6 py-3 text-left text-[12px] font-semibold tracking-[0.04em] text-neutral-500 uppercase">
+                    Period
+                  </th>
+                  <th className="px-6 py-3 text-left text-[12px] font-semibold tracking-[0.04em] text-neutral-500 uppercase">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-[12px] font-semibold tracking-[0.04em] text-neutral-500 uppercase">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-[12px] font-semibold tracking-[0.04em] text-neutral-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-right text-[12px] font-semibold tracking-[0.04em] text-neutral-500 uppercase">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {invoices.map((invoice) => (
+                  <tr key={invoice.id} className="transition-colors hover:bg-neutral-50/50">
+                    <td className="px-6 py-4 text-[14px] font-medium text-neutral-900">
+                      {formatDate(invoice.periodStart)} - {formatDate(invoice.periodEnd)}
+                    </td>
+                    <td className="px-6 py-4 text-[14px] text-neutral-600">
+                      {formatDate(invoice.createdAt)}
+                    </td>
+                    <td className="px-6 py-4 text-[14px] font-medium text-neutral-900">
+                      {formatCurrency(invoice.amount, invoice.currency || 'CAD')}
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant={statusVariant(invoice.status)} size="sm" dot>
+                        {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {invoice.pdfUrl ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(invoice.pdfUrl!, '_blank')}
+                        >
+                          <Download className="h-4 w-4" />
+                          Download
+                        </Button>
+                      ) : (
+                        <span className="text-[13px] text-neutral-400">--</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
 
       {/* Plan Comparison */}
@@ -348,7 +503,7 @@ export default function BillingPage() {
         </p>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {PLAN_TIERS.map((tier) => (
+          {planTiers.map((tier) => (
             <Card
               key={tier.name}
               className={tier.highlighted ? 'ring-primary-500 relative ring-2' : ''}

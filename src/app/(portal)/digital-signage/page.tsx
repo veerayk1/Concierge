@@ -15,6 +15,7 @@ import {
   Play,
   Pause,
   Eye,
+  Loader2,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
@@ -24,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CreateSignageDialog } from '@/components/forms/create-signage-dialog';
 
 // ---------------------------------------------------------------------------
@@ -34,6 +36,23 @@ type SignageType = 'announcement' | 'weather' | 'event' | 'emergency' | 'welcome
 type SignageScreen = 'lobby' | 'elevator' | 'parking' | 'pool' | 'gym' | 'mailroom';
 type SignageStatus = 'active' | 'scheduled' | 'paused' | 'expired';
 type SignagePriority = 'normal' | 'high' | 'emergency';
+
+/** Raw shape from GET /api/v1/digital-signage */
+interface ApiSignageContent {
+  id: string;
+  title: string;
+  body: string | null;
+  contentType: string;
+  zone: string;
+  isActive: boolean;
+  startDate: string;
+  endDate: string;
+  priority: number;
+  durationSeconds: number;
+  createdAt: string;
+  updatedAt: string;
+  createdById: string | null;
+}
 
 interface SignageItem {
   id: string;
@@ -48,6 +67,46 @@ interface SignageItem {
   rotation: number;
   createdBy: string;
   lastModified: string;
+}
+
+// ---------------------------------------------------------------------------
+// Normalizer
+// ---------------------------------------------------------------------------
+
+function normalizeSignage(raw: ApiSignageContent): SignageItem {
+  const now = new Date();
+  const start = new Date(raw.startDate);
+  const end = new Date(raw.endDate);
+
+  let status: SignageStatus;
+  if (!raw.isActive) {
+    status = 'paused';
+  } else if (end < now) {
+    status = 'expired';
+  } else if (start > now) {
+    status = 'scheduled';
+  } else {
+    status = 'active';
+  }
+
+  let priority: SignagePriority = 'normal';
+  if (raw.priority >= 10) priority = 'emergency';
+  else if (raw.priority >= 5) priority = 'high';
+
+  return {
+    id: raw.id,
+    name: raw.title,
+    content: raw.body ?? '',
+    type: (raw.contentType as SignageType) || 'announcement',
+    screen: (raw.zone as SignageScreen) || 'lobby',
+    status,
+    startDate: raw.startDate,
+    endDate: raw.endDate,
+    priority,
+    rotation: raw.durationSeconds,
+    createdBy: raw.createdById ?? 'System',
+    lastModified: raw.updatedAt,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -123,86 +182,6 @@ const PRIORITY_LABELS: Record<SignagePriority, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_SIGNAGE_ITEMS: SignageItem[] = [
-  {
-    id: '1',
-    name: 'Welcome Message',
-    content: 'Welcome to Maple Heights Condominiums. Please check in at the front desk.',
-    type: 'welcome',
-    screen: 'lobby',
-    status: 'active',
-    startDate: '2026-01-01',
-    endDate: '2026-12-31',
-    priority: 'normal',
-    rotation: 15,
-    createdBy: 'Sarah Mitchell',
-    lastModified: '2026-03-01',
-  },
-  {
-    id: '2',
-    name: 'Holiday Hours',
-    content:
-      'Building office will be closed March 28-30 for Easter weekend. Emergency line available 24/7.',
-    type: 'announcement',
-    screen: 'elevator',
-    status: 'scheduled',
-    startDate: '2026-03-25',
-    endDate: '2026-03-31',
-    priority: 'normal',
-    rotation: 10,
-    createdBy: 'James Chen',
-    lastModified: '2026-03-15',
-  },
-  {
-    id: '3',
-    name: 'Pool Maintenance Notice',
-    content:
-      'Pool area closed for annual maintenance March 20-22. We apologize for the inconvenience.',
-    type: 'announcement',
-    screen: 'pool',
-    status: 'active',
-    startDate: '2026-03-18',
-    endDate: '2026-03-22',
-    priority: 'high',
-    rotation: 8,
-    createdBy: 'Maria Santos',
-    lastModified: '2026-03-17',
-  },
-  {
-    id: '4',
-    name: 'Emergency Contact Info',
-    content:
-      'Fire: 911 | Building Emergency: 416-555-0199 | Security Desk: Ext 100 | Property Manager: Ext 200',
-    type: 'emergency',
-    screen: 'lobby',
-    status: 'active',
-    startDate: '2026-01-01',
-    endDate: '2026-12-31',
-    priority: 'emergency',
-    rotation: 20,
-    createdBy: 'Sarah Mitchell',
-    lastModified: '2026-02-10',
-  },
-  {
-    id: '5',
-    name: 'Gym Schedule',
-    content: 'Mon-Fri: 6AM-10PM | Sat-Sun: 8AM-8PM. Personal training available by appointment.',
-    type: 'directory',
-    screen: 'gym',
-    status: 'paused',
-    startDate: '2026-01-15',
-    endDate: '2026-06-30',
-    priority: 'normal',
-    rotation: 12,
-    createdBy: 'James Chen',
-    lastModified: '2026-03-10',
-  },
-];
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -215,12 +194,21 @@ export default function DigitalSignagePage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiSignageItems, refetch } = useApi<SignageItem[]>(
-    apiUrl('/api/v1/digital-signage', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiSignageItems,
+    loading,
+    error,
+    refetch,
+  } = useApi<ApiSignageContent[]>(
+    apiUrl('/api/v1/digital-signage', {
+      propertyId: DEMO_PROPERTY_ID,
+      status: 'all',
+      pageSize: '200',
+    }),
   );
 
   const allSignageItems = useMemo<SignageItem[]>(
-    () => apiSignageItems ?? MOCK_SIGNAGE_ITEMS,
+    () => (apiSignageItems ?? []).map(normalizeSignage),
     [apiSignageItems],
   );
 
@@ -368,7 +356,11 @@ export default function DigitalSignagePage() {
             <CheckCircle2 className="text-success-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{activeCount}</p>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <p className="text-[24px] font-bold tracking-tight text-neutral-900">{activeCount}</p>
+            )}
             <p className="text-[13px] text-neutral-500">Active Displays</p>
           </div>
         </Card>
@@ -377,7 +369,13 @@ export default function DigitalSignagePage() {
             <Monitor className="text-info-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{screensOnline}</p>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                {screensOnline}
+              </p>
+            )}
             <p className="text-[13px] text-neutral-500">Screens Online</p>
           </div>
         </Card>
@@ -386,9 +384,13 @@ export default function DigitalSignagePage() {
             <AlertTriangle className="text-error-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {emergencyCount}
-            </p>
+            {loading ? (
+              <Skeleton className="h-7 w-12" />
+            ) : (
+              <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                {emergencyCount}
+              </p>
+            )}
             <p className="text-[13px] text-neutral-500">Emergency Alerts</p>
           </div>
         </Card>
@@ -507,13 +509,53 @@ export default function DigitalSignagePage() {
         </div>
       )}
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+          <p className="mt-3 text-[14px] text-neutral-500">Loading signage content...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {!loading && error && (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-red-200 bg-red-50 py-12">
+          <AlertTriangle className="text-error-500 h-8 w-8" />
+          <p className="mt-3 text-[14px] font-medium text-neutral-900">
+            Failed to load signage content
+          </p>
+          <p className="mt-1 text-[13px] text-neutral-500">{error}</p>
+          <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && allSignageItems.length === 0 && (
+        <EmptyState
+          icon={<Monitor className="h-6 w-6" />}
+          title="No signage content yet"
+          description="Create your first digital signage content to display on lobby screens and monitors."
+          action={
+            <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4" />
+              New Content
+            </Button>
+          }
+        />
+      )}
+
       {/* Data Table */}
-      <DataTable
-        columns={columns}
-        data={filteredItems}
-        emptyMessage="No signage content found."
-        emptyIcon={<Monitor className="h-6 w-6" />}
-      />
+      {!loading && !error && allSignageItems.length > 0 && (
+        <DataTable
+          columns={columns}
+          data={filteredItems}
+          emptyMessage="No signage content found."
+          emptyIcon={<Monitor className="h-6 w-6" />}
+        />
+      )}
+
       <CreateSignageDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}

@@ -1,37 +1,223 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ImagePlus, Shield } from 'lucide-react';
+import { ArrowLeft, ImagePlus, Shield, AlertTriangle, Loader2 } from 'lucide-react';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// Types (aligned with API response from /api/v1/settings)
 // ---------------------------------------------------------------------------
 
-const MOCK_COMPANY = {
-  companyName: 'Royal Concierge and Security',
-  primaryContactName: 'James Whitfield',
-  primaryContactPhone: '(416) 555-0199',
-  primaryContactEmail: 'j.whitfield@royalconcierge.ca',
-  contractStartDate: '2025-01-01',
-  contractEndDate: '2026-12-31',
-  licenseNumber: 'ON-PSA-2024-08812',
-  insuranceExpiry: '2026-06-30',
-  notes:
-    'Contracted for 24/7 concierge and security services. Includes lobby coverage, patrol rounds, and emergency response. Insurance renewal pending for Q3.',
-  brandedReportHeader: true,
+interface PropertySettings {
+  property: {
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+    province: string;
+    country: string;
+    postalCode: string;
+    unitCount: number;
+    timezone: string;
+    logo: string | null;
+    branding: Record<string, unknown> | null;
+    type: string;
+    subscriptionTier: string | null;
+  };
+  eventTypes: unknown[];
+}
+
+// Security company fields stored in branding JSON
+interface SecurityCompanyData {
+  companyName: string;
+  primaryContactName: string;
+  primaryContactPhone: string;
+  primaryContactEmail: string;
+  contractStartDate: string;
+  contractEndDate: string;
+  licenseNumber: string;
+  insuranceExpiry: string;
+  notes: string;
+  brandedReportHeader: boolean;
+}
+
+const DEFAULT_SECURITY: SecurityCompanyData = {
+  companyName: '',
+  primaryContactName: '',
+  primaryContactPhone: '',
+  primaryContactEmail: '',
+  contractStartDate: '',
+  contractEndDate: '',
+  licenseNumber: '',
+  insuranceExpiry: '',
+  notes: '',
+  brandedReportHeader: false,
 };
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function getInsuranceExpiryWarning(expiryDate: string): string | null {
+  if (!expiryDate) return null;
+  const now = new Date();
+  const expiry = new Date(expiryDate);
+  const diffMs = expiry.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return 'Expired';
+  if (diffDays <= 30) return `Expires in ${diffDays} days`;
+  if (diffDays <= 90) return `Expires in ${Math.ceil(diffDays / 30)} months`;
+  return null;
+}
+
+function getInsuranceBadgeVariant(expiryDate: string): 'error' | 'warning' | null {
+  if (!expiryDate) return null;
+  const now = new Date();
+  const expiry = new Date(expiryDate);
+  const diffMs = expiry.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return 'error';
+  if (diffDays <= 90) return 'warning';
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function SecurityCompanyPage() {
-  const [brandedReportHeader, setBrandedReportHeader] = useState(MOCK_COMPANY.brandedReportHeader);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  // Fetch settings from API
+  const {
+    data: settingsData,
+    loading,
+    error,
+    refetch,
+  } = useApi<PropertySettings>(apiUrl('/api/v1/settings', { propertyId: DEMO_PROPERTY_ID }));
+
+  // Extract security company data from branding JSON
+  const [formData, setFormData] = useState<SecurityCompanyData>(DEFAULT_SECURITY);
+  const [brandedReportHeader, setBrandedReportHeader] = useState(false);
+
+  useEffect(() => {
+    if (settingsData?.property?.branding) {
+      const branding = settingsData.property.branding as Record<string, unknown>;
+      const security = (branding.securityCompany as SecurityCompanyData) || DEFAULT_SECURITY;
+      setFormData({
+        ...DEFAULT_SECURITY,
+        ...security,
+      });
+      setBrandedReportHeader(security.brandedReportHeader ?? false);
+    }
+  }, [settingsData]);
+
+  const handleFieldChange = useCallback((field: keyof SecurityCompanyData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setSaveMessage(null);
+
+    try {
+      const updatedSecurityData: SecurityCompanyData = {
+        ...formData,
+        brandedReportHeader,
+      };
+
+      const currentBranding = (settingsData?.property?.branding as Record<string, unknown>) ?? {};
+
+      const response = await apiRequest('/api/v1/settings', {
+        method: 'PATCH',
+        body: {
+          propertyId: DEMO_PROPERTY_ID,
+          branding: {
+            ...currentBranding,
+            securityCompany: updatedSecurityData,
+          },
+        },
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        setSaveMessage(result.message || 'Failed to save changes.');
+        return;
+      }
+
+      setSaveMessage('Changes saved successfully.');
+      refetch();
+    } catch {
+      setSaveMessage('Network error. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }, [formData, brandedReportHeader, settingsData, refetch]);
+
+  const insuranceWarning = getInsuranceExpiryWarning(formData.insuranceExpiry);
+  const insuranceBadgeVariant = getInsuranceBadgeVariant(formData.insuranceExpiry);
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-8 py-8">
+        <Link
+          href="/settings"
+          className="inline-flex items-center gap-2 text-[14px] font-medium text-neutral-500 transition-colors hover:text-neutral-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Settings
+        </Link>
+        <div>
+          <h1 className="text-[24px] font-bold tracking-tight text-neutral-900">
+            Security Company
+          </h1>
+          <p className="mt-1 text-[14px] text-neutral-500">
+            Manage the security company details, contract information, and compliance documents.
+          </p>
+        </div>
+        <Skeleton className="h-40 rounded-2xl" />
+        <Skeleton className="h-32 rounded-2xl" />
+        <Skeleton className="h-40 rounded-2xl" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-8 py-8">
+        <Link
+          href="/settings"
+          className="inline-flex items-center gap-2 text-[14px] font-medium text-neutral-500 transition-colors hover:text-neutral-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Settings
+        </Link>
+        <EmptyState
+          icon={<AlertTriangle className="h-6 w-6" />}
+          title="Failed to load security company settings"
+          description={error}
+          action={
+            <Button variant="secondary" size="sm" onClick={refetch}>
+              Try Again
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 py-8">
@@ -62,7 +248,8 @@ export default function SecurityCompanyPage() {
             <div className="space-y-5">
               <Input
                 label="Company Name"
-                defaultValue={MOCK_COMPANY.companyName}
+                value={formData.companyName}
+                onChange={(e) => handleFieldChange('companyName', e.target.value)}
                 placeholder="Enter security company name"
                 required
               />
@@ -105,7 +292,8 @@ export default function SecurityCompanyPage() {
             <div className="space-y-5">
               <Input
                 label="Contact Name"
-                defaultValue={MOCK_COMPANY.primaryContactName}
+                value={formData.primaryContactName}
+                onChange={(e) => handleFieldChange('primaryContactName', e.target.value)}
                 placeholder="Full name"
                 required
               />
@@ -113,14 +301,16 @@ export default function SecurityCompanyPage() {
                 <Input
                   label="Phone"
                   type="tel"
-                  defaultValue={MOCK_COMPANY.primaryContactPhone}
+                  value={formData.primaryContactPhone}
+                  onChange={(e) => handleFieldChange('primaryContactPhone', e.target.value)}
                   placeholder="(416) 555-0000"
                   required
                 />
                 <Input
                   label="Email"
                   type="email"
-                  defaultValue={MOCK_COMPANY.primaryContactEmail}
+                  value={formData.primaryContactEmail}
+                  onChange={(e) => handleFieldChange('primaryContactEmail', e.target.value)}
                   placeholder="contact@company.com"
                   required
                 />
@@ -142,20 +332,23 @@ export default function SecurityCompanyPage() {
                 <Input
                   label="Contract Start Date"
                   type="date"
-                  defaultValue={MOCK_COMPANY.contractStartDate}
+                  value={formData.contractStartDate}
+                  onChange={(e) => handleFieldChange('contractStartDate', e.target.value)}
                   required
                 />
                 <Input
                   label="Contract End Date"
                   type="date"
-                  defaultValue={MOCK_COMPANY.contractEndDate}
+                  value={formData.contractEndDate}
+                  onChange={(e) => handleFieldChange('contractEndDate', e.target.value)}
                   required
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <Input
                   label="License Number"
-                  defaultValue={MOCK_COMPANY.licenseNumber}
+                  value={formData.licenseNumber}
+                  onChange={(e) => handleFieldChange('licenseNumber', e.target.value)}
                   placeholder="e.g., ON-PSA-2024-XXXXX"
                   helperText="Provincial security license identifier."
                 />
@@ -163,13 +356,16 @@ export default function SecurityCompanyPage() {
                   <Input
                     label="Insurance Expiry"
                     type="date"
-                    defaultValue={MOCK_COMPANY.insuranceExpiry}
+                    value={formData.insuranceExpiry}
+                    onChange={(e) => handleFieldChange('insuranceExpiry', e.target.value)}
                   />
-                  <div className="mt-2">
-                    <Badge variant="warning" size="md" dot>
-                      Expires in 3 months
-                    </Badge>
-                  </div>
+                  {insuranceWarning && insuranceBadgeVariant && (
+                    <div className="mt-2">
+                      <Badge variant={insuranceBadgeVariant} size="md" dot>
+                        {insuranceWarning}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -194,7 +390,8 @@ export default function SecurityCompanyPage() {
               <textarea
                 id="security-notes"
                 rows={4}
-                defaultValue={MOCK_COMPANY.notes}
+                value={formData.notes}
+                onChange={(e) => handleFieldChange('notes', e.target.value)}
                 placeholder="Add any notes about the security company, contract terms, or special arrangements..."
                 className="focus:border-primary-500 focus:ring-primary-100 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 ease-out hover:border-neutral-300 focus:ring-4 focus:outline-none"
               />
@@ -243,8 +440,20 @@ export default function SecurityCompanyPage() {
       </div>
 
       {/* Save */}
-      <div className="flex justify-end pt-2">
-        <Button size="lg">Save Changes</Button>
+      <div className="flex items-center justify-end gap-4 pt-2">
+        {saveMessage && (
+          <span
+            className={`text-[14px] ${
+              saveMessage.includes('success') ? 'text-success-600' : 'text-error-600'
+            }`}
+          >
+            {saveMessage}
+          </span>
+        )}
+        <Button size="lg" onClick={handleSave} disabled={saving}>
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          Save Changes
+        </Button>
       </div>
     </div>
   );

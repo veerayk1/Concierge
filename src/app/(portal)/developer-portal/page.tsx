@@ -6,8 +6,6 @@ import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import {
   Code2,
   Plus,
-  Search,
-  X,
   Key,
   Webhook,
   Copy,
@@ -24,16 +22,18 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Search } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types (aligned with API responses)
 // ---------------------------------------------------------------------------
 
 interface ApiKeyItem {
   id: string;
   name: string;
   keyPrefix: string;
-  status: 'active' | 'revoked' | 'expired';
+  status: string; // 'active' | 'revoked' | 'expired'
   scopes: string[];
   createdAt: string;
   lastUsedAt: string | null;
@@ -45,7 +45,7 @@ interface WebhookItem {
   id: string;
   url: string;
   events: string[];
-  status: 'active' | 'paused' | 'failing';
+  status: string; // 'active' | 'paused' | 'failing'
   successRate: number;
   lastTriggered: string | null;
   failCount: number;
@@ -53,79 +53,6 @@ interface WebhookItem {
 }
 
 type Tab = 'api-keys' | 'webhooks' | 'documentation';
-
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_API_KEYS: ApiKeyItem[] = [
-  {
-    id: '1',
-    name: 'Production API Key',
-    keyPrefix: 'ck_live_abc...def',
-    status: 'active',
-    scopes: ['read:events', 'write:events', 'read:units', 'read:residents'],
-    createdAt: '2026-01-15T10:00:00Z',
-    lastUsedAt: '2026-03-19T08:34:00Z',
-    expiresAt: null,
-    requestCount: 48203,
-  },
-  {
-    id: '2',
-    name: 'Staging Key',
-    keyPrefix: 'ck_test_xyz...uvw',
-    status: 'active',
-    scopes: ['read:events', 'write:events'],
-    createdAt: '2026-02-20T14:30:00Z',
-    lastUsedAt: '2026-03-18T22:10:00Z',
-    expiresAt: '2026-06-20T14:30:00Z',
-    requestCount: 1247,
-  },
-  {
-    id: '3',
-    name: 'Webhook Signing Key',
-    keyPrefix: 'whsec_mno...pqr',
-    status: 'revoked',
-    scopes: ['webhooks:sign'],
-    createdAt: '2025-11-01T09:00:00Z',
-    lastUsedAt: '2026-01-10T16:45:00Z',
-    expiresAt: null,
-    requestCount: 9821,
-  },
-];
-
-const MOCK_WEBHOOKS: WebhookItem[] = [
-  {
-    id: '1',
-    url: 'https://api.example.com/webhooks/packages',
-    events: ['package.delivered', 'package.picked_up', 'package.expired'],
-    status: 'active',
-    successRate: 99.8,
-    lastTriggered: '2026-03-19T08:12:00Z',
-    failCount: 2,
-    createdAt: '2026-01-20T11:00:00Z',
-  },
-  {
-    id: '2',
-    url: 'https://api.example.com/webhooks/maintenance',
-    events: ['maintenance.created', 'maintenance.updated', 'maintenance.closed'],
-    status: 'paused',
-    successRate: 95.2,
-    lastTriggered: '2026-03-15T14:30:00Z',
-    failCount: 12,
-    createdAt: '2026-02-05T09:00:00Z',
-  },
-  {
-    id: '3',
-    url: 'https://api.example.com/webhooks/visitors',
-    events: ['visitor.signed_in', 'visitor.signed_out'],
-    status: 'failing',
-    successRate: 42.1,
-    lastTriggered: '2026-03-19T07:55:00Z',
-    failCount: 87,
-    createdAt: '2026-02-28T16:00:00Z',
-  },
-];
 
 interface DocCard {
   title: string;
@@ -203,20 +130,39 @@ export default function DeveloperPortalPage() {
   const [activeTab, setActiveTab] = useState<Tab>('api-keys');
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
 
-  const { data: apiKeysData } = useApi<ApiKeyItem[]>(
-    apiUrl('/api/v1/developer/api-keys', { propertyId: DEMO_PROPERTY_ID }),
-  );
-  const { data: webhooksData } = useApi<WebhookItem[]>(
-    apiUrl('/api/v1/developer/webhooks', { propertyId: DEMO_PROPERTY_ID }),
-  );
+  // Fetch API keys
+  const {
+    data: apiKeysRaw,
+    loading: keysLoading,
+    error: keysError,
+    refetch: refetchKeys,
+  } = useApi<ApiKeyItem[]>(apiUrl('/api/v1/developer/api-keys', { propertyId: DEMO_PROPERTY_ID }));
 
-  const apiKeys = useMemo<ApiKeyItem[]>(() => apiKeysData ?? MOCK_API_KEYS, [apiKeysData]);
-  const webhooks = useMemo<WebhookItem[]>(() => webhooksData ?? MOCK_WEBHOOKS, [webhooksData]);
+  // Fetch webhooks
+  const {
+    data: webhooksRaw,
+    loading: webhooksLoading,
+    error: webhooksError,
+    refetch: refetchWebhooks,
+  } = useApi<WebhookItem[]>(apiUrl('/api/v1/developer/webhooks', { propertyId: DEMO_PROPERTY_ID }));
+
+  const apiKeys: ApiKeyItem[] = useMemo(() => {
+    if (!apiKeysRaw) return [];
+    return Array.isArray(apiKeysRaw) ? apiKeysRaw : [];
+  }, [apiKeysRaw]);
+
+  const webhooks: WebhookItem[] = useMemo(() => {
+    if (!webhooksRaw) return [];
+    return Array.isArray(webhooksRaw) ? webhooksRaw : [];
+  }, [webhooksRaw]);
+
+  const loading = keysLoading || webhooksLoading;
+  const error = keysError || webhooksError;
 
   // Summary stats for API Keys
   const totalKeys = apiKeys.length;
   const activeKeys = apiKeys.filter((k) => k.status === 'active').length;
-  const totalRequests = apiKeys.reduce((sum, k) => sum + k.requestCount, 0);
+  const totalRequests = apiKeys.reduce((sum, k) => sum + (k.requestCount || 0), 0);
 
   function toggleKeyReveal(id: string) {
     setRevealedKeys((prev) => {
@@ -248,7 +194,9 @@ export default function DeveloperPortalPage() {
       cell: (row) => (
         <div className="flex items-center gap-2">
           <code className="rounded bg-neutral-100 px-2 py-0.5 font-mono text-[13px] text-neutral-700">
-            {revealedKeys.has(row.id) ? row.keyPrefix.replace('...', '••••••••') : row.keyPrefix}
+            {revealedKeys.has(row.id)
+              ? (row.keyPrefix?.replace('...', '--------') ?? row.keyPrefix)
+              : row.keyPrefix}
           </code>
           <button
             type="button"
@@ -283,7 +231,7 @@ export default function DeveloperPortalPage() {
       id: 'status',
       header: 'Status',
       cell: (row) => (
-        <Badge variant={statusBadgeVariant[row.status]} size="sm" dot>
+        <Badge variant={statusBadgeVariant[row.status] ?? 'default'} size="sm" dot>
           {row.status}
         </Badge>
       ),
@@ -295,7 +243,7 @@ export default function DeveloperPortalPage() {
       header: 'Scopes',
       cell: (row) => (
         <div className="flex flex-wrap gap-1">
-          {row.scopes.map((scope) => (
+          {(row.scopes ?? []).map((scope) => (
             <Badge key={scope} variant="default" size="sm">
               {scope}
             </Badge>
@@ -321,7 +269,9 @@ export default function DeveloperPortalPage() {
       id: 'requestCount',
       header: 'Requests',
       cell: (row) => (
-        <span className="font-medium text-neutral-900">{row.requestCount.toLocaleString()}</span>
+        <span className="font-medium text-neutral-900">
+          {(row.requestCount || 0).toLocaleString()}
+        </span>
       ),
       sortable: true,
       accessorKey: 'requestCount',
@@ -362,7 +312,7 @@ export default function DeveloperPortalPage() {
       header: 'Events',
       cell: (row) => (
         <Badge variant="info" size="sm">
-          {row.events.length} event{row.events.length !== 1 ? 's' : ''}
+          {(row.events ?? []).length} event{(row.events ?? []).length !== 1 ? 's' : ''}
         </Badge>
       ),
     },
@@ -370,7 +320,7 @@ export default function DeveloperPortalPage() {
       id: 'status',
       header: 'Status',
       cell: (row) => (
-        <Badge variant={statusBadgeVariant[row.status]} size="sm" dot>
+        <Badge variant={statusBadgeVariant[row.status] ?? 'default'} size="sm" dot>
           {row.status}
         </Badge>
       ),
@@ -383,14 +333,14 @@ export default function DeveloperPortalPage() {
       cell: (row) => (
         <span
           className={`font-medium ${
-            row.successRate >= 95
+            (row.successRate ?? 0) >= 95
               ? 'text-success-600'
-              : row.successRate >= 70
+              : (row.successRate ?? 0) >= 70
                 ? 'text-warning-600'
                 : 'text-error-600'
           }`}
         >
-          {row.successRate}%
+          {row.successRate ?? 0}%
         </span>
       ),
       sortable: true,
@@ -407,8 +357,10 @@ export default function DeveloperPortalPage() {
       id: 'failCount',
       header: 'Failures',
       cell: (row) => (
-        <span className={row.failCount > 50 ? 'text-error-600 font-medium' : 'text-neutral-500'}>
-          {row.failCount}
+        <span
+          className={(row.failCount ?? 0) > 50 ? 'text-error-600 font-medium' : 'text-neutral-500'}
+        >
+          {row.failCount ?? 0}
         </span>
       ),
       sortable: true,
@@ -445,6 +397,52 @@ export default function DeveloperPortalPage() {
     { id: 'webhooks', label: 'Webhooks', icon: Webhook },
     { id: 'documentation', label: 'Documentation', icon: Code2 },
   ];
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <PageShell
+        title="Developer Portal"
+        description="Manage API keys, webhooks, and integration settings."
+      >
+        <Skeleton className="mb-6 h-12 rounded-2xl" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+        </div>
+        <Skeleton className="mt-6 h-64 rounded-2xl" />
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell
+        title="Developer Portal"
+        description="Manage API keys, webhooks, and integration settings."
+      >
+        <EmptyState
+          icon={<AlertTriangle className="h-6 w-6" />}
+          title="Failed to load developer portal data"
+          description={error}
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                refetchKeys();
+                refetchWebhooks();
+              }}
+            >
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell
@@ -529,23 +527,53 @@ export default function DeveloperPortalPage() {
           </div>
 
           {/* API Keys Table */}
-          <DataTable<ApiKeyItem>
-            columns={apiKeyColumns}
-            data={apiKeys}
-            emptyMessage="No API keys created yet."
-            emptyIcon={<Key className="h-5 w-5" />}
-          />
+          {apiKeys.length === 0 ? (
+            <EmptyState
+              icon={<Key className="h-6 w-6" />}
+              title="No API keys created yet"
+              description="Generate your first API key to start integrating with the platform."
+              action={
+                <Button size="sm">
+                  <Plus className="h-4 w-4" />
+                  Generate API Key
+                </Button>
+              }
+            />
+          ) : (
+            <DataTable<ApiKeyItem>
+              columns={apiKeyColumns}
+              data={apiKeys}
+              emptyMessage="No API keys created yet."
+              emptyIcon={<Key className="h-5 w-5" />}
+            />
+          )}
         </div>
       )}
 
       {/* Tab: Webhooks */}
       {activeTab === 'webhooks' && (
-        <DataTable<WebhookItem>
-          columns={webhookColumns}
-          data={webhooks}
-          emptyMessage="No webhooks configured yet."
-          emptyIcon={<Webhook className="h-5 w-5" />}
-        />
+        <>
+          {webhooks.length === 0 ? (
+            <EmptyState
+              icon={<Webhook className="h-6 w-6" />}
+              title="No webhooks configured yet"
+              description="Create a webhook to receive real-time notifications about events in your property."
+              action={
+                <Button size="sm">
+                  <Plus className="h-4 w-4" />
+                  Create Webhook
+                </Button>
+              }
+            />
+          ) : (
+            <DataTable<WebhookItem>
+              columns={webhookColumns}
+              data={webhooks}
+              emptyMessage="No webhooks configured yet."
+              emptyIcon={<Webhook className="h-5 w-5" />}
+            />
+          )}
+        </>
       )}
 
       {/* Tab: Documentation */}

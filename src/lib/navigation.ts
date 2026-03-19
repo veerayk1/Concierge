@@ -675,7 +675,7 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'User Management',
         href: '/users',
         icon: Users,
-        // 7.1, 7.2
+        // 7.1, 7.2 — Only super_admin and property_admin can manage users
         roles: ['super_admin', 'property_admin'],
       },
       {

@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CreateAssetDialog } from '@/components/forms/create-asset-dialog';
 
 // ---------------------------------------------------------------------------
@@ -53,97 +54,6 @@ interface AssetItem {
   assignedTo: string | null;
   warrantyExpiry: string | null;
 }
-
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_ASSETS: AssetItem[] = [
-  {
-    id: '1',
-    assetTag: 'AST-001',
-    name: 'Lobby Furniture Set',
-    category: 'furniture',
-    location: 'Main Lobby',
-    status: 'in_service',
-    purchaseDate: '2024-03-15',
-    purchasePrice: 12500,
-    currentValue: 9800,
-    condition: 'good',
-    assignedTo: null,
-    warrantyExpiry: '2027-03-15',
-  },
-  {
-    id: '2',
-    assetTag: 'AST-002',
-    name: 'Pool Pump',
-    category: 'appliance',
-    location: 'Pool Mechanical Room',
-    status: 'in_service',
-    purchaseDate: '2023-06-01',
-    purchasePrice: 4200,
-    currentValue: 2900,
-    condition: 'fair',
-    assignedTo: 'Maintenance Team',
-    warrantyExpiry: '2025-06-01',
-  },
-  {
-    id: '3',
-    assetTag: 'AST-003',
-    name: 'Security Camera System',
-    category: 'technology',
-    location: 'Building-wide',
-    status: 'in_service',
-    purchaseDate: '2024-09-20',
-    purchasePrice: 18750,
-    currentValue: 16200,
-    condition: 'excellent',
-    assignedTo: 'Security',
-    warrantyExpiry: '2027-09-20',
-  },
-  {
-    id: '4',
-    assetTag: 'AST-004',
-    name: 'Snowblower',
-    category: 'tool',
-    location: 'Storage Room B',
-    status: 'storage',
-    purchaseDate: '2022-11-10',
-    purchasePrice: 3800,
-    currentValue: 2100,
-    condition: 'good',
-    assignedTo: null,
-    warrantyExpiry: null,
-  },
-  {
-    id: '5',
-    assetTag: 'AST-005',
-    name: 'Fitness Equipment',
-    category: 'fixture',
-    location: 'Gym - Level 2',
-    status: 'repair',
-    purchaseDate: '2023-01-25',
-    purchasePrice: 8900,
-    currentValue: 5600,
-    condition: 'poor',
-    assignedTo: 'Maintenance Team',
-    warrantyExpiry: '2026-01-25',
-  },
-  {
-    id: '6',
-    assetTag: 'AST-006',
-    name: 'HVAC Unit',
-    category: 'infrastructure',
-    location: 'Rooftop',
-    status: 'in_service',
-    purchaseDate: '2021-08-05',
-    purchasePrice: 32000,
-    currentValue: 22400,
-    condition: 'fair',
-    assignedTo: 'Maintenance Team',
-    warrantyExpiry: '2026-08-05',
-  },
-];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -209,11 +119,17 @@ export default function AssetsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  // In production, this would fetch from the API
-  // const { data, loading, error } = useApi<AssetItem[]>(
-  //   apiUrl(`/api/assets`, { propertyId: DEMO_PROPERTY_ID })
-  // );
-  const assets = MOCK_ASSETS;
+  const {
+    data: apiAssets,
+    loading,
+    error,
+    refetch,
+  } = useApi<AssetItem[]>(apiUrl('/api/v1/assets', { propertyId: DEMO_PROPERTY_ID }));
+
+  const assets = useMemo(
+    () => (apiAssets && Array.isArray(apiAssets) ? apiAssets : []),
+    [apiAssets],
+  );
 
   const filteredAssets = useMemo(() => {
     return assets.filter((asset) => {
@@ -360,181 +276,225 @@ export default function AssetsPage() {
         </>
       }
     >
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card padding="md">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
-              <FileBox className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[13px] font-medium text-neutral-500">Total Assets</p>
-              <p className="text-[22px] font-bold text-neutral-900">{totalAssets}</p>
-            </div>
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} padding="md">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-xl" />
+                  <div>
+                    <Skeleton className="mb-1 h-4 w-20" />
+                    <Skeleton className="h-7 w-16" />
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
-        </Card>
-        <Card padding="md">
-          <div className="flex items-center gap-3">
-            <div className="bg-success-50 text-success-600 flex h-10 w-10 items-center justify-center rounded-xl">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[13px] font-medium text-neutral-500">In Service</p>
-              <p className="text-success-700 text-[22px] font-bold">{inServiceCount}</p>
-            </div>
-          </div>
-        </Card>
-        <Card padding="md">
-          <div className="flex items-center gap-3">
-            <div className="bg-info-50 text-info-600 flex h-10 w-10 items-center justify-center rounded-xl">
-              <DollarSign className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[13px] font-medium text-neutral-500">Total Value</p>
-              <p className="text-[22px] font-bold text-neutral-900">{formatCurrency(totalValue)}</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Search & Filter Bar */}
-      <div className="mt-6 flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-            <input
-              type="text"
-              placeholder="Search by name, tag, or location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-          <Button
-            variant={showFilters ? 'primary' : 'secondary'}
-            size="md"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-4 w-4" />
-            Filters
-            {hasActiveFilters && (
-              <span className="bg-primary-600 ml-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white">
-                {[categoryFilter, statusFilter, conditionFilter].filter((f) => f !== 'all').length}
-              </span>
-            )}
-          </Button>
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-64 w-full" />
         </div>
+      )}
 
-        {/* Filter Dropdowns */}
-        {showFilters && (
-          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50/50 p-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold tracking-wide text-neutral-500 uppercase">
-                Category
-              </label>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value as AssetCategory | 'all')}
-                className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-4 focus:outline-none"
+      {/* Error State */}
+      {!loading && error && (
+        <EmptyState
+          icon={<AlertTriangle className="h-6 w-6" />}
+          title="Failed to load assets"
+          description={error}
+          action={
+            <Button variant="secondary" size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      )}
+
+      {!loading && !error && (
+        <>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Card padding="md">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
+                  <FileBox className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-medium text-neutral-500">Total Assets</p>
+                  <p className="text-[22px] font-bold text-neutral-900">{totalAssets}</p>
+                </div>
+              </div>
+            </Card>
+            <Card padding="md">
+              <div className="flex items-center gap-3">
+                <div className="bg-success-50 text-success-600 flex h-10 w-10 items-center justify-center rounded-xl">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-medium text-neutral-500">In Service</p>
+                  <p className="text-success-700 text-[22px] font-bold">{inServiceCount}</p>
+                </div>
+              </div>
+            </Card>
+            <Card padding="md">
+              <div className="flex items-center gap-3">
+                <div className="bg-info-50 text-info-600 flex h-10 w-10 items-center justify-center rounded-xl">
+                  <DollarSign className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-medium text-neutral-500">Total Value</p>
+                  <p className="text-[22px] font-bold text-neutral-900">
+                    {formatCurrency(totalValue)}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="mt-6 flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name, tag, or location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <Button
+                variant={showFilters ? 'primary' : 'secondary'}
+                size="md"
+                onClick={() => setShowFilters(!showFilters)}
               >
-                <option value="all">All Categories</option>
-                {Object.entries(categoryLabels).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                <Filter className="h-4 w-4" />
+                Filters
+                {hasActiveFilters && (
+                  <span className="bg-primary-600 ml-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white">
+                    {
+                      [categoryFilter, statusFilter, conditionFilter].filter((f) => f !== 'all')
+                        .length
+                    }
+                  </span>
+                )}
+              </Button>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold tracking-wide text-neutral-500 uppercase">
-                Status
-              </label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as AssetStatus | 'all')}
-                className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-4 focus:outline-none"
-              >
-                <option value="all">All Statuses</option>
-                {Object.entries(statusConfig).map(([key, config]) => (
-                  <option key={key} value={key}>
-                    {config.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold tracking-wide text-neutral-500 uppercase">
-                Condition
-              </label>
-              <select
-                value={conditionFilter}
-                onChange={(e) => setConditionFilter(e.target.value as AssetCondition | 'all')}
-                className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-4 focus:outline-none"
-              >
-                <option value="all">All Conditions</option>
-                {Object.entries(conditionConfig).map(([key, config]) => (
-                  <option key={key} value={key}>
-                    {config.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {hasActiveFilters && (
-              <div className="flex items-end">
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
-                  <X className="h-3.5 w-3.5" />
-                  Clear Filters
-                </Button>
+
+            {/* Filter Dropdowns */}
+            {showFilters && (
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50/50 p-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold tracking-wide text-neutral-500 uppercase">
+                    Category
+                  </label>
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value as AssetCategory | 'all')}
+                    className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-4 focus:outline-none"
+                  >
+                    <option value="all">All Categories</option>
+                    {Object.entries(categoryLabels).map(([key, label]) => (
+                      <option key={key} value={key}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold tracking-wide text-neutral-500 uppercase">
+                    Status
+                  </label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as AssetStatus | 'all')}
+                    className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-4 focus:outline-none"
+                  >
+                    <option value="all">All Statuses</option>
+                    {Object.entries(statusConfig).map(([key, config]) => (
+                      <option key={key} value={key}>
+                        {config.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold tracking-wide text-neutral-500 uppercase">
+                    Condition
+                  </label>
+                  <select
+                    value={conditionFilter}
+                    onChange={(e) => setConditionFilter(e.target.value as AssetCondition | 'all')}
+                    className="focus:border-primary-300 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 focus:ring-4 focus:outline-none"
+                  >
+                    <option value="all">All Conditions</option>
+                    {Object.entries(conditionConfig).map(([key, config]) => (
+                      <option key={key} value={key}>
+                        {config.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {hasActiveFilters && (
+                  <div className="flex items-end">
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      <X className="h-3.5 w-3.5" />
+                      Clear Filters
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
-      </div>
 
-      {/* Data Table */}
-      <div className="mt-6">
-        {filteredAssets.length === 0 ? (
-          <EmptyState
-            icon={<FileBox className="h-6 w-6" />}
-            title="No assets found"
-            description={
-              hasActiveFilters || searchQuery
-                ? 'Try adjusting your search or filters.'
-                : 'Add your first building asset to start tracking depreciation and replacements.'
-            }
-            action={
-              hasActiveFilters || searchQuery ? (
-                <Button variant="secondary" size="sm" onClick={clearFilters}>
-                  Clear Filters
-                </Button>
-              ) : (
-                <Button size="sm">
-                  <Plus className="h-4 w-4" />
-                  Add Asset
-                </Button>
-              )
-            }
-          />
-        ) : (
-          <DataTable<AssetItem> columns={columns} data={filteredAssets} />
-        )}
-      </div>
+          {/* Data Table */}
+          <div className="mt-6">
+            {filteredAssets.length === 0 ? (
+              <EmptyState
+                icon={<FileBox className="h-6 w-6" />}
+                title="No assets found"
+                description={
+                  hasActiveFilters || searchQuery
+                    ? 'Try adjusting your search or filters.'
+                    : 'Add your first building asset to start tracking depreciation and replacements.'
+                }
+                action={
+                  hasActiveFilters || searchQuery ? (
+                    <Button variant="secondary" size="sm" onClick={clearFilters}>
+                      Clear Filters
+                    </Button>
+                  ) : (
+                    <Button size="sm">
+                      <Plus className="h-4 w-4" />
+                      Add Asset
+                    </Button>
+                  )
+                }
+              />
+            ) : (
+              <DataTable<AssetItem> columns={columns} data={filteredAssets} />
+            )}
+          </div>
+        </>
+      )}
 
       <CreateAssetDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         propertyId={DEMO_PROPERTY_ID}
         onSuccess={() => {
-          // Refresh data after successful creation
-          window.location.reload();
+          setShowCreateDialog(false);
+          refetch();
         }}
       />
     </PageShell>

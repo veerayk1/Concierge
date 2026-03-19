@@ -37,6 +37,7 @@ export interface TopBarProps {
   onSearchOpen?: () => void;
   onLogout?: () => void;
   onSwitchProperty?: () => void;
+  mobileMenuButton?: React.ReactNode;
   className?: string;
 }
 
@@ -49,6 +50,7 @@ export function TopBar({
   onSearchOpen,
   onLogout,
   onSwitchProperty,
+  mobileMenuButton,
   className,
 }: TopBarProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -86,8 +88,9 @@ export function TopBar({
         className,
       )}
     >
-      {/* Left: Breadcrumbs */}
+      {/* Left: Mobile menu + Breadcrumbs */}
       <nav aria-label="Breadcrumb" className="flex items-center">
+        {mobileMenuButton}
         <ol className="flex items-center gap-1.5 text-[14px]">
           {breadcrumbs.map((crumb, index) => {
             const isLast = index === breadcrumbs.length - 1;

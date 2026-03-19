@@ -8,102 +8,63 @@ import {
   Clock,
   Edit2,
   Eye,
+  Loader2,
   Maximize2,
   Monitor,
   Pause,
   Play,
   Timer,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type ContentType = 'announcement' | 'welcome' | 'emergency' | 'event' | 'weather' | 'custom';
+type ContentType =
+  | 'announcement'
+  | 'welcome'
+  | 'emergency'
+  | 'event'
+  | 'weather'
+  | 'directory'
+  | 'text'
+  | 'image';
 type ContentStatus = 'active' | 'paused' | 'scheduled' | 'expired';
 
-interface ScreenAssignment {
+/** Raw shape from GET /api/v1/digital-signage/:id */
+interface ApiSignageDetail {
   id: string;
-  name: string;
-  location: string;
-  resolution: string;
-}
-
-interface SignageContent {
-  id: string;
-  name: string;
-  type: ContentType;
-  content: string;
-  screenZone: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  rotationDuration: number;
-  status: ContentStatus;
+  title: string;
+  body: string | null;
+  contentType: string;
+  zone: string;
+  isActive: boolean;
+  isCurrentlyActive: boolean;
   startDate: string;
   endDate: string;
-  activeHours: string;
-  screens: ScreenAssignment[];
-  analytics: {
-    views: number;
-    impressions: number;
-    avgDisplayTime: string;
-  };
+  priority: number;
+  durationSeconds: number;
+  imageUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  propertyId: string;
+  createdById: string | null;
 }
-
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_CONTENT: SignageContent = {
-  id: '1',
-  name: 'Lobby Welcome Message',
-  type: 'welcome',
-  content:
-    'Welcome to Maple Heights Condominiums. Please check in at the front desk. Visitor parking is available on Level P1. For emergencies, call the concierge at ext. 100.',
-  screenZone: 'Main Content',
-  priority: 'normal',
-  rotationDuration: 15,
-  status: 'active',
-  startDate: '2026-03-01',
-  endDate: '2026-06-30',
-  activeHours: '6:00 AM - 11:00 PM',
-  screens: [
-    {
-      id: 'scr-1',
-      name: 'Lobby Main Display',
-      location: 'Main Lobby - East Wall',
-      resolution: '3840 x 2160',
-    },
-    {
-      id: 'scr-2',
-      name: 'Lobby Secondary',
-      location: 'Main Lobby - Reception',
-      resolution: '1920 x 1080',
-    },
-    {
-      id: 'scr-3',
-      name: 'Elevator Landing',
-      location: 'Ground Floor - Elevator Bank',
-      resolution: '1920 x 1080',
-    },
-  ],
-  analytics: {
-    views: 12480,
-    impressions: 38750,
-    avgDisplayTime: '14.8s',
-  },
-};
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 const CONTENT_TYPE_CONFIG: Record<
-  ContentType,
+  string,
   { variant: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'default'; label: string }
 > = {
   announcement: { variant: 'info', label: 'Announcement' },
@@ -111,21 +72,13 @@ const CONTENT_TYPE_CONFIG: Record<
   emergency: { variant: 'error', label: 'Emergency' },
   event: { variant: 'warning', label: 'Event' },
   weather: { variant: 'default', label: 'Weather' },
-  custom: { variant: 'default', label: 'Custom' },
-};
-
-const STATUS_CONFIG: Record<
-  ContentStatus,
-  { variant: 'success' | 'warning' | 'info' | 'default'; label: string }
-> = {
-  active: { variant: 'success', label: 'Active' },
-  paused: { variant: 'warning', label: 'Paused' },
-  scheduled: { variant: 'info', label: 'Scheduled' },
-  expired: { variant: 'default', label: 'Expired' },
+  directory: { variant: 'default', label: 'Directory' },
+  text: { variant: 'default', label: 'Text' },
+  image: { variant: 'info', label: 'Image' },
 };
 
 const PRIORITY_CONFIG: Record<
-  'low' | 'normal' | 'high' | 'urgent',
+  string,
   { variant: 'default' | 'info' | 'warning' | 'error'; label: string }
 > = {
   low: { variant: 'default', label: 'Low' },
@@ -133,6 +86,36 @@ const PRIORITY_CONFIG: Record<
   high: { variant: 'warning', label: 'High' },
   urgent: { variant: 'error', label: 'Urgent' },
 };
+
+function getStatus(raw: ApiSignageDetail): ContentStatus {
+  const now = new Date();
+  const start = new Date(raw.startDate);
+  const end = new Date(raw.endDate);
+  if (!raw.isActive) return 'paused';
+  if (end < now) return 'expired';
+  if (start > now) return 'scheduled';
+  return 'active';
+}
+
+function getStatusConfig(status: ContentStatus) {
+  const map: Record<
+    ContentStatus,
+    { variant: 'success' | 'warning' | 'info' | 'default'; label: string }
+  > = {
+    active: { variant: 'success', label: 'Active' },
+    paused: { variant: 'warning', label: 'Paused' },
+    scheduled: { variant: 'info', label: 'Scheduled' },
+    expired: { variant: 'default', label: 'Expired' },
+  };
+  return map[status];
+}
+
+function getPriorityLabel(p: number): string {
+  if (p >= 10) return 'urgent';
+  if (p >= 5) return 'high';
+  if (p >= 1) return 'normal';
+  return 'low';
+}
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -165,16 +148,70 @@ function getDaysRemaining(endDate: string): number {
 export default function DigitalSignageDetailPage() {
   const { id } = useParams<{ id: string }>();
 
-  // In production this would come from an API call using id
-  const content = MOCK_CONTENT;
-  const typeCfg = CONTENT_TYPE_CONFIG[content.type];
-  const statusCfg = STATUS_CONFIG[content.status];
-  const priorityCfg = PRIORITY_CONFIG[content.priority];
+  const {
+    data: content,
+    loading,
+    error,
+    refetch,
+  } = useApi<ApiSignageDetail>(`/api/v1/digital-signage/${id}`);
+
+  // Loading
+  if (loading) {
+    return (
+      <PageShell title="Digital Signage Content" description="Loading...">
+        <div className="-mt-4 mb-4">
+          <Link
+            href="/digital-signage"
+            className="inline-flex items-center gap-1.5 text-[14px] font-medium text-neutral-500 transition-colors hover:text-neutral-700"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to digital signage
+          </Link>
+        </div>
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+          <p className="mt-3 text-[14px] text-neutral-500">Loading content details...</p>
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error
+  if (error || !content) {
+    return (
+      <PageShell title="Digital Signage Content" description="Error">
+        <div className="-mt-4 mb-4">
+          <Link
+            href="/digital-signage"
+            className="inline-flex items-center gap-1.5 text-[14px] font-medium text-neutral-500 transition-colors hover:text-neutral-700"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to digital signage
+          </Link>
+        </div>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-red-200 bg-red-50 py-12">
+          <AlertTriangle className="text-error-500 h-8 w-8" />
+          <p className="mt-3 text-[14px] font-medium text-neutral-900">Failed to load content</p>
+          <p className="mt-1 text-[13px] text-neutral-500">{error ?? 'Content not found'}</p>
+          <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </div>
+      </PageShell>
+    );
+  }
+
+  const typeCfg = CONTENT_TYPE_CONFIG[content.contentType] || CONTENT_TYPE_CONFIG.text!;
+  const status = getStatus(content);
+  const statusCfg = getStatusConfig(status);
+  const priorityKey = getPriorityLabel(content.priority);
+  const priorityCfg = PRIORITY_CONFIG[priorityKey] || PRIORITY_CONFIG.normal!;
   const daysRemaining = getDaysRemaining(content.endDate);
+  const zone = content.zone.charAt(0).toUpperCase() + content.zone.slice(1);
 
   return (
     <PageShell
-      title={content.name}
+      title={content.title}
       description="Digital Signage Content"
       actions={
         <div className="flex items-center gap-2">
@@ -208,14 +245,16 @@ export default function DigitalSignageDetailPage() {
               <div className="relative flex h-64 items-center justify-center rounded-xl bg-gradient-to-br from-neutral-800 to-neutral-900">
                 <div className="max-w-lg px-8 text-center">
                   <p className="text-[20px] leading-relaxed font-semibold text-white">
-                    {content.content}
+                    {content.body ?? 'No content body'}
                   </p>
                 </div>
-                <div className="absolute top-3 right-3">
-                  <Badge variant="success" size="sm" dot>
-                    LIVE
-                  </Badge>
-                </div>
+                {status === 'active' && (
+                  <div className="absolute top-3 right-3">
+                    <Badge variant="success" size="sm" dot>
+                      LIVE
+                    </Badge>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -230,7 +269,7 @@ export default function DigitalSignageDetailPage() {
                 <div className="sm:col-span-2">
                   <InfoRow
                     label="Name"
-                    value={<span className="text-[16px] font-semibold">{content.name}</span>}
+                    value={<span className="text-[16px] font-semibold">{content.title}</span>}
                   />
                 </div>
                 <InfoRow
@@ -245,7 +284,7 @@ export default function DigitalSignageDetailPage() {
                   label="Screen Zone"
                   value={
                     <Badge variant="default" size="lg">
-                      {content.screenZone}
+                      {zone}
                     </Badge>
                   }
                 />
@@ -262,16 +301,18 @@ export default function DigitalSignageDetailPage() {
                   value={
                     <span className="inline-flex items-center gap-1">
                       <Timer className="h-3.5 w-3.5 text-neutral-400" />
-                      {content.rotationDuration} seconds
+                      {content.durationSeconds} seconds
                     </span>
                   }
                 />
-                <div className="sm:col-span-2">
-                  <InfoRow
-                    label="Content"
-                    value={<p className="leading-relaxed text-neutral-700">{content.content}</p>}
-                  />
-                </div>
+                {content.body && (
+                  <div className="sm:col-span-2">
+                    <InfoRow
+                      label="Content"
+                      value={<p className="leading-relaxed text-neutral-700">{content.body}</p>}
+                    />
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -309,15 +350,6 @@ export default function DigitalSignageDetailPage() {
                     </span>
                   }
                 />
-                <InfoRow
-                  label="Active Hours"
-                  value={
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5 text-neutral-400" />
-                      {content.activeHours}
-                    </span>
-                  }
-                />
               </div>
             </CardContent>
           </Card>
@@ -329,16 +361,21 @@ export default function DigitalSignageDetailPage() {
           <Card>
             <CardContent>
               <div className="flex flex-col items-center gap-3 py-2 text-center">
-                <div className="bg-success-50 flex h-14 w-14 items-center justify-center rounded-2xl">
-                  <Play className="text-success-600 h-7 w-7" />
+                <div
+                  className={`flex h-14 w-14 items-center justify-center rounded-2xl ${status === 'active' ? 'bg-success-50' : status === 'paused' ? 'bg-warning-50' : 'bg-neutral-100'}`}
+                >
+                  {status === 'active' ? (
+                    <Play className="text-success-600 h-7 w-7" />
+                  ) : status === 'paused' ? (
+                    <Pause className="text-warning-600 h-7 w-7" />
+                  ) : (
+                    <Clock className="h-7 w-7 text-neutral-400" />
+                  )}
                 </div>
                 <Badge variant={statusCfg.variant} size="lg" dot>
                   {statusCfg.label}
                 </Badge>
-                <p className="text-[13px] text-neutral-500">
-                  Displaying on {content.screens.length} screen
-                  {content.screens.length !== 1 ? 's' : ''}
-                </p>
+                <p className="text-[13px] text-neutral-500">Displaying on {zone} screen</p>
               </div>
             </CardContent>
           </Card>
@@ -351,8 +388,8 @@ export default function DigitalSignageDetailPage() {
             <CardContent>
               <div className="flex flex-col gap-2">
                 <Button variant="secondary" fullWidth>
-                  <Pause className="h-4 w-4" />
-                  Pause Content
+                  {content.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  {content.isActive ? 'Pause Content' : 'Activate Content'}
                 </Button>
                 <Button variant="secondary" fullWidth>
                   <Edit2 className="h-4 w-4" />
@@ -370,54 +407,6 @@ export default function DigitalSignageDetailPage() {
                   <Trash2 className="h-4 w-4" />
                   Delete Content
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Screen Assignment */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Screen Assignment</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-3">
-                {content.screens.map((screen) => (
-                  <div
-                    key={screen.id}
-                    className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-neutral-50/50 p-3"
-                  >
-                    <div className="bg-primary-50 flex h-9 w-9 items-center justify-center rounded-lg">
-                      <Monitor className="text-primary-600 h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-[13px] font-medium text-neutral-900">{screen.name}</p>
-                      <p className="text-[11px] text-neutral-400">
-                        {screen.location} &middot; {screen.resolution}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Analytics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Analytics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-3">
-                {[
-                  { label: 'Views', value: content.analytics.views.toLocaleString() },
-                  { label: 'Impressions', value: content.analytics.impressions.toLocaleString() },
-                  { label: 'Avg Display Time', value: content.analytics.avgDisplayTime },
-                ].map((stat) => (
-                  <div key={stat.label} className="flex items-center justify-between">
-                    <span className="text-[13px] text-neutral-600">{stat.label}</span>
-                    <span className="text-[15px] font-bold text-neutral-900">{stat.value}</span>
-                  </div>
-                ))}
               </div>
             </CardContent>
           </Card>

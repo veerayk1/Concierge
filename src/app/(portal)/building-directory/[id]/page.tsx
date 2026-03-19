@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
+  AlertTriangle,
   ArrowLeft,
   Building2,
   Clock,
@@ -14,16 +15,28 @@ import {
   Trash2,
   User,
 } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type EntryCategory = 'management' | 'emergency' | 'amenity' | 'commercial' | 'utility' | 'service';
+type EntryCategory =
+  | 'management'
+  | 'emergency'
+  | 'amenity'
+  | 'commercial'
+  | 'utility'
+  | 'service'
+  | 'security'
+  | 'maintenance'
+  | 'common_area';
 type EntryStatus = 'active' | 'inactive';
 
 interface RelatedEntry {
@@ -42,39 +55,18 @@ interface DirectoryEntry {
   email: string;
   location: string;
   hoursOfOperation: string;
+  hours?: string;
   notes: string;
+  isActive?: boolean;
   relatedEntries: RelatedEntry[];
 }
-
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_ENTRY: DirectoryEntry = {
-  id: '1',
-  name: 'Property Management Office',
-  category: 'management',
-  status: 'active',
-  contactPerson: 'Janet Wu',
-  phone: '(416) 555-0100',
-  email: 'management@mapleheights.ca',
-  location: 'Ground Floor, Suite 101',
-  hoursOfOperation: 'Monday - Friday, 9:00 AM - 5:00 PM',
-  notes:
-    'Main office for all property management inquiries including maintenance requests, parking permits, key replacements, and resident account changes. After-hours emergencies should be directed to the concierge desk at ext. 100.',
-  relatedEntries: [
-    { id: '2', name: 'Concierge Desk', category: 'management' },
-    { id: '3', name: 'Maintenance Office', category: 'service' },
-    { id: '4', name: 'Board of Directors', category: 'management' },
-  ],
-};
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 const CATEGORY_CONFIG: Record<
-  EntryCategory,
+  string,
   { variant: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'default'; label: string }
 > = {
   management: { variant: 'primary', label: 'Management' },
@@ -83,6 +75,9 @@ const CATEGORY_CONFIG: Record<
   commercial: { variant: 'warning', label: 'Commercial' },
   utility: { variant: 'default', label: 'Utility' },
   service: { variant: 'success', label: 'Service' },
+  security: { variant: 'info', label: 'Security' },
+  maintenance: { variant: 'warning', label: 'Maintenance' },
+  common_area: { variant: 'primary', label: 'Common Area' },
 };
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -95,15 +90,86 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
+// Skeleton
+// ---------------------------------------------------------------------------
+
+function DetailSkeleton() {
+  return (
+    <PageShell title="" description="Building Directory">
+      <div className="-mt-4 mb-4">
+        <Skeleton className="h-5 w-48" />
+      </div>
+      <div className="mx-auto max-w-3xl">
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardContent>
+              <Skeleton className="mb-4 h-6 w-2/3" />
+              <div className="grid grid-cols-2 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </PageShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function BuildingDirectoryDetailPage() {
   const { id } = useParams<{ id: string }>();
 
-  // In production this would come from an API call using id
-  const entry = MOCK_ENTRY;
-  const categoryCfg = CATEGORY_CONFIG[entry.category];
+  const {
+    data: entry,
+    loading,
+    error,
+    refetch,
+  } = useApi<DirectoryEntry>(
+    apiUrl(`/api/v1/building-directory/${id}`, { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  if (loading) return <DetailSkeleton />;
+
+  if (error || !entry) {
+    return (
+      <PageShell title="Directory Entry" description="Building Directory">
+        <div className="-mt-4 mb-4">
+          <Link
+            href="/building-directory"
+            className="inline-flex items-center gap-1.5 text-[14px] font-medium text-neutral-500 transition-colors hover:text-neutral-700"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to building directory
+          </Link>
+        </div>
+        <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+          <AlertTriangle className="text-error-500 h-12 w-12" />
+          <h1 className="text-[20px] font-bold text-neutral-900">
+            {error ? 'Error loading entry' : 'Entry not found'}
+          </h1>
+          <p className="text-[14px] text-neutral-500">
+            {error || 'The directory entry you are looking for does not exist.'}
+          </p>
+          <Button variant="secondary" onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </div>
+      </PageShell>
+    );
+  }
+
+  const categoryCfg = CATEGORY_CONFIG[entry.category] || {
+    variant: 'default' as const,
+    label: entry.category,
+  };
+  const isActive = entry.isActive ?? entry.status === 'active';
+  const hours = entry.hoursOfOperation || entry.hours || 'N/A';
+  const relatedEntries = entry.relatedEntries ?? [];
 
   return (
     <PageShell
@@ -155,12 +221,8 @@ export default function BuildingDirectoryDetailPage() {
                 <InfoRow
                   label="Status"
                   value={
-                    <Badge
-                      variant={entry.status === 'active' ? 'success' : 'default'}
-                      size="lg"
-                      dot
-                    >
-                      {entry.status === 'active' ? 'Active' : 'Inactive'}
+                    <Badge variant={isActive ? 'success' : 'default'} size="lg" dot>
+                      {isActive ? 'Active' : 'Inactive'}
                     </Badge>
                   }
                 />
@@ -169,7 +231,7 @@ export default function BuildingDirectoryDetailPage() {
                   value={
                     <span className="inline-flex items-center gap-1">
                       <User className="h-3.5 w-3.5 text-neutral-400" />
-                      {entry.contactPerson}
+                      {entry.contactPerson || 'N/A'}
                     </span>
                   }
                 />
@@ -187,7 +249,7 @@ export default function BuildingDirectoryDetailPage() {
                   value={
                     <span className="inline-flex items-center gap-1">
                       <Mail className="h-3.5 w-3.5 text-neutral-400" />
-                      {entry.email}
+                      {entry.email || 'N/A'}
                     </span>
                   }
                 />
@@ -206,7 +268,7 @@ export default function BuildingDirectoryDetailPage() {
                     value={
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5 text-neutral-400" />
-                        {entry.hoursOfOperation}
+                        {hours}
                       </span>
                     }
                   />
@@ -214,7 +276,11 @@ export default function BuildingDirectoryDetailPage() {
                 <div className="sm:col-span-2">
                   <InfoRow
                     label="Notes"
-                    value={<p className="leading-relaxed text-neutral-700">{entry.notes}</p>}
+                    value={
+                      <p className="leading-relaxed text-neutral-700">
+                        {entry.notes || 'No notes.'}
+                      </p>
+                    }
                   />
                 </div>
               </div>
@@ -248,7 +314,7 @@ export default function BuildingDirectoryDetailPage() {
                 </Button>
                 <Button variant="secondary">
                   <Power className="h-4 w-4" />
-                  Deactivate
+                  {isActive ? 'Deactivate' : 'Activate'}
                 </Button>
                 <Button variant="danger">
                   <Trash2 className="h-4 w-4" />
@@ -259,35 +325,40 @@ export default function BuildingDirectoryDetailPage() {
           </Card>
 
           {/* Related Entries */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Related Entries</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-3">
-                {entry.relatedEntries.map((related) => {
-                  const relCfg = CATEGORY_CONFIG[related.category];
-                  return (
-                    <Link
-                      key={related.id}
-                      href={`/building-directory/${related.id}`}
-                      className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-neutral-50/50 p-3 transition-colors hover:bg-neutral-100/50"
-                    >
-                      <div className="bg-primary-50 flex h-9 w-9 items-center justify-center rounded-lg">
-                        <Building2 className="text-primary-600 h-4 w-4" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-[13px] font-medium text-neutral-900">{related.name}</p>
-                      </div>
-                      <Badge variant={relCfg.variant} size="sm">
-                        {relCfg.label}
-                      </Badge>
-                    </Link>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+          {relatedEntries.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Related Entries</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-3">
+                  {relatedEntries.map((related) => {
+                    const relCfg = CATEGORY_CONFIG[related.category] || {
+                      variant: 'default' as const,
+                      label: related.category,
+                    };
+                    return (
+                      <Link
+                        key={related.id}
+                        href={`/building-directory/${related.id}`}
+                        className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-neutral-50/50 p-3 transition-colors hover:bg-neutral-100/50"
+                      >
+                        <div className="bg-primary-50 flex h-9 w-9 items-center justify-center rounded-lg">
+                          <Building2 className="text-primary-600 h-4 w-4" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[13px] font-medium text-neutral-900">{related.name}</p>
+                        </div>
+                        <Badge variant={relCfg.variant} size="sm">
+                          {relCfg.label}
+                        </Badge>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </PageShell>
