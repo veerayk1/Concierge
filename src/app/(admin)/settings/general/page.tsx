@@ -2,16 +2,17 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Building2, ImagePlus } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Building2, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// Constants
 // ---------------------------------------------------------------------------
 
 const TIMEZONES = [
@@ -46,37 +47,29 @@ interface SettingsApiData {
   eventTypes: unknown[];
 }
 
-// Fallback mock values
-const MOCK_SETTINGS = {
-  name: 'The Residence at Harbourfront',
-  address: '225 Queens Quay West',
-  city: 'Toronto',
-  province: 'Ontario',
-  postalCode: 'M5J 1B5',
-  timezone: 'America/Toronto',
-  unitCount: 342,
-};
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function GeneralSettingsPage() {
-  const { data: apiData, loading } = useApi<SettingsApiData>(
-    apiUrl('/api/v1/settings', { propertyId: DEMO_PROPERTY_ID }),
-  );
+  const {
+    data: apiData,
+    loading,
+    error,
+    refetch,
+  } = useApi<SettingsApiData>(apiUrl('/api/v1/settings', { propertyId: DEMO_PROPERTY_ID }));
 
   const settings = useMemo(() => {
-    if (!apiData?.property) return MOCK_SETTINGS;
+    if (!apiData?.property) return null;
     const p = apiData.property;
     return {
-      name: p.name || MOCK_SETTINGS.name,
-      address: p.address || MOCK_SETTINGS.address,
-      city: p.city || MOCK_SETTINGS.city,
-      province: p.province || MOCK_SETTINGS.province,
-      postalCode: p.postalCode || MOCK_SETTINGS.postalCode,
-      timezone: p.timezone || MOCK_SETTINGS.timezone,
-      unitCount: p.unitCount ?? MOCK_SETTINGS.unitCount,
+      name: p.name || '',
+      address: p.address || '',
+      city: p.city || '',
+      province: p.province || '',
+      postalCode: p.postalCode || '',
+      timezone: p.timezone || 'America/Toronto',
+      unitCount: p.unitCount ?? 0,
     };
   }, [apiData]);
 
@@ -86,6 +79,35 @@ export default function GeneralSettingsPage() {
         <Skeleton className="h-5 w-32" />
         <Skeleton className="h-9 w-64" />
         <Skeleton className="h-[400px] rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-3xl py-8">
+        <EmptyState
+          icon={<AlertCircle className="h-6 w-6" />}
+          title="Failed to load settings"
+          description={error}
+          action={
+            <Button variant="secondary" size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (!settings) {
+    return (
+      <div className="mx-auto max-w-3xl py-8">
+        <EmptyState
+          icon={<Building2 className="h-6 w-6" />}
+          title="No property settings found"
+          description="This property has not been configured yet. Please contact your administrator."
+        />
       </div>
     );
   }

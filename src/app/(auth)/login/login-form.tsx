@@ -168,31 +168,20 @@ export function LoginForm() {
         </span>
       </div>
 
+      {/* Super Admin & Admin */}
       <div className="grid grid-cols-2 gap-2">
         {[
           {
-            role: 'front_desk',
-            label: 'Front Desk',
-            email: 'concierge1@mapleheights.ca',
-            password: 'StaffPass123!@',
-          },
-          {
-            role: 'security_guard',
-            label: 'Security',
-            email: 'guard1@mapleheights.ca',
-            password: 'StaffPass123!@',
+            role: 'super_admin',
+            label: 'Super Admin',
+            desc: 'Full platform control',
+            color: 'border-red-200 bg-red-50 text-red-700',
           },
           {
             role: 'property_admin',
-            label: 'Admin',
-            email: 'admin@concierge.app',
-            password: 'SuperAdmin123!',
-          },
-          {
-            role: 'resident_owner',
-            label: 'Resident',
-            email: 'resident1@mapleheights.ca',
-            password: 'Resident123!@',
+            label: 'Property Admin',
+            desc: 'Property owner / buyer',
+            color: 'border-purple-200 bg-purple-50 text-purple-700',
           },
         ].map((demo) => (
           <button
@@ -202,18 +191,108 @@ export function LoginForm() {
               localStorage.setItem('demo_role', demo.role);
               window.location.href = '/dashboard';
             }}
-            className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 group rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-left transition-all duration-200 active:scale-[0.98]"
+            className={`rounded-xl border px-3 py-2.5 text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] ${demo.color}`}
           >
-            <span className="group-hover:text-primary-700 block text-[13px] font-medium text-neutral-700">
-              Demo: {demo.label}
-            </span>
-            <span className="block truncate text-[11px] text-neutral-400">{demo.email}</span>
+            <span className="block text-[13px] font-semibold">{demo.label}</span>
+            <span className="block text-[11px] opacity-70">{demo.desc}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Staff Roles */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          {
+            role: 'property_manager',
+            label: 'Property Manager',
+            desc: 'Day-to-day operations',
+            color: 'border-blue-200 bg-blue-50 text-blue-700',
+          },
+          {
+            role: 'front_desk',
+            label: 'Front Desk',
+            desc: 'Concierge / reception',
+            color: 'border-teal-200 bg-teal-50 text-teal-700',
+          },
+          {
+            role: 'security_guard',
+            label: 'Security Guard',
+            desc: 'Security console',
+            color: 'border-amber-200 bg-amber-50 text-amber-700',
+          },
+          {
+            role: 'security_supervisor',
+            label: 'Security Supervisor',
+            desc: 'Security management',
+            color: 'border-orange-200 bg-orange-50 text-orange-700',
+          },
+          {
+            role: 'maintenance_staff',
+            label: 'Maintenance',
+            desc: 'Work orders & repairs',
+            color: 'border-green-200 bg-green-50 text-green-700',
+          },
+          {
+            role: 'superintendent',
+            label: 'Superintendent',
+            desc: 'Building operations',
+            color: 'border-cyan-200 bg-cyan-50 text-cyan-700',
+          },
+        ].map((demo) => (
+          <button
+            key={demo.role}
+            type="button"
+            onClick={() => {
+              localStorage.setItem('demo_role', demo.role);
+              window.location.href = '/dashboard';
+            }}
+            className={`rounded-xl border px-3 py-2 text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] ${demo.color}`}
+          >
+            <span className="block text-[12px] font-semibold">{demo.label}</span>
+            <span className="block text-[10px] opacity-70">{demo.desc}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Resident & Board Roles */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          {
+            role: 'resident_owner',
+            label: 'Resident (Owner)',
+            desc: 'Unit owner portal',
+            color: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+          },
+          {
+            role: 'resident_tenant',
+            label: 'Resident (Tenant)',
+            desc: 'Tenant portal',
+            color: 'border-violet-200 bg-violet-50 text-violet-700',
+          },
+          {
+            role: 'board_member',
+            label: 'Board Member',
+            desc: 'Governance & reports',
+            color: 'border-slate-200 bg-slate-50 text-slate-700',
+          },
+        ].map((demo) => (
+          <button
+            key={demo.role}
+            type="button"
+            onClick={() => {
+              localStorage.setItem('demo_role', demo.role);
+              window.location.href = '/dashboard';
+            }}
+            className={`rounded-xl border px-3 py-2 text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] ${demo.color}`}
+          >
+            <span className="block text-[12px] font-semibold">{demo.label}</span>
+            <span className="block text-[10px] opacity-70">{demo.desc}</span>
           </button>
         ))}
       </div>
 
       <p className="text-center text-[11px] text-neutral-400">
-        Demo buttons bypass auth. To test real login, use credentials above with the sign-in form.
+        Quick access buttons for testing. Each role sees a different dashboard and navigation.
       </p>
     </form>
   );

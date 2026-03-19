@@ -682,7 +682,7 @@ describe('Common schemas', () => {
 
     it('rejects invalid email with error message', () => {
       const error = expectZodError(() => emailSchema.parse('not-email'));
-      expect(error.issues[0].message).toContain('valid email');
+      expect(error.issues[0]!.message).toContain('valid email');
     });
   });
 
@@ -694,7 +694,7 @@ describe('Common schemas', () => {
 
     it('rejects non-UUID strings', () => {
       const error = expectZodError(() => uuidSchema.parse('not-a-uuid'));
-      expect(error.issues[0].message).toContain('UUID');
+      expect(error.issues[0]!.message).toContain('UUID');
     });
   });
 
@@ -706,7 +706,7 @@ describe('Common schemas', () => {
 
     it('rejects empty search query', () => {
       const error = expectZodError(() => searchSchema.parse({ query: '' }));
-      expect(error.issues[0].message).toContain('empty');
+      expect(error.issues[0]!.message).toContain('empty');
     });
   });
 
@@ -746,7 +746,7 @@ describe('Common schemas', () => {
           to: '2025-01-01T00:00:00.000Z',
         }),
       );
-      expect(error.issues[0].message).toContain('before');
+      expect(error.issues[0]!.message).toContain('before');
     });
 
     it('rejects non-ISO date formats', () => {
