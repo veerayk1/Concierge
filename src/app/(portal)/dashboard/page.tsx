@@ -1,11 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Role } from '@/types';
 import {
@@ -18,12 +20,15 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  CloudSun,
   FileText,
   Key,
   Megaphone,
   Package,
+  Plus,
   Shield,
   Sparkles,
+  StickyNote,
   TrendingUp,
   Users,
   Wrench,
@@ -321,6 +326,155 @@ function getGreeting(): string {
 }
 
 // ---------------------------------------------------------------------------
+// Mock data for new sections
+// ---------------------------------------------------------------------------
+
+const MOCK_UPCOMING_TASKS = [
+  {
+    id: 't1',
+    title: 'Fire alarm test',
+    time: '9:00 AM',
+    type: 'maintenance',
+    priority: 'high' as const,
+  },
+  {
+    id: 't2',
+    title: 'Elevator B technician visit',
+    time: '2:00 PM',
+    type: 'maintenance',
+    priority: 'high' as const,
+  },
+  {
+    id: 't3',
+    title: 'Pool filter inspection',
+    time: '3:30 PM',
+    type: 'inspection',
+    priority: 'normal' as const,
+  },
+  {
+    id: 't4',
+    title: 'Lobby plant watering',
+    time: '4:00 PM',
+    type: 'routine',
+    priority: 'low' as const,
+  },
+];
+
+const MOCK_RECENT_ACTIVITY = [
+  {
+    id: 'ra1',
+    type: 'Package',
+    title: 'Amazon delivery for Unit 1205',
+    status: 'Logged',
+    time: '5 min ago',
+    icon: Package,
+    color: 'text-primary-600',
+    bg: 'bg-primary-50',
+  },
+  {
+    id: 'ra2',
+    type: 'Visitor',
+    title: 'John Smith signed in to visit Unit 802',
+    status: 'Active',
+    time: '12 min ago',
+    icon: Users,
+    color: 'text-success-600',
+    bg: 'bg-success-50',
+  },
+  {
+    id: 'ra3',
+    type: 'Maintenance',
+    title: 'Leaking faucet reported - Unit 1501',
+    status: 'Open',
+    time: '25 min ago',
+    icon: Wrench,
+    color: 'text-warning-600',
+    bg: 'bg-warning-50',
+  },
+  {
+    id: 'ra4',
+    type: 'Security',
+    title: 'Parking violation logged - P1 Spot 42',
+    status: 'Open',
+    time: '45 min ago',
+    icon: Shield,
+    color: 'text-error-600',
+    bg: 'bg-error-50',
+  },
+  {
+    id: 'ra5',
+    type: 'Announcement',
+    title: 'Easter weekend schedule posted',
+    status: 'Published',
+    time: '1 hr ago',
+    icon: Megaphone,
+    color: 'text-primary-600',
+    bg: 'bg-primary-50',
+  },
+  {
+    id: 'ra6',
+    type: 'Package',
+    title: 'FedEx delivery for Unit 405',
+    status: 'Logged',
+    time: '1.5 hrs ago',
+    icon: Package,
+    color: 'text-primary-600',
+    bg: 'bg-primary-50',
+  },
+  {
+    id: 'ra7',
+    type: 'Shift Log',
+    title: 'Morning shift started - Guard Patel',
+    status: 'Active',
+    time: '2 hrs ago',
+    icon: Clock,
+    color: 'text-info-600',
+    bg: 'bg-info-50',
+  },
+  {
+    id: 'ra8',
+    type: 'Visitor',
+    title: 'Delivery driver signed out',
+    status: 'Complete',
+    time: '2.5 hrs ago',
+    icon: Users,
+    color: 'text-success-600',
+    bg: 'bg-success-50',
+  },
+  {
+    id: 'ra9',
+    type: 'Maintenance',
+    title: 'Hallway light replaced - Floor 12',
+    status: 'Closed',
+    time: '3 hrs ago',
+    icon: Wrench,
+    color: 'text-warning-600',
+    bg: 'bg-warning-50',
+  },
+  {
+    id: 'ra10',
+    type: 'Package',
+    title: 'UPS bulk delivery (8 packages)',
+    status: 'Logged',
+    time: '3.5 hrs ago',
+    icon: Package,
+    color: 'text-primary-600',
+    bg: 'bg-primary-50',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Quick Action Links
+// ---------------------------------------------------------------------------
+
+const QUICK_ACTION_LINKS: Record<string, { href: string; icon: LucideIcon }> = {
+  'Log Package': { href: '/packages', icon: Package },
+  'Sign In Visitor': { href: '/security', icon: Users },
+  'Create Maintenance Request': { href: '/maintenance', icon: Wrench },
+  'Add Shift Note': { href: '/shift-log', icon: StickyNote },
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -344,6 +498,25 @@ interface DashboardApiData {
     status: string;
     createdAt: string;
   }[];
+}
+
+function getBuildingHealthColor(score: number): string {
+  if (score >= 80) return 'text-success-600';
+  if (score >= 60) return 'text-warning-600';
+  return 'text-error-600';
+}
+
+function getBuildingHealthBg(score: number): string {
+  if (score >= 80) return 'bg-success-50';
+  if (score >= 60) return 'bg-warning-50';
+  return 'bg-error-50';
+}
+
+function getBuildingHealthLabel(score: number): string {
+  if (score >= 90) return 'Excellent';
+  if (score >= 80) return 'Good';
+  if (score >= 60) return 'Fair';
+  return 'Needs Attention';
 }
 
 export default function DashboardPage() {
@@ -386,6 +559,7 @@ export default function DashboardPage() {
 
   const config = DASHBOARD_CONFIGS[effectiveRole];
   const greeting = getGreeting();
+  const buildingHealthScore = 87;
 
   return (
     <div className="flex flex-col gap-8">
@@ -407,6 +581,121 @@ export default function DashboardPage() {
             day: 'numeric',
           })}
         </p>
+      </div>
+
+      {/* AI Briefing + Building Health + Weather Row */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* AI Daily Briefing */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <div className="bg-info-50 flex h-8 w-8 items-center justify-center rounded-lg">
+                <Sparkles className="text-info-600 h-4 w-4" />
+              </div>
+              <CardTitle>AI Daily Briefing</CardTitle>
+            </div>
+            <Badge variant="info" size="sm">
+              Auto-generated
+            </Badge>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-[14px] leading-relaxed text-neutral-700">
+              <p>
+                Good{' '}
+                {new Date().getHours() < 12
+                  ? 'morning'
+                  : new Date().getHours() < 17
+                    ? 'afternoon'
+                    : 'evening'}
+                . Here is your daily summary:
+              </p>
+              <ul className="ml-4 list-disc space-y-1 text-[13px] text-neutral-600">
+                <li>
+                  <strong>Elevator B</strong> remains out of service. Technician expected at 2pm
+                  today. Residents should use Elevator A.
+                </li>
+                <li>
+                  <strong>3 maintenance requests</strong> are open, 1 marked as urgent (leaking
+                  faucet in Unit 1501).
+                </li>
+                <li>
+                  <strong>Fire alarm test</strong> scheduled today from 9am-11am. Residents have
+                  been notified.
+                </li>
+                <li>
+                  <strong>12 packages</strong> awaiting pickup. 1 is perishable (Unit 1802, stored
+                  in staff fridge).
+                </li>
+                <li>
+                  <strong>Easter weekend</strong> schedule change: building office closed April
+                  18-21.
+                </li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Building Health + Weather */}
+        <div className="flex flex-col gap-4">
+          {/* Building Health Score */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Building Health</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center gap-2 text-center">
+                <div
+                  className={`flex h-16 w-16 items-center justify-center rounded-2xl ${getBuildingHealthBg(buildingHealthScore)}`}
+                >
+                  <span
+                    className={`text-[28px] font-bold ${getBuildingHealthColor(buildingHealthScore)}`}
+                  >
+                    {buildingHealthScore}
+                  </span>
+                </div>
+                <Badge
+                  variant={
+                    buildingHealthScore >= 80
+                      ? 'success'
+                      : buildingHealthScore >= 60
+                        ? 'warning'
+                        : 'error'
+                  }
+                  size="lg"
+                  dot
+                >
+                  {getBuildingHealthLabel(buildingHealthScore)}
+                </Badge>
+                <p className="text-[12px] text-neutral-500">
+                  Based on maintenance, safety, and operations metrics
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Weather Widget */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CloudSun className="text-info-500 h-4 w-4" />
+                <CardTitle>Weather</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[24px] font-bold text-neutral-900">8&deg;C</p>
+                  <p className="text-[13px] text-neutral-500">Partly cloudy</p>
+                </div>
+                <div className="text-right text-[12px] text-neutral-500">
+                  <p>H: 12&deg; L: 3&deg;</p>
+                  <p>Humidity: 65%</p>
+                  <p>Wind: 15 km/h</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -444,70 +733,163 @@ export default function DashboardPage() {
       )}
 
       {/* Quick Actions */}
-      {config.quickActions.length > 0 && (
-        <div>
-          <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
-            Quick Actions
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {config.quickActions.map((action) => (
-              <button
-                key={action}
-                type="button"
-                className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
-              >
-                {action}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Activity Feed */}
       <div>
         <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
-          Recent Activity
+          Quick Actions
         </h2>
-        {apiData?.recentActivity && apiData.recentActivity.length > 0 ? (
-          <div className="space-y-2">
-            {apiData.recentActivity.map((event) => (
-              <Card key={event.id} hoverable className="cursor-pointer">
-                <div className="flex items-center justify-between">
+        <div className="flex flex-wrap gap-2">
+          {/* Role-specific quick actions */}
+          {config.quickActions.map((action) => (
+            <button
+              key={action}
+              type="button"
+              className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
+            >
+              {action}
+            </button>
+          ))}
+
+          {/* Dedicated quick action buttons */}
+          <div className="mx-1 h-auto w-px bg-neutral-200" />
+          {Object.entries(QUICK_ACTION_LINKS).map(([label, { href, icon: QAIcon }]) => (
+            <Link
+              key={label}
+              href={href as never}
+              className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
+            >
+              <QAIcon className="h-4 w-4" />
+              {label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Upcoming Tasks + Recent Activity */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        {/* Upcoming Tasks */}
+        <div>
+          <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
+            Upcoming Tasks
+          </h2>
+          <Card padding="none">
+            <div className="divide-y divide-neutral-100">
+              {MOCK_UPCOMING_TASKS.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-neutral-50"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100">
-                      <Activity className="h-4 w-4 text-neutral-500" />
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                        task.priority === 'high'
+                          ? 'bg-error-50'
+                          : task.priority === 'normal'
+                            ? 'bg-warning-50'
+                            : 'bg-neutral-100'
+                      }`}
+                    >
+                      <Calendar
+                        className={`h-4 w-4 ${
+                          task.priority === 'high'
+                            ? 'text-error-600'
+                            : task.priority === 'normal'
+                              ? 'text-warning-600'
+                              : 'text-neutral-400'
+                        }`}
+                      />
                     </div>
                     <div>
-                      <p className="text-[14px] font-medium text-neutral-900">{event.title}</p>
-                      <p className="text-[12px] text-neutral-500">
-                        {event.type}
-                        {event.unit ? ` \u00B7 Unit ${event.unit}` : ''}
-                      </p>
+                      <p className="text-[14px] font-medium text-neutral-900">{task.title}</p>
+                      <p className="text-[12px] text-neutral-500 capitalize">{task.type}</p>
                     </div>
                   </div>
-                  <span className="text-[12px] text-neutral-400">
-                    {new Date(event.createdAt).toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5 text-neutral-400" />
+                    <span className="text-[13px] font-medium text-neutral-600">{task.time}</span>
+                  </div>
                 </div>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100">
-                <Activity className="h-6 w-6 text-neutral-400" />
-              </div>
-              <p className="text-[15px] font-medium text-neutral-900">No activity yet</p>
-              <p className="mt-1 text-[13px] text-neutral-500">
-                Events will appear here as activity occurs across the building.
-              </p>
-            </CardContent>
+              ))}
+            </div>
           </Card>
-        )}
+        </div>
+
+        {/* Recent Activity Feed */}
+        <div className="xl:col-span-2">
+          <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
+            Recent Activity
+          </h2>
+          {apiData?.recentActivity && apiData.recentActivity.length > 0 ? (
+            <div className="space-y-2">
+              {apiData.recentActivity.map((event) => (
+                <Card key={event.id} hoverable className="cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100">
+                        <Activity className="h-4 w-4 text-neutral-500" />
+                      </div>
+                      <div>
+                        <p className="text-[14px] font-medium text-neutral-900">{event.title}</p>
+                        <p className="text-[12px] text-neutral-500">
+                          {event.type}
+                          {event.unit ? ` \u00B7 Unit ${event.unit}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[12px] text-neutral-400">
+                      {new Date(event.createdAt).toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card padding="none">
+              <div className="divide-y divide-neutral-100">
+                {MOCK_RECENT_ACTIVITY.map((event) => {
+                  const EventIcon = event.icon;
+                  return (
+                    <div
+                      key={event.id}
+                      className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-neutral-50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${event.bg}`}
+                        >
+                          <EventIcon className={`h-4 w-4 ${event.color}`} />
+                        </div>
+                        <div>
+                          <p className="text-[14px] font-medium text-neutral-900">{event.title}</p>
+                          <p className="text-[12px] text-neutral-500">{event.type}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge
+                          variant={
+                            event.status === 'Active' || event.status === 'Published'
+                              ? 'success'
+                              : event.status === 'Open'
+                                ? 'warning'
+                                : event.status === 'Closed' || event.status === 'Complete'
+                                  ? 'default'
+                                  : 'info'
+                          }
+                          size="sm"
+                        >
+                          {event.status}
+                        </Badge>
+                        <span className="text-[12px] text-neutral-400">{event.time}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -523,6 +905,13 @@ function DashboardSkeleton() {
       <div>
         <Skeleton className="h-9 w-72" />
         <Skeleton className="mt-2 h-5 w-48" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Skeleton className="h-[200px] rounded-2xl lg:col-span-2" />
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-[130px] rounded-2xl" />
+          <Skeleton className="h-[100px] rounded-2xl" />
+        </div>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
