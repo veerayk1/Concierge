@@ -1,0 +1,61 @@
+'use client';
+
+/**
+ * Concierge — Portal Error Boundary
+ *
+ * Catches unhandled errors within the (portal) route group.
+ * Renders inside the app shell layout so sidebar/header remain visible.
+ * Provides retry and dashboard navigation options.
+ */
+
+import { useEffect } from 'react';
+import Link from 'next/link';
+import { AlertTriangle, RotateCcw, LayoutDashboard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+
+interface PortalErrorProps {
+  error: Error & { digest?: string };
+  reset: () => void;
+}
+
+export default function PortalError({ error, reset }: PortalErrorProps) {
+  useEffect(() => {
+    console.error('[Concierge] Portal error:', error);
+  }, [error]);
+
+  return (
+    <div className="flex flex-1 items-center justify-center p-6">
+      <Card padding="lg" className="w-full max-w-lg text-center">
+        <div className="bg-error-50 mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl">
+          <AlertTriangle className="text-error-600 h-7 w-7" strokeWidth={1.5} />
+        </div>
+
+        <h1 className="text-xl font-semibold tracking-tight text-neutral-900">
+          Something went wrong
+        </h1>
+
+        <p className="mt-3 text-[14px] leading-relaxed text-neutral-500">
+          This section encountered an unexpected error. You can retry loading the page or return to
+          the dashboard. If the issue continues, please contact your property administrator.
+        </p>
+
+        {error.digest && <p className="mt-3 text-xs text-neutral-400">Reference: {error.digest}</p>}
+
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Button variant="primary" size="md" onClick={reset}>
+            <RotateCcw className="h-4 w-4" />
+            Retry
+          </Button>
+          <Link
+            href="/dashboard"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-[14px] font-medium text-neutral-700 shadow-sm transition-all duration-200 ease-out hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.98] active:bg-neutral-100"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            Go to Dashboard
+          </Link>
+        </div>
+      </Card>
+    </div>
+  );
+}

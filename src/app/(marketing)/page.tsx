@@ -5,10 +5,26 @@ import type { Metadata } from 'next';
 // Metadata
 // ---------------------------------------------------------------------------
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+
 export const metadata: Metadata = {
   title: 'Concierge | Modern Building Management',
   description:
     'Security logging, package tracking, maintenance requests, amenity bookings, and resident communication — all in one platform built for Canadian properties.',
+  openGraph: {
+    title: 'Concierge | Modern Building Management',
+    description:
+      'Security logging, package tracking, maintenance requests, amenity bookings, and resident communication — all in one platform built for Canadian properties.',
+    type: 'website',
+    url: BASE_URL,
+    siteName: 'Concierge',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Concierge | Modern Building Management',
+    description:
+      'Security logging, package tracking, maintenance requests, amenity bookings, and resident communication — all in one platform built for Canadian properties.',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -200,9 +216,81 @@ const TESTIMONIALS = [
 // Page
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// JSON-LD Structured Data
+// ---------------------------------------------------------------------------
+
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Concierge',
+  url: BASE_URL,
+  description:
+    'Next-generation condo and building management platform with role-aware interfaces, unified event logging, and Apple-grade design. Built for Canadian properties.',
+  logo: `${BASE_URL}/logo.png`,
+  sameAs: [],
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'sales',
+    url: `${BASE_URL}/contact`,
+  },
+};
+
+const softwareApplicationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Concierge',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  description:
+    'Security logging, package tracking, maintenance requests, amenity bookings, and resident communication — all in one platform built for Canadian properties.',
+  offers: [
+    {
+      '@type': 'Offer',
+      name: 'Starter',
+      price: '2.50',
+      priceCurrency: 'CAD',
+      description:
+        'Per unit per month. Package tracking, visitor logging, announcements, basic reporting.',
+      url: `${BASE_URL}/pricing`,
+    },
+    {
+      '@type': 'Offer',
+      name: 'Professional',
+      price: '4.50',
+      priceCurrency: 'CAD',
+      description:
+        'Per unit per month. Full suite including maintenance, amenity booking, security console, and staff training.',
+      url: `${BASE_URL}/pricing`,
+    },
+    {
+      '@type': 'Offer',
+      name: 'Enterprise',
+      price: '0',
+      priceCurrency: 'CAD',
+      description: 'Custom pricing for management companies with multiple properties.',
+      url: `${BASE_URL}/pricing`,
+    },
+  ],
+};
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 export default function LandingPage() {
   return (
     <div>
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd) }}
+      />
+
       {/* Section 1: Hero */}
       <section className="mx-auto max-w-7xl px-6 pt-20 pb-16 md:pt-28 md:pb-24">
         <div className="max-w-3xl">

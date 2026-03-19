@@ -1,13 +1,14 @@
 /**
- * Concierge — Root Loading State
+ * Concierge — Portal Loading State
  *
- * Displayed by Next.js while a route segment is loading.
+ * Displayed while portal route segments are loading.
+ * Renders inside the app shell so sidebar/header remain visible.
  * Shows a centered spinner with the Concierge wordmark.
  */
 
-export default function RootLoading() {
+export default function PortalLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white">
+    <div className="flex flex-1 items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="relative">
           <div

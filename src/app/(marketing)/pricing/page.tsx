@@ -5,10 +5,26 @@ import type { Metadata } from 'next';
 // Metadata
 // ---------------------------------------------------------------------------
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+
 export const metadata: Metadata = {
   title: 'Pricing — Concierge',
   description:
     'Simple, transparent pricing for building management. Starter, Professional, and Enterprise tiers with no hidden fees.',
+  openGraph: {
+    title: 'Pricing — Concierge',
+    description:
+      'Simple, transparent pricing for building management. Starter, Professional, and Enterprise tiers with no hidden fees.',
+    type: 'website',
+    url: `${BASE_URL}/pricing`,
+    siteName: 'Concierge',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Pricing — Concierge',
+    description:
+      'Simple, transparent pricing for building management. Starter, Professional, and Enterprise tiers with no hidden fees.',
+  },
 };
 
 // ---------------------------------------------------------------------------

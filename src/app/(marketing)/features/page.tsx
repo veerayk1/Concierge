@@ -5,10 +5,26 @@ import type { Metadata } from 'next';
 // Metadata
 // ---------------------------------------------------------------------------
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+
 export const metadata: Metadata = {
   title: 'Features — Concierge',
   description:
     'Explore the full feature set: security console, package tracking, maintenance requests, amenity booking, announcements, and staff training.',
+  openGraph: {
+    title: 'Features — Concierge',
+    description:
+      'Explore the full feature set: security console, package tracking, maintenance requests, amenity booking, announcements, and staff training.',
+    type: 'website',
+    url: `${BASE_URL}/features`,
+    siteName: 'Concierge',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Features — Concierge',
+    description:
+      'Explore the full feature set: security console, package tracking, maintenance requests, amenity booking, announcements, and staff training.',
+  },
 };
 
 // ---------------------------------------------------------------------------
