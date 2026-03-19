@@ -264,6 +264,42 @@ export default function ForumPage() {
     },
   ];
 
+  // Loading state
+  if (loading) {
+    return (
+      <PageShell title="Forum" description="Loading...">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="Forum" description="Error loading forum">
+        <EmptyState
+          icon={<MessageSquare className="h-6 w-6" />}
+          title="Failed to load forum threads"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
+
   return (
     <PageShell
       title="Forum"

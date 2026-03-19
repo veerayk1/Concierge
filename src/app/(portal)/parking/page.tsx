@@ -1,7 +1,17 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { AlertTriangle, Car, Download, MapPin, Plus, Search, X } from 'lucide-react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  Car,
+  Download,
+  Loader2,
+  MapPin,
+  Plus,
+  Search,
+  X,
+} from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { CreateParkingPermitDialog } from '@/components/forms/create-parking-permit-dialog';
@@ -10,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -40,83 +51,6 @@ interface ParkingViolation {
 }
 
 // ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_PERMITS: ParkingPermit[] = [
-  {
-    id: '1',
-    permitNumber: 'P-001',
-    unit: '1501',
-    resident: 'Janet Smith',
-    vehicle: 'Tesla Model 3',
-    licensePlate: 'ABCD 123',
-    spotNumber: 'P1-15',
-    area: 'P1 Underground',
-    type: 'resident',
-    status: 'active',
-  },
-  {
-    id: '2',
-    permitNumber: 'P-002',
-    unit: '802',
-    resident: 'David Chen',
-    vehicle: 'Honda Civic',
-    licensePlate: 'EFGH 456',
-    spotNumber: 'P1-08',
-    area: 'P1 Underground',
-    type: 'resident',
-    status: 'active',
-  },
-  {
-    id: '3',
-    permitNumber: 'P-003',
-    unit: '710',
-    resident: 'Sarah Wilson',
-    vehicle: 'BMW X3',
-    licensePlate: 'IJKL 789',
-    spotNumber: 'P2-22',
-    area: 'P2 Underground',
-    type: 'reserved',
-    status: 'active',
-  },
-  {
-    id: '4',
-    permitNumber: 'V-101',
-    unit: '422',
-    resident: 'Jane Doe',
-    vehicle: 'Guest Vehicle',
-    licensePlate: 'MNOP 012',
-    spotNumber: 'V-03',
-    area: 'Visitor Lot',
-    type: 'visitor',
-    status: 'active',
-    expiresAt: '2026-03-18T23:59:00',
-  },
-];
-
-const MOCK_VIOLATIONS: ParkingViolation[] = [
-  {
-    id: '1',
-    licensePlate: 'WXYZ 999',
-    location: 'P2-45 (Reserved)',
-    violation: 'Parked in reserved spot without permit',
-    status: 'open',
-    reportedBy: 'Guard Chen',
-    reportedAt: '2026-03-18T10:00:00',
-  },
-  {
-    id: '2',
-    licensePlate: 'QRST 555',
-    location: 'Fire Lane',
-    violation: 'Parked in fire lane',
-    status: 'warned',
-    reportedBy: 'Guard Patel',
-    reportedAt: '2026-03-17T14:30:00',
-  },
-];
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -125,31 +59,48 @@ export default function ParkingPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPermitDialog, setShowPermitDialog] = useState(false);
 
-  const { data: apiPermits, refetch: refetchPermits } = useApi<ParkingPermit[]>(
-    apiUrl('/api/v1/parking', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiPermits,
+    loading: loadingPermits,
+    error: errorPermits,
+    refetch: refetchPermits,
+  } = useApi<ParkingPermit[]>(
+    apiUrl('/api/v1/parking', {
+      propertyId: DEMO_PROPERTY_ID,
+      search: searchQuery || undefined,
+    }),
   );
 
-  const { data: apiViolations, refetch: refetchViolations } = useApi<ParkingViolation[]>(
-    apiUrl('/api/v1/parking', { propertyId: DEMO_PROPERTY_ID, type: 'violations' }),
+  const {
+    data: apiViolations,
+    loading: loadingViolations,
+    error: errorViolations,
+    refetch: refetchViolations,
+  } = useApi<ParkingViolation[]>(
+    apiUrl('/api/v1/parking', {
+      propertyId: DEMO_PROPERTY_ID,
+      type: 'violations',
+      search: searchQuery || undefined,
+    }),
   );
 
-  const allPermits = useMemo<ParkingPermit[]>(() => apiPermits ?? MOCK_PERMITS, [apiPermits]);
+  const loading = tab === 'permits' ? loadingPermits : loadingViolations;
+  const error = tab === 'permits' ? errorPermits : errorViolations;
 
-  const allViolations = useMemo<ParkingViolation[]>(
-    () => apiViolations ?? MOCK_VIOLATIONS,
-    [apiViolations],
-  );
+  const allPermits = useMemo<ParkingPermit[]>(() => apiPermits ?? [], [apiPermits]);
+  const allViolations = useMemo<ParkingViolation[]>(() => apiViolations ?? [], [apiViolations]);
 
-  const filteredPermits = allPermits.filter((p) => {
-    if (!searchQuery) return true;
+  const filteredPermits = useMemo(() => {
+    if (!searchQuery) return allPermits;
     const q = searchQuery.toLowerCase();
-    return (
-      p.resident.toLowerCase().includes(q) ||
-      p.licensePlate.toLowerCase().includes(q) ||
-      p.unit.includes(q) ||
-      p.spotNumber.toLowerCase().includes(q)
+    return allPermits.filter(
+      (p) =>
+        p.resident.toLowerCase().includes(q) ||
+        p.licensePlate.toLowerCase().includes(q) ||
+        p.unit.includes(q) ||
+        p.spotNumber.toLowerCase().includes(q),
     );
-  });
+  }, [allPermits, searchQuery]);
 
   const permitColumns: Column<ParkingPermit>[] = [
     {
@@ -195,13 +146,13 @@ export default function ParkingPage() {
       header: 'Type',
       accessorKey: 'type',
       cell: (row) => {
-        const m = {
-          resident: 'primary' as const,
-          visitor: 'info' as const,
-          reserved: 'warning' as const,
+        const m: Record<string, 'primary' | 'info' | 'warning'> = {
+          resident: 'primary',
+          visitor: 'info',
+          reserved: 'warning',
         };
         return (
-          <Badge variant={m[row.type]} size="sm">
+          <Badge variant={m[row.type] ?? 'default'} size="sm">
             {row.type}
           </Badge>
         );
@@ -235,13 +186,13 @@ export default function ParkingPage() {
       header: 'Status',
       accessorKey: 'status',
       cell: (row) => {
-        const m = {
-          open: 'error' as const,
-          warned: 'warning' as const,
-          resolved: 'success' as const,
+        const m: Record<string, 'error' | 'warning' | 'success'> = {
+          open: 'error',
+          warned: 'warning',
+          resolved: 'success',
         };
         return (
-          <Badge variant={m[row.status]} size="sm" dot>
+          <Badge variant={m[row.status] ?? 'default'} size="sm" dot>
             {row.status}
           </Badge>
         );
@@ -273,7 +224,11 @@ export default function ParkingPage() {
   return (
     <PageShell
       title="Parking Management"
-      description={`${allPermits.length} active permits \u00B7 ${allViolations.filter((v) => v.status === 'open').length} open violations`}
+      description={
+        !loading && !error
+          ? `${allPermits.length} active permits \u00B7 ${allViolations.filter((v) => v.status === 'open').length} open violations`
+          : 'Manage parking permits and violations.'
+      }
       actions={
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm">
@@ -296,9 +251,11 @@ export default function ParkingPage() {
         >
           <Car className="h-4 w-4" />
           Permits{' '}
-          <Badge variant={tab === 'permits' ? 'primary' : 'default'} size="sm">
-            {allPermits.length}
-          </Badge>
+          {!loadingPermits && (
+            <Badge variant={tab === 'permits' ? 'primary' : 'default'} size="sm">
+              {allPermits.length}
+            </Badge>
+          )}
         </button>
         <button
           type="button"
@@ -307,54 +264,88 @@ export default function ParkingPage() {
         >
           <AlertTriangle className="h-4 w-4" />
           Violations{' '}
-          <Badge variant={tab === 'violations' ? 'error' : 'default'} size="sm">
-            {allViolations.length}
-          </Badge>
+          {!loadingViolations && (
+            <Badge variant={tab === 'violations' ? 'error' : 'default'} size="sm">
+              {allViolations.length}
+            </Badge>
+          )}
         </button>
       </div>
 
-      <div className="mb-4">
-        <div className="relative max-w-md">
-          <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-          <input
-            type="text"
-            placeholder={tab === 'permits' ? 'Search permits...' : 'Search violations...'}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-24">
+          <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+          <p className="mt-3 text-[14px] text-neutral-500">
+            Loading {tab === 'permits' ? 'permits' : 'violations'}...
+          </p>
         </div>
-      </div>
+      )}
 
-      {tab === 'permits' ? (
-        <DataTable
-          columns={permitColumns}
-          data={filteredPermits}
-          emptyMessage="No permits found."
-          emptyIcon={<Car className="h-6 w-6" />}
+      {/* Error State */}
+      {!loading && error && (
+        <EmptyState
+          icon={<AlertCircle className="h-6 w-6" />}
+          title={`Failed to load ${tab}`}
+          description={error}
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => (tab === 'permits' ? refetchPermits() : refetchViolations())}
+            >
+              Try Again
+            </Button>
+          }
         />
-      ) : (
-        <DataTable
-          columns={violationColumns}
-          data={allViolations}
-          emptyMessage="No violations."
-          emptyIcon={<AlertTriangle className="h-6 w-6" />}
-        />
+      )}
+
+      {!loading && !error && (
+        <>
+          <div className="mb-4">
+            <div className="relative max-w-md">
+              <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                placeholder={tab === 'permits' ? 'Search permits...' : 'Search violations...'}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {tab === 'permits' ? (
+            <DataTable
+              columns={permitColumns}
+              data={filteredPermits}
+              emptyMessage="No permits found."
+              emptyIcon={<Car className="h-6 w-6" />}
+            />
+          ) : (
+            <DataTable
+              columns={violationColumns}
+              data={allViolations}
+              emptyMessage="No violations."
+              emptyIcon={<AlertTriangle className="h-6 w-6" />}
+            />
+          )}
+        </>
       )}
 
       <CreateParkingPermitDialog
         open={showPermitDialog}
         onOpenChange={setShowPermitDialog}
-        propertyId="00000000-0000-4000-b000-000000000001"
+        propertyId={DEMO_PROPERTY_ID}
         onSuccess={() => {
           setShowPermitDialog(false);
           refetchPermits();

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
+  AlertTriangle,
   Calendar,
   Clock,
   Download,
@@ -22,194 +23,50 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface ShiftEntryComment {
+interface ShiftLogComment {
   id: string;
-  author: string;
-  text: string;
+  content?: string;
+  text?: string;
+  authorId?: string;
+  author?: string;
   createdAt: string;
 }
 
-interface RelatedItem {
+interface ShiftLogEntryData {
   id: string;
-  type: 'package' | 'incident' | 'visitor' | 'maintenance';
-  title: string;
-  reference: string;
-  status: string;
-}
-
-interface ShiftEntryDetail {
-  id: string;
-  author: string;
-  role: string;
-  shift: 'morning' | 'afternoon' | 'night';
   content: string;
-  priority: 'normal' | 'important';
+  priority: string;
+  category: string;
   createdAt: string;
-  reference: string;
-  relatedItems: RelatedItem[];
-  comments: ShiftEntryComment[];
+  reference?: string;
+  authorId?: string;
+  author?: string;
+  comments?: ShiftLogComment[];
+  [key: string]: unknown;
 }
-
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_ENTRIES: Record<string, ShiftEntryDetail> = {
-  '1': {
-    id: '1',
-    author: 'Guard Patel',
-    role: 'Security Guard',
-    shift: 'morning',
-    content:
-      'Elevator B still out of service. Technician expected by 2pm. Route residents to Elevator A. Update posted in lobby. Building management has been notified and a notice was placed on the elevator doors on floors 1, 5, 10, 15, and 20. The technician from ElevatorPro will need access to the mechanical room on B1.',
-    priority: 'important',
-    createdAt: '2026-03-18T07:00:00',
-    reference: 'SL-2026-0318-001',
-    relatedItems: [
-      {
-        id: 'mr-845',
-        type: 'maintenance',
-        title: 'Elevator B - Out of Service',
-        reference: 'MR-0845',
-        status: 'In Progress',
-      },
-    ],
-    comments: [
-      {
-        id: 'c1',
-        author: 'Mike Johnson',
-        text: 'Technician arrived at 1:30pm. Parts need to be ordered. ETA for repair is March 20.',
-        createdAt: '2026-03-18T13:45:00',
-      },
-      {
-        id: 'c2',
-        author: 'Guard Patel',
-        text: 'Updated lobby notice with new timeline. Residents have been understanding.',
-        createdAt: '2026-03-18T14:00:00',
-      },
-    ],
-  },
-  '2': {
-    id: '2',
-    author: 'Guard Martinez',
-    role: 'Security Guard',
-    shift: 'night',
-    content:
-      'Lobby doors were sticking around 11pm. Applied WD-40 as temporary fix. Maintenance ticket MR-0845 created. Use side entrance if it recurs.',
-    priority: 'important',
-    createdAt: '2026-03-17T23:30:00',
-    reference: 'SL-2026-0317-005',
-    relatedItems: [
-      {
-        id: 'mr-846',
-        type: 'maintenance',
-        title: 'Lobby Door Sticking',
-        reference: 'MR-0846',
-        status: 'Open',
-      },
-    ],
-    comments: [],
-  },
-  '3': {
-    id: '3',
-    author: 'Guard Chen',
-    role: 'Security Guard',
-    shift: 'night',
-    content:
-      'Quiet night. All patrols completed on schedule. P2 garage camera #3 has intermittent static — IT notified.',
-    priority: 'normal',
-    createdAt: '2026-03-17T22:00:00',
-    reference: 'SL-2026-0317-004',
-    relatedItems: [
-      {
-        id: 'inc-12',
-        type: 'incident',
-        title: 'Camera #3 P2 Garage - Intermittent Static',
-        reference: 'INC-0012',
-        status: 'Open',
-      },
-    ],
-    comments: [],
-  },
-  '4': {
-    id: '4',
-    author: 'Mike Johnson',
-    role: 'Front Desk',
-    shift: 'afternoon',
-    content:
-      'Unit 1501 (Janet Smith) expecting a furniture delivery tomorrow between 10am-12pm. Moving company: AllStar Movers. They will need elevator booking.',
-    priority: 'normal',
-    createdAt: '2026-03-17T16:00:00',
-    reference: 'SL-2026-0317-003',
-    relatedItems: [
-      {
-        id: 'vis-44',
-        type: 'visitor',
-        title: 'AllStar Movers - Furniture Delivery',
-        reference: 'VIS-0044',
-        status: 'Expected',
-      },
-    ],
-    comments: [],
-  },
-  '5': {
-    id: '5',
-    author: 'Angela Davis',
-    role: 'Front Desk',
-    shift: 'morning',
-    content:
-      'Received 12 packages from Amazon bulk delivery. All logged and notified. Storage shelf A is getting full — start using shelf D for overflow.',
-    priority: 'normal',
-    createdAt: '2026-03-17T10:30:00',
-    reference: 'SL-2026-0317-002',
-    relatedItems: [
-      {
-        id: 'pkg-batch',
-        type: 'package',
-        title: 'Amazon Bulk Delivery (12 packages)',
-        reference: 'PKG-0298 to PKG-0309',
-        status: 'Logged',
-      },
-    ],
-    comments: [
-      {
-        id: 'c3',
-        author: 'Mike Johnson',
-        text: 'Shelf D is now set up. Moved 4 older packages there as well.',
-        createdAt: '2026-03-17T14:20:00',
-      },
-    ],
-  },
-};
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const SHIFT_COLORS = {
+const SHIFT_COLORS: Record<string, string> = {
   morning: 'bg-warning-50 text-warning-700',
   afternoon: 'bg-primary-50 text-primary-700',
   night: 'bg-neutral-800 text-white',
 };
 
-const RELATED_ITEM_ICONS: Record<RelatedItem['type'], typeof Package> = {
-  package: Package,
-  incident: Shield,
-  visitor: Users,
-  maintenance: Calendar,
-};
-
-const RELATED_ITEM_COLORS: Record<RelatedItem['type'], { bg: string; text: string }> = {
-  package: { bg: 'bg-primary-50', text: 'text-primary-600' },
-  incident: { bg: 'bg-error-50', text: 'text-error-600' },
-  visitor: { bg: 'bg-success-50', text: 'text-success-600' },
-  maintenance: { bg: 'bg-warning-50', text: 'text-warning-600' },
-};
+function getShiftFromHour(dateStr: string): string {
+  const hour = new Date(dateStr).getHours();
+  if (hour >= 6 && hour < 14) return 'morning';
+  if (hour >= 14 && hour < 22) return 'afternoon';
+  return 'night';
+}
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -221,30 +78,115 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
+// Loading Skeleton
+// ---------------------------------------------------------------------------
+
+function ShiftLogSkeleton() {
+  return (
+    <PageShell title="" description="Shift Log Entry">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="flex flex-col gap-6 xl:col-span-2">
+          <Card>
+            <CardContent>
+              <Skeleton className="h-48 w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <Skeleton className="h-32 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardContent>
+              <Skeleton className="h-40 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </PageShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function ShiftLogEntryDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [entry, setEntry] = useState<ShiftLogEntryData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [commentText, setCommentText] = useState('');
 
-  // Use mock data, falling back to a default entry for unknown IDs
-  const entry: ShiftEntryDetail = MOCK_ENTRIES[id] ?? {
-    id,
-    author: 'Unknown',
-    role: 'Staff',
-    shift: 'morning' as const,
-    content: 'Entry not found.',
-    priority: 'normal' as const,
-    createdAt: new Date().toISOString(),
-    reference: `SL-${id}`,
-    relatedItems: [],
-    comments: [],
-  };
+  useEffect(() => {
+    async function fetchEntry() {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/v1/shift-log/${id}`);
+        if (res.status === 404) {
+          setNotFound(true);
+          return;
+        }
+        if (!res.ok) throw new Error(`Failed to fetch entry (${res.status})`);
+        const json = await res.json();
+        setEntry(json.data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (id) fetchEntry();
+  }, [id]);
+
+  if (loading) return <ShiftLogSkeleton />;
+
+  if (notFound) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+        <MessageSquare className="h-12 w-12 text-neutral-300" />
+        <h1 className="text-[20px] font-bold text-neutral-900">Shift log entry not found</h1>
+        <p className="text-[14px] text-neutral-500">
+          The entry you are looking for does not exist or has been removed.
+        </p>
+        <Link href="/shift-log">
+          <Button variant="secondary">
+            <ArrowLeft className="h-4 w-4" />
+            Back to shift log
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+        <AlertTriangle className="text-error-500 h-12 w-12" />
+        <h1 className="text-[20px] font-bold text-neutral-900">Error loading entry</h1>
+        <p className="text-[14px] text-neutral-500">{error}</p>
+        <Link href="/shift-log">
+          <Button variant="secondary">
+            <ArrowLeft className="h-4 w-4" />
+            Back to shift log
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (!entry) return null;
+
+  const shift = getShiftFromHour(entry.createdAt);
+  const shiftColor = SHIFT_COLORS[shift] || SHIFT_COLORS.morning;
+  const comments = entry.comments || [];
 
   return (
     <PageShell
-      title={entry.reference}
+      title={entry.reference || `SL-${entry.id.slice(0, 8)}`}
       description="Shift Log Entry"
       actions={
         <div className="flex items-center gap-2">
@@ -275,9 +217,8 @@ export default function ShiftLogEntryDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* ---- Left Column ---- */}
+        {/* Left Column */}
         <div className="flex flex-col gap-6 xl:col-span-2">
-          {/* Entry Content */}
           <Card>
             <CardHeader>
               <CardTitle>Entry Details</CardTitle>
@@ -289,25 +230,25 @@ export default function ShiftLogEntryDetailPage() {
                   value={
                     <span className="inline-flex items-center gap-1.5">
                       <User className="h-3.5 w-3.5 text-neutral-400" />
-                      {entry.author}
+                      {entry.author || entry.authorId || 'Unknown'}
                     </span>
                   }
                 />
-                <InfoRow label="Role" value={entry.role} />
+                <InfoRow label="Category" value={entry.category || 'general'} />
                 <InfoRow
                   label="Shift"
                   value={
-                    <Badge variant="default" size="lg" className={SHIFT_COLORS[entry.shift]}>
-                      {entry.shift.charAt(0).toUpperCase() + entry.shift.slice(1)}
+                    <Badge variant="default" size="lg" className={shiftColor}>
+                      {shift.charAt(0).toUpperCase() + shift.slice(1)}
                     </Badge>
                   }
                 />
                 <InfoRow
                   label="Priority"
                   value={
-                    entry.priority === 'important' ? (
+                    entry.priority === 'important' || entry.priority === 'urgent' ? (
                       <Badge variant="warning" size="lg" dot>
-                        Important
+                        {entry.priority.charAt(0).toUpperCase() + entry.priority.slice(1)}
                       </Badge>
                     ) : (
                       <Badge variant="default" size="lg">
@@ -332,7 +273,10 @@ export default function ShiftLogEntryDetailPage() {
                     </span>
                   }
                 />
-                <InfoRow label="Reference" value={entry.reference} />
+                <InfoRow
+                  label="Reference"
+                  value={entry.reference || `SL-${entry.id.slice(0, 8)}`}
+                />
                 <div className="sm:col-span-2">
                   <InfoRow
                     label="Content"
@@ -343,74 +287,18 @@ export default function ShiftLogEntryDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Related Items */}
-          {entry.relatedItems.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <LinkIcon className="h-4 w-4 text-neutral-400" />
-                  <CardTitle>Related Items</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col gap-3">
-                  {entry.relatedItems.map((item) => {
-                    const Icon = RELATED_ITEM_ICONS[item.type];
-                    const colors = RELATED_ITEM_COLORS[item.type];
-                    return (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between rounded-xl border border-neutral-200 p-4 transition-all duration-200 hover:border-neutral-300 hover:shadow-sm"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`flex h-10 w-10 items-center justify-center rounded-xl ${colors.bg}`}
-                          >
-                            <Icon className={`h-5 w-5 ${colors.text}`} />
-                          </div>
-                          <div>
-                            <p className="text-[14px] font-semibold text-neutral-900">
-                              {item.title}
-                            </p>
-                            <p className="text-[12px] text-neutral-500">
-                              {item.reference} &middot;{' '}
-                              {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge
-                          variant={
-                            item.status === 'Open' || item.status === 'Expected'
-                              ? 'info'
-                              : item.status === 'In Progress'
-                                ? 'warning'
-                                : 'success'
-                          }
-                          size="sm"
-                          dot
-                        >
-                          {item.status}
-                        </Badge>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Comments */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-neutral-400" />
-                <CardTitle>Comments ({entry.comments.length})</CardTitle>
+                <CardTitle>Comments ({comments.length})</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              {entry.comments.length > 0 ? (
+              {comments.length > 0 ? (
                 <div className="flex flex-col gap-4">
-                  {entry.comments.map((c) => (
+                  {comments.map((c) => (
                     <div key={c.id} className="flex gap-3">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100">
                         <User className="h-4 w-4 text-neutral-500" />
@@ -418,7 +306,7 @@ export default function ShiftLogEntryDetailPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-[13px] font-semibold text-neutral-900">
-                            {c.author}
+                            {c.author || c.authorId || 'Staff'}
                           </span>
                           <span className="text-[12px] text-neutral-400">
                             {new Date(c.createdAt).toLocaleString('en-US', {
@@ -429,7 +317,7 @@ export default function ShiftLogEntryDetailPage() {
                             })}
                           </span>
                         </div>
-                        <p className="mt-1 text-[14px] text-neutral-700">{c.text}</p>
+                        <p className="mt-1 text-[14px] text-neutral-700">{c.content || c.text}</p>
                       </div>
                     </div>
                   ))}
@@ -453,9 +341,8 @@ export default function ShiftLogEntryDetailPage() {
           </Card>
         </div>
 
-        {/* ---- Right Column ---- */}
+        {/* Right Column */}
         <div className="flex flex-col gap-6">
-          {/* Status Card */}
           <Card>
             <CardHeader>
               <CardTitle>Entry Info</CardTitle>
@@ -465,8 +352,8 @@ export default function ShiftLogEntryDetailPage() {
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-neutral-100">
                   <MessageSquare className="h-8 w-8 text-neutral-400" />
                 </div>
-                <Badge variant="default" size="lg" className={SHIFT_COLORS[entry.shift]}>
-                  {entry.shift.charAt(0).toUpperCase() + entry.shift.slice(1)} Shift
+                <Badge variant="default" size="lg" className={shiftColor}>
+                  {shift.charAt(0).toUpperCase() + shift.slice(1)} Shift
                 </Badge>
                 <p className="text-[13px] text-neutral-500">
                   {new Date(entry.createdAt).toLocaleDateString('en-US', {
@@ -480,7 +367,6 @@ export default function ShiftLogEntryDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Actions */}
           <Card>
             <CardHeader>
               <CardTitle>Actions</CardTitle>

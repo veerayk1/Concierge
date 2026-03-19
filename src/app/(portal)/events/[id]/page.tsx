@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
+  AlertCircle,
   ArrowLeft,
   Bell,
   Calendar,
@@ -67,85 +68,6 @@ interface CommunityEvent {
 }
 
 // ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_EVENT: CommunityEvent = {
-  id: '1',
-  title: 'Summer BBQ & Pool Party',
-  description:
-    'Join us for our annual summer BBQ and pool party on the rooftop terrace! Burgers, hot dogs, veggie options, and refreshments will be provided. Bring your swimsuit and sunscreen. Kids are welcome. DJ entertainment starts at 2 PM. Please RSVP by June 15th so we can plan food quantities. Residents may bring up to 2 guests each.',
-  date: '2026-06-20',
-  startTime: '12:00 PM',
-  endTime: '5:00 PM',
-  location: 'Rooftop Terrace & Pool Deck',
-  category: 'Social',
-  organizer: 'Building Social Committee',
-  status: 'upcoming',
-  capacity: 100,
-  attendingCount: 3,
-  maybeCount: 1,
-  declinedCount: 1,
-  rsvps: [
-    {
-      id: 'rsvp-1',
-      name: 'Janet Smith',
-      unit: '1501',
-      status: 'attending',
-      rsvpDate: '2026-03-12',
-    },
-    {
-      id: 'rsvp-2',
-      name: 'David Chen',
-      unit: '802',
-      status: 'attending',
-      rsvpDate: '2026-03-13',
-    },
-    {
-      id: 'rsvp-3',
-      name: 'Maria Garcia',
-      unit: '1203',
-      status: 'maybe',
-      rsvpDate: '2026-03-14',
-    },
-    {
-      id: 'rsvp-4',
-      name: 'James Okonkwo',
-      unit: '405',
-      status: 'attending',
-      rsvpDate: '2026-03-15',
-    },
-    {
-      id: 'rsvp-5',
-      name: 'Sarah Thompson',
-      unit: '610',
-      status: 'declined',
-      rsvpDate: '2026-03-16',
-    },
-  ],
-  comments: [
-    {
-      id: 'c-1',
-      author: 'Janet Smith',
-      text: 'Looking forward to this! Will there be a vegetarian option?',
-      createdAt: '2026-03-12T14:30:00',
-    },
-    {
-      id: 'c-2',
-      author: 'Building Social Committee',
-      text: 'Absolutely! We will have veggie burgers, grilled vegetables, and salad options.',
-      createdAt: '2026-03-12T15:10:00',
-    },
-    {
-      id: 'c-3',
-      author: 'David Chen',
-      text: 'Can we bring our own drinks or is everything provided?',
-      createdAt: '2026-03-13T09:45:00',
-    },
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -178,18 +100,93 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
+// Skeleton Loader
+// ---------------------------------------------------------------------------
+
+function EventDetailSkeleton() {
+  return (
+    <div className="flex animate-pulse flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <div className="h-4 w-24 rounded bg-neutral-200" />
+        <div className="h-8 w-72 rounded bg-neutral-200" />
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="flex flex-col gap-6 xl:col-span-2">
+          <div className="h-48 rounded-xl bg-neutral-100" />
+          <div className="h-32 rounded-xl bg-neutral-100" />
+        </div>
+        <div className="flex flex-col gap-6">
+          <div className="h-36 rounded-xl bg-neutral-100" />
+          <div className="h-40 rounded-xl bg-neutral-100" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
 
-  const { data: apiEvent } = useApi<CommunityEvent>(
-    apiUrl(`/api/v1/events/${id}`, { propertyId: DEMO_PROPERTY_ID }),
-  );
+  const {
+    data: event,
+    loading,
+    error,
+  } = useApi<CommunityEvent>(apiUrl(`/api/v1/events/${id}`, { propertyId: DEMO_PROPERTY_ID }));
 
-  const event = apiEvent ?? MOCK_EVENT;
-  const statusCfg = EVENT_STATUS_CONFIG[event.status];
+  // -- Loading State --
+  if (loading) {
+    return <EventDetailSkeleton />;
+  }
+
+  // -- Error State --
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="bg-error-50 flex h-16 w-16 items-center justify-center rounded-full">
+          <AlertCircle className="text-error-600 h-8 w-8" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">
+          {error.includes('404') ? 'Event Not Found' : 'Failed to Load Event'}
+        </h2>
+        <p className="max-w-md text-center text-[14px] text-neutral-500">{error}</p>
+        <Link href="/events">
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to events
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // -- 404 State --
+  if (!event) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+          <Calendar className="h-8 w-8 text-neutral-400" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">Event Not Found</h2>
+        <p className="text-[14px] text-neutral-500">
+          The event you are looking for does not exist or has been removed.
+        </p>
+        <Link href="/events">
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to events
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const statusCfg = EVENT_STATUS_CONFIG[event.status] ?? EVENT_STATUS_CONFIG.upcoming;
+  const rsvps = event.rsvps ?? [];
+  const comments = event.comments ?? [];
 
   const rsvpColumns: Column<Rsvp>[] = [
     {
@@ -214,8 +211,8 @@ export default function EventDetailPage() {
       cell: (row) => {
         const cfg = RSVP_STATUS_CONFIG[row.status];
         return (
-          <Badge variant={cfg.variant} size="sm" dot>
-            {cfg.label}
+          <Badge variant={cfg?.variant ?? 'default'} size="sm" dot>
+            {cfg?.label ?? row.status}
           </Badge>
         );
       },
@@ -341,7 +338,7 @@ export default function EventDetailPage() {
             <CardContent>
               <DataTable
                 columns={rsvpColumns}
-                data={event.rsvps}
+                data={rsvps}
                 emptyMessage="No RSVPs yet."
                 emptyIcon={<Users className="h-6 w-6" />}
                 compact
@@ -358,31 +355,35 @@ export default function EventDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col gap-4">
-                {event.comments.map((c) => (
-                  <div key={c.id} className="flex gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-                      <User className="h-4 w-4 text-neutral-500" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-semibold text-neutral-900">
-                          {c.author}
-                        </span>
-                        <span className="text-[12px] text-neutral-400">
-                          {new Date(c.createdAt).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                        </span>
+              {comments.length > 0 ? (
+                <div className="flex flex-col gap-4">
+                  {comments.map((c) => (
+                    <div key={c.id} className="flex gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+                        <User className="h-4 w-4 text-neutral-500" />
                       </div>
-                      <p className="mt-1 text-[14px] text-neutral-700">{c.text}</p>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13px] font-semibold text-neutral-900">
+                            {c.author}
+                          </span>
+                          <span className="text-[12px] text-neutral-400">
+                            {new Date(c.createdAt).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[14px] text-neutral-700">{c.text}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No comments yet.</p>
+              )}
               <div className="mt-4 flex gap-2">
                 <input
                   type="text"
@@ -451,19 +452,19 @@ export default function EventDetailPage() {
                 {[
                   {
                     label: 'Attending',
-                    count: event.attendingCount,
+                    count: event.attendingCount ?? 0,
                     color: 'text-success-600',
                     bg: 'bg-success-50',
                   },
                   {
                     label: 'Maybe',
-                    count: event.maybeCount,
+                    count: event.maybeCount ?? 0,
                     color: 'text-warning-600',
                     bg: 'bg-warning-50',
                   },
                   {
                     label: 'Declined',
-                    count: event.declinedCount,
+                    count: event.declinedCount ?? 0,
                     color: 'text-error-600',
                     bg: 'bg-error-50',
                   },
@@ -477,7 +478,9 @@ export default function EventDetailPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-[13px] font-medium text-neutral-700">Capacity</span>
                     <span className="text-[15px] font-bold text-neutral-900">
-                      {event.capacity ? `${event.attendingCount} / ${event.capacity}` : 'Unlimited'}
+                      {event.capacity
+                        ? `${event.attendingCount ?? 0} / ${event.capacity}`
+                        : 'Unlimited'}
                     </span>
                   </div>
                   {event.capacity && (
@@ -485,7 +488,7 @@ export default function EventDetailPage() {
                       <div
                         className="bg-primary-500 h-2 rounded-full"
                         style={{
-                          width: `${Math.min((event.attendingCount / event.capacity) * 100, 100)}%`,
+                          width: `${Math.min(((event.attendingCount ?? 0) / event.capacity) * 100, 100)}%`,
                         }}
                       />
                     </div>

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CreateIdeaDialog } from '@/components/forms/create-idea-dialog';
 
 // ---------------------------------------------------------------------------
@@ -76,95 +77,13 @@ const STATUS_LABELS: Record<IdeaStatus, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// API response shape
 // ---------------------------------------------------------------------------
 
-const MOCK_IDEAS: IdeaItem[] = [
-  {
-    id: '1',
-    title: 'Add EV charging stations',
-    description:
-      'Install electric vehicle charging stations in the underground parking garage. With more residents switching to EVs, this would be a huge quality-of-life improvement and increase property value.',
-    category: 'amenity',
-    author: 'David C.',
-    authorUnit: '802',
-    status: 'planned',
-    votesUp: 47,
-    votesDown: 3,
-    commentCount: 12,
-    createdAt: '2026-03-10T09:00:00',
-  },
-  {
-    id: '2',
-    title: 'Later pool hours on weekends',
-    description:
-      'Extend pool hours to 10pm on Friday and Saturday nights. The current 8pm closing time is too early for weekend use, especially during summer months.',
-    category: 'amenity',
-    author: 'Lisa B.',
-    authorUnit: '1105',
-    status: 'under_review',
-    votesUp: 31,
-    votesDown: 8,
-    commentCount: 9,
-    createdAt: '2026-03-12T14:30:00',
-  },
-  {
-    id: '3',
-    title: 'Community garden on roof',
-    description:
-      'Create a community garden on the rooftop terrace. Each interested resident could have a small plot. Great for building community and growing fresh herbs and vegetables.',
-    category: 'community',
-    author: 'Maria G.',
-    authorUnit: '1203',
-    status: 'new',
-    votesUp: 22,
-    votesDown: 5,
-    commentCount: 7,
-    createdAt: '2026-03-14T11:00:00',
-  },
-  {
-    id: '4',
-    title: 'Better recycling signage',
-    description:
-      'The current recycling signs in the garbage room are faded and confusing. Propose new clear, colour-coded signage with pictures showing what goes where.',
-    category: 'maintenance',
-    author: 'Robert K.',
-    authorUnit: '305',
-    status: 'in_progress',
-    votesUp: 18,
-    votesDown: 1,
-    commentCount: 4,
-    createdAt: '2026-03-15T08:00:00',
-  },
-  {
-    id: '5',
-    title: 'Guest WiFi in lobby',
-    description:
-      'Set up a free guest WiFi network in the lobby and common areas. Visitors and delivery drivers often need internet access while waiting.',
-    category: 'security',
-    author: 'Alice W.',
-    authorUnit: '101',
-    status: 'under_review',
-    votesUp: 15,
-    votesDown: 6,
-    commentCount: 5,
-    createdAt: '2026-03-16T16:00:00',
-  },
-  {
-    id: '6',
-    title: 'Monthly social events',
-    description:
-      'Organize monthly social events in the party room — game nights, movie screenings, potlucks. A great way for neighbours to get to know each other.',
-    category: 'community',
-    author: 'Karen L.',
-    authorUnit: '905',
-    status: 'new',
-    votesUp: 26,
-    votesDown: 2,
-    commentCount: 8,
-    createdAt: '2026-03-17T10:00:00',
-  },
-];
+interface ApiResponse {
+  data: IdeaItem[];
+  meta?: { total: number };
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -177,11 +96,26 @@ export default function IdeasPage() {
   const [statusFilter, setStatusFilter] = useState<IdeaStatus | 'all'>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiIdeas } = useApi<IdeaItem[]>(
-    apiUrl('/api/v1/ideas', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiIdeas,
+    loading,
+    error,
+    refetch,
+  } = useApi<IdeaItem[] | ApiResponse>(
+    apiUrl('/api/v1/ideas', {
+      propertyId: DEMO_PROPERTY_ID,
+      search: searchQuery || undefined,
+      category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+    }),
   );
 
-  const allIdeas = useMemo<IdeaItem[]>(() => apiIdeas ?? MOCK_IDEAS, [apiIdeas]);
+  const allIdeas = useMemo<IdeaItem[]>(() => {
+    if (!apiIdeas) return [];
+    if (Array.isArray(apiIdeas)) return apiIdeas;
+    if (Array.isArray((apiIdeas as ApiResponse).data)) return (apiIdeas as ApiResponse).data;
+    return [];
+  }, [apiIdeas]);
 
   const filteredIdeas = useMemo(() => {
     return allIdeas.filter((idea) => {
@@ -200,6 +134,42 @@ export default function IdeasPage() {
   const totalCount = allIdeas.length;
   const underReviewCount = allIdeas.filter((i) => i.status === 'under_review').length;
   const plannedCount = allIdeas.filter((i) => i.status === 'planned').length;
+
+  // Loading state
+  if (loading) {
+    return (
+      <PageShell title="Idea Board" description="Loading...">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-48 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="Idea Board" description="Error loading ideas">
+        <EmptyState
+          icon={<Lightbulb className="h-6 w-6" />}
+          title="Failed to load ideas"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

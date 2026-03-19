@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   AlertCircle,
   AlertTriangle,
-  CheckCircle2,
   Clock,
   Filter,
   Loader2,

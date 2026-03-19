@@ -1,6 +1,7 @@
 'use client';
 
-import { use } from 'react';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -26,6 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -40,83 +42,21 @@ interface IncidentUpdate {
   statusChange?: { from: string; to: string };
 }
 
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_INCIDENT = {
-  id: '1',
-  referenceNumber: 'INC-0089',
-  title: 'Noise Complaint — Floor 8',
-  type: 'Noise Complaint',
-  description:
-    'Resident in unit 803 reports excessive noise from unit 805 starting around 11:45 PM. Loud music and voices heard through the walls. Guard attended the floor and issued a verbal warning to unit 805 occupants. Noise subsided temporarily but resumed around 1:15 AM. Second visit made, written notice left at the door. Building quiet hours policy (11 PM - 7 AM) was cited.',
-  timeOccurred: '2026-03-18T23:45:00',
-  location: 'Floor 8, Units 803-805 corridor',
-  reportedBy: 'Guard Patel',
-  reportedByRole: 'Security Guard',
-  urgency: 'medium' as const,
-  category: 'Noise',
-  status: 'investigating' as const,
-  escalationStatus: 'not_escalated' as const,
-  assignedTo: 'Guard Patel',
-  unit: '805',
-  building: 'Tower A',
-
-  suspectDescription:
-    'Multiple individuals observed in unit 805. Approximately 6-8 people. No signs of intoxication or aggression. Cooperative when approached.',
-
-  witnesses: [
-    { name: 'Janet Smith', unit: '803', phone: '416-555-0123' },
-    { name: 'Robert Chen', unit: '801', phone: '416-555-0189' },
-  ],
-
-  emergencyServices: {
-    police: false,
-    fire: false,
-    ambulance: false,
-  },
-
-  attachments: [
-    { id: '1', name: 'written-notice-805.pdf', type: 'document', size: '124 KB' },
-    { id: '2', name: 'hallway-photo-0118am.jpg', type: 'image', size: '2.1 MB' },
-  ],
-
-  relatedEvent: { id: 'EVT-4201', type: 'Security Log' },
-  relatedUnit: { number: '805', building: 'Tower A' },
-
-  resolution: null as {
-    summary: string;
-    resolvedBy: string;
-    resolvedAt: string;
-  } | null,
-
-  updates: [
-    {
-      id: '1',
-      action: 'created',
-      detail: 'Incident report filed. Resident in 803 reported noise from 805.',
-      actor: 'Guard Patel',
-      timestamp: '2026-03-18T23:50:00',
-    },
-    {
-      id: '2',
-      action: 'status_change',
-      detail: 'First visit to unit 805. Verbal warning issued. Occupants cooperative.',
-      actor: 'Guard Patel',
-      timestamp: '2026-03-19T00:05:00',
-      statusChange: { from: 'Open', to: 'Investigating' },
-    },
-    {
-      id: '3',
-      action: 'update',
-      detail:
-        'Noise resumed at 1:15 AM. Second visit made. Written notice left at door citing quiet hours policy. Building manager notified via email.',
-      actor: 'Guard Patel',
-      timestamp: '2026-03-19T01:20:00',
-    },
-  ] as IncidentUpdate[],
-};
+interface IncidentData {
+  id: string;
+  referenceNumber?: string;
+  title?: string;
+  type?: string;
+  description?: string;
+  status?: string;
+  priority?: string;
+  location?: string;
+  createdAt?: string;
+  closedAt?: string | null;
+  unit?: { id: string; number: string } | null;
+  eventType?: { id: string; name: string; icon: string | null; color: string | null } | null;
+  [key: string]: unknown;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -139,39 +79,144 @@ function getUpdateIcon(action: string) {
   }
 }
 
+const statusMap: Record<
+  string,
+  { variant: 'warning' | 'info' | 'success' | 'default'; label: string }
+> = {
+  open: { variant: 'warning', label: 'Open' },
+  investigating: { variant: 'info', label: 'Investigating' },
+  resolved: { variant: 'success', label: 'Resolved' },
+  closed: { variant: 'default', label: 'Closed' },
+};
+
+const priorityMap: Record<string, 'default' | 'warning' | 'error'> = {
+  low: 'default',
+  medium: 'warning',
+  high: 'error',
+  critical: 'error',
+};
+
+// ---------------------------------------------------------------------------
+// Loading Skeleton
+// ---------------------------------------------------------------------------
+
+function IncidentSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-4 w-32" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-6 w-24" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="flex flex-col gap-6 xl:col-span-2">
+          <Card>
+            <CardContent>
+              <Skeleton className="h-48 w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <Skeleton className="h-32 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardContent>
+              <Skeleton className="h-40 w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <Skeleton className="h-32 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-interface IncidentDetailPageProps {
-  params: Promise<{ id: string }>;
-}
+export default function IncidentDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const [incident, setIncident] = useState<IncidentData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
-export default function IncidentDetailPage({ params }: IncidentDetailPageProps) {
-  const { id } = use(params);
+  useEffect(() => {
+    async function fetchIncident() {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/v1/events/${id}`);
+        if (res.status === 404) {
+          setNotFound(true);
+          return;
+        }
+        if (!res.ok) {
+          throw new Error(`Failed to fetch incident (${res.status})`);
+        }
+        const json = await res.json();
+        setIncident(json.data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (id) fetchIncident();
+  }, [id]);
 
-  const statusMap = {
-    open: { variant: 'warning' as const, label: 'Open' },
-    investigating: { variant: 'info' as const, label: 'Investigating' },
-    resolved: { variant: 'success' as const, label: 'Resolved' },
-    closed: { variant: 'default' as const, label: 'Closed' },
-  };
+  if (loading) return <IncidentSkeleton />;
 
-  const urgencyMap = {
-    low: 'default' as const,
-    medium: 'warning' as const,
-    high: 'error' as const,
-    critical: 'error' as const,
-  };
+  if (notFound) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+        <ShieldAlert className="h-12 w-12 text-neutral-300" />
+        <h1 className="text-[20px] font-bold text-neutral-900">Incident not found</h1>
+        <p className="text-[14px] text-neutral-500">
+          The incident you are looking for does not exist or has been removed.
+        </p>
+        <Link href="/security">
+          <Button variant="secondary">
+            <ArrowLeft className="h-4 w-4" />
+            Back to security
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
-  const escalationMap = {
-    not_escalated: { variant: 'default' as const, label: 'Not Escalated' },
-    escalated: { variant: 'error' as const, label: 'Escalated' },
-    de_escalated: { variant: 'success' as const, label: 'De-escalated' },
-  };
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+        <AlertTriangle className="text-error-500 h-12 w-12" />
+        <h1 className="text-[20px] font-bold text-neutral-900">Error loading incident</h1>
+        <p className="text-[14px] text-neutral-500">{error}</p>
+        <Link href="/security">
+          <Button variant="secondary">
+            <ArrowLeft className="h-4 w-4" />
+            Back to security
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
-  const status = statusMap[MOCK_INCIDENT.status];
-  const escalation = escalationMap[MOCK_INCIDENT.escalationStatus];
+  if (!incident) return null;
+
+  const status = statusMap[incident.status || 'open'] || statusMap.open;
+  const priority = incident.priority || 'medium';
+  const priorityVariant = priorityMap[priority] || 'default';
+  const refNumber = incident.referenceNumber || `EVT-${incident.id?.slice(0, 8)}`;
+  const typeName = incident.eventType?.name || incident.type || 'Incident';
 
   return (
     <div className="flex flex-col gap-6">
@@ -187,13 +232,13 @@ export default function IncidentDetailPage({ params }: IncidentDetailPageProps) 
           </Link>
           <div className="flex items-center gap-3">
             <h1 className="text-[24px] font-bold tracking-tight text-neutral-900">
-              Incident {MOCK_INCIDENT.referenceNumber}
+              Incident {refNumber}
             </h1>
             <Badge variant={status.variant} size="lg" dot>
               {status.label}
             </Badge>
-            <Badge variant={urgencyMap[MOCK_INCIDENT.urgency]} size="lg" dot>
-              {MOCK_INCIDENT.urgency} urgency
+            <Badge variant={priorityVariant} size="lg" dot>
+              {priority} urgency
             </Badge>
           </div>
         </div>
@@ -226,7 +271,7 @@ export default function IncidentDetailPage({ params }: IncidentDetailPageProps) 
                     Title
                   </p>
                   <p className="mt-1 text-[15px] font-medium text-neutral-900">
-                    {MOCK_INCIDENT.title}
+                    {incident.title || 'Untitled Incident'}
                   </p>
                 </div>
                 <div>
@@ -235,7 +280,7 @@ export default function IncidentDetailPage({ params }: IncidentDetailPageProps) 
                   </p>
                   <p className="mt-1">
                     <Badge variant="default" size="md">
-                      {MOCK_INCIDENT.type}
+                      {typeName}
                     </Badge>
                   </p>
                 </div>
@@ -244,14 +289,16 @@ export default function IncidentDetailPage({ params }: IncidentDetailPageProps) 
                     Time Occurred
                   </p>
                   <p className="mt-1 text-[15px] text-neutral-900">
-                    {new Date(MOCK_INCIDENT.timeOccurred).toLocaleString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
+                    {incident.createdAt
+                      ? new Date(incident.createdAt).toLocaleString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })
+                      : '\u2014'}
                   </p>
                 </div>
                 <div>
@@ -260,201 +307,37 @@ export default function IncidentDetailPage({ params }: IncidentDetailPageProps) 
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
                     <MapPin className="h-3.5 w-3.5 text-neutral-400" />
-                    {MOCK_INCIDENT.location}
+                    {incident.location || '\u2014'}
                   </p>
                 </div>
+                {incident.unit && (
+                  <div>
+                    <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                      Related Unit
+                    </p>
+                    <p className="mt-1 text-[15px] text-neutral-900">Unit {incident.unit.number}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Reported By
-                  </p>
-                  <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
-                    <User className="h-3.5 w-3.5 text-neutral-400" />
-                    {MOCK_INCIDENT.reportedBy}
-                    <span className="text-[13px] text-neutral-500">
-                      ({MOCK_INCIDENT.reportedByRole})
-                    </span>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Urgency
+                    Priority
                   </p>
                   <p className="mt-1">
-                    <Badge variant={urgencyMap[MOCK_INCIDENT.urgency]} size="md" dot>
-                      {MOCK_INCIDENT.urgency}
+                    <Badge variant={priorityVariant} size="md" dot>
+                      {priority}
                     </Badge>
                   </p>
                 </div>
-                <div className="col-span-2">
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Description
-                  </p>
-                  <p className="mt-1 text-[15px] leading-relaxed text-neutral-700">
-                    {MOCK_INCIDENT.description}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Suspect Description */}
-          {MOCK_INCIDENT.suspectDescription && (
-            <Card>
-              <div className="mb-4 flex items-center gap-2">
-                <Eye className="h-4 w-4 text-neutral-400" />
-                <h2 className="text-[14px] font-semibold text-neutral-900">Suspect Description</h2>
-              </div>
-              <CardContent>
-                <p className="text-[15px] leading-relaxed text-neutral-700">
-                  {MOCK_INCIDENT.suspectDescription}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Witness Information */}
-          {MOCK_INCIDENT.witnesses.length > 0 && (
-            <Card>
-              <div className="mb-4 flex items-center gap-2">
-                <User className="h-4 w-4 text-neutral-400" />
-                <h2 className="text-[14px] font-semibold text-neutral-900">
-                  Witness Information ({MOCK_INCIDENT.witnesses.length})
-                </h2>
-              </div>
-              <CardContent>
-                <div className="flex flex-col gap-3">
-                  {MOCK_INCIDENT.witnesses.map((w, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
-                    >
-                      <div>
-                        <p className="text-[14px] font-medium text-neutral-900">{w.name}</p>
-                        <p className="text-[13px] text-neutral-500">Unit {w.unit}</p>
-                      </div>
-                      <p className="flex items-center gap-1 text-[13px] text-neutral-600">
-                        <Phone className="h-3 w-3" />
-                        {w.phone}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Emergency Services */}
-          <Card>
-            <div className="mb-4 flex items-center gap-2">
-              <Siren className="h-4 w-4 text-neutral-400" />
-              <h2 className="text-[14px] font-semibold text-neutral-900">
-                Emergency Services Contacted
-              </h2>
-            </div>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  { label: 'Police', contacted: MOCK_INCIDENT.emergencyServices.police },
-                  { label: 'Fire', contacted: MOCK_INCIDENT.emergencyServices.fire },
-                  { label: 'Ambulance', contacted: MOCK_INCIDENT.emergencyServices.ambulance },
-                ].map((svc) => (
-                  <div
-                    key={svc.label}
-                    className="flex items-center gap-3 rounded-xl border border-neutral-100 p-4"
-                  >
-                    {svc.contacted ? (
-                      <CheckCircle2 className="text-success-600 h-5 w-5" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-neutral-300" />
-                    )}
-                    <div>
-                      <p className="text-[14px] font-medium text-neutral-900">{svc.label}</p>
-                      <p className="text-[12px] text-neutral-500">
-                        {svc.contacted ? 'Yes — Contacted' : 'Not contacted'}
-                      </p>
-                    </div>
+                {incident.description && (
+                  <div className="col-span-2">
+                    <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                      Description
+                    </p>
+                    <p className="mt-1 text-[15px] leading-relaxed text-neutral-700">
+                      {incident.description}
+                    </p>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Photos / Attachments */}
-          <Card>
-            <div className="mb-4 flex items-center gap-2">
-              <Paperclip className="h-4 w-4 text-neutral-400" />
-              <h2 className="text-[14px] font-semibold text-neutral-900">
-                Attachments ({MOCK_INCIDENT.attachments.length})
-              </h2>
-            </div>
-            <CardContent>
-              <div className="flex flex-col gap-2">
-                {MOCK_INCIDENT.attachments.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center justify-between rounded-xl border border-neutral-100 p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100">
-                        {a.type === 'image' ? (
-                          <Eye className="h-4 w-4 text-neutral-500" />
-                        ) : (
-                          <FileText className="h-4 w-4 text-neutral-500" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-[13px] font-medium text-neutral-900">{a.name}</p>
-                        <p className="text-[12px] text-neutral-400">{a.size}</p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="sm">
-                      View
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Updates Timeline */}
-          <Card>
-            <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Updates Timeline</h2>
-            <CardContent>
-              <div className="relative">
-                <div className="absolute top-2 bottom-2 left-[11px] w-px bg-neutral-200" />
-                <div className="flex flex-col gap-5">
-                  {MOCK_INCIDENT.updates.map((update) => (
-                    <div key={update.id} className="relative flex gap-3">
-                      <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-neutral-100">
-                        {getUpdateIcon(update.action)}
-                      </div>
-                      <div className="flex flex-col gap-1 pt-0.5">
-                        <p className="text-[13px] font-medium text-neutral-900">{update.detail}</p>
-                        {update.statusChange && (
-                          <div className="flex items-center gap-2">
-                            <Badge variant="default" size="sm">
-                              {update.statusChange.from}
-                            </Badge>
-                            <ArrowUpRight className="h-3 w-3 text-neutral-400" />
-                            <Badge variant="info" size="sm">
-                              {update.statusChange.to}
-                            </Badge>
-                          </div>
-                        )}
-                        <p className="text-[12px] text-neutral-400">
-                          {new Date(update.timestamp).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                          {' \u00B7 '}
-                          {update.actor}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -502,100 +385,46 @@ export default function IncidentDetailPage({ params }: IncidentDetailPageProps) 
                     </Badge>
                   </p>
                 </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Escalation
-                  </p>
-                  <p className="mt-1">
-                    <Badge variant={escalation.variant} size="md">
-                      {escalation.label}
-                    </Badge>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Assigned To
-                  </p>
-                  <p className="mt-1 flex items-center gap-1.5 text-[15px] font-medium text-neutral-900">
-                    <Shield className="h-3.5 w-3.5 text-neutral-400" />
-                    {MOCK_INCIDENT.assignedTo}
-                  </p>
-                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Linked Items */}
-          <Card>
-            <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Linked Items</h2>
-            <CardContent>
-              <div className="flex flex-col gap-3">
-                {MOCK_INCIDENT.relatedEvent && (
-                  <div className="flex items-center justify-between rounded-xl border border-neutral-100 p-3">
-                    <div>
-                      <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                        Related Event
-                      </p>
-                      <p className="text-primary-600 mt-0.5 font-mono text-[13px] font-semibold">
-                        {MOCK_INCIDENT.relatedEvent.id}
-                      </p>
-                      <p className="text-[12px] text-neutral-500">
-                        {MOCK_INCIDENT.relatedEvent.type}
-                      </p>
-                    </div>
-                    <ArrowUpRight className="h-4 w-4 text-neutral-400" />
-                  </div>
-                )}
-                {MOCK_INCIDENT.relatedUnit && (
-                  <Link href={`/units/${MOCK_INCIDENT.relatedUnit.number}`}>
+          {incident.unit && (
+            <Card>
+              <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Linked Items</h2>
+              <CardContent>
+                <div className="flex flex-col gap-3">
+                  <Link href={`/units/${incident.unit.number}`}>
                     <div className="flex items-center justify-between rounded-xl border border-neutral-100 p-3 transition-colors hover:bg-neutral-50">
                       <div>
                         <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                           Related Unit
                         </p>
                         <p className="text-primary-600 mt-0.5 text-[13px] font-semibold">
-                          Unit {MOCK_INCIDENT.relatedUnit.number}
-                        </p>
-                        <p className="text-[12px] text-neutral-500">
-                          {MOCK_INCIDENT.relatedUnit.building}
+                          Unit {incident.unit.number}
                         </p>
                       </div>
                       <ArrowUpRight className="h-4 w-4 text-neutral-400" />
                     </div>
                   </Link>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Resolution */}
           <Card>
             <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Resolution</h2>
             <CardContent>
-              {MOCK_INCIDENT.resolution ? (
+              {incident.closedAt ? (
                 <div className="flex flex-col gap-3">
-                  <div>
-                    <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                      Summary
-                    </p>
-                    <p className="mt-1 text-[14px] leading-relaxed text-neutral-700">
-                      {MOCK_INCIDENT.resolution.summary}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                      Resolved By
-                    </p>
-                    <p className="mt-1 text-[14px] text-neutral-900">
-                      {MOCK_INCIDENT.resolution.resolvedBy}
-                    </p>
-                  </div>
                   <div>
                     <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                       Resolved At
                     </p>
                     <p className="mt-1 text-[14px] text-neutral-900">
-                      {new Date(MOCK_INCIDENT.resolution.resolvedAt).toLocaleString('en-US', {
+                      {new Date(incident.closedAt).toLocaleString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',

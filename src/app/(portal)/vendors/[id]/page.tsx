@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
+  AlertCircle,
   ArrowLeft,
   Building2,
   Calendar,
@@ -73,91 +74,6 @@ interface VendorDetail {
   workOrders: WorkOrder[];
   documents: VendorDocument[];
 }
-
-// ---------------------------------------------------------------------------
-// Mock Data
-// ---------------------------------------------------------------------------
-
-const MOCK_VENDOR: VendorDetail = {
-  id: '1',
-  name: 'ThyssenKrupp Elevator',
-  category: 'Elevator',
-  licenseNumber: 'EL-2024-8831',
-  email: 'mpatterson@tkelevator.com',
-  phone: '(416) 555-0101',
-  address: '200 Bay Street, Suite 1500, Toronto, ON M5J 2J3',
-  website: 'https://www.tkelevator.com',
-  contactName: 'Mark Patterson',
-  notes:
-    'Preferred elevator maintenance vendor. Contract renewed annually. 24/7 emergency service included. Service elevator monthly, passenger elevators quarterly.',
-  insuranceStatus: 'compliant',
-  insuranceProvider: 'Intact Insurance Company',
-  policyNumber: 'INS-2024-EL-44921',
-  coverageAmount: '$5,000,000',
-  insuranceExpiry: '2027-01-15',
-  averageRating: 4.7,
-  totalReviews: 23,
-  starBreakdown: [18, 3, 1, 1, 0],
-  workOrders: [
-    {
-      id: 'wo-1',
-      refNumber: 'WO-2026-0341',
-      unit: 'Elevator A',
-      description: 'Annual inspection and safety certification',
-      status: 'in_progress',
-      date: '2026-03-15',
-      rating: 0,
-    },
-    {
-      id: 'wo-2',
-      refNumber: 'WO-2026-0298',
-      unit: 'Elevator B',
-      description: 'Door sensor replacement and calibration',
-      status: 'completed',
-      date: '2026-02-28',
-      rating: 5,
-    },
-    {
-      id: 'wo-3',
-      refNumber: 'WO-2026-0187',
-      unit: 'Elevator A',
-      description: 'Emergency call button repair',
-      status: 'closed',
-      date: '2026-01-10',
-      rating: 4,
-    },
-  ],
-  documents: [
-    {
-      id: 'doc-1',
-      name: 'Insurance Certificate 2024-2027',
-      type: 'Insurance',
-      uploadedAt: '2024-01-20',
-      size: '245 KB',
-    },
-    {
-      id: 'doc-2',
-      name: 'Business License EL-2024-8831',
-      type: 'License',
-      uploadedAt: '2024-03-01',
-      size: '128 KB',
-    },
-    {
-      id: 'doc-3',
-      name: 'WSIB Clearance Certificate',
-      type: 'WSIB',
-      uploadedAt: '2025-11-15',
-      size: '92 KB',
-    },
-    {
-      id: 'doc-4',
-      name: 'Service Agreement 2026',
-      type: 'Contract',
-      uploadedAt: '2025-12-01',
-      size: '1.2 MB',
-    },
-  ],
-};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -233,18 +149,96 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
+// Skeleton Loader
+// ---------------------------------------------------------------------------
+
+function VendorDetailSkeleton() {
+  return (
+    <div className="flex animate-pulse flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <div className="h-4 w-28 rounded bg-neutral-200" />
+        <div className="h-8 w-64 rounded bg-neutral-200" />
+        <div className="h-4 w-32 rounded bg-neutral-200" />
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="flex flex-col gap-6 xl:col-span-2">
+          <div className="h-48 rounded-xl bg-neutral-100" />
+          <div className="h-40 rounded-xl bg-neutral-100" />
+          <div className="h-32 rounded-xl bg-neutral-100" />
+        </div>
+        <div className="flex flex-col gap-6">
+          <div className="h-36 rounded-xl bg-neutral-100" />
+          <div className="h-48 rounded-xl bg-neutral-100" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function VendorDetailPage() {
   const { id } = useParams<{ id: string }>();
 
-  const { data: apiVendor } = useApi<VendorDetail>(
-    apiUrl(`/api/v1/vendors/${id}`, { propertyId: DEMO_PROPERTY_ID }),
-  );
+  const {
+    data: vendor,
+    loading,
+    error,
+  } = useApi<VendorDetail>(apiUrl(`/api/v1/vendors/${id}`, { propertyId: DEMO_PROPERTY_ID }));
 
-  const vendor = apiVendor ?? MOCK_VENDOR;
-  const statusCfg = STATUS_CONFIG[vendor.insuranceStatus];
+  // -- Loading State --
+  if (loading) {
+    return <VendorDetailSkeleton />;
+  }
+
+  // -- Error State --
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="bg-error-50 flex h-16 w-16 items-center justify-center rounded-full">
+          <AlertCircle className="text-error-600 h-8 w-8" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">
+          {error.includes('404') ? 'Vendor Not Found' : 'Failed to Load Vendor'}
+        </h2>
+        <p className="max-w-md text-center text-[14px] text-neutral-500">{error}</p>
+        <Link href={'/vendors' as never}>
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to vendors
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // -- 404 State --
+  if (!vendor) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+          <Building2 className="h-8 w-8 text-neutral-400" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">Vendor Not Found</h2>
+        <p className="text-[14px] text-neutral-500">
+          The vendor you are looking for does not exist or has been removed.
+        </p>
+        <Link href={'/vendors' as never}>
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to vendors
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const statusCfg = STATUS_CONFIG[vendor.insuranceStatus] ?? STATUS_CONFIG.not_tracking;
+  const workOrders = vendor.workOrders ?? [];
+  const documents = vendor.documents ?? [];
+  const starBreakdown = vendor.starBreakdown ?? [0, 0, 0, 0, 0];
 
   const workOrderColumns: Column<WorkOrder>[] = [
     {
@@ -354,54 +348,70 @@ export default function VendorDetailPage() {
                     </Badge>
                   }
                 />
-                <InfoRow label="License Number" value={vendor.licenseNumber} />
-                <InfoRow label="Primary Contact" value={vendor.contactName} />
+                <InfoRow label="License Number" value={vendor.licenseNumber || '—'} />
+                <InfoRow label="Primary Contact" value={vendor.contactName || '—'} />
                 <InfoRow
                   label="Email"
                   value={
-                    <a
-                      href={`mailto:${vendor.email}`}
-                      className="text-primary-600 inline-flex items-center gap-1 hover:underline"
-                    >
-                      <Mail className="h-3.5 w-3.5" />
-                      {vendor.email}
-                    </a>
+                    vendor.email ? (
+                      <a
+                        href={`mailto:${vendor.email}`}
+                        className="text-primary-600 inline-flex items-center gap-1 hover:underline"
+                      >
+                        <Mail className="h-3.5 w-3.5" />
+                        {vendor.email}
+                      </a>
+                    ) : (
+                      '—'
+                    )
                   }
                 />
                 <InfoRow
                   label="Phone"
                   value={
-                    <span className="inline-flex items-center gap-1">
-                      <Phone className="h-3.5 w-3.5 text-neutral-400" />
-                      {vendor.phone}
-                    </span>
+                    vendor.phone ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Phone className="h-3.5 w-3.5 text-neutral-400" />
+                        {vendor.phone}
+                      </span>
+                    ) : (
+                      '—'
+                    )
                   }
                 />
                 <InfoRow
                   label="Address"
                   value={
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5 text-neutral-400" />
-                      {vendor.address}
-                    </span>
+                    vendor.address ? (
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-neutral-400" />
+                        {vendor.address}
+                      </span>
+                    ) : (
+                      '—'
+                    )
                   }
                 />
                 <InfoRow
                   label="Website"
                   value={
-                    <a
-                      href={vendor.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary-600 inline-flex items-center gap-1 hover:underline"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      {vendor.website.replace(/^https?:\/\//, '')}
-                    </a>
+                    vendor.website ? (
+                      <a
+                        href={vendor.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary-600 inline-flex items-center gap-1 hover:underline"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        {vendor.website.replace(/^https?:\/\//, '')}
+                      </a>
+                    ) : (
+                      '—'
+                    )
                   }
                 />
                 <div className="sm:col-span-2">
-                  <InfoRow label="Notes" value={vendor.notes} />
+                  <InfoRow label="Notes" value={vendor.notes || 'No notes.'} />
                 </div>
               </div>
             </CardContent>
@@ -422,20 +432,24 @@ export default function VendorDetailPage() {
                     </Badge>
                   }
                 />
-                <InfoRow label="Insurance Provider" value={vendor.insuranceProvider} />
-                <InfoRow label="Policy Number" value={vendor.policyNumber} />
-                <InfoRow label="Coverage Amount" value={vendor.coverageAmount} />
+                <InfoRow label="Insurance Provider" value={vendor.insuranceProvider || '—'} />
+                <InfoRow label="Policy Number" value={vendor.policyNumber || '—'} />
+                <InfoRow label="Coverage Amount" value={vendor.coverageAmount || '—'} />
                 <InfoRow
                   label="Expiry Date"
                   value={
-                    <span className="inline-flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5 text-neutral-400" />
-                      {new Date(vendor.insuranceExpiry).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </span>
+                    vendor.insuranceExpiry ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5 text-neutral-400" />
+                        {new Date(vendor.insuranceExpiry).toLocaleDateString('en-US', {
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    ) : (
+                      '—'
+                    )
                   }
                 />
                 <InfoRow
@@ -459,7 +473,7 @@ export default function VendorDetailPage() {
             <CardContent>
               <DataTable
                 columns={workOrderColumns}
-                data={vendor.workOrders}
+                data={workOrders}
                 emptyMessage="No work orders found for this vendor."
                 emptyIcon={<FileText className="h-6 w-6" />}
                 compact
@@ -518,18 +532,18 @@ export default function VendorDetailPage() {
             <CardContent>
               <div className="flex flex-col items-center gap-2">
                 <p className="text-[40px] font-bold tracking-tight text-neutral-900">
-                  {vendor.averageRating}
+                  {vendor.averageRating ?? 0}
                 </p>
-                <StarRating rating={vendor.averageRating} size="lg" />
+                <StarRating rating={vendor.averageRating ?? 0} size="lg" />
                 <p className="text-[13px] text-neutral-500">
-                  {vendor.totalReviews} review{vendor.totalReviews !== 1 ? 's' : ''}
+                  {vendor.totalReviews ?? 0} review{(vendor.totalReviews ?? 0) !== 1 ? 's' : ''}
                 </p>
               </div>
               <div className="mt-4 flex flex-col gap-1.5">
-                {vendor.starBreakdown.map((count, i) => {
+                {starBreakdown.map((count, i) => {
                   const starLevel = 5 - i;
-                  const percentage =
-                    vendor.totalReviews > 0 ? (count / vendor.totalReviews) * 100 : 0;
+                  const totalReviews = vendor.totalReviews ?? 0;
+                  const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
                   return (
                     <div key={starLevel} className="flex items-center gap-2">
                       <span className="w-8 text-right text-[12px] font-medium text-neutral-500">
@@ -583,37 +597,41 @@ export default function VendorDetailPage() {
               <CardTitle>Documents</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col gap-3">
-                {vendor.documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between rounded-xl border border-neutral-100 bg-neutral-50/50 p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="bg-primary-50 flex h-9 w-9 items-center justify-center rounded-lg">
-                        <FileText className="text-primary-600 h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-[13px] font-medium text-neutral-900">{doc.name}</p>
-                        <p className="text-[11px] text-neutral-400">
-                          {doc.type} &middot; {doc.size} &middot;{' '}
-                          {new Date(doc.uploadedAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="text-neutral-400 transition-colors hover:text-neutral-600"
+              {documents.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between rounded-xl border border-neutral-100 bg-neutral-50/50 p-3"
                     >
-                      <Download className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      <div className="flex items-center gap-3">
+                        <div className="bg-primary-50 flex h-9 w-9 items-center justify-center rounded-lg">
+                          <FileText className="text-primary-600 h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-[13px] font-medium text-neutral-900">{doc.name}</p>
+                          <p className="text-[11px] text-neutral-400">
+                            {doc.type} &middot; {doc.size} &middot;{' '}
+                            {new Date(doc.uploadedAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="text-neutral-400 transition-colors hover:text-neutral-600"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No documents uploaded.</p>
+              )}
             </CardContent>
           </Card>
         </div>
