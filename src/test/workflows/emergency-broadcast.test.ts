@@ -350,46 +350,43 @@ describe('Scenario 1: Fire Emergency — Push + SMS + Voice Cascade', () => {
 describe('Scenario 2: Flood Emergency — Floor-Targeted Broadcast', () => {
   const broadcastId = 'bc-flood-001';
 
-  it.todo(
-    'should create flood broadcast targeting specific floors — needs targetFloors field in API',
-    async () => {
-      mockUserPropertyFindMany.mockResolvedValue([
-        { userId: 'r-b1-001' },
-        { userId: 'r-b1-002' },
-        { userId: 'r-b1-003' },
-      ]);
-      mockEmergencyBroadcastCreate.mockResolvedValue(
-        makeBroadcast({
-          id: broadcastId,
-          title: 'FLOOD WARNING — Basement Levels',
-          severity: 'high',
-          totalTargeted: 3,
-          cascadeConfig: {
-            channels: ['push', 'sms'],
-            targetAudience: 'specific_floors',
-            targetFloors: [-1, -2],
-          },
-        }),
-      );
-
-      const req = createPostRequest('/api/v1/emergency/broadcast', {
-        propertyId: PROPERTY_ID,
+  it('should create flood broadcast targeting specific floors', async () => {
+    mockUserPropertyFindMany.mockResolvedValue([
+      { userId: 'r-b1-001' },
+      { userId: 'r-b1-002' },
+      { userId: 'r-b1-003' },
+    ]);
+    mockEmergencyBroadcastCreate.mockResolvedValue(
+      makeBroadcast({
+        id: broadcastId,
         title: 'FLOOD WARNING — Basement Levels',
-        body: 'Water ingress detected in basement levels B1 and B2. Move vehicles immediately.',
         severity: 'high',
-        channels: ['push', 'sms'],
-        targetAudience: 'specific_floors',
-        targetFloors: [-1, -2],
-      });
+        totalTargeted: 3,
+        cascadeConfig: {
+          channels: ['push', 'sms'],
+          targetAudience: 'specific_floors',
+          targetFloors: [-1, -2],
+        },
+      }),
+    );
 
-      const res = await createBroadcast(req);
-      expect(res.status).toBe(201);
+    const req = createPostRequest('/api/v1/emergency/broadcast', {
+      propertyId: PROPERTY_ID,
+      title: 'FLOOD WARNING — Basement Levels',
+      body: 'Water ingress detected in basement levels B1 and B2. Move vehicles immediately.',
+      severity: 'high',
+      channels: ['push', 'sms'],
+      targetAudience: 'specific_floors',
+      targetFloors: [-1, -2],
+    });
 
-      const body = await parseResponse<{ data: { severity: string; totalTargeted: number } }>(res);
-      expect(body.data.severity).toBe('high');
-      expect(body.data.totalTargeted).toBe(3);
-    },
-  );
+    const res = await createBroadcast(req);
+    expect(res.status).toBe(201);
+
+    const body = await parseResponse<{ data: { severity: string; totalTargeted: number } }>(res);
+    expect(body.data.severity).toBe('high');
+    expect(body.data.totalTargeted).toBe(3);
+  });
 
   it('should reject specific_floors broadcast without targetFloors', async () => {
     const req = createPostRequest('/api/v1/emergency/broadcast', {

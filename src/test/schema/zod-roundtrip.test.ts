@@ -675,7 +675,7 @@ describe('Common schemas', () => {
       expect(result).toBe('admin@example.com');
     });
 
-    it.todo('trims whitespace — needs route export alignment', () => {
+    it('trims whitespace', () => {
       const result = emailSchema.parse('  user@test.com  ');
       expect(result).toBe('user@test.com');
     });

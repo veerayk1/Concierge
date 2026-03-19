@@ -114,14 +114,11 @@ describe('Required fields — aria-required / required indicator', () => {
     expect(asterisk).toBeInTheDocument();
   });
 
-  it.todo(
-    'Input with required prop passes required to the input element — needs Input component fix',
-    () => {
-      render(createElement(Input, { label: 'Name', required: true }));
-      const input = screen.getByLabelText('Name');
-      expect(input).toBeRequired();
-    },
-  );
+  it('Input with required prop passes required to the input element', () => {
+    render(createElement(Input, { label: 'Name', required: true }));
+    const input = screen.getByLabelText('Name');
+    expect(input).toBeRequired();
+  });
 
   it('FormField with required prop shows asterisk indicator', () => {
     render(
@@ -135,14 +132,11 @@ describe('Required fields — aria-required / required indicator', () => {
     expect(asterisk).toBeInTheDocument();
   });
 
-  it.todo(
-    'Textarea with required prop marks the field as required — needs Textarea component fix',
-    () => {
-      render(createElement(Textarea, { label: 'Comments', required: true }));
-      const textarea = screen.getByLabelText('Comments');
-      expect(textarea).toBeRequired();
-    },
-  );
+  it('Textarea with required prop marks the field as required', () => {
+    render(createElement(Textarea, { label: 'Comments', required: true }));
+    const textarea = screen.getByLabelText('Comments');
+    expect(textarea).toBeRequired();
+  });
 
   it('Required indicator is visually present (not just aria)', () => {
     render(createElement(Input, { label: 'Email', required: true }));
@@ -648,48 +642,45 @@ describe('Password inputs — visibility toggle accessibility', () => {
 // ---------------------------------------------------------------------------
 
 describe('Form-level accessibility — comprehensive patterns', () => {
-  it.todo(
-    'Complete form has all inputs labeled and errors linked — needs form component alignment',
-    () => {
-      render(
+  it('Complete form has all inputs labeled and errors linked', () => {
+    render(
+      createElement(
+        'form',
+        { 'aria-label': 'Create maintenance request' },
+        createElement(Input, { label: 'Title', required: true, id: 'title' }),
+        createElement(Textarea, { label: 'Description', required: true, id: 'desc' }),
         createElement(
-          'form',
-          { 'aria-label': 'Create maintenance request' },
-          createElement(Input, { label: 'Title', required: true, id: 'title' }),
-          createElement(Textarea, { label: 'Description', required: true, id: 'desc' }),
+          'fieldset',
+          null,
+          createElement('legend', null, 'Priority'),
           createElement(
-            'fieldset',
-            null,
-            createElement('legend', null, 'Priority'),
-            createElement(
-              RadioGroup,
-              { defaultValue: 'medium' },
-              createElement(RadioGroupItem, { value: 'low', label: 'Low' }),
-              createElement(RadioGroupItem, { value: 'medium', label: 'Medium' }),
-              createElement(RadioGroupItem, { value: 'high', label: 'High' }),
-            ),
+            RadioGroup,
+            { defaultValue: 'medium' },
+            createElement(RadioGroupItem, { value: 'low', label: 'Low' }),
+            createElement(RadioGroupItem, { value: 'medium', label: 'Medium' }),
+            createElement(RadioGroupItem, { value: 'high', label: 'High' }),
           ),
-          createElement(Checkbox, { label: 'Permission to enter unit' }),
-          createElement(Button, { type: 'submit' }, 'Submit Request'),
         ),
-      );
+        createElement(Checkbox, { label: 'Permission to enter unit' }),
+        createElement(Button, { type: 'submit' }, 'Submit Request'),
+      ),
+    );
 
-      // All inputs are labeled
-      expect(screen.getByLabelText('Title')).toBeInTheDocument();
-      expect(screen.getByLabelText('Description')).toBeInTheDocument();
+    // All inputs are labeled
+    expect(screen.getByLabelText('Title')).toBeInTheDocument();
+    expect(screen.getByLabelText('Description')).toBeInTheDocument();
 
-      // Radio group is present
-      expect(screen.getByRole('radiogroup')).toBeInTheDocument();
-      expect(screen.getAllByRole('radio')).toHaveLength(3);
+    // Radio group is present
+    expect(screen.getByRole('radiogroup')).toBeInTheDocument();
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
 
-      // Submit button has descriptive text
-      expect(screen.getByRole('button', { name: 'Submit Request' })).toBeInTheDocument();
+    // Submit button has descriptive text
+    expect(screen.getByRole('button', { name: 'Submit Request' })).toBeInTheDocument();
 
-      // Form has aria-label
-      const form = document.querySelector('form');
-      expect(form).toHaveAttribute('aria-label', 'Create maintenance request');
-    },
-  );
+    // Form has aria-label
+    const form = document.querySelector('form');
+    expect(form).toHaveAttribute('aria-label', 'Create maintenance request');
+  });
 
   it('Disabled form fields are excluded from tab order', () => {
     render(

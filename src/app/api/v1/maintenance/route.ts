@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status');
     const priority = searchParams.get('priority');
+    const unitId = searchParams.get('unitId');
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '50', 10);
 
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = { propertyId, deletedAt: null };
     if (status) where.status = status;
     if (priority) where.priority = priority;
+    if (unitId) where.unitId = unitId;
     if (search) {
       where.OR = [
         { referenceNumber: { contains: search, mode: 'insensitive' } },

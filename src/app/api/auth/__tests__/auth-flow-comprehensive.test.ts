@@ -282,25 +282,22 @@ describe('Auth Comprehensive: Login with invalid credentials returns 401', () =>
     );
   });
 
-  it.todo(
-    'increments failedLoginAttempts on wrong password — needs Prisma call shape alignment',
-    async () => {
-      const user = mockActiveUser({ failedLoginAttempts: 2 });
-      mockUserFindUnique.mockResolvedValue(user);
-      vi.mocked(verifyPassword).mockResolvedValue({ valid: false, needsRehash: false });
-      mockUserUpdate.mockResolvedValue(user);
+  it('increments failedLoginAttempts on wrong password', async () => {
+    const user = mockActiveUser({ failedLoginAttempts: 2 });
+    mockUserFindUnique.mockResolvedValue(user);
+    vi.mocked(verifyPassword).mockResolvedValue({ valid: false, needsRehash: false });
+    mockUserUpdate.mockResolvedValue(user);
 
-      await loginHandler(createLoginRequest('test@example.com', 'WrongPassword!'));
+    await loginHandler(createLoginRequest('test@example.com', 'WrongPassword!'));
 
-      expect(mockUserUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            failedLoginAttempts: 3,
-          }),
+    expect(mockUserUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          failedLoginAttempts: 3,
         }),
-      );
-    },
-  );
+      }),
+    );
+  });
 
   it('returns 401 for deactivated account', async () => {
     const user = mockActiveUser({ isActive: false });
@@ -311,7 +308,7 @@ describe('Auth Comprehensive: Login with invalid credentials returns 401', () =>
     expect(res.status).toBe(401);
   });
 
-  it.todo('returns 423 for locked account — needs login handler lock check alignment', async () => {
+  it('returns 423 for locked account', async () => {
     const user = mockActiveUser({
       failedLoginAttempts: 5,
       lockedUntil: new Date(Date.now() + 15 * 60 * 1000),

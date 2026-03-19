@@ -557,7 +557,7 @@ describe('Scenario 5: Monthly Billing Cycle Runs', () => {
   const STRIPE_SUB_ID = 'sub_stripe_001';
   const STRIPE_CUSTOMER_ID = 'cus_stripe_001';
 
-  it.todo('Step 1: property admin initiates checkout — needs Stripe mock alignment', async () => {
+  it('Step 1: property admin initiates checkout', async () => {
     mockSubscriptionFindFirst.mockResolvedValue(null); // No existing subscription
 
     const req = createPostRequest('/api/v1/billing', {

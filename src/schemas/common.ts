@@ -21,9 +21,10 @@ export const uuidSchema = z.string().uuid('Must be a valid UUID').describe('UUID
 /** Email address. Max 254 chars per RFC 5321. */
 export const emailSchema = z
   .string()
+  .trim()
   .email('Must be a valid email address')
   .max(FIELD_LENGTHS.email, `Email must be at most ${FIELD_LENGTHS.email} characters`)
-  .transform((val) => val.toLowerCase().trim())
+  .transform((val) => val.toLowerCase())
   .describe('Email address');
 
 /**

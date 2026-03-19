@@ -334,7 +334,7 @@ describe('Business hours detection (Toronto)', () => {
     expect(isBusinessHours(monday9am)).toBe(true);
   });
 
-  it.todo('4:59 PM on Wednesday is business — timezone alignment needed hours', () => {
+  it('4:59 PM on Wednesday is business hours', () => {
     // March 18, 2026 is a Wednesday. 4:59 PM EDT = 20:59 UTC
     const wed459pm = new Date('2026-03-18T20:59:00Z');
     expect(isBusinessHours(wed459pm)).toBe(true);
@@ -364,7 +364,7 @@ describe('Business hours detection (Toronto)', () => {
     expect(isBusinessHours(tue3am)).toBe(false);
   });
 
-  it.todo('8:59 AM on Thursday is not business — timezone alignment needed hours', () => {
+  it('8:59 AM on Thursday is not business hours', () => {
     // March 19, 2026 is a Thursday. 8:59 AM EDT = 12:59 UTC
     const thu859 = new Date('2026-03-19T12:59:00Z');
     expect(isBusinessHours(thu859)).toBe(false);
@@ -382,7 +382,7 @@ describe('Shift time calculation', () => {
     expect(getShift(date)).toBe('day');
   });
 
-  it.todo('2 PM is day shift — timezone alignment needed', () => {
+  it('2 PM is day shift', () => {
     // 2 PM EDT = 18:00 UTC
     const date = new Date('2026-03-16T18:00:00Z');
     expect(getShift(date)).toBe('day');
@@ -394,7 +394,7 @@ describe('Shift time calculation', () => {
     expect(getShift(date)).toBe('evening');
   });
 
-  it.todo('10 PM is evening shift — timezone alignment needed', () => {
+  it('10 PM is evening shift', () => {
     // 10 PM EDT = 02:00 UTC next day
     const date = new Date('2026-03-17T02:00:00Z');
     expect(getShift(date)).toBe('evening');
@@ -418,7 +418,7 @@ describe('Shift time calculation', () => {
     expect(getShift(date)).toBe('night');
   });
 
-  it.todo('6:59 AM is night shift — timezone alignment needed', () => {
+  it('6:59 AM is night shift', () => {
     // 6:59 AM EDT = 10:59 UTC
     const date = new Date('2026-03-16T10:59:00Z');
     expect(getShift(date)).toBe('night');

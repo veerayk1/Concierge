@@ -65,6 +65,11 @@ vi.mock('@/server/db', () => ({
       findMany: (...args: unknown[]) => mockReservationFindMany(...args),
       count: (...args: unknown[]) => mockReservationCount(...args),
     },
+    booking: {
+      create: (...args: unknown[]) => mockReservationCreate(...args),
+      findMany: (...args: unknown[]) => mockReservationFindMany(...args),
+      count: (...args: unknown[]) => mockReservationCount(...args),
+    },
     amenity: {
       findUnique: (...args: unknown[]) => mockAmenityFindUnique(...args),
     },
@@ -331,33 +336,30 @@ describe('Scenario 1: Resident Submits Maintenance Request', () => {
     );
   });
 
-  it.todo(
-    'Step 3: request includes permission-to-enter and entry instructions — needs Prisma mock alignment',
-    async () => {
-      mockMaintenanceRequestCreate.mockResolvedValue(makeMaintenanceRequest({ id: requestId }));
+  it('Step 3: request includes permission-to-enter and entry instructions', async () => {
+    mockMaintenanceRequestCreate.mockResolvedValue(makeMaintenanceRequest({ id: requestId }));
 
-      const req = createPostRequest('/api/v1/maintenance', {
-        propertyId: PROPERTY_ID,
-        unitId: UNIT_ID,
-        description: 'HVAC not cooling. Temperature above 30C.',
-        priority: 'high',
-        permissionToEnter: true,
-        entryInstructions: 'Concierge has spare key. Dog is in bedroom.',
-      });
+    const req = createPostRequest('/api/v1/maintenance', {
+      propertyId: PROPERTY_ID,
+      unitId: UNIT_ID,
+      description: 'HVAC not cooling. Temperature above 30C.',
+      priority: 'high',
+      permissionToEnter: true,
+      entryInstructions: 'Concierge has spare key. Dog is in bedroom.',
+    });
 
-      const res = await createMaintenanceRequest(req);
-      expect(res.status).toBe(201);
+    const res = await createMaintenanceRequest(req);
+    expect(res.status).toBe(201);
 
-      expect(mockMaintenanceRequestCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            permissionToEnter: true,
-            entryInstructions: 'Concierge has spare key. Dog is in bedroom.',
-          }),
+    expect(mockMaintenanceRequestCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          permissionToEnter: 'yes',
+          entryInstructions: 'Concierge has spare key. Dog is in bedroom.',
         }),
-      );
-    },
-  );
+      }),
+    );
+  });
 });
 
 // ===========================================================================
@@ -509,43 +511,40 @@ describe('Scenario 3: Staff Updates Status -> Status Change Tracked', () => {
 // ===========================================================================
 
 describe('Scenario 4: Resident Views Their Request History', () => {
-  it.todo(
-    'should list requests filtered by unit — needs unit filter in maintenance API',
-    async () => {
-      mockMaintenanceRequestFindMany.mockResolvedValue([
-        makeMaintenanceRequest({ id: 'mr-h1', status: 'completed', description: 'Fixed faucet' }),
-        makeMaintenanceRequest({ id: 'mr-h2', status: 'open', description: 'Broken window lock' }),
-        makeMaintenanceRequest({
-          id: 'mr-h3',
-          status: 'closed',
-          description: 'Light bulb replaced',
+  it('should list requests filtered by unit', async () => {
+    mockMaintenanceRequestFindMany.mockResolvedValue([
+      makeMaintenanceRequest({ id: 'mr-h1', status: 'completed', description: 'Fixed faucet' }),
+      makeMaintenanceRequest({ id: 'mr-h2', status: 'open', description: 'Broken window lock' }),
+      makeMaintenanceRequest({
+        id: 'mr-h3',
+        status: 'closed',
+        description: 'Light bulb replaced',
+      }),
+    ]);
+    mockMaintenanceRequestCount.mockResolvedValue(3);
+
+    const req = createGetRequest('/api/v1/maintenance', {
+      searchParams: { propertyId: PROPERTY_ID, unitId: UNIT_ID },
+    });
+
+    const res = await listMaintenanceRequests(req);
+    expect(res.status).toBe(200);
+
+    const body = await parseResponse<{
+      data: { id: string; status: string }[];
+      meta: { total: number };
+    }>(res);
+    expect(body.data).toHaveLength(3);
+
+    // Verify unit filter was applied
+    expect(mockMaintenanceRequestFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          unitId: UNIT_ID,
         }),
-      ]);
-      mockMaintenanceRequestCount.mockResolvedValue(3);
-
-      const req = createGetRequest('/api/v1/maintenance', {
-        searchParams: { propertyId: PROPERTY_ID, unitId: UNIT_ID },
-      });
-
-      const res = await listMaintenanceRequests(req);
-      expect(res.status).toBe(200);
-
-      const body = await parseResponse<{
-        data: { id: string; status: string }[];
-        meta: { total: number };
-      }>(res);
-      expect(body.data).toHaveLength(3);
-
-      // Verify unit filter was applied
-      expect(mockMaintenanceRequestFindMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            unitId: UNIT_ID,
-          }),
-        }),
-      );
-    },
-  );
+      }),
+    );
+  });
 
   it('should view individual request detail with full timeline', async () => {
     mockMaintenanceRequestFindUnique.mockResolvedValue(
@@ -607,79 +606,70 @@ describe('Scenario 4: Resident Views Their Request History', () => {
 // ===========================================================================
 
 describe('Scenario 5: Resident Books an Amenity', () => {
-  it.todo(
-    'Step 1: resident creates reservation for party room — needs booking mock alignment',
-    async () => {
-      mockAmenityFindUnique.mockResolvedValue({
-        id: 'amenity-pool-001',
-        name: 'Party Room A',
-        requiresApproval: false,
-        maxCapacity: 50,
-      });
-      mockReservationCreate.mockResolvedValue(makeReservation());
+  it('Step 1: resident creates reservation for party room', async () => {
+    mockAmenityFindUnique.mockResolvedValue({
+      id: 'amenity-pool-001',
+      name: 'Party Room A',
+      requiresApproval: false,
+      maxCapacity: 50,
+    });
+    mockReservationCreate.mockResolvedValue(makeReservation());
 
-      const req = createPostRequest('/api/v1/reservations', {
-        propertyId: PROPERTY_ID,
-        amenityId: 'amenity-pool-001',
-        unitId: UNIT_ID,
-        startTime: '2026-03-20T14:00:00Z',
-        endTime: '2026-03-20T16:00:00Z',
-        notes: 'Birthday party for 10 guests',
-      });
+    const req = createPostRequest('/api/v1/reservations', {
+      propertyId: PROPERTY_ID,
+      amenityId: 'amenity-pool-001',
+      unitId: UNIT_ID,
+      startTime: '2026-03-20T14:00:00Z',
+      endTime: '2026-03-20T16:00:00Z',
+      notes: 'Birthday party for 10 guests',
+    });
 
-      const res = await createReservation(req);
-      expect(res.status).toBe(201);
+    const res = await createReservation(req);
+    expect(res.status).toBe(201);
 
-      const body = await parseResponse<{
-        data: { status: string; amenity: { name: string } };
-      }>(res);
-      expect(body.data.status).toBe('confirmed');
-      expect(body.data.amenity.name).toBe('Party Room A');
-    },
-  );
+    const body = await parseResponse<{
+      data: { status: string; amenity: { name: string } };
+    }>(res);
+    expect(body.data.status).toBe('confirmed');
+    expect(body.data.amenity.name).toBe('Party Room A');
+  });
 
-  it.todo(
-    'Step 2: resident views their upcoming reservations — needs booking mock alignment',
-    async () => {
-      mockReservationFindMany.mockResolvedValue([
-        makeReservation({ id: 'res-1', amenity: { id: 'a1', name: 'Party Room A' } }),
-        makeReservation({
-          id: 'res-2',
-          amenityId: 'amenity-gym-001',
-          amenity: { id: 'a2', name: 'Gym' },
-          startTime: new Date('2026-03-21T08:00:00Z'),
-        }),
-      ]);
-      mockReservationCount.mockResolvedValue(2);
+  it('Step 2: resident views their upcoming reservations', async () => {
+    mockReservationFindMany.mockResolvedValue([
+      makeReservation({ id: 'res-1', amenity: { id: 'a1', name: 'Party Room A' } }),
+      makeReservation({
+        id: 'res-2',
+        amenityId: 'amenity-gym-001',
+        amenity: { id: 'a2', name: 'Gym' },
+        startTime: new Date('2026-03-21T08:00:00Z'),
+      }),
+    ]);
+    mockReservationCount.mockResolvedValue(2);
 
-      const req = createGetRequest('/api/v1/reservations', {
-        searchParams: { propertyId: PROPERTY_ID, unitId: UNIT_ID },
-      });
+    const req = createGetRequest('/api/v1/reservations', {
+      searchParams: { propertyId: PROPERTY_ID, unitId: UNIT_ID },
+    });
 
-      const res = await listReservations(req);
-      expect(res.status).toBe(200);
+    const res = await listReservations(req);
+    expect(res.status).toBe(200);
 
-      const body = await parseResponse<{
-        data: { id: string }[];
-        meta: { total: number };
-      }>(res);
-      expect(body.data).toHaveLength(2);
-      expect(body.meta.total).toBe(2);
-    },
-  );
+    const body = await parseResponse<{
+      data: { id: string }[];
+      meta: { total: number };
+    }>(res);
+    expect(body.data).toHaveLength(2);
+    expect(body.meta.total).toBe(2);
+  });
 
-  it.todo(
-    'should reject reservation with missing required fields — needs booking validation alignment',
-    async () => {
-      const req = createPostRequest('/api/v1/reservations', {
-        propertyId: PROPERTY_ID,
-        // Missing amenityId, startTime, endTime
-      });
+  it('should reject reservation with missing required fields', async () => {
+    const req = createPostRequest('/api/v1/reservations', {
+      propertyId: PROPERTY_ID,
+      // Missing amenityId, startTime, endTime
+    });
 
-      const res = await createReservation(req);
-      expect(res.status).toBe(400);
-    },
-  );
+    const res = await createReservation(req);
+    expect(res.status).toBe(400);
+  });
 });
 
 // ===========================================================================

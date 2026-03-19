@@ -22,7 +22,7 @@ const createBroadcastSchema = z.object({
   severity: z.enum(['low', 'medium', 'high', 'critical']),
   channels: z.array(z.enum(BROADCAST_CHANNELS)).min(1, 'At least one channel is required'),
   targetAudience: z.enum(BROADCAST_TARGETS).default('all'),
-  targetFloors: z.array(z.number().int().positive()).optional(),
+  targetFloors: z.array(z.number().int()).optional(),
   targetUnitIds: z.array(z.string().uuid()).optional(),
 });
 

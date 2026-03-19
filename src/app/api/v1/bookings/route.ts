@@ -1,11 +1,12 @@
 /**
- * Bookings API — List all bookings across amenities
+ * Bookings API — List & Create bookings across amenities
  * Per PRD 06 Amenity Booking
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { createReservationSchema } from '@/schemas/reservation';
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,6 +62,50 @@ export async function GET(request: NextRequest) {
     console.error('GET /api/v1/bookings error:', error);
     return NextResponse.json(
       { error: 'INTERNAL_ERROR', message: 'Failed to fetch bookings' },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
+    const body = await request.json();
+    const parsed = createReservationSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+
+    const input = parsed.data;
+
+    const booking = await prisma.booking.create({
+      data: {
+        propertyId: input.propertyId,
+        amenityId: input.amenityId,
+        unitId: input.unitId || null,
+        startTime: new Date(input.startTime),
+        endTime: new Date(input.endTime),
+        notes: input.notes || null,
+        status: 'confirmed',
+        bookedById: auth.user.userId,
+      },
+      include: {
+        amenity: { select: { id: true, name: true } },
+        unit: { select: { id: true, number: true } },
+      },
+    });
+
+    return NextResponse.json({ data: booking, message: 'Reservation created.' }, { status: 201 });
+  } catch (error) {
+    console.error('POST /api/v1/bookings error:', error);
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', message: 'Failed to create booking' },
       { status: 500 },
     );
   }
