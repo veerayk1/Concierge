@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { CreateAlterationDialog } from '@/components/forms/create-alteration-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -208,8 +209,9 @@ export default function AlterationsPage() {
   const [typeFilter, setTypeFilter] = useState<AlterationType | 'all'>('all');
   const [momentumFilter, setMomentumFilter] = useState<AlterationMomentum | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiAlterations } = useApi<AlterationItem[]>(
+  const { data: apiAlterations, refetch } = useApi<AlterationItem[]>(
     apiUrl('/api/v1/alterations', { propertyId: DEMO_PROPERTY_ID }),
   );
 
@@ -358,7 +360,7 @@ export default function AlterationsPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             New Alteration
           </Button>
@@ -518,6 +520,15 @@ export default function AlterationsPage() {
         data={filteredAlterations}
         emptyMessage="No alteration projects found."
         emptyIcon={<Hammer className="h-6 w-6" />}
+      />
+      <CreateAlterationDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );

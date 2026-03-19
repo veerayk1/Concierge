@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { CreateIdeaDialog } from '@/components/forms/create-idea-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -174,6 +175,7 @@ export default function IdeasPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<IdeaCategory | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<IdeaStatus | 'all'>('all');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const { data: apiIdeas } = useApi<IdeaItem[]>(
     apiUrl('/api/v1/ideas', { propertyId: DEMO_PROPERTY_ID }),
@@ -204,7 +206,7 @@ export default function IdeasPage() {
       title="Idea Board"
       description="Share ideas and vote on community improvements."
       actions={
-        <Button size="sm">
+        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4" />
           Post Idea
         </Button>
@@ -363,6 +365,12 @@ export default function IdeasPage() {
           ))}
         </div>
       )}
+
+      <CreateIdeaDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+      />
     </PageShell>
   );
 }

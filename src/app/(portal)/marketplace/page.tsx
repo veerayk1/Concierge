@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { CreateClassifiedDialog } from '@/components/forms/create-classified-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -210,6 +211,7 @@ export default function MarketplacePage() {
   const [categoryFilter, setCategoryFilter] = useState<ListingCategory | 'all'>('all');
   const [conditionFilter, setConditionFilter] = useState<ListingCondition | 'all'>('all');
   const [freeOnly, setFreeOnly] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const { data: apiListings } = useApi<ClassifiedItem[]>(
     apiUrl('/api/v1/marketplace', { propertyId: DEMO_PROPERTY_ID }),
@@ -241,7 +243,7 @@ export default function MarketplacePage() {
       title="Marketplace"
       description="Buy, sell, and trade with your neighbours."
       actions={
-        <Button size="sm">
+        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4" />
           Post Listing
         </Button>
@@ -413,6 +415,12 @@ export default function MarketplacePage() {
           ))}
         </div>
       )}
+
+      <CreateClassifiedDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+      />
     </PageShell>
   );
 }

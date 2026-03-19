@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { CreateInspectionDialog } from '@/components/forms/create-inspection-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -186,8 +187,9 @@ export default function InspectionsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiInspections } = useApi<InspectionItem[]>(
+  const { data: apiInspections, refetch } = useApi<InspectionItem[]>(
     apiUrl('/api/v1/inspections', { propertyId: DEMO_PROPERTY_ID }),
   );
 
@@ -323,7 +325,7 @@ export default function InspectionsPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             New Inspection
           </Button>
@@ -449,6 +451,15 @@ export default function InspectionsPage() {
         emptyMessage="No inspections found."
         emptyIcon={<ClipboardCheck className="h-6 w-6" />}
         onRowClick={(row) => router.push(`/inspections/${row.id}` as never)}
+      />
+      <CreateInspectionDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );

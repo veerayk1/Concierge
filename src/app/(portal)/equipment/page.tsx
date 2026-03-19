@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { CreateEquipmentDialog } from '@/components/forms/create-equipment-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -175,6 +176,7 @@ export default function EquipmentPage() {
   const [categoryFilter, setCategoryFilter] = useState<EquipmentCategory | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<EquipmentStatus | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const { data: apiEquipment } = useApi<EquipmentItem[]>(
     apiUrl('/api/v1/equipment', { propertyId: DEMO_PROPERTY_ID }),
@@ -321,7 +323,7 @@ export default function EquipmentPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             Add Equipment
           </Button>
@@ -461,6 +463,12 @@ export default function EquipmentPage() {
         data={filteredEquipment}
         emptyMessage="No equipment found."
         emptyIcon={<Wrench className="h-6 w-6" />}
+      />
+
+      <CreateEquipmentDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
       />
     </PageShell>
   );

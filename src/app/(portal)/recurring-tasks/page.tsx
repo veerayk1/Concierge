@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { CreateRecurringTaskDialog } from '@/components/forms/create-recurring-task-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -197,8 +198,9 @@ export default function RecurringTasksPage() {
   const [frequencyFilter, setFrequencyFilter] = useState<TaskFrequency | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiTasks } = useApi<RecurringTaskItem[]>(
+  const { data: apiTasks, refetch } = useApi<RecurringTaskItem[]>(
     apiUrl('/api/v1/recurring-tasks', { propertyId: DEMO_PROPERTY_ID }),
   );
 
@@ -354,7 +356,7 @@ export default function RecurringTasksPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             New Task
           </Button>
@@ -509,6 +511,15 @@ export default function RecurringTasksPage() {
         data={filteredTasks}
         emptyMessage="No recurring tasks found."
         emptyIcon={<Repeat className="h-6 w-6" />}
+      />
+      <CreateRecurringTaskDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );

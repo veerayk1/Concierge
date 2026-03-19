@@ -16,6 +16,7 @@ import {
   Truck,
   X,
 } from 'lucide-react';
+import { CreateVendorDialog } from '@/components/forms/create-vendor-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -170,8 +171,9 @@ export default function VendorsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiVendors } = useApi<VendorItem[]>(
+  const { data: apiVendors, refetch } = useApi<VendorItem[]>(
     apiUrl('/api/v1/vendors', { propertyId: DEMO_PROPERTY_ID }),
   );
 
@@ -295,7 +297,7 @@ export default function VendorsPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             Add Vendor
           </Button>
@@ -463,6 +465,15 @@ export default function VendorsPage() {
           }
         />
       )}
+      <CreateVendorDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
+      />
     </PageShell>
   );
 }

@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { CreateForumThreadDialog } from '@/components/forms/create-forum-thread-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -208,6 +209,7 @@ export default function ForumPage() {
   const [categoryFilter, setCategoryFilter] = useState<ThreadCategory | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<ThreadStatus | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const { data: apiThreads } = useApi<ForumThread[]>(
     apiUrl('/api/v1/forum', { propertyId: DEMO_PROPERTY_ID }),
@@ -339,7 +341,7 @@ export default function ForumPage() {
       title="Forum"
       description="Community discussions and threaded conversations."
       actions={
-        <Button size="sm">
+        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4" />
           New Thread
         </Button>
@@ -474,6 +476,12 @@ export default function ForumPage() {
         data={filteredThreads}
         emptyMessage="No threads found."
         emptyIcon={<MessageSquare className="h-6 w-6" />}
+      />
+
+      <CreateForumThreadDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
       />
     </PageShell>
   );
