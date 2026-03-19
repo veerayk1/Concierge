@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   AlertCircle,
   AlertTriangle,
-  Calendar,
   CheckCircle2,
   Clock,
   Filter,
@@ -25,11 +24,11 @@ import { CreateShiftEntryDialog } from '@/components/forms/create-shift-entry-di
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 
 // ---------------------------------------------------------------------------
-// Types — mapped from API response (Prisma Event model)
+// Types — mapped from API response
 // ---------------------------------------------------------------------------
 
 interface ShiftEntry {
@@ -53,13 +52,13 @@ interface ShiftEntry {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const SHIFT_COLORS = {
+const SHIFT_COLORS: Record<string, string> = {
   morning: 'bg-warning-50 text-warning-700',
   afternoon: 'bg-primary-50 text-primary-700',
   night: 'bg-neutral-800 text-white',
 };
 
-const SHIFT_ICONS = {
+const SHIFT_ICONS: Record<string, typeof Sunrise> = {
   morning: Sunrise,
   afternoon: Sun,
   night: Moon,
@@ -85,6 +84,13 @@ function getShiftTimes(shift: 'morning' | 'afternoon' | 'night') {
   }
 }
 
+function getEntryShift(createdAt: string): string {
+  const hour = new Date(createdAt).getHours();
+  if (hour >= 6 && hour < 14) return 'morning';
+  if (hour >= 14 && hour < 22) return 'afternoon';
+  return 'night';
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -107,14 +113,35 @@ export default function ShiftLogPage() {
 
   const allEntries = useMemo<ShiftEntry[]>(() => apiEntries ?? [], [apiEntries]);
 
+  // Separate pinned bulletins from regular entries
+  const bulletins = useMemo(() => allEntries.filter((e) => e.customFields?.pinned), [allEntries]);
+
+  // Urgent/important entries flagged as pass-on notes
+  const passOnEntries = useMemo(
+    () =>
+      allEntries.filter(
+        (e) =>
+          !e.customFields?.pinned &&
+          (e.priority === 'urgent' || e.eventType?.name?.toLowerCase().includes('pass')),
+      ),
+    [allEntries],
+  );
+
+  // Regular shift log entries
+  const regularEntries = useMemo(
+    () =>
+      allEntries.filter(
+        (e) =>
+          !e.customFields?.pinned &&
+          e.priority !== 'urgent' &&
+          !e.eventType?.name?.toLowerCase().includes('pass'),
+      ),
+    [allEntries],
+  );
+
   const currentShift = getCurrentShift();
   const shiftTimes = getShiftTimes(currentShift);
-  const CurrentShiftIcon = SHIFT_ICONS[currentShift];
-  const unreadPassOnCount = passOnNotes.filter((n) => !n.isRead).length;
-
-  function handleMarkAsRead(noteId: string) {
-    setPassOnNotes((prev) => prev.map((n) => (n.id === noteId ? { ...n, isRead: true } : n)));
-  }
+  const CurrentShiftIcon = SHIFT_ICONS[currentShift] ?? Sunrise;
 
   return (
     <PageShell
@@ -133,103 +160,112 @@ export default function ShiftLogPage() {
         </div>
       }
     >
-      <div className="flex flex-col gap-6">
-        {/* Current Shift Info */}
-        <Card className="border-primary-200/60 to-primary-50/30 bg-gradient-to-r from-white">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div
-                className={`flex h-12 w-12 items-center justify-center rounded-2xl ${SHIFT_COLORS[currentShift]}`}
-              >
-                <CurrentShiftIcon className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
-                  Current Shift
-                </p>
-                <p className="text-[18px] font-bold text-neutral-900 capitalize">
-                  {currentShift} Shift
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-neutral-400" />
-                <div>
-                  <p className="text-[11px] font-medium text-neutral-400 uppercase">Start</p>
-                  <p className="text-[14px] font-semibold text-neutral-700">{shiftTimes.start}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-neutral-400" />
-                <div>
-                  <p className="text-[11px] font-medium text-neutral-400 uppercase">End</p>
-                  <p className="text-[14px] font-semibold text-neutral-700">{shiftTimes.end}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-neutral-400" />
-                <div>
-                  <p className="text-[11px] font-medium text-neutral-400 uppercase">
-                    Staff on Duty
-                  </p>
-                  <p className="text-[14px] font-semibold text-neutral-700">3</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-24">
+          <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+          <p className="mt-3 text-[14px] text-neutral-500">Loading shift log...</p>
+        </div>
+      )}
 
-        {/* Pass-On Notes */}
-        {passOnNotes.some((n) => !n.isRead) && (
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <AlertTriangle className="text-warning-600 h-4 w-4" />
-              <h2 className="text-warning-600 text-[12px] font-semibold tracking-[0.08em] uppercase">
-                Pass-On Notes ({unreadPassOnCount} unread)
-              </h2>
+      {/* Error State */}
+      {!loading && error && (
+        <EmptyState
+          icon={<AlertCircle className="h-6 w-6" />}
+          title="Failed to load shift log"
+          description={error}
+          action={
+            <Button variant="secondary" size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      )}
+
+      {!loading && !error && (
+        <div className="flex flex-col gap-6">
+          {/* Current Shift Info */}
+          <Card className="border-primary-200/60 to-primary-50/30 bg-gradient-to-r from-white">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl ${SHIFT_COLORS[currentShift]}`}
+                >
+                  <CurrentShiftIcon className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-[12px] font-semibold tracking-wide text-neutral-400 uppercase">
+                    Current Shift
+                  </p>
+                  <p className="text-[18px] font-bold text-neutral-900 capitalize">
+                    {currentShift} Shift
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-neutral-400" />
+                  <div>
+                    <p className="text-[11px] font-medium text-neutral-400 uppercase">Start</p>
+                    <p className="text-[14px] font-semibold text-neutral-700">{shiftTimes.start}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-neutral-400" />
+                  <div>
+                    <p className="text-[11px] font-medium text-neutral-400 uppercase">End</p>
+                    <p className="text-[14px] font-semibold text-neutral-700">{shiftTimes.end}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-neutral-400" />
+                  <div>
+                    <p className="text-[11px] font-medium text-neutral-400 uppercase">
+                      Entries Today
+                    </p>
+                    <p className="text-[14px] font-semibold text-neutral-700">
+                      {allEntries.length}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col gap-3">
-              {passOnNotes
-                .filter((n) => !n.isRead)
-                .map((note) => (
+          </Card>
+
+          {/* Pass-On Notes (urgent entries) */}
+          {passOnEntries.length > 0 && (
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <AlertTriangle className="text-warning-600 h-4 w-4" />
+                <h2 className="text-warning-600 text-[12px] font-semibold tracking-[0.08em] uppercase">
+                  Pass-On Notes ({passOnEntries.length})
+                </h2>
+              </div>
+              <div className="flex flex-col gap-3">
+                {passOnEntries.map((note) => (
                   <Card
                     key={note.id}
-                    className={`transition-all duration-200 ${
-                      note.priority === 'critical'
-                        ? 'border-error-200 bg-error-50/30'
-                        : 'border-warning-200 bg-warning-50/30'
-                    }`}
+                    className="border-warning-200 bg-warning-50/30 transition-all duration-200"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3">
-                        <div
-                          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                            note.priority === 'critical' ? 'bg-error-100' : 'bg-warning-100'
-                          }`}
-                        >
-                          <AlertTriangle
-                            className={`h-4 w-4 ${
-                              note.priority === 'critical' ? 'text-error-600' : 'text-warning-600'
-                            }`}
-                          />
+                        <div className="bg-warning-100 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+                          <AlertTriangle className="text-warning-600 h-4 w-4" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-[13px] font-semibold text-neutral-900">
-                              {note.author}
+                              {note.title}
                             </span>
-                            <Badge
-                              variant={note.priority === 'critical' ? 'error' : 'warning'}
-                              size="sm"
-                              dot
-                            >
+                            <Badge variant="warning" size="sm" dot>
                               {note.priority}
                             </Badge>
                           </div>
-                          <p className="mt-1.5 text-[14px] leading-relaxed text-neutral-700">
-                            {note.content}
-                          </p>
+                          {note.description && (
+                            <p className="mt-1.5 text-[14px] leading-relaxed text-neutral-700">
+                              {note.description}
+                            </p>
+                          )}
                           <p className="mt-1.5 text-[12px] text-neutral-400">
                             {new Date(note.createdAt).toLocaleString('en-US', {
                               weekday: 'short',
@@ -241,186 +277,177 @@ export default function ShiftLogPage() {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleMarkAsRead(note.id)}
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Mark as Read
-                      </Button>
                     </div>
                   </Card>
                 ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Staff Bulletins */}
-        {MOCK_BULLETINS.length > 0 && (
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <Megaphone className="text-primary-600 h-4 w-4" />
-              <h2 className="text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
-                Staff Bulletins
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-              {MOCK_BULLETINS.map((bulletin) => (
-                <Card key={bulletin.id} hoverable className="cursor-pointer">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-primary-50 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
-                      <Megaphone className="text-primary-600 h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-semibold text-neutral-900">
-                          {bulletin.title}
-                        </span>
-                        {bulletin.pinned && (
+          {/* Staff Bulletins (pinned entries) */}
+          {bulletins.length > 0 && (
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <Megaphone className="text-primary-600 h-4 w-4" />
+                <h2 className="text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
+                  Staff Bulletins
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                {bulletins.map((bulletin) => (
+                  <Card key={bulletin.id} hoverable className="cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-primary-50 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+                        <Megaphone className="text-primary-600 h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[14px] font-semibold text-neutral-900">
+                            {bulletin.title}
+                          </span>
                           <Badge variant="primary" size="sm">
                             Pinned
                           </Badge>
+                        </div>
+                        {bulletin.description && (
+                          <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-neutral-600">
+                            {bulletin.description}
+                          </p>
                         )}
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-neutral-600">
-                        {bulletin.content}
-                      </p>
-                      <p className="mt-1.5 text-[12px] text-neutral-400">
-                        {bulletin.author} &middot;{' '}
-                        {new Date(bulletin.createdAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-neutral-400" />
-            <span className="text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
-              Filter by Shift
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Shift filters */}
-            {(['all', 'morning', 'afternoon', 'night'] as const).map((shift) => (
-              <button
-                key={shift}
-                type="button"
-                onClick={() => setShiftFilter(shift)}
-                className={`rounded-xl px-3 py-1.5 text-[13px] font-medium transition-all duration-200 ${
-                  shiftFilter === shift
-                    ? shift === 'all'
-                      ? 'bg-neutral-900 text-white'
-                      : SHIFT_COLORS[shift] + ' ring-primary-500 ring-2'
-                    : 'border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
-                }`}
-              >
-                {shift === 'all' ? 'All Shifts' : shift.charAt(0).toUpperCase() + shift.slice(1)}
-              </button>
-            ))}
-
-            <div className="mx-1 h-5 w-px bg-neutral-200" />
-
-            {/* Entry type filters */}
-            {(['all', 'important', 'normal'] as const).map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setEntryTypeFilter(type)}
-                className={`rounded-xl px-3 py-1.5 text-[13px] font-medium transition-all duration-200 ${
-                  entryTypeFilter === type
-                    ? type === 'important'
-                      ? 'bg-warning-100 text-warning-700'
-                      : 'bg-neutral-900 text-white'
-                    : 'border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
-                }`}
-              >
-                {type === 'all' ? 'All Types' : type.charAt(0).toUpperCase() + type.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Shift Log Entries */}
-        <div className="flex flex-col gap-4">
-          {filteredEntries.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100">
-                  <MessageSquare className="h-6 w-6 text-neutral-400" />
-                </div>
-                <p className="text-[15px] font-medium text-neutral-900">No entries found</p>
-                <p className="mt-1 text-[13px] text-neutral-500">
-                  Try adjusting your filters or add a new entry.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            filteredEntries.map((entry) => {
-              const entryHref = `/shift-log/${entry.id}`;
-              return (
-                <Link key={entry.id} href={entryHref as never} className="block">
-                  <Card className="transition-all duration-200 hover:shadow-md">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-                          <User className="h-4 w-4 text-neutral-500" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[14px] font-semibold text-neutral-900">
-                              {entry.author}
-                            </span>
-                            <span className="text-[12px] text-neutral-400">{entry.role}</span>
-                            <Badge
-                              variant="default"
-                              size="sm"
-                              className={SHIFT_COLORS[entry.shift]}
-                            >
-                              {entry.shift}
-                            </Badge>
-                            {entry.priority === 'important' && (
-                              <Badge variant="warning" size="sm" dot>
-                                Important
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="mt-2 text-[14px] leading-relaxed text-neutral-700">
-                            {entry.content}
-                          </p>
-                          <p className="mt-2 text-[12px] text-neutral-400">
-                            {new Date(entry.createdAt).toLocaleString('en-US', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit',
-                            })}
-                          </p>
-                        </div>
+                        <p className="mt-1.5 text-[12px] text-neutral-400">
+                          {new Date(bulletin.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </p>
                       </div>
                     </div>
                   </Card>
-                </Link>
-              );
-            })
+                ))}
+              </div>
+            </div>
           )}
+
+          {/* Filters */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-neutral-400" />
+              <span className="text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
+                Filter by Priority
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {(['all', 'important', 'normal', 'urgent'] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setEntryTypeFilter(type)}
+                  className={`rounded-xl px-3 py-1.5 text-[13px] font-medium transition-all duration-200 ${
+                    entryTypeFilter === type
+                      ? type === 'important' || type === 'urgent'
+                        ? 'bg-warning-100 text-warning-700'
+                        : 'bg-neutral-900 text-white'
+                      : 'border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
+                  }`}
+                >
+                  {type === 'all' ? 'All Types' : type.charAt(0).toUpperCase() + type.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Shift Log Entries */}
+          <div className="flex flex-col gap-4">
+            {regularEntries.length === 0 && passOnEntries.length === 0 && bulletins.length === 0 ? (
+              <EmptyState
+                icon={<MessageSquare className="h-6 w-6" />}
+                title="No shift log entries"
+                description="Shift log entries will appear here as staff add them during their shifts."
+                action={
+                  <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+                    <Plus className="h-4 w-4" />
+                    Add Entry
+                  </Button>
+                }
+              />
+            ) : regularEntries.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100">
+                    <MessageSquare className="h-6 w-6 text-neutral-400" />
+                  </div>
+                  <p className="text-[15px] font-medium text-neutral-900">No regular entries</p>
+                  <p className="mt-1 text-[13px] text-neutral-500">
+                    Try adjusting your filters or add a new entry.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              regularEntries.map((entry) => {
+                const entryShift = getEntryShift(entry.createdAt);
+                const entryHref = `/shift-log/${entry.id}`;
+                return (
+                  <Link key={entry.id} href={entryHref as never} className="block">
+                    <Card className="transition-all duration-200 hover:shadow-md">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+                            <User className="h-4 w-4 text-neutral-500" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[14px] font-semibold text-neutral-900">
+                                {entry.title}
+                              </span>
+                              {entry.eventType?.name && (
+                                <span className="text-[12px] text-neutral-400">
+                                  {entry.eventType.name}
+                                </span>
+                              )}
+                              <Badge
+                                variant="default"
+                                size="sm"
+                                className={SHIFT_COLORS[entryShift] ?? ''}
+                              >
+                                {entryShift}
+                              </Badge>
+                              {entry.priority === 'important' && (
+                                <Badge variant="warning" size="sm" dot>
+                                  Important
+                                </Badge>
+                              )}
+                            </div>
+                            {entry.description && (
+                              <p className="mt-2 text-[14px] leading-relaxed text-neutral-700">
+                                {entry.description}
+                              </p>
+                            )}
+                            <p className="mt-2 text-[12px] text-neutral-400">
+                              {new Date(entry.createdAt).toLocaleString('en-US', {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })}
+                              {entry.referenceNo && ` \u00B7 Ref: ${entry.referenceNo}`}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <CreateShiftEntryDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId="00000000-0000-4000-b000-000000000001"
+        propertyId={DEMO_PROPERTY_ID}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

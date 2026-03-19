@@ -1,8 +1,9 @@
 'use client';
 
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
+  AlertCircle,
   Archive,
   ArrowLeft,
   BarChart3,
@@ -17,33 +18,40 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
-const MOCK = {
-  title: 'Fire Alarm Testing — March 20th',
-  body: 'Annual fire alarm testing will take place on March 20th between 10am and 2pm. Please ensure all smoke detectors are accessible. No evacuation required.\n\nThe testing will proceed floor by floor starting from the ground level. Each floor will experience approximately 5-10 minutes of alarm sounds. Building management will be present on each floor to coordinate.\n\nResidents who work from home may want to plan accordingly, as the alarm sounds can be loud and disruptive. Noise-cancelling headphones are recommended during the testing period.\n\nIf you have any concerns or accessibility needs, please contact the front desk before March 19th.',
-  status: 'published' as const,
-  priority: 'important' as const,
-  category: 'Building Operations',
-  channels: ['email', 'sms', 'push', 'lobby'] as const,
-  author: 'Sarah Johnson',
-  publishedAt: '2026-03-18T09:00:00',
-  createdAt: '2026-03-17T14:00:00',
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface AnnouncementDetail {
+  id: string;
+  title: string;
+  body: string;
+  status: string;
+  priority: string;
+  category: string;
+  channels: string[];
+  author: string;
+  publishedAt: string;
+  createdAt: string;
   audience: {
-    type: 'all_residents' as const,
-    label: 'All Residents',
-    count: 482,
-  },
+    type: string;
+    label: string;
+    count: number;
+  };
   deliveryStats: {
-    totalSent: 482,
-    delivered: 475,
-    opened: 312,
-    clickRate: 18.4,
-  },
-  viewCount: 342,
-};
+    totalSent: number;
+    delivered: number;
+    opened: number;
+    clickRate: number;
+  };
+  viewCount: number;
+}
 
 const channelIcons: Record<string, typeof Mail> = {
   email: Mail,
@@ -52,12 +60,117 @@ const channelIcons: Record<string, typeof Mail> = {
   lobby: Monitor,
 };
 
-interface AnnouncementDetailPageProps {
-  params: Promise<{ id: string }>;
+// ---------------------------------------------------------------------------
+// Skeleton Loader
+// ---------------------------------------------------------------------------
+
+function AnnouncementDetailSkeleton() {
+  return (
+    <div className="flex animate-pulse flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <div className="h-4 w-32 rounded bg-neutral-200" />
+        <div className="h-7 w-80 rounded bg-neutral-200" />
+        <div className="h-4 w-56 rounded bg-neutral-200" />
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="h-64 rounded-xl bg-neutral-100 xl:col-span-2" />
+        <div className="flex flex-col gap-6">
+          <div className="h-40 rounded-xl bg-neutral-100" />
+          <div className="h-28 rounded-xl bg-neutral-100" />
+          <div className="h-36 rounded-xl bg-neutral-100" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default function AnnouncementDetailPage({ params }: AnnouncementDetailPageProps) {
-  const { id } = use(params);
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export default function AnnouncementDetailPage() {
+  const { id } = useParams<{ id: string }>();
+
+  const {
+    data: announcement,
+    loading,
+    error,
+  } = useApi<AnnouncementDetail>(
+    apiUrl(`/api/v1/announcements/${id}`, { propertyId: DEMO_PROPERTY_ID }),
+  );
+
+  // -- Loading State --
+  if (loading) {
+    return <AnnouncementDetailSkeleton />;
+  }
+
+  // -- Error State --
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="bg-error-50 flex h-16 w-16 items-center justify-center rounded-full">
+          <AlertCircle className="text-error-600 h-8 w-8" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">
+          {error.includes('404') ? 'Announcement Not Found' : 'Failed to Load Announcement'}
+        </h2>
+        <p className="max-w-md text-center text-[14px] text-neutral-500">{error}</p>
+        <Link href="/announcements">
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to announcements
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // -- 404 State --
+  if (!announcement) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+          <Bell className="h-8 w-8 text-neutral-400" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">Announcement Not Found</h2>
+        <p className="text-[14px] text-neutral-500">
+          The announcement you are looking for does not exist or has been removed.
+        </p>
+        <Link href="/announcements">
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to announcements
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const channels = announcement.channels ?? [];
+  const audience = announcement.audience ?? {
+    type: 'all_residents',
+    label: 'All Residents',
+    count: 0,
+  };
+  const deliveryStats = announcement.deliveryStats ?? {
+    totalSent: 0,
+    delivered: 0,
+    opened: 0,
+    clickRate: 0,
+  };
+
+  const statusVariant =
+    announcement.status === 'published'
+      ? 'success'
+      : announcement.status === 'draft'
+        ? 'default'
+        : 'warning';
+  const priorityVariant =
+    announcement.priority === 'important'
+      ? 'warning'
+      : announcement.priority === 'urgent'
+        ? 'error'
+        : 'default';
 
   return (
     <div className="flex flex-col gap-6">
@@ -72,23 +185,29 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
             Back to announcements
           </Link>
           <div className="flex items-center gap-3">
-            <h1 className="text-[24px] font-bold tracking-tight text-neutral-900">{MOCK.title}</h1>
-            <Badge variant="success" size="lg" dot>
-              Published
+            <h1 className="text-[24px] font-bold tracking-tight text-neutral-900">
+              {announcement.title}
+            </h1>
+            <Badge variant={statusVariant} size="lg" dot>
+              {announcement.status.charAt(0).toUpperCase() + announcement.status.slice(1)}
             </Badge>
-            <Badge variant="warning" size="lg" dot>
-              Important
-            </Badge>
+            {announcement.priority && announcement.priority !== 'normal' && (
+              <Badge variant={priorityVariant} size="lg" dot>
+                {announcement.priority.charAt(0).toUpperCase() + announcement.priority.slice(1)}
+              </Badge>
+            )}
           </div>
           <p className="text-[14px] text-neutral-500">
-            By {MOCK.author} &middot;{' '}
-            {new Date(MOCK.publishedAt).toLocaleString('en-US', {
-              month: 'long',
-              day: 'numeric',
-              year: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-            })}
+            By {announcement.author} &middot;{' '}
+            {announcement.publishedAt
+              ? new Date(announcement.publishedAt).toLocaleString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })
+              : 'Draft'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -112,12 +231,12 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* Left Column — Content */}
+        {/* Left Column -- Content */}
         <div className="xl:col-span-2">
           <Card>
             <CardContent>
               <div className="prose prose-neutral max-w-none">
-                {MOCK.body.split('\n').map((p, i) =>
+                {announcement.body.split('\n').map((p, i) =>
                   p ? (
                     <p key={i} className="text-[15px] leading-relaxed text-neutral-700">
                       {p}
@@ -131,7 +250,7 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
           </Card>
         </div>
 
-        {/* Right Column — Metadata */}
+        {/* Right Column -- Metadata */}
         <div className="flex flex-col gap-6">
           {/* Metadata */}
           <Card>
@@ -143,20 +262,22 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
                     Published
                   </p>
                   <p className="mt-1 text-[14px] text-neutral-900">
-                    {new Date(MOCK.publishedAt).toLocaleString('en-US', {
-                      month: 'long',
-                      day: 'numeric',
-                      year: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
+                    {announcement.publishedAt
+                      ? new Date(announcement.publishedAt).toLocaleString('en-US', {
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })
+                      : 'Not yet published'}
                   </p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Author
                   </p>
-                  <p className="mt-1 text-[14px] text-neutral-900">{MOCK.author}</p>
+                  <p className="mt-1 text-[14px] text-neutral-900">{announcement.author}</p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
@@ -164,7 +285,7 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
                   </p>
                   <p className="mt-1">
                     <Badge variant="primary" size="md">
-                      {MOCK.category}
+                      {announcement.category}
                     </Badge>
                   </p>
                 </div>
@@ -173,8 +294,8 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
                     Priority
                   </p>
                   <p className="mt-1">
-                    <Badge variant="warning" size="md" dot>
-                      {MOCK.priority}
+                    <Badge variant={priorityVariant} size="md" dot>
+                      {announcement.priority}
                     </Badge>
                   </p>
                 </div>
@@ -183,7 +304,7 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
                     Distribution Channels
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {MOCK.channels.map((ch) => {
+                    {channels.map((ch) => {
                       const Icon = channelIcons[ch] || Send;
                       return (
                         <Badge key={ch} variant="info" size="md">
@@ -192,6 +313,9 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
                         </Badge>
                       );
                     })}
+                    {channels.length === 0 && (
+                      <span className="text-[13px] text-neutral-400">No channels configured</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -207,11 +331,11 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[14px] font-medium text-neutral-900">{MOCK.audience.label}</p>
-                  <p className="text-[13px] text-neutral-500">{MOCK.audience.count} recipients</p>
+                  <p className="text-[14px] font-medium text-neutral-900">{audience.label}</p>
+                  <p className="text-[13px] text-neutral-500">{audience.count} recipients</p>
                 </div>
                 <Badge variant="primary" size="sm">
-                  {MOCK.audience.type === 'all_residents' ? 'All' : 'Targeted'}
+                  {audience.type === 'all_residents' ? 'All' : 'Targeted'}
                 </Badge>
               </div>
             </CardContent>
@@ -231,7 +355,7 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
                     Total Sent
                   </span>
                   <span className="text-[16px] font-bold text-neutral-900">
-                    {MOCK.deliveryStats.totalSent}
+                    {deliveryStats.totalSent}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -240,7 +364,7 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
                     Delivered
                   </span>
                   <span className="text-[14px] font-medium text-neutral-900">
-                    {MOCK.deliveryStats.delivered}
+                    {deliveryStats.delivered}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -249,7 +373,7 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
                     Opened
                   </span>
                   <span className="text-success-700 text-[14px] font-medium">
-                    {MOCK.deliveryStats.opened}
+                    {deliveryStats.opened}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -258,7 +382,7 @@ export default function AnnouncementDetailPage({ params }: AnnouncementDetailPag
                     Click Rate
                   </span>
                   <span className="text-[14px] font-medium text-neutral-900">
-                    {MOCK.deliveryStats.clickRate}%
+                    {deliveryStats.clickRate}%
                   </span>
                 </div>
               </div>

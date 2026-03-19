@@ -1,8 +1,9 @@
 'use client';
 
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
+  AlertCircle,
   ArrowLeft,
   Building2,
   Calendar,
@@ -18,59 +19,44 @@ import {
   ParkingCircle,
   Phone,
   Shield,
+  User,
   UserX,
   Wrench,
 } from 'lucide-react';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
 
-const MOCK = {
-  firstName: 'Janet',
-  lastName: 'Smith',
-  email: 'janet.smith@email.com',
-  phone: '416-555-0123',
-  unit: '1501',
-  building: 'Tower A',
-  role: 'owner' as const,
-  status: 'active' as const,
-  moveInDate: '2022-06-01',
-  emergencyContacts: [
-    { name: 'Michael Smith', relationship: 'Brother', phone: '416-555-9999' },
-    { name: 'Laura Chen', relationship: 'Partner', phone: '416-555-8877' },
-  ],
-  pets: [
-    { name: 'Daisy', type: 'Dog', breed: 'Pomeranian', weight: '5 lbs' },
-    { name: 'Whiskers', type: 'Cat', breed: 'Tabby', weight: '10 lbs' },
-  ],
-  vehicles: [
-    { make: 'Tesla', model: 'Model 3', year: 2024, color: 'White', plate: 'ABCD 123' },
-    { make: 'BMW', model: 'X5', year: 2023, color: 'Black', plate: 'EFGH 456' },
-  ],
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface ResidentDetail {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  unit: string;
+  building: string;
+  role: string;
+  status: string;
+  moveInDate: string;
+  emergencyContacts: { name: string; relationship: string; phone: string }[];
+  pets: { name: string; type: string; breed: string; weight: string }[];
+  vehicles: { make: string; model: string; year: number; color: string; plate: string }[];
   access: {
-    fobs: [
-      { serial: 'SN-3201', type: 'Main Entry', status: 'active' as const },
-      { serial: 'SN-3202', type: 'Parking', status: 'active' as const },
-    ],
-    parkingSpot: 'P1-15',
-    locker: 'L-42',
-    buzzerCode: '1501',
-  },
-  stats: { packages: 12, requests: 3, bookings: 5 },
-  recentActivity: [
-    { id: '1', type: 'package', description: 'Package received from Amazon', time: '2 hours ago' },
-    { id: '2', type: 'booking', description: 'Booked Party Room for Mar 25', time: '1 day ago' },
-    {
-      id: '3',
-      type: 'maintenance',
-      description: 'Submitted maintenance request — Leaky faucet',
-      time: '3 days ago',
-    },
-    { id: '4', type: 'package', description: 'Package picked up (FedEx)', time: '5 days ago' },
-    { id: '5', type: 'visitor', description: 'Visitor registered: John Doe', time: '1 week ago' },
-  ],
-};
+    fobs: { serial: string; type: string; status: string }[];
+    parkingSpot: string;
+    locker: string;
+    buzzerCode: string;
+  };
+  stats: { packages: number; requests: number; bookings: number };
+  recentActivity: { id: string; type: string; description: string; time: string }[];
+}
 
 const activityIcons: Record<string, typeof Package> = {
   package: Package,
@@ -79,12 +65,103 @@ const activityIcons: Record<string, typeof Package> = {
   visitor: Shield,
 };
 
-interface ResidentDetailPageProps {
-  params: Promise<{ id: string }>;
+// ---------------------------------------------------------------------------
+// Skeleton Loader
+// ---------------------------------------------------------------------------
+
+function ResidentDetailSkeleton() {
+  return (
+    <div className="flex animate-pulse flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <div className="h-4 w-28 rounded bg-neutral-200" />
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-full bg-neutral-200" />
+          <div className="flex flex-col gap-2">
+            <div className="h-6 w-40 rounded bg-neutral-200" />
+            <div className="h-4 w-56 rounded bg-neutral-200" />
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="flex flex-col gap-6 xl:col-span-2">
+          <div className="h-48 rounded-xl bg-neutral-100" />
+          <div className="h-32 rounded-xl bg-neutral-100" />
+        </div>
+        <div className="flex flex-col gap-6">
+          <div className="h-40 rounded-xl bg-neutral-100" />
+          <div className="h-40 rounded-xl bg-neutral-100" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default function ResidentDetailPage({ params }: ResidentDetailPageProps) {
-  const { id } = use(params);
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export default function ResidentDetailPage() {
+  const { id } = useParams<{ id: string }>();
+
+  const {
+    data: resident,
+    loading,
+    error,
+  } = useApi<ResidentDetail>(apiUrl(`/api/v1/users/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+
+  // -- Loading State --
+  if (loading) {
+    return <ResidentDetailSkeleton />;
+  }
+
+  // -- Error State --
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="bg-error-50 flex h-16 w-16 items-center justify-center rounded-full">
+          <AlertCircle className="text-error-600 h-8 w-8" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">
+          {error.includes('404') ? 'Resident Not Found' : 'Failed to Load Resident'}
+        </h2>
+        <p className="max-w-md text-center text-[14px] text-neutral-500">{error}</p>
+        <Link href="/residents">
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to residents
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // -- 404 State --
+  if (!resident) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+          <User className="h-8 w-8 text-neutral-400" />
+        </div>
+        <h2 className="text-[18px] font-semibold text-neutral-900">Resident Not Found</h2>
+        <p className="text-[14px] text-neutral-500">
+          The resident you are looking for does not exist or has been removed.
+        </p>
+        <Link href="/residents">
+          <Button variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to residents
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const emergencyContacts = resident.emergencyContacts ?? [];
+  const pets = resident.pets ?? [];
+  const vehicles = resident.vehicles ?? [];
+  const access = resident.access ?? { fobs: [], parkingSpot: '', locker: '', buzzerCode: '' };
+  const stats = resident.stats ?? { packages: 0, requests: 0, bookings: 0 };
+  const recentActivity = resident.recentActivity ?? [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -99,22 +176,22 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
             Back to residents
           </Link>
           <div className="flex items-center gap-4">
-            <Avatar name={`${MOCK.firstName} ${MOCK.lastName}`} size="lg" />
+            <Avatar name={`${resident.firstName} ${resident.lastName}`} size="lg" />
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {MOCK.firstName} {MOCK.lastName}
+                  {resident.firstName} {resident.lastName}
                 </h1>
                 <Badge variant="primary" size="lg">
-                  Owner
+                  {resident.role.charAt(0).toUpperCase() + resident.role.slice(1)}
                 </Badge>
-                <Badge variant="success" size="lg" dot>
-                  Active
+                <Badge variant={resident.status === 'active' ? 'success' : 'default'} size="lg" dot>
+                  {resident.status.charAt(0).toUpperCase() + resident.status.slice(1)}
                 </Badge>
               </div>
               <p className="mt-1 text-[14px] text-neutral-500">
-                Unit {MOCK.unit} &middot; {MOCK.building} &middot; Since{' '}
-                {new Date(MOCK.moveInDate).toLocaleDateString('en-US', {
+                Unit {resident.unit} &middot; {resident.building} &middot; Since{' '}
+                {new Date(resident.moveInDate).toLocaleDateString('en-US', {
                   month: 'long',
                   year: 'numeric',
                 })}
@@ -139,7 +216,7 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
                     Full Name
                   </p>
                   <p className="mt-1 text-[15px] text-neutral-900">
-                    {MOCK.firstName} {MOCK.lastName}
+                    {resident.firstName} {resident.lastName}
                   </p>
                 </div>
                 <div>
@@ -148,7 +225,7 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
                   </p>
                   <p className="text-primary-600 mt-1 flex items-center gap-1.5 text-[15px]">
                     <Mail className="h-4 w-4" />
-                    {MOCK.email}
+                    {resident.email}
                   </p>
                 </div>
                 <div>
@@ -157,7 +234,7 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
                     <Phone className="h-4 w-4 text-neutral-400" />
-                    {MOCK.phone}
+                    {resident.phone}
                   </p>
                 </div>
                 <div>
@@ -166,7 +243,7 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
                     <Building2 className="h-4 w-4 text-neutral-400" />
-                    {MOCK.building} &middot; Unit {MOCK.unit}
+                    {resident.building} &middot; Unit {resident.unit}
                   </p>
                 </div>
                 <div>
@@ -175,7 +252,7 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
                     <Calendar className="h-4 w-4 text-neutral-400" />
-                    {new Date(MOCK.moveInDate).toLocaleDateString('en-US', {
+                    {new Date(resident.moveInDate).toLocaleDateString('en-US', {
                       month: 'long',
                       day: 'numeric',
                       year: 'numeric',
@@ -186,15 +263,19 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Type
                   </p>
-                  <p className="mt-1 text-[15px] text-neutral-900 capitalize">{MOCK.role}</p>
+                  <p className="mt-1 text-[15px] text-neutral-900 capitalize">{resident.role}</p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Status
                   </p>
                   <p className="mt-1">
-                    <Badge variant="success" size="md" dot>
-                      {MOCK.status}
+                    <Badge
+                      variant={resident.status === 'active' ? 'success' : 'default'}
+                      size="md"
+                      dot
+                    >
+                      {resident.status}
                     </Badge>
                   </p>
                 </div>
@@ -207,27 +288,31 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
             <div className="mb-4 flex items-center gap-2">
               <Phone className="h-4 w-4 text-neutral-400" />
               <h2 className="text-[14px] font-semibold text-neutral-900">
-                Emergency Contacts ({MOCK.emergencyContacts.length})
+                Emergency Contacts ({emergencyContacts.length})
               </h2>
             </div>
             <CardContent>
-              <div className="flex flex-col gap-3">
-                {MOCK.emergencyContacts.map((c, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
-                  >
-                    <div>
-                      <p className="text-[14px] font-medium text-neutral-900">{c.name}</p>
-                      <p className="mt-0.5 text-[13px] text-neutral-500">{c.relationship}</p>
+              {emergencyContacts.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {emergencyContacts.map((c, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
+                    >
+                      <div>
+                        <p className="text-[14px] font-medium text-neutral-900">{c.name}</p>
+                        <p className="mt-0.5 text-[13px] text-neutral-500">{c.relationship}</p>
+                      </div>
+                      <p className="flex items-center gap-1.5 text-[13px] text-neutral-600">
+                        <Phone className="h-3.5 w-3.5 text-neutral-400" />
+                        {c.phone}
+                      </p>
                     </div>
-                    <p className="flex items-center gap-1.5 text-[13px] text-neutral-600">
-                      <Phone className="h-3.5 w-3.5 text-neutral-400" />
-                      {c.phone}
-                    </p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No emergency contacts on file.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -236,27 +321,31 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
             <div className="mb-4 flex items-center gap-2">
               <Car className="h-4 w-4 text-neutral-400" />
               <h2 className="text-[14px] font-semibold text-neutral-900">
-                Vehicles ({MOCK.vehicles.length})
+                Vehicles ({vehicles.length})
               </h2>
             </div>
             <CardContent>
-              <div className="flex flex-col gap-3">
-                {MOCK.vehicles.map((v, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
-                  >
-                    <div>
-                      <p className="text-[15px] font-medium text-neutral-900">
-                        {v.year} {v.color} {v.make} {v.model}
-                      </p>
-                      <p className="mt-0.5 text-[13px] text-neutral-500">
-                        Plate: <span className="font-mono">{v.plate}</span>
-                      </p>
+              {vehicles.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {vehicles.map((v, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
+                    >
+                      <div>
+                        <p className="text-[15px] font-medium text-neutral-900">
+                          {v.year} {v.color} {v.make} {v.model}
+                        </p>
+                        <p className="mt-0.5 text-[13px] text-neutral-500">
+                          Plate: <span className="font-mono">{v.plate}</span>
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No vehicles registered.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -264,26 +353,28 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
           <Card>
             <div className="mb-4 flex items-center gap-2">
               <Dog className="h-4 w-4 text-neutral-400" />
-              <h2 className="text-[14px] font-semibold text-neutral-900">
-                Pets ({MOCK.pets.length})
-              </h2>
+              <h2 className="text-[14px] font-semibold text-neutral-900">Pets ({pets.length})</h2>
             </div>
             <CardContent>
-              <div className="flex flex-col gap-3">
-                {MOCK.pets.map((p, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
-                  >
-                    <div>
-                      <p className="text-[14px] font-medium text-neutral-900">{p.name}</p>
-                      <p className="text-[13px] text-neutral-500">
-                        {p.breed} ({p.type}) &middot; {p.weight}
-                      </p>
+              {pets.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {pets.map((p, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between rounded-xl border border-neutral-100 p-4"
+                    >
+                      <div>
+                        <p className="text-[14px] font-medium text-neutral-900">{p.name}</p>
+                        <p className="text-[13px] text-neutral-500">
+                          {p.breed} ({p.type}) &middot; {p.weight}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No pets registered.</p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -328,19 +419,27 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
                     FOBs Assigned
                   </p>
                   <div className="mt-2 flex flex-col gap-2">
-                    {MOCK.access.fobs.map((f, i) => (
-                      <div key={i} className="flex items-center justify-between">
-                        <div>
-                          <p className="font-mono text-[13px] font-medium text-neutral-900">
-                            {f.serial}
-                          </p>
-                          <p className="text-[12px] text-neutral-500">{f.type}</p>
+                    {(access.fobs ?? []).length > 0 ? (
+                      access.fobs.map((f, i) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <div>
+                            <p className="font-mono text-[13px] font-medium text-neutral-900">
+                              {f.serial}
+                            </p>
+                            <p className="text-[12px] text-neutral-500">{f.type}</p>
+                          </div>
+                          <Badge
+                            variant={f.status === 'active' ? 'success' : 'default'}
+                            size="sm"
+                            dot
+                          >
+                            {f.status}
+                          </Badge>
                         </div>
-                        <Badge variant="success" size="sm" dot>
-                          {f.status}
-                        </Badge>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-[13px] text-neutral-400">None assigned</p>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -349,21 +448,21 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[14px] text-neutral-900">
                     <ParkingCircle className="h-4 w-4 text-neutral-400" />
-                    {MOCK.access.parkingSpot}
+                    {access.parkingSpot || '—'}
                   </p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Locker
                   </p>
-                  <p className="mt-1 text-[14px] text-neutral-900">{MOCK.access.locker}</p>
+                  <p className="mt-1 text-[14px] text-neutral-900">{access.locker || '—'}</p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Buzzer Code
                   </p>
                   <p className="mt-1 font-mono text-[14px] text-neutral-900">
-                    {MOCK.access.buzzerCode}
+                    {access.buzzerCode || '—'}
                   </p>
                 </div>
               </div>
@@ -380,27 +479,21 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
                     <Package className="h-4 w-4 text-neutral-400" />
                     Total Packages
                   </span>
-                  <span className="text-[16px] font-bold text-neutral-900">
-                    {MOCK.stats.packages}
-                  </span>
+                  <span className="text-[16px] font-bold text-neutral-900">{stats.packages}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-[14px] text-neutral-600">
                     <Wrench className="h-4 w-4 text-neutral-400" />
                     Open Maintenance
                   </span>
-                  <span className="text-[16px] font-bold text-neutral-900">
-                    {MOCK.stats.requests}
-                  </span>
+                  <span className="text-[16px] font-bold text-neutral-900">{stats.requests}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-[14px] text-neutral-600">
                     <Calendar className="h-4 w-4 text-neutral-400" />
                     Upcoming Bookings
                   </span>
-                  <span className="text-[16px] font-bold text-neutral-900">
-                    {MOCK.stats.bookings}
-                  </span>
+                  <span className="text-[16px] font-bold text-neutral-900">{stats.bookings}</span>
                 </div>
               </div>
             </CardContent>
@@ -413,22 +506,26 @@ export default function ResidentDetailPage({ params }: ResidentDetailPageProps) 
               <h2 className="text-[14px] font-semibold text-neutral-900">Recent Activity</h2>
             </div>
             <CardContent>
-              <div className="flex flex-col gap-4">
-                {MOCK.recentActivity.map((activity) => {
-                  const Icon = activityIcons[activity.type] || Clock;
-                  return (
-                    <div key={activity.id} className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-                        <Icon className="h-3.5 w-3.5 text-neutral-500" />
+              {recentActivity.length > 0 ? (
+                <div className="flex flex-col gap-4">
+                  {recentActivity.map((activity) => {
+                    const Icon = activityIcons[activity.type] || Clock;
+                    return (
+                      <div key={activity.id} className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+                          <Icon className="h-3.5 w-3.5 text-neutral-500" />
+                        </div>
+                        <div>
+                          <p className="text-[13px] text-neutral-700">{activity.description}</p>
+                          <p className="mt-0.5 text-[12px] text-neutral-400">{activity.time}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-[13px] text-neutral-700">{activity.description}</p>
-                        <p className="mt-0.5 text-[12px] text-neutral-400">{activity.time}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-[14px] text-neutral-400">No recent activity.</p>
+              )}
             </CardContent>
           </Card>
         </div>

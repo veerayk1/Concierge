@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CreateClassifiedDialog } from '@/components/forms/create-classified-dialog';
 
 // ---------------------------------------------------------------------------
@@ -105,101 +106,13 @@ const STATUS_LABELS: Record<ListingStatus, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// API response shape
 // ---------------------------------------------------------------------------
 
-const MOCK_LISTINGS: ClassifiedItem[] = [
-  {
-    id: '1',
-    title: 'Grey Sectional Sofa — Lightly Used',
-    description:
-      'Moving out and selling a 3-piece sectional sofa in grey fabric. Great condition, no stains or damage. Must pick up from unit.',
-    price: 450,
-    category: 'furniture',
-    condition: 'good',
-    author: 'Lisa B.',
-    authorUnit: '1105',
-    status: 'active',
-    photos: 4,
-    createdAt: '2026-03-15T10:00:00',
-    expiresAt: '2026-04-15T10:00:00',
-  },
-  {
-    id: '2',
-    title: 'Trek Mountain Bike — 21-Speed',
-    description:
-      'Selling my Trek mountain bike. 21-speed, recently tuned up with new brake pads. Perfect for spring riding.',
-    price: 300,
-    category: 'electronics',
-    condition: 'like_new',
-    author: 'David C.',
-    authorUnit: '802',
-    status: 'active',
-    photos: 3,
-    createdAt: '2026-03-16T14:00:00',
-    expiresAt: '2026-04-16T14:00:00',
-  },
-  {
-    id: '3',
-    title: 'Free Moving Boxes — Various Sizes',
-    description:
-      'Just moved in and have about 20 boxes to give away. Various sizes, some with packing paper. First come first served.',
-    price: 0,
-    category: 'free_stuff',
-    condition: 'fair',
-    author: 'Alice W.',
-    authorUnit: '101',
-    status: 'active',
-    photos: 1,
-    createdAt: '2026-03-17T09:00:00',
-    expiresAt: '2026-03-24T09:00:00',
-  },
-  {
-    id: '4',
-    title: 'Sony WH-1000XM5 Headphones',
-    description:
-      'Selling Sony noise-cancelling headphones. Bought 3 months ago, barely used. Comes with original box and all accessories.',
-    price: 250,
-    category: 'electronics',
-    condition: 'like_new',
-    author: 'Robert K.',
-    authorUnit: '305',
-    status: 'sold',
-    photos: 2,
-    createdAt: '2026-03-12T16:00:00',
-    expiresAt: '2026-04-12T16:00:00',
-  },
-  {
-    id: '5',
-    title: 'Babysitting Services — Evenings & Weekends',
-    description:
-      'Experienced babysitter available evenings and weekends. CPR certified, references available. Flexible rates for building residents.',
-    price: 20,
-    category: 'services',
-    condition: 'new',
-    author: 'Maria G.',
-    authorUnit: '1203',
-    status: 'active',
-    photos: 0,
-    createdAt: '2026-03-14T11:00:00',
-    expiresAt: '2026-04-14T11:00:00',
-  },
-  {
-    id: '6',
-    title: 'Canada Goose Winter Jacket — Size M',
-    description:
-      'Selling Canada Goose Expedition parka, size medium. Worn one season, in excellent condition. Dry cleaned and ready to go.',
-    price: 600,
-    category: 'clothing',
-    condition: 'good',
-    author: 'Karen L.',
-    authorUnit: '905',
-    status: 'active',
-    photos: 3,
-    createdAt: '2026-03-18T08:00:00',
-    expiresAt: '2026-04-18T08:00:00',
-  },
-];
+interface ApiResponse {
+  data: ClassifiedItem[];
+  meta?: { total: number };
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -213,11 +126,26 @@ export default function MarketplacePage() {
   const [freeOnly, setFreeOnly] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiListings } = useApi<ClassifiedItem[]>(
-    apiUrl('/api/v1/marketplace', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiListings,
+    loading,
+    error,
+    refetch,
+  } = useApi<ClassifiedItem[] | ApiResponse>(
+    apiUrl('/api/v1/classifieds', {
+      propertyId: DEMO_PROPERTY_ID,
+      search: searchQuery || undefined,
+      category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      condition: conditionFilter !== 'all' ? conditionFilter : undefined,
+    }),
   );
 
-  const allListings = useMemo<ClassifiedItem[]>(() => apiListings ?? MOCK_LISTINGS, [apiListings]);
+  const allListings = useMemo<ClassifiedItem[]>(() => {
+    if (!apiListings) return [];
+    if (Array.isArray(apiListings)) return apiListings;
+    if (Array.isArray((apiListings as ApiResponse).data)) return (apiListings as ApiResponse).data;
+    return [];
+  }, [apiListings]);
 
   const filteredListings = useMemo(() => {
     return allListings.filter((item) => {
@@ -237,6 +165,42 @@ export default function MarketplacePage() {
   const activeCount = allListings.filter((i) => i.status === 'active').length;
   const freeCount = allListings.filter((i) => i.price === 0 && i.status === 'active').length;
   const soldCount = allListings.filter((i) => i.status === 'sold').length;
+
+  // Loading state
+  if (loading) {
+    return (
+      <PageShell title="Marketplace" description="Loading...">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-64 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageShell title="Marketplace" description="Error loading marketplace">
+        <EmptyState
+          icon={<Store className="h-6 w-6" />}
+          title="Failed to load marketplace"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

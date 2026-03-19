@@ -353,7 +353,66 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Section 6: Bottom CTA */}
+      {/* Section 6: Stats */}
+      <section className="border-t border-neutral-100 bg-white px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            {[
+              { value: '30 min', label: 'Setup time' },
+              { value: '99.9%', label: 'Uptime SLA' },
+              { value: '8', label: 'Compliance frameworks' },
+              { value: '24/7', label: 'Support available' },
+            ].map((stat) => (
+              <div key={stat.label} className="text-center">
+                <p className="text-[32px] font-bold tracking-tight text-neutral-900">
+                  {stat.value}
+                </p>
+                <p className="mt-1 text-[14px] text-neutral-500">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Section 7: Trust & Compliance */}
+      <section className="border-t border-neutral-100 bg-neutral-50 px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-4xl text-center">
+          <h2 className="text-[24px] font-bold tracking-tight text-neutral-900">
+            Built for Canadian compliance
+          </h2>
+          <p className="mt-3 text-[16px] text-neutral-600">
+            Concierge is designed from the ground up for PIPEDA, GDPR, and enterprise security
+            requirements.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-6">
+            {[
+              'PIPEDA',
+              'GDPR',
+              'SOC 2',
+              'ISO 27001',
+              'ISO 27701',
+              'ISO 27017',
+              'ISO 9001',
+              'HIPAA',
+            ].map((badge) => (
+              <span
+                key={badge}
+                className="rounded-lg border border-neutral-200 bg-white px-4 py-2 text-[13px] font-semibold text-neutral-700 shadow-sm"
+              >
+                {badge}
+              </span>
+            ))}
+          </div>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-8 text-[13px] text-neutral-500">
+            <span>256-bit encryption at rest</span>
+            <span>TLS 1.3 in transit</span>
+            <span>Canadian data residency</span>
+            <span>Automated audit trails</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 8: Bottom CTA */}
       <section className="border-t border-neutral-100 bg-neutral-50 px-6 py-20 md:py-28">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-[28px] font-bold tracking-tight text-neutral-900 md:text-[36px]">

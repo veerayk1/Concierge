@@ -271,6 +271,52 @@ export default function PricingPage() {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section className="border-t border-neutral-100 bg-neutral-50 px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="mb-10 text-center text-[24px] font-bold tracking-tight text-neutral-900">
+            Frequently Asked Questions
+          </h2>
+          <div className="flex flex-col gap-6">
+            {[
+              {
+                q: 'Is there a free trial?',
+                a: 'Yes — every plan includes a 14-day free trial with full access to all features. No credit card required to start.',
+              },
+              {
+                q: 'How is pricing calculated?',
+                a: 'Pricing is based on the total number of units in your property. You only pay for active units. Common areas and commercial spaces do not count toward your unit total.',
+              },
+              {
+                q: 'Can I switch plans later?',
+                a: 'Absolutely. Upgrade or downgrade at any time. Changes take effect on your next billing cycle. No penalties or lock-in contracts.',
+              },
+              {
+                q: 'What happens to my data if I cancel?',
+                a: 'Your data is retained for 90 days after cancellation. You can export everything (CSV, Excel, PDF) at any time. After 90 days, data is securely deleted per our retention policy.',
+              },
+              {
+                q: 'Is my data stored in Canada?',
+                a: 'Yes. All data is stored in Canadian data centers. We are fully PIPEDA compliant and offer GDPR compliance for international properties.',
+              },
+              {
+                q: 'Do you offer discounts for multiple properties?',
+                a: 'Yes. Management companies with 3+ properties qualify for volume discounts. Contact our sales team for a custom quote.',
+              },
+              {
+                q: 'How long does setup take?',
+                a: 'Our onboarding wizard gets you operational in under 30 minutes. Import your units via CSV, invite your staff, and go live — no waiting for support calls.',
+              },
+            ].map((faq) => (
+              <div key={faq.q} className="rounded-xl border border-neutral-200 bg-white p-5">
+                <h3 className="text-[15px] font-semibold text-neutral-900">{faq.q}</h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Bottom CTA */}
       <section className="mx-auto max-w-2xl px-6 py-20 text-center md:py-28">
         <h2 className="text-[24px] font-bold tracking-tight text-neutral-900">

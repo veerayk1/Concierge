@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CreateForumThreadDialog } from '@/components/forms/create-forum-thread-dialog';
 
 // ---------------------------------------------------------------------------
@@ -85,101 +86,13 @@ const STATUS_LABELS: Record<ThreadStatus, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// API response shape
 // ---------------------------------------------------------------------------
 
-const MOCK_THREADS: ForumThread[] = [
-  {
-    id: '1',
-    title: 'Welcome to the Community Forum!',
-    category: 'general',
-    author: 'Property Manager',
-    authorUnit: 'Management',
-    createdAt: '2026-03-01T09:00:00',
-    lastReplyAt: '2026-03-19T08:30:00',
-    replyCount: 24,
-    viewCount: 312,
-    likeCount: 18,
-    isPinned: true,
-    isLocked: false,
-    status: 'open',
-  },
-  {
-    id: '2',
-    title: 'Noise Policy Discussion — Quiet Hours Enforcement',
-    category: 'general',
-    author: 'Karen L.',
-    authorUnit: '905',
-    createdAt: '2026-03-15T14:20:00',
-    lastReplyAt: '2026-03-19T06:45:00',
-    replyCount: 15,
-    viewCount: 187,
-    likeCount: 9,
-    isPinned: false,
-    isLocked: false,
-    status: 'open',
-  },
-  {
-    id: '3',
-    title: 'Suggestion: Extend Pool Hours on Weekends',
-    category: 'suggestions',
-    author: 'David C.',
-    authorUnit: '802',
-    createdAt: '2026-03-16T10:30:00',
-    lastReplyAt: '2026-03-18T22:15:00',
-    replyCount: 8,
-    viewCount: 94,
-    likeCount: 22,
-    isPinned: false,
-    isLocked: false,
-    status: 'open',
-  },
-  {
-    id: '4',
-    title: 'Parking Garage — Water Leak on P2 Level',
-    category: 'maintenance',
-    author: 'Robert K.',
-    authorUnit: '305',
-    createdAt: '2026-03-17T08:00:00',
-    lastReplyAt: '2026-03-18T16:30:00',
-    replyCount: 6,
-    viewCount: 73,
-    likeCount: 3,
-    isPinned: false,
-    isLocked: false,
-    status: 'resolved',
-  },
-  {
-    id: '5',
-    title: 'Holiday Party Planning — Spring Social 2026',
-    category: 'social',
-    author: 'Lisa B.',
-    authorUnit: '1105',
-    createdAt: '2026-03-10T11:00:00',
-    lastReplyAt: '2026-03-19T09:00:00',
-    replyCount: 31,
-    viewCount: 245,
-    likeCount: 42,
-    isPinned: false,
-    isLocked: false,
-    status: 'open',
-  },
-  {
-    id: '6',
-    title: 'Elevator Maintenance Update — March Schedule',
-    category: 'maintenance',
-    author: 'James Chen',
-    authorUnit: 'Management',
-    createdAt: '2026-03-18T07:00:00',
-    lastReplyAt: '2026-03-18T14:00:00',
-    replyCount: 4,
-    viewCount: 156,
-    likeCount: 7,
-    isPinned: false,
-    isLocked: true,
-    status: 'closed',
-  },
-];
+interface ApiResponse {
+  data: ForumThread[];
+  meta?: { total: number };
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -211,11 +124,26 @@ export default function ForumPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiThreads } = useApi<ForumThread[]>(
-    apiUrl('/api/v1/forum', { propertyId: DEMO_PROPERTY_ID }),
+  const {
+    data: apiThreads,
+    loading,
+    error,
+    refetch,
+  } = useApi<ForumThread[] | ApiResponse>(
+    apiUrl('/api/v1/forum', {
+      propertyId: DEMO_PROPERTY_ID,
+      search: searchQuery || undefined,
+      category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+    }),
   );
 
-  const allThreads = useMemo<ForumThread[]>(() => apiThreads ?? MOCK_THREADS, [apiThreads]);
+  const allThreads = useMemo<ForumThread[]>(() => {
+    if (!apiThreads) return [];
+    if (Array.isArray(apiThreads)) return apiThreads;
+    if (Array.isArray((apiThreads as ApiResponse).data)) return (apiThreads as ApiResponse).data;
+    return [];
+  }, [apiThreads]);
 
   const filteredThreads = useMemo(() => {
     return allThreads.filter((thread) => {
