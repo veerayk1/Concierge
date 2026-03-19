@@ -183,7 +183,7 @@ function makeAmenity(overrides: Record<string, unknown> = {}) {
     waitlistEnabled: false,
     allowRecurring: false,
     ...overrides,
-  };
+  } as any;
 }
 
 function makeBooking(overrides: Record<string, unknown> = {}) {
@@ -204,7 +204,7 @@ function makeBooking(overrides: Record<string, unknown> = {}) {
     approvalStatus: 'pending',
     amenity: { name: 'Swimming Pool', approvalMode: 'manual' },
     ...overrides,
-  };
+  } as any;
 }
 
 // ---------------------------------------------------------------------------
@@ -442,7 +442,7 @@ describe('2. Amenity Groups', () => {
     });
     const res = await GET_GROUPS(req);
     const body = await parseResponse<{ data: { amenityCount: number }[] }>(res);
-    expect(body.data[0].amenityCount).toBe(3);
+    expect(body.data[0]!.amenityCount).toBe(3);
   });
 });
 
@@ -1472,10 +1472,10 @@ describe('16. Recurring Booking', () => {
     }
 
     expect(dates).toHaveLength(4);
-    expect(dates[0].toISOString().slice(0, 10)).toBe('2026-04-15');
-    expect(dates[1].toISOString().slice(0, 10)).toBe('2026-04-22');
-    expect(dates[2].toISOString().slice(0, 10)).toBe('2026-04-29');
-    expect(dates[3].toISOString().slice(0, 10)).toBe('2026-05-06');
+    expect(dates[0]!.toISOString().slice(0, 10)).toBe('2026-04-15');
+    expect(dates[1]!.toISOString().slice(0, 10)).toBe('2026-04-22');
+    expect(dates[2]!.toISOString().slice(0, 10)).toBe('2026-04-29');
+    expect(dates[3]!.toISOString().slice(0, 10)).toBe('2026-05-06');
   });
 
   it('monthly recurring generates correct dates', () => {
@@ -1490,9 +1490,9 @@ describe('16. Recurring Booking', () => {
     }
 
     expect(dates).toHaveLength(3);
-    expect(dates[0].toISOString().slice(0, 10)).toBe('2026-04-15');
-    expect(dates[1].toISOString().slice(0, 10)).toBe('2026-05-15');
-    expect(dates[2].toISOString().slice(0, 10)).toBe('2026-06-15');
+    expect(dates[0]!.toISOString().slice(0, 10)).toBe('2026-04-15');
+    expect(dates[1]!.toISOString().slice(0, 10)).toBe('2026-05-15');
+    expect(dates[2]!.toISOString().slice(0, 10)).toBe('2026-06-15');
   });
 
   it('maxRecurringWeeks caps the number of recurring instances', () => {
@@ -1965,7 +1965,7 @@ describe('22. Holiday Closures', () => {
   });
 
   it('holiday closures can be specific to an amenity (logic test)', () => {
-    const amenityClosures = {
+    const amenityClosures: Record<string, string[]> = {
       [AMENITY_ID]: ['2026-12-25', '2026-12-26'], // Pool closed for holidays
     };
     const otherAmenityId = 'other-amenity';
