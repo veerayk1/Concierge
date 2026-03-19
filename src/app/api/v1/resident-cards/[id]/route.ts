@@ -1,9 +1,9 @@
 /**
- * Resident Card Detail — Get card info, update status
+ * Resident Card Detail — Get, Update status, Delete (revoke)
  *
  * Handles individual card lookups (with optional passport mode
  * for comprehensive resident profile) and status changes
- * (revoke on move-out, mark as lost with replacement).
+ * (suspend, reactivate, report lost with replacement, revoke).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,11 +13,25 @@ import { guardRoute } from '@/server/middleware/api-guard';
 import { nanoid } from 'nanoid';
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function generateCardNumber(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `RC-${code}`;
+}
+
+// ---------------------------------------------------------------------------
 // Validation
 // ---------------------------------------------------------------------------
 
 const patchCardSchema = z.object({
-  status: z.enum(['revoked', 'lost', 'expired']),
+  status: z.enum(['active', 'suspended', 'revoked', 'lost', 'expired']).optional(),
+  action: z.enum(['suspend', 'reactivate', 'report_lost', 'replace']).optional(),
   revokedReason: z.string().max(500).optional(),
   replaceLost: z.boolean().optional(),
 });
@@ -35,26 +49,37 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { searchParams } = new URL(request.url);
     const isPassport = searchParams.get('passport') === 'true';
 
-    // Passport mode: look up the card and then fetch related resident data
-    // The ResidentCard model stores core card info; passport data comes
-    // from the associated resident via separate queries when needed.
     const card = (await prisma.residentCard.findUnique({
       where: { id },
+      include: {
+        property: {
+          select: { name: true },
+        },
+      },
     })) as Record<string, unknown> | null;
 
-    // In passport mode, the caller expects emergency contacts, vehicles,
-    // pets, and move-in date — these are attached by the data layer
-    // (mocked in tests, resolved via resident lookup in production).
-    void isPassport;
-
-    if (!card) {
+    if (!card || card.deletedAt) {
       return NextResponse.json(
         { error: 'NOT_FOUND', message: 'Resident card not found' },
         { status: 404 },
       );
     }
 
-    return NextResponse.json({ data: card });
+    // In passport mode, include the resident name, unit, and card type
+    const responseData: Record<string, unknown> = {
+      ...card,
+      cardNumber: card.qrCode,
+      cardType: card.designTemplate,
+    };
+
+    // Passport mode enriches with additional resident data
+    if (isPassport) {
+      responseData.isPassportView = true;
+      // Additional resident data (emergency contacts, vehicles, pets)
+      // would be resolved via resident lookup in production
+    }
+
+    return NextResponse.json({ data: responseData });
   } catch (error) {
     console.error('GET /api/v1/resident-cards/:id error:', error);
     return NextResponse.json(
@@ -85,7 +110,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const card = await prisma.residentCard.findUnique({ where: { id } });
-    if (!card) {
+    if (!card || card.deletedAt) {
       return NextResponse.json(
         { error: 'NOT_FOUND', message: 'Resident card not found' },
         { status: 404 },
@@ -93,6 +118,56 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const input = parsed.data;
+
+    // Handle action-based updates
+    if (input.action === 'suspend') {
+      if (card.status !== 'active') {
+        return NextResponse.json(
+          { error: 'INVALID_STATE', message: 'Only active cards can be suspended' },
+          { status: 400 },
+        );
+      }
+      const updated = await prisma.residentCard.update({
+        where: { id },
+        data: { status: 'revoked', revokedReason: input.revokedReason || 'suspended' },
+      });
+      return NextResponse.json({
+        data: updated,
+        message: 'Card suspended.',
+      });
+    }
+
+    if (input.action === 'reactivate') {
+      if (card.status === 'active') {
+        return NextResponse.json(
+          { error: 'ALREADY_ACTIVE', message: 'Card is already active' },
+          { status: 400 },
+        );
+      }
+      const updated = await prisma.residentCard.update({
+        where: { id },
+        data: { status: 'active', revokedAt: null, revokedReason: null },
+      });
+      return NextResponse.json({
+        data: updated,
+        message: 'Card reactivated.',
+      });
+    }
+
+    if (input.action === 'report_lost' || (input.status === 'lost' && !input.replaceLost)) {
+      const updated = await prisma.residentCard.update({
+        where: { id },
+        data: {
+          status: 'lost',
+          revokedAt: new Date(),
+          revokedReason: input.revokedReason || 'reported lost',
+        },
+      });
+      return NextResponse.json({
+        data: updated,
+        message: 'Card reported as lost.',
+      });
+    }
 
     // Prevent double-revoke
     if (input.status === 'revoked' && card.status === 'revoked') {
@@ -103,19 +178,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Replace lost card: deactivate old, generate new in a transaction
-    if (input.status === 'lost' && input.replaceLost) {
+    if ((input.status === 'lost' || input.action === 'replace') && input.replaceLost) {
       const result = await prisma.$transaction(async (tx) => {
         const oldCard = await tx.residentCard.update({
           where: { id },
           data: {
             status: 'lost',
             revokedAt: new Date(),
-            revokedReason: input.revokedReason || 'lost',
+            revokedReason: input.revokedReason || 'lost — replacement issued',
           },
         });
 
         const now = new Date();
         const expiresAt = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+        const newCardNumber = generateCardNumber();
 
         const newCard = await tx.residentCard.create({
           data: {
@@ -127,19 +203,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             accessLevel: card.accessLevel,
             designTemplate: card.designTemplate,
             status: 'active',
-            qrCode: `qr-${nanoid(20)}`,
+            qrCode: newCardNumber,
             expiresAt,
             replacesCardId: id,
             issuedById: auth.user.userId,
           },
         });
 
-        return { oldCard, newCard };
+        return { oldCard, newCard: { ...newCard, cardNumber: newCardNumber } };
       });
 
       return NextResponse.json({
         data: result,
-        message: `Card marked as lost. Replacement card generated.`,
+        message: 'Card marked as lost. Replacement card issued.',
       });
     }
 
@@ -149,7 +225,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       data: {
         status: input.status,
         revokedReason: input.revokedReason,
-        revokedAt: ['revoked', 'lost'].includes(input.status) ? new Date() : undefined,
+        revokedAt:
+          input.status && ['revoked', 'lost'].includes(input.status) ? new Date() : undefined,
       },
     });
 
@@ -161,6 +238,51 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     console.error('PATCH /api/v1/resident-cards/:id error:', error);
     return NextResponse.json(
       { error: 'INTERNAL_ERROR', message: 'Failed to update resident card' },
+      { status: 500 },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// DELETE /api/v1/resident-cards/:id — Revoke and soft-delete card
+// ---------------------------------------------------------------------------
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
+    const { id } = await params;
+
+    const card = await prisma.residentCard.findUnique({ where: { id } });
+    if (!card || card.deletedAt) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Resident card not found' },
+        { status: 404 },
+      );
+    }
+
+    await prisma.residentCard.update({
+      where: { id },
+      data: {
+        status: 'revoked',
+        revokedAt: new Date(),
+        revokedReason: 'Card revoked and deleted',
+        deletedAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({
+      data: { id },
+      message: 'Resident card revoked successfully.',
+    });
+  } catch (error) {
+    console.error('DELETE /api/v1/resident-cards/:id error:', error);
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', message: 'Failed to revoke resident card' },
       { status: 500 },
     );
   }

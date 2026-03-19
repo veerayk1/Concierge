@@ -1,9 +1,12 @@
 /**
- * Resident ID Cards API — List and Generate
+ * Resident ID Cards API — List and Issue
  *
  * Physical and digital identity cards for building residents.
  * Cards contain QR codes for instant security verification.
  * Supports bulk generation for new building onboarding.
+ *
+ * Card types: resident, owner, tenant, family_member, staff
+ * Auto-generates card number (RC-XXXXXX) on creation.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -14,28 +17,37 @@ import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { nanoid } from 'nanoid';
 
 // ---------------------------------------------------------------------------
-// Validation Schemas
+// Constants
 // ---------------------------------------------------------------------------
 
 const VALID_STATUSES = ['active', 'expired', 'revoked', 'lost'] as const;
+const VALID_CARD_TYPES = ['resident', 'owner', 'tenant', 'family_member', 'staff'] as const;
 const VALID_ACCESS_LEVELS = ['full', 'limited', 'temporary', 'restricted'] as const;
+
+// ---------------------------------------------------------------------------
+// Validation Schemas
+// ---------------------------------------------------------------------------
 
 const singleCardSchema = z.object({
   propertyId: z.string().uuid(),
-  residentId: z.string().min(1),
-  unitId: z.string().min(1),
+  residentId: z.string().min(1).optional(),
+  unitId: z.string().min(1).optional(),
   residentName: z.string().min(1, 'Resident name is required').max(200),
+  unit: z.string().min(1, 'Unit is required').max(50).optional(),
+  type: z.enum(VALID_CARD_TYPES).default('resident'),
   photoUrl: z.string().url().optional().or(z.literal('')),
-  accessLevel: z.enum(VALID_ACCESS_LEVELS),
+  accessLevel: z.enum(VALID_ACCESS_LEVELS).default('full'),
   designTemplate: z.string().max(100).optional(),
   bulk: z.literal(false).optional().or(z.undefined()),
 });
 
 const bulkResidentSchema = z.object({
-  residentId: z.string().min(1),
-  unitId: z.string().min(1),
+  residentId: z.string().min(1).optional(),
+  unitId: z.string().min(1).optional(),
   residentName: z.string().min(1).max(200),
-  accessLevel: z.enum(VALID_ACCESS_LEVELS),
+  unit: z.string().min(1).max(50).optional(),
+  type: z.enum(VALID_CARD_TYPES).default('resident'),
+  accessLevel: z.enum(VALID_ACCESS_LEVELS).default('full'),
   photoUrl: z.string().url().optional().or(z.literal('')),
 });
 
@@ -50,6 +62,20 @@ const bulkCardSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Generate a card number in the format RC-XXXXXX */
+function generateCardNumber(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `RC-${code}`;
+}
+
+// ---------------------------------------------------------------------------
 // GET /api/v1/resident-cards — List cards
 // ---------------------------------------------------------------------------
 
@@ -60,6 +86,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
+    const type = searchParams.get('type') || undefined;
     const status = searchParams.get('status') || undefined;
     const search = searchParams.get('search') || '';
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -79,14 +106,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const where: Record<string, unknown> = { propertyId };
+    if (type && !VALID_CARD_TYPES.includes(type as (typeof VALID_CARD_TYPES)[number])) {
+      return NextResponse.json(
+        { error: 'INVALID_TYPE', message: `Type must be one of: ${VALID_CARD_TYPES.join(', ')}` },
+        { status: 400 },
+      );
+    }
+
+    const where: Record<string, unknown> = { propertyId, deletedAt: null };
 
     if (status) {
       where.status = status;
     }
 
+    // Filter by card type stored in designTemplate field
+    if (type) {
+      where.designTemplate = type;
+    }
+
     if (search) {
-      where.OR = [{ residentName: { contains: search, mode: 'insensitive' } }];
+      where.OR = [
+        { residentName: { contains: search, mode: 'insensitive' } },
+        { qrCode: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
     const [cards, total] = await Promise.all([
@@ -95,6 +137,11 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
+        include: {
+          property: {
+            select: { name: true },
+          },
+        },
       }),
       prisma.residentCard.count({ where }),
     ]);
@@ -113,7 +160,7 @@ export async function GET(request: NextRequest) {
 }
 
 // ---------------------------------------------------------------------------
-// POST /api/v1/resident-cards — Generate card(s)
+// POST /api/v1/resident-cards — Issue new card(s)
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
@@ -140,14 +187,14 @@ export async function POST(request: NextRequest) {
 
       const cardsData = input.residents.map((r) => ({
         propertyId: input.propertyId,
-        residentId: r.residentId,
-        unitId: r.unitId,
+        residentId: r.residentId || nanoid(12),
+        unitId: r.unitId || r.unit || nanoid(12),
         residentName: stripControlChars(stripHtml(r.residentName)),
         photoUrl: r.photoUrl || null,
         accessLevel: r.accessLevel,
         status: 'active' as const,
-        qrCode: `qr-${nanoid(20)}`,
-        designTemplate: template,
+        qrCode: generateCardNumber(),
+        designTemplate: r.type || template,
         expiresAt,
         issuedById: auth.user.userId,
       }));
@@ -159,13 +206,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           data: { count: result.count, cards: result.cards },
-          message: `${result.count} resident cards generated.`,
+          message: `${result.count} resident cards issued.`,
         },
         { status: 201 },
       );
     }
 
-    // Single card generation
+    // Single card issuance
     const parsed = singleCardSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -177,18 +224,19 @@ export async function POST(request: NextRequest) {
     const input = parsed.data;
     const now = new Date();
     const expiresAt = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+    const cardNumber = generateCardNumber();
 
     const card = await prisma.residentCard.create({
       data: {
         propertyId: input.propertyId,
-        residentId: input.residentId,
-        unitId: input.unitId,
+        residentId: input.residentId || nanoid(12),
+        unitId: input.unitId || input.unit || nanoid(12),
         residentName: stripControlChars(stripHtml(input.residentName)),
         photoUrl: input.photoUrl || null,
         accessLevel: input.accessLevel,
         status: 'active',
-        qrCode: `qr-${nanoid(20)}`,
-        designTemplate: input.designTemplate || 'standard',
+        qrCode: cardNumber,
+        designTemplate: input.type || input.designTemplate || 'standard',
         expiresAt,
         issuedById: auth.user.userId,
       },
@@ -196,15 +244,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        data: card,
-        message: `Resident card generated for ${input.residentName}.`,
+        data: { ...card, cardNumber },
+        message: `Resident card ${cardNumber} issued for ${input.residentName}.`,
       },
       { status: 201 },
     );
   } catch (error) {
     console.error('POST /api/v1/resident-cards error:', error);
     return NextResponse.json(
-      { error: 'INTERNAL_ERROR', message: 'Failed to generate resident card' },
+      { error: 'INTERNAL_ERROR', message: 'Failed to issue resident card' },
       { status: 500 },
     );
   }

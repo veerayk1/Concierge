@@ -1,6 +1,6 @@
 /**
  * Digital Signage API — List, Create, Update display content
- * Manages content for lobby screens, elevator displays, and mailroom monitors.
+ * Manages content for lobby screens, elevator displays, and other monitors.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,39 +10,61 @@ import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const CONTENT_TYPES = [
+  'announcement',
+  'weather',
+  'event',
+  'emergency',
+  'welcome',
+  'directory',
+  'text',
+  'image',
+] as const;
+
+const SCREEN_ZONES = ['lobby', 'elevator', 'parking', 'pool', 'gym', 'mailroom'] as const;
+
+// ---------------------------------------------------------------------------
 // Validation Schemas
 // ---------------------------------------------------------------------------
 
 const createContentSchema = z
   .object({
     propertyId: z.string().uuid(),
-    title: z.string().min(1, 'Title is required').max(150),
-    contentType: z.enum(['text', 'image', 'announcement', 'event', 'weather']),
+    // Accept both naming conventions: new (name/type/screen/rotation/content) and legacy (title/contentType/zone/durationSeconds/body)
+    name: z.string().min(1).max(150).optional(),
+    title: z.string().min(1).max(150).optional(),
+    content: z.string().max(5000).optional(),
     body: z.string().max(5000).optional(),
-    imageUrl: z.string().max(500).optional(),
-    zone: z.enum(['lobby', 'elevator', 'mailroom']),
+    type: z.enum(CONTENT_TYPES).optional(),
+    contentType: z.enum(CONTENT_TYPES).optional(),
+    screen: z.enum(SCREEN_ZONES).optional(),
+    zone: z.enum(SCREEN_ZONES).optional(),
     priority: z.number().int().min(0).default(0),
-    durationSeconds: z.number().int().min(5).max(300).default(10),
     startDate: z.string().min(1, 'Start date is required'),
     endDate: z.string().min(1, 'End date is required'),
+    rotation: z.number().int().min(5).max(300).optional(),
+    durationSeconds: z.number().int().min(5).max(300).optional(),
+    imageUrl: z.string().max(500).optional(),
+  })
+  .refine((data) => data.name || data.title, {
+    message: 'name (or title) is required',
+    path: ['name'],
+  })
+  .refine((data) => data.type || data.contentType, {
+    message: 'type (or contentType) is required',
+    path: ['type'],
+  })
+  .refine((data) => data.screen || data.zone, {
+    message: 'screen (or zone) is required',
+    path: ['screen'],
   })
   .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
     message: 'endDate must be after startDate',
     path: ['endDate'],
   });
-
-const updateContentSchema = z.object({
-  contentId: z.string().min(1, 'Content ID is required'),
-  title: z.string().min(1).max(150).optional(),
-  body: z.string().max(5000).optional(),
-  imageUrl: z.string().max(500).optional(),
-  zone: z.enum(['lobby', 'elevator', 'mailroom']).optional(),
-  priority: z.number().int().min(0).optional(),
-  durationSeconds: z.number().int().min(5).max(300).optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  isActive: z.boolean().optional(),
-});
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/digital-signage — List content with pagination
@@ -55,8 +77,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
-    const zone = searchParams.get('zone');
-    const active = searchParams.get('active');
+    const type = searchParams.get('type') || searchParams.get('contentType');
+    const screen = searchParams.get('screen') || searchParams.get('zone');
+    const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
 
@@ -67,15 +90,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const where: Record<string, unknown> = { propertyId, deletedAt: null };
-    if (zone) where.zone = zone;
+    const active = searchParams.get('active');
 
-    // When active=true, filter to currently scheduled content
+    const where: Record<string, unknown> = { propertyId, deletedAt: null };
+    if (type) where.contentType = type;
+    if (screen) where.zone = screen;
+
+    // Support both 'active' param (legacy) and 'status' param (new)
     if (active === 'true') {
       const now = new Date();
       where.isActive = true;
       where.startDate = { lte: now };
       where.endDate = { gte: now };
+    } else if (status === 'paused') {
+      where.isActive = false;
+    } else if (status === 'all') {
+      // No active filter — show everything including paused
+    } else if (status && status !== 'all') {
+      // Default status-based filtering
+      if (status === 'active') {
+        const now = new Date();
+        where.isActive = true;
+        where.startDate = { lte: now };
+        where.endDate = { gte: now };
+      }
     }
 
     const [content, total] = await Promise.all([
@@ -122,16 +160,23 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Resolve field names (new aliases take precedence over legacy)
+    const resolvedTitle = input.name || input.title || '';
+    const resolvedType = input.type || input.contentType || '';
+    const resolvedZone = input.screen || input.zone || '';
+    const resolvedBody = input.content || input.body;
+    const resolvedDuration = input.rotation || input.durationSeconds || 10;
+
     const content = await prisma.digitalSignageContent.create({
       data: {
         propertyId: input.propertyId,
-        title: stripControlChars(stripHtml(input.title)),
-        contentType: input.contentType,
-        body: input.body ? stripControlChars(stripHtml(input.body)) : null,
+        title: stripControlChars(stripHtml(resolvedTitle)),
+        contentType: resolvedType,
+        body: resolvedBody ? stripControlChars(stripHtml(resolvedBody)) : null,
         imageUrl: input.imageUrl || null,
-        zone: input.zone,
+        zone: resolvedZone,
         priority: input.priority,
-        durationSeconds: input.durationSeconds,
+        durationSeconds: resolvedDuration,
         startDate: new Date(input.startDate),
         endDate: new Date(input.endDate),
         isActive: true,
@@ -153,7 +198,24 @@ export async function POST(request: NextRequest) {
 }
 
 // ---------------------------------------------------------------------------
-// PATCH /api/v1/digital-signage — Update display content
+// Validation: Collection-level update (by contentId in body)
+// ---------------------------------------------------------------------------
+
+const updateContentSchema = z.object({
+  contentId: z.string().min(1, 'Content ID is required'),
+  title: z.string().min(1).max(150).optional(),
+  body: z.string().max(5000).optional(),
+  imageUrl: z.string().max(500).optional(),
+  zone: z.enum(SCREEN_ZONES).optional(),
+  priority: z.number().int().min(0).optional(),
+  durationSeconds: z.number().int().min(5).max(300).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /api/v1/digital-signage — Update display content (by contentId)
 // ---------------------------------------------------------------------------
 
 export async function PATCH(request: NextRequest) {

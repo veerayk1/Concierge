@@ -10,6 +10,21 @@ import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const ALBUM_CATEGORIES = [
+  'events',
+  'building',
+  'amenities',
+  'renovations',
+  'community',
+  'seasonal',
+] as const;
+
+const ALBUM_VISIBILITY = ['public', 'residents_only', 'staff_only'] as const;
+
+// ---------------------------------------------------------------------------
 // Validation Schemas
 // ---------------------------------------------------------------------------
 
@@ -17,7 +32,8 @@ const createAlbumSchema = z.object({
   propertyId: z.string().uuid(),
   title: z.string().min(1, 'Title is required').max(100),
   description: z.string().max(300).optional(),
-  visibility: z.enum(['public', 'private']).default('public'),
+  category: z.enum(ALBUM_CATEGORIES).default('community'),
+  visibility: z.enum(ALBUM_VISIBILITY).default('public'),
   eventDate: z.string().optional(),
 });
 
@@ -59,6 +75,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
+    const category = searchParams.get('category');
     const visibility = searchParams.get('visibility');
     const search = searchParams.get('search') || '';
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -72,6 +89,7 @@ export async function GET(request: NextRequest) {
     }
 
     const where: Record<string, unknown> = { propertyId, deletedAt: null };
+    if (category) where.category = category;
     if (visibility) where.visibility = visibility;
     if (search) {
       where.OR = [
@@ -96,8 +114,14 @@ export async function GET(request: NextRequest) {
       prisma.photoAlbum.count({ where }),
     ]);
 
+    // Include photo count per album in the response
+    const albumsWithCount = albums.map((album) => ({
+      ...album,
+      photoCount: album.photos.length,
+    }));
+
     return NextResponse.json({
-      data: albums,
+      data: albumsWithCount,
       meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
     });
   } catch (error) {
@@ -235,10 +259,12 @@ async function handleCreateAlbum(body: unknown, user: { userId: string }): Promi
       propertyId: input.propertyId,
       title: stripControlChars(stripHtml(input.title)),
       description: input.description ? stripControlChars(stripHtml(input.description)) : null,
+      category: input.category,
       visibility: input.visibility,
       eventDate: input.eventDate ? new Date(input.eventDate) : null,
       createdById: user.userId,
       photoCount: 0,
+      viewCount: 0,
     },
   });
 

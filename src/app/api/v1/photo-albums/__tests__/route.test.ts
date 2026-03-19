@@ -300,18 +300,18 @@ describe('POST /api/v1/photo-albums — Visibility validation', () => {
     expect(createData.visibility).toBe('public');
   });
 
-  it('allows setting visibility to private', async () => {
+  it('allows setting visibility to staff_only', async () => {
     mockAlbumCreate.mockResolvedValue({ id: 'album-1' });
 
     const req = createPostRequest('/api/v1/photo-albums', {
       propertyId: PROPERTY_A,
       title: 'Board Meeting Photos',
-      visibility: 'private',
+      visibility: 'staff_only',
     });
     await POST(req);
 
     const createData = mockAlbumCreate.mock.calls[0]![0].data;
-    expect(createData.visibility).toBe('private');
+    expect(createData.visibility).toBe('staff_only');
   });
 
   it('rejects invalid visibility values', async () => {

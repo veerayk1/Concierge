@@ -2716,10 +2716,12 @@ model PhotoAlbum {
   createdById  String  @db.Uuid
   title        String  @db.VarChar(100)
   description  String? @db.VarChar(300)
-  visibility   String  @default("public") @db.VarChar(10) // public, private
+  category     String  @default("community") @db.VarChar(20) // events, building, amenities, renovations, community, seasonal
+  visibility   String  @default("public") @db.VarChar(20) // public, residents_only, staff_only
   coverPhotoId String? @db.Uuid
   eventDate    DateTime?
   photoCount   Int     @default(0)
+  viewCount    Int     @default(0)
   deletedAt    DateTime?
 
   createdAt DateTime @default(now())
@@ -2729,6 +2731,7 @@ model PhotoAlbum {
   photos   AlbumPhoto[]
 
   @@index([propertyId])
+  @@index([category])
   @@map("photo_albums")
 }
 

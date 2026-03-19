@@ -80,8 +80,7 @@ const UNIT_ID = '00000000-0000-4000-c000-000000000001';
 describe('POST /api/v1/assets — Create asset', () => {
   const validAsset = {
     propertyId: PROPERTY_ID,
-    tagNumber: 'AST-001',
-    description: 'Lobby reception desk',
+    name: 'Lobby reception desk',
     category: 'furniture' as const,
     status: 'in_use' as const,
     location: 'Main Lobby',
@@ -91,6 +90,7 @@ describe('POST /api/v1/assets — Create asset', () => {
     mockAssetCreate.mockResolvedValue({
       id: ASSET_ID,
       ...validAsset,
+      tagNumber: 'AST-ABC123',
       createdAt: new Date(),
     });
 
@@ -99,8 +99,8 @@ describe('POST /api/v1/assets — Create asset', () => {
     expect(res.status).toBe(201);
 
     const createData = mockAssetCreate.mock.calls[0]![0].data;
-    expect(createData.tagNumber).toBe('AST-001');
-    expect(createData.description).toBe('Lobby reception desk');
+    expect(createData.tagNumber).toMatch(/^AST-[A-Z0-9]{6}$/);
+    expect(createData.description).toContain('Lobby reception desk');
     expect(createData.location).toBe('Main Lobby');
     expect(createData.propertyId).toBe(PROPERTY_ID);
   });
@@ -114,21 +114,9 @@ describe('POST /api/v1/assets — Create asset', () => {
     expect(body.error).toBe('VALIDATION_ERROR');
   });
 
-  it('rejects missing tag number', async () => {
+  it('rejects missing name', async () => {
     const req = createPostRequest('/api/v1/assets', {
       propertyId: PROPERTY_ID,
-      description: 'Desk',
-      category: 'furniture',
-      location: 'Lobby',
-    });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
-  });
-
-  it('rejects missing description', async () => {
-    const req = createPostRequest('/api/v1/assets', {
-      propertyId: PROPERTY_ID,
-      tagNumber: 'AST-X',
       category: 'furniture',
       location: 'Lobby',
     });
@@ -139,8 +127,7 @@ describe('POST /api/v1/assets — Create asset', () => {
   it('rejects missing location', async () => {
     const req = createPostRequest('/api/v1/assets', {
       propertyId: PROPERTY_ID,
-      tagNumber: 'AST-X',
-      description: 'Desk',
+      name: 'Desk',
       category: 'furniture',
     });
     const res = await POST(req);
@@ -150,8 +137,7 @@ describe('POST /api/v1/assets — Create asset', () => {
   it('rejects missing category', async () => {
     const req = createPostRequest('/api/v1/assets', {
       propertyId: PROPERTY_ID,
-      tagNumber: 'AST-X',
-      description: 'Desk',
+      name: 'Desk',
       location: 'Lobby',
     });
     const res = await POST(req);
@@ -162,6 +148,7 @@ describe('POST /api/v1/assets — Create asset', () => {
     mockAssetCreate.mockResolvedValue({
       id: ASSET_ID,
       ...validAsset,
+      tagNumber: 'AST-ABC123',
     });
 
     const req = createPostRequest('/api/v1/assets', validAsset);
@@ -169,15 +156,16 @@ describe('POST /api/v1/assets — Create asset', () => {
 
     const body = await parseResponse<{ data: { id: string }; message: string }>(res);
     expect(body.data.id).toBe(ASSET_ID);
-    expect(body.message).toContain('AST-001');
+    expect(body.message).toMatch(/Asset AST-[A-Z0-9]{6} created/);
   });
 
   it('creates asset with all optional fields', async () => {
     const fullAsset = {
       ...validAsset,
+      description: 'Premium lobby furniture',
       assignmentType: 'common_area',
       purchaseDate: '2024-01-15T00:00:00Z',
-      purchaseValue: 5000,
+      purchasePrice: 5000,
       usefulLifeYears: 10,
       manufacturer: 'Herman Miller',
       modelNumber: 'AE-2024',
@@ -188,6 +176,7 @@ describe('POST /api/v1/assets — Create asset', () => {
     mockAssetCreate.mockResolvedValue({
       id: ASSET_ID,
       ...fullAsset,
+      tagNumber: 'AST-ABC123',
     });
 
     const req = createPostRequest('/api/v1/assets', fullAsset);
@@ -205,6 +194,7 @@ describe('POST /api/v1/assets — Create asset', () => {
     mockAssetCreate.mockResolvedValue({
       id: ASSET_ID,
       ...validAsset,
+      tagNumber: 'AST-ABC123',
     });
 
     const req = createPostRequest('/api/v1/assets', validAsset);
@@ -236,14 +226,13 @@ describe('Asset categories', () => {
   it.each(validCategories)('accepts category: %s', async (category) => {
     mockAssetCreate.mockResolvedValue({
       id: ASSET_ID,
-      tagNumber: `AST-${category}`,
+      tagNumber: `AST-ABC123`,
       category,
     });
 
     const req = createPostRequest('/api/v1/assets', {
       propertyId: PROPERTY_ID,
-      tagNumber: `AST-${category}`,
-      description: `Test ${category} asset`,
+      name: `Test ${category} asset`,
       category,
       location: 'Test Location',
     });
@@ -254,9 +243,8 @@ describe('Asset categories', () => {
   it('rejects invalid category', async () => {
     const req = createPostRequest('/api/v1/assets', {
       propertyId: PROPERTY_ID,
-      tagNumber: 'AST-X',
-      description: 'Invalid',
-      category: 'vehicle',
+      name: 'Invalid',
+      category: 'weapons',
       location: 'Garage',
     });
     const res = await POST(req);
@@ -266,9 +254,8 @@ describe('Asset categories', () => {
   it('rejects another invalid category', async () => {
     const req = createPostRequest('/api/v1/assets', {
       propertyId: PROPERTY_ID,
-      tagNumber: 'AST-X',
-      description: 'Invalid',
-      category: 'tool',
+      name: 'Invalid',
+      category: 'spaceship',
       location: 'Storage',
     });
     const res = await POST(req);
@@ -296,14 +283,13 @@ describe('Asset status', () => {
   it.each(validStatuses)('accepts status: %s', async (status) => {
     mockAssetCreate.mockResolvedValue({
       id: ASSET_ID,
-      tagNumber: 'AST-S',
+      tagNumber: 'AST-ABC123',
       status,
     });
 
     const req = createPostRequest('/api/v1/assets', {
       propertyId: PROPERTY_ID,
-      tagNumber: 'AST-S',
-      description: `Status ${status}`,
+      name: `Status ${status}`,
       category: 'furniture',
       status,
       location: 'Storage',
@@ -315,14 +301,13 @@ describe('Asset status', () => {
   it('defaults status to in_use when not provided', async () => {
     mockAssetCreate.mockResolvedValue({
       id: ASSET_ID,
-      tagNumber: 'AST-D',
+      tagNumber: 'AST-ABC123',
       status: 'in_use',
     });
 
     const req = createPostRequest('/api/v1/assets', {
       propertyId: PROPERTY_ID,
-      tagNumber: 'AST-D',
-      description: 'Default status',
+      name: 'Default status',
       category: 'furniture',
       location: 'Lobby',
     });
@@ -403,12 +388,12 @@ describe('Asset assignment', () => {
       assignmentType: 'common_area',
       assignedToId: null,
       location: 'Main Lobby',
+      tagNumber: 'AST-ABC123',
     });
 
     const req = createPostRequest('/api/v1/assets', {
       propertyId: PROPERTY_ID,
-      tagNumber: 'AST-CA',
-      description: 'Lobby sofa',
+      name: 'Lobby sofa',
       category: 'furniture',
       location: 'Main Lobby',
       assignmentType: 'common_area',
@@ -426,12 +411,12 @@ describe('Asset assignment', () => {
       assignmentType: 'unit',
       assignedToId: UNIT_ID,
       location: 'Unit 302',
+      tagNumber: 'AST-ABC123',
     });
 
     const req = createPostRequest('/api/v1/assets', {
       propertyId: PROPERTY_ID,
-      tagNumber: 'AST-U',
-      description: 'Unit dishwasher',
+      name: 'Unit dishwasher',
       category: 'appliance',
       location: 'Unit 302',
       assignmentType: 'unit',
