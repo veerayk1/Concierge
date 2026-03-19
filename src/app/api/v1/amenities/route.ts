@@ -33,19 +33,26 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const amenities = await prisma.amenity.findMany({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const amenities = await (prisma.amenity.findMany as any)({
       where,
       include: {
         group: { select: { id: true, name: true } },
         bookings: {
           where: {
-            deletedAt: null,
             status: { in: ['approved', 'pending'] },
-            startTime: { gte: new Date() },
+            startDate: { gte: new Date() },
           },
-          select: { id: true, startTime: true, endTime: true, status: true },
+          select: {
+            id: true,
+            startDate: true,
+            startTime: true,
+            endDate: true,
+            endTime: true,
+            status: true,
+          },
           take: 5,
-          orderBy: { startTime: 'asc' },
+          orderBy: { startDate: 'asc' },
         },
       },
       orderBy: { name: 'asc' },

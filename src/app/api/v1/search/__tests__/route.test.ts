@@ -242,7 +242,7 @@ describe('GET /api/v1/search — Cross-Module Search', () => {
     expect(announcementWhere.OR).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ title: { contains: 'maintenance', mode: 'insensitive' } }),
-        expect.objectContaining({ body: { contains: 'maintenance', mode: 'insensitive' } }),
+        expect.objectContaining({ content: { contains: 'maintenance', mode: 'insensitive' } }),
       ]),
     );
   });

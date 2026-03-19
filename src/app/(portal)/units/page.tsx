@@ -176,19 +176,22 @@ export default function UnitsPage() {
 
   const dbUnits = useMemo(() => {
     if (apiUnits && Array.isArray(apiUnits) && apiUnits.length > 0) {
-      return apiUnits.map((u: Record<string, unknown>) => ({
-        id: u.id as string,
-        number: u.number as string,
-        floor: (u.floor as number) || 1,
-        building: (u.building as Record<string, string>)?.name || 'Tower A',
-        type: ((u.unitType as string) || 'residential') as UnitItem['type'],
-        occupantCount: 0,
-        primaryResident: '',
-        status: (u.status as string) === 'occupied' ? ('occupied' as const) : ('vacant' as const),
-        unreleasedPackages: 0,
-        openRequests: 0,
-        hasInstructions: ((u.unitInstructions as unknown[]) || []).length > 0,
-      }));
+      return apiUnits.map((u: UnitItem) => {
+        const raw = u as unknown as Record<string, unknown>;
+        return {
+          id: u.id as string,
+          number: u.number as string,
+          floor: (u.floor as number) || 1,
+          building: (raw.building as Record<string, string>)?.name || 'Tower A',
+          type: ((raw.unitType as string) || 'residential') as UnitItem['type'],
+          occupantCount: 0,
+          primaryResident: '',
+          status: (u.status as string) === 'occupied' ? ('occupied' as const) : ('vacant' as const),
+          unreleasedPackages: 0,
+          openRequests: 0,
+          hasInstructions: ((raw.unitInstructions as unknown[]) || []).length > 0,
+        };
+      });
     }
     return MOCK_UNITS;
   }, [apiUnits]);
@@ -369,7 +372,7 @@ export default function UnitsPage() {
           data={filteredUnits}
           emptyMessage="No units found."
           emptyIcon={<Building2 className="h-6 w-6" />}
-          onRowClick={(row) => router.push(`/units/${row.id}`)}
+          onRowClick={(row) => router.push(`/units/${row.id}` as never)}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -378,7 +381,7 @@ export default function UnitsPage() {
               key={unit.id}
               hoverable
               className="cursor-pointer"
-              onClick={() => router.push(`/units/${unit.id}`)}
+              onClick={() => router.push(`/units/${unit.id}` as never)}
             >
               <div className="flex items-start justify-between">
                 <div>

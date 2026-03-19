@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
         where,
         include: {
           unit: { select: { id: true, number: true } },
-          courier: { select: { id: true, name: true, icon: true, color: true } },
+          courier: { select: { id: true, name: true, iconUrl: true, color: true } },
           storageSpot: { select: { id: true, name: true, code: true } },
           parcelCategory: { select: { id: true, name: true } },
         },

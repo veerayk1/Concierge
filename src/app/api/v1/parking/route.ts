@@ -37,9 +37,6 @@ export async function GET(request: NextRequest) {
 
       const violations = await prisma.parkingViolation.findMany({
         where,
-        include: {
-          area: { select: { id: true, name: true } },
-        },
         orderBy: { createdAt: 'desc' },
       });
 
@@ -51,7 +48,7 @@ export async function GET(request: NextRequest) {
     if (status) where.status = status;
     if (search) {
       where.OR = [
-        { permitNumber: { contains: search, mode: 'insensitive' } },
+        { referenceNumber: { contains: search, mode: 'insensitive' } },
         { licensePlate: { contains: search, mode: 'insensitive' } },
       ];
     }
@@ -60,7 +57,7 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         unit: { select: { id: true, number: true } },
-        area: { select: { id: true, name: true } },
+        permitType: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });

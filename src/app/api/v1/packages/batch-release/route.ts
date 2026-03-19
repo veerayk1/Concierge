@@ -59,7 +59,8 @@ export async function POST(request: NextRequest) {
           data: {
             packageId: pkgId,
             action: 'released',
-            detail: `Batch released to ${input.releasedToName}`,
+            details: `Batch released to ${input.releasedToName}`,
+            actorId: auth.user.userId,
             actorName: 'Staff',
           },
         });

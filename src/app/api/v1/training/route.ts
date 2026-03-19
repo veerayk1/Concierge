@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
-    const userId = searchParams.get('userId');
-    const status = searchParams.get('status'); // not_started, in_progress, completed
+    const _userId = searchParams.get('userId');
+    const _status = searchParams.get('status'); // not_started, in_progress, completed
 
     if (!propertyId) {
       return NextResponse.json(
@@ -27,15 +27,20 @@ export async function GET(request: NextRequest) {
     const courses = await prisma.course.findMany({
       where: {
         propertyId,
-        deletedAt: null,
-        isPublished: true,
+        status: 'published',
       },
       include: {
-        learningPath: {
-          select: { id: true, name: true },
+        modules: {
+          select: { id: true, title: true, sortOrder: true },
+          orderBy: { sortOrder: 'asc' },
+        },
+        learningPathCourses: {
+          select: {
+            learningPath: { select: { id: true, name: true } },
+          },
         },
       },
-      orderBy: [{ isRequired: 'desc' }, { title: 'asc' }],
+      orderBy: [{ mandatory: 'desc' }, { title: 'asc' }],
     });
 
     return NextResponse.json({ data: courses });

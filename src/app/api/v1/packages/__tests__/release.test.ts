@@ -134,7 +134,7 @@ describe('Package Release — PATCH with action=release', () => {
         data: expect.objectContaining({
           packageId: 'pkg-1',
           action: 'released',
-          detail: expect.stringContaining('Janet Smith'),
+          details: expect.stringContaining('Janet Smith'),
         }),
       }),
     );

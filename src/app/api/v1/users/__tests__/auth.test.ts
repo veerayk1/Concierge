@@ -9,13 +9,8 @@
  * The auth middleware exists but was never wired in.
  */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import {
-  createGetRequest,
-  createPostRequest,
-  createDeleteRequest,
-  parseResponse,
-} from '@/test/helpers/api';
+import { describe, expect, it, vi } from 'vitest';
+import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
 
 // We need to test with auth middleware, so don't mock it
 // Instead, mock Prisma so DB calls don't fail
@@ -85,23 +80,21 @@ describe('Users API — Authentication Required', () => {
   it('POST /api/v1/users — should never expose password hash in response', async () => {
     // This is a security invariant that must hold regardless of auth state
     vi.mocked((await import('@/server/db')).prisma.user.findFirst).mockResolvedValue(null);
-    vi.mocked((await import('@/server/db')).prisma.$transaction).mockImplementation(
-      async (fn: (tx: unknown) => unknown) =>
-        fn({
-          user: {
-            create: vi
-              .fn()
-              .mockResolvedValue({
-                id: 'u1',
-                email: 'test@test.com',
-                firstName: 'A',
-                lastName: 'B',
-                createdAt: new Date(),
-              }),
-          },
-          userProperty: { create: vi.fn() },
-        }),
-    );
+    vi.mocked((await import('@/server/db')).prisma.$transaction).mockImplementation((async (
+      fn: (tx: unknown) => unknown,
+    ) =>
+      fn({
+        user: {
+          create: vi.fn().mockResolvedValue({
+            id: 'u1',
+            email: 'test@test.com',
+            firstName: 'A',
+            lastName: 'B',
+            createdAt: new Date(),
+          }),
+        },
+        userProperty: { create: vi.fn() },
+      })) as any);
 
     const req = createPostRequest('/api/v1/users', {
       firstName: 'Test',

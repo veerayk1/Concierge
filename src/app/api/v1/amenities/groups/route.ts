@@ -11,8 +11,8 @@ import { guardRoute } from '@/server/middleware/api-guard';
 const createGroupSchema = z.object({
   propertyId: z.string().uuid(),
   name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-  sortOrder: z.number().int().min(0).default(0),
+  icon: z.string().max(100).optional(),
+  displayOrder: z.number().int().min(0).default(0),
 });
 
 export async function GET(request: NextRequest) {
@@ -30,11 +30,11 @@ export async function GET(request: NextRequest) {
     }
 
     const groups = await prisma.amenityGroup.findMany({
-      where: { propertyId, deletedAt: null },
+      where: { propertyId, isActive: true },
       include: {
         _count: { select: { amenities: { where: { deletedAt: null } } } },
       },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { displayOrder: 'asc' },
     });
 
     return NextResponse.json({

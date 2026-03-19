@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreateEventDialog } from '@/components/forms/create-event-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import {
-  AlertTriangle,
   Eye,
   Key,
   Package,
@@ -23,7 +22,7 @@ import {
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 
 // ---------------------------------------------------------------------------
@@ -156,18 +155,22 @@ export default function SecurityPage() {
   // Use API data if available, otherwise mock
   const allEvents = useMemo(() => {
     if (apiEvents && Array.isArray(apiEvents) && apiEvents.length > 0) {
-      return apiEvents.map((e: Record<string, unknown>) => ({
-        id: e.id as string,
-        type: ((e.eventType as Record<string, string>)?.name?.toLowerCase().replace(/[/ ]/g, '_') ||
-          'note') as SecurityEvent['type'],
-        title: e.title as string,
-        description: (e.description as string) || '',
-        unit: (e.unit as Record<string, string>)?.number,
-        status: e.status as string as SecurityEvent['status'],
-        priority: e.priority as SecurityEvent['priority'],
-        createdBy: 'Staff',
-        createdAt: e.createdAt as string,
-      }));
+      return apiEvents.map((e: SecurityEvent) => {
+        const raw = e as unknown as Record<string, unknown>;
+        return {
+          id: e.id as string,
+          type: ((raw.eventType as Record<string, string>)?.name
+            ?.toLowerCase()
+            .replace(/[/ ]/g, '_') || 'note') as SecurityEvent['type'],
+          title: e.title as string,
+          description: (e.description as string) || '',
+          unit: (raw.unit as Record<string, string>)?.number,
+          status: e.status as string as SecurityEvent['status'],
+          priority: e.priority as SecurityEvent['priority'],
+          createdBy: 'Staff',
+          createdAt: e.createdAt as string,
+        };
+      });
     }
     return MOCK_EVENTS;
   }, [apiEvents]);
@@ -402,7 +405,7 @@ export default function SecurityPage() {
         emptyIcon={<Shield className="h-6 w-6" />}
         onRowClick={(row) => {
           if (row.type === 'incident') {
-            router.push(`/security/incidents/${row.id}`);
+            router.push(`/security/incidents/${row.id}` as never);
           }
         }}
       />

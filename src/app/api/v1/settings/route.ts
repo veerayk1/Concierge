@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
         icon: true,
         color: true,
         isActive: true,
-        notificationTemplate: true,
+        notifyOnCreate: true,
       },
       orderBy: { name: 'asc' },
     });

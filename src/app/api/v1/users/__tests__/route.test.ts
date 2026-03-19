@@ -149,7 +149,7 @@ describe('GET /api/v1/users — Search', () => {
     const where = mockFindMany.mock.calls[0]![0].where;
     // All search fields must use insensitive mode
     for (const condition of where.OR) {
-      const field = Object.keys(condition)[0];
+      const field = Object.keys(condition)[0]!;
       expect(condition[field].mode).toBe('insensitive');
     }
   });

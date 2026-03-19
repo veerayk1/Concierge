@@ -40,7 +40,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
 }));
 
 import { GET } from '../route';
-import { GET as GET_DETAIL, PATCH } from '../[id]/route';
+import { PATCH } from '../[id]/route';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -90,15 +90,15 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
     expect(res.status).toBe(200);
   });
 
-  it('allows pending → rejected', async () => {
+  it('allows pending → declined', async () => {
     mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'pending' });
     mockUpdate.mockResolvedValue({
       id: 'booking-1',
-      status: 'rejected',
+      status: 'declined',
       amenity: { name: 'Pool' },
     });
 
-    const req = createPatchRequest('/api/v1/bookings/booking-1', { status: 'rejected' });
+    const req = createPatchRequest('/api/v1/bookings/booking-1', { status: 'declined' });
     const res = await PATCH(req, { params });
     expect(res.status).toBe(200);
   });
@@ -142,8 +142,8 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
     expect(res.status).toBe(200);
   });
 
-  it("REJECTS rejected → approved (can't un-reject)", async () => {
-    mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'rejected' });
+  it("REJECTS declined → approved (can't un-decline)", async () => {
+    mockFindUnique.mockResolvedValue({ id: 'booking-1', status: 'declined' });
 
     const req = createPatchRequest('/api/v1/bookings/booking-1', { status: 'approved' });
     const res = await PATCH(req, { params });

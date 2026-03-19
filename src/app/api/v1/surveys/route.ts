@@ -12,21 +12,30 @@ import { stripHtml, stripControlChars } from '@/lib/sanitize';
 const createSurveySchema = z.object({
   propertyId: z.string().uuid(),
   title: z.string().min(1).max(200),
-  description: z.string().max(2000).optional(),
+  description: z.string().max(500).optional(),
   questions: z
     .array(
       z.object({
-        text: z.string().min(1).max(500),
-        type: z.enum(['text', 'rating', 'multiple_choice', 'yes_no', 'scale']),
-        required: z.boolean().default(false),
-        options: z.array(z.string()).optional(),
+        questionText: z.string().min(1).max(500),
+        questionType: z.enum([
+          'multiple_choice',
+          'checkbox',
+          'rating',
+          'free_text',
+          'ranking',
+          'yes_no',
+        ]),
+        isRequired: z.boolean().default(false),
+        options: z.any().optional(),
+        config: z.any().optional(),
       }),
     )
     .min(1, 'At least one question is required')
     .max(50),
-  startsAt: z.string().optional(),
-  endsAt: z.string().optional(),
-  isAnonymous: z.boolean().default(false),
+  expiryDate: z.string().optional(),
+  anonymous: z.boolean().default(false),
+  visibleToOwners: z.boolean().default(true),
+  visibleToTenants: z.boolean().default(true),
 });
 
 export async function GET(request: NextRequest) {
@@ -44,7 +53,10 @@ export async function GET(request: NextRequest) {
     }
 
     const surveys = await prisma.survey.findMany({
-      where: { propertyId, deletedAt: null },
+      where: { propertyId },
+      include: {
+        questions: { orderBy: { sortOrder: 'asc' } },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -80,16 +92,25 @@ export async function POST(request: NextRequest) {
         propertyId: input.propertyId,
         title: stripControlChars(stripHtml(input.title)),
         description: input.description ? stripControlChars(stripHtml(input.description)) : null,
-        questions: input.questions.map((q) => ({
-          ...q,
-          text: stripControlChars(stripHtml(q.text)),
-          options: q.options?.map((o) => stripControlChars(stripHtml(o))),
-        })),
-        startsAt: input.startsAt ? new Date(input.startsAt) : null,
-        endsAt: input.endsAt ? new Date(input.endsAt) : null,
-        isAnonymous: input.isAnonymous,
+        expiryDate: input.expiryDate ? new Date(input.expiryDate) : null,
+        anonymous: input.anonymous,
+        visibleToOwners: input.visibleToOwners,
+        visibleToTenants: input.visibleToTenants,
         status: 'draft',
         createdById: auth.user.userId,
+        questions: {
+          create: input.questions.map((q, idx) => ({
+            questionText: stripControlChars(stripHtml(q.questionText)),
+            questionType: q.questionType,
+            isRequired: q.isRequired,
+            options: q.options || null,
+            config: q.config || null,
+            sortOrder: idx,
+          })),
+        },
+      },
+      include: {
+        questions: { orderBy: { sortOrder: 'asc' } },
       },
     });
 

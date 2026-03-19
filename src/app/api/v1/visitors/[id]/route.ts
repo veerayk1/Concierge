@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
     const visitor = await prisma.visitorEntry.findUnique({
-      where: { id, deletedAt: null },
+      where: { id },
       include: { unit: { select: { id: true, number: true } } },
     });
 
@@ -51,7 +51,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       );
     }
 
-    if (visitor.signedOutAt) {
+    if (visitor.departureAt) {
       return NextResponse.json(
         { error: 'ALREADY_SIGNED_OUT', message: 'Visitor already signed out' },
         { status: 400 },
@@ -61,7 +61,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const updated = await prisma.visitorEntry.update({
       where: { id },
       data: {
-        signedOutAt: new Date(),
+        departureAt: new Date(),
         signedOutById: auth.user.userId,
       },
     });

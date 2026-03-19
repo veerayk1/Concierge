@@ -14,12 +14,13 @@ const createEventSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(4000).optional(),
   location: z.string().max(200).optional(),
-  startDate: z.string().min(1),
-  endDate: z.string().optional(),
-  maxAttendees: z.number().int().min(0).optional(),
-  requiresRsvp: z.boolean().default(false),
-  fee: z.number().min(0).optional(),
-  organizer: z.string().max(200).optional(),
+  locationType: z.enum(['on_site', 'off_site', 'virtual', 'hybrid']).default('on_site'),
+  virtualUrl: z.string().url().max(500).optional(),
+  startDatetime: z.string().min(1),
+  endDatetime: z.string().min(1),
+  capacity: z.number().int().min(0).optional(),
+  rsvpEnabled: z.boolean().default(true),
+  categoryId: z.string().uuid().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -38,14 +39,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const where: Record<string, unknown> = { propertyId, deletedAt: null };
+    const where: Record<string, unknown> = { propertyId };
     if (upcoming) {
-      where.startDate = { gte: new Date() };
+      where.startDatetime = { gte: new Date() };
     }
 
     const events = await prisma.communityEvent.findMany({
       where,
-      orderBy: { startDate: 'asc' },
+      include: {
+        rsvps: { select: { id: true, userId: true, status: true } },
+      },
+      orderBy: { startDatetime: 'asc' },
     });
 
     return NextResponse.json({ data: events });
@@ -81,11 +85,15 @@ export async function POST(request: NextRequest) {
         title: stripControlChars(stripHtml(input.title)),
         description: input.description ? stripControlChars(stripHtml(input.description)) : null,
         location: input.location ? stripControlChars(stripHtml(input.location)) : null,
-        startDate: new Date(input.startDate),
-        endDate: input.endDate ? new Date(input.endDate) : null,
-        maxAttendees: input.maxAttendees || null,
-        requiresRsvp: input.requiresRsvp,
-        organizedById: auth.user.userId,
+        locationType: input.locationType,
+        virtualUrl: input.virtualUrl || null,
+        startDatetime: new Date(input.startDatetime),
+        endDatetime: new Date(input.endDatetime),
+        capacity: input.capacity || null,
+        rsvpEnabled: input.rsvpEnabled,
+        categoryId: input.categoryId || null,
+        createdById: auth.user.userId,
+        status: 'draft',
       },
     });
 

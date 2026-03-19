@@ -32,10 +32,10 @@ export async function POST(request: NextRequest) {
     const result = await prisma.visitorEntry.updateMany({
       where: {
         id: { in: visitorIds },
-        signedOutAt: null,
+        departureAt: null,
       },
       data: {
-        signedOutAt: new Date(),
+        departureAt: new Date(),
         signedOutById: auth.user.userId,
       },
     });

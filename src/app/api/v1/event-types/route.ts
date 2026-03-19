@@ -18,8 +18,11 @@ const createEventTypeSchema = z.object({
     .regex(/^[a-z0-9_]+$/),
   icon: z.string().max(50).optional(),
   color: z.string().max(20).optional(),
-  groupId: z.string().uuid().optional(),
-  notificationTemplate: z.string().max(1000).optional(),
+  eventGroupId: z.string().uuid(),
+  defaultPriority: z.string().max(20).optional(),
+  notifyOnCreate: z.boolean().default(true),
+  notifyOnClose: z.boolean().default(false),
+  showOnLobby: z.boolean().default(false),
   isActive: z.boolean().default(true),
 });
 
@@ -40,7 +43,7 @@ export async function GET(request: NextRequest) {
     const eventTypes = await prisma.eventType.findMany({
       where: { propertyId, deletedAt: null },
       include: {
-        group: { select: { id: true, name: true } },
+        eventGroup: { select: { id: true, name: true } },
         _count: { select: { events: { where: { deletedAt: null } } } },
       },
       orderBy: { name: 'asc' },
@@ -95,10 +98,13 @@ export async function POST(request: NextRequest) {
         propertyId: input.propertyId,
         name: input.name,
         slug: input.slug,
-        icon: input.icon || null,
-        color: input.color || null,
-        groupId: input.groupId || null,
-        notificationTemplate: input.notificationTemplate || null,
+        icon: input.icon || 'circle',
+        color: input.color || '#2563EB',
+        eventGroupId: input.eventGroupId,
+        defaultPriority: input.defaultPriority || 'normal',
+        notifyOnCreate: input.notifyOnCreate,
+        notifyOnClose: input.notifyOnClose,
+        showOnLobby: input.showOnLobby,
         isActive: input.isActive,
       },
     });

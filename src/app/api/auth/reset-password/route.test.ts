@@ -9,7 +9,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { createPostRequest, parseResponse } from '@/test/helpers/api';
+import { createPostRequest } from '@/test/helpers/api';
 import { createUser } from '@/test/factories/user';
 
 // ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ describe('POST /api/auth/reset-password', () => {
     const user = createUser({ isActive: true });
     const resetToken = mockValidResetToken(user.id);
 
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(resetToken as any);
+    vi.mocked((prisma as any).passwordResetToken.findUnique).mockResolvedValue(resetToken as any);
     vi.mocked(prisma.user.findUnique).mockResolvedValue(user as any);
 
     const res = await callResetPassword({
@@ -115,7 +115,7 @@ describe('POST /api/auth/reset-password', () => {
     const user = createUser({ isActive: true });
     const resetToken = mockValidResetToken(user.id);
 
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(resetToken as any);
+    vi.mocked((prisma as any).passwordResetToken.findUnique).mockResolvedValue(resetToken as any);
     vi.mocked(prisma.user.findUnique).mockResolvedValue(user as any);
 
     await callResetPassword({
@@ -135,7 +135,7 @@ describe('POST /api/auth/reset-password', () => {
   });
 
   it('returns 401 for invalid/non-existent token', async () => {
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(null);
+    vi.mocked((prisma as any).passwordResetToken.findUnique).mockResolvedValue(null);
 
     const res = await callResetPassword({
       token: 'invalid-token',
@@ -152,7 +152,7 @@ describe('POST /api/auth/reset-password', () => {
       expiresAt: new Date(Date.now() - 1000), // expired
     };
 
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(expiredToken as any);
+    vi.mocked((prisma as any).passwordResetToken.findUnique).mockResolvedValue(expiredToken as any);
 
     const res = await callResetPassword({
       token: 'expired-token',
@@ -169,7 +169,7 @@ describe('POST /api/auth/reset-password', () => {
       usedAt: new Date(), // already used
     };
 
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(usedToken as any);
+    vi.mocked((prisma as any).passwordResetToken.findUnique).mockResolvedValue(usedToken as any);
 
     const res = await callResetPassword({
       token: 'used-token',
@@ -201,7 +201,7 @@ describe('POST /api/auth/reset-password', () => {
     const user = createUser({ isActive: true });
     const resetToken = mockValidResetToken(user.id);
 
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(resetToken as any);
+    vi.mocked((prisma as any).passwordResetToken.findUnique).mockResolvedValue(resetToken as any);
     vi.mocked(prisma.user.findUnique).mockResolvedValue(user as any);
 
     await callResetPassword({
@@ -224,7 +224,7 @@ describe('POST /api/auth/reset-password', () => {
     const user = createUser({ isActive: true });
     const resetToken = mockValidResetToken(user.id);
 
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(resetToken as any);
+    vi.mocked((prisma as any).passwordResetToken.findUnique).mockResolvedValue(resetToken as any);
     vi.mocked(prisma.user.findUnique).mockResolvedValue(user as any);
 
     await callResetPassword({
@@ -246,7 +246,7 @@ describe('POST /api/auth/reset-password', () => {
     const user = createUser({ isActive: true });
     const resetToken = mockValidResetToken(user.id);
 
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(resetToken as any);
+    vi.mocked((prisma as any).passwordResetToken.findUnique).mockResolvedValue(resetToken as any);
     vi.mocked(prisma.user.findUnique).mockResolvedValue(user as any);
 
     // Simulate password history containing the same password
@@ -271,7 +271,7 @@ describe('POST /api/auth/reset-password', () => {
     const user = createUser({ isActive: true });
     const resetToken = mockValidResetToken(user.id);
 
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(resetToken as any);
+    vi.mocked((prisma as any).passwordResetToken.findUnique).mockResolvedValue(resetToken as any);
     vi.mocked(prisma.user.findUnique).mockResolvedValue(user as any);
 
     await callResetPassword({
@@ -279,7 +279,7 @@ describe('POST /api/auth/reset-password', () => {
       password: STRONG_PASSWORD,
     });
 
-    expect(prisma.passwordResetToken.update).toHaveBeenCalledWith(
+    expect((prisma as any).passwordResetToken.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: resetToken.id },
         data: expect.objectContaining({

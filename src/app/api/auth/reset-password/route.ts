@@ -89,7 +89,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // 2. Look up reset token
-    const resetToken = await prisma.passwordResetToken.findUnique({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resetToken = await (prisma as any).passwordResetToken.findUnique({
       where: { token: body.token },
     });
 
@@ -197,7 +198,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     // 10. Mark reset token as used
-    await prisma.passwordResetToken.update({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (prisma as any).passwordResetToken.update({
       where: { id: resetToken.id },
       data: {
         usedAt: new Date(),

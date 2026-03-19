@@ -18,8 +18,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       include: {
         building: { select: { id: true, name: true } },
         unitInstructions: {
-          where: { deletedAt: null },
-          select: { id: true, instruction: true, priority: true, createdAt: true },
+          where: { isActive: true },
+          select: { id: true, instructionText: true, priority: true, createdAt: true },
         },
         events: {
           where: { deletedAt: null },
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           select: { id: true, referenceNumber: true, createdAt: true },
         },
         maintenanceRequests: {
-          where: { deletedAt: null, status: { in: ['open', 'assigned', 'in_progress'] } },
+          where: { deletedAt: null, status: { in: ['open', 'in_progress', 'on_hold'] } },
           select: {
             id: true,
             referenceNumber: true,

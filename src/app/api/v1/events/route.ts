@@ -131,7 +131,8 @@ export async function POST(request: NextRequest) {
         priority: input.priority,
         referenceNo,
         createdById: auth.user.userId, // TODO: Get from auth context
-        customFields: input.customFields || undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        customFields: (input.customFields as any) || undefined,
       },
       include: {
         eventType: {

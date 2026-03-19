@@ -78,7 +78,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // 2. Rate limit check: count recent tokens for this email
     const oneHourAgo = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
-    const recentTokenCount = await prisma.passwordResetToken.count({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recentTokenCount = await (prisma as any).passwordResetToken.count({
       where: {
         createdAt: { gte: oneHourAgo },
         // Join through user to check by email
@@ -106,7 +107,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (user && user.isActive) {
       const resetToken = crypto.randomUUID();
 
-      await prisma.passwordResetToken.create({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (prisma as any).passwordResetToken.create({
         data: {
           token: resetToken,
           userId: user.id,

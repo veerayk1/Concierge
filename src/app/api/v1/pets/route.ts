@@ -10,9 +10,10 @@ import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createPetSchema = z.object({
+  propertyId: z.string().uuid(),
   unitId: z.string().uuid(),
   name: z.string().min(1).max(100),
-  type: z.enum(['dog', 'cat', 'bird', 'fish', 'other']),
+  species: z.enum(['dog', 'cat', 'bird', 'fish', 'reptile', 'other']),
   breed: z.string().max(100).optional(),
   weight: z.string().max(20).optional(),
   color: z.string().max(50).optional(),
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = { deletedAt: null };
     if (unitId) where.unitId = unitId;
-    if (propertyId) where.unit = { propertyId };
+    if (propertyId) where.propertyId = propertyId;
 
     const pets = await prisma.pet.findMany({
       where,
@@ -66,9 +67,16 @@ export async function POST(request: NextRequest) {
     const input = parsed.data;
     const pet = await prisma.pet.create({
       data: {
-        ...input,
+        propertyId: input.propertyId,
+        unitId: input.unitId,
+        userId: auth.user.userId,
         name: stripControlChars(stripHtml(input.name)),
-        notes: input.notes ? stripControlChars(stripHtml(input.notes)) : undefined,
+        species: input.species,
+        breed: input.breed || null,
+        color: input.color || null,
+        weight: input.weight ? parseFloat(input.weight) : null,
+        registrationNumber: input.registrationNumber || null,
+        notes: input.notes ? stripControlChars(stripHtml(input.notes)) : null,
       },
     });
     return NextResponse.json({ data: pet, message: 'Pet registered.' }, { status: 201 });

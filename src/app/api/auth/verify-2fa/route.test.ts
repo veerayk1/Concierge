@@ -173,7 +173,7 @@ describe('POST /api/auth/verify-2fa', () => {
     } as any);
 
     // Recovery code is found and not yet used
-    vi.mocked(prisma.recoveryCode.findFirst).mockResolvedValue({
+    vi.mocked((prisma as any).recoveryCode.findFirst).mockResolvedValue({
       id: 'rc-1',
       userId: user.id,
       code: 'ABCD1234',
@@ -200,7 +200,7 @@ describe('POST /api/auth/verify-2fa', () => {
       ],
     } as any);
 
-    vi.mocked(prisma.recoveryCode.findFirst).mockResolvedValue({
+    vi.mocked((prisma as any).recoveryCode.findFirst).mockResolvedValue({
       id: 'rc-1',
       userId: user.id,
       code: 'ABCD1234',
@@ -212,7 +212,7 @@ describe('POST /api/auth/verify-2fa', () => {
       mfaToken: 'valid-mfa-token',
     });
 
-    expect(prisma.recoveryCode.update).toHaveBeenCalledWith(
+    expect((prisma as any).recoveryCode.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'rc-1' },
         data: expect.objectContaining({
@@ -228,7 +228,7 @@ describe('POST /api/auth/verify-2fa', () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(user as any);
 
     // Recovery code already used
-    vi.mocked(prisma.recoveryCode.findFirst).mockResolvedValue(null);
+    vi.mocked((prisma as any).recoveryCode.findFirst).mockResolvedValue(null);
 
     const res = await callVerify2fa({
       recoveryCode: 'USED1234',

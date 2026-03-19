@@ -40,7 +40,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       data: {
         packageId: id,
         action: 'reminder_sent',
-        detail: `Reminder notification sent for package ${pkg.referenceNumber}`,
+        details: `Reminder notification sent for package ${pkg.referenceNumber}`,
+        actorId: auth.user.userId,
         actorName: 'Staff',
       },
     });

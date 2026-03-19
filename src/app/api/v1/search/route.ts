@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
           deletedAt: null,
           OR: [
             { title: { contains: q, mode: 'insensitive' } },
-            { body: { contains: q, mode: 'insensitive' } },
+            { content: { contains: q, mode: 'insensitive' } },
           ],
         },
         select: { id: true, title: true, status: true },

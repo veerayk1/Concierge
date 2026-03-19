@@ -11,8 +11,10 @@ import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createInstructionSchema = z.object({
-  instruction: z.string().min(1, 'Instruction is required').max(500),
+  instructionText: z.string().min(1, 'Instruction is required').max(1000),
   priority: z.enum(['normal', 'important', 'critical']).default('normal'),
+  propertyId: z.string().uuid(),
+  visibleToRoles: z.array(z.string()).optional(),
 });
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -23,7 +25,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id: unitId } = await params;
 
     const instructions = await prisma.unitInstruction.findMany({
-      where: { unitId, deletedAt: null },
+      where: { unitId, isActive: true },
       orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
     });
 
@@ -58,8 +60,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const instruction = await prisma.unitInstruction.create({
       data: {
         unitId,
-        instruction: stripControlChars(stripHtml(input.instruction)),
+        propertyId: input.propertyId,
+        instructionText: stripControlChars(stripHtml(input.instructionText)),
         priority: input.priority,
+        visibleToRoles: input.visibleToRoles || [],
         createdById: auth.user.userId,
       },
     });

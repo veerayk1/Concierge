@@ -11,10 +11,12 @@ import { guardRoute } from '@/server/middleware/api-guard';
 const createBookingSchema = z.object({
   unitId: z.string().uuid(),
   residentId: z.string().uuid().optional(),
+  startDate: z.string().min(1),
   startTime: z.string().min(1),
+  endDate: z.string().min(1),
   endTime: z.string().min(1),
   guestCount: z.number().min(0).max(50).default(0),
-  notes: z.string().max(500).optional(),
+  requestorComments: z.string().max(500).optional(),
 });
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -24,24 +26,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
 
-    const amenity = await prisma.amenity.findUnique({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const amenity = await (prisma.amenity.findUnique as any)({
       where: { id, deletedAt: null },
       include: {
         group: { select: { id: true, name: true } },
         bookings: {
           where: {
-            deletedAt: null,
-            startTime: { gte: new Date() },
+            startDate: { gte: new Date() },
           },
           select: {
             id: true,
+            startDate: true,
             startTime: true,
+            endDate: true,
             endTime: true,
             status: true,
             guestCount: true,
             unit: { select: { id: true, number: true } },
           },
-          orderBy: { startTime: 'asc' },
+          orderBy: { startDate: 'asc' },
           take: 20,
         },
       },
@@ -91,28 +95,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    // Create booking
+    // Create booking — approvalMode determines if booking needs approval
+    const needsApproval = amenity.approvalMode !== 'auto';
     const booking = await prisma.booking.create({
       data: {
         propertyId: amenity.propertyId,
         amenityId,
         unitId: input.unitId,
-        residentId: input.residentId || null,
+        residentId: input.residentId || auth.user.userId,
+        createdById: auth.user.userId,
+        referenceNumber: `AMN-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}`,
+        startDate: new Date(input.startDate),
         startTime: new Date(input.startTime),
+        endDate: new Date(input.endDate),
         endTime: new Date(input.endTime),
         guestCount: input.guestCount,
-        notes: input.notes || null,
-        status: amenity.requiresApproval ? 'pending' : 'approved',
-        bookedById: auth.user.userId,
+        requestorComments: input.requestorComments || null,
+        status: needsApproval ? 'pending' : 'approved',
+        approvalStatus: needsApproval ? 'pending' : 'approved',
       },
     });
 
     return NextResponse.json(
       {
         data: booking,
-        message: amenity.requiresApproval
-          ? 'Booking submitted for approval.'
-          : 'Booking confirmed.',
+        message: needsApproval ? 'Booking submitted for approval.' : 'Booking confirmed.',
       },
       { status: 201 },
     );

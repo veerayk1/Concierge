@@ -10,14 +10,11 @@ import { guardRoute } from '@/server/middleware/api-guard';
 
 const createDelegateSchema = z.object({
   unitId: z.string().uuid(),
-  name: z.string().min(1, 'Name is required').max(200),
-  relationship: z.string().max(100).optional(),
-  phone: z.string().max(20).optional(),
-  idType: z.string().max(50).optional(),
-  idNumber: z.string().max(50).optional(),
+  delegateName: z.string().min(1, 'Name is required').max(100),
+  delegatePhone: z.string().max(20).optional(),
+  relationship: z.string().max(50).optional(),
   validFrom: z.string().optional(),
   validUntil: z.string().optional(),
-  notes: z.string().max(500).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -35,8 +32,8 @@ export async function GET(request: NextRequest) {
     }
 
     const delegates = await prisma.authorizedDelegate.findMany({
-      where: { unitId, deletedAt: null, isActive: true },
-      orderBy: { name: 'asc' },
+      where: { unitId, isActive: true },
+      orderBy: { delegateName: 'asc' },
     });
 
     return NextResponse.json({ data: delegates });
@@ -69,10 +66,13 @@ export async function POST(request: NextRequest) {
     const delegate = await prisma.authorizedDelegate.create({
       data: {
         unitId: input.unitId,
-        name: input.name,
+        delegateName: input.delegateName,
+        delegatePhone: input.delegatePhone || null,
         relationship: input.relationship || null,
-        phone: input.phone || null,
+        validFrom: input.validFrom ? new Date(input.validFrom) : null,
+        validUntil: input.validUntil ? new Date(input.validUntil) : null,
         isActive: true,
+        createdById: auth.user.userId,
       },
     });
 

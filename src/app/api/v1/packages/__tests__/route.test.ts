@@ -139,7 +139,7 @@ describe('GET /api/v1/packages — Filtering', () => {
     const include = mockFindMany.mock.calls[0]![0].include;
     expect(include.courier).toBeDefined();
     expect(include.courier.select.name).toBe(true);
-    expect(include.courier.select.icon).toBe(true);
+    expect(include.courier.select.iconUrl).toBe(true);
     expect(include.courier.select.color).toBe(true);
   });
 

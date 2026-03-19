@@ -11,12 +11,12 @@ import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createViolationSchema = z.object({
   propertyId: z.string().uuid(),
-  areaId: z.string().uuid().optional(),
-  licensePlate: z.string().min(1, 'License plate is required').max(20),
-  location: z.string().min(1, 'Location is required').max(200),
-  violationType: z.string().min(1, 'Violation type is required').max(100),
+  unitId: z.string().uuid().optional(),
+  licensePlate: z.string().min(1, 'License plate is required').max(15),
+  location: z.string().max(100).optional(),
+  violationType: z.enum(['notice', 'warning', 'ticket', 'ban', 'vehicle_towed']),
   description: z.string().max(1000).optional(),
-  photoUrl: z.string().url().optional(),
+  notifyUnitOwner: z.boolean().default(true),
 });
 
 export async function POST(request: NextRequest) {
@@ -36,16 +36,19 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Generate a reference number
+    const refNum = `PV-${Date.now().toString(36).toUpperCase()}`;
+
     const violation = await prisma.parkingViolation.create({
       data: {
         propertyId: input.propertyId,
-        areaId: input.areaId || null,
         licensePlate: input.licensePlate.toUpperCase(),
         location: input.location,
         violationType: input.violationType,
         description: input.description ? stripControlChars(stripHtml(input.description)) : null,
         status: 'open',
-        reportedById: auth.user.userId,
+        referenceNumber: refNum,
+        issuedById: auth.user.userId,
       },
     });
 

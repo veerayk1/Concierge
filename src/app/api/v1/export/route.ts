@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
+    // eslint-disable-next-line @next/next/no-assign-module-variable
     const module = searchParams.get('module'); // users, packages, events, maintenance, units
     const format = searchParams.get('format') || 'csv'; // csv, json
 
@@ -160,7 +161,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const headers = Object.keys(data[0]);
+    const headers = Object.keys(data[0]!);
     const csvRows = [
       headers.join(','),
       ...data.map((row) =>

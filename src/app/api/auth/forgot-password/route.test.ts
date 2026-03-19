@@ -56,7 +56,7 @@ async function callForgotPassword(body: Record<string, unknown>) {
 describe('POST /api/auth/forgot-password', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(prisma.passwordResetToken.count).mockResolvedValue(0);
+    vi.mocked((prisma as any).passwordResetToken.count).mockResolvedValue(0);
   });
 
   it('returns 200 and sends email for valid existing email', async () => {
@@ -91,7 +91,7 @@ describe('POST /api/auth/forgot-password', () => {
     const body1 = await parseResponse(res1);
 
     vi.clearAllMocks();
-    vi.mocked(prisma.passwordResetToken.count).mockResolvedValue(0);
+    vi.mocked((prisma as any).passwordResetToken.count).mockResolvedValue(0);
 
     // Non-existing email
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
@@ -108,7 +108,7 @@ describe('POST /api/auth/forgot-password', () => {
 
   it('returns 429 when rate limited (3 per hour for same email)', async () => {
     // Simulate 3 existing tokens within the last hour
-    vi.mocked(prisma.passwordResetToken.count).mockResolvedValue(3);
+    vi.mocked((prisma as any).passwordResetToken.count).mockResolvedValue(3);
     vi.mocked(prisma.user.findUnique).mockResolvedValue(
       createUser({ email: 'spam@example.com', isActive: true }) as any,
     );
@@ -124,7 +124,7 @@ describe('POST /api/auth/forgot-password', () => {
 
     await callForgotPassword({ email: 'token-test@example.com' });
 
-    expect(prisma.passwordResetToken.create).toHaveBeenCalledWith(
+    expect((prisma as any).passwordResetToken.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           userId: user.id,
@@ -134,7 +134,7 @@ describe('POST /api/auth/forgot-password', () => {
     );
 
     // Verify expiry is approximately 1 hour from now
-    const createCall = vi.mocked(prisma.passwordResetToken.create).mock.calls[0]?.[0];
+    const createCall = vi.mocked((prisma as any).passwordResetToken.create).mock.calls[0]?.[0];
     if (createCall) {
       const expiresAt = (createCall as any).data.expiresAt as Date;
       const oneHourFromNow = Date.now() + 60 * 60 * 1000;

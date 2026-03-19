@@ -14,9 +14,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
     const booking = await prisma.booking.findUnique({
-      where: { id, deletedAt: null },
+      where: { id },
       include: {
-        amenity: { select: { id: true, name: true, location: true, capacity: true } },
+        amenity: { select: { id: true, name: true, description: true, maxConcurrent: true } },
         unit: { select: { id: true, number: true } },
       },
     });
@@ -50,9 +50,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (body.status) {
       const validTransitions: Record<string, string[]> = {
-        pending: ['approved', 'rejected', 'cancelled'],
-        approved: ['cancelled', 'completed'],
-        rejected: [],
+        pending: ['approved', 'declined', 'cancelled'],
+        approved: ['cancelled', 'completed', 'no_show'],
+        declined: [],
         cancelled: [],
         completed: [],
       };
@@ -77,11 +77,23 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
 
       updateData.status = body.status;
-      if (body.status === 'approved') updateData.approvedById = auth.user.userId;
-      if (body.status === 'cancelled') updateData.cancelledAt = new Date();
+      if (body.status === 'approved') {
+        updateData.approvedById = auth.user.userId;
+        updateData.approvedAt = new Date();
+        updateData.approvalStatus = 'approved';
+      }
+      if (body.status === 'declined') {
+        updateData.approvalStatus = 'declined';
+        if (body.declinedReason) updateData.declinedReason = body.declinedReason;
+      }
+      if (body.status === 'cancelled') {
+        updateData.cancelledAt = new Date();
+        updateData.cancelledById = auth.user.userId;
+        if (body.cancellationReason) updateData.cancellationReason = body.cancellationReason;
+      }
     }
 
-    if (body.notes !== undefined) updateData.notes = body.notes;
+    if (body.approverComments !== undefined) updateData.approverComments = body.approverComments;
 
     const booking = await prisma.booking.update({
       where: { id },
@@ -110,7 +122,7 @@ export async function DELETE(
     const { id } = await params;
     await prisma.booking.update({
       where: { id },
-      data: { deletedAt: new Date(), status: 'cancelled' },
+      data: { status: 'cancelled', cancelledAt: new Date(), cancelledById: auth.user.userId },
     });
     return NextResponse.json({ message: 'Booking cancelled.' });
   } catch (error) {

@@ -11,9 +11,10 @@ import { guardRoute } from '@/server/middleware/api-guard';
 const createStorageSpotSchema = z.object({
   propertyId: z.string().uuid(),
   name: z.string().min(1).max(100),
-  code: z.string().min(1).max(20),
-  capacity: z.number().int().min(1).max(1000).optional(),
-  type: z.enum(['shelf', 'fridge', 'floor', 'locker', 'room']).default('shelf'),
+  code: z.string().min(1).max(10),
+  capacity: z.number().int().min(0).max(1000).default(0),
+  isRefrigerated: z.boolean().default(false),
+  sortOrder: z.number().int().default(0),
 });
 
 export async function GET(request: NextRequest) {
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     const spots = await prisma.storageSpot.findMany({
-      where: { propertyId, deletedAt: null },
+      where: { propertyId, isActive: true },
       include: {
         _count: {
           select: { packages: { where: { status: 'unreleased', deletedAt: null } } },
@@ -81,7 +82,9 @@ export async function POST(request: NextRequest) {
         propertyId: input.propertyId,
         name: input.name,
         code: input.code,
-        capacity: input.capacity || null,
+        capacity: input.capacity ?? 0,
+        isRefrigerated: input.isRefrigerated,
+        sortOrder: input.sortOrder,
       },
     });
 

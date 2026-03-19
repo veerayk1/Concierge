@@ -343,7 +343,7 @@ describe('Workflow: Package Lifecycle (Create → Remind → Release)', () => {
         data: expect.objectContaining({
           packageId,
           action: 'released',
-          detail: expect.stringContaining('John Smith'),
+          details: expect.stringContaining('John Smith'),
         }),
       }),
     );
@@ -580,8 +580,8 @@ describe('Workflow: Visitor Lifecycle (Sign In → Sign Out → Double Sign-Out 
     propertyId: PROPERTY_ID,
     visitorName: 'Bob Jones',
     unitId: UNIT_ID,
-    purpose: 'personal',
-    signedOutAt: null,
+    visitorType: 'personal',
+    departureAt: null,
     createdAt: new Date(),
     unit: { id: UNIT_ID, number: '302' },
   };
@@ -613,21 +613,21 @@ describe('Workflow: Visitor Lifecycle (Sign In → Sign Out → Double Sign-Out 
     expect(body.data).toHaveLength(1);
     expect(body.data[0]!.id).toBe(visitorId);
 
-    // Verify the query filters for active visitors (signedOutAt is null)
+    // Verify the query filters for active visitors (departureAt is null)
     const where = (
-      mockVisitorEntryFindMany.mock.calls[0]![0] as { where: { signedOutAt: unknown } }
+      mockVisitorEntryFindMany.mock.calls[0]![0] as { where: { departureAt: unknown } }
     ).where;
-    expect(where.signedOutAt).toBeNull();
+    expect(where.departureAt).toBeNull();
   });
 
   it('Step 3: PATCH /api/v1/visitors/:id — signs out visitor', async () => {
     mockVisitorEntryFindUnique.mockResolvedValue({
       ...signedInVisitor,
-      signedOutAt: null,
+      departureAt: null,
     });
     mockVisitorEntryUpdate.mockResolvedValue({
       ...signedInVisitor,
-      signedOutAt: new Date(),
+      departureAt: new Date(),
     });
 
     const req = createPatchRequest(`/api/v1/visitors/${visitorId}`, {});
@@ -659,7 +659,7 @@ describe('Workflow: Visitor Lifecycle (Sign In → Sign Out → Double Sign-Out 
   it('Step 5: PATCH /api/v1/visitors/:id again — returns ALREADY_SIGNED_OUT', async () => {
     mockVisitorEntryFindUnique.mockResolvedValue({
       ...signedInVisitor,
-      signedOutAt: new Date('2026-03-18T10:00:00Z'), // Already signed out
+      departureAt: new Date('2026-03-18T10:00:00Z'), // Already signed out
     });
 
     const req = createPatchRequest(`/api/v1/visitors/${visitorId}`, {});
@@ -690,8 +690,8 @@ describe('Workflow: Visitor Lifecycle (Sign In → Sign Out → Double Sign-Out 
     expect(activeBody.data).toHaveLength(1);
 
     // Sign out
-    mockVisitorEntryFindUnique.mockResolvedValue({ ...signedInVisitor, signedOutAt: null });
-    mockVisitorEntryUpdate.mockResolvedValue({ ...signedInVisitor, signedOutAt: new Date() });
+    mockVisitorEntryFindUnique.mockResolvedValue({ ...signedInVisitor, departureAt: null });
+    mockVisitorEntryUpdate.mockResolvedValue({ ...signedInVisitor, departureAt: new Date() });
     const signOutRes = await signOutVisitor(
       createPatchRequest(`/api/v1/visitors/${visitorId}`, {}),
       { params: Promise.resolve({ id: visitorId }) },
@@ -710,7 +710,7 @@ describe('Workflow: Visitor Lifecycle (Sign In → Sign Out → Double Sign-Out 
     expect(goneBody.data).toHaveLength(0);
 
     // Double sign-out fails
-    mockVisitorEntryFindUnique.mockResolvedValue({ ...signedInVisitor, signedOutAt: new Date() });
+    mockVisitorEntryFindUnique.mockResolvedValue({ ...signedInVisitor, departureAt: new Date() });
     const doubleRes = await signOutVisitor(
       createPatchRequest(`/api/v1/visitors/${visitorId}`, {}),
       { params: Promise.resolve({ id: visitorId }) },
@@ -733,15 +733,17 @@ describe('Workflow: Booking Lifecycle (Create → Approve → Complete → Cance
     id: AMENITY_ID,
     name: 'Rooftop Party Room',
     propertyId: PROPERTY_ID,
-    requiresApproval: true,
+    approvalMode: 'manual',
   };
 
   const bookingPayload = {
     unitId: UNIT_ID,
+    startDate: '2026-04-01',
     startTime: '2026-04-01T14:00:00Z',
+    endDate: '2026-04-01',
     endTime: '2026-04-01T18:00:00Z',
     guestCount: 10,
-    notes: 'Birthday party',
+    requestorComments: 'Birthday party',
   };
 
   it('Step 1: POST /api/v1/amenities/:id — creates booking with status=pending', async () => {
@@ -751,7 +753,9 @@ describe('Workflow: Booking Lifecycle (Create → Approve → Complete → Cance
       propertyId: PROPERTY_ID,
       amenityId: AMENITY_ID,
       unitId: UNIT_ID,
+      startDate: new Date('2026-04-01'),
       startTime: new Date('2026-04-01T14:00:00Z'),
+      endDate: new Date('2026-04-01'),
       endTime: new Date('2026-04-01T18:00:00Z'),
       status: 'pending',
       guestCount: 10,
@@ -846,7 +850,9 @@ describe('Workflow: Booking Lifecycle (Create → Approve → Complete → Cance
       propertyId: PROPERTY_ID,
       amenityId: AMENITY_ID,
       unitId: UNIT_ID,
+      startDate: new Date('2026-04-01'),
       startTime: new Date('2026-04-01T14:00:00Z'),
+      endDate: new Date('2026-04-01'),
       endTime: new Date('2026-04-01T18:00:00Z'),
       guestCount: 10,
     });

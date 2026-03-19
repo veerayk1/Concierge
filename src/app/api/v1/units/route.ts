@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
         include: {
           building: { select: { id: true, name: true } },
           unitInstructions: {
-            where: { deletedAt: null },
-            select: { id: true, instruction: true, priority: true },
+            where: { isActive: true },
+            select: { id: true, instructionText: true, priority: true },
           },
         },
         orderBy: { number: 'asc' },

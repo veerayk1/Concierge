@@ -130,7 +130,7 @@ describe('GET /api/v1/announcements — Filtering', () => {
     expect(where.OR).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ title: { contains: 'water shutoff', mode: 'insensitive' } }),
-        expect.objectContaining({ body: { contains: 'water shutoff', mode: 'insensitive' } }),
+        expect.objectContaining({ content: { contains: 'water shutoff', mode: 'insensitive' } }),
       ]),
     );
   });
@@ -196,7 +196,7 @@ describe('POST /api/v1/announcements — Authorization', () => {
     const validBody = {
       propertyId: '00000000-0000-4000-b000-000000000001',
       title: 'Water Shutoff Notice',
-      body: 'Water will be shut off on Friday from 9am-12pm for pipe repairs.',
+      content: 'Water will be shut off on Friday from 9am-12pm for pipe repairs.',
       channels: ['web', 'email'],
       status: 'draft',
     };
@@ -226,7 +226,7 @@ describe('POST /api/v1/announcements — Authorization', () => {
     const req = createPostRequest('/api/v1/announcements', {
       propertyId: '00000000-0000-4000-b000-000000000001',
       title: 'Test',
-      body: 'Test body',
+      content: 'Test body',
       channels: ['web'],
     });
     const res = await POST(req);
@@ -252,7 +252,7 @@ describe('POST /api/v1/announcements — Validation', () => {
     const req = createPostRequest('/api/v1/announcements', {
       propertyId: 'not-uuid',
       title: '',
-      body: '',
+      content: '',
       channels: [],
     });
     const res = await POST(req);
@@ -260,7 +260,7 @@ describe('POST /api/v1/announcements — Validation', () => {
 
     expect(body.fields.propertyId).toBeDefined();
     expect(body.fields.title).toBeDefined();
-    expect(body.fields.body).toBeDefined();
+    expect(body.fields.content).toBeDefined();
     expect(body.fields.channels).toBeDefined();
   });
 
@@ -268,7 +268,7 @@ describe('POST /api/v1/announcements — Validation', () => {
     const req = createPostRequest('/api/v1/announcements', {
       propertyId: '00000000-0000-4000-b000-000000000001',
       title: 'Test Announcement',
-      body: 'This is a test.',
+      content: 'This is a test.',
       channels: [],
     });
     const res = await POST(req);
@@ -281,7 +281,7 @@ describe('POST /api/v1/announcements — Validation', () => {
     const req = createPostRequest('/api/v1/announcements', {
       propertyId: '00000000-0000-4000-b000-000000000001',
       title: 'Test Announcement',
-      body: 'This is a test.',
+      content: 'This is a test.',
       channels: ['fax'],
     });
     const res = await POST(req);
@@ -292,18 +292,18 @@ describe('POST /api/v1/announcements — Validation', () => {
     const req = createPostRequest('/api/v1/announcements', {
       propertyId: '00000000-0000-4000-b000-000000000001',
       title: 'X'.repeat(201),
-      body: 'Valid body.',
+      content: 'Valid body.',
       channels: ['web'],
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
-  it('rejects body over 10000 characters', async () => {
+  it('rejects content over 10000 characters', async () => {
     const req = createPostRequest('/api/v1/announcements', {
       propertyId: '00000000-0000-4000-b000-000000000001',
       title: 'Valid Title',
-      body: 'X'.repeat(10001),
+      content: 'X'.repeat(10001),
       channels: ['web'],
     });
     const res = await POST(req);
@@ -319,7 +319,7 @@ describe('POST /api/v1/announcements — XSS Prevention', () => {
   const validBody = {
     propertyId: '00000000-0000-4000-b000-000000000001',
     title: 'Water <script>alert("xss")</script> Notice',
-    body: 'Water shutoff <img onerror="alert(1)" src="x"> on Friday.',
+    content: 'Water shutoff <img onerror="alert(1)" src="x"> on Friday.',
     channels: ['web', 'email'],
     status: 'draft' as const,
   };
@@ -328,7 +328,7 @@ describe('POST /api/v1/announcements — XSS Prevention', () => {
     mockCreate.mockResolvedValue({
       id: 'a1',
       title: 'Water  Notice',
-      body: 'Water shutoff  on Friday.',
+      content: 'Water shutoff  on Friday.',
       status: 'draft',
       createdAt: new Date(),
     });
@@ -343,14 +343,14 @@ describe('POST /api/v1/announcements — XSS Prevention', () => {
     // Verify the create call uses sanitized values (not raw input)
     const createData = mockCreate.mock.calls[0]![0].data;
     expect(createData.title).not.toContain('<script>');
-    expect(createData.body).not.toContain('onerror');
+    expect(createData.content).not.toContain('onerror');
   });
 
   it('sanitizes body with stripHtml AND stripControlChars before storing', async () => {
     mockCreate.mockResolvedValue({
       id: 'a1',
       title: 'Clean Title',
-      body: 'Clean body',
+      content: 'Clean body',
       status: 'draft',
       createdAt: new Date(),
     });
@@ -358,12 +358,12 @@ describe('POST /api/v1/announcements — XSS Prevention', () => {
     const req = createPostRequest('/api/v1/announcements', {
       ...validBody,
       title: 'Clean Title',
-      body: 'Body with <script>evil()</script> content',
+      content: 'Body with <script>evil()</script> content',
     });
     await POST(req);
 
     const createData = mockCreate.mock.calls[0]![0].data;
-    expect(createData.body).not.toContain('<script>');
+    expect(createData.content).not.toContain('<script>');
   });
 });
 
@@ -375,7 +375,7 @@ describe('POST /api/v1/announcements — Publishing', () => {
   const baseBody = {
     propertyId: '00000000-0000-4000-b000-000000000001',
     title: 'Lobby Renovation Complete',
-    body: 'The lobby renovation is now complete. Thank you for your patience.',
+    content: 'The lobby renovation is now complete. Thank you for your patience.',
     channels: ['web', 'email', 'push'],
   };
 
@@ -385,7 +385,7 @@ describe('POST /api/v1/announcements — Publishing', () => {
       ...baseBody,
       status: 'published',
       publishedAt: new Date(),
-      authorId: 'test-admin',
+      createdById: 'test-admin',
       createdAt: new Date(),
     });
 
@@ -405,7 +405,7 @@ describe('POST /api/v1/announcements — Publishing', () => {
       ...baseBody,
       status: 'draft',
       publishedAt: null,
-      authorId: 'test-admin',
+      createdById: 'test-admin',
       createdAt: new Date(),
     });
 
@@ -425,7 +425,7 @@ describe('POST /api/v1/announcements — Publishing', () => {
       ...baseBody,
       status: 'draft',
       publishedAt: null,
-      authorId: 'test-admin',
+      createdById: 'test-admin',
       createdAt: new Date(),
     });
 
@@ -437,12 +437,12 @@ describe('POST /api/v1/announcements — Publishing', () => {
     expect(createData.publishedAt).toBeNull();
   });
 
-  it('uses auth.user.userId as authorId — tracks WHO created the announcement', async () => {
+  it('uses auth.user.userId as createdById — tracks WHO created the announcement', async () => {
     mockCreate.mockResolvedValue({
       id: 'a1',
       ...baseBody,
       status: 'draft',
-      authorId: 'test-admin',
+      createdById: 'test-admin',
       createdAt: new Date(),
     });
 
@@ -453,38 +453,38 @@ describe('POST /api/v1/announcements — Publishing', () => {
     await POST(req);
 
     const createData = mockCreate.mock.calls[0]![0].data;
-    expect(createData.authorId).toBe('test-admin');
+    expect(createData.createdById).toBe('test-admin');
   });
 
-  it('stores scheduledFor as Date when provided', async () => {
-    const scheduledFor = '2026-04-01T09:00:00Z';
+  it('stores scheduledAt as Date when provided', async () => {
+    const scheduledAt = '2026-04-01T09:00:00Z';
     mockCreate.mockResolvedValue({
       id: 'a1',
       ...baseBody,
       status: 'scheduled',
-      scheduledFor: new Date(scheduledFor),
-      authorId: 'test-admin',
+      scheduledAt: new Date(scheduledAt),
+      createdById: 'test-admin',
       createdAt: new Date(),
     });
 
     const req = createPostRequest('/api/v1/announcements', {
       ...baseBody,
       status: 'scheduled',
-      scheduledFor,
+      scheduledAt,
     });
     await POST(req);
 
     const createData = mockCreate.mock.calls[0]![0].data;
-    expect(createData.scheduledFor).toEqual(new Date(scheduledFor));
+    expect(createData.scheduledAt).toEqual(new Date(scheduledAt));
   });
 
-  it('sets scheduledFor to null when not provided', async () => {
+  it('sets scheduledAt to null when not provided', async () => {
     mockCreate.mockResolvedValue({
       id: 'a1',
       ...baseBody,
       status: 'draft',
-      scheduledFor: null,
-      authorId: 'test-admin',
+      scheduledAt: null,
+      createdById: 'test-admin',
       createdAt: new Date(),
     });
 
@@ -495,7 +495,7 @@ describe('POST /api/v1/announcements — Publishing', () => {
     await POST(req);
 
     const createData = mockCreate.mock.calls[0]![0].data;
-    expect(createData.scheduledFor).toBeNull();
+    expect(createData.scheduledAt).toBeNull();
   });
 });
 
@@ -509,10 +509,10 @@ describe('POST /api/v1/announcements — Response', () => {
       id: 'a1',
       propertyId: '00000000-0000-4000-b000-000000000001',
       title: 'Fire Drill Thursday',
-      body: 'Fire drill at 2pm Thursday.',
+      content: 'Fire drill at 2pm Thursday.',
       status: 'draft',
       channels: ['web'],
-      authorId: 'test-admin',
+      createdById: 'test-admin',
       publishedAt: null,
       createdAt: new Date(),
     });
@@ -520,7 +520,7 @@ describe('POST /api/v1/announcements — Response', () => {
     const req = createPostRequest('/api/v1/announcements', {
       propertyId: '00000000-0000-4000-b000-000000000001',
       title: 'Fire Drill Thursday',
-      body: 'Fire drill at 2pm Thursday.',
+      content: 'Fire drill at 2pm Thursday.',
       channels: ['web'],
     });
     const res = await POST(req);
@@ -537,7 +537,7 @@ describe('POST /api/v1/announcements — Response', () => {
     const req = createPostRequest('/api/v1/announcements', {
       propertyId: '00000000-0000-4000-b000-000000000001',
       title: 'Test',
-      body: 'Test body content here.',
+      content: 'Test body content here.',
       channels: ['web'],
     });
     const res = await POST(req);

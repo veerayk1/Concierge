@@ -11,9 +11,11 @@ import { guardRoute } from '@/server/middleware/api-guard';
 const createAreaSchema = z.object({
   propertyId: z.string().uuid(),
   buildingId: z.string().uuid().optional(),
-  name: z.string().min(1).max(100),
-  totalSpots: z.number().int().min(1).max(5000),
-  type: z.enum(['underground', 'surface', 'visitor', 'reserved']).default('underground'),
+  areaName: z.string().min(1).max(50),
+  areaCode: z.string().min(1).max(10),
+  totalSpots: z.number().int().min(0).max(5000).default(0),
+  visitorSpots: z.number().int().min(0).max(5000).default(0),
+  description: z.string().max(200).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -31,26 +33,25 @@ export async function GET(request: NextRequest) {
     }
 
     const areas = await prisma.parkingArea.findMany({
-      where: { propertyId, deletedAt: null },
+      where: { propertyId, isActive: true },
       include: {
         _count: {
           select: {
-            permits: { where: { status: 'active', deletedAt: null } },
-            violations: { where: { status: 'open', deletedAt: null } },
+            spots: true,
           },
         },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { areaName: 'asc' },
     });
 
     return NextResponse.json({
       data: areas.map((a) => ({
         id: a.id,
-        name: a.name,
+        name: a.areaName,
+        areaCode: a.areaCode,
         totalSpots: a.totalSpots,
-        activePermits: a._count.permits,
-        openViolations: a._count.violations,
-        availableSpots: a.totalSpots - a._count.permits,
+        visitorSpots: a.visitorSpots,
+        spotCount: a._count.spots,
       })),
     });
   } catch (error) {

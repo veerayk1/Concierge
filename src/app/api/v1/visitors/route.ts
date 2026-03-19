@@ -42,13 +42,12 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {
       propertyId,
-      deletedAt: null,
     };
 
     if (status === 'active') {
-      where.signedOutAt = null;
+      where.departureAt = null;
     } else if (status === 'signed_out') {
-      where.signedOutAt = { not: null };
+      where.departureAt = { not: null };
     }
 
     if (search) {
@@ -103,12 +102,16 @@ export async function POST(request: NextRequest) {
         propertyId: input.propertyId,
         visitorName: stripControlChars(stripHtml(input.visitorName)),
         unitId: input.unitId,
-        purpose: input.purpose,
-        vehiclePlate: input.vehiclePlate || null,
-        idType: input.idType || null,
-        idVerified: input.idVerified,
-        notes: input.notes ? stripControlChars(stripHtml(input.notes)) : null,
-        signedInById: auth.user.userId,
+        visitorType: input.purpose,
+        comments: input.notes
+          ? stripControlChars(
+              stripHtml(
+                `${input.vehiclePlate ? `Vehicle: ${input.vehiclePlate}. ` : ''}${input.idType ? `ID: ${input.idType}${input.idVerified ? ' (verified)' : ''}. ` : ''}${input.notes}`,
+              ),
+            )
+          : input.vehiclePlate
+            ? `Vehicle: ${input.vehiclePlate}`
+            : null,
       },
       include: {
         unit: { select: { number: true } },

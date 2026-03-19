@@ -11,10 +11,12 @@ import { guardRoute } from '@/server/middleware/api-guard';
 const createCategorySchema = z.object({
   propertyId: z.string().uuid(),
   name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-  slaHours: z.number().int().min(1).max(720).optional(),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
-  autoAssignTo: z.string().uuid().optional(),
+  icon: z.string().max(50).optional(),
+  color: z.string().max(7).optional(),
+  subCategories: z.array(z.string()).optional(),
+  defaultPriority: z.enum(['low', 'normal', 'high', 'critical']).optional(),
+  defaultAssigneeId: z.string().uuid().optional(),
+  sortOrder: z.number().int().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -32,16 +34,16 @@ export async function GET(request: NextRequest) {
     }
 
     const categories = await prisma.maintenanceCategory.findMany({
-      where: { propertyId, deletedAt: null },
+      where: { propertyId, isActive: true },
       include: {
-        _count: { select: { requests: { where: { deletedAt: null } } } },
+        _count: { select: { maintenanceRequests: { where: { deletedAt: null } } } },
       },
       orderBy: { name: 'asc' },
     });
 
     const data = categories.map((c) => ({
       ...c,
-      requestCount: c._count.requests,
+      requestCount: c._count.maintenanceRequests,
     }));
 
     return NextResponse.json({ data });
@@ -75,9 +77,12 @@ export async function POST(request: NextRequest) {
       data: {
         propertyId: input.propertyId,
         name: input.name,
-        description: input.description || null,
-        slaHours: input.slaHours || null,
-        defaultPriority: input.priority,
+        icon: input.icon || null,
+        color: input.color || null,
+        subCategories: input.subCategories || [],
+        defaultPriority: input.defaultPriority || null,
+        defaultAssigneeId: input.defaultAssigneeId || null,
+        sortOrder: input.sortOrder || 0,
       },
     });
 

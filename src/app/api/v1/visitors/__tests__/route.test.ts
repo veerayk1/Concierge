@@ -53,7 +53,7 @@ vi.mock('@/lib/sanitize', () => ({
 }));
 
 import { GET, POST } from '../route';
-import { GET as GET_DETAIL, PATCH } from '../[id]/route';
+import { PATCH } from '../[id]/route';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -80,7 +80,7 @@ describe('GET /api/v1/visitors — Tenant Isolation', () => {
     await GET(req);
 
     const where = mockFindMany.mock.calls[0]![0].where;
-    expect(where.signedOutAt).toBeNull(); // Only show visitors still in building
+    expect(where.departureAt).toBeNull(); // Only show visitors still in building
   });
 
   it('can filter to signed-out visitors for historical records', async () => {
@@ -90,7 +90,7 @@ describe('GET /api/v1/visitors — Tenant Isolation', () => {
     await GET(req);
 
     const where = mockFindMany.mock.calls[0]![0].where;
-    expect(where.signedOutAt).toEqual({ not: null });
+    expect(where.departureAt).toEqual({ not: null });
   });
 });
 
@@ -107,7 +107,7 @@ describe('POST /api/v1/visitors — Sign In', () => {
     idVerified: true,
   };
 
-  it('creates visitor entry with signedInById from auth', async () => {
+  it('creates visitor entry with visitorType mapped from purpose', async () => {
     mockCreate.mockResolvedValue({
       id: 'v-1',
       ...validBody,
@@ -119,7 +119,7 @@ describe('POST /api/v1/visitors — Sign In', () => {
     await POST(req);
 
     const createData = mockCreate.mock.calls[0]![0].data;
-    expect(createData.signedInById).toBe('guard-patel'); // From auth, not hardcoded
+    expect(createData.visitorType).toBe('personal'); // Mapped from purpose input
   });
 
   it('sanitizes visitor name — prevents XSS via name field', async () => {
@@ -127,8 +127,8 @@ describe('POST /api/v1/visitors — Sign In', () => {
       id: 'v-1',
       createdAt: new Date(),
       unit: { number: '1501' },
-      visitorName: 'John Williams',
       ...validBody,
+      visitorName: 'John Williams',
     });
 
     const req = createPostRequest('/api/v1/visitors', {
@@ -183,15 +183,15 @@ describe('POST /api/v1/visitors — Sign In', () => {
 
 describe('PATCH /api/v1/visitors/:id — Sign Out', () => {
   it('signs out a visitor and sets signedOutById from auth', async () => {
-    mockFindUnique.mockResolvedValue({ id: 'v-1', visitorName: 'John', signedOutAt: null });
-    mockUpdate.mockResolvedValue({ id: 'v-1', signedOutAt: new Date() });
+    mockFindUnique.mockResolvedValue({ id: 'v-1', visitorName: 'John', departureAt: null });
+    mockUpdate.mockResolvedValue({ id: 'v-1', departureAt: new Date() });
 
     const req = createPatchRequest('/api/v1/visitors/v-1', {});
     const res = await PATCH(req, { params: Promise.resolve({ id: 'v-1' }) });
 
     expect(res.status).toBe(200);
     const updateData = mockUpdate.mock.calls[0]![0].data;
-    expect(updateData.signedOutAt).toBeInstanceOf(Date);
+    expect(updateData.departureAt).toBeInstanceOf(Date);
     expect(updateData.signedOutById).toBe('guard-patel');
   });
 
@@ -199,7 +199,7 @@ describe('PATCH /api/v1/visitors/:id — Sign Out', () => {
     mockFindUnique.mockResolvedValue({
       id: 'v-1',
       visitorName: 'John',
-      signedOutAt: new Date('2026-03-18T10:00:00'), // Already signed out
+      departureAt: new Date('2026-03-18T10:00:00'), // Already signed out
     });
 
     const req = createPatchRequest('/api/v1/visitors/v-1', {});

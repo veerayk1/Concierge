@@ -32,10 +32,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const ideas = await prisma.idea.findMany({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ideas = await (prisma.idea.findMany as any)({
       where: { propertyId, deletedAt: null },
       include: {
         author: { select: { id: true, firstName: true, lastName: true } },
+        votes: { select: { id: true, userId: true } },
       },
       orderBy: sort === 'popular' ? { voteCount: 'desc' } : { createdAt: 'desc' },
     });
@@ -72,8 +74,8 @@ export async function POST(request: NextRequest) {
         propertyId: input.propertyId,
         title: stripControlChars(stripHtml(input.title)),
         description: stripControlChars(stripHtml(input.description)),
-        category: input.category || null,
-        authorId: auth.user.userId,
+        categoryId: input.category || null,
+        userId: auth.user.userId,
         status: 'open',
         voteCount: 0,
       },

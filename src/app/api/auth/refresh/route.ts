@@ -65,7 +65,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // 2. Look up refresh token in DB
-    const storedToken = await prisma.refreshToken.findUnique({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const storedToken = await (prisma.refreshToken.findUnique as any)({
       where: { token: body.refreshToken },
     });
 
@@ -132,7 +133,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // 6. Rotate: revoke old token
-    await prisma.refreshToken.update({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (prisma.refreshToken.update as any)({
       where: { id: storedToken.id },
       data: {
         revokedAt: new Date(),
@@ -141,6 +143,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     // 7. Generate new tokens
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userProp = (user as any).userProperties?.[0];
     const roleSlug = (userProp?.role?.slug || 'visitor') as Role;
     const permissions = userProp?.role?.permissions || [];
@@ -160,7 +163,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const newRefreshToken = generateRefreshToken();
 
     // 8. Store new refresh token
-    await prisma.refreshToken.create({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (prisma.refreshToken.create as any)({
       data: {
         token: newRefreshToken,
         userId: user.id,

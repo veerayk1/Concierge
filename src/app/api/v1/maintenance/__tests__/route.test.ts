@@ -248,7 +248,7 @@ describe('POST /api/v1/maintenance — Request Creation', () => {
     await POST(req);
 
     const data = mockCreate.mock.calls[0]![0].data;
-    expect(data.permissionToEnter).toBe(true);
+    expect(data.permissionToEnter).toBe('yes');
     expect(data.entryInstructions).toBe('Key at front desk. Dog in bedroom.');
   });
 

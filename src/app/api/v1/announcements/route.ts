@@ -12,11 +12,11 @@ import { stripHtml, stripControlChars } from '@/lib/sanitize';
 const createAnnouncementSchema = z.object({
   propertyId: z.string().uuid(),
   title: z.string().min(1, 'Title is required').max(200),
-  body: z.string().min(1, 'Body is required').max(10000),
-  priority: z.enum(['normal', 'important', 'urgent']).default('normal'),
+  content: z.string().min(1, 'Content is required').max(10000),
+  priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
   channels: z.array(z.enum(['web', 'email', 'sms', 'push'])).min(1, 'Select at least one channel'),
   status: z.enum(['draft', 'published', 'scheduled']).default('draft'),
-  scheduledFor: z.string().optional().or(z.literal('')),
+  scheduledAt: z.string().optional().or(z.literal('')),
   categoryId: z.string().uuid().optional().or(z.literal('')),
 });
 
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
-        { body: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -95,13 +95,13 @@ export async function POST(request: NextRequest) {
       data: {
         propertyId: input.propertyId,
         title: stripControlChars(stripHtml(input.title)),
-        body: stripControlChars(stripHtml(input.body)),
+        content: stripControlChars(stripHtml(input.content)),
         priority: input.priority,
         channels: input.channels,
         status: input.status,
-        scheduledFor: input.scheduledFor ? new Date(input.scheduledFor) : null,
+        scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
         categoryId: input.categoryId || null,
-        authorId: auth.user.userId,
+        createdById: auth.user.userId,
         publishedAt: input.status === 'published' ? new Date() : null,
       },
     });

@@ -114,11 +114,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await bestEffort(() =>
         prisma.loginAudit.create({
           data: {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             userId: null as any,
+            email: body.email.toLowerCase(),
             success: false,
             ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0',
             userAgent: req.headers.get('user-agent') || 'unknown',
-            failureReason: 'user_not_found',
+            failReason: 'user_not_found',
           },
         }),
       );
@@ -148,6 +150,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // 5. Check if account is locked
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((user as any).lockedUntil && new Date((user as any).lockedUntil) > new Date()) {
       return NextResponse.json(
         {
@@ -165,7 +168,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     if (!valid) {
       // Increment failed attempts
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const failedAttempts = ((user as any).failedLoginAttempts || 0) + 1;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateData: Record<string, any> = {
         failedLoginAttempts: failedAttempts,
       };
@@ -187,10 +192,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         prisma.loginAudit.create({
           data: {
             userId: user.id,
+            email: user.email,
             success: false,
             ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0',
             userAgent: req.headers.get('user-agent') || 'unknown',
-            failureReason: 'invalid_password',
+            failReason: 'invalid_password',
           },
         }),
       );
@@ -207,6 +213,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // 7. Get role and property info
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userProp = (user as any).userProperties?.[0];
     const roleSlug = (userProp?.role?.slug || 'visitor') as Role;
     const permissions = userProp?.role?.permissions || [];
@@ -253,7 +260,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // 10. Store refresh token in DB (best-effort)
     await bestEffort(() =>
-      prisma.refreshToken.create({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (prisma.refreshToken.create as any)({
         data: {
           token: refreshToken,
           userId: user.id,
@@ -263,7 +271,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
 
     // 11. Reset failed login attempts
-    await prisma.user.update({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (prisma.user.update as any)({
       where: { id: user.id },
       data: {
         failedLoginAttempts: 0,
@@ -290,6 +299,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       prisma.loginAudit.create({
         data: {
           userId: user.id,
+          email: user.email,
           success: true,
           ipAddress: ip,
           userAgent: ua,

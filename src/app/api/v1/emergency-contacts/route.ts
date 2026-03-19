@@ -10,13 +10,15 @@ import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createContactSchema = z.object({
+  propertyId: z.string().uuid(),
   unitId: z.string().uuid(),
-  name: z.string().min(1, 'Name is required').max(200),
-  relationship: z.string().min(1).max(100),
-  phone: z.string().min(1, 'Phone is required').max(20),
+  userId: z.string().uuid(),
+  contactName: z.string().min(1, 'Name is required').max(100),
+  relationship: z.string().min(1).max(50),
+  phonePrimary: z.string().min(1, 'Phone is required').max(20),
+  phoneSecondary: z.string().max(20).optional(),
   email: z.string().email().max(254).optional().or(z.literal('')),
-  isPrimary: z.boolean().default(false),
-  notes: z.string().max(500).optional(),
+  sortOrder: z.number().int().default(0),
 });
 
 export async function GET(request: NextRequest) {
@@ -34,8 +36,8 @@ export async function GET(request: NextRequest) {
     }
 
     const contacts = await prisma.emergencyContact.findMany({
-      where: { unitId, deletedAt: null },
-      orderBy: [{ isPrimary: 'desc' }, { name: 'asc' }],
+      where: { unitId },
+      orderBy: [{ sortOrder: 'asc' }, { contactName: 'asc' }],
     });
 
     return NextResponse.json({ data: contacts });
@@ -66,9 +68,15 @@ export async function POST(request: NextRequest) {
     const input = parsed.data;
     const contact = await prisma.emergencyContact.create({
       data: {
-        ...input,
-        name: stripControlChars(stripHtml(input.name)),
-        notes: input.notes ? stripControlChars(stripHtml(input.notes)) : undefined,
+        propertyId: input.propertyId,
+        unitId: input.unitId,
+        userId: input.userId,
+        contactName: stripControlChars(stripHtml(input.contactName)),
+        relationship: input.relationship,
+        phonePrimary: input.phonePrimary,
+        phoneSecondary: input.phoneSecondary || null,
+        email: input.email || null,
+        sortOrder: input.sortOrder,
       },
     });
     return NextResponse.json(

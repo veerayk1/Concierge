@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, Mail, Phone, Plus, Search, Users, X } from 'lucide-react';
+import { Download, Phone, Plus, Search, Users, X } from 'lucide-react';
 import { AddResidentDialog } from '@/components/forms/add-resident-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
@@ -156,19 +156,22 @@ export default function ResidentsPage() {
 
   const allResidents = useMemo(() => {
     if (apiResidents && Array.isArray(apiResidents) && apiResidents.length > 0) {
-      return apiResidents.map((r: Record<string, unknown>) => ({
-        id: r.id as string,
-        firstName: r.firstName as string,
-        lastName: r.lastName as string,
-        email: r.email as string,
-        phone: (r.phone as string) || '',
-        unit: '',
-        role: ((r.role as Record<string, string>)?.slug as Resident['role']) || 'tenant',
-        status: 'active' as const,
-        moveInDate: (r.createdAt as string) || '2025-01-01',
-        hasPets: false,
-        hasVehicle: false,
-      }));
+      return apiResidents.map((r: Resident) => {
+        const raw = r as unknown as Record<string, unknown>;
+        return {
+          id: r.id as string,
+          firstName: r.firstName as string,
+          lastName: r.lastName as string,
+          email: r.email as string,
+          phone: (r.phone as string) || '',
+          unit: '',
+          role: ((raw.role as Record<string, string>)?.slug as Resident['role']) || 'tenant',
+          status: 'active' as const,
+          moveInDate: (r.moveInDate as string) || '2025-01-01',
+          hasPets: false,
+          hasVehicle: false,
+        };
+      });
     }
     return MOCK_RESIDENTS;
   }, [apiResidents]);
@@ -326,7 +329,7 @@ export default function ResidentsPage() {
         data={filteredResidents}
         emptyMessage="No residents found."
         emptyIcon={<Users className="h-6 w-6" />}
-        onRowClick={(row) => router.push(`/residents/${row.id}`)}
+        onRowClick={(row) => router.push(`/residents/${row.id}` as never)}
       />
 
       <AddResidentDialog

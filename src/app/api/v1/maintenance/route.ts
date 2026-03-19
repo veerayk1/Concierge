@@ -85,18 +85,26 @@ export async function POST(request: NextRequest) {
     const input = parsed.data;
     const referenceNumber = `MR-${nanoid(4).toUpperCase()}`;
 
-    const req = await prisma.maintenanceRequest.create({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const req = await (prisma.maintenanceRequest.create as any)({
       data: {
         propertyId: input.propertyId,
         unitId: input.unitId,
         categoryId: input.categoryId || null,
+        title: stripControlChars(stripHtml(input.description)).substring(0, 200),
         description: stripControlChars(stripHtml(input.description)),
         priority: input.priority,
-        permissionToEnter: input.permissionToEnter,
+        permissionToEnter:
+          typeof input.permissionToEnter === 'boolean'
+            ? input.permissionToEnter
+              ? 'yes'
+              : 'no'
+            : input.permissionToEnter || 'not_applicable',
         entryInstructions: input.entryInstructions
           ? stripControlChars(stripHtml(input.entryInstructions))
           : null,
         referenceNumber,
+        residentId: auth.user.userId,
         status: 'open',
         createdById: auth.user.userId,
       },

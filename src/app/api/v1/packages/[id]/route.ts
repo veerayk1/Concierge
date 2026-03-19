@@ -28,19 +28,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       where: { id, deletedAt: null },
       include: {
         unit: { select: { id: true, number: true } },
-        courier: { select: { id: true, name: true, icon: true, color: true } },
+        courier: { select: { id: true, name: true, iconUrl: true, color: true } },
         storageSpot: { select: { id: true, name: true, code: true } },
         parcelCategory: { select: { id: true, name: true } },
         photos: {
-          where: { deletedAt: null },
-          select: { id: true, url: true, type: true, createdAt: true },
+          select: { id: true, fileUrl: true, photoType: true, uploadedAt: true },
         },
         history: {
           orderBy: { createdAt: 'desc' },
           select: {
             id: true,
             action: true,
-            detail: true,
+            details: true,
             actorName: true,
             createdAt: true,
           },
@@ -109,7 +108,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         data: {
           packageId: id,
           action: 'released',
-          detail: `Released to ${input.releasedToName}`,
+          details: `Released to ${input.releasedToName}`,
+          actorId: auth.user.userId,
           actorName: 'Staff', // TODO: Get from auth
         },
       });
@@ -166,7 +166,8 @@ export async function DELETE(
       data: {
         packageId: id,
         action: 'deleted',
-        detail: 'Package deleted',
+        details: 'Package deleted',
+        actorId: auth.user.userId,
         actorName: 'Staff', // TODO: Get from auth
       },
     });

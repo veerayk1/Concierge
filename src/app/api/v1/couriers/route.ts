@@ -22,16 +22,20 @@ export async function GET(request: NextRequest) {
     }
 
     const couriers = await prisma.courierType.findMany({
-      where: { propertyId, deletedAt: null, isActive: true },
+      where: {
+        OR: [{ propertyId }, { propertyId: null, isSystem: true }],
+        isActive: true,
+      },
       select: {
         id: true,
         name: true,
-        icon: true,
+        slug: true,
+        iconUrl: true,
         color: true,
         isSystem: true,
-        notificationTemplate: true,
+        sortOrder: true,
       },
-      orderBy: [{ isSystem: 'desc' }, { name: 'asc' }],
+      orderBy: [{ isSystem: 'desc' }, { sortOrder: 'asc' }, { name: 'asc' }],
     });
 
     return NextResponse.json({ data: couriers });

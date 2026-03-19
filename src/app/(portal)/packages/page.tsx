@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
@@ -13,7 +13,6 @@ import {
   Inbox,
   Package,
   Plus,
-  Printer,
   Search,
   X,
   Clock,
@@ -558,7 +557,7 @@ export default function PackagesPage() {
           <DataTable
             columns={unreleasedColumns}
             data={unreleasedPackages}
-            onRowClick={(row) => router.push(`/packages/${row.id}`)}
+            onRowClick={(row) => router.push(`/packages/${row.id}` as never)}
           />
         ) : (
           <EmptyState
@@ -582,7 +581,7 @@ export default function PackagesPage() {
           <DataTable
             columns={releasedColumns}
             data={releasedPackages}
-            onRowClick={(row) => router.push(`/packages/${row.id}`)}
+            onRowClick={(row) => router.push(`/packages/${row.id}` as never)}
           />
         ) : (
           <EmptyState
