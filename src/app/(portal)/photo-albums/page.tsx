@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { CreateAlbumDialog } from '@/components/forms/create-album-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -146,8 +147,9 @@ export default function PhotoAlbumsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'All' | AlbumCategory>('All');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiAlbums } = useApi<AlbumItem[]>(
+  const { data: apiAlbums, refetch } = useApi<AlbumItem[]>(
     apiUrl('/api/v1/photo-albums', { propertyId: DEMO_PROPERTY_ID }),
   );
 
@@ -174,7 +176,7 @@ export default function PhotoAlbumsPage() {
       title="Photo Albums"
       description="Building photo galleries and community event albums."
       actions={
-        <Button size="sm">
+        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4" />
           New Album
         </Button>
@@ -275,7 +277,7 @@ export default function PhotoAlbumsPage() {
                 Clear Filters
               </Button>
             ) : (
-              <Button size="sm">
+              <Button size="sm" onClick={() => setShowCreateDialog(true)}>
                 <Plus className="h-4 w-4" />
                 New Album
               </Button>
@@ -340,6 +342,15 @@ export default function PhotoAlbumsPage() {
           ))}
         </div>
       )}
+      <CreateAlbumDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
+      />
     </PageShell>
   );
 }

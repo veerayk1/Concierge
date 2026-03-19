@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { CreateVisitorDialog } from '@/components/forms/create-visitor-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -191,8 +192,9 @@ export default function VisitorsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiVisitors } = useApi<VisitorItem[]>(
+  const { data: apiVisitors, refetch } = useApi<VisitorItem[]>(
     apiUrl('/api/v1/visitors', { propertyId: DEMO_PROPERTY_ID }),
   );
 
@@ -416,7 +418,7 @@ export default function VisitorsPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             Quick Sign In
           </Button>
@@ -575,6 +577,15 @@ export default function VisitorsPage() {
           />
         )}
       </div>
+      <CreateVisitorDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
+      />
     </PageShell>
   );
 }

@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { CreateSignageDialog } from '@/components/forms/create-signage-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -212,8 +213,9 @@ export default function DigitalSignagePage() {
   const [screenFilter, setScreenFilter] = useState<SignageScreen | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<SignageStatus | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiSignageItems } = useApi<SignageItem[]>(
+  const { data: apiSignageItems, refetch } = useApi<SignageItem[]>(
     apiUrl('/api/v1/digital-signage', { propertyId: DEMO_PROPERTY_ID }),
   );
 
@@ -352,7 +354,7 @@ export default function DigitalSignagePage() {
             <Eye className="h-4 w-4" />
             Preview Mode
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             New Content
           </Button>
@@ -511,6 +513,15 @@ export default function DigitalSignagePage() {
         data={filteredItems}
         emptyMessage="No signage content found."
         emptyIcon={<Monitor className="h-6 w-6" />}
+      />
+      <CreateSignageDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );

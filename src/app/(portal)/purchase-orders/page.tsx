@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { CreatePurchaseOrderDialog } from '@/components/forms/create-purchase-order-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -208,8 +209,9 @@ export default function PurchaseOrdersPage() {
   const [categoryFilter, setCategoryFilter] = useState<POCategory | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<POPriority | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const { data: apiPurchaseOrders } = useApi<PurchaseOrderItem[]>(
+  const { data: apiPurchaseOrders, refetch } = useApi<PurchaseOrderItem[]>(
     apiUrl('/api/v1/purchase-orders', { propertyId: DEMO_PROPERTY_ID }),
   );
 
@@ -353,7 +355,7 @@ export default function PurchaseOrdersPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             New PO
           </Button>
@@ -512,6 +514,15 @@ export default function PurchaseOrdersPage() {
         data={filteredPurchaseOrders}
         emptyMessage="No purchase orders found."
         emptyIcon={<ShoppingCart className="h-6 w-6" />}
+      />
+      <CreatePurchaseOrderDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        propertyId={DEMO_PROPERTY_ID}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
       />
     </PageShell>
   );
