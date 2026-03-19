@@ -1,9 +1,10 @@
 /**
  * Onboarding Wizard API — per PRD 23
- * 8-step guided property setup
+ * 8-step guided property setup backed by Prisma
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 
 const ONBOARDING_STEPS = [
@@ -41,16 +42,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // In production, track completion per property
+    // Fetch persisted progress for this property
+    const progress = await prisma.onboardingProgress.findFirst({
+      where: { propertyId },
+    });
+
+    const completedSteps = progress?.completedSteps ?? [];
+    const currentStep = progress?.currentStep ?? 1;
+    const isComplete = progress?.completedAt !== null && progress?.completedAt !== undefined;
+
     return NextResponse.json({
       data: {
         steps: ONBOARDING_STEPS.map((s) => ({
           ...s,
-          completed: false,
-          completedAt: null,
+          completed: completedSteps.includes(s.step),
+          completedAt: completedSteps.includes(s.step) ? (progress?.updatedAt ?? null) : null,
         })),
-        currentStep: 1,
-        isComplete: false,
+        currentStep,
+        isComplete,
       },
     });
   } catch (error) {
@@ -77,7 +86,49 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // TODO: Store progress in database
+    // Fetch existing progress to merge completedSteps
+    const existing = await prisma.onboardingProgress.findFirst({
+      where: { propertyId },
+    });
+
+    const currentCompleted = existing?.completedSteps ?? [];
+    let updatedCompleted: number[];
+
+    if (completed) {
+      // Add step if not already present
+      updatedCompleted = currentCompleted.includes(step)
+        ? currentCompleted
+        : [...currentCompleted, step].sort((a, b) => a - b);
+    } else {
+      // Remove step
+      updatedCompleted = currentCompleted.filter((s) => s !== step);
+    }
+
+    // Determine next current step (first incomplete step, or last step)
+    const nextCurrentStep =
+      ONBOARDING_STEPS.find((s) => !updatedCompleted.includes(s.step))?.step ??
+      ONBOARDING_STEPS.length;
+
+    // Check if all required steps are done
+    const requiredSteps = ONBOARDING_STEPS.filter((s) => s.required).map((s) => s.step);
+    const allRequiredDone = requiredSteps.every((s) => updatedCompleted.includes(s));
+
+    await prisma.onboardingProgress.upsert({
+      where: { propertyId },
+      update: {
+        completedSteps: updatedCompleted,
+        currentStep: nextCurrentStep,
+        completedAt: allRequiredDone ? new Date() : null,
+      },
+      create: {
+        propertyId,
+        completedSteps: updatedCompleted,
+        currentStep: nextCurrentStep,
+        completedAt: allRequiredDone ? new Date() : null,
+        stepData: {},
+      },
+    });
+
     return NextResponse.json({
       message: `Step ${step} ${completed ? 'completed' : 'uncompleted'}.`,
       data: { step, completed },

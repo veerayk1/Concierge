@@ -1,12 +1,13 @@
 /**
  * Feature Flags API — per docs/tech/FEATURE-FLAGS.md
- * Per-property feature flag system
+ * Per-property feature flag system backed by Prisma
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 
-// Feature flags stored in-memory for now (will be DB-backed)
+// Default flag definitions used when no DB records exist yet
 const DEFAULT_FLAGS: Record<
   string,
   { name: string; description: string; enabled: boolean; tier: string }
@@ -123,11 +124,37 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // In production, merge property-specific overrides with defaults
-    const flags = Object.entries(DEFAULT_FLAGS).map(([key, flag]) => ({
-      key,
-      ...flag,
-    }));
+    // Fetch all feature flags from the database
+    const dbFlags = await prisma.featureFlag.findMany();
+
+    // Build a map of DB flags keyed by flag key
+    const dbFlagMap = new Map(dbFlags.map((f) => [f.key, f]));
+
+    // Merge DB records with defaults, applying per-property overrides
+    const flags = Object.entries(DEFAULT_FLAGS).map(([key, defaultDef]) => {
+      const dbFlag = dbFlagMap.get(key);
+
+      if (dbFlag) {
+        // Check for a property-specific override in the JSONB column
+        const overrides = (dbFlag.propertyOverrides ?? {}) as Record<string, boolean>;
+        const propertyOverride = overrides[propertyId];
+        const enabled = propertyOverride !== undefined ? propertyOverride : dbFlag.defaultValue;
+
+        return {
+          key,
+          name: defaultDef.name,
+          description: dbFlag.description ?? defaultDef.description,
+          enabled,
+          tier: dbFlag.tierRequirement?.toLowerCase() ?? defaultDef.tier,
+        };
+      }
+
+      // No DB record — fall back to hardcoded default
+      return {
+        key,
+        ...defaultDef,
+      };
+    });
 
     return NextResponse.json({ data: flags });
   } catch (error) {
@@ -154,7 +181,26 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // TODO: Store override in database
+    // Upsert the flag record, then set the property-specific override
+    const existing = await prisma.featureFlag.findUnique({ where: { key } });
+
+    const defaultDef = DEFAULT_FLAGS[key];
+    const currentOverrides = (existing?.propertyOverrides ?? {}) as Record<string, boolean>;
+    const updatedOverrides = { ...currentOverrides, [propertyId]: enabled };
+
+    await prisma.featureFlag.upsert({
+      where: { key },
+      update: {
+        propertyOverrides: updatedOverrides,
+      },
+      create: {
+        key,
+        description: defaultDef?.description ?? null,
+        defaultValue: defaultDef?.enabled ?? false,
+        propertyOverrides: updatedOverrides,
+      },
+    });
+
     return NextResponse.json({
       message: `Feature flag "${key}" ${enabled ? 'enabled' : 'disabled'}.`,
     });

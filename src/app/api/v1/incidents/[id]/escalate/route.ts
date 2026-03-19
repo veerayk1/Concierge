@@ -8,6 +8,10 @@ import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { sendEmail } from '@/server/email';
+import { createLogger } from '@/server/logger';
+
+const logger = createLogger('incident-escalate');
 
 const escalateSchema = z.object({
   escalateTo: z.string().min(1, 'Escalation target is required').max(200),
@@ -48,8 +52,44 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       },
     });
 
-    // TODO: Send notification to escalation target
-    // TODO: Log escalation in event history
+    // Notify the escalation target (property manager) via email (fire-and-forget)
+    const targetUsers = await prisma.userProperty.findMany({
+      where: {
+        propertyId: event.propertyId,
+        deletedAt: null,
+        role: { slug: 'property_manager' },
+        user: { isActive: true, deletedAt: null },
+      },
+      select: { user: { select: { email: true, firstName: true } } },
+    });
+
+    for (const pu of targetUsers) {
+      void sendEmail({
+        to: pu.user.email,
+        subject: `Incident Escalated — ${event.title}`,
+        text: `Hi${pu.user.firstName ? ` ${pu.user.firstName}` : ''},\n\nAn incident has been escalated to you.\n\nIncident: ${event.title}\nPriority: ${input.priority}\nReason: ${input.reason}\n\nPlease review as soon as possible.\n\n— Concierge`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 16px;">
+            <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 16px;">Incident Escalated</h2>
+            <p>Hi${pu.user.firstName ? ` ${pu.user.firstName}` : ''},</p>
+            <p>An incident has been escalated to you:</p>
+            <ul>
+              <li><strong>Incident:</strong> ${event.title}</li>
+              <li><strong>Priority:</strong> ${input.priority}</li>
+              <li><strong>Reason:</strong> ${input.reason}</li>
+            </ul>
+            <p>Please review as soon as possible.</p>
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+            <p style="color: #94a3b8; font-size: 12px;">Concierge — Building Management</p>
+          </div>
+        `,
+      }).catch((err) => {
+        logger.error(
+          { err, eventId: id, recipientEmail: pu.user.email },
+          'Failed to send escalation email',
+        );
+      });
+    }
 
     return NextResponse.json({
       data: event,

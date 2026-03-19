@@ -128,12 +128,18 @@ export async function processPerishableEscalation(
     },
   });
 
-  // TODO: Actually send notifications based on step.action
+  // Notification dispatch point — send based on escalation step.
+  // Requires resolving the resident's email from the DB via pkg.residentId
+  // or the unit's contact list. Each step targets a different audience:
+  //
   // - immediate_notification: email + sms + push to resident
   // - follow_up_reminder: email reminder to resident
-  // - secondary_contact: notify emergency contact
-  // - supervisor_alert: notify property manager
-  // - management_review: create task for admin
+  // - secondary_contact: notify emergency contact for the unit
+  // - supervisor_alert: notify property manager(s)
+  // - management_review: create task for property admin(s)
+  //
+  // Implementation will call sendEmail() from @/server/email once the
+  // resident/contact lookup is wired into this workflow's data fetching.
 
   return { action: nextStep.action, description: nextStep.description };
 }
