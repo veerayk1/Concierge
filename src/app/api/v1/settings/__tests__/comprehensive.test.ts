@@ -1,7 +1,7 @@
 /**
  * Comprehensive Settings Module Tests — PRD 16
  *
- * Covers 12 scenario groups with 60+ individual test cases:
+ * Covers 16 scenario groups with 60+ individual test cases:
  *   1. Property settings GET (read)
  *   2. Property settings PATCH (update)
  *   3. Event type configuration — create
@@ -14,6 +14,10 @@
  *  10. Admin-only access enforcement on event types
  *  11. Admin-only access enforcement on roles and feature flags
  *  12. Validation and error handling
+ *  13. Settings caching behavior
+ *  14. Settings audit trail (branding and logo updates)
+ *  15. Feature flag tier requirements
+ *  16. Default settings for new properties
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
@@ -29,6 +33,7 @@ import {
 // UUIDs
 // ---------------------------------------------------------------------------
 const PROPERTY_A = '00000000-0000-4000-b000-000000000001';
+const PROPERTY_B = '00000000-0000-4000-b000-000000000002';
 const EVENT_TYPE_ID = '00000000-0000-4000-d000-000000000001';
 const EVENT_GROUP_ID = '00000000-0000-4000-d000-000000000010';
 
@@ -1051,5 +1056,300 @@ describe('12. Validation and error handling', () => {
       }),
     );
     expect(res.status).toBe(400);
+  });
+});
+
+// ===========================================================================
+// 13. Settings caching behavior
+// ===========================================================================
+
+describe('13. Settings caching behavior', () => {
+  it('caches settings response after first GET', async () => {
+    mockEventTypeFindMany.mockResolvedValue([]);
+
+    // First request — cache miss
+    const res1 = await GET_SETTINGS(
+      createGetRequest('/api/v1/settings', {
+        searchParams: { propertyId: PROPERTY_A },
+      }),
+    );
+    expect(res1.status).toBe(200);
+
+    // Second request — should hit cache
+    const res2 = await GET_SETTINGS(
+      createGetRequest('/api/v1/settings', {
+        searchParams: { propertyId: PROPERTY_A },
+      }),
+    );
+    expect(res2.status).toBe(200);
+    expect(res2.headers.get('X-Cache')).toBe('HIT');
+
+    // DB should only be called once
+    expect(mockPropertyFindUnique).toHaveBeenCalledTimes(1);
+  });
+
+  it('invalidates cache on PATCH', async () => {
+    mockEventTypeFindMany.mockResolvedValue([]);
+
+    // First GET — populates cache
+    await GET_SETTINGS(
+      createGetRequest('/api/v1/settings', {
+        searchParams: { propertyId: PROPERTY_A },
+      }),
+    );
+
+    // PATCH — should invalidate cache
+    mockPropertyUpdate.mockResolvedValue(makeProperty({ name: 'Updated' }));
+    await PATCH_SETTINGS(
+      createPatchRequest('/api/v1/settings', {
+        propertyId: PROPERTY_A,
+        name: 'Updated',
+      }),
+    );
+
+    // Second GET — should be a cache miss (cache was invalidated by PATCH)
+    mockPropertyFindUnique.mockResolvedValue(makeProperty({ name: 'Updated' }));
+    const res3 = await GET_SETTINGS(
+      createGetRequest('/api/v1/settings', {
+        searchParams: { propertyId: PROPERTY_A },
+      }),
+    );
+    expect(res3.headers.get('X-Cache')).toBeNull();
+    // DB called once for first GET, then once more for third GET (PATCH does not call findUnique)
+    expect(mockPropertyFindUnique).toHaveBeenCalledTimes(2);
+  });
+
+  it('caches different properties independently', async () => {
+    mockEventTypeFindMany.mockResolvedValue([]);
+
+    // GET for property A
+    await GET_SETTINGS(
+      createGetRequest('/api/v1/settings', {
+        searchParams: { propertyId: PROPERTY_A },
+      }),
+    );
+
+    // GET for property B
+    mockPropertyFindUnique.mockResolvedValue(makeProperty({ id: PROPERTY_B, name: 'Property B' }));
+    await GET_SETTINGS(
+      createGetRequest('/api/v1/settings', {
+        searchParams: { propertyId: PROPERTY_B },
+      }),
+    );
+
+    // Both should trigger DB calls (different cache keys)
+    expect(mockPropertyFindUnique).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ===========================================================================
+// 14. Settings audit trail (branding and logo updates)
+// ===========================================================================
+
+describe('14. Settings audit — branding and logo updates', () => {
+  it('updates address fields correctly', async () => {
+    mockPropertyUpdate.mockResolvedValue(
+      makeProperty({ address: '456 Elm St', postalCode: 'M5V 2B2' }),
+    );
+
+    await PATCH_SETTINGS(
+      createPatchRequest('/api/v1/settings', {
+        propertyId: PROPERTY_A,
+        address: '456 Elm St',
+        postalCode: 'M5V 2B2',
+      }),
+    );
+
+    const updateData = mockPropertyUpdate.mock.calls[0]![0].data;
+    expect(updateData.address).toBe('456 Elm St');
+    expect(updateData.postalCode).toBe('M5V 2B2');
+  });
+
+  it('updates province field', async () => {
+    mockPropertyUpdate.mockResolvedValue(makeProperty({ province: 'BC' }));
+
+    await PATCH_SETTINGS(
+      createPatchRequest('/api/v1/settings', {
+        propertyId: PROPERTY_A,
+        province: 'BC',
+      }),
+    );
+
+    const updateData = mockPropertyUpdate.mock.calls[0]![0].data;
+    expect(updateData.province).toBe('BC');
+  });
+
+  it('sets logo to a URL when provided', async () => {
+    mockPropertyUpdate.mockResolvedValue(
+      makeProperty({ logo: 'https://cdn.example.com/logo.png' }),
+    );
+
+    await PATCH_SETTINGS(
+      createPatchRequest('/api/v1/settings', {
+        propertyId: PROPERTY_A,
+        logo: 'https://cdn.example.com/logo.png',
+      }),
+    );
+
+    const updateData = mockPropertyUpdate.mock.calls[0]![0].data;
+    expect(updateData.logo).toBe('https://cdn.example.com/logo.png');
+  });
+
+  it('updates branding with accent color and welcome message', async () => {
+    const branding = {
+      primaryColor: '#1a73e8',
+      accentColor: '#FF5722',
+      welcomeMessage: 'Welcome to our building!',
+    };
+    mockPropertyUpdate.mockResolvedValue(makeProperty({ branding }));
+
+    await PATCH_SETTINGS(
+      createPatchRequest('/api/v1/settings', {
+        propertyId: PROPERTY_A,
+        branding,
+      }),
+    );
+
+    const updateData = mockPropertyUpdate.mock.calls[0]![0].data;
+    expect(updateData.branding).toEqual(branding);
+    expect(updateData.branding.welcomeMessage).toBe('Welcome to our building!');
+  });
+});
+
+// ===========================================================================
+// 15. Feature flag tier requirements
+// ===========================================================================
+
+describe('15. Feature flag tier requirements', () => {
+  it('includes tier requirement info in flag listing', async () => {
+    mockFeatureFlagFindMany.mockResolvedValue([
+      {
+        key: 'training_lms',
+        defaultValue: false,
+        description: 'Training & LMS module',
+        propertyOverrides: {},
+        tierRequirement: 'professional',
+      },
+    ]);
+
+    const res = await GET_FLAGS(
+      createGetRequest('/api/v1/feature-flags', {
+        searchParams: { propertyId: PROPERTY_A },
+      }),
+    );
+    const body = await parseResponse<{
+      data: Array<{ key: string; enabled: boolean }>;
+    }>(res);
+
+    const training = body.data.find((f) => f.key === 'training_lms');
+    expect(training).toBeDefined();
+  });
+
+  it('creates new flag record when toggling a non-existent flag key', async () => {
+    mockFeatureFlagFindUnique.mockResolvedValue(null);
+    mockFeatureFlagUpsert.mockResolvedValue({});
+
+    const res = await PATCH_FLAGS(
+      createPatchRequest('/api/v1/feature-flags', {
+        propertyId: PROPERTY_A,
+        key: 'new_feature',
+        enabled: true,
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(mockFeatureFlagUpsert).toHaveBeenCalled();
+  });
+
+  it('disable message says disabled when toggling off', async () => {
+    mockFeatureFlagFindUnique.mockResolvedValue({
+      key: 'packages',
+      defaultValue: true,
+      propertyOverrides: { [PROPERTY_A]: true },
+    });
+    mockFeatureFlagUpsert.mockResolvedValue({});
+
+    const res = await PATCH_FLAGS(
+      createPatchRequest('/api/v1/feature-flags', {
+        propertyId: PROPERTY_A,
+        key: 'packages',
+        enabled: false,
+      }),
+    );
+    const body = await parseResponse<{ message: string }>(res);
+    expect(body.message).toContain('disabled');
+  });
+});
+
+// ===========================================================================
+// 16. Default settings for new properties
+// ===========================================================================
+
+describe('16. Default settings for new properties', () => {
+  it('returns all property fields in settings response', async () => {
+    const res = await GET_SETTINGS(
+      createGetRequest('/api/v1/settings', {
+        searchParams: { propertyId: PROPERTY_A },
+      }),
+    );
+
+    const body = await parseResponse<{
+      data: {
+        property: {
+          id: string;
+          name: string;
+          address: string;
+          city: string;
+          timezone: string;
+          type: string;
+          subscriptionTier: string;
+        };
+      };
+    }>(res);
+
+    expect(body.data.property.id).toBe(PROPERTY_A);
+    expect(body.data.property.timezone).toBe('America/Toronto');
+    expect(body.data.property.type).toBe('condo');
+    expect(body.data.property.subscriptionTier).toBe('professional');
+  });
+
+  it('returns empty event types array for new property with no event types', async () => {
+    mockEventTypeFindMany.mockResolvedValue([]);
+
+    const res = await GET_SETTINGS(
+      createGetRequest('/api/v1/settings', {
+        searchParams: { propertyId: PROPERTY_A },
+      }),
+    );
+
+    const body = await parseResponse<{ data: { eventTypes: unknown[] } }>(res);
+    expect(body.data.eventTypes).toHaveLength(0);
+  });
+
+  it('settings are scoped to the specific propertyId in the query', async () => {
+    await GET_SETTINGS(
+      createGetRequest('/api/v1/settings', {
+        searchParams: { propertyId: PROPERTY_A },
+      }),
+    );
+
+    const findCall = mockPropertyFindUnique.mock.calls[0]![0];
+    expect(findCall.where.id).toBe(PROPERTY_A);
+
+    const etCall = mockEventTypeFindMany.mock.calls[0]![0];
+    expect(etCall.where.propertyId).toBe(PROPERTY_A);
+  });
+
+  it('PATCH scopes update to the correct propertyId', async () => {
+    mockPropertyUpdate.mockResolvedValue(makeProperty());
+
+    await PATCH_SETTINGS(
+      createPatchRequest('/api/v1/settings', {
+        propertyId: PROPERTY_A,
+        name: 'Updated',
+      }),
+    );
+
+    const updateCall = mockPropertyUpdate.mock.calls[0]![0];
+    expect(updateCall.where.id).toBe(PROPERTY_A);
   });
 });

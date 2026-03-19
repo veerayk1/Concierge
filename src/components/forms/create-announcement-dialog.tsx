@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Mail, Megaphone, Send, Smartphone } from 'lucide-react';
+import { Megaphone } from 'lucide-react';
 import { z } from 'zod';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -17,18 +17,44 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 const announcementSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
-  body: z.string().min(1, 'Body is required').max(10000),
-  priority: z.enum(['normal', 'important', 'urgent']).default('normal'),
+  content: z.string().min(10, 'Content must be at least 10 characters').max(10000),
+  category: z.enum(['general', 'maintenance', 'safety', 'community', 'policy', 'event']),
+  priority: z.enum(['normal', 'important', 'urgent', 'emergency']),
   channels: z.object({
-    web: z.boolean().default(true),
-    email: z.boolean().default(true),
+    email: z.boolean().default(false),
     sms: z.boolean().default(false),
-    push: z.boolean().default(true),
+    push: z.boolean().default(false),
+    lobby_display: z.boolean().default(false),
   }),
-  status: z.enum(['draft', 'published']).default('draft'),
+  targetAudience: z.enum(['all_residents', 'specific_floors', 'specific_units', 'staff_only']),
+  scheduleForLater: z.boolean().default(false),
+  scheduledAt: z.string().optional(),
 });
 
-type AnnouncementFormInput = z.infer<typeof announcementSchema>;
+type AnnouncementInput = z.infer<typeof announcementSchema>;
+
+const CATEGORIES = [
+  { value: 'general', label: 'General' },
+  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'safety', label: 'Safety' },
+  { value: 'community', label: 'Community' },
+  { value: 'policy', label: 'Policy' },
+  { value: 'event', label: 'Event' },
+];
+
+const PRIORITIES = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'important', label: 'Important' },
+  { value: 'urgent', label: 'Urgent' },
+  { value: 'emergency', label: 'Emergency' },
+];
+
+const TARGET_AUDIENCES = [
+  { value: 'all_residents', label: 'All Residents' },
+  { value: 'specific_floors', label: 'Specific Floors' },
+  { value: 'specific_units', label: 'Specific Units' },
+  { value: 'staff_only', label: 'Staff Only' },
+];
 
 interface CreateAnnouncementDialogProps {
   open: boolean;
@@ -52,22 +78,35 @@ export function CreateAnnouncementDialog({
     watch,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<AnnouncementFormInput>({
+  } = useForm<AnnouncementInput>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(announcementSchema) as any,
     defaultValues: {
       title: '',
-      body: '',
+      content: '',
+      category: 'general',
       priority: 'normal',
-      channels: { web: true, email: true, sms: false, push: true },
-      status: 'draft',
+      channels: { email: false, sms: false, push: false, lobby_display: false },
+      targetAudience: 'all_residents',
+      scheduleForLater: false,
+      scheduledAt: '',
     },
   });
 
   const channels = watch('channels');
-  const priority = watch('priority');
+  const scheduleForLater = watch('scheduleForLater');
 
-  async function onSubmit(data: AnnouncementFormInput) {
+  const selectClass =
+    'focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none';
+  const selectErrorClass =
+    'focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-error-300 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none';
+  const textareaBase =
+    'w-full rounded-xl border bg-white px-4 py-3 text-[15px] leading-relaxed text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none';
+  const textareaDefault =
+    'focus:border-primary-500 focus:ring-primary-100 border-neutral-200 hover:border-neutral-300';
+  const textareaError = 'border-error-300 focus:border-error-500 focus:ring-error-100';
+
+  async function onSubmit(data: AnnouncementInput) {
     setServerError(null);
     try {
       const channelList = Object.entries(data.channels)
@@ -85,10 +124,12 @@ export function CreateAnnouncementDialog({
         body: JSON.stringify({
           propertyId,
           title: data.title,
-          body: data.body,
+          content: data.content,
+          category: data.category,
           priority: data.priority,
           channels: channelList,
-          status: data.status,
+          targetAudience: data.targetAudience,
+          scheduledAt: data.scheduleForLater ? data.scheduledAt : undefined,
         }),
       });
 
@@ -108,7 +149,7 @@ export function CreateAnnouncementDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
           <Megaphone className="text-primary-500 h-5 w-5" />
           New Announcement
@@ -134,81 +175,75 @@ export function CreateAnnouncementDialog({
 
           <div className="flex flex-col gap-2">
             <label className="text-[14px] font-medium text-neutral-700">
-              Body<span className="text-error-500 ml-0.5">*</span>
+              Content<span className="text-error-500 ml-0.5">*</span>
             </label>
             <textarea
-              {...register('body')}
-              placeholder="Write your announcement..."
-              rows={6}
-              className={`w-full rounded-xl border bg-white px-4 py-3 text-[15px] leading-relaxed text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none ${
-                errors.body
-                  ? 'border-error-300 focus:border-error-500 focus:ring-error-100'
-                  : 'focus:border-primary-500 focus:ring-primary-100 border-neutral-200 hover:border-neutral-300'
-              }`}
+              {...register('content')}
+              placeholder="Write your announcement content..."
+              rows={5}
+              className={`${textareaBase} ${errors.content ? textareaError : textareaDefault}`}
+              maxLength={10000}
             />
-            {errors.body && (
-              <p className="text-error-600 text-[13px] font-medium">{errors.body.message}</p>
+            {errors.content && (
+              <p className="text-error-600 text-[13px] font-medium">{errors.content.message}</p>
             )}
           </div>
 
-          {/* Priority */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[14px] font-medium text-neutral-700">Priority</label>
-            <div className="flex gap-2">
-              {(['normal', 'important', 'urgent'] as const).map((p) => {
-                const colors = {
-                  normal: 'bg-neutral-100 text-neutral-600',
-                  important: 'bg-warning-50 text-warning-700',
-                  urgent: 'bg-error-50 text-error-700',
-                };
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setValue('priority', p)}
-                    className={`flex-1 rounded-xl py-2 text-[13px] font-semibold capitalize transition-all ${
-                      priority === p
-                        ? 'ring-primary-500 ring-2 ' + colors[p]
-                        : colors[p] + ' opacity-60'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">
+                Category<span className="text-error-500 ml-0.5">*</span>
+              </label>
+              <select
+                {...register('category')}
+                className={errors.category ? selectErrorClass : selectClass}
+              >
+                {CATEGORIES.map((cat) => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+              {errors.category && (
+                <p className="text-error-600 text-[13px] font-medium">{errors.category.message}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">
+                Priority<span className="text-error-500 ml-0.5">*</span>
+              </label>
+              <select
+                {...register('priority')}
+                className={errors.priority ? selectErrorClass : selectClass}
+              >
+                {PRIORITIES.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+              {errors.priority && (
+                <p className="text-error-600 text-[13px] font-medium">{errors.priority.message}</p>
+              )}
             </div>
           </div>
 
-          {/* Channels */}
+          {/* Distribution Channels */}
           <div className="flex flex-col gap-2">
             <label className="text-[14px] font-medium text-neutral-700">
               Distribution Channels
             </label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                {
-                  key: 'web' as const,
-                  label: 'Web Portal',
-                  icon: Megaphone,
-                  desc: 'Show on dashboard and announcements page',
-                },
-                {
-                  key: 'email' as const,
-                  label: 'Email',
-                  icon: Mail,
-                  desc: 'Send to all residents via email',
-                },
-                {
-                  key: 'sms' as const,
-                  label: 'SMS',
-                  icon: Smartphone,
-                  desc: 'Send text message to residents',
-                },
-                { key: 'push' as const, label: 'Push', icon: Send, desc: 'Send push notification' },
+                { key: 'email' as const, label: 'Email' },
+                { key: 'sms' as const, label: 'SMS' },
+                { key: 'push' as const, label: 'Push Notification' },
+                { key: 'lobby_display' as const, label: 'Lobby Display' },
               ].map((ch) => (
                 <div
                   key={ch.key}
-                  className={`flex items-start gap-3 rounded-xl border p-3 transition-all ${
+                  className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${
                     channels[ch.key]
                       ? 'border-primary-200 bg-primary-50/30'
                       : 'border-neutral-200 bg-white'
@@ -219,13 +254,55 @@ export function CreateAnnouncementDialog({
                     onCheckedChange={(c) => setValue(`channels.${ch.key}`, c === true)}
                     id={`channel-${ch.key}`}
                   />
-                  <div>
-                    <p className="text-[14px] font-medium text-neutral-900">{ch.label}</p>
-                    <p className="text-[12px] text-neutral-500">{ch.desc}</p>
-                  </div>
+                  <label
+                    htmlFor={`channel-${ch.key}`}
+                    className="cursor-pointer text-[14px] font-medium text-neutral-900"
+                  >
+                    {ch.label}
+                  </label>
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Target Audience */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] font-medium text-neutral-700">
+              Target Audience<span className="text-error-500 ml-0.5">*</span>
+            </label>
+            <select
+              {...register('targetAudience')}
+              className={errors.targetAudience ? selectErrorClass : selectClass}
+            >
+              {TARGET_AUDIENCES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+            {errors.targetAudience && (
+              <p className="text-error-600 text-[13px] font-medium">
+                {errors.targetAudience.message}
+              </p>
+            )}
+          </div>
+
+          {/* Schedule */}
+          <div className="flex flex-col gap-3">
+            <Checkbox
+              checked={scheduleForLater}
+              onCheckedChange={(c) => setValue('scheduleForLater', c === true)}
+              label="Schedule for later"
+              id="schedule-for-later"
+            />
+            {scheduleForLater && (
+              <Input
+                {...register('scheduledAt')}
+                type="datetime-local"
+                label="Scheduled Date & Time"
+                error={errors.scheduledAt?.message}
+              />
+            )}
           </div>
 
           {/* Actions */}
@@ -240,24 +317,8 @@ export function CreateAnnouncementDialog({
             >
               Cancel
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setValue('status', 'draft');
-                handleSubmit(onSubmit)();
-              }}
-              disabled={isSubmitting}
-            >
-              Save as Draft
-            </Button>
-            <Button
-              type="submit"
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              onClick={() => setValue('status', 'published')}
-            >
-              {isSubmitting ? 'Publishing...' : 'Publish Now'}
+            <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
+              {isSubmitting ? 'Publishing...' : 'Publish Announcement'}
             </Button>
           </div>
         </form>

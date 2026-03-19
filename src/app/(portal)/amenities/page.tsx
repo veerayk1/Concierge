@@ -279,6 +279,7 @@ export default function AmenitiesPage() {
       <CreateBookingDialog
         open={showBookingDialog}
         onOpenChange={setShowBookingDialog}
+        propertyId={DEMO_PROPERTY_ID}
         onSuccess={() => {
           setShowBookingDialog(false);
           refetch();
