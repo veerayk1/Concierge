@@ -104,7 +104,12 @@ export async function POST(request: NextRequest) {
         address: body.address,
         city: body.city,
         province: body.province,
-        country: body.country || 'CA',
+        country:
+          (body.country && body.country.length > 2
+            ? body.country.toLowerCase().startsWith('can')
+              ? 'CA'
+              : body.country.substring(0, 2).toUpperCase()
+            : body.country) || 'CA',
         postalCode: body.postalCode,
         unitCount: body.unitCount || 0,
         timezone: body.timezone || 'America/Toronto',
@@ -118,10 +123,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: property }, { status: 201 });
   } catch (error) {
-    console.error('POST /api/v1/properties error:', error);
-    return NextResponse.json(
-      { error: 'INTERNAL_ERROR', message: 'Failed to create property' },
-      { status: 500 },
-    );
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('POST /api/v1/properties error:', msg);
+    // Provide actionable error messages
+    let userMessage = 'Failed to create property';
+    if (msg.includes('Unique constraint'))
+      userMessage = 'A property with this name or slug already exists';
+    else if (msg.includes('VarChar')) userMessage = 'One of the fields exceeds the maximum length';
+    else if (msg.includes('foreign key')) userMessage = 'Invalid reference data';
+    return NextResponse.json({ error: 'INTERNAL_ERROR', message: userMessage }, { status: 500 });
   }
 }
