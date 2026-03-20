@@ -364,7 +364,7 @@ describe('Date range queries — indexed date columns', () => {
     const startTime = where.startTime as Record<string, Date>;
     expect(startTime.gte).toBeInstanceOf(Date);
     expect(startTime.lte).toBeInstanceOf(Date);
-    expect(startTime.gte.getTime()).toBeLessThan(startTime.lte.getTime());
+    expect(startTime.gte!.getTime()).toBeLessThan(startTime.lte!.getTime());
   });
 
   it('Event ordering uses createdAt desc (indexed)', () => {

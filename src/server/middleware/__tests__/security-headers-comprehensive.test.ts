@@ -49,7 +49,7 @@ describe('Content-Security-Policy header', () => {
   it('CSP header is present on all responses', () => {
     const headers = getSecurityHeaders(TEST_NONCE);
     expect(headers).toHaveProperty('Content-Security-Policy');
-    expect(headers['Content-Security-Policy'].length).toBeGreaterThan(0);
+    expect(headers['Content-Security-Policy']!.length).toBeGreaterThan(0);
   });
 
   it("CSP includes default-src 'self'", () => {
@@ -73,7 +73,7 @@ describe('Content-Security-Policy header', () => {
   it("CSP script-src does NOT include 'unsafe-inline'", () => {
     const headers = getSecurityHeaders(TEST_NONCE);
     const csp = headers['Content-Security-Policy'];
-    const scriptSrc = csp.split(';').find((d: string) => d.trim().startsWith('script-src'));
+    const scriptSrc = csp!.split(';').find((d: string) => d.trim().startsWith('script-src'));
     expect(scriptSrc).toBeDefined();
     expect(scriptSrc!).not.toContain("'unsafe-inline'");
   });
@@ -205,9 +205,9 @@ describe('Strict-Transport-Security (HSTS) header', () => {
   it('HSTS max-age is at least 1 year (31536000 seconds)', () => {
     const headers = getSecurityHeaders(TEST_NONCE);
     const hsts = headers['Strict-Transport-Security'];
-    const maxAgeMatch = hsts.match(/max-age=(\d+)/);
+    const maxAgeMatch = hsts!.match(/max-age=(\d+)/);
     expect(maxAgeMatch).not.toBeNull();
-    const maxAge = parseInt(maxAgeMatch![1], 10);
+    const maxAge = parseInt(maxAgeMatch![1]!, 10);
     expect(maxAge).toBeGreaterThanOrEqual(31536000);
   });
 
@@ -330,7 +330,7 @@ describe('CORS headers on API routes', () => {
   it('OPTIONS preflight returns Access-Control-Max-Age', () => {
     const headers = getCorsHeaders(ALLOWED_ORIGIN, 'OPTIONS');
     expect(headers['Access-Control-Max-Age']).toBeDefined();
-    const maxAge = parseInt(headers['Access-Control-Max-Age'], 10);
+    const maxAge = parseInt(headers['Access-Control-Max-Age']!, 10);
     expect(maxAge).toBeGreaterThan(0);
   });
 

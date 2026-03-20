@@ -150,15 +150,16 @@ function describeRoute(routePath: string, methods: string[]): string {
     'deactivate',
     'reactivate',
     'switch',
-  ].includes(relevantSegments[relevantSegments.length - 1]);
+  ].includes(relevantSegments[relevantSegments.length - 1]!);
 
   const isSubResource = relevantSegments.length >= 3 && !isAction;
   const methodList = methods.join('/');
 
   if (isAction) {
-    const action = relevantSegments[relevantSegments.length - 1]
-      .replace(/-/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    const action = relevantSegments[relevantSegments.length - 1]!.replace(/-/g, ' ').replace(
+      /\b\w/g,
+      (c) => c.toUpperCase(),
+    );
     const parent = relevantSegments
       .filter((s) => !s.startsWith('[') && s !== relevantSegments[relevantSegments.length - 1])
       .join(' ');
@@ -166,8 +167,8 @@ function describeRoute(routePath: string, methods: string[]): string {
   }
 
   if (isSubResource && hasId) {
-    const parent = relevantSegments[0].replace(/-/g, ' ');
-    const sub = relevantSegments[relevantSegments.length - 1].replace(/-/g, ' ');
+    const parent = relevantSegments[0]!.replace(/-/g, ' ');
+    const sub = relevantSegments[relevantSegments.length - 1]!.replace(/-/g, ' ');
     return `Manage ${sub} for a specific ${parent.replace(/s$/, '')}`;
   }
 

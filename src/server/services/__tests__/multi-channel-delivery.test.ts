@@ -541,7 +541,7 @@ describe('Fallback when primary channel fails', () => {
 
   it('SMS fails gracefully when no phone number is on file', () => {
     const phone: string | undefined = undefined;
-    const canSendSms = phone !== undefined && phone.startsWith('+');
+    const canSendSms = phone !== undefined && (phone as string).startsWith('+');
 
     expect(canSendSms).toBe(false);
   });

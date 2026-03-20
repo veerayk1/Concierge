@@ -193,14 +193,14 @@ describe('Live regions — aria-live for dynamic content', () => {
 
 describe('Table headers — scope="col" attribute', () => {
   it('Table column headers are rendered as <th> elements', () => {
-    render(createElement(DataTable, { columns: testColumns, data: testData }));
+    render(createElement(DataTable, { columns: testColumns, data: testData } as any));
     const table = screen.getByRole('table');
     const headers = within(table).getAllByRole('columnheader');
     expect(headers.length).toBe(3);
   });
 
   it('Table headers contain descriptive text', () => {
-    render(createElement(DataTable, { columns: testColumns, data: testData }));
+    render(createElement(DataTable, { columns: testColumns, data: testData } as any));
     const table = screen.getByRole('table');
     const headers = within(table).getAllByRole('columnheader');
     const texts = headers.map((h) => h.textContent);
@@ -352,7 +352,7 @@ describe('Data tables — caption or aria-label', () => {
   });
 
   it('DataTable component renders a proper table structure', () => {
-    render(createElement(DataTable, { columns: testColumns, data: testData }));
+    render(createElement(DataTable, { columns: testColumns, data: testData } as any));
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
 

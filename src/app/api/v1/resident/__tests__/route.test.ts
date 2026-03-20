@@ -406,8 +406,8 @@ describe('DELETE /resident/bookings/:id — cancel own booking', () => {
       status: 'cancelled',
     });
 
-    const req = createDeleteRequest('/api/v1/resident/bookings');
-    const res = await deleteBooking(req, { params: Promise.resolve({ id: 'bk-1' }) });
+    const req = createDeleteRequest('/api/v1/resident/bookings?id=bk-1');
+    const res = await deleteBooking(req);
     expect(res.status).toBe(200);
 
     const updateData = mockBookingUpdate.mock.calls[0]![0];
@@ -428,8 +428,8 @@ describe('DELETE /resident/bookings/:id — cancel own booking', () => {
       status: 'cancelled',
     });
 
-    const req = createDeleteRequest('/api/v1/resident/bookings');
-    const res = await deleteBooking(req, { params: Promise.resolve({ id: 'bk-2' }) });
+    const req = createDeleteRequest('/api/v1/resident/bookings?id=bk-2');
+    const res = await deleteBooking(req);
     expect(res.status).toBe(200);
   });
 
@@ -442,8 +442,8 @@ describe('DELETE /resident/bookings/:id — cancel own booking', () => {
       status: 'completed',
     });
 
-    const req = createDeleteRequest('/api/v1/resident/bookings');
-    const res = await deleteBooking(req, { params: Promise.resolve({ id: 'bk-3' }) });
+    const req = createDeleteRequest('/api/v1/resident/bookings?id=bk-3');
+    const res = await deleteBooking(req);
     expect(res.status).toBe(400);
   });
 });
@@ -462,16 +462,16 @@ describe('DELETE /resident/bookings/:id — cannot cancel another resident booki
       status: 'pending',
     });
 
-    const req = createDeleteRequest('/api/v1/resident/bookings');
-    const res = await deleteBooking(req, { params: Promise.resolve({ id: 'bk-other' }) });
+    const req = createDeleteRequest('/api/v1/resident/bookings?id=bk-other');
+    const res = await deleteBooking(req);
     expect(res.status).toBe(403);
   });
 
   it('returns 404 when booking does not exist', async () => {
     mockBookingFindUnique.mockResolvedValue(null);
 
-    const req = createDeleteRequest('/api/v1/resident/bookings');
-    const res = await deleteBooking(req, { params: Promise.resolve({ id: 'bk-nonexistent' }) });
+    const req = createDeleteRequest('/api/v1/resident/bookings?id=bk-nonexistent');
+    const res = await deleteBooking(req);
     expect(res.status).toBe(404);
   });
 });

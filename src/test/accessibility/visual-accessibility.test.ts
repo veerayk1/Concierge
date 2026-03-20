@@ -109,7 +109,7 @@ describe('Error states — icon + text (not just visual border)', () => {
     render(
       createElement(
         FormField,
-        { label: 'Category', error: 'Please select a category' },
+        { label: 'Category', error: 'Please select a category' } as any,
         createElement('select', null),
       ),
     );

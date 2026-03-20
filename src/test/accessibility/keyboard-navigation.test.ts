@@ -400,7 +400,7 @@ describe('Keyboard traps — prevention', () => {
 
 describe('DataTable — keyboard accessible', () => {
   it('Sort buttons in DataTable headers are keyboard focusable', () => {
-    render(createElement(DataTable, { columns: testColumns, data: testData }));
+    render(createElement(DataTable, { columns: testColumns, data: testData } as any));
 
     const table = screen.getByRole('table');
     const sortButtons = within(table).getAllByRole('button');
@@ -415,7 +415,7 @@ describe('DataTable — keyboard accessible', () => {
   it('Sort button can be activated with keyboard Enter', async () => {
     const user = userEvent.setup();
 
-    render(createElement(DataTable, { columns: testColumns, data: testData }));
+    render(createElement(DataTable, { columns: testColumns, data: testData } as any));
 
     const table = screen.getByRole('table');
     const sortButtons = within(table).getAllByRole('button');
@@ -432,7 +432,7 @@ describe('DataTable — keyboard accessible', () => {
   it('Sort button can be activated with Space key', async () => {
     const user = userEvent.setup();
 
-    render(createElement(DataTable, { columns: testColumns, data: testData }));
+    render(createElement(DataTable, { columns: testColumns, data: testData } as any));
 
     const table = screen.getByRole('table');
     const sortButtons = within(table).getAllByRole('button');
@@ -454,7 +454,7 @@ describe('DataTable — keyboard accessible', () => {
         columns: testColumns,
         data: testData,
         onRowClick,
-      }),
+      } as any),
     );
 
     const table = screen.getByRole('table');

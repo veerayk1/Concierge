@@ -47,8 +47,8 @@ function parseModels(): ParsedModel[] {
   let match: RegExpExecArray | null;
 
   while ((match = modelRegex.exec(schemaContent)) !== null) {
-    const name = match[1];
-    const body = match[2];
+    const name = match[1]!;
+    const body = match[2]!;
     const fields = body
       .split('\n')
       .map((l) => l.trim())
@@ -65,8 +65,8 @@ function parseEnums(): { name: string; values: string[] }[] {
   let match: RegExpExecArray | null;
 
   while ((match = enumRegex.exec(schemaContent)) !== null) {
-    const name = match[1];
-    const values = match[2]
+    const name = match[1]!;
+    const values = match[2]!
       .split('\n')
       .map((l) => l.trim())
       .filter((l) => l && !l.startsWith('//'));
@@ -659,7 +659,7 @@ describe('Schema structural sanity checks', () => {
     const nonSnakeCase: string[] = [];
 
     while ((match = mapRegex.exec(schemaContent)) !== null) {
-      const tableName = match[1];
+      const tableName = match[1]!;
       // snake_case means lowercase letters, digits, and underscores
       if (!/^[a-z][a-z0-9_]*$/.test(tableName)) {
         nonSnakeCase.push(tableName);

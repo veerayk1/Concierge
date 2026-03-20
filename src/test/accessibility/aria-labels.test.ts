@@ -47,7 +47,7 @@ const testColumns: Column<TestRow>[] = [
 
 // Helper to create DataTable elements with correct generic typing
 function createDataTable(props: DataTableProps<TestRow>) {
-  return createElement(DataTable, props as DataTableProps<{ id?: string }>);
+  return createElement(DataTable, props as any);
 }
 
 // Helper to create FormField elements (children passed via createElement)
@@ -289,14 +289,14 @@ describe('Modal dialogs — ARIA attributes', () => {
 
 describe('Tables — header scope attributes', () => {
   it('DataTable renders <th> elements for column headers', () => {
-    render(createElement(DataTable, { columns: testColumns, data: testData }));
+    render(createElement(DataTable, { columns: testColumns, data: testData } as any));
     const table = screen.getByRole('table');
     const headers = within(table).getAllByRole('columnheader');
     expect(headers.length).toBe(2);
   });
 
   it('Table headers contain text content', () => {
-    render(createElement(DataTable, { columns: testColumns, data: testData }));
+    render(createElement(DataTable, { columns: testColumns, data: testData } as any));
     const table = screen.getByRole('table');
     const headers = within(table).getAllByRole('columnheader');
     const headerTexts = headers.map((h) => h.textContent);
@@ -305,14 +305,14 @@ describe('Tables — header scope attributes', () => {
   });
 
   it('Table body has correct number of rows', () => {
-    render(createElement(DataTable, { columns: testColumns, data: testData }));
+    render(createElement(DataTable, { columns: testColumns, data: testData } as any));
     const tbody = screen.getByRole('table').querySelector('tbody');
     const rows = within(tbody!).getAllByRole('row');
     expect(rows).toHaveLength(2);
   });
 
   it('Scope attribute convention: th elements are in thead', () => {
-    render(createElement(DataTable, { columns: testColumns, data: testData }));
+    render(createElement(DataTable, { columns: testColumns, data: testData } as any));
     const table = screen.getByRole('table');
     const thead = table.querySelector('thead');
     expect(thead).not.toBeNull();
@@ -384,7 +384,7 @@ describe('Error messages — aria-live announcements', () => {
     render(
       createElement(
         FormField,
-        { label: 'Name', error: 'Name is required' },
+        { label: 'Name', error: 'Name is required' } as any,
         createElement('input', { type: 'text' }),
       ),
     );
@@ -606,7 +606,7 @@ describe('Screen reader announcements — dynamic content', () => {
     render(
       createElement(
         FormField,
-        { label: 'Category', error: 'Please select a category' },
+        { label: 'Category', error: 'Please select a category' } as any,
         createElement('select', null),
       ),
     );
@@ -701,7 +701,7 @@ describe('Tab order — logical flow', () => {
 
 describe('DataTable empty state — accessibility', () => {
   it('Empty DataTable renders a meaningful message', () => {
-    render(createElement(DataTable, { columns: testColumns, data: [] }));
+    render(createElement(DataTable, { columns: testColumns, data: [] } as any));
     expect(screen.getByText('No data to display')).toBeInTheDocument();
   });
 
@@ -711,7 +711,7 @@ describe('DataTable empty state — accessibility', () => {
         columns: testColumns,
         data: [],
         emptyMessage: 'No packages found',
-      }),
+      } as any),
     );
     expect(screen.getByText('No packages found')).toBeInTheDocument();
   });

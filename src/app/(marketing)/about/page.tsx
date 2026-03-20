@@ -6,9 +6,15 @@ import type { Metadata } from 'next';
 // ---------------------------------------------------------------------------
 
 export const metadata: Metadata = {
-  title: 'About — Concierge',
+  title: 'About Concierge — Building the Future of Property Management',
   description:
-    'Learn about Concierge — our mission to modernize building management for Canadian properties with role-aware interfaces and Apple-grade design.',
+    'Learn about Concierge — our mission to modernize building management for Canadian properties with role-aware interfaces, Apple-grade design, and privacy by default.',
+  openGraph: {
+    title: 'About Concierge',
+    description:
+      'Building the future of property management. Security-first, role-aware, Canadian-built.',
+    type: 'website',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -17,9 +23,9 @@ export const metadata: Metadata = {
 
 const VALUES = [
   {
-    title: 'Simplicity First',
+    title: 'Security-First',
     description:
-      'Every screen has one primary action. We hide complexity behind progressive disclosure so first-time users never struggle.',
+      'Every architectural decision starts with data protection. AES-256 encryption at rest, TLS 1.3 in transit, MFA, audit trails on every action, and compliance with PIPEDA, SOC 2, and ISO 27001.',
     icon: (
       <svg
         width="32"
@@ -30,15 +36,15 @@ const VALUES = [
         strokeWidth="1.5"
         aria-hidden="true"
       >
-        <circle cx="12" cy="12" r="10" />
-        <path d="M8 12l2.5 2.5L16 9" />
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        <path d="M9 12l2 2 4-4" />
       </svg>
     ),
   },
   {
     title: 'Role-Aware Design',
     description:
-      'Concierge staff, security guards, property managers, board members, and residents each see only what they need. No feature bloat.',
+      'Concierge staff, security guards, property managers, board members, and residents each see only what they need. No feature bloat, no 60-item navigation menus.',
     icon: (
       <svg
         width="32"
@@ -57,27 +63,9 @@ const VALUES = [
     ),
   },
   {
-    title: 'Security by Default',
+    title: 'Canadian-Built',
     description:
-      'Encrypted at rest and in transit, MFA, audit trails on every action, and compliance with PIPEDA, SOC 2, and ISO 27001.',
-    icon: (
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden="true"
-      >
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Built for Canada',
-    description:
-      'Designed for Canadian condo corporations, management companies, and HOAs. Bilingual support (English and French-Canadian) from day one.',
+      'Designed for Canadian condo corporations, management companies, and HOAs. All data stored in Canadian data centres. Bilingual support (English and French-Canadian) from day one.',
     icon: (
       <svg
         width="32"
@@ -94,9 +82,47 @@ const VALUES = [
     ),
   },
   {
+    title: 'Privacy by Default',
+    description:
+      'Data minimization, no tracking pixels, no ad networks, no data selling. Right to erasure, transparent processing, and DSAR compliance built into the platform from the start.',
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        aria-hidden="true"
+      >
+        <rect x="3" y="11" width="18" height="11" rx="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Simplicity First',
+    description:
+      'Every screen has one primary action. We hide complexity behind progressive disclosure so first-time users never struggle. Apple-grade minimalism in every component.',
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <path d="M8 12l2.5 2.5L16 9" />
+      </svg>
+    ),
+  },
+  {
     title: 'Unified Platform',
     description:
-      'One platform replaces fragmented tools for packages, security, maintenance, amenities, communication, and training.',
+      'One platform replaces fragmented tools for packages, security, maintenance, amenities, communication, and training. No more juggling three separate systems.',
     icon: (
       <svg
         width="32"
@@ -111,24 +137,6 @@ const VALUES = [
         <rect x="14" y="3" width="7" height="7" rx="1" />
         <rect x="3" y="14" width="7" height="7" rx="1" />
         <rect x="14" y="14" width="7" height="7" rx="1" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Continuous Innovation',
-    description:
-      'AI-powered insights, predictive maintenance, and smart automation. We build the features that property managers dream about.',
-    icon: (
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden="true"
-      >
-        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
       </svg>
     ),
   },
@@ -150,6 +158,30 @@ const TEAM_MEMBERS = [
     role: 'Product Design',
     bio: 'Designers who believe in Apple-grade minimalism. White backgrounds, clean typography, and interfaces that get out of the way.',
   },
+  {
+    name: 'Security Team',
+    role: 'Security & Compliance',
+    bio: 'Dedicated security professionals ensuring compliance with 8 frameworks including PIPEDA, SOC 2, and ISO 27001. Data protection is their obsession.',
+  },
+] as const;
+
+const MILESTONES = [
+  {
+    label: '29',
+    description: 'Product requirement documents',
+  },
+  {
+    label: '131',
+    description: 'Database models',
+  },
+  {
+    label: '8',
+    description: 'Compliance frameworks',
+  },
+  {
+    label: '2,194+',
+    description: 'Passing tests',
+  },
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -161,12 +193,16 @@ export default function AboutPage() {
     <div>
       {/* Hero */}
       <section className="mx-auto max-w-7xl px-6 pt-20 pb-16 text-center md:pt-28 md:pb-24">
-        <h1 className="text-[32px] leading-tight font-bold tracking-tight text-neutral-900 md:text-[48px]">
+        <p className="text-[13px] font-semibold tracking-wider text-neutral-400 uppercase">
+          About Concierge
+        </p>
+        <h1 className="mt-4 text-[32px] leading-tight font-bold tracking-tight text-neutral-900 md:text-[48px]">
           Building the future of property management
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-[18px] leading-relaxed text-neutral-600">
           We studied every major building management platform, identified what works and what fails,
-          and built something better from the ground up.
+          and built something better from the ground up — designed specifically for Canadian
+          properties.
         </p>
       </section>
 
@@ -183,10 +219,27 @@ export default function AboutPage() {
           <p className="mt-6 text-[16px] leading-relaxed text-neutral-600">
             Property managers juggle three or more separate systems for packages, security,
             maintenance, and communication. Staff waste hours switching between tabs. Residents get
-            frustrated with clunky portals. We are building the platform that brings everything
-            together with role-aware interfaces, multi-channel notifications, and enterprise-grade
-            security — designed specifically for Canadian properties.
+            frustrated with clunky portals built in the 2000s. We are building the platform that
+            brings everything together with role-aware interfaces, multi-channel notifications, and
+            enterprise-grade security — with Apple-grade design that makes complex operations feel
+            simple.
           </p>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <section className="border-t border-neutral-100 bg-white px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            {MILESTONES.map((stat) => (
+              <div key={stat.description} className="text-center">
+                <p className="text-[32px] font-bold tracking-tight text-neutral-900">
+                  {stat.label}
+                </p>
+                <p className="mt-1 text-[14px] text-neutral-500">{stat.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -229,7 +282,7 @@ export default function AboutPage() {
               management.
             </p>
           </div>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {TEAM_MEMBERS.map((member) => (
               <div key={member.name} className="rounded-xl border border-neutral-200 bg-white p-6">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
@@ -259,17 +312,26 @@ export default function AboutPage() {
       {/* Bottom CTA */}
       <section className="mx-auto max-w-2xl px-6 py-20 text-center md:py-28">
         <h2 className="text-[28px] font-bold tracking-tight text-neutral-900 md:text-[36px]">
-          Want to learn more?
+          Join us in building the future
         </h2>
         <p className="mt-3 text-[16px] leading-relaxed text-neutral-600">
-          See Concierge in action with a personalized demo tailored to your property.
+          See Concierge in action with a personalized demo, or get in touch to learn how we can
+          modernize your property management.
         </p>
-        <Link
-          href={'/demo' as never}
-          className="mt-6 inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900 px-6 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800"
-        >
-          Request a Demo
-        </Link>
+        <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <Link
+            href={'/demo' as never}
+            className="inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900 px-6 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800"
+          >
+            Request a Demo
+          </Link>
+          <Link
+            href={'/contact' as never}
+            className="inline-flex items-center text-[15px] font-medium text-neutral-500 underline underline-offset-4 transition-colors hover:text-neutral-700"
+          >
+            Contact Us
+          </Link>
+        </div>
       </section>
     </div>
   );

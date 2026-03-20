@@ -54,7 +54,11 @@ describe('Form inputs — label association via for/id', () => {
 
   it('FormField creates label-input association via generated id', () => {
     render(
-      createElement(FormField, { label: 'Description' }, createElement('input', { type: 'text' })),
+      createElement(
+        FormField,
+        { label: 'Description' } as any,
+        createElement('input', { type: 'text' }),
+      ),
     );
     const label = screen.getByText('Description');
     expect(label.tagName).toBe('LABEL');
@@ -124,7 +128,7 @@ describe('Required fields — aria-required / required indicator', () => {
     render(
       createElement(
         FormField,
-        { label: 'Category', required: true },
+        { label: 'Category', required: true } as any,
         createElement('input', { type: 'text' }),
       ),
     );
@@ -184,7 +188,7 @@ describe('Error messages — aria-describedby linking', () => {
     render(
       createElement(
         FormField,
-        { label: 'Name', error: 'Name is required' },
+        { label: 'Name', error: 'Name is required' } as any,
         createElement('input', { type: 'text' }),
       ),
     );
@@ -421,7 +425,7 @@ describe('Select elements — accessible names', () => {
     render(
       createElement(
         FormField,
-        { label: 'Category' },
+        { label: 'Category' } as any,
         createElement(
           'select',
           null,
@@ -497,7 +501,7 @@ describe('File upload inputs — descriptive labels', () => {
     render(
       createElement(
         FormField,
-        { label: 'Supporting Documents' },
+        { label: 'Supporting Documents' } as any,
         createElement('input', { type: 'file', accept: '.pdf' }),
       ),
     );

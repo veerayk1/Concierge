@@ -37,8 +37,8 @@ vi.mock('@/components/ui/checkbox', () => ({
         }
         {...props}
       />
-      {label && <label htmlFor={id as string}>{label as string}</label>}
-      {description && <span>{description as string}</span>}
+      {label ? <label htmlFor={id as string}>{String(label)}</label> : null}
+      {description ? <span>{String(description)}</span> : null}
     </div>
   ),
 }));

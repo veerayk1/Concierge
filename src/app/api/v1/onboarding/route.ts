@@ -12,35 +12,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { hashPassword } from '@/server/auth/password';
+import { nanoid } from 'nanoid';
 
 // ---------------------------------------------------------------------------
-// Step Definitions (PRD 23 — 8 steps)
+// Step Definitions (PRD 23 — 8 steps, matching frontend wizard)
 // ---------------------------------------------------------------------------
 
 const ONBOARDING_STEPS = [
-  { step: 1, name: 'Property Basics', description: 'Name, address, timezone', required: true },
   {
-    step: 2,
-    name: 'Building Structure',
-    description: 'Units and floors',
-    required: false,
+    step: 1,
+    name: 'Property Details',
+    description: 'Set up your property information',
+    required: true,
   },
-  { step: 3, name: 'Role Configuration', description: 'Define staff roles', required: false },
-  { step: 4, name: 'Amenity Setup', description: 'Configure amenity spaces', required: false },
+  { step: 2, name: 'Units', description: 'Add your building units', required: false },
+  { step: 3, name: 'Amenities', description: 'Configure shared amenity spaces', required: false },
   {
-    step: 5,
-    name: 'Notification Preferences',
-    description: 'Choose notification channels',
-    required: false,
-  },
-  {
-    step: 6,
+    step: 4,
     name: 'Event Types',
-    description: 'Configure security event types',
+    description: 'Customize event categories for logging',
     required: false,
   },
-  { step: 7, name: 'Invite Staff', description: 'Send staff invitations', required: false },
-  { step: 8, name: 'Review & Activate', description: 'Review and go live', required: false },
+  { step: 5, name: 'Staff', description: 'Invite your team members', required: false },
+  { step: 6, name: 'Residents', description: 'Import or invite residents', required: false },
+  { step: 7, name: 'Branding', description: 'Customize your portal appearance', required: false },
+  { step: 8, name: 'Go Live', description: 'Review and activate your property', required: false },
 ] as const;
 
 const TOTAL_STEPS = ONBOARDING_STEPS.length;
@@ -271,16 +268,175 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // --- Step 8 special: activate the property ------------------------------
+    // --- Step 8 special: Go Live — activate property & create records ------
 
     let propertyStatus: string | undefined;
+    const createdRecords: Record<string, number> = {};
 
     if (step === TOTAL_STEPS && !skip && allStepsDone) {
-      await prisma.property.update({
-        where: { id: propertyId },
-        data: { isActive: true },
-      });
-      propertyStatus = 'active';
+      try {
+        await prisma.$transaction(async (tx) => {
+          // 1. Activate the property
+          await tx.property.update({
+            where: { id: propertyId },
+            data: { isActive: true },
+          });
+
+          const allStepData = mergedStepData as Record<string, unknown>;
+
+          // 2. Step 2 data → create Unit records
+          const unitsData = allStepData['2'] as Array<Record<string, unknown>> | undefined;
+          if (Array.isArray(unitsData) && unitsData.length > 0) {
+            for (const unit of unitsData) {
+              await tx.unit.create({
+                data: {
+                  propertyId,
+                  number: String(unit.number ?? unit.unitNumber ?? ''),
+                  floor: unit.floor != null ? Number(unit.floor) : null,
+                  unitType: String(unit.unitType ?? unit.type ?? 'residential'),
+                  status: 'vacant',
+                },
+              });
+            }
+            createdRecords.units = unitsData.length;
+          }
+
+          // 3. Step 3 data → create Amenity records
+          const amenitiesData = allStepData['3'] as Array<Record<string, unknown>> | undefined;
+          if (Array.isArray(amenitiesData) && amenitiesData.length > 0) {
+            // Ensure a default amenity group exists for this property
+            let defaultGroup = await tx.amenityGroup.findFirst({
+              where: { propertyId, name: 'General' },
+            });
+            if (!defaultGroup) {
+              defaultGroup = await tx.amenityGroup.create({
+                data: { propertyId, name: 'General', displayOrder: 0 },
+              });
+            }
+
+            // Get the admin user creating these records (from auth context)
+            const adminUser = await tx.userProperty.findFirst({
+              where: { propertyId },
+              select: { userId: true },
+            });
+            const createdById = adminUser?.userId ?? auth.user!.userId;
+
+            for (const amenity of amenitiesData) {
+              await tx.amenity.create({
+                data: {
+                  propertyId,
+                  name: String(amenity.name ?? ''),
+                  description: amenity.description ? String(amenity.description) : null,
+                  groupId: String(amenity.groupId ?? defaultGroup.id),
+                  color: String(amenity.color ?? '#3B82F6'),
+                  isActive: true,
+                  createdById,
+                },
+              });
+            }
+            createdRecords.amenities = amenitiesData.length;
+          }
+
+          // 4. Step 5 data → create staff User records with pending status
+          const staffData = allStepData['5'] as Array<Record<string, unknown>> | undefined;
+          if (Array.isArray(staffData) && staffData.length > 0) {
+            let staffCreated = 0;
+            for (const member of staffData) {
+              const email = String(member.email ?? '')
+                .toLowerCase()
+                .trim();
+              if (!email) continue;
+
+              // Check if user already exists
+              const existingUser = await tx.user.findUnique({ where: { email } });
+              if (existingUser) {
+                // Just link to this property if not already linked
+                const existingLink = await tx.userProperty.findFirst({
+                  where: { userId: existingUser.id, propertyId },
+                });
+                if (!existingLink && member.roleId) {
+                  await tx.userProperty.create({
+                    data: {
+                      userId: existingUser.id,
+                      propertyId,
+                      roleId: String(member.roleId),
+                    },
+                  });
+                  staffCreated++;
+                }
+                continue;
+              }
+
+              // Create new user with temporary password
+              const tempPassword = nanoid(16);
+              const hashedPassword = await hashPassword(tempPassword);
+
+              const newUser = await tx.user.create({
+                data: {
+                  email,
+                  passwordHash: hashedPassword,
+                  firstName: String(member.firstName ?? member.name ?? 'Staff'),
+                  lastName: String(member.lastName ?? ''),
+                  phone: member.phone ? String(member.phone) : null,
+                  isActive: true,
+                  // activatedAt left null — user hasn't logged in yet
+                },
+              });
+
+              // Link user to property with role
+              if (member.roleId) {
+                await tx.userProperty.create({
+                  data: {
+                    userId: newUser.id,
+                    propertyId,
+                    roleId: String(member.roleId),
+                  },
+                });
+              }
+
+              staffCreated++;
+            }
+            if (staffCreated > 0) createdRecords.staff = staffCreated;
+          }
+
+          // 5. Step 7 data → update Property with branding fields
+          const brandingData = allStepData['7'] as Record<string, unknown> | undefined;
+          if (brandingData && typeof brandingData === 'object') {
+            const brandingUpdate: Record<string, unknown> = {};
+
+            // Update logo if provided
+            if (brandingData.logo && typeof brandingData.logo === 'string') {
+              brandingUpdate.logo = brandingData.logo;
+            }
+
+            // Store remaining branding in the JSONB branding field
+            const { logo: _logo, ...otherBranding } = brandingData;
+            if (Object.keys(otherBranding).length > 0) {
+              brandingUpdate.branding = otherBranding as Prisma.InputJsonValue;
+            }
+
+            if (Object.keys(brandingUpdate).length > 0) {
+              await tx.property.update({
+                where: { id: propertyId },
+                data: brandingUpdate,
+              });
+              createdRecords.branding = 1;
+            }
+          }
+        });
+
+        propertyStatus = 'active';
+      } catch (activationError) {
+        console.error('Go Live activation error:', activationError);
+        return NextResponse.json(
+          {
+            error: 'ACTIVATION_ERROR',
+            message:
+              'Property activation failed. Onboarding progress was saved but records were not created.',
+          },
+          { status: 500 },
+        );
+      }
     }
 
     // --- Response -----------------------------------------------------------
@@ -294,6 +450,7 @@ export async function POST(request: NextRequest) {
         currentStep: newCurrentStep,
         percentComplete: pct,
         ...(propertyStatus ? { propertyStatus } : {}),
+        ...(Object.keys(createdRecords).length > 0 ? { createdRecords } : {}),
       },
     });
   } catch (error) {

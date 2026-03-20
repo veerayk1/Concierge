@@ -318,7 +318,7 @@ describe('GET /properties — filter by status', () => {
       }),
     );
     // Verify isActive is NOT in the where clause for super_admin
-    const callArgs = mockPropertyFindMany.mock.calls[0][0];
+    const callArgs = mockPropertyFindMany.mock.calls[0]![0];
     expect(callArgs.where).not.toHaveProperty('isActive');
   });
 });

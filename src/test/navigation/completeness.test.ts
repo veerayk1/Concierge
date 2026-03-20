@@ -485,7 +485,7 @@ describe('Role display names', () => {
       ).not.toContain('_');
 
       // First character should be uppercase
-      expect(displayName[0]).toBe(displayName[0].toUpperCase());
+      expect(displayName![0]).toBe(displayName![0]!.toUpperCase());
     }
   });
 });

@@ -5,12 +5,12 @@ import userEvent from '@testing-library/user-event';
 describe('Textarea Component', () => {
   it('imports without error', async () => {
     const mod = await import('../textarea');
-    expect(mod.Textarea || mod.default).toBeDefined();
+    expect(mod.Textarea).toBeDefined();
   });
 
   it('renders a textarea element', async () => {
     const mod = await import('../textarea');
-    const Textarea = mod.Textarea || mod.default;
+    const Textarea = mod.Textarea;
     if (!Textarea) return;
 
     render(<Textarea placeholder="Enter text..." />);
@@ -20,7 +20,7 @@ describe('Textarea Component', () => {
 
   it('accepts user input', async () => {
     const mod = await import('../textarea');
-    const Textarea = mod.Textarea || mod.default;
+    const Textarea = mod.Textarea;
     if (!Textarea) return;
 
     const user = userEvent.setup();
@@ -32,7 +32,7 @@ describe('Textarea Component', () => {
 
   it('supports maxLength attribute', async () => {
     const mod = await import('../textarea');
-    const Textarea = mod.Textarea || mod.default;
+    const Textarea = mod.Textarea;
     if (!Textarea) return;
 
     render(<Textarea placeholder="Limited" maxLength={100} />);

@@ -18,6 +18,7 @@ import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createElement } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 // ---------------------------------------------------------------------------
 // 1. Main nav has role="navigation" and aria-label
@@ -663,7 +664,7 @@ describe('Focus trap — modal dialog Tab cycling', () => {
           'div',
           { role: 'dialog', 'aria-modal': 'true' },
           createElement('button', { 'aria-label': 'Close' }, 'X'),
-          createElement(Input, { label: 'Reason' }),
+          createElement(Input, { label: 'Reason' } as any),
           createElement(Button, { variant: 'ghost' }, 'Cancel'),
           createElement(Button, { variant: 'danger' }, 'Delete'),
         ),

@@ -27,7 +27,10 @@ import {
   Sparkles,
   AlertCircle,
   Loader2,
+  LayoutDashboard,
+  Settings2,
 } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -763,7 +766,13 @@ function AmenitiesStep({
 // Step 4: Event Types
 // ---------------------------------------------------------------------------
 
-function EventTypesStep() {
+function EventTypesStep({
+  data,
+  onChange,
+}: {
+  data: Record<string, string>;
+  onChange: (field: string, value: string) => void;
+}) {
   const defaultTypes = [
     { name: 'Package Delivery', icon: '📦', color: 'bg-blue-100' },
     { name: 'Visitor Entry', icon: '🚶', color: 'bg-green-100' },
@@ -777,29 +786,176 @@ function EventTypesStep() {
     { name: 'Authorized Entry', icon: '🚪', color: 'bg-indigo-100' },
   ];
 
+  const [enabledTypes, setEnabledTypes] = useState<Set<string>>(() => {
+    try {
+      const parsed = JSON.parse(data.enabledTypes || '[]');
+      return new Set(parsed.length > 0 ? parsed : defaultTypes.map((t) => t.name));
+    } catch {
+      return new Set(defaultTypes.map((t) => t.name));
+    }
+  });
+
+  const [customTypes, setCustomTypes] = useState<Array<{ name: string; color: string }>>(() => {
+    try {
+      return JSON.parse(data.customTypes || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const [newCustomName, setNewCustomName] = useState('');
+  const [newCustomColor, setNewCustomColor] = useState('#3B82F6');
+
+  function toggleType(name: string) {
+    const next = new Set(enabledTypes);
+    if (next.has(name)) {
+      next.delete(name);
+    } else {
+      next.add(name);
+    }
+    setEnabledTypes(next);
+    onChange('enabledTypes', JSON.stringify(Array.from(next)));
+  }
+
+  function addCustomType() {
+    if (!newCustomName.trim()) return;
+    const updated = [...customTypes, { name: newCustomName.trim(), color: newCustomColor }];
+    setCustomTypes(updated);
+    onChange('customTypes', JSON.stringify(updated));
+    // Also enable it
+    const nextEnabled = new Set(enabledTypes);
+    nextEnabled.add(newCustomName.trim());
+    setEnabledTypes(nextEnabled);
+    onChange('enabledTypes', JSON.stringify(Array.from(nextEnabled)));
+    setNewCustomName('');
+    setNewCustomColor('#3B82F6');
+  }
+
+  function removeCustomType(idx: number) {
+    const removed = customTypes[idx];
+    const updated = customTypes.filter((_, i) => i !== idx);
+    setCustomTypes(updated);
+    onChange('customTypes', JSON.stringify(updated));
+    if (removed) {
+      const nextEnabled = new Set(enabledTypes);
+      nextEnabled.delete(removed.name);
+      setEnabledTypes(nextEnabled);
+      onChange('enabledTypes', JSON.stringify(Array.from(nextEnabled)));
+    }
+  }
+
+  const customColorOptions = [
+    '#3B82F6',
+    '#6366F1',
+    '#8B5CF6',
+    '#EC4899',
+    '#EF4444',
+    '#F97316',
+    '#EAB308',
+    '#22C55E',
+    '#14B8A6',
+    '#06B6D4',
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       <p className="text-[14px] text-neutral-500">
-        These are the default event types for your security console. You can customize them later in
-        Settings.
+        Click to enable or disable default event types. You can also add custom types below.
       </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {defaultTypes.map((type) => (
-          <div
-            key={type.name}
-            className={`flex items-center gap-3 rounded-xl border border-neutral-200 px-4 py-3 ${type.color}`}
-          >
-            <span className="text-lg">{type.icon}</span>
-            <span className="text-[13px] font-medium text-neutral-900">{type.name}</span>
-          </div>
-        ))}
+        {defaultTypes.map((type) => {
+          const isEnabled = enabledTypes.has(type.name);
+          return (
+            <button
+              key={type.name}
+              type="button"
+              onClick={() => toggleType(type.name)}
+              className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                isEnabled
+                  ? `${type.color} border-primary-300 ring-primary-100 ring-1`
+                  : 'border-neutral-200 bg-neutral-50 opacity-50'
+              }`}
+            >
+              <span className="text-lg">{type.icon}</span>
+              <span className="text-[13px] font-medium text-neutral-900">{type.name}</span>
+              {isEnabled && <Check className="text-primary-600 ml-auto h-4 w-4 shrink-0" />}
+            </button>
+          );
+        })}
       </div>
+
+      {/* Custom event types */}
+      {customTypes.length > 0 && (
+        <div>
+          <h4 className="mb-3 text-[14px] font-semibold text-neutral-900">Custom Event Types</h4>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {customTypes.map((ct, idx) => (
+              <div
+                key={idx}
+                className="border-primary-300 flex items-center gap-3 rounded-xl border-2 px-4 py-3"
+                style={{ backgroundColor: `${ct.color}20` }}
+              >
+                <span
+                  className="h-4 w-4 shrink-0 rounded-full"
+                  style={{ backgroundColor: ct.color }}
+                />
+                <span className="flex-1 text-[13px] font-medium text-neutral-900">{ct.name}</span>
+                <button
+                  onClick={() => removeCustomType(idx)}
+                  className="hover:text-error-500 text-neutral-400"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add custom event type form */}
+      <Card>
+        <h4 className="mb-3 text-[14px] font-semibold text-neutral-900">Add Custom Event Type</h4>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto_auto]">
+          <Input
+            label="Event Type Name"
+            placeholder="e.g. Move-In/Move-Out"
+            value={newCustomName}
+            onChange={(e) => setNewCustomName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addCustomType()}
+          />
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] font-medium text-neutral-700">Color</label>
+            <div className="flex items-center gap-2">
+              {customColorOptions.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setNewCustomColor(c)}
+                  className={`h-8 w-8 rounded-lg border-2 transition-all hover:scale-110 ${
+                    newCustomColor === c
+                      ? 'border-neutral-900 ring-2 ring-neutral-200'
+                      : 'border-transparent'
+                  }`}
+                  style={{ backgroundColor: c }}
+                  aria-label={`Select color ${c}`}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="flex items-end">
+            <Button onClick={addCustomType} size="sm" disabled={!newCustomName.trim()}>
+              <Plus className="h-4 w-4" /> Add Type
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       <Card>
         <div className="flex items-center gap-2 text-[13px] text-neutral-500">
           <Check className="text-success-500 h-4 w-4" />
           <span>
-            10 default event types will be created. You can add, remove, or customize them after
-            setup.
+            {enabledTypes.size} event type{enabledTypes.size !== 1 ? 's' : ''} enabled. You can add,
+            remove, or customize them after setup.
           </span>
         </div>
       </Card>
@@ -1199,6 +1355,8 @@ function GoLiveStep({
   onActivate: () => void;
   isActivating: boolean;
 }) {
+  const [sendWelcomeEmails, setSendWelcomeEmails] = useState(true);
+
   const checklist = STEPS.slice(0, 7).map((step) => ({
     title: step.title,
     completed: completedSteps.has(step.id),
@@ -1240,6 +1398,26 @@ function GoLiveStep({
             </div>
           ))}
         </div>
+      </Card>
+
+      <Card>
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={sendWelcomeEmails}
+            onChange={(e) => setSendWelcomeEmails(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-neutral-300"
+          />
+          <div>
+            <span className="text-[14px] font-medium text-neutral-900">
+              Send welcome emails to staff and residents when property goes live
+            </span>
+            <p className="mt-1 text-[13px] text-neutral-500">
+              Invited staff and residents will receive an email with their login credentials and a
+              link to access the portal.
+            </p>
+          </div>
+        </label>
       </Card>
 
       <div className="flex flex-col items-center gap-4 rounded-2xl bg-neutral-50 p-8 text-center">
@@ -1284,6 +1462,7 @@ export default function OnboardingPage() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isActivating, setIsActivating] = useState(false);
+  const [isActivated, setIsActivated] = useState(false);
   const [loading, setLoading] = useState(true);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -1330,6 +1509,37 @@ export default function OnboardingPage() {
   );
 
   async function handleNext() {
+    // Step 1 validation: required fields
+    if (currentStep === 1) {
+      const d = stepData[1] ?? {};
+      if (!d.propertyName?.trim()) {
+        setError('Property name is required.');
+        return;
+      }
+      if (!d.address?.trim()) {
+        setError('Street address is required.');
+        return;
+      }
+      if (!d.city?.trim()) {
+        setError('City is required.');
+        return;
+      }
+      if (!d.province?.trim()) {
+        setError('Province / State is required.');
+        return;
+      }
+      const hasAnyConsent =
+        d.terms === 'true' ||
+        d.privacy === 'true' ||
+        d.dataProcessing === 'true' ||
+        d.dataSharing === 'true' ||
+        d.vendorSharing === 'true';
+      if (!hasAnyConsent) {
+        setError('Please accept at least one legal agreement to continue.');
+        return;
+      }
+    }
+
     try {
       setSaving(true);
       setError(null);
@@ -1392,6 +1602,7 @@ export default function OnboardingPage() {
         return next;
       });
       setPercentComplete(100);
+      setIsActivated(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to activate');
     } finally {
@@ -1411,7 +1622,7 @@ export default function OnboardingPage() {
       case 3:
         return <AmenitiesStep data={data} onChange={onChange} />;
       case 4:
-        return <EventTypesStep />;
+        return <EventTypesStep data={data} onChange={onChange} />;
       case 5:
         return <StaffStep data={data} onChange={onChange} />;
       case 6:
@@ -1441,6 +1652,65 @@ export default function OnboardingPage() {
   }
 
   const step = STEPS[currentStep - 1];
+
+  if (isActivated) {
+    return (
+      <div className="mx-auto max-w-[900px] px-6 py-16">
+        <div className="flex flex-col items-center text-center">
+          <div className="bg-primary-50 flex h-20 w-20 items-center justify-center rounded-2xl">
+            <Sparkles className="text-primary-600 h-10 w-10" />
+          </div>
+          <h1 className="mt-6 text-[32px] font-bold tracking-tight text-neutral-900">
+            Welcome to Concierge!
+          </h1>
+          <p className="mt-2 text-[16px] text-neutral-500">
+            Your property is now live. Staff and residents can start using the portal immediately.
+          </p>
+        </div>
+
+        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Link
+            href="/dashboard"
+            className="group flex flex-col items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-6 text-center transition-all hover:shadow-md"
+          >
+            <div className="bg-primary-50 group-hover:bg-primary-100 flex h-12 w-12 items-center justify-center rounded-xl transition-colors">
+              <LayoutDashboard className="text-primary-600 h-6 w-6" />
+            </div>
+            <h3 className="text-[16px] font-semibold text-neutral-900">Go to Dashboard</h3>
+            <p className="text-[13px] text-neutral-500">
+              View your property overview, recent activity, and key metrics.
+            </p>
+          </Link>
+
+          <Link
+            href="/settings"
+            className="group flex flex-col items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-6 text-center transition-all hover:shadow-md"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 transition-colors group-hover:bg-purple-100">
+              <Settings2 className="h-6 w-6 text-purple-600" />
+            </div>
+            <h3 className="text-[16px] font-semibold text-neutral-900">Manage Settings</h3>
+            <p className="text-[13px] text-neutral-500">
+              Fine-tune notifications, roles, event types, and property configuration.
+            </p>
+          </Link>
+
+          <Link
+            href="/settings"
+            className="group flex flex-col items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-6 text-center transition-all hover:shadow-md"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 transition-colors group-hover:bg-green-100">
+              <Users className="h-6 w-6 text-green-600" />
+            </div>
+            <h3 className="text-[16px] font-semibold text-neutral-900">Invite More Staff</h3>
+            <p className="text-[13px] text-neutral-500">
+              Add team members and assign roles to get your team onboard.
+            </p>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-[900px] px-6 py-8">

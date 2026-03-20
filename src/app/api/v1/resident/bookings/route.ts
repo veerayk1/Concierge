@@ -144,14 +144,22 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest) {
   try {
     const auth = await guardRoute(request, { roles: RESIDENT_ROLES });
     if (auth.error) return auth.error;
 
     const { userId, unitId } = auth.user;
 
-    const { id } = await context.params;
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Booking ID is required.' },
+        { status: 400 },
+      );
+    }
 
     const booking = await prisma.booking.findUnique({
       where: { id },

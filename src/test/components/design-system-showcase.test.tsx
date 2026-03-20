@@ -887,7 +887,7 @@ describe('DataTable — Design System Showcase', () => {
 
       const rows = screen.getAllByRole('row');
       // row[0] is header; data rows follow
-      const firstDataRow = rows[1];
+      const firstDataRow = rows[1]!;
       expect(within(firstDataRow).getByText('Alice Johnson')).toBeInTheDocument();
     });
 
@@ -898,7 +898,7 @@ describe('DataTable — Design System Showcase', () => {
       await userEvent.click(nameButton); // desc
 
       const rows = screen.getAllByRole('row');
-      const firstDataRow = rows[1];
+      const firstDataRow = rows[1]!;
       expect(within(firstDataRow).getByText('Carol White')).toBeInTheDocument();
     });
 
@@ -910,7 +910,7 @@ describe('DataTable — Design System Showcase', () => {
       await userEvent.click(nameButton); // clear — back to original order
 
       const rows = screen.getAllByRole('row');
-      const firstDataRow = rows[1];
+      const firstDataRow = rows[1]!;
       expect(within(firstDataRow).getByText('Alice Johnson')).toBeInTheDocument();
     });
 
@@ -920,7 +920,7 @@ describe('DataTable — Design System Showcase', () => {
       await userEvent.click(amountButton); // asc
 
       const rows = screen.getAllByRole('row');
-      const firstDataRow = rows[1];
+      const firstDataRow = rows[1]!;
       expect(within(firstDataRow).getByText('$0.00')).toBeInTheDocument();
     });
   });
@@ -933,7 +933,7 @@ describe('DataTable — Design System Showcase', () => {
       render(<DataTable columns={columns} data={sampleData} onRowClick={handler} />);
 
       const rows = screen.getAllByRole('row');
-      await userEvent.click(rows[1]); // first data row
+      await userEvent.click(rows[1]!); // first data row
 
       expect(handler).toHaveBeenCalledTimes(1);
       expect(handler).toHaveBeenCalledWith(
@@ -946,13 +946,13 @@ describe('DataTable — Design System Showcase', () => {
       render(<DataTable columns={columns} data={sampleData} onRowClick={handler} />);
 
       const rows = screen.getAllByRole('row');
-      expect(rows[1].className).toContain('cursor-pointer');
+      expect(rows[1]!.className).toContain('cursor-pointer');
     });
 
     it('does not apply cursor-pointer when onRowClick is not set', () => {
       render(<DataTable columns={columns} data={sampleData} />);
       const rows = screen.getAllByRole('row');
-      expect(rows[1].className).not.toContain('cursor-pointer');
+      expect(rows[1]!.className).not.toContain('cursor-pointer');
     });
   });
 
@@ -962,15 +962,15 @@ describe('DataTable — Design System Showcase', () => {
     it('applies compact padding when compact=true', () => {
       render(<DataTable columns={columns} data={sampleData} compact />);
       const cells = screen.getAllByRole('cell');
-      expect(cells[0].className).toContain('px-4');
-      expect(cells[0].className).toContain('py-2.5');
+      expect(cells[0]!.className).toContain('px-4');
+      expect(cells[0]!.className).toContain('py-2.5');
     });
 
     it('applies default padding when compact=false', () => {
       render(<DataTable columns={columns} data={sampleData} />);
       const cells = screen.getAllByRole('cell');
-      expect(cells[0].className).toContain('px-5');
-      expect(cells[0].className).toContain('py-3.5');
+      expect(cells[0]!.className).toContain('px-5');
+      expect(cells[0]!.className).toContain('py-3.5');
     });
   });
 });

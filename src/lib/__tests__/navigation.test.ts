@@ -123,9 +123,9 @@ describe('Navigation System', () => {
     it('visitor sees only OVERVIEW (dashboard)', () => {
       const groups = getNavigationForRole('visitor');
       expect(groups).toHaveLength(1);
-      expect(groups[0].label).toBe('OVERVIEW');
-      expect(groups[0].items).toHaveLength(1);
-      expect(groups[0].items[0].id).toBe('dashboard');
+      expect(groups[0]!.label).toBe('OVERVIEW');
+      expect(groups[0]!.items).toHaveLength(1);
+      expect(groups[0]!.items[0]!.id).toBe('dashboard');
     });
 
     // 14
@@ -223,7 +223,7 @@ describe('Navigation System', () => {
     it('returns empty-ish list for visitor (only dashboard)', () => {
       const flat = getFlatNavigationForRole('visitor');
       expect(flat).toHaveLength(1);
-      expect(flat[0].id).toBe('dashboard');
+      expect(flat[0]!.id).toBe('dashboard');
     });
 
     // 25

@@ -1,116 +1,110 @@
-'use client';
-
-import { useState, type FormEvent } from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import PropertyLoginForm from './PropertyLoginForm';
 
 // ---------------------------------------------------------------------------
-// Props
+// Mock property data (replaced by database lookup in production)
 // ---------------------------------------------------------------------------
 
-interface PropertyLoginPageProps {
-  params: {
-    'property-slug': string;
+const MOCK_PROPERTIES: Record<
+  string,
+  { name: string; logo?: string; primaryColor: string; unitCount: number }
+> = {
+  'maple-ridge-condos': {
+    name: 'Maple Ridge Condos',
+    primaryColor: '#1e40af',
+    unitCount: 245,
+  },
+  'harbourview-towers': {
+    name: 'Harbourview Towers',
+    primaryColor: '#059669',
+    unitCount: 312,
+  },
+  'queensway-park': {
+    name: 'Queensway Park Condos',
+    primaryColor: '#7c3aed',
+    unitCount: 171,
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Helper
+// ---------------------------------------------------------------------------
+
+function lookupProperty(slug: string) {
+  return MOCK_PROPERTIES[slug] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic Metadata
+// ---------------------------------------------------------------------------
+
+interface PageParams {
+  params: Promise<{ 'property-slug': string }>;
+}
+
+export async function generateMetadata({ params }: PageParams): Promise<Metadata> {
+  const { 'property-slug': slug } = await params;
+  const property = lookupProperty(slug);
+
+  if (!property) {
+    return {
+      title: 'Property Not Found | Concierge',
+      description: 'The requested property could not be found.',
+    };
+  }
+
+  return {
+    title: `Sign In | ${property.name} | Concierge`,
+    description: `Sign in to the ${property.name} resident portal on Concierge.`,
   };
 }
 
 // ---------------------------------------------------------------------------
-// Page
+// Not Found View
 // ---------------------------------------------------------------------------
 
-export default function PropertyLoginPage({ params }: PropertyLoginPageProps) {
-  const router = useRouter();
-  const propertySlug = params['property-slug'];
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError('');
-
-    if (!email.trim() || !password.trim()) {
-      setError('Please enter your email and password.');
-      return;
-    }
-
-    // In production this would authenticate and route to the property portal
-    router.push('/dashboard');
-  }
-
+function PropertyNotFound({ slug }: { slug: string }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-white px-6 py-12">
-      <div className="w-full max-w-md">
-        <div className="text-center">
-          <p className="text-lg font-semibold tracking-tight text-neutral-900">Concierge</p>
-          <h1 className="mt-4 text-[28px] font-bold tracking-tight text-neutral-900">Sign in</h1>
-          <p className="mt-2 text-[15px] text-neutral-600">
-            Property: <span className="font-medium text-neutral-900">{propertySlug}</span>
-          </p>
+      <div className="w-full max-w-[420px] text-center">
+        {/* Icon */}
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-neutral-100">
+          <svg
+            className="h-8 w-8 text-neutral-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 7.5h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"
+            />
+          </svg>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
-          {/* Email */}
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="property-login-email"
-              className="text-[14px] font-medium text-neutral-700"
-            >
-              Email
-            </label>
-            <input
-              id="property-login-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-none"
-              placeholder="you@example.com"
-            />
-          </div>
+        <h1 className="text-[24px] font-bold tracking-tight text-neutral-900">
+          Property not found
+        </h1>
+        <p className="mt-3 text-[15px] leading-relaxed text-neutral-500">
+          We couldn&apos;t find a property matching{' '}
+          <span className="font-medium text-neutral-700">&ldquo;{slug}&rdquo;</span>. Check the URL
+          or contact your property manager for the correct link.
+        </p>
 
-          {/* Password */}
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="property-login-password"
-              className="text-[14px] font-medium text-neutral-700"
-            >
-              Password
-            </label>
-            <input
-              id="property-login-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-none"
-              placeholder="Enter your password"
-            />
-          </div>
-
-          {error && (
-            <p className="text-[13px] font-medium text-red-600" role="alert">
-              {error}
-            </p>
-          )}
-
-          {/* Submit */}
-          <button
-            type="submit"
-            className="mt-2 inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800"
-          >
-            Sign In
-          </button>
-        </form>
-
-        <div className="mt-6 flex flex-col items-center gap-2">
+        <div className="mt-8 flex flex-col items-center gap-3">
           <Link
             href={'/login' as never}
-            className="text-[14px] text-neutral-500 underline underline-offset-4 transition-colors hover:text-neutral-700"
+            className="inline-flex h-[48px] w-full items-center justify-center rounded-xl bg-neutral-900 text-[15px] font-semibold text-white transition-colors hover:bg-neutral-800"
           >
-            Sign in to a different property
+            Go to Main Login
           </Link>
           <Link
             href={'/' as never}
-            className="text-[14px] text-neutral-500 underline underline-offset-4 transition-colors hover:text-neutral-700"
+            className="text-[14px] text-neutral-500 transition-colors hover:text-neutral-700"
           >
             Back to home
           </Link>
@@ -118,4 +112,19 @@ export default function PropertyLoginPage({ params }: PropertyLoginPageProps) {
       </div>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Page (Server Component)
+// ---------------------------------------------------------------------------
+
+export default async function PropertyLoginPage({ params }: PageParams) {
+  const { 'property-slug': slug } = await params;
+  const property = lookupProperty(slug);
+
+  if (!property) {
+    return <PropertyNotFound slug={slug} />;
+  }
+
+  return <PropertyLoginForm property={property} slug={slug} />;
 }
