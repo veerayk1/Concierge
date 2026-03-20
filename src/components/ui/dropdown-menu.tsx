@@ -17,7 +17,7 @@ export const DropdownMenuContent = forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        'border-border-primary bg-surface-primary z-50 min-w-[180px] overflow-hidden rounded-lg border p-1 shadow-lg',
+        'z-50 min-w-[180px] overflow-hidden rounded-lg border border-neutral-200 bg-white p-1 shadow-lg',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -36,10 +36,10 @@ export const DropdownMenuItem = forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      'text-body-sm relative flex cursor-pointer items-center rounded-md px-2 py-1.5 transition-colors outline-none select-none',
-      'focus:bg-surface-secondary',
+      'relative flex cursor-pointer items-center rounded-md px-2 py-1.5 text-[13px] transition-colors outline-none select-none',
+      'focus:bg-neutral-50',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-      destructive ? 'text-status-error focus:text-status-error' : 'text-text-primary',
+      destructive ? 'text-error-600 focus:text-error-600' : 'text-neutral-900',
       className,
     )}
     {...props}
@@ -53,7 +53,7 @@ export const DropdownMenuSeparator = forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Separator
     ref={ref}
-    className={cn('bg-border-primary -mx-1 my-1 h-px', className)}
+    className={cn('-mx-1 my-1 h-px bg-neutral-200', className)}
     {...props}
   />
 ));
@@ -65,7 +65,7 @@ export const DropdownMenuLabel = forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
-    className={cn('text-body-xs text-text-tertiary px-2 py-1.5 font-semibold', className)}
+    className={cn('px-2 py-1.5 text-[12px] font-semibold text-neutral-400', className)}
     {...props}
   />
 ));

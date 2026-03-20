@@ -35,8 +35,18 @@ export function getCorsHeaders(
   // No origin header means same-origin or non-browser request — skip CORS.
   if (!origin) return {};
 
-  const allowedOrigins: string[] = env.CORS_ORIGINS;
-  if (!allowedOrigins.includes(origin)) return {};
+  // In development, allow all localhost origins
+  if (process.env.NODE_ENV !== 'production') {
+    if (!origin.startsWith('http://localhost')) return {};
+  } else {
+    let allowedOrigins: string[];
+    try {
+      allowedOrigins = env?.CORS_ORIGINS ?? [];
+    } catch {
+      allowedOrigins = [];
+    }
+    if (!allowedOrigins.includes(origin)) return {};
+  }
 
   const headers: Record<string, string> = {
     'Access-Control-Allow-Origin': origin,

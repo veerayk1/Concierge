@@ -14,10 +14,10 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="flex flex-col gap-1.5">
         {label ? (
-          <label htmlFor={textareaId} className="text-body-sm text-text-primary font-medium">
+          <label htmlFor={textareaId} className="text-[13px] font-medium text-neutral-900">
             {label}
             {props.required ? (
-              <span className="text-status-error ml-0.5" aria-hidden="true">
+              <span className="text-error-600 ml-0.5" aria-hidden="true">
                 *
               </span>
             ) : null}
@@ -27,13 +27,13 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={textareaId}
           className={cn(
-            'bg-surface-primary text-body-md text-text-primary min-h-[80px] w-full rounded-lg border px-3 py-2',
-            'placeholder:text-text-tertiary',
-            'focus:ring-interactive-focus focus:ring-2 focus:ring-offset-1 focus:outline-none',
+            'min-h-[80px] w-full rounded-lg border bg-white px-3 py-2 text-[14px] text-neutral-900',
+            'placeholder:text-neutral-400',
+            'focus:ring-primary-200 focus:ring-2 focus:ring-offset-1 focus:outline-none',
             'disabled:cursor-not-allowed disabled:opacity-50',
             error
-              ? 'border-status-error focus:ring-status-error'
-              : 'border-border-primary hover:border-border-secondary',
+              ? 'border-error-600 focus:ring-error-600'
+              : 'border-neutral-200 hover:border-neutral-300',
             className,
           )}
           aria-invalid={error ? 'true' : undefined}
@@ -43,11 +43,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           {...props}
         />
         {error ? (
-          <p id={`${textareaId}-error`} className="text-body-xs text-status-error" role="alert">
+          <p id={`${textareaId}-error`} className="text-error-600 text-[12px]" role="alert">
             {error}
           </p>
         ) : helperText ? (
-          <p id={`${textareaId}-helper`} className="text-body-xs text-text-tertiary">
+          <p id={`${textareaId}-helper`} className="text-[12px] text-neutral-400">
             {helperText}
           </p>
         ) : null}

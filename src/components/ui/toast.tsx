@@ -6,7 +6,7 @@ import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'reac
 import { cn } from '@/lib/utils';
 
 const toastVariants = {
-  default: 'border-border-primary bg-surface-primary',
+  default: 'border-neutral-200 bg-white',
   success: 'border-green-200 bg-green-50 text-green-900',
   warning: 'border-amber-200 bg-amber-50 text-amber-900',
   error: 'border-red-200 bg-red-50 text-red-900',
@@ -56,7 +56,7 @@ export const ToastTitle = forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitive.Title
     ref={ref}
-    className={cn('text-body-sm font-semibold', className)}
+    className={cn('text-[13px] font-semibold', className)}
     {...props}
   />
 ));
@@ -68,7 +68,7 @@ export const ToastDescription = forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitive.Description
     ref={ref}
-    className={cn('text-body-sm opacity-90', className)}
+    className={cn('text-[13px] opacity-90', className)}
     {...props}
   />
 ));
@@ -82,7 +82,7 @@ export const ToastClose = forwardRef<
     ref={ref}
     className={cn(
       'absolute top-2 right-2 rounded-sm opacity-0 transition-opacity group-hover:opacity-100',
-      'focus:ring-interactive-focus focus:opacity-100 focus:ring-2 focus:outline-none',
+      'focus:ring-primary-200 focus:opacity-100 focus:ring-2 focus:outline-none',
       className,
     )}
     {...props}
