@@ -11,6 +11,7 @@ import { Package, Plus, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { usePropertyUnits } from '@/lib/hooks/use-property-units';
 
 interface PackageRow {
   id: string;
@@ -30,7 +31,6 @@ const EMPTY_ROW = (): PackageRow => ({
   isPerishable: false,
 });
 
-const UNITS = ['101', '305', '422', '710', '802', '1105', '1203', '1501'];
 const COURIERS = [
   'Amazon',
   'FedEx',
@@ -55,6 +55,7 @@ export function BatchPackageDialog({
   propertyId,
   onSuccess,
 }: BatchPackageDialogProps) {
+  const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
   const [rows, setRows] = useState<PackageRow[]>([EMPTY_ROW(), EMPTY_ROW(), EMPTY_ROW()]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -158,12 +159,13 @@ export function BatchPackageDialog({
               <select
                 value={row.unitId}
                 onChange={(e) => updateRow(row.id, 'unitId', e.target.value)}
-                className="focus:border-primary-500 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none"
+                disabled={unitsLoading}
+                className="focus:border-primary-500 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none disabled:opacity-50"
               >
-                <option value="">Unit...</option>
-                {UNITS.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
+                <option value="">{unitsLoading ? 'Loading...' : 'Unit...'}</option>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.number}
                   </option>
                 ))}
               </select>

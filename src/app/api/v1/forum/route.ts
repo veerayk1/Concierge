@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
         propertyId: input.propertyId,
         title: stripControlChars(stripHtml(input.title)),
         body: stripControlChars(stripHtml(input.body)),
-        categoryId: input.category,
+        categoryId: null, // TODO: resolve category name to UUID when categories are managed
         userId: auth.user.userId,
         status: 'active',
         replyCount: 0,

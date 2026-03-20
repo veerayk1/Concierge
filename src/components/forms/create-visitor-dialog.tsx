@@ -15,16 +15,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePropertyUnits } from '@/lib/hooks/use-property-units';
 
-const visitorSchema = z.object({
-  visitorName: z.string().min(2, 'Visitor name is required').max(200),
-  visitorType: z.string().min(1, 'Select a visitor type'),
-  unitId: z.string().uuid('Select a unit'),
-  residentName: z.string().max(200).optional(),
-  expectedDeparture: z.string().optional(),
-  parkingPermitNeeded: z.boolean().optional(),
-  vehiclePlate: z.string().max(20).optional(),
-  comments: z.string().max(2000).optional(),
-});
+const visitorSchema = z
+  .object({
+    visitorName: z.string().min(2, 'Visitor name is required').max(200),
+    visitorType: z.string().min(1, 'Select a visitor type'),
+    unitId: z.string().uuid('Select a unit'),
+    residentName: z.string().max(200).optional(),
+    expectedDeparture: z.string().optional(),
+    parkingPermitNeeded: z.boolean().optional(),
+    vehiclePlate: z.string().max(20).optional(),
+    comments: z.string().max(2000).optional(),
+  })
+  .refine(
+    (data) =>
+      !data.parkingPermitNeeded || (data.vehiclePlate && data.vehiclePlate.trim().length > 0),
+    {
+      message: 'Vehicle plate is required when a parking permit is needed',
+      path: ['vehiclePlate'],
+    },
+  );
 
 type VisitorInput = z.infer<typeof visitorSchema>;
 

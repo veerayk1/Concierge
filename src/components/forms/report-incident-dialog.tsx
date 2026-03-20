@@ -5,10 +5,10 @@
  * Multi-step incident form with category, priority, description, photos
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, Camera, MapPin } from 'lucide-react';
+import { AlertTriangle, Camera, MapPin, X } from 'lucide-react';
 import { z } from 'zod';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -60,6 +60,8 @@ export function ReportIncidentDialog({
 }: ReportIncidentDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [incidentTypeId, setIncidentTypeId] = useState<string | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
 
   // Fetch event types to find the incident-report type UUID
@@ -135,6 +137,7 @@ export function ReportIncidentDialog({
             location: data.location,
             requiresFollowUp: data.requiresFollowUp,
             policeNotified: data.policeNotified,
+            pendingPhotos: attachedFiles.map((f) => f.name),
           },
         }),
       });
@@ -146,11 +149,25 @@ export function ReportIncidentDialog({
       }
 
       reset();
+      setAttachedFiles([]);
       onOpenChange(false);
       onSuccess?.();
     } catch {
       setServerError('An unexpected error occurred.');
     }
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (files) {
+      setAttachedFiles((prev) => [...prev, ...Array.from(files)]);
+    }
+    // Reset input so the same file can be re-selected
+    e.target.value = '';
+  }
+
+  function removeFile(index: number) {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
   return (
@@ -293,10 +310,51 @@ export function ReportIncidentDialog({
             />
           </div>
 
-          <Button type="button" variant="secondary" fullWidth>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/heic,image/webp"
+            multiple
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            fullWidth
+            onClick={() => fileInputRef.current?.click()}
+          >
             <Camera className="h-4 w-4" />
             Attach Photos
           </Button>
+
+          {attachedFiles.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="text-[13px] font-medium text-neutral-600">
+                {attachedFiles.length} photo{attachedFiles.length !== 1 ? 's' : ''} selected
+              </p>
+              <ul className="flex flex-col gap-1">
+                {attachedFiles.map((file, idx) => (
+                  <li
+                    key={`${file.name}-${idx}`}
+                    className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 text-[13px] text-neutral-700"
+                  >
+                    <span className="truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(idx)}
+                      className="ml-2 flex-shrink-0 text-neutral-400 hover:text-neutral-600"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[12px] text-neutral-400">
+                Photos will be uploaded after submission
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center justify-end gap-3 border-t border-neutral-100 pt-5">
             <Button

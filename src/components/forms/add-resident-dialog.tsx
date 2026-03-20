@@ -5,7 +5,7 @@
  * Quick add a resident to the directory (simplified version of Create User)
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { UserPlus } from 'lucide-react';
@@ -14,6 +14,20 @@ import { z } from 'zod';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { usePropertyUnits } from '@/lib/hooks/use-property-units';
+
+// ---------------------------------------------------------------------------
+// Role type from API
+// ---------------------------------------------------------------------------
+
+interface RoleFromApi {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+}
+
+const RESIDENT_ROLE_SLUGS = ['resident_owner', 'resident_tenant', 'family_member', 'offsite_owner'];
 
 const residentSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50),
@@ -43,6 +57,32 @@ export function AddResidentDialog({
   onSuccess,
 }: AddResidentDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [roles, setRoles] = useState<RoleFromApi[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+
+  const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
+
+  // Fetch roles when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (typeof window !== 'undefined' && localStorage.getItem('demo_role')) {
+      headers['x-demo-role'] = localStorage.getItem('demo_role')!;
+    }
+
+    setRolesLoading(true);
+    fetch(`/api/v1/roles?propertyId=${propertyId}`, { headers })
+      .then((res) => res.json())
+      .then((result) => {
+        if (result.data && Array.isArray(result.data)) {
+          setRoles(result.data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setRolesLoading(false));
+  }, [open, propertyId]);
+
+  const residentRoles = roles.filter((r) => RESIDENT_ROLE_SLUGS.includes(r.slug));
 
   const {
     register,
@@ -65,12 +105,9 @@ export function AddResidentDialog({
   async function onSubmit(data: ResidentInput) {
     setServerError(null);
     try {
-      const roleMap: Record<string, string> = {
-        resident_owner: 'role-9',
-        resident_tenant: 'role-10',
-        family_member: 'role-11',
-        offsite_owner: 'role-12',
-      };
+      const matchedRole = roles.find((r) => r.slug === data.role);
+      const fallbackRole = roles.find((r) => r.slug === 'resident_tenant');
+      const roleId = matchedRole?.id || fallbackRole?.id || '';
 
       const response = await fetch('/api/v1/users', {
         method: 'POST',
@@ -86,7 +123,7 @@ export function AddResidentDialog({
           email: data.email,
           phone: data.phone,
           propertyId,
-          roleId: roleMap[data.role] || 'role-10',
+          roleId,
           unitId: data.unitId,
           sendWelcomeEmail: data.sendWelcomeEmail,
           languagePreference: 'en',
@@ -166,17 +203,15 @@ export function AddResidentDialog({
               </label>
               <select
                 {...register('unitId')}
+                disabled={unitsLoading}
                 className={`focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none ${errors.unitId ? 'border-error-300' : 'border-neutral-200 hover:border-neutral-300'}`}
               >
-                <option value="">Select unit...</option>
-                <option value="unit-1">101</option>
-                <option value="unit-2">305</option>
-                <option value="unit-3">422</option>
-                <option value="unit-4">710</option>
-                <option value="unit-5">802</option>
-                <option value="unit-6">1105</option>
-                <option value="unit-7">1203</option>
-                <option value="unit-8">1501</option>
+                <option value="">{unitsLoading ? 'Loading units...' : 'Select unit...'}</option>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.number}
+                  </option>
+                ))}
               </select>
               {errors.unitId && (
                 <p className="text-error-600 text-[13px] font-medium">{errors.unitId.message}</p>
@@ -186,12 +221,25 @@ export function AddResidentDialog({
               <label className="text-[14px] font-medium text-neutral-700">Type</label>
               <select
                 {...register('role')}
+                disabled={rolesLoading}
                 className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
               >
-                <option value="resident_owner">Owner</option>
-                <option value="resident_tenant">Tenant</option>
-                <option value="family_member">Family Member</option>
-                <option value="offsite_owner">Offsite Owner</option>
+                {rolesLoading ? (
+                  <option value="">Loading roles...</option>
+                ) : residentRoles.length > 0 ? (
+                  residentRoles.map((r) => (
+                    <option key={r.id} value={r.slug}>
+                      {r.name}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="resident_owner">Owner</option>
+                    <option value="resident_tenant">Tenant</option>
+                    <option value="family_member">Family Member</option>
+                    <option value="offsite_owner">Offsite Owner</option>
+                  </>
+                )}
               </select>
             </div>
           </div>

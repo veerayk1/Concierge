@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { usePropertyUnits } from '@/lib/hooks/use-property-units';
 
 const permitSchema = z.object({
   unitId: z.string().min(1, 'Select a unit'),
@@ -49,6 +50,7 @@ export function CreateParkingPermitDialog({
   onSuccess,
 }: CreateParkingPermitDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
 
   const {
     register,
@@ -147,13 +149,12 @@ export function CreateParkingPermitDialog({
                   errors.unitId ? 'border-error-300' : 'border-neutral-200 hover:border-neutral-300'
                 }`}
               >
-                <option value="">Select unit...</option>
-                <option value="unit-1">101</option>
-                <option value="unit-2">305</option>
-                <option value="unit-3">422</option>
-                <option value="unit-4">710</option>
-                <option value="unit-5">802</option>
-                <option value="unit-6">1501</option>
+                <option value="">{unitsLoading ? 'Loading units...' : 'Select unit...'}</option>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.number}
+                  </option>
+                ))}
               </select>
               {errors.unitId && (
                 <p className="text-error-600 text-[13px] font-medium">{errors.unitId.message}</p>

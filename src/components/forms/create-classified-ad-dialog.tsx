@@ -22,6 +22,9 @@ const adSchema = z.object({
   price: z.number().min(0).optional(),
   isFree: z.boolean().default(false),
   contactMethod: z.enum(['message', 'phone', 'email']).default('message'),
+  termsAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'You must agree to the community marketplace guidelines' }),
+  }),
 });
 
 type AdInput = z.infer<typeof adSchema>;
@@ -70,10 +73,12 @@ export function CreateClassifiedAdDialog({
       price: undefined,
       isFree: false,
       contactMethod: 'message',
+      termsAccepted: false as unknown as true,
     },
   });
 
   const isFree = watch('isFree');
+  const termsAccepted = watch('termsAccepted');
 
   async function onSubmit(data: AdInput) {
     setServerError(null);
@@ -92,6 +97,7 @@ export function CreateClassifiedAdDialog({
           price: data.isFree ? 0 : data.price,
           priceType: data.isFree ? 'free' : 'fixed',
           contactMethod: [data.contactMethod === 'message' ? 'in_app' : data.contactMethod],
+          termsAccepted: data.termsAccepted,
         }),
       });
 
@@ -209,6 +215,26 @@ export function CreateClassifiedAdDialog({
             </select>
           </div>
 
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={termsAccepted === true}
+                onCheckedChange={(c) =>
+                  setValue('termsAccepted', c === true ? true : (false as unknown as true), {
+                    shouldValidate: true,
+                  })
+                }
+                id="terms-accepted"
+                label="I agree to the community marketplace guidelines"
+              />
+            </div>
+            {errors.termsAccepted && (
+              <p className="text-error-600 text-[13px] font-medium">
+                {errors.termsAccepted.message}
+              </p>
+            )}
+          </div>
+
           <div className="flex items-center justify-end gap-3 border-t border-neutral-100 pt-5">
             <Button
               type="button"
@@ -220,7 +246,11 @@ export function CreateClassifiedAdDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
+            <Button
+              type="submit"
+              loading={isSubmitting}
+              disabled={isSubmitting || termsAccepted !== true}
+            >
               {isSubmitting ? 'Posting...' : 'Post Ad'}
             </Button>
           </div>

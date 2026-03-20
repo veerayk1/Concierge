@@ -48,7 +48,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const updateData: Record<string, unknown> = {};
     if (body.title) updateData.title = stripControlChars(stripHtml(body.title));
-    if (body.body) updateData.body = stripControlChars(stripHtml(body.body));
+    if (body.content) updateData.content = stripControlChars(stripHtml(body.content));
     if (body.priority) updateData.priority = body.priority;
     if (body.channels) updateData.channels = body.channels;
     if (body.status) {

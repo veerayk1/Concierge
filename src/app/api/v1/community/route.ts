@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
         contactPhone: input.contactPhone || null,
         contactEmail: input.contactEmail || null,
         userId: auth.user.userId,
-        status: 'active',
+        status: 'active', // Auto-approve for now — pending_review when moderation is enabled
         expirationDate: expiresAt,
       },
     });

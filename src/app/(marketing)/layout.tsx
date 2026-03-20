@@ -18,7 +18,7 @@ const FOOTER_LINKS = {
   product: [
     { label: 'Features', href: '/features' },
     { label: 'Pricing', href: '/pricing' },
-    { label: 'Security', href: '/security' },
+    { label: 'Security', href: '/security-privacy' },
   ],
   company: [
     { label: 'About', href: '/about' },
@@ -26,8 +26,8 @@ const FOOTER_LINKS = {
     { label: 'Blog', href: '/blog' },
   ],
   legal: [
-    { label: 'Privacy', href: '/privacy' },
-    { label: 'Terms', href: '/terms' },
+    { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Terms of Service', href: '/terms' },
   ],
 } as const;
 

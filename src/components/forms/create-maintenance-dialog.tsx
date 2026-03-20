@@ -4,10 +4,10 @@
  * Create Maintenance Request Dialog — per PRD 05
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Wrench } from 'lucide-react';
+import { Wrench, Paperclip, X } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,8 @@ export function CreateMaintenanceDialog({
   onSuccess,
 }: CreateMaintenanceDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
   const { data: categories } = useApi<ApiCategory[]>(
     apiUrl('/api/v1/maintenance/categories', { propertyId }),
@@ -77,7 +79,10 @@ export function CreateMaintenanceDialog({
             ? { 'x-demo-role': localStorage.getItem('demo_role')! }
             : {}),
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          pendingAttachments: attachedFiles.map((f) => f.name),
+        }),
       });
 
       if (!response.ok) {
@@ -87,11 +92,24 @@ export function CreateMaintenanceDialog({
       }
 
       reset();
+      setAttachedFiles([]);
       onOpenChange(false);
       onSuccess?.();
     } catch {
       setServerError('An unexpected error occurred.');
     }
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (files) {
+      setAttachedFiles((prev) => [...prev, ...Array.from(files)]);
+    }
+    e.target.value = '';
+  }
+
+  function removeFile(index: number) {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
   return (
@@ -169,6 +187,52 @@ export function CreateMaintenanceDialog({
             />
             {errors.description && (
               <p className="text-error-600 text-[13px] font-medium">{errors.description.message}</p>
+            )}
+          </div>
+
+          {/* Attachments */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] font-medium text-neutral-700">
+              Photos &amp; Documents
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/heic,image/webp,application/pdf,.doc,.docx,.xlsx"
+              multiple
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50 px-4 py-3 text-[14px] text-neutral-500 transition-colors hover:border-neutral-300 hover:bg-neutral-100"
+            >
+              <Paperclip className="h-4 w-4" />
+              Attach photos or documents
+            </button>
+
+            {attachedFiles.length > 0 && (
+              <div className="flex flex-col gap-1">
+                {attachedFiles.map((file, idx) => (
+                  <div
+                    key={`${file.name}-${idx}`}
+                    className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 text-[13px] text-neutral-700"
+                  >
+                    <span className="truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(idx)}
+                      className="ml-2 flex-shrink-0 text-neutral-400 hover:text-neutral-600"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+                <p className="text-[12px] text-neutral-400">
+                  Files will be uploaded after submission
+                </p>
+              </div>
             )}
           </div>
 
