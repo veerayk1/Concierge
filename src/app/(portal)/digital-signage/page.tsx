@@ -18,7 +18,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -201,7 +201,7 @@ export default function DigitalSignagePage() {
     refetch,
   } = useApi<ApiSignageContent[]>(
     apiUrl('/api/v1/digital-signage', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       status: 'all',
       pageSize: '200',
     }),
@@ -338,7 +338,11 @@ export default function DigitalSignagePage() {
       description="Manage lobby displays, announcement screens, and digital notice boards."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => alert('Preview Mode is coming soon.')}
+          >
             <Eye className="h-4 w-4" />
             Preview Mode
           </Button>
@@ -559,7 +563,7 @@ export default function DigitalSignagePage() {
       <CreateSignageDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

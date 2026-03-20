@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { loginSchema } from '@/schemas/auth';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { ApiClientError } from '@/lib/api-client';
+import { DEFAULT_DEMO_PROPERTY_ID } from '@/lib/demo-config';
 
 type LoginFormValues = z.input<typeof loginSchema>;
 
@@ -189,6 +190,7 @@ export function LoginForm() {
             type="button"
             onClick={() => {
               localStorage.setItem('demo_role', demo.role);
+              localStorage.setItem('demo_propertyId', DEFAULT_DEMO_PROPERTY_ID);
               window.location.href = '/dashboard';
             }}
             className={`rounded-xl border px-3 py-2.5 text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] ${demo.color}`}
@@ -244,6 +246,7 @@ export function LoginForm() {
             type="button"
             onClick={() => {
               localStorage.setItem('demo_role', demo.role);
+              localStorage.setItem('demo_propertyId', DEFAULT_DEMO_PROPERTY_ID);
               window.location.href = '/dashboard';
             }}
             className={`rounded-xl border px-3 py-2 text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] ${demo.color}`}
@@ -281,6 +284,7 @@ export function LoginForm() {
             type="button"
             onClick={() => {
               localStorage.setItem('demo_role', demo.role);
+              localStorage.setItem('demo_propertyId', DEFAULT_DEMO_PROPERTY_ID);
               window.location.href = '/dashboard';
             }}
             className={`rounded-xl border px-3 py-2 text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] ${demo.color}`}

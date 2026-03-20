@@ -12,10 +12,12 @@ import type { Role } from '@/types';
 // Mock data
 // ---------------------------------------------------------------------------
 
+import { getPropertyId, DEMO_PROPERTY } from '@/lib/demo-config';
+
 const MOCK_PROPERTY = {
-  id: '00000000-0000-4000-b000-000000000001',
-  name: 'Maple Heights Condominiums',
-  address: '100 Maple Avenue, Toronto, ON',
+  id: getPropertyId(),
+  name: DEMO_PROPERTY.name,
+  address: DEMO_PROPERTY.address,
 };
 
 const MOCK_PROPERTIES = [MOCK_PROPERTY];

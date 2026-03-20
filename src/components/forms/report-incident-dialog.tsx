@@ -5,7 +5,7 @@
  * Multi-step incident form with category, priority, description, photos
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Camera, MapPin } from 'lucide-react';
@@ -23,7 +23,7 @@ const incidentSchema = z.object({
   category: z.string().min(1, 'Select a category'),
   location: z.string().max(200).optional(),
   unitId: z.string().optional(),
-  priority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
   requiresFollowUp: z.boolean().default(false),
   policeNotified: z.boolean().default(false),
 });
@@ -59,7 +59,32 @@ export function ReportIncidentDialog({
   onSuccess,
 }: ReportIncidentDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [incidentTypeId, setIncidentTypeId] = useState<string | null>(null);
   const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
+
+  // Fetch event types to find the incident-report type UUID
+  useEffect(() => {
+    if (!open) return;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (typeof window !== 'undefined' && localStorage.getItem('demo_role')) {
+      headers['x-demo-role'] = localStorage.getItem('demo_role')!;
+    }
+    fetch(`/api/v1/event-types?propertyId=${propertyId}`, { headers })
+      .then((res) => res.json())
+      .then((result) => {
+        const types = result.data ?? result;
+        if (Array.isArray(types)) {
+          const incident = types.find(
+            (t: { slug?: string; name?: string }) =>
+              t.slug === 'incident_report' ||
+              t.slug === 'incident-report' ||
+              t.name?.toLowerCase().includes('incident'),
+          );
+          if (incident) setIncidentTypeId(incident.id);
+        }
+      })
+      .catch(() => {});
+  }, [open, propertyId]);
 
   const {
     register,
@@ -100,7 +125,7 @@ export function ReportIncidentDialog({
         },
         body: JSON.stringify({
           propertyId,
-          eventTypeId: 'incident-report',
+          eventTypeId: incidentTypeId || undefined,
           unitId: data.unitId || undefined,
           title: data.title,
           description: data.description,
@@ -182,12 +207,12 @@ export function ReportIncidentDialog({
             <div className="flex flex-col gap-2">
               <label className="text-[14px] font-medium text-neutral-700">Priority</label>
               <div className="flex gap-1.5">
-                {(['low', 'medium', 'high', 'critical'] as const).map((p) => {
+                {(['low', 'medium', 'high', 'urgent'] as const).map((p) => {
                   const colors = {
                     low: 'bg-neutral-100 text-neutral-600',
                     medium: 'bg-warning-50 text-warning-700',
                     high: 'bg-error-50 text-error-700',
-                    critical: 'bg-error-200 text-error-900',
+                    urgent: 'bg-error-200 text-error-900',
                   };
                   return (
                     <button

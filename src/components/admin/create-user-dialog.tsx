@@ -36,6 +36,12 @@ const RESIDENT_ROLE_SLUGS = ['resident_owner', 'resident_tenant', 'family_member
 // Component
 // ---------------------------------------------------------------------------
 
+interface UnitFromApi {
+  id: string;
+  number: string;
+  floor?: number;
+}
+
 interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -51,17 +57,23 @@ export function CreateUserDialog({
 }: CreateUserDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [createdEmail, setCreatedEmail] = useState<string | null>(null);
   const [roles, setRoles] = useState<RoleFromApi[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
+  const [units, setUnits] = useState<UnitFromApi[]>([]);
+  const [unitsLoading, setUnitsLoading] = useState(false);
 
-  // Fetch roles from API when dialog opens
+  // Fetch roles and units from API when dialog opens
   useEffect(() => {
     if (!open) return;
-    setRolesLoading(true);
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (typeof window !== 'undefined' && localStorage.getItem('demo_role')) {
       headers['x-demo-role'] = localStorage.getItem('demo_role')!;
     }
+
+    // Fetch roles
+    setRolesLoading(true);
     fetch(`/api/v1/roles?propertyId=${propertyId}`, { headers })
       .then((res) => res.json())
       .then((result) => {
@@ -69,10 +81,25 @@ export function CreateUserDialog({
           setRoles(result.data);
         }
       })
-      .catch(() => {
-        // Silently fail — roles dropdown will be empty
-      })
+      .catch(() => {})
       .finally(() => setRolesLoading(false));
+
+    // Fetch units for resident role assignment
+    setUnitsLoading(true);
+    fetch(`/api/v1/units?propertyId=${propertyId}&pageSize=500`, { headers })
+      .then((res) => res.json())
+      .then((result) => {
+        const data = result.data ?? result;
+        if (Array.isArray(data)) {
+          setUnits(data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setUnitsLoading(false));
+
+    // Reset temp password display when opening fresh
+    setTempPassword(null);
+    setCreatedEmail(null);
   }, [open, propertyId]);
 
   const {
@@ -132,13 +159,22 @@ export function CreateUserDialog({
         return;
       }
 
-      setSuccessMsg(result.message || 'Account created successfully.');
-      setTimeout(() => {
+      // Show temp password so admin can share it with the new user
+      if (result.data?.tempPassword) {
+        setTempPassword(result.data.tempPassword);
+        setCreatedEmail(result.data.email);
+        setSuccessMsg(`Account created for ${result.data.firstName} ${result.data.lastName}.`);
         reset();
-        setSuccessMsg(null);
-        onOpenChange(false);
         onSuccess?.();
-      }, 1500);
+      } else {
+        setSuccessMsg(result.message || 'Account created successfully.');
+        setTimeout(() => {
+          reset();
+          setSuccessMsg(null);
+          onOpenChange(false);
+          onSuccess?.();
+        }, 1500);
+      }
     } catch {
       setServerError('An unexpected error occurred. Please try again.');
     }
@@ -165,6 +201,48 @@ export function CreateUserDialog({
           {successMsg && (
             <div className="border-success-200 bg-success-50 text-success-700 rounded-xl border px-4 py-3 text-[14px]">
               {successMsg}
+            </div>
+          )}
+          {tempPassword && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-[14px]">
+              <p className="mb-2 font-semibold text-amber-800">Temporary Login Credentials</p>
+              <div className="space-y-1 text-amber-700">
+                <p>
+                  Email: <span className="font-mono font-semibold">{createdEmail}</span>
+                </p>
+                <p>
+                  Password: <span className="font-mono font-semibold">{tempPassword}</span>
+                </p>
+              </div>
+              <p className="mt-3 text-[12px] text-amber-600">
+                Share these credentials with the user. They should change their password on first
+                login.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `Email: ${createdEmail}\nPassword: ${tempPassword}`,
+                    );
+                  }}
+                  className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[12px] font-medium text-amber-700 transition-colors hover:bg-amber-100"
+                >
+                  Copy Credentials
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempPassword(null);
+                    setCreatedEmail(null);
+                    setSuccessMsg(null);
+                    onOpenChange(false);
+                  }}
+                  className="rounded-lg border border-amber-300 bg-amber-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-amber-700"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           )}
 
@@ -243,21 +321,20 @@ export function CreateUserDialog({
                 </label>
                 <select
                   {...register('unitId')}
+                  disabled={unitsLoading}
                   className={`focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none ${
                     errors.unitId
                       ? 'border-error-300'
                       : 'border-neutral-200 hover:border-neutral-300'
                   }`}
                 >
-                  <option value="">Select a unit...</option>
-                  <option value="unit-1">101</option>
-                  <option value="unit-2">305</option>
-                  <option value="unit-3">422</option>
-                  <option value="unit-4">710</option>
-                  <option value="unit-5">802</option>
-                  <option value="unit-6">1105</option>
-                  <option value="unit-7">1203</option>
-                  <option value="unit-8">1501</option>
+                  <option value="">{unitsLoading ? 'Loading units...' : 'Select a unit...'}</option>
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.number}
+                      {unit.floor != null ? ` (Floor ${unit.floor})` : ''}
+                    </option>
+                  ))}
                 </select>
                 {errors.unitId && (
                   <p className="text-error-600 text-[13px] font-medium">{errors.unitId.message}</p>

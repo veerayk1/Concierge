@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
 // Mock Data
@@ -179,7 +179,7 @@ function CreateEventTypeDialog({
     if (typeof window !== 'undefined' && localStorage.getItem('demo_role')) {
       headers['x-demo-role'] = localStorage.getItem('demo_role')!;
     }
-    fetch(`/api/v1/event-groups?propertyId=${DEMO_PROPERTY_ID}`, { headers })
+    fetch(`/api/v1/event-groups?propertyId=${getPropertyId()}`, { headers })
       .then((res) => res.json())
       .then((result) => {
         if (result.data && Array.isArray(result.data)) {
@@ -228,7 +228,7 @@ function CreateEventTypeDialog({
       const res = await apiRequest('/api/v1/event-types', {
         method: 'POST',
         body: {
-          propertyId: DEMO_PROPERTY_ID,
+          propertyId: getPropertyId(),
           name,
           slug,
           eventGroupId,
@@ -371,12 +371,13 @@ function CreateEventTypeDialog({
 
 export default function EventTypesPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const {
     data: apiEventTypes,
     loading,
     refetch,
-  } = useApi<ApiEventType[]>(apiUrl('/api/v1/event-types', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<ApiEventType[]>(apiUrl('/api/v1/event-types', { propertyId: getPropertyId() }));
 
   const mergedEventTypes = useMemo<EventType[]>(() => {
     if (!apiEventTypes || apiEventTypes.length === 0) return INITIAL_EVENT_TYPES;
@@ -408,6 +409,30 @@ export default function EventTypesPage() {
     setEventTypes((prev) =>
       prev.map((et) => (et.id === id ? { ...et, enabled: !et.enabled } : et)),
     );
+  }
+
+  async function handleSaveChanges() {
+    setSaving(true);
+    try {
+      const updates = displayEventTypes.map((et) => ({
+        id: et.id,
+        isActive: et.enabled,
+      }));
+      const res = await apiRequest('/api/v1/event-types/batch', {
+        method: 'PATCH',
+        body: { propertyId: getPropertyId(), updates },
+      });
+      if (res.ok) {
+        refetch();
+      } else {
+        const result = await res.json().catch(() => ({}));
+        alert(result.message || 'Failed to save changes. Please try again.');
+      }
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) {
@@ -515,7 +540,16 @@ export default function EventTypesPage() {
 
       {/* Save */}
       <div className="flex justify-end pt-2">
-        <Button size="lg">Save Changes</Button>
+        <Button size="lg" onClick={handleSaveChanges} disabled={saving}>
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Changes'
+          )}
+        </Button>
       </div>
 
       {/* Create Event Type Dialog */}

@@ -13,7 +13,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -185,7 +185,7 @@ export default function BillingPage() {
     loading: subLoading,
     error: subError,
     refetch: refetchSub,
-  } = useApi<SubscriptionData>(apiUrl('/api/v1/billing', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<SubscriptionData>(apiUrl('/api/v1/billing', { propertyId: getPropertyId() }));
 
   // Fetch invoices
   const {
@@ -193,9 +193,7 @@ export default function BillingPage() {
     loading: invLoading,
     error: invError,
     refetch: refetchInv,
-  } = useApi<InvoicesResponse>(
-    apiUrl('/api/v1/billing/invoices', { propertyId: DEMO_PROPERTY_ID }),
-  );
+  } = useApi<InvoicesResponse>(apiUrl('/api/v1/billing/invoices', { propertyId: getPropertyId() }));
 
   const invoices: Invoice[] = useMemo(() => {
     if (!invoicesResponse) return [];
@@ -321,7 +319,11 @@ export default function BillingPage() {
                 </span>
               </div>
             </div>
-            <Button variant="secondary" className="mt-2">
+            <Button
+              variant="secondary"
+              className="mt-2"
+              onClick={() => alert('Plan upgrade is coming soon. Contact sales for changes.')}
+            >
               <TrendingUp className="h-4 w-4" />
               Upgrade Plan
             </Button>
@@ -390,7 +392,11 @@ export default function BillingPage() {
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>Payment Methods</CardTitle>
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => alert('Payment method management is coming soon.')}
+          >
             Add Payment Method
           </Button>
         </CardHeader>
@@ -412,7 +418,11 @@ export default function BillingPage() {
             <Badge variant="success" size="sm">
               Default
             </Badge>
-            <Button variant="ghost" size="sm">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => alert('Payment method management is coming soon.')}
+            >
               Update Payment
             </Button>
           </div>
@@ -539,12 +549,22 @@ export default function BillingPage() {
                     Current Plan
                   </Button>
                 ) : tier.name === 'Enterprise' ? (
-                  <Button variant="secondary" fullWidth>
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    onClick={() =>
+                      alert('Contact sales at sales@concierge.com for Enterprise pricing.')
+                    }
+                  >
                     Contact Sales
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button variant={selectedPlan === tier.name ? 'primary' : 'secondary'} fullWidth>
+                  <Button
+                    variant={selectedPlan === tier.name ? 'primary' : 'secondary'}
+                    fullWidth
+                    onClick={() => alert('Plan upgrade is coming soon. Contact sales for changes.')}
+                  >
                     {tier.name === 'Starter' ? 'Downgrade' : 'Upgrade'}
                   </Button>
                 )}

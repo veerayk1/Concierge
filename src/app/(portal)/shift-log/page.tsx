@@ -18,7 +18,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { CreateShiftEntryDialog } from '@/components/forms/create-shift-entry-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -105,7 +105,7 @@ export default function ShiftLogPage() {
     refetch,
   } = useApi<ShiftEntry[]>(
     apiUrl('/api/v1/shift-log', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       priority: entryTypeFilter !== 'all' ? entryTypeFilter : undefined,
     }),
   );
@@ -446,7 +446,7 @@ export default function ShiftLogPage() {
       <CreateShiftEntryDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

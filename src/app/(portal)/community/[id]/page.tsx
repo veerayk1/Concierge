@@ -19,7 +19,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -103,7 +103,7 @@ export default function CommunityEventDetailPage() {
     error,
     refetch,
   } = useApi<CommunityEventDetail>(
-    apiUrl(`/api/v1/community/${id}`, { propertyId: DEMO_PROPERTY_ID }),
+    apiUrl(`/api/v1/community/${id}`, { propertyId: getPropertyId() }),
   );
 
   if (loading) return <DetailSkeleton />;
@@ -149,7 +149,18 @@ export default function CommunityEventDetailPage() {
       title={event.title}
       description="Community Event"
       actions={
-        <Button variant="secondary" size="sm" onClick={() => {}}>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            if (navigator.share) {
+              navigator.share({ title: event.title, url: window.location.href });
+            } else {
+              navigator.clipboard.writeText(window.location.href);
+              alert('Event link copied to clipboard.');
+            }
+          }}
+        >
           <Share2 className="h-4 w-4" />
           Share Event
         </Button>
@@ -361,7 +372,18 @@ export default function CommunityEventDetailPage() {
               <CardTitle>Share</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button variant="secondary" fullWidth onClick={() => {}}>
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({ title: event.title, url: window.location.href });
+                  } else {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert('Event link copied to clipboard.');
+                  }
+                }}
+              >
                 <Share2 className="h-4 w-4" />
                 Share Event
               </Button>

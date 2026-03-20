@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreateAnnouncementDialog } from '@/components/forms/create-announcement-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   Calendar,
   Clock,
@@ -103,7 +103,7 @@ export default function AnnouncementsPage() {
     refetch,
   } = useApi<ApiResponse>(
     apiUrl('/api/v1/announcements', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       search: searchQuery || undefined,
       status: statusFilter !== 'all' ? statusFilter : undefined,
       pageSize: '50',
@@ -358,7 +358,7 @@ export default function AnnouncementsPage() {
       <CreateAnnouncementDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

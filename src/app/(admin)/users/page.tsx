@@ -53,7 +53,7 @@ const ROLE_COLORS: Record<string, string> = {
 // Component
 // ---------------------------------------------------------------------------
 
-const PROPERTY_ID = '00000000-0000-4000-b000-000000000001';
+import { getPropertyId } from '@/lib/demo-config';
 
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,7 +66,7 @@ export default function UsersPage() {
     loading,
     error,
     refetch,
-  } = useApi<UserAccount[]>(apiUrl('/api/v1/users', { propertyId: PROPERTY_ID }));
+  } = useApi<UserAccount[]>(apiUrl('/api/v1/users', { propertyId: getPropertyId() }));
 
   const handleUserCreated = useCallback(() => {
     setShowCreateDialog(false);
@@ -389,7 +389,7 @@ export default function UsersPage() {
       <CreateUserDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={handleUserCreated}
       />
     </PageShell>

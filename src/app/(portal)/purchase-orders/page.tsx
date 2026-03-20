@@ -15,7 +15,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -189,7 +189,7 @@ export default function PurchaseOrdersPage() {
     error,
     refetch,
   } = useApi<ApiPurchaseOrder[]>(
-    apiUrl('/api/v1/purchase-orders', { propertyId: DEMO_PROPERTY_ID, pageSize: '200' }),
+    apiUrl('/api/v1/purchase-orders', { propertyId: getPropertyId(), pageSize: '200' }),
   );
 
   const allPurchaseOrders = useMemo<PurchaseOrderItem[]>(
@@ -542,7 +542,7 @@ export default function PurchaseOrdersPage() {
       <CreatePurchaseOrderDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

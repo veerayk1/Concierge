@@ -14,7 +14,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -152,7 +152,7 @@ export default function ResidentCardsPage() {
     error,
     refetch,
   } = useApi<ApiResidentCard[]>(
-    apiUrl('/api/v1/resident-cards', { propertyId: DEMO_PROPERTY_ID, pageSize: '200' }),
+    apiUrl('/api/v1/resident-cards', { propertyId: getPropertyId(), pageSize: '200' }),
   );
 
   const cards = useMemo<ResidentCardItem[]>(() => (apiCards ?? []).map(normalizeCard), [apiCards]);
@@ -431,7 +431,7 @@ export default function ResidentCardsPage() {
           size="sm"
           disabled={selectedCards.size === 0}
           onClick={() => {
-            // Batch print selected cards
+            alert('Batch print is coming soon. Select cards first.');
           }}
         >
           <Printer className="h-4 w-4" />
@@ -496,7 +496,7 @@ export default function ResidentCardsPage() {
       <CreateResidentCardDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

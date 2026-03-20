@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ImagePlus, Shield, AlertTriangle, Loader2 } from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -105,7 +105,7 @@ export default function SecurityCompanyPage() {
     loading,
     error,
     refetch,
-  } = useApi<PropertySettings>(apiUrl('/api/v1/settings', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<PropertySettings>(apiUrl('/api/v1/settings', { propertyId: getPropertyId() }));
 
   // Extract security company data from branding JSON
   const [formData, setFormData] = useState<SecurityCompanyData>(DEFAULT_SECURITY);
@@ -142,7 +142,7 @@ export default function SecurityCompanyPage() {
       const response = await apiRequest('/api/v1/settings', {
         method: 'PATCH',
         body: {
-          propertyId: DEMO_PROPERTY_ID,
+          propertyId: getPropertyId(),
           branding: {
             ...currentBranding,
             securityCompany: updatedSecurityData,

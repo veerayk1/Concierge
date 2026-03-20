@@ -14,8 +14,8 @@ import {
   Check,
   AlertTriangle,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -101,7 +101,7 @@ export default function CustomFieldsPage() {
     refetch,
   } = useApi<CustomFieldDefinition[]>(
     apiUrl('/api/v1/custom-fields', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
     }),
   );
 
@@ -206,12 +206,13 @@ export default function CustomFieldsPage() {
     {
       id: 'actions',
       header: 'Actions',
-      cell: () => (
+      cell: (row) => (
         <div className="flex items-center gap-1">
           <button
             type="button"
             className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
             title="Edit field"
+            onClick={() => alert('Edit field is coming soon.')}
           >
             <Pencil className="h-4 w-4" />
           </button>
@@ -219,6 +220,23 @@ export default function CustomFieldsPage() {
             type="button"
             className="hover:bg-error-50 hover:text-error-600 rounded-lg p-1.5 text-neutral-400 transition-colors"
             title="Delete field"
+            onClick={async () => {
+              if (!confirm(`Delete custom field "${row.fieldLabel}"? This cannot be undone.`))
+                return;
+              try {
+                const res = await apiRequest(`/api/v1/custom-fields/${row.id}`, {
+                  method: 'DELETE',
+                });
+                if (res.ok) {
+                  refetch();
+                } else {
+                  const result = await res.json().catch(() => ({}));
+                  alert(result.message || 'Failed to delete field.');
+                }
+              } catch {
+                alert('Network error. Please try again.');
+              }
+            }}
           >
             <Trash2 className="h-4 w-4" />
           </button>

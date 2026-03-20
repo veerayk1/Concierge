@@ -16,7 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { apiClient, ApiClientError } from '@/lib/api-client';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
 import type { Role } from '@/types';
 import { PageShell } from '@/components/layout/page-shell';
@@ -186,7 +186,7 @@ export default function MyAccountPage() {
     error: prefsError,
     refetch: refetchPrefs,
   } = useApi<NotificationPreference[]>(
-    apiUrl('/api/v1/resident/notifications', { propertyId: DEMO_PROPERTY_ID }),
+    apiUrl('/api/v1/resident/notifications', { propertyId: getPropertyId() }),
   );
 
   // Parse preferences, handling the useApi unwrap behavior

@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -15,8 +15,8 @@ import {
   Trash2,
   User,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -123,6 +123,7 @@ function DetailSkeleton() {
 
 export default function BuildingDirectoryDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
 
   const {
     data: entry,
@@ -130,7 +131,7 @@ export default function BuildingDirectoryDetailPage() {
     error,
     refetch,
   } = useApi<DirectoryEntry>(
-    apiUrl(`/api/v1/building-directory/${id}`, { propertyId: DEMO_PROPERTY_ID }),
+    apiUrl(`/api/v1/building-directory/${id}`, { propertyId: getPropertyId() }),
   );
 
   if (loading) return <DetailSkeleton />;
@@ -177,7 +178,7 @@ export default function BuildingDirectoryDetailPage() {
       description="Building Directory"
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" onClick={() => alert('Edit Entry is coming soon.')}>
             <Edit2 className="h-4 w-4" />
             Edit Entry
           </Button>
@@ -308,15 +309,56 @@ export default function BuildingDirectoryDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                <Button variant="secondary">
+                <Button variant="secondary" onClick={() => alert('Edit Entry is coming soon.')}>
                   <Edit2 className="h-4 w-4" />
                   Edit Entry
                 </Button>
-                <Button variant="secondary">
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    const action = isActive ? 'deactivate' : 'activate';
+                    if (!confirm(`Are you sure you want to ${action} this entry?`)) return;
+                    try {
+                      const res = await apiRequest(`/api/v1/building-directory/${id}`, {
+                        method: 'PATCH',
+                        body: { isActive: !isActive },
+                      });
+                      if (res.ok) {
+                        await refetch();
+                      } else {
+                        alert(`Failed to ${action} entry. Please try again.`);
+                      }
+                    } catch {
+                      alert(`Failed to ${action} entry. Please try again.`);
+                    }
+                  }}
+                >
                   <Power className="h-4 w-4" />
                   {isActive ? 'Deactivate' : 'Activate'}
                 </Button>
-                <Button variant="danger">
+                <Button
+                  variant="danger"
+                  onClick={async () => {
+                    if (
+                      !confirm(
+                        'Are you sure you want to delete this entry? This action cannot be undone.',
+                      )
+                    )
+                      return;
+                    try {
+                      const res = await apiRequest(`/api/v1/building-directory/${id}`, {
+                        method: 'DELETE',
+                      });
+                      if (res.ok) {
+                        router.push('/building-directory');
+                      } else {
+                        alert('Failed to delete entry. Please try again.');
+                      }
+                    } catch {
+                      alert('Failed to delete entry. Please try again.');
+                    }
+                  }}
+                >
                   <Trash2 className="h-4 w-4" />
                   Delete Entry
                 </Button>

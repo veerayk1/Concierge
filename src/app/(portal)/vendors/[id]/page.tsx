@@ -20,8 +20,8 @@ import {
   Star,
   Upload,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -186,7 +186,31 @@ export default function VendorDetailPage() {
     data: vendor,
     loading,
     error,
-  } = useApi<VendorDetail>(apiUrl(`/api/v1/vendors/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+    refetch,
+  } = useApi<VendorDetail>(apiUrl(`/api/v1/vendors/${id}`, { propertyId: getPropertyId() }));
+
+  // -- Action Handlers --
+  const handleDeactivateVendor = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to deactivate this vendor? They will no longer be assignable to new work orders.',
+    );
+    if (!confirmed) return;
+    try {
+      const res = await apiRequest(
+        apiUrl(`/api/v1/vendors/${id}`, { propertyId: getPropertyId() }),
+        { method: 'PATCH', body: { status: 'inactive' } },
+      );
+      if (!res.ok) {
+        const result = await res.json().catch(() => ({}));
+        alert(result.message || 'Failed to deactivate vendor.');
+        return;
+      }
+      alert('Vendor has been deactivated.');
+      refetch();
+    } catch {
+      alert('Network error. Please try again.');
+    }
+  };
 
   // -- Loading State --
   if (loading) {
@@ -311,7 +335,11 @@ export default function VendorDetailPage() {
       description={`${vendor.category} vendor`}
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => alert('Edit Vendor is coming soon.')}
+          >
             <Edit2 className="h-4 w-4" />
             Edit Vendor
           </Button>
@@ -455,7 +483,11 @@ export default function VendorDetailPage() {
                 <InfoRow
                   label="Insurance Certificate"
                   value={
-                    <Button variant="secondary" size="sm">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => alert('Certificate upload is coming soon.')}
+                    >
                       <Upload className="h-3.5 w-3.5" />
                       Upload / View Certificate
                     </Button>
@@ -571,19 +603,27 @@ export default function VendorDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button fullWidth>
+                <Button fullWidth onClick={() => alert('Edit Vendor is coming soon.')}>
                   <Edit2 className="h-4 w-4" />
                   Edit Vendor
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => alert('Insurance update request sent.')}
+                >
                   <RefreshCw className="h-4 w-4" />
                   Request Insurance Update
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => alert('Contract viewer is coming soon.')}
+                >
                   <FileText className="h-4 w-4" />
                   View Contract
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button variant="secondary" fullWidth onClick={handleDeactivateVendor}>
                   <Power className="h-4 w-4" />
                   Deactivate Vendor
                 </Button>
@@ -623,6 +663,7 @@ export default function VendorDetailPage() {
                       <button
                         type="button"
                         className="text-neutral-400 transition-colors hover:text-neutral-600"
+                        onClick={() => alert('Document download is coming soon.')}
                       >
                         <Download className="h-4 w-4" />
                       </button>

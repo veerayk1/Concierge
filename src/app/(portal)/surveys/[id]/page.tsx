@@ -144,7 +144,7 @@ export default function SurveyDetailPage({ params }: SurveyDetailPageProps) {
     );
   }
 
-  const statusCfg = STATUS_CONFIG[survey.status] ?? STATUS_CONFIG.draft;
+  const statusCfg = (STATUS_CONFIG[survey.status] ?? STATUS_CONFIG.draft)!;
   const totalEligible = 171; // Default eligible count; would come from property in production
   const responseRate =
     totalEligible > 0 ? Math.round((survey.responseCount / totalEligible) * 100 * 10) / 10 : 0;

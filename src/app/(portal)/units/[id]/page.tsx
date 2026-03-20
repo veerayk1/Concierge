@@ -25,7 +25,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -196,7 +196,7 @@ export default function UnitDetailPage() {
     data: unit,
     loading,
     error,
-  } = useApi<UnitDetail>(apiUrl(`/api/v1/units/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<UnitDetail>(apiUrl(`/api/v1/units/${id}`, { propertyId: getPropertyId() }));
 
   // -- Loading State --
   if (loading) {
@@ -498,7 +498,11 @@ export default function UnitDetailPage() {
             ft
           </p>
         </div>
-        <Button variant="secondary" size="sm">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => alert('Edit Unit is coming soon. This feature is under development.')}
+        >
           <Edit2 className="h-4 w-4" />
           Edit Unit
         </Button>

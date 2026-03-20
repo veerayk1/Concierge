@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { CreatePackageDialog } from '@/components/forms/create-package-dialog';
 import { BatchPackageDialog } from '@/components/forms/batch-package-dialog';
 import { ReleasePackageDialog } from '@/components/forms/release-package-dialog';
@@ -155,7 +155,7 @@ export default function PackagesPage() {
   const fetchUrl = useMemo(
     () =>
       apiUrl('/api/v1/packages', {
-        propertyId: DEMO_PROPERTY_ID,
+        propertyId: getPropertyId(),
         search: debouncedSearch || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         courierId: courierFilter || undefined,
@@ -598,7 +598,7 @@ export default function PackagesPage() {
       <CreatePackageDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId="00000000-0000-4000-b000-000000000001"
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();
@@ -607,7 +607,7 @@ export default function PackagesPage() {
       <BatchPackageDialog
         open={showBatchDialog}
         onOpenChange={setShowBatchDialog}
-        propertyId="00000000-0000-4000-b000-000000000001"
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowBatchDialog(false);
           refetch();

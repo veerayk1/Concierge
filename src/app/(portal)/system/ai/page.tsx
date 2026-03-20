@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   Activity,
   Brain,
@@ -87,7 +87,7 @@ export default function AiDashboardPage() {
     loading,
     error,
     refetch,
-  } = useApi<AiAnalyticsData>(apiUrl('/api/v1/ai/analytics', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<AiAnalyticsData>(apiUrl('/api/v1/ai/analytics', { propertyId: getPropertyId() }));
 
   return (
     <PageShell

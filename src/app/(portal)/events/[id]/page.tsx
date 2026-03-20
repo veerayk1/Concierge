@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -18,8 +19,8 @@ import {
   Users,
   X as XIcon,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -135,7 +136,57 @@ export default function EventDetailPage() {
     data: event,
     loading,
     error,
-  } = useApi<CommunityEvent>(apiUrl(`/api/v1/events/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+    refetch,
+  } = useApi<CommunityEvent>(apiUrl(`/api/v1/events/${id}`, { propertyId: getPropertyId() }));
+
+  const [commentText, setCommentText] = useState('');
+  const [postingComment, setPostingComment] = useState(false);
+  const [cancellingEvent, setCancellingEvent] = useState(false);
+
+  async function handleCancelEvent() {
+    if (!confirm('Are you sure you want to cancel this event? This action cannot be undone.'))
+      return;
+    setCancellingEvent(true);
+    try {
+      const res = await apiRequest(`/api/v1/events/${id}`, {
+        method: 'PATCH',
+        body: { status: 'cancelled' },
+      });
+      if (res.ok) {
+        await refetch();
+      } else {
+        const result = await res.json().catch(() => ({}));
+        alert(result.message || 'Failed to cancel event.');
+      }
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setCancellingEvent(false);
+    }
+  }
+
+  async function handlePostComment() {
+    const trimmed = commentText.trim();
+    if (!trimmed) return;
+    setPostingComment(true);
+    try {
+      const res = await apiRequest(`/api/v1/events/${id}/comments`, {
+        method: 'POST',
+        body: { content: trimmed },
+      });
+      if (res.ok) {
+        setCommentText('');
+        await refetch();
+      } else {
+        const result = await res.json().catch(() => ({}));
+        alert(result.message || 'Failed to post comment.');
+      }
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setPostingComment(false);
+    }
+  }
 
   // -- Loading State --
   if (loading) {
@@ -240,7 +291,7 @@ export default function EventDetailPage() {
       description="Community Event"
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" onClick={() => alert('Edit Event is coming soon.')}>
             <Edit2 className="h-4 w-4" />
             Edit Event
           </Button>
@@ -388,9 +439,20 @@ export default function EventDetailPage() {
                 <input
                   type="text"
                   placeholder="Add a comment..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !postingComment) handlePostComment();
+                  }}
                   className="focus:border-primary-300 focus:ring-primary-100 h-10 flex-1 rounded-xl border border-neutral-200 bg-white px-4 text-[14px] placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
                 />
-                <Button size="sm">Post</Button>
+                <Button
+                  size="sm"
+                  onClick={handlePostComment}
+                  disabled={postingComment || !commentText.trim()}
+                >
+                  {postingComment ? 'Posting...' : 'Post'}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -505,19 +567,32 @@ export default function EventDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button fullWidth>
+                <Button fullWidth onClick={() => alert('Edit Event is coming soon.')}>
                   <Edit2 className="h-4 w-4" />
                   Edit Event
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={handleCancelEvent}
+                  disabled={cancellingEvent || event.status === 'cancelled'}
+                >
                   <XIcon className="h-4 w-4" />
-                  Cancel Event
+                  {cancellingEvent ? 'Cancelling...' : 'Cancel Event'}
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => alert('Reminder sent to all attendees.')}
+                >
                   <Bell className="h-4 w-4" />
                   Send Reminder
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => alert('RSVP Export is coming soon.')}
+                >
                   <Download className="h-4 w-4" />
                   Export RSVP List
                 </Button>

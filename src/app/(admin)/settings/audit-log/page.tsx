@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
 // Mock Data
@@ -257,7 +257,7 @@ export default function AuditLogPage() {
     data: apiEntries,
     loading,
     refetch,
-  } = useApi<ApiAuditEntry[]>(apiUrl('/api/v1/audit-log', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<ApiAuditEntry[]>(apiUrl('/api/v1/audit-log', { propertyId: getPropertyId() }));
 
   // Map API entries to the AuditEntry shape, falling back to mock data
   const allData = useMemo<AuditEntry[]>(() => {
@@ -302,7 +302,34 @@ export default function AuditLogPage() {
             View system-wide audit trail of user actions and changes.
           </p>
         </div>
-        <Button variant="secondary" size="sm">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            const headers = [
+              'Timestamp',
+              'User',
+              'Role',
+              'Action',
+              'Target',
+              'IP Address',
+              'Category',
+            ];
+            const rows = filteredData.map((e) =>
+              [e.timestamp, e.user, e.role, e.action, e.target, e.ipAddress, e.category]
+                .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+                .join(','),
+            );
+            const csv = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+        >
           Export CSV
         </Button>
       </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   AlertCircle,
@@ -18,8 +18,8 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -90,14 +90,80 @@ function AnnouncementDetailSkeleton() {
 
 export default function AnnouncementDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
 
   const {
     data: announcement,
     loading,
     error,
+    refetch,
   } = useApi<AnnouncementDetail>(
-    apiUrl(`/api/v1/announcements/${id}`, { propertyId: DEMO_PROPERTY_ID }),
+    apiUrl(`/api/v1/announcements/${id}`, { propertyId: getPropertyId() }),
   );
+
+  // -- Action Handlers --
+
+  const handleEdit = () => {
+    alert('Edit Announcement is coming soon.');
+  };
+
+  const handleResend = async () => {
+    if (!confirm('Are you sure you want to resend this announcement?')) return;
+    try {
+      const res = await apiRequest(
+        apiUrl(`/api/v1/announcements/${id}/resend`, { propertyId: getPropertyId() }),
+        { method: 'POST' },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(body.message || `Failed to resend (${res.status})`);
+        return;
+      }
+      alert('Announcement resent.');
+      await refetch();
+    } catch {
+      alert('Network error. Please try again.');
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!confirm('Are you sure you want to archive this announcement?')) return;
+    try {
+      const res = await apiRequest(
+        apiUrl(`/api/v1/announcements/${id}`, { propertyId: getPropertyId() }),
+        { method: 'PATCH', body: { status: 'archived' } },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(body.message || `Failed to archive (${res.status})`);
+        return;
+      }
+      await refetch();
+    } catch {
+      alert('Network error. Please try again.');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (
+      !confirm('Are you sure you want to delete this announcement? This action cannot be undone.')
+    )
+      return;
+    try {
+      const res = await apiRequest(
+        apiUrl(`/api/v1/announcements/${id}`, { propertyId: getPropertyId() }),
+        { method: 'DELETE' },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(body.message || `Failed to delete (${res.status})`);
+        return;
+      }
+      router.push('/announcements');
+    } catch {
+      alert('Network error. Please try again.');
+    }
+  };
 
   // -- Loading State --
   if (loading) {
@@ -211,19 +277,19 @@ export default function AnnouncementDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" onClick={handleEdit}>
             <Edit2 className="h-4 w-4" />
             Edit
           </Button>
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" onClick={handleResend}>
             <RefreshCw className="h-4 w-4" />
             Resend
           </Button>
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" onClick={handleArchive}>
             <Archive className="h-4 w-4" />
             Archive
           </Button>
-          <Button variant="ghost" size="sm" className="text-error-600">
+          <Button variant="ghost" size="sm" className="text-error-600" onClick={handleDelete}>
             <Trash2 className="h-4 w-4" />
             Delete
           </Button>

@@ -19,7 +19,7 @@ const announcementSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   content: z.string().min(10, 'Content must be at least 10 characters').max(10000),
   category: z.enum(['general', 'maintenance', 'safety', 'community', 'policy', 'event']),
-  priority: z.enum(['normal', 'important', 'urgent', 'emergency']),
+  priority: z.enum(['low', 'normal', 'high', 'urgent']),
   channels: z.object({
     email: z.boolean().default(false),
     sms: z.boolean().default(false),
@@ -43,10 +43,10 @@ const CATEGORIES = [
 ];
 
 const PRIORITIES = [
+  { value: 'low', label: 'Low' },
   { value: 'normal', label: 'Normal' },
-  { value: 'important', label: 'Important' },
+  { value: 'high', label: 'Important' },
   { value: 'urgent', label: 'Urgent' },
-  { value: 'emergency', label: 'Emergency' },
 ];
 
 const TARGET_AUDIENCES = [
@@ -131,7 +131,10 @@ export function CreateAnnouncementDialog({
           priority: data.priority,
           channels,
           status: data.scheduleForLater ? 'scheduled' : 'published',
-          scheduledAt: data.scheduleForLater ? data.scheduledAt : undefined,
+          scheduledAt:
+            data.scheduleForLater && data.scheduledAt
+              ? new Date(data.scheduledAt).toISOString()
+              : undefined,
         }),
       });
 

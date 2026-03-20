@@ -16,7 +16,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -144,7 +144,7 @@ export default function GovernancePage() {
     error: meetingsError,
     refetch: refetchMeetings,
   } = useApi<MeetingItem[] | MeetingsApiResponse>(
-    apiUrl('/api/v1/governance/meetings', { propertyId: DEMO_PROPERTY_ID }),
+    apiUrl('/api/v1/governance/meetings', { propertyId: getPropertyId() }),
   );
 
   const {
@@ -153,7 +153,7 @@ export default function GovernancePage() {
     error: resolutionsError,
     refetch: refetchResolutions,
   } = useApi<ResolutionItem[] | ResolutionsApiResponse>(
-    apiUrl('/api/v1/governance/resolutions', { propertyId: DEMO_PROPERTY_ID }),
+    apiUrl('/api/v1/governance/resolutions', { propertyId: getPropertyId() }),
   );
 
   const loading = meetingsLoading || resolutionsLoading;

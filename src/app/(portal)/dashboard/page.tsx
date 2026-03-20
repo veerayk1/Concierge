@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -428,7 +428,7 @@ export default function DashboardPage() {
   const { data: apiData } = useApi<DashboardApiData>(
     isSuperAdmin
       ? null
-      : apiUrl('/api/v1/dashboard', { propertyId: DEMO_PROPERTY_ID, role: effectiveRole }),
+      : apiUrl('/api/v1/dashboard', { propertyId: getPropertyId(), role: effectiveRole }),
   );
 
   // Fetch platform-level data for super_admin
@@ -441,7 +441,7 @@ export default function DashboardPage() {
     isSuperAdmin
       ? null
       : apiUrl('/api/v1/recurring-tasks/upcoming', {
-          propertyId: DEMO_PROPERTY_ID,
+          propertyId: getPropertyId(),
           days: '7',
         }),
   );

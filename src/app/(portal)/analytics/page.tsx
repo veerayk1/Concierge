@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   Activity,
   AlertTriangle,
@@ -180,7 +180,7 @@ export default function AnalyticsPage() {
     loading,
     error,
     refetch,
-  } = useApi<DashboardResponse>(apiUrl('/api/v1/dashboard', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<DashboardResponse>(apiUrl('/api/v1/dashboard', { propertyId: getPropertyId() }));
 
   // Parse the dashboard data
   const dashboardData = useMemo<DashboardResponse | null>(() => {
@@ -258,7 +258,11 @@ export default function AnalyticsPage() {
       title="Building Analytics"
       description="Insights and trends across all building operations."
       actions={
-        <Button variant="secondary" size="sm">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => alert('Analytics export is coming soon.')}
+        >
           <Download className="h-4 w-4" />
           Export Analytics
         </Button>
@@ -364,13 +368,28 @@ export default function AnalyticsPage() {
       {/* Chart Sections */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {CHART_SECTIONS.map((section) => (
-          <div key={section.title}>
+          <Card key={section.title}>
             <h2 className="mb-1 text-[14px] font-semibold text-neutral-900">{section.title}</h2>
-            <p className="mb-3 text-[13px] text-neutral-500">{section.description}</p>
-            <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50">
-              <span className="text-[14px] text-neutral-400">Chart coming soon</span>
+            <p className="mb-4 text-[13px] text-neutral-500">{section.description}</p>
+            <div className="flex h-48 flex-col justify-end gap-1.5">
+              {/* Placeholder bars that hint at a chart */}
+              <div className="flex items-end gap-2 px-2">
+                {[35, 55, 40, 70, 50, 65, 45, 60, 30, 75, 55, 48].map((h, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-t bg-neutral-200"
+                    style={{ height: `${h}%` }}
+                  />
+                ))}
+              </div>
+              <div className="border-t border-neutral-100 pt-3 text-center">
+                <BarChart3 className="mx-auto mb-1 h-4 w-4 text-neutral-300" />
+                <p className="text-[12px] text-neutral-400">
+                  No data yet. Activity will appear here once the property is active.
+                </p>
+              </div>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </PageShell>

@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { CreateParkingPermitDialog } from '@/components/forms/create-parking-permit-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -66,7 +66,7 @@ export default function ParkingPage() {
     refetch: refetchPermits,
   } = useApi<ParkingPermit[]>(
     apiUrl('/api/v1/parking', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       search: searchQuery || undefined,
     }),
   );
@@ -78,7 +78,7 @@ export default function ParkingPage() {
     refetch: refetchViolations,
   } = useApi<ParkingViolation[]>(
     apiUrl('/api/v1/parking', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       type: 'violations',
       search: searchQuery || undefined,
     }),
@@ -345,7 +345,7 @@ export default function ParkingPage() {
       <CreateParkingPermitDialog
         open={showPermitDialog}
         onOpenChange={setShowPermitDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowPermitDialog(false);
           refetchPermits();

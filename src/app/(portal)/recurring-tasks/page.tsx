@@ -14,7 +14,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { CreateRecurringTaskDialog } from '@/components/forms/create-recurring-task-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -132,7 +132,7 @@ export default function RecurringTasksPage() {
     refetch,
   } = useApi<RecurringTaskItem[] | ApiResponse>(
     apiUrl('/api/v1/recurring-tasks', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       search: searchQuery || undefined,
       category: categoryFilter !== 'all' ? categoryFilter : undefined,
       frequency: frequencyFilter !== 'all' ? frequencyFilter : undefined,
@@ -492,7 +492,7 @@ export default function RecurringTasksPage() {
       <CreateRecurringTaskDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

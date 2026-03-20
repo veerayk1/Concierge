@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { CreateBookingDialog } from '@/components/forms/create-booking-dialog';
 import {
   AlertCircle,
@@ -79,7 +79,7 @@ export default function AmenitiesPage() {
     refetch,
   } = useApi<Amenity[]>(
     apiUrl('/api/v1/amenities', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       search: searchQuery || undefined,
     }),
   );
@@ -234,7 +234,7 @@ export default function AmenitiesPage() {
       <CreateBookingDialog
         open={showBookingDialog}
         onOpenChange={setShowBookingDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowBookingDialog(false);
           refetch();

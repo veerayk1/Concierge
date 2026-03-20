@@ -31,6 +31,7 @@ export interface AuthUser {
   lastName: string;
   phone?: string | null;
   role: Role;
+  propertyId?: string;
 }
 
 interface LoginSuccessResponse {
@@ -136,11 +137,16 @@ export function useAuth(): UseAuthReturn {
         return data;
       }
 
-      // Successful login — store tokens and user
+      // Successful login — store tokens, user, and propertyId for multi-tenancy
       const successData = data as LoginSuccessResponse;
       setAccessToken(successData.accessToken);
       setRefreshToken(successData.refreshToken);
       setUser(successData.user);
+
+      // Store propertyId so all pages can read it via getPropertyId()
+      if (successData.user.propertyId) {
+        localStorage.setItem('demo_propertyId', successData.user.propertyId);
+      }
 
       return successData;
     },

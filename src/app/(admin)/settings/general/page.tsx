@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -53,16 +53,34 @@ interface SettingsApiData {
 
 export default function GeneralSettingsPage() {
   const formRef = useRef<HTMLFormElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+  function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File is too large. Maximum size is 2 MB.');
+      return;
+    }
+    if (!['image/svg+xml', 'image/png', 'image/jpeg'].includes(file.type)) {
+      alert('Invalid file type. Please upload an SVG, PNG, or JPG image.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setLogoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  }
 
   const {
     data: apiData,
     loading,
     error,
     refetch,
-  } = useApi<SettingsApiData>(apiUrl('/api/v1/settings', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<SettingsApiData>(apiUrl('/api/v1/settings', { propertyId: getPropertyId() }));
 
   async function handleSave() {
     if (!formRef.current) return;
@@ -72,7 +90,7 @@ export default function GeneralSettingsPage() {
 
     const form = new FormData(formRef.current);
     const body = {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       name: form.get('name') as string,
       address: form.get('address') as string,
       city: form.get('city') as string,
@@ -272,12 +290,28 @@ export default function GeneralSettingsPage() {
                     Property Logo
                   </label>
                   <div className="flex items-center gap-5">
-                    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50">
-                      <Building2 className="h-8 w-8 text-neutral-300" />
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50">
+                      {logoPreview ? (
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <Building2 className="h-8 w-8 text-neutral-300" />
+                      )}
                     </div>
                     <div>
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/svg+xml,image/png,image/jpeg"
+                        className="hidden"
+                        onChange={handleLogoSelect}
+                      />
                       <button
                         type="button"
+                        onClick={() => logoInputRef.current?.click()}
                         className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-sm transition-all hover:border-neutral-300 hover:bg-neutral-50"
                       >
                         <ImagePlus className="h-4 w-4" />

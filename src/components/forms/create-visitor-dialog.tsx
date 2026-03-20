@@ -92,8 +92,15 @@ export function CreateVisitorDialog({
           visitorName: data.visitorName,
           visitorType: data.visitorType,
           unitId: data.unitId,
-          comments: data.comments,
-          vehiclePlate: data.vehiclePlate,
+          expectedDepartureAt: data.expectedDeparture
+            ? new Date(data.expectedDeparture).toISOString()
+            : undefined,
+          comments:
+            [data.residentName ? `Visiting: ${data.residentName}` : '', data.comments || '']
+              .filter(Boolean)
+              .join(' — ') || undefined,
+          vehiclePlate: data.parkingPermitNeeded ? data.vehiclePlate : undefined,
+          notifyResident: true,
         }),
       });
 

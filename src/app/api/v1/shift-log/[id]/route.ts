@@ -34,11 +34,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const entry = await prisma.shiftLogEntry.findUnique({
       where: { id },
-      include: {
-        comments: {
-          orderBy: { createdAt: 'asc' },
-        },
-      },
     });
 
     if (!entry) {
@@ -130,9 +125,8 @@ export async function DELETE(
       );
     }
 
-    await prisma.shiftLogEntry.update({
+    await prisma.shiftLogEntry.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
 
     return NextResponse.json({ message: 'Shift log entry deleted.' });

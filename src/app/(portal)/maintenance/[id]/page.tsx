@@ -1,12 +1,13 @@
 'use client';
 
-import { use, useState, useMemo } from 'react';
+import { use, useState, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
   ArrowLeft,
   Bell,
   Camera,
+  Check,
   CheckCircle2,
   Clock,
   Edit2,
@@ -19,11 +20,13 @@ import {
   Paperclip,
   Phone,
   Printer,
+  Save,
   Send,
   Settings,
   ShieldAlert,
   User,
   Wrench,
+  X,
   XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,7 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -148,6 +151,19 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
   const { id } = use(params);
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [statusSuccess, setStatusSuccess] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editDescription, setEditDescription] = useState('');
+  const [editPriority, setEditPriority] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [closingRequest, setClosingRequest] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch maintenance request detail
   const {
@@ -168,6 +184,242 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
     if (!commentsData) return [];
     return Array.isArray(commentsData) ? commentsData : [];
   }, [commentsData]);
+
+  // -----------------------------------------------------------------------
+  // Status update handler
+  // -----------------------------------------------------------------------
+  const handleStatusChange = useCallback(
+    async (newStatus: string) => {
+      if (!req || newStatus === req.status) return;
+      setUpdatingStatus(true);
+      setStatusError(null);
+      setStatusSuccess(null);
+      try {
+        // Build payload — some transitions require extra fields
+        const payload: Record<string, unknown> = { status: newStatus };
+        if (newStatus === 'on_hold') {
+          const reason = window.prompt('Enter a reason for putting this request on hold:');
+          if (!reason) {
+            setUpdatingStatus(false);
+            return;
+          }
+          payload.holdReason = reason;
+        }
+        if (newStatus === 'completed') {
+          const notes = window.prompt('Enter resolution notes:');
+          if (!notes) {
+            setUpdatingStatus(false);
+            return;
+          }
+          payload.resolutionNotes = notes;
+        }
+        const response = await apiRequest(`/api/v1/maintenance/${id}`, {
+          method: 'PATCH',
+          body: payload,
+        });
+        if (response.ok) {
+          setStatusSuccess(`Status updated to ${newStatus.replace('_', ' ')}`);
+          refetch();
+          setTimeout(() => setStatusSuccess(null), 3000);
+        } else {
+          const result = await response.json().catch(() => ({}));
+          setStatusError(result.message || `Failed to update status to ${newStatus}`);
+        }
+      } catch {
+        setStatusError('Network error. Please try again.');
+      } finally {
+        setUpdatingStatus(false);
+      }
+    },
+    [req, id, refetch],
+  );
+
+  // -----------------------------------------------------------------------
+  // Close request handler (convenience button)
+  // -----------------------------------------------------------------------
+  const handleCloseRequest = useCallback(async () => {
+    if (!req) return;
+    const confirmed = window.confirm('Are you sure you want to close this request?');
+    if (!confirmed) return;
+    setClosingRequest(true);
+    setStatusError(null);
+    try {
+      const response = await apiRequest(`/api/v1/maintenance/${id}`, {
+        method: 'PATCH',
+        body: { status: 'closed' },
+      });
+      if (response.ok) {
+        refetch();
+      } else {
+        const result = await response.json().catch(() => ({}));
+        setStatusError(result.message || 'Failed to close request');
+      }
+    } catch {
+      setStatusError('Network error. Please try again.');
+    } finally {
+      setClosingRequest(false);
+    }
+  }, [req, id, refetch]);
+
+  // -----------------------------------------------------------------------
+  // File upload handler (photo or attachment)
+  // -----------------------------------------------------------------------
+  const handleFileUpload = useCallback(
+    async (file: File) => {
+      setUploading(true);
+      setUploadError(null);
+      try {
+        // Step 1: Get presigned URL
+        const presignRes = await apiRequest('/api/v1/upload', {
+          method: 'POST',
+          body: {
+            module: 'maintenance',
+            fileName: file.name,
+            contentType: file.type,
+          },
+        });
+
+        if (!presignRes.ok) {
+          const err = await presignRes.json().catch(() => ({}));
+          setUploadError(err.message || 'Failed to initiate upload');
+          return;
+        }
+
+        const presignData = await presignRes.json();
+        const { url, key, fields } = presignData.data || {};
+
+        if (!url || !key) {
+          setUploadError('Upload service not configured. File not uploaded.');
+          return;
+        }
+
+        // Step 2: Upload file to presigned URL (S3)
+        if (fields && Object.keys(fields).length > 0) {
+          // Multipart form upload (S3 POST)
+          const formData = new FormData();
+          Object.entries(fields).forEach(([k, v]) => formData.append(k, v as string));
+          formData.append('file', file);
+          const uploadRes = await fetch(url, { method: 'POST', body: formData });
+          if (!uploadRes.ok) {
+            setUploadError('Failed to upload file to storage');
+            return;
+          }
+        } else {
+          // Direct PUT upload
+          const uploadRes = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file,
+          });
+          if (!uploadRes.ok) {
+            setUploadError('Failed to upload file to storage');
+            return;
+          }
+        }
+
+        // Step 3: Attach the uploaded file to the maintenance request
+        const attachRes = await apiRequest(`/api/v1/maintenance/${id}`, {
+          method: 'PATCH',
+          body: {
+            attachments: [
+              {
+                key,
+                fileName: file.name,
+                contentType: file.type,
+                fileSizeBytes: file.size,
+              },
+            ],
+          },
+        });
+
+        if (attachRes.ok) {
+          refetch();
+        } else {
+          const err = await attachRes.json().catch(() => ({}));
+          setUploadError(err.message || 'File uploaded but failed to attach to request');
+        }
+      } catch {
+        setUploadError('Network error during upload. Please try again.');
+      } finally {
+        setUploading(false);
+      }
+    },
+    [id, refetch],
+  );
+
+  const handlePhotoInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) handleFileUpload(file);
+      e.target.value = '';
+    },
+    [handleFileUpload],
+  );
+
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) handleFileUpload(file);
+      e.target.value = '';
+    },
+    [handleFileUpload],
+  );
+
+  // -----------------------------------------------------------------------
+  // Edit mode handlers
+  // -----------------------------------------------------------------------
+  const startEditing = useCallback(() => {
+    if (!req) return;
+    setEditing(true);
+    setEditDescription(req.description || '');
+    setEditPriority(req.priority || 'medium');
+    setEditError(null);
+  }, [req]);
+
+  const cancelEditing = useCallback(() => {
+    setEditing(false);
+    setEditError(null);
+  }, []);
+
+  const saveEdit = useCallback(async () => {
+    if (!req) return;
+    setSavingEdit(true);
+    setEditError(null);
+    try {
+      const payload: Record<string, unknown> = {};
+      if (editDescription.trim() !== req.description) {
+        if (editDescription.trim().length < 10) {
+          setEditError('Description must be at least 10 characters');
+          setSavingEdit(false);
+          return;
+        }
+        payload.description = editDescription.trim();
+      }
+      if (editPriority !== req.priority) {
+        payload.priority = editPriority;
+      }
+      if (Object.keys(payload).length === 0) {
+        setEditing(false);
+        setSavingEdit(false);
+        return;
+      }
+      const response = await apiRequest(`/api/v1/maintenance/${id}`, {
+        method: 'PATCH',
+        body: payload,
+      });
+      if (response.ok) {
+        setEditing(false);
+        refetch();
+      } else {
+        const result = await response.json().catch(() => ({}));
+        setEditError(result.message || 'Failed to save changes');
+      }
+    } catch {
+      setEditError('Network error. Please try again.');
+    } finally {
+      setSavingEdit(false);
+    }
+  }, [req, id, editDescription, editPriority, refetch]);
 
   // Submit a new comment
   const handleSubmitComment = async () => {
@@ -275,14 +527,33 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
-            <Edit2 className="h-4 w-4" />
-            Edit
-          </Button>
-          <Button variant="secondary" size="sm">
-            <Printer className="h-4 w-4" />
-            Print Work Order
-          </Button>
+          {editing ? (
+            <>
+              <Button variant="secondary" size="sm" onClick={cancelEditing} disabled={savingEdit}>
+                <X className="h-4 w-4" />
+                Cancel
+              </Button>
+              <Button size="sm" onClick={saveEdit} disabled={savingEdit}>
+                {savingEdit ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {savingEdit ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="secondary" size="sm" onClick={startEditing}>
+                <Edit2 className="h-4 w-4" />
+                Edit
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => window.print()}>
+                <Printer className="h-4 w-4" />
+                Print Work Order
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -327,10 +598,24 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Description
                   </p>
-                  <p className="mt-1 text-[15px] leading-relaxed text-neutral-700">
-                    {req.description}
-                  </p>
+                  {editing ? (
+                    <Textarea
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      rows={4}
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className="mt-1 text-[15px] leading-relaxed text-neutral-700">
+                      {req.description}
+                    </p>
+                  )}
                 </div>
+                {editError && (
+                  <div className="col-span-2 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">
+                    {editError}
+                  </div>
+                )}
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Unit
@@ -390,17 +675,46 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
             <CardContent>
               <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-50 px-4 py-8">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100">
-                  <ImageIcon className="h-5 w-5 text-neutral-400" />
+                  {uploading ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
+                  ) : (
+                    <ImageIcon className="h-5 w-5 text-neutral-400" />
+                  )}
                 </div>
                 <p className="mt-3 text-[13px] font-medium text-neutral-500">
-                  No photos or attachments yet
+                  {uploading ? 'Uploading file...' : 'No photos or attachments yet'}
                 </p>
+                {uploadError && <p className="mt-2 text-[12px] text-red-600">{uploadError}</p>}
                 <div className="mt-3 flex gap-2">
-                  <Button variant="secondary" size="sm">
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/heic"
+                    className="hidden"
+                    onChange={handlePhotoInputChange}
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={uploading}
+                    onClick={() => photoInputRef.current?.click()}
+                  >
                     <Camera className="h-4 w-4" />
                     Upload Photo
                   </Button>
-                  <Button variant="secondary" size="sm">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.txt"
+                    className="hidden"
+                    onChange={handleFileInputChange}
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={uploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     <Paperclip className="h-4 w-4" />
                     Attach File
                   </Button>
@@ -506,8 +820,10 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                     Update Status
                   </p>
                   <select
-                    defaultValue={req.status}
-                    className="focus:ring-primary-500 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[14px] text-neutral-700 focus:ring-2 focus:outline-none"
+                    value={req.status}
+                    disabled={updatingStatus}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    className="focus:ring-primary-500 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[14px] text-neutral-700 focus:ring-2 focus:outline-none disabled:opacity-50"
                   >
                     <option value="open">Open</option>
                     <option value="assigned">Assigned</option>
@@ -516,6 +832,21 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                     <option value="resolved">Resolved</option>
                     <option value="closed">Closed</option>
                   </select>
+                  {updatingStatus && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[12px] text-neutral-500">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Updating status...
+                    </div>
+                  )}
+                  {statusSuccess && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[12px] text-green-600">
+                      <Check className="h-3 w-3" />
+                      {statusSuccess}
+                    </div>
+                  )}
+                  {statusError && (
+                    <div className="mt-1.5 text-[12px] text-red-600">{statusError}</div>
+                  )}
                 </div>
 
                 {/* Assign Staff */}
@@ -550,13 +881,22 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                 </div>
 
                 <div className="mt-1 flex flex-col gap-2">
-                  <Button variant="secondary" fullWidth>
+                  <Button variant="secondary" fullWidth onClick={() => window.print()}>
                     <Printer className="h-4 w-4" />
                     Print Work Order
                   </Button>
-                  <Button variant="danger" fullWidth>
-                    <XCircle className="h-4 w-4" />
-                    Close Request
+                  <Button
+                    variant="danger"
+                    fullWidth
+                    disabled={closingRequest || req.status === 'closed'}
+                    onClick={handleCloseRequest}
+                  >
+                    {closingRequest ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <XCircle className="h-4 w-4" />
+                    )}
+                    {closingRequest ? 'Closing...' : 'Close Request'}
                   </Button>
                 </div>
               </div>

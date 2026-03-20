@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   ScrollText,
   Search,
@@ -77,7 +77,7 @@ export default function LogsPage() {
   const [page, setPage] = useState(1);
 
   const queryParams: Record<string, string | undefined> = {
-    propertyId: DEMO_PROPERTY_ID,
+    propertyId: getPropertyId(),
     page: String(page),
     pageSize: '50',
   };
@@ -221,7 +221,42 @@ export default function LogsPage() {
       title="Audit Log"
       description="Immutable record of all administrative actions across the platform."
       actions={
-        <Button variant="secondary" size="sm">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            const headers = [
+              'Timestamp',
+              'Action',
+              'Resource',
+              'Resource ID',
+              'User ID',
+              'IP Address',
+              'PII Accessed',
+            ];
+            const rows = filteredLogs.map((log) =>
+              [
+                new Date(log.createdAt).toISOString(),
+                log.action,
+                log.resource,
+                log.resourceId,
+                log.userId,
+                log.ipAddress,
+                log.piiAccessed ? 'Yes' : 'No',
+              ]
+                .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+                .join(','),
+            );
+            const csv = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+        >
           <Download className="h-4 w-4" />
           Export Logs
         </Button>

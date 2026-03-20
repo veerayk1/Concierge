@@ -111,8 +111,8 @@ const STEPS: StepDef[] = [
   },
 ];
 
-// Demo propertyId for development
-const DEMO_PROPERTY_ID = '00000000-0000-4000-b000-000000000001';
+// Import dynamic property ID (supports multi-tenancy)
+import { getPropertyId } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
 // API Helpers
@@ -437,17 +437,110 @@ function UnitsStep({
     onChange('units', JSON.stringify(updated));
   }
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [autoGenOpen, setAutoGenOpen] = useState(false);
+  const [autoGenFloors, setAutoGenFloors] = useState('');
+  const [autoGenPerFloor, setAutoGenPerFloor] = useState('');
+
+  function handleCsvImport(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split('\n').filter(Boolean);
+      // Skip header row
+      const parsed = lines
+        .slice(1)
+        .map((line) => {
+          const [number, floor, type] = line.split(',').map((s) => s.trim().replace(/"/g, ''));
+          return { number: number || '', floor: floor || '1', type: type || 'studio' };
+        })
+        .filter((u) => u.number);
+      const updated = [...units, ...parsed];
+      setUnits(updated);
+      onChange('units', JSON.stringify(updated));
+    };
+    reader.readAsText(file);
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  function handleAutoGenerate() {
+    const floors = parseInt(autoGenFloors, 10);
+    const perFloor = parseInt(autoGenPerFloor, 10);
+    if (!floors || !perFloor || floors < 1 || perFloor < 1) return;
+
+    const generated: Array<{ number: string; floor: string; type: string }> = [];
+    for (let f = 1; f <= floors; f++) {
+      for (let u = 1; u <= perFloor; u++) {
+        generated.push({
+          number: `${f}${String(u).padStart(2, '0')}`,
+          floor: String(f),
+          type: 'studio',
+        });
+      }
+    }
+    const updated = [...units, ...generated];
+    setUnits(updated);
+    onChange('units', JSON.stringify(updated));
+    setAutoGenOpen(false);
+    setAutoGenFloors('');
+    setAutoGenPerFloor('');
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Import options */}
       <div className="flex gap-3">
-        <Button variant="secondary" size="sm">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={handleCsvImport}
+          className="hidden"
+        />
+        <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
           <Upload className="h-4 w-4" /> Import CSV
         </Button>
-        <Button variant="secondary" size="sm">
+        <Button variant="secondary" size="sm" onClick={() => setAutoGenOpen(!autoGenOpen)}>
           <Sparkles className="h-4 w-4" /> Auto-Generate
         </Button>
       </div>
+
+      {/* Auto-generate form */}
+      {autoGenOpen && (
+        <Card>
+          <h4 className="mb-3 text-[14px] font-semibold text-neutral-900">Auto-Generate Units</h4>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Input
+              label="Number of Floors"
+              type="number"
+              placeholder="25"
+              value={autoGenFloors}
+              onChange={(e) => setAutoGenFloors(e.target.value)}
+            />
+            <Input
+              label="Units per Floor"
+              type="number"
+              placeholder="8"
+              value={autoGenPerFloor}
+              onChange={(e) => setAutoGenPerFloor(e.target.value)}
+            />
+            <div className="flex items-end">
+              <Button onClick={handleAutoGenerate} size="sm">
+                Generate{' '}
+                {autoGenFloors && autoGenPerFloor
+                  ? `${parseInt(autoGenFloors) * parseInt(autoGenPerFloor)} Units`
+                  : ''}
+              </Button>
+            </div>
+          </div>
+          <p className="mt-2 text-[12px] text-neutral-400">
+            Units will be numbered as floor + unit (e.g., 101, 102... 201, 202...).
+          </p>
+        </Card>
+      )}
 
       {/* Manual entry */}
       <Card>
@@ -747,7 +840,8 @@ function StaffStep({
       <Card>
         <h4 className="mb-3 text-[14px] font-semibold text-neutral-900">Invite Team Members</h4>
         <p className="mb-4 text-[13px] text-neutral-500">
-          Add the staff who will use Concierge. They will receive email invitations.
+          Add the staff who will use Concierge. Temporary login credentials will be generated when
+          the property goes live.
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <Input
@@ -816,7 +910,7 @@ function StaffStep({
                   </td>
                   <td className="px-5 py-3.5">
                     <Badge variant="warning" size="sm" dot>
-                      Pending Invite
+                      Will be created on Go Live
                     </Badge>
                   </td>
                 </tr>
@@ -834,30 +928,110 @@ function StaffStep({
 // ---------------------------------------------------------------------------
 
 function ResidentsStep() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [residents, setResidents] = useState<Array<{ name: string; email: string; unit: string }>>(
+    [],
+  );
+
+  function handleCsvImport(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split('\n').filter(Boolean);
+      const parsed = lines
+        .slice(1)
+        .map((line) => {
+          const [name, email, unit] = line.split(',').map((s) => s.trim().replace(/"/g, ''));
+          return { name: name || '', email: email || '', unit: unit || '' };
+        })
+        .filter((r) => r.name && r.email);
+      setResidents(parsed);
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  function downloadTemplate() {
+    const csv =
+      'Name,Email,Unit Number,Phone,Move-In Date\nJohn Smith,john@example.com,101,+1-416-555-0100,2026-04-01\n';
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'residents-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex gap-3">
-        <Button variant="secondary">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={handleCsvImport}
+          className="hidden"
+        />
+        <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>
           <Upload className="h-4 w-4" /> Import CSV
-        </Button>
-        <Button variant="secondary">
-          <Plus className="h-4 w-4" /> Add Manually
         </Button>
       </div>
       <Card>
         <h4 className="mb-3 text-[15px] font-semibold text-neutral-900">CSV Import</h4>
-        <div className="rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50/50 p-8 text-center">
-          <Users className="mx-auto h-8 w-8 text-neutral-300" />
-          <p className="mt-2 text-[14px] font-medium text-neutral-500">
-            Upload a CSV with resident details
-          </p>
-          <p className="mt-1 text-[12px] text-neutral-400">
-            Required columns: Name, Email, Unit Number. Optional: Phone, Move-In Date
-          </p>
-          <Button variant="secondary" size="sm" className="mt-4">
-            Download Template
-          </Button>
-        </div>
+        {residents.length > 0 ? (
+          <div>
+            <p className="mb-3 text-[14px] text-neutral-600">
+              {residents.length} residents parsed from CSV
+            </p>
+            <div className="max-h-[200px] overflow-y-auto rounded-xl border border-neutral-200">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b bg-neutral-50">
+                    <th className="px-4 py-2 text-left text-[12px] font-semibold text-neutral-500">
+                      Name
+                    </th>
+                    <th className="px-4 py-2 text-left text-[12px] font-semibold text-neutral-500">
+                      Email
+                    </th>
+                    <th className="px-4 py-2 text-left text-[12px] font-semibold text-neutral-500">
+                      Unit
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {residents.slice(0, 20).map((r, i) => (
+                    <tr key={i}>
+                      <td className="px-4 py-2 text-[13px]">{r.name}</td>
+                      <td className="px-4 py-2 text-[13px]">{r.email}</td>
+                      <td className="px-4 py-2 text-[13px]">{r.unit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {residents.length > 20 && (
+                <p className="border-t px-4 py-2 text-[12px] text-neutral-400">
+                  ...and {residents.length - 20} more
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50/50 p-8 text-center">
+            <Users className="mx-auto h-8 w-8 text-neutral-300" />
+            <p className="mt-2 text-[14px] font-medium text-neutral-500">
+              Upload a CSV with resident details
+            </p>
+            <p className="mt-1 text-[12px] text-neutral-400">
+              Required columns: Name, Email, Unit Number. Optional: Phone, Move-In Date
+            </p>
+            <Button variant="secondary" size="sm" className="mt-4" onClick={downloadTemplate}>
+              Download Template
+            </Button>
+          </div>
+        )}
       </Card>
       <div className="flex items-center gap-2 rounded-xl bg-blue-50 p-4 text-[13px] text-blue-700">
         <AlertCircle className="h-4 w-4 shrink-0" />
@@ -881,6 +1055,9 @@ function BrandingStep({
   data: Record<string, string>;
   onChange: (field: string, value: string) => void;
 }) {
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(data.logoPreview || null);
+
   const colors = [
     '#3B82F6',
     '#6366F1',
@@ -894,20 +1071,77 @@ function BrandingStep({
     '#06B6D4',
   ];
 
+  function handleLogoUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Logo must be under 2MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setLogoPreview(dataUrl);
+      onChange('logoPreview', dataUrl);
+      onChange('logoFileName', file.name);
+    };
+    reader.readAsDataURL(file);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <Card>
         <h4 className="mb-4 text-[15px] font-semibold text-neutral-900">Property Logo</h4>
-        <div className="rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50/50 p-8 text-center">
-          <Building2 className="mx-auto h-10 w-10 text-neutral-300" />
-          <p className="mt-2 text-[14px] font-medium text-neutral-500">Upload your property logo</p>
-          <p className="mt-1 text-[12px] text-neutral-400">
-            PNG, SVG, or JPG. Max 2MB. Recommended 200x200px.
-          </p>
-          <Button variant="secondary" size="sm" className="mt-3">
-            Upload Logo
-          </Button>
-        </div>
+        <input
+          ref={logoInputRef}
+          type="file"
+          accept=".png,.svg,.jpg,.jpeg"
+          onChange={handleLogoUpload}
+          className="hidden"
+        />
+        {logoPreview ? (
+          <div className="flex flex-col items-center gap-3">
+            <img
+              src={logoPreview}
+              alt="Property logo"
+              className="h-24 w-24 rounded-xl border border-neutral-200 object-contain"
+            />
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={() => logoInputRef.current?.click()}>
+                Change Logo
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setLogoPreview(null);
+                  onChange('logoPreview', '');
+                  onChange('logoFileName', '');
+                }}
+              >
+                Remove
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50/50 p-8 text-center">
+            <Building2 className="mx-auto h-10 w-10 text-neutral-300" />
+            <p className="mt-2 text-[14px] font-medium text-neutral-500">
+              Upload your property logo
+            </p>
+            <p className="mt-1 text-[12px] text-neutral-400">
+              PNG, SVG, or JPG. Max 2MB. Recommended 200x200px.
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-3"
+              onClick={() => logoInputRef.current?.click()}
+            >
+              Upload Logo
+            </Button>
+          </div>
+        )}
       </Card>
 
       <Card>
@@ -1055,7 +1289,7 @@ export default function OnboardingPage() {
 
   // Load progress on mount
   useEffect(() => {
-    fetchProgress(DEMO_PROPERTY_ID)
+    fetchProgress(getPropertyId())
       .then((state) => {
         setCurrentStep(state.currentStep);
         setCompletedSteps(new Set(state.completedSteps));
@@ -1083,7 +1317,7 @@ export default function OnboardingPage() {
           setSaving(true);
           setError(null);
           // Don't complete the step on auto-save — just save data
-          await saveStep(DEMO_PROPERTY_ID, step, { ...(stepData[step] ?? {}), [field]: value });
+          await saveStep(getPropertyId(), step, { ...(stepData[step] ?? {}), [field]: value });
           setLastSaved(new Date());
         } catch {
           // Silent auto-save failure — data persists locally
@@ -1099,7 +1333,7 @@ export default function OnboardingPage() {
     try {
       setSaving(true);
       setError(null);
-      await saveStep(DEMO_PROPERTY_ID, currentStep, stepData[currentStep] ?? {});
+      await saveStep(getPropertyId(), currentStep, stepData[currentStep] ?? {});
 
       setCompletedSteps((prev) => {
         const next = new Set(prev);
@@ -1126,7 +1360,7 @@ export default function OnboardingPage() {
     try {
       setSaving(true);
       setError(null);
-      await saveStep(DEMO_PROPERTY_ID, currentStep, undefined, true);
+      await saveStep(getPropertyId(), currentStep, undefined, true);
 
       setSkippedSteps((prev) => {
         const next = new Set(prev);
@@ -1151,7 +1385,7 @@ export default function OnboardingPage() {
     try {
       setIsActivating(true);
       setError(null);
-      await saveStep(DEMO_PROPERTY_ID, 8);
+      await saveStep(getPropertyId(), 8);
       setCompletedSteps((prev) => {
         const next = new Set(prev);
         next.add(8);

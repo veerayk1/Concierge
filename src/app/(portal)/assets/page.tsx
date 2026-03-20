@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   FileBox,
   Plus,
@@ -124,7 +124,7 @@ export default function AssetsPage() {
     loading,
     error,
     refetch,
-  } = useApi<AssetItem[]>(apiUrl('/api/v1/assets', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<AssetItem[]>(apiUrl('/api/v1/assets', { propertyId: getPropertyId() }));
 
   const assets = useMemo(
     () => (apiAssets && Array.isArray(apiAssets) ? apiAssets : []),
@@ -265,7 +265,50 @@ export default function AssetsPage() {
       description="Track building assets, depreciation, and replacement schedules."
       actions={
         <>
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              const headers = [
+                'Asset Tag',
+                'Name',
+                'Category',
+                'Location',
+                'Status',
+                'Purchase Date',
+                'Purchase Price',
+                'Current Value',
+                'Condition',
+                'Assigned To',
+                'Warranty Expiry',
+              ];
+              const rows = filteredAssets.map((a) =>
+                [
+                  a.assetTag,
+                  a.name,
+                  categoryLabels[a.category],
+                  a.location,
+                  statusConfig[a.status].label,
+                  a.purchaseDate,
+                  a.purchasePrice,
+                  a.currentValue,
+                  conditionConfig[a.condition].label,
+                  a.assignedTo || '',
+                  a.warrantyExpiry || '',
+                ]
+                  .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+                  .join(','),
+              );
+              const csv = [headers.join(','), ...rows].join('\n');
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `assets-${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>
@@ -491,7 +534,7 @@ export default function AssetsPage() {
       <CreateAssetDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   DatabaseZap,
   Upload,
@@ -183,7 +183,7 @@ function StartImportDialog({
       const res = await apiRequest('/api/v1/data-migration', {
         method: 'POST',
         body: {
-          propertyId: DEMO_PROPERTY_ID,
+          propertyId: getPropertyId(),
           type: 'import',
           dataType,
           fileName,
@@ -305,8 +305,83 @@ export default function DataMigrationPage() {
     error,
     refetch,
   } = useApi<MigrationJob[] | MigrationResponse>(
-    apiUrl('/api/v1/data-migration', { propertyId: DEMO_PROPERTY_ID }),
+    apiUrl('/api/v1/data-migration', { propertyId: getPropertyId() }),
   );
+
+  // Export displayed migration jobs as CSV and trigger download
+  function handleExportCsv() {
+    const jobs: MigrationJob[] = (() => {
+      if (!apiResponse) return [];
+      if (Array.isArray(apiResponse)) return apiResponse;
+      if (Array.isArray((apiResponse as MigrationResponse).data)) {
+        return (apiResponse as MigrationResponse).data;
+      }
+      return [];
+    })();
+
+    if (jobs.length === 0) {
+      alert('No data to export.');
+      return;
+    }
+
+    const headers = [
+      'Type',
+      'Source',
+      'Status',
+      'Records Total',
+      'Records Processed',
+      'Records Failed',
+      'Started At',
+      'Completed At',
+      'Initiated By',
+    ];
+    const rows = jobs.map((j) => [
+      getJobType(j),
+      getJobSource(j),
+      j.status,
+      String(getRecordsTotal(j)),
+      String(getRecordsProcessed(j)),
+      String(getRecordsFailed(j)),
+      getStartedAt(j),
+      j.completedAt ?? '',
+      getInitiatedBy(j),
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `migration-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  // Generate a DSAR export via API
+  async function handleGenerateDsar() {
+    try {
+      const res = await apiRequest('/api/v1/data-migration/dsar', {
+        method: 'POST',
+        body: { propertyId: getPropertyId() },
+      });
+      const result = await res.json();
+
+      if (!res.ok) {
+        alert(`DSAR generation failed: ${result.message || 'Unknown error'}`);
+        return;
+      }
+
+      alert('DSAR export has been queued successfully. You will be notified when it is ready.');
+      refetch();
+    } catch {
+      alert('Network error generating DSAR. Please try again.');
+    }
+  }
 
   const allJobs: MigrationJob[] = useMemo(() => {
     if (!apiResponse) return [];
@@ -538,7 +613,7 @@ export default function DataMigrationPage() {
       description="Import, export, and migrate data between systems."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" onClick={handleExportCsv}>
             <Download className="h-4 w-4" />
             Full Export
           </Button>
@@ -607,6 +682,9 @@ export default function DataMigrationPage() {
                 className="shrink-0 self-center"
                 onClick={() => {
                   if (action.buttonLabel === 'Import') setShowImportDialog(true);
+                  if (action.buttonLabel === 'Export') handleExportCsv();
+                  if (action.buttonLabel === 'Generate') handleGenerateDsar();
+                  if (action.buttonLabel === 'Migrate') alert('Migration wizard is coming soon.');
                 }}
               >
                 {action.buttonLabel}

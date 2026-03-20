@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   AlertCircle,
   Users,
@@ -101,6 +101,7 @@ export default function VisitorsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [signingOutId, setSigningOutId] = useState<string | null>(null);
 
   // Fetch all visitors (status=all) so we can split into currently-in vs departed
   const {
@@ -110,12 +111,32 @@ export default function VisitorsPage() {
     refetch,
   } = useApi<VisitorItem[]>(
     apiUrl('/api/v1/visitors', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       status: 'all',
       search: searchQuery || undefined,
       visitorType: typeFilter !== 'all' ? typeFilter : undefined,
     }),
   );
+
+  // Sign-out handler — calls PATCH /api/v1/visitors/{id}/sign-out then refetches
+  const handleSignOut = async (visitorId: string) => {
+    setSigningOutId(visitorId);
+    try {
+      const res = await fetch(`/api/v1/visitors/${visitorId}/sign-out`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Sign-out failed (${res.status})`);
+      }
+      refetch();
+    } catch (err) {
+      console.error('Failed to sign out visitor:', err);
+    } finally {
+      setSigningOutId(null);
+    }
+  };
 
   const allVisitors = useMemo<VisitorItem[]>(() => apiVisitors ?? [], [apiVisitors]);
 
@@ -216,20 +237,27 @@ export default function VisitorsPage() {
       id: 'actions',
       header: '',
       className: 'text-right',
-      cell: (row) => (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            // Sign-out action placeholder
-            console.log('Sign out visitor:', row.id);
-          }}
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          Sign Out
-        </Button>
-      ),
+      cell: (row) => {
+        const isSigningOut = signingOutId === row.id;
+        return (
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={isSigningOut}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSignOut(row.id);
+            }}
+          >
+            {isSigningOut ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <LogOut className="h-3.5 w-3.5" />
+            )}
+            {isSigningOut ? 'Signing Out...' : 'Sign Out'}
+          </Button>
+        );
+      },
     },
   ];
 
@@ -507,7 +535,7 @@ export default function VisitorsPage() {
       <CreateVisitorDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

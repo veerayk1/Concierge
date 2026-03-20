@@ -74,8 +74,8 @@ export function CreateShiftEntryDialog({
         },
         body: JSON.stringify({
           propertyId,
-          content: data.content,
-          shift: data.shift,
+          content: `[${data.shift.toUpperCase()} SHIFT] ${data.content}`,
+          category: 'general',
           priority: data.isImportant ? 'important' : 'normal',
         }),
       });

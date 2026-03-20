@@ -15,7 +15,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -209,7 +209,7 @@ function GenerateReportDialog({
       const res = await apiRequest('/api/v1/compliance', {
         method: 'POST',
         body: {
-          propertyId: DEMO_PROPERTY_ID,
+          propertyId: getPropertyId(),
           type,
           framework,
           ...(from && to ? { dateRange: { from, to } } : {}),
@@ -323,7 +323,7 @@ export default function CompliancePage() {
     error,
     refetch,
   } = useApi<ComplianceApiResponse | ComplianceFramework[]>(
-    apiUrl('/api/v1/compliance', { propertyId: DEMO_PROPERTY_ID }),
+    apiUrl('/api/v1/compliance', { propertyId: getPropertyId() }),
   );
 
   // Normalize: API may return { frameworks, reports } or just an array of frameworks

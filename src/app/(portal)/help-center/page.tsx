@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   HelpCircle,
   Search,

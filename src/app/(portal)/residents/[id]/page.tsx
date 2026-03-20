@@ -1,9 +1,11 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowLeft,
   Building2,
   Calendar,
@@ -18,17 +20,19 @@ import {
   Package,
   ParkingCircle,
   Phone,
+  Send,
   Shield,
   User,
   UserX,
   Wrench,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -102,12 +106,106 @@ function ResidentDetailSkeleton() {
 
 export default function ResidentDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
 
   const {
     data: resident,
     loading,
     error,
-  } = useApi<ResidentDetail>(apiUrl(`/api/v1/users/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+    refetch,
+  } = useApi<ResidentDetail>(apiUrl(`/api/v1/users/${id}`, { propertyId: getPropertyId() }));
+
+  // --- Action dialog state ---
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [resetPasswordResult, setResetPasswordResult] = useState<string | null>(null);
+
+  const [sendMessageOpen, setSendMessageOpen] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [sendMessageLoading, setSendMessageLoading] = useState(false);
+  const [sendMessageResult, setSendMessageResult] = useState<string | null>(null);
+
+  const [deactivateOpen, setDeactivateOpen] = useState(false);
+  const [deactivateLoading, setDeactivateLoading] = useState(false);
+  const [deactivateError, setDeactivateError] = useState<string | null>(null);
+
+  // --- Action handlers ---
+
+  async function handleResetPassword() {
+    setResetPasswordLoading(true);
+    setResetPasswordResult(null);
+    try {
+      const res = await apiRequest(`/api/v1/users/${id}/reset-password`, { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setResetPasswordResult(body.message || `Failed to reset password (${res.status})`);
+      } else {
+        const body = await res.json().catch(() => ({}));
+        setResetPasswordResult(
+          body.temporaryPassword
+            ? `Password reset. Temporary password: ${body.temporaryPassword}`
+            : 'Password reset email sent successfully.',
+        );
+      }
+    } catch {
+      setResetPasswordResult('Network error. Please try again.');
+    } finally {
+      setResetPasswordLoading(false);
+    }
+  }
+
+  async function handleSendMessage() {
+    if (!messageText.trim()) return;
+    setSendMessageLoading(true);
+    setSendMessageResult(null);
+    try {
+      const res = await apiRequest(
+        apiUrl('/api/v1/announcements', { propertyId: getPropertyId() }),
+        {
+          method: 'POST',
+          body: {
+            title: `Message to ${resident?.firstName ?? 'Resident'}`,
+            content: messageText.trim(),
+            recipientUserIds: [id],
+            channels: ['email'],
+          },
+        },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setSendMessageResult(body.message || `Failed to send message (${res.status})`);
+      } else {
+        setSendMessageResult('Message sent successfully.');
+        setMessageText('');
+      }
+    } catch {
+      setSendMessageResult('Network error. Please try again.');
+    } finally {
+      setSendMessageLoading(false);
+    }
+  }
+
+  async function handleDeactivate() {
+    setDeactivateLoading(true);
+    setDeactivateError(null);
+    try {
+      const res = await apiRequest(`/api/v1/users/${id}`, {
+        method: 'PATCH',
+        body: { isActive: false, status: 'deactivated' },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setDeactivateError(body.message || `Failed to deactivate (${res.status})`);
+      } else {
+        setDeactivateOpen(false);
+        await refetch();
+      }
+    } catch {
+      setDeactivateError('Network error. Please try again.');
+    } finally {
+      setDeactivateLoading(false);
+    }
+  }
 
   // -- Loading State --
   if (loading) {
@@ -386,19 +484,49 @@ export default function ResidentDetailPage() {
             <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Actions</h2>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button variant="secondary" size="sm" className="w-full justify-start">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => router.push(`/residents/${id}/edit` as never)}
+                >
                   <Edit2 className="h-4 w-4" />
                   Edit Profile
                 </Button>
-                <Button variant="secondary" size="sm" className="w-full justify-start">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setResetPasswordResult(null);
+                    setResetPasswordOpen(true);
+                  }}
+                >
                   <Lock className="h-4 w-4" />
                   Reset Password
                 </Button>
-                <Button variant="secondary" size="sm" className="w-full justify-start">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setMessageText('');
+                    setSendMessageResult(null);
+                    setSendMessageOpen(true);
+                  }}
+                >
                   <MessageSquare className="h-4 w-4" />
                   Send Message
                 </Button>
-                <Button variant="ghost" size="sm" className="text-error-600 w-full justify-start">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-error-600 w-full justify-start"
+                  onClick={() => {
+                    setDeactivateError(null);
+                    setDeactivateOpen(true);
+                  }}
+                >
                   <UserX className="h-4 w-4" />
                   Deactivate
                 </Button>
@@ -530,6 +658,176 @@ export default function ResidentDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* ---------- Reset Password Confirmation Dialog ---------- */}
+      <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+        <DialogContent className="max-w-md">
+          <div className="flex flex-col items-center text-center">
+            <div className="bg-warning-50 mb-4 flex h-14 w-14 items-center justify-center rounded-2xl">
+              <Lock className="text-warning-600 h-7 w-7" />
+            </div>
+            <DialogTitle className="text-[18px] font-bold text-neutral-900">
+              Reset Password
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-[14px] text-neutral-500">
+              Send a password reset for{' '}
+              <span className="font-medium text-neutral-700">
+                {resident.firstName} {resident.lastName}
+              </span>
+              ? They will receive a temporary password or reset link.
+            </DialogDescription>
+
+            {resetPasswordResult && (
+              <div
+                className={`mt-4 w-full rounded-xl border px-4 py-3 text-left text-[14px] ${
+                  resetPasswordResult.startsWith('Password reset')
+                    ? 'border-success-200 bg-success-50 text-success-700'
+                    : 'border-error-200 bg-error-50 text-error-700'
+                }`}
+              >
+                {resetPasswordResult}
+              </div>
+            )}
+
+            <div className="mt-6 flex w-full gap-3">
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => setResetPasswordOpen(false)}
+                disabled={resetPasswordLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                fullWidth
+                loading={resetPasswordLoading}
+                disabled={resetPasswordLoading}
+                className="bg-warning-600 hover:bg-warning-700 text-white"
+                onClick={handleResetPassword}
+              >
+                {resetPasswordLoading ? 'Resetting...' : 'Reset Password'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ---------- Send Message Dialog ---------- */}
+      <Dialog open={sendMessageOpen} onOpenChange={setSendMessageOpen}>
+        <DialogContent className="max-w-md">
+          <div className="flex flex-col items-center text-center">
+            <div className="bg-primary-50 mb-4 flex h-14 w-14 items-center justify-center rounded-2xl">
+              <MessageSquare className="text-primary-600 h-7 w-7" />
+            </div>
+            <DialogTitle className="text-[18px] font-bold text-neutral-900">
+              Send Message
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-[14px] text-neutral-500">
+              Send a message to{' '}
+              <span className="font-medium text-neutral-700">
+                {resident.firstName} {resident.lastName}
+              </span>{' '}
+              via email.
+            </DialogDescription>
+
+            <textarea
+              className="focus:border-primary-300 focus:ring-primary-100 mt-4 w-full rounded-xl border border-neutral-200 p-3 text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:ring-2 focus:outline-none"
+              rows={4}
+              placeholder="Type your message..."
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              disabled={sendMessageLoading}
+            />
+
+            {sendMessageResult && (
+              <div
+                className={`mt-3 w-full rounded-xl border px-4 py-3 text-left text-[14px] ${
+                  sendMessageResult.includes('successfully')
+                    ? 'border-success-200 bg-success-50 text-success-700'
+                    : 'border-error-200 bg-error-50 text-error-700'
+                }`}
+              >
+                {sendMessageResult}
+              </div>
+            )}
+
+            <div className="mt-6 flex w-full gap-3">
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => setSendMessageOpen(false)}
+                disabled={sendMessageLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                fullWidth
+                loading={sendMessageLoading}
+                disabled={sendMessageLoading || !messageText.trim()}
+                onClick={handleSendMessage}
+              >
+                <Send className="h-4 w-4" />
+                {sendMessageLoading ? 'Sending...' : 'Send'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ---------- Deactivate Confirmation Dialog ---------- */}
+      <Dialog open={deactivateOpen} onOpenChange={setDeactivateOpen}>
+        <DialogContent className="max-w-md">
+          <div className="flex flex-col items-center text-center">
+            <div className="bg-error-50 mb-4 flex h-14 w-14 items-center justify-center rounded-2xl">
+              <AlertTriangle className="text-error-600 h-7 w-7" />
+            </div>
+            <DialogTitle className="text-[18px] font-bold text-neutral-900">
+              Deactivate Account
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-[14px] text-neutral-500">
+              Are you sure you want to deactivate{' '}
+              <span className="font-medium text-neutral-700">
+                {resident.firstName} {resident.lastName}
+              </span>
+              ?
+            </DialogDescription>
+
+            <div className="mt-4 w-full rounded-xl bg-neutral-50 p-4 text-left">
+              <p className="text-[13px] leading-relaxed text-neutral-600">
+                All active sessions will be terminated. The user will not be able to log in. Their
+                data will be retained for audit purposes but marked as read-only. This can be
+                reversed by an admin.
+              </p>
+            </div>
+
+            {deactivateError && (
+              <div className="border-error-200 bg-error-50 text-error-700 mt-3 w-full rounded-xl border px-4 py-3 text-left text-[14px]">
+                {deactivateError}
+              </div>
+            )}
+
+            <div className="mt-6 flex w-full gap-3">
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => setDeactivateOpen(false)}
+                disabled={deactivateLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                fullWidth
+                loading={deactivateLoading}
+                disabled={deactivateLoading}
+                className="bg-error-600 hover:bg-error-700 text-white"
+                onClick={handleDeactivate}
+              >
+                {deactivateLoading ? 'Deactivating...' : 'Deactivate Account'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

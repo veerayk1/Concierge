@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -154,7 +154,7 @@ export default function AmenityBookingPage() {
     loading: amenitiesLoading,
     error: amenitiesError,
   } = useApi<Amenity[] | AmenitiesApiResponse>(
-    apiUrl('/api/v1/amenities', { propertyId: DEMO_PROPERTY_ID }),
+    apiUrl('/api/v1/amenities', { propertyId: getPropertyId() }),
   );
 
   const amenities = useMemo<Amenity[]>(() => {
@@ -172,7 +172,7 @@ export default function AmenityBookingPage() {
     error: bookingsError,
     refetch: refetchBookings,
   } = useApi<MyBooking[] | BookingsApiResponse>(
-    apiUrl('/api/v1/resident/bookings', { propertyId: DEMO_PROPERTY_ID }),
+    apiUrl('/api/v1/resident/bookings', { propertyId: getPropertyId() }),
   );
 
   const bookings = useMemo<MyBooking[]>(() => {

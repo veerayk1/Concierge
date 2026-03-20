@@ -14,7 +14,7 @@ import {
   User,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -138,7 +138,7 @@ export default function IdeaDetailPage() {
     loading,
     error,
     refetch,
-  } = useApi<IdeaDetail>(apiUrl(`/api/v1/ideas/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<IdeaDetail>(apiUrl(`/api/v1/ideas/${id}`, { propertyId: getPropertyId() }));
 
   if (loading) return <IdeaDetailSkeleton />;
 

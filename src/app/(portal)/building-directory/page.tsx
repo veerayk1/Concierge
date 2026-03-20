@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   Building,
   Plus,
@@ -81,7 +81,7 @@ export default function BuildingDirectoryPage() {
     error,
     refetch,
   } = useApi<DirectoryEntry[]>(
-    apiUrl('/api/v1/building-directory', { propertyId: DEMO_PROPERTY_ID }),
+    apiUrl('/api/v1/building-directory', { propertyId: getPropertyId() }),
   );
 
   const allEntries = useMemo(() => {
@@ -385,7 +385,7 @@ export default function BuildingDirectoryPage() {
       <CreateDirectoryEntryDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

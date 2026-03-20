@@ -84,16 +84,24 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    const startDt = new Date(input.startTime);
+    const endDt = new Date(input.endTime);
+    const referenceNumber = `AMN-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`;
+
     const booking = await prisma.booking.create({
       data: {
+        referenceNumber,
         propertyId: input.propertyId,
         amenityId: input.amenityId,
-        unitId: input.unitId || null,
-        startTime: new Date(input.startTime),
-        endTime: new Date(input.endTime),
-        notes: input.notes || null,
+        unitId: input.unitId || auth.user.userId,
+        residentId: auth.user.userId,
+        createdById: auth.user.userId,
+        startDate: startDt,
+        startTime: startDt,
+        endDate: endDt,
+        endTime: endDt,
+        requestorComments: input.notes || null,
         status: 'confirmed',
-        bookedById: auth.user.userId,
       },
       include: {
         amenity: { select: { id: true, name: true } },

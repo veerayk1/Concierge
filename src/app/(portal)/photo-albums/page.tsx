@@ -15,7 +15,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -139,7 +139,7 @@ export default function PhotoAlbumsPage() {
     error,
     refetch,
   } = useApi<ApiAlbum[]>(
-    apiUrl('/api/v1/photo-albums', { propertyId: DEMO_PROPERTY_ID, pageSize: '200' }),
+    apiUrl('/api/v1/photo-albums', { propertyId: getPropertyId(), pageSize: '200' }),
   );
 
   const allAlbums = useMemo<AlbumItem[]>(() => (apiAlbums ?? []).map(normalizeAlbum), [apiAlbums]);
@@ -376,7 +376,7 @@ export default function PhotoAlbumsPage() {
       <CreateAlbumDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

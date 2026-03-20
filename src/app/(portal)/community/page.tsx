@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Calendar, Heart, MessageCircle, Plus, Search, ShoppingBag, Tag, X } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { CreateClassifiedAdDialog } from '@/components/forms/create-classified-ad-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,7 @@ export default function CommunityPage() {
     loading,
     error,
     refetch,
-  } = useApi<ClassifiedAd[]>(apiUrl('/api/v1/community', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<ClassifiedAd[]>(apiUrl('/api/v1/community', { propertyId: getPropertyId() }));
 
   const allAds = useMemo<ClassifiedAd[]>(() => apiAds ?? [], [apiAds]);
 

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { AlertCircle, Download, Layers, Loader2, Plus, Search, X } from 'lucide-react';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -59,7 +59,7 @@ const TYPE_STYLE_MAP: Record<string, { color: string; bg: string }> = {
 function normalizeEvent(e: ApiEvent): EventLogEntry {
   const typeName = e.eventType?.name ?? 'Note';
   const typeKey = typeName.toLowerCase().replace(/[/ ]/g, '_');
-  const style = TYPE_STYLE_MAP[typeKey] ?? TYPE_STYLE_MAP.note;
+  const style = (TYPE_STYLE_MAP[typeKey] ?? TYPE_STYLE_MAP.note) as { color: string; bg: string };
 
   const createdByName = e.createdBy
     ? `${e.createdBy.firstName ?? ''} ${e.createdBy.lastName ?? ''}`.trim() || 'Staff'
@@ -97,7 +97,7 @@ export default function EventsPage() {
     refetch,
   } = useApi<ApiEvent[]>(
     apiUrl('/api/v1/events', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       search: searchQuery || undefined,
       type: typeFilter !== 'all' ? typeFilter : undefined,
     }),
@@ -287,7 +287,7 @@ export default function EventsPage() {
       <LogEventDialog
         open={showLogDialog}
         onOpenChange={setShowLogDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowLogDialog(false);
           refetch();

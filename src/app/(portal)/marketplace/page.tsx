@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Store, Plus, Search, X, DollarSign, Tag, Calendar } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -137,7 +137,7 @@ export default function MarketplacePage() {
     refetch,
   } = useApi<ClassifiedItem[] | ApiResponse>(
     apiUrl('/api/v1/classifieds', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       search: searchQuery || undefined,
       category: categoryFilter !== 'all' ? categoryFilter : undefined,
       condition: conditionFilter !== 'all' ? conditionFilter : undefined,
@@ -392,7 +392,7 @@ export default function MarketplacePage() {
       <CreateClassifiedDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
       />
     </PageShell>
   );

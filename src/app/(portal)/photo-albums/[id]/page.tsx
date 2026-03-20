@@ -159,7 +159,7 @@ export default function PhotoAlbumDetailPage() {
       title={album.title}
       description="Photo Albums"
       actions={
-        <Button size="sm" onClick={() => {}}>
+        <Button size="sm" onClick={() => alert('Photo upload is coming soon.')}>
           <Upload className="h-4 w-4" />
           Upload Photo
         </Button>
@@ -233,7 +233,7 @@ export default function PhotoAlbumDetailPage() {
           <p className="mt-1 text-[13px] text-neutral-400">
             Upload your first photo to get started.
           </p>
-          <Button size="sm" className="mt-4" onClick={() => {}}>
+          <Button size="sm" className="mt-4" onClick={() => alert('Photo upload is coming soon.')}>
             <Upload className="h-4 w-4" />
             Upload Photo
           </Button>
@@ -275,7 +275,7 @@ export default function PhotoAlbumDetailPage() {
             <button
               type="button"
               className="flex h-full w-full flex-col items-center justify-center gap-3 border-2 border-dashed border-neutral-200 py-16 text-center transition-colors hover:border-neutral-300 hover:bg-neutral-50"
-              onClick={() => {}}
+              onClick={() => alert('Photo upload is coming soon.')}
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100">
                 <Plus className="h-6 w-6 text-neutral-400" />

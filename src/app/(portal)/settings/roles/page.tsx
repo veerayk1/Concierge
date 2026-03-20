@@ -16,8 +16,8 @@ import {
   Lock,
   AlertTriangle,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -85,7 +85,7 @@ export default function RolesPermissionsPage() {
     loading,
     error,
     refetch,
-  } = useApi<RoleFromApi[]>(apiUrl('/api/v1/roles', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<RoleFromApi[]>(apiUrl('/api/v1/roles', { propertyId: getPropertyId() }));
 
   const roles: RoleFromApi[] = useMemo(() => {
     if (!apiRoles) return [];
@@ -360,7 +360,10 @@ export default function RolesPermissionsPage() {
                             type="button"
                             className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
                             title="Edit role"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              alert('Edit role is coming soon.');
+                            }}
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
@@ -373,7 +376,24 @@ export default function RolesPermissionsPage() {
                             }
                             title={role.isSystem ? 'System roles cannot be deleted' : 'Delete role'}
                             disabled={role.isSystem}
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (!confirm(`Delete role "${role.name}"? This cannot be undone.`))
+                                return;
+                              try {
+                                const res = await apiRequest(`/api/v1/roles/${role.id}`, {
+                                  method: 'DELETE',
+                                });
+                                if (res.ok) {
+                                  refetch();
+                                } else {
+                                  const result = await res.json().catch(() => ({}));
+                                  alert(result.message || 'Failed to delete role.');
+                                }
+                              } catch {
+                                alert('Network error. Please try again.');
+                              }
+                            }}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>

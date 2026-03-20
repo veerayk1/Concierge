@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Download, Phone, Plus, Search, Users, X } from 'lucide-react';
 import { AddResidentDialog } from '@/components/forms/add-resident-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -69,7 +69,7 @@ export default function ResidentsPage() {
     refetch,
   } = useApi<ApiResponse>(
     apiUrl('/api/v1/residents', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       search: searchQuery || undefined,
       pageSize: '100',
     }),
@@ -265,7 +265,7 @@ export default function ResidentsPage() {
       <AddResidentDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowAddDialog(false);
           refetch();

@@ -118,13 +118,34 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Resolve eventTypeId: accept either UUID or slug
+    let resolvedEventTypeId = input.eventTypeId;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(resolvedEventTypeId)) {
+      // Treat as slug — look up the event type
+      const eventType = await prisma.eventType.findFirst({
+        where: {
+          slug: resolvedEventTypeId,
+          propertyId: input.propertyId,
+        },
+        select: { id: true },
+      });
+      if (!eventType) {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: `Event type "${resolvedEventTypeId}" not found` },
+          { status: 404 },
+        );
+      }
+      resolvedEventTypeId = eventType.id;
+    }
+
     // Generate reference number (e.g., EVT-A1B2C3)
     const referenceNo = `EVT-${nanoid(6).toUpperCase()}`;
 
     const event = await prisma.event.create({
       data: {
         propertyId: input.propertyId,
-        eventTypeId: input.eventTypeId,
+        eventTypeId: resolvedEventTypeId,
         unitId: input.unitId || null,
         title: stripControlChars(stripHtml(input.title)),
         description: input.description ? stripControlChars(stripHtml(input.description)) : null,

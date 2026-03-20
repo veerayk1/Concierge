@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { Download, Plus, Search, ShieldAlert, X, Loader2 } from 'lucide-react';
 import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -80,7 +80,7 @@ export default function IncidentsPage() {
     refetch,
   } = useApi<ApiResponse>(
     apiUrl('/api/v1/events', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       search: searchQuery || undefined,
       pageSize: '100',
     }),
@@ -301,7 +301,7 @@ export default function IncidentsPage() {
       <ReportIncidentDialog
         open={showReportDialog}
         onOpenChange={setShowReportDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowReportDialog(false);
           refetch();

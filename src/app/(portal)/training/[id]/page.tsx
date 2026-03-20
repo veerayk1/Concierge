@@ -20,7 +20,7 @@ import {
   Video,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -173,7 +173,7 @@ export default function TrainingDetailPage() {
     data: course,
     loading,
     error,
-  } = useApi<TrainingCourse>(apiUrl(`/api/v1/training/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<TrainingCourse>(apiUrl(`/api/v1/training/${id}`, { propertyId: getPropertyId() }));
 
   // -- Loading State --
   if (loading) {

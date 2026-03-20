@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   DollarSign,
   TrendingUp,
@@ -91,7 +91,7 @@ export default function PlatformBillingPage() {
     loading,
     error,
     refetch,
-  } = useApi<BillingData>(apiUrl('/api/v1/billing', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<BillingData>(apiUrl('/api/v1/billing', { propertyId: getPropertyId() }));
 
   return (
     <PageShell

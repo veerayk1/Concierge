@@ -15,7 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { CreateInspectionDialog } from '@/components/forms/create-inspection-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -137,7 +137,7 @@ export default function InspectionsPage() {
     refetch,
   } = useApi<InspectionItem[] | ApiResponse>(
     apiUrl('/api/v1/inspections', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       search: searchQuery || undefined,
       type: typeFilter !== 'all' ? typeFilter : undefined,
       status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -446,7 +446,7 @@ export default function InspectionsPage() {
       <CreateInspectionDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

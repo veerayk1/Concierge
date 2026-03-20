@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   Code2,
   Plus,
@@ -178,7 +178,7 @@ function CreateApiKeyDialog({ open, onOpenChange, onSuccess }: CreateApiKeyDialo
       const res = await apiRequest('/api/v1/developer/api-keys', {
         method: 'POST',
         body: {
-          propertyId: DEMO_PROPERTY_ID,
+          propertyId: getPropertyId(),
           name: name.trim(),
           scopes: selectedScopes,
         },
@@ -307,7 +307,7 @@ export default function DeveloperPortalPage() {
     loading: keysLoading,
     error: keysError,
     refetch: refetchKeys,
-  } = useApi<ApiKeyItem[]>(apiUrl('/api/v1/developer/api-keys', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<ApiKeyItem[]>(apiUrl('/api/v1/developer/api-keys', { propertyId: getPropertyId() }));
 
   // Fetch webhooks
   const {
@@ -315,7 +315,7 @@ export default function DeveloperPortalPage() {
     loading: webhooksLoading,
     error: webhooksError,
     refetch: refetchWebhooks,
-  } = useApi<WebhookItem[]>(apiUrl('/api/v1/developer/webhooks', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<WebhookItem[]>(apiUrl('/api/v1/developer/webhooks', { propertyId: getPropertyId() }));
 
   const apiKeys: ApiKeyItem[] = useMemo(() => {
     if (!apiKeysRaw) return [];
@@ -452,7 +452,27 @@ export default function DeveloperPortalPage() {
       header: 'Actions',
       cell: (row) =>
         row.status === 'active' ? (
-          <Button variant="ghost" size="sm" className="text-error-600 hover:text-error-700">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-error-600 hover:text-error-700"
+            onClick={async () => {
+              if (!confirm(`Revoke API key "${row.name}"? This cannot be undone.`)) return;
+              try {
+                const res = await apiRequest(`/api/v1/developer/api-keys/${row.id}`, {
+                  method: 'DELETE',
+                });
+                if (res.ok) {
+                  refetchKeys();
+                } else {
+                  const result = await res.json().catch(() => ({}));
+                  alert(result.message || 'Failed to revoke API key.');
+                }
+              } catch {
+                alert('Network error. Please try again.');
+              }
+            }}
+          >
             <Trash2 className="h-3.5 w-3.5" />
             Revoke
           </Button>
@@ -543,15 +563,73 @@ export default function DeveloperPortalPage() {
       cell: (row) => (
         <div className="flex items-center gap-1">
           {row.status !== 'paused' ? (
-            <Button variant="ghost" size="sm">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                try {
+                  const res = await apiRequest(`/api/v1/developer/webhooks/${row.id}`, {
+                    method: 'PATCH',
+                    body: { status: 'paused' },
+                  });
+                  if (res.ok) {
+                    refetchWebhooks();
+                  } else {
+                    const result = await res.json().catch(() => ({}));
+                    alert(result.message || 'Failed to pause webhook.');
+                  }
+                } catch {
+                  alert('Network error. Please try again.');
+                }
+              }}
+            >
               Pause
             </Button>
           ) : (
-            <Button variant="ghost" size="sm">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                try {
+                  const res = await apiRequest(`/api/v1/developer/webhooks/${row.id}`, {
+                    method: 'PATCH',
+                    body: { status: 'active' },
+                  });
+                  if (res.ok) {
+                    refetchWebhooks();
+                  } else {
+                    const result = await res.json().catch(() => ({}));
+                    alert(result.message || 'Failed to resume webhook.');
+                  }
+                } catch {
+                  alert('Network error. Please try again.');
+                }
+              }}
+            >
               Resume
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="text-error-600 hover:text-error-700">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-error-600 hover:text-error-700"
+            onClick={async () => {
+              if (!confirm('Delete this webhook? This cannot be undone.')) return;
+              try {
+                const res = await apiRequest(`/api/v1/developer/webhooks/${row.id}`, {
+                  method: 'DELETE',
+                });
+                if (res.ok) {
+                  refetchWebhooks();
+                } else {
+                  const result = await res.json().catch(() => ({}));
+                  alert(result.message || 'Failed to delete webhook.');
+                }
+              } catch {
+                alert('Network error. Please try again.');
+              }
+            }}
+          >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>

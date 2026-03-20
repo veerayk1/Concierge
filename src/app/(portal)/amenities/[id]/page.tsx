@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -18,8 +19,8 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -104,7 +105,40 @@ export default function AmenityDetailPage() {
     data: amenity,
     loading,
     error,
-  } = useApi<AmenityDetail>(apiUrl(`/api/v1/amenities/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+    refetch,
+  } = useApi<AmenityDetail>(apiUrl(`/api/v1/amenities/${id}`, { propertyId: getPropertyId() }));
+
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  async function handleBookingAction(
+    bookingId: string,
+    status: 'confirmed' | 'rejected' | 'cancelled',
+  ) {
+    const labels: Record<string, string> = {
+      confirmed: 'accept',
+      rejected: 'reject',
+      cancelled: 'cancel',
+    };
+    if (!confirm(`Are you sure you want to ${labels[status]} this booking?`)) return;
+
+    setActionLoading(bookingId);
+    try {
+      const resp = await apiRequest(`/api/v1/bookings/${bookingId}`, {
+        method: 'PATCH',
+        body: { status },
+      });
+      if (!resp.ok) {
+        const result = await resp.json().catch(() => ({}));
+        alert(result.message || `Failed to ${labels[status]} booking.`);
+      } else {
+        await refetch();
+      }
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setActionLoading(null);
+    }
+  }
 
   // -- Loading State --
   if (loading) {
@@ -187,19 +221,48 @@ export default function AmenityDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => alert('Edit Amenity is coming soon. This feature is under development.')}
+          >
             <Edit2 className="h-4 w-4" />
             Edit Amenity
           </Button>
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              alert(
+                'Set Rates is coming soon. Rate management will be available in a future update.',
+              )
+            }
+          >
             <DollarSign className="h-4 w-4" />
             Set Rates
           </Button>
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              alert(
+                'Manage Rules is coming soon. Rule configuration will be available in a future update.',
+              )
+            }
+          >
             <FileText className="h-4 w-4" />
             Manage Rules
           </Button>
-          <Button variant="ghost" size="sm" className="text-error-600">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-error-600"
+            onClick={() =>
+              alert(
+                'Disable Bookings is coming soon. Booking management will be available in a future update.',
+              )
+            }
+          >
             <Ban className="h-4 w-4" />
             Disable Bookings
           </Button>
@@ -338,16 +401,32 @@ export default function AmenityDetailPage() {
                           <td className="py-3 text-right">
                             {b.status === 'pending' && (
                               <div className="flex items-center justify-end gap-1">
-                                <Button variant="ghost" size="sm">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={actionLoading === b.id}
+                                  onClick={() => handleBookingAction(b.id, 'confirmed')}
+                                >
                                   <Check className="text-success-600 h-3.5 w-3.5" />
                                 </Button>
-                                <Button variant="ghost" size="sm">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={actionLoading === b.id}
+                                  onClick={() => handleBookingAction(b.id, 'rejected')}
+                                >
                                   <X className="text-error-600 h-3.5 w-3.5" />
                                 </Button>
                               </div>
                             )}
                             {b.status === 'confirmed' && (
-                              <Button variant="ghost" size="sm" className="text-error-600">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-error-600"
+                                disabled={actionLoading === b.id}
+                                onClick={() => handleBookingAction(b.id, 'cancelled')}
+                              >
                                 Cancel
                               </Button>
                             )}

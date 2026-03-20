@@ -235,8 +235,9 @@ export async function POST(request: NextRequest) {
           lastName: user.lastName,
           status: 'pending',
           createdAt: user.createdAt,
+          tempPassword: tempPassword,
         },
-        message: `Account created for ${user.firstName} ${user.lastName}. Welcome email queued.`,
+        message: `Account created for ${user.firstName} ${user.lastName}.`,
       },
       { status: 201 },
     );

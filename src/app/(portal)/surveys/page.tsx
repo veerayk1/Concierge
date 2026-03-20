@@ -16,7 +16,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -131,7 +131,7 @@ export default function SurveysPage() {
     error,
     refetch,
   } = useApi<ApiSurvey[]>(
-    apiUrl('/api/v1/surveys', { propertyId: DEMO_PROPERTY_ID, pageSize: '200' }),
+    apiUrl('/api/v1/surveys', { propertyId: getPropertyId(), pageSize: '200' }),
   );
 
   const allSurveys = useMemo<SurveyItem[]>(

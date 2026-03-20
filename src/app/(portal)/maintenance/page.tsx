@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreateMaintenanceDialog } from '@/components/forms/create-maintenance-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   AlertCircle,
   CheckCircle2,
@@ -66,7 +66,7 @@ export default function MaintenancePage() {
   // Build API URL with search/filter params passed to the server
   const requestUrl = useMemo(() => {
     const params: Record<string, string | undefined | null> = {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
     };
     if (searchQuery.trim()) params.search = searchQuery.trim();
     if (statusFilter !== 'all') params.status = statusFilter;
@@ -373,7 +373,7 @@ export default function MaintenancePage() {
       <CreateMaintenanceDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

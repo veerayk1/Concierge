@@ -12,8 +12,8 @@ import {
   Shield,
   StickyNote,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -167,7 +167,7 @@ export default function AssetDetailPage() {
     loading,
     error,
     refetch,
-  } = useApi<AssetDetail>(apiUrl(`/api/v1/assets/${id}`, { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<AssetDetail>(apiUrl(`/api/v1/assets/${id}`, { propertyId: getPropertyId() }));
 
   if (loading) return <AssetDetailSkeleton />;
 
@@ -440,19 +440,61 @@ export default function AssetDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button variant="secondary" size="sm" fullWidth>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  onClick={() => alert('Edit Asset is coming soon.')}
+                >
                   <Edit className="h-4 w-4" />
                   Edit Asset
                 </Button>
-                <Button variant="secondary" size="sm" fullWidth>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  onClick={() => alert('Schedule Maintenance is coming soon.')}
+                >
                   <Wrench className="h-4 w-4" />
                   Schedule Maintenance
                 </Button>
-                <Button variant="secondary" size="sm" fullWidth>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  onClick={() => alert('QR Code generation is coming soon.')}
+                >
                   <QrCode className="h-4 w-4" />
                   Generate QR Code
                 </Button>
-                <Button variant="danger" size="sm" fullWidth>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  fullWidth
+                  onClick={async () => {
+                    if (
+                      !confirm(
+                        'Are you sure you want to dispose this asset? This action cannot be undone.',
+                      )
+                    )
+                      return;
+                    try {
+                      const res = await apiRequest(`/api/v1/assets/${id}`, {
+                        method: 'PATCH',
+                        body: { status: 'disposed' },
+                      });
+                      if (!res.ok) {
+                        const result = await res.json();
+                        alert(`Failed to dispose asset: ${result.message || 'Unknown error'}`);
+                        return;
+                      }
+                      alert('Asset has been disposed successfully.');
+                      refetch();
+                    } catch {
+                      alert('Network error. Please try again.');
+                    }
+                  }}
+                >
                   <Trash2 className="h-4 w-4" />
                   Dispose Asset
                 </Button>

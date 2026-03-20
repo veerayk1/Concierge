@@ -307,7 +307,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }),
     );
 
-    // 14. Return tokens
+    // 14. Return tokens (include propertyId so frontend can store it for multi-tenancy)
     return NextResponse.json(
       {
         data: {
@@ -319,6 +319,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             firstName: user.firstName,
             lastName: user.lastName,
             role: roleSlug,
+            propertyId,
           },
         },
         requestId,

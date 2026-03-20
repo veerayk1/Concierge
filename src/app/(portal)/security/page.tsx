@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreateEventDialog } from '@/components/forms/create-event-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import {
   AlertTriangle,
   Eye,
@@ -87,7 +87,7 @@ export default function SecurityPage() {
     loading,
     error,
     refetch,
-  } = useApi<SecurityEvent[]>(apiUrl('/api/v1/events', { propertyId: DEMO_PROPERTY_ID }));
+  } = useApi<SecurityEvent[]>(apiUrl('/api/v1/events', { propertyId: getPropertyId() }));
 
   // Map API data to SecurityEvent shape
   const allEvents = useMemo(() => {
@@ -393,7 +393,7 @@ export default function SecurityPage() {
       <CreateEventDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId="00000000-0000-4000-b000-000000000001"
+        propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();

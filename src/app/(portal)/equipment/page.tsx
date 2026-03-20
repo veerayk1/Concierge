@@ -14,7 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { DEMO_PROPERTY_ID } from '@/lib/demo-config';
+import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -119,7 +119,7 @@ export default function EquipmentPage() {
     refetch,
   } = useApi<EquipmentItem[] | ApiResponse>(
     apiUrl('/api/v1/equipment', {
-      propertyId: DEMO_PROPERTY_ID,
+      propertyId: getPropertyId(),
       search: searchQuery || undefined,
       category: categoryFilter !== 'all' ? categoryFilter : undefined,
       status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -451,7 +451,7 @@ export default function EquipmentPage() {
       <CreateEquipmentDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        propertyId={DEMO_PROPERTY_ID}
+        propertyId={getPropertyId()}
       />
     </PageShell>
   );

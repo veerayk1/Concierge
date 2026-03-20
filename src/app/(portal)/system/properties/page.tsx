@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Building2,
   Plus,
@@ -365,6 +366,7 @@ function CreatePropertyDialog({ open, onOpenChange, onSuccess }: CreatePropertyD
 // ---------------------------------------------------------------------------
 
 export default function PropertiesPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
@@ -558,7 +560,7 @@ export default function PropertiesPage() {
           emptyMessage="No properties found."
           emptyIcon={<Building2 className="h-6 w-6" />}
           onRowClick={(row) => {
-            console.log('Navigate to property:', row.id);
+            router.push(`/system/properties/${row.id}` as never);
           }}
         />
       )}

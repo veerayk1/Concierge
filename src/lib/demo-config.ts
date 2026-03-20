@@ -1,14 +1,22 @@
 /**
  * Demo/Development configuration
  * Centralized property ID and demo settings
- * Will be replaced with real auth context in production
+ *
+ * getPropertyId() reads from localStorage so multi-tenancy works:
+ * - Demo quick-login buttons set `demo_propertyId`
+ * - Real login stores the propertyId from the JWT response
+ * - Falls back to the seeded demo property for backwards compatibility
  */
 
-export const DEMO_PROPERTY_ID = '00000000-0000-4000-b000-000000000001';
+export const DEFAULT_DEMO_PROPERTY_ID = '00000000-0000-4000-b000-000000000001';
+
+/** @deprecated Use getPropertyId() instead — this constant breaks multi-tenancy */
+export const DEMO_PROPERTY_ID = DEFAULT_DEMO_PROPERTY_ID;
+
 export const DEMO_PROPERTY_NAME = 'Maple Heights Condominiums';
 
 export const DEMO_PROPERTY = {
-  id: DEMO_PROPERTY_ID,
+  id: DEFAULT_DEMO_PROPERTY_ID,
   name: DEMO_PROPERTY_NAME,
   address: '100 Maple Avenue, Toronto, ON M5V 2H1',
   city: 'Toronto',
@@ -19,9 +27,22 @@ export const DEMO_PROPERTY = {
 };
 
 /**
- * Get the current property ID (from auth context or demo mode)
+ * Get the current property ID from localStorage, falling back to the demo default.
+ * Always use this instead of the DEMO_PROPERTY_ID constant.
  */
 export function getPropertyId(): string {
-  // In production, this would come from the auth context
-  return DEMO_PROPERTY_ID;
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('demo_propertyId');
+    if (stored) return stored;
+  }
+  return DEFAULT_DEMO_PROPERTY_ID;
+}
+
+/**
+ * Store the active property ID (called on login).
+ */
+export function setPropertyId(propertyId: string): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('demo_propertyId', propertyId);
+  }
 }

@@ -6,7 +6,7 @@ import { z } from 'zod';
  */
 export const createEventSchema = z.object({
   propertyId: z.string().uuid(),
-  eventTypeId: z.string().uuid('Select an event type'),
+  eventTypeId: z.string().min(1, 'Select an event type'),
   unitId: z.string().uuid().optional().or(z.literal('')),
   title: z.string().min(1, 'Title is required').max(200),
   description: z.string().max(4000).optional().or(z.literal('')),
