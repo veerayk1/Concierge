@@ -137,7 +137,6 @@ export async function POST(request: NextRequest) {
         residentId: auth.user.userId,
         status: 'open',
         hideFromResident: input.hideFromResident ?? false,
-        createdById: auth.user.userId,
       },
       include: {
         unit: { select: { id: true, number: true } },
@@ -176,7 +175,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(responseBody, { status: 201 });
   } catch (error) {
-    console.error('POST /api/v1/maintenance error:', error);
+    console.error(
+      'POST /api/v1/maintenance error:',
+      error instanceof Error ? error.message : error,
+    );
     return NextResponse.json(
       { error: 'INTERNAL_ERROR', message: 'Failed to create request' },
       { status: 500 },
