@@ -5,11 +5,14 @@ import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import {
   AlertCircle,
   Download,
+  KeyRound,
   MoreHorizontal,
   Plus,
   Search,
   Shield,
+  Trash2,
   UserCheck,
+  UserMinus,
   UserX,
   Users,
   X,
@@ -23,6 +26,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { CreateUserDialog } from '@/components/admin/create-user-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -59,6 +69,10 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [actionMessage, setActionMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   // Fetch real users from API
   const {
@@ -69,7 +83,8 @@ export default function UsersPage() {
   } = useApi<UserAccount[]>(apiUrl('/api/v1/users', { propertyId: getPropertyId() }));
 
   const handleUserCreated = useCallback(() => {
-    setShowCreateDialog(false);
+    // Don't close dialog here — the dialog manages its own closing
+    // (it stays open to show temp password, then closes on "Done" click)
     refetch();
   }, [refetch]);
 
@@ -167,12 +182,14 @@ export default function UsersPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
-        const m = {
-          active: { v: 'success' as const, l: 'Active' },
-          inactive: { v: 'default' as const, l: 'Inactive' },
-          locked: { v: 'error' as const, l: 'Locked' },
+        const m: Record<string, { v: 'success' | 'default' | 'error' | 'warning'; l: string }> = {
+          active: { v: 'success', l: 'Active' },
+          inactive: { v: 'default', l: 'Inactive' },
+          locked: { v: 'error', l: 'Locked' },
+          pending: { v: 'warning', l: 'Pending' },
+          suspended: { v: 'error', l: 'Suspended' },
         };
-        const s = m[row.status];
+        const s = m[row.status] || { v: 'default' as const, l: row.status || 'Unknown' };
         return (
           <Badge variant={s.v} size="sm" dot>
             {s.l}
@@ -216,13 +233,57 @@ export default function UsersPage() {
       id: 'actions',
       header: '',
       className: 'text-right',
-      cell: () => (
-        <button
-          type="button"
-          className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
+      cell: (row) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => {
+                setActionMessage({
+                  type: 'success',
+                  text: `Password reset for ${row.firstName} ${row.lastName} is coming soon.`,
+                });
+                setTimeout(() => setActionMessage(null), 4000);
+              }}
+            >
+              <KeyRound className="mr-2 h-4 w-4" />
+              Reset Password
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setActionMessage({
+                  type: 'success',
+                  text: `${row.status === 'active' ? 'Deactivate' : 'Activate'} for ${row.firstName} ${row.lastName} is coming soon.`,
+                });
+                setTimeout(() => setActionMessage(null), 4000);
+              }}
+            >
+              <UserMinus className="mr-2 h-4 w-4" />
+              {row.status === 'active' ? 'Deactivate' : 'Activate'}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              destructive
+              onClick={() => {
+                setActionMessage({
+                  type: 'error',
+                  text: `Delete for ${row.firstName} ${row.lastName} is coming soon.`,
+                });
+                setTimeout(() => setActionMessage(null), 4000);
+              }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     },
   ];
@@ -246,6 +307,19 @@ export default function UsersPage() {
         </div>
       }
     >
+      {/* Action Feedback */}
+      {actionMessage && (
+        <div
+          className={`mb-4 rounded-xl border px-4 py-3 text-[14px] ${
+            actionMessage.type === 'success'
+              ? 'border-success-200 bg-success-50 text-success-700'
+              : 'border-error-200 bg-error-50 text-error-700'
+          }`}
+        >
+          {actionMessage.text}
+        </div>
+      )}
+
       {/* Loading State */}
       {loading && (
         <div className="space-y-6">

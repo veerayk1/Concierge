@@ -352,6 +352,35 @@ const QUICK_ACTION_LINKS: Record<string, { href: string; icon: LucideIcon }> = {
   'Add Shift Note': { href: '/shift-log', icon: StickyNote },
 };
 
+/** Maps role-specific quick action labels to navigation routes */
+const QUICK_ACTION_ROUTES: Record<string, string> = {
+  'Switch Property': '/system/properties',
+  'View Alerts': '/system/health',
+  'AI Config': '/system/ai',
+  'Create User': '/users',
+  'Send Announcement': '/announcements',
+  'Create Announcement': '/announcements',
+  'View Reports': '/reports',
+  'Upcoming Meetings': '/events',
+  'Assign Request': '/maintenance',
+  'Manage Shifts': '/shift-log',
+  'Review Incidents': '/security',
+  '+ Visitor': '/visitors',
+  '+ Package': '/packages',
+  '+ Incident': '/security',
+  '+ Key': '/keys',
+  '+ Note': '/shift-log',
+  'Update Request': '/maintenance',
+  'Log Work': '/shift-log',
+  'View Schedule': '/my-schedule',
+  'Request Parts': '/parts-supplies',
+  'Book Amenity': '/amenity-booking',
+  'Submit Request': '/my-requests',
+  'View Directory': '/building-directory',
+  'View Announcements': '/announcements',
+  'View Library': '/library',
+};
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -491,7 +520,23 @@ export default function DashboardPage() {
 
   const config = DASHBOARD_CONFIGS[effectiveRole];
   const greeting = getGreeting();
-  const buildingHealthScore = 87;
+
+  // Check if we're in demo showcase mode (fake data OK) vs real auth (need real data)
+  const isDemoShowcase =
+    typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'showcase';
+
+  // Fetch real AI analytics for building health score (skip in demo showcase or super_admin)
+  const { data: aiAnalytics } = useApi<{
+    healthScore: number;
+    trend: string;
+    factors: { name: string; score: number; weight: number }[];
+  }>(
+    !isDemoShowcase && !isSuperAdmin
+      ? apiUrl('/api/v1/ai/analytics', { propertyId: getPropertyId() })
+      : null,
+  );
+
+  const buildingHealthScore = isDemoShowcase ? 87 : (aiAnalytics?.healthScore ?? null);
 
   // -------------------------------------------------------------------------
   // Super Admin — Platform-level dashboard
@@ -713,39 +758,115 @@ export default function DashboardPage() {
             </Badge>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 text-[14px] leading-relaxed text-neutral-700">
-              <p>
-                Good{' '}
-                {new Date().getHours() < 12
-                  ? 'morning'
-                  : new Date().getHours() < 17
-                    ? 'afternoon'
-                    : 'evening'}
-                . Here is your daily summary:
-              </p>
-              <ul className="ml-4 list-disc space-y-1 text-[13px] text-neutral-600">
-                <li>
-                  <strong>Elevator B</strong> remains out of service. Technician expected at 2pm
-                  today. Residents should use Elevator A.
-                </li>
-                <li>
-                  <strong>3 maintenance requests</strong> are open, 1 marked as urgent (leaking
-                  faucet in Unit 1501).
-                </li>
-                <li>
-                  <strong>Fire alarm test</strong> scheduled today from 9am-11am. Residents have
-                  been notified.
-                </li>
-                <li>
-                  <strong>12 packages</strong> awaiting pickup. 1 is perishable (Unit 1802, stored
-                  in staff fridge).
-                </li>
-                <li>
-                  <strong>Easter weekend</strong> schedule change: building office closed April
-                  18-21.
-                </li>
-              </ul>
-            </div>
+            {isDemoShowcase ? (
+              <div className="space-y-2 text-[14px] leading-relaxed text-neutral-700">
+                <p>
+                  Good{' '}
+                  {new Date().getHours() < 12
+                    ? 'morning'
+                    : new Date().getHours() < 17
+                      ? 'afternoon'
+                      : 'evening'}
+                  . Here is your daily summary:
+                </p>
+                <ul className="ml-4 list-disc space-y-1 text-[13px] text-neutral-600">
+                  <li>
+                    <strong>Elevator B</strong> remains out of service. Technician expected at 2pm
+                    today. Residents should use Elevator A.
+                  </li>
+                  <li>
+                    <strong>3 maintenance requests</strong> are open, 1 marked as urgent (leaking
+                    faucet in Unit 1501).
+                  </li>
+                  <li>
+                    <strong>Fire alarm test</strong> scheduled today from 9am-11am. Residents have
+                    been notified.
+                  </li>
+                  <li>
+                    <strong>12 packages</strong> awaiting pickup. 1 is perishable (Unit 1802, stored
+                    in staff fridge).
+                  </li>
+                  <li>
+                    <strong>Easter weekend</strong> schedule change: building office closed April
+                    18-21.
+                  </li>
+                </ul>
+              </div>
+            ) : apiData?.recentActivity && apiData.recentActivity.length > 0 ? (
+              <div className="space-y-2 text-[14px] leading-relaxed text-neutral-700">
+                <p>
+                  Good{' '}
+                  {new Date().getHours() < 12
+                    ? 'morning'
+                    : new Date().getHours() < 17
+                      ? 'afternoon'
+                      : 'evening'}
+                  . Here is your daily summary:
+                </p>
+                <ul className="ml-4 list-disc space-y-1 text-[13px] text-neutral-600">
+                  {apiData.kpis.openMaintenanceRequests > 0 && (
+                    <li>
+                      <strong>
+                        {apiData.kpis.openMaintenanceRequests} maintenance request
+                        {apiData.kpis.openMaintenanceRequests !== 1 ? 's' : ''}
+                      </strong>{' '}
+                      currently open
+                      {apiData.kpis.overdueMaintenanceRequests > 0
+                        ? `, ${apiData.kpis.overdueMaintenanceRequests} overdue`
+                        : ''}
+                      .
+                    </li>
+                  )}
+                  {apiData.kpis.unreleasedPackages > 0 && (
+                    <li>
+                      <strong>
+                        {apiData.kpis.unreleasedPackages} package
+                        {apiData.kpis.unreleasedPackages !== 1 ? 's' : ''}
+                      </strong>{' '}
+                      awaiting pickup.
+                    </li>
+                  )}
+                  {apiData.kpis.activeVisitors > 0 && (
+                    <li>
+                      <strong>
+                        {apiData.kpis.activeVisitors} active visitor
+                        {apiData.kpis.activeVisitors !== 1 ? 's' : ''}
+                      </strong>{' '}
+                      currently on-site.
+                    </li>
+                  )}
+                  {apiData.kpis.pendingBookingApprovals > 0 && (
+                    <li>
+                      <strong>
+                        {apiData.kpis.pendingBookingApprovals} booking approval
+                        {apiData.kpis.pendingBookingApprovals !== 1 ? 's' : ''}
+                      </strong>{' '}
+                      pending review.
+                    </li>
+                  )}
+                  {apiData.kpis.todayEvents > 0 && (
+                    <li>
+                      <strong>
+                        {apiData.kpis.todayEvents} event{apiData.kpis.todayEvents !== 1 ? 's' : ''}
+                      </strong>{' '}
+                      logged today.
+                    </li>
+                  )}
+                </ul>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
+                  <Sparkles className="h-5 w-5 text-neutral-400" />
+                </div>
+                <p className="text-[14px] font-medium text-neutral-600">
+                  No briefing available yet
+                </p>
+                <p className="mt-1 text-[12px] text-neutral-400">
+                  AI briefings are generated when your property has active operations data.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -758,31 +879,47 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-center gap-2 text-center">
-                <div
-                  className={`flex h-16 w-16 items-center justify-center rounded-2xl ${getBuildingHealthBg(buildingHealthScore)}`}
-                >
-                  <span
-                    className={`text-[28px] font-bold ${getBuildingHealthColor(buildingHealthScore)}`}
-                  >
-                    {buildingHealthScore}
-                  </span>
-                </div>
-                <Badge
-                  variant={
-                    buildingHealthScore >= 80
-                      ? 'success'
-                      : buildingHealthScore >= 60
-                        ? 'warning'
-                        : 'error'
-                  }
-                  size="lg"
-                  dot
-                >
-                  {getBuildingHealthLabel(buildingHealthScore)}
-                </Badge>
-                <p className="text-[12px] text-neutral-500">
-                  Based on maintenance, safety, and operations metrics
-                </p>
+                {buildingHealthScore !== null ? (
+                  <>
+                    <div
+                      className={`flex h-16 w-16 items-center justify-center rounded-2xl ${getBuildingHealthBg(buildingHealthScore)}`}
+                    >
+                      <span
+                        className={`text-[28px] font-bold ${getBuildingHealthColor(buildingHealthScore)}`}
+                      >
+                        {buildingHealthScore}
+                      </span>
+                    </div>
+                    <Badge
+                      variant={
+                        buildingHealthScore >= 80
+                          ? 'success'
+                          : buildingHealthScore >= 60
+                            ? 'warning'
+                            : 'error'
+                      }
+                      size="lg"
+                      dot
+                    >
+                      {getBuildingHealthLabel(buildingHealthScore)}
+                    </Badge>
+                    <p className="text-[12px] text-neutral-500">
+                      Based on maintenance, safety, and operations metrics
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-neutral-100">
+                      <span className="text-[28px] font-bold text-neutral-300">&mdash;</span>
+                    </div>
+                    <Badge variant="default" size="lg">
+                      No data
+                    </Badge>
+                    <p className="text-[12px] text-neutral-500">
+                      Health score requires operations data
+                    </p>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -860,15 +997,29 @@ export default function DashboardPage() {
         </h2>
         <div className="flex flex-wrap gap-2">
           {/* Role-specific quick actions */}
-          {config.quickActions.map((action) => (
-            <button
-              key={action}
-              type="button"
-              className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
-            >
-              {action}
-            </button>
-          ))}
+          {config.quickActions.map((action) => {
+            const route = QUICK_ACTION_ROUTES[action];
+            if (route) {
+              return (
+                <Link
+                  key={action}
+                  href={route as never}
+                  className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
+                >
+                  {action}
+                </Link>
+              );
+            }
+            return (
+              <button
+                key={action}
+                type="button"
+                className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
+              >
+                {action}
+              </button>
+            );
+          })}
 
           {/* Dedicated quick action buttons */}
           <div className="mx-1 h-auto w-px bg-neutral-200" />

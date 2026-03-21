@@ -209,7 +209,8 @@ export function CreateUserDialog({
         setCreatedEmail(result.data.email);
         setSuccessMsg(`Account created for ${result.data.firstName} ${result.data.lastName}.`);
         reset();
-        onSuccess?.();
+        // Do NOT call onSuccess or close here — keep dialog open so admin can see credentials.
+        // onSuccess will be called when the admin clicks "Done".
       } else {
         setSuccessMsg(result.message || 'Account created successfully.');
         setTimeout(() => {
@@ -225,7 +226,14 @@ export function CreateUserDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        // Prevent closing via backdrop/escape when temp password is displayed
+        if (!isOpen && tempPassword) return;
+        onOpenChange(isOpen);
+      }}
+    >
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
         <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
           <UserPlus className="text-primary-500 h-5 w-5" />
@@ -281,6 +289,7 @@ export function CreateUserDialog({
                     setCreatedEmail(null);
                     setSuccessMsg(null);
                     onOpenChange(false);
+                    onSuccess?.();
                   }}
                   className="rounded-lg border border-amber-300 bg-amber-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-amber-700"
                 >
