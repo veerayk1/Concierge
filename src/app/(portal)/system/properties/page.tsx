@@ -224,6 +224,12 @@ function CreatePropertyDialog({ open, onOpenChange, onSuccess }: CreatePropertyD
         return;
       }
 
+      // Auto-switch property context so admin can immediately manage this property
+      const newPropertyId = result.data?.id;
+      if (newPropertyId && typeof window !== 'undefined') {
+        localStorage.setItem('demo_propertyId', newPropertyId);
+      }
+
       setSuccessMsg(`Property "${result.data?.name || body.name}" created successfully.`);
       setTimeout(() => {
         onOpenChange(false);
@@ -283,12 +289,52 @@ function CreatePropertyDialog({ open, onOpenChange, onSuccess }: CreatePropertyD
 
           <div className="grid grid-cols-3 gap-4">
             <Input name="city" label="City" placeholder="e.g. Toronto" required />
-            <Input name="province" label="Province" placeholder="e.g. Ontario" required />
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">
+                Province<span className="text-error-500 ml-0.5">*</span>
+              </label>
+              <select
+                name="province"
+                defaultValue="Ontario"
+                required
+                className="focus:border-primary-500 focus:ring-primary-500/20 h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-[14px] text-neutral-900 focus:ring-2 focus:outline-none"
+              >
+                {[
+                  'Alberta',
+                  'British Columbia',
+                  'Manitoba',
+                  'New Brunswick',
+                  'Newfoundland and Labrador',
+                  'Nova Scotia',
+                  'Ontario',
+                  'Prince Edward Island',
+                  'Quebec',
+                  'Saskatchewan',
+                  'Northwest Territories',
+                  'Nunavut',
+                  'Yukon',
+                ].map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
             <Input name="postalCode" label="Postal Code" placeholder="e.g. M5V 2H1" required />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input name="country" label="Country" defaultValue="CA" placeholder="CA" />
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">Country</label>
+              <select
+                name="country"
+                defaultValue="CA"
+                className="focus:border-primary-500 focus:ring-primary-500/20 h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-[14px] text-neutral-900 focus:ring-2 focus:outline-none"
+              >
+                <option value="CA">Canada</option>
+                <option value="US">United States</option>
+              </select>
+            </div>
             <Input
               name="unitCount"
               label="Total Units"

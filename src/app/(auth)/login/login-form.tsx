@@ -191,6 +191,8 @@ export function LoginForm() {
             onClick={() => {
               localStorage.setItem('demo_role', demo.role);
               localStorage.setItem('demo_propertyId', DEFAULT_DEMO_PROPERTY_ID);
+              localStorage.removeItem('demo_mode');
+              localStorage.removeItem('demo_return_role');
               window.location.href = '/dashboard';
             }}
             className={`rounded-xl border px-3 py-2.5 text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] ${demo.color}`}
@@ -247,6 +249,8 @@ export function LoginForm() {
             onClick={() => {
               localStorage.setItem('demo_role', demo.role);
               localStorage.setItem('demo_propertyId', DEFAULT_DEMO_PROPERTY_ID);
+              localStorage.removeItem('demo_mode');
+              localStorage.removeItem('demo_return_role');
               window.location.href = '/dashboard';
             }}
             className={`rounded-xl border px-3 py-2 text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] ${demo.color}`}
@@ -285,6 +289,8 @@ export function LoginForm() {
             onClick={() => {
               localStorage.setItem('demo_role', demo.role);
               localStorage.setItem('demo_propertyId', DEFAULT_DEMO_PROPERTY_ID);
+              localStorage.removeItem('demo_mode');
+              localStorage.removeItem('demo_return_role');
               window.location.href = '/dashboard';
             }}
             className={`rounded-xl border px-3 py-2 text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] ${demo.color}`}

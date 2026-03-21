@@ -107,15 +107,32 @@ export function useAuth(): UseAuthReturn {
 
   const isAuthenticated = user !== null;
 
-  // Hydrate: check if we have a valid access token on mount
+  // Hydrate: restore user from stored token + user data on mount
   useEffect(() => {
     const token = getAccessToken();
     if (token && !isTokenExpired(token)) {
       const payload = decodeJwtPayload(token);
       if (payload && typeof payload.sub === 'string') {
-        // We have a token but no user info — we could decode from token
-        // but the token only has sub/pid/role. We need full user from login.
-        // For now, mark as loading=false. A real app would store user in sessionStorage.
+        // Try to restore user from localStorage
+        const storedUser = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
+        if (storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser) as AuthUser;
+            setUser(parsed);
+          } catch {
+            // Invalid stored user, ignore
+          }
+        } else {
+          // Reconstruct minimal user from token payload
+          setUser({
+            id: payload.sub,
+            email: (payload.email as string) || '',
+            firstName: (payload.firstName as string) || '',
+            lastName: (payload.lastName as string) || '',
+            role: (payload.role as Role) || 'visitor',
+            propertyId: payload.pid as string,
+          });
+        }
         setLoading(false);
         return;
       }
@@ -142,6 +159,13 @@ export function useAuth(): UseAuthReturn {
       setAccessToken(successData.accessToken);
       setRefreshToken(successData.refreshToken);
       setUser(successData.user);
+
+      // Persist user for session rehydration (survives HMR + page navigation)
+      localStorage.setItem('auth_user', JSON.stringify(successData.user));
+
+      // Clear demo mode localStorage to prevent demo handler from intercepting real API calls
+      localStorage.removeItem('demo_role');
+      localStorage.removeItem('demo_mode');
 
       // Store propertyId so all pages can read it via getPropertyId()
       if (successData.user.propertyId) {

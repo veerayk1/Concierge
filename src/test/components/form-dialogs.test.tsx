@@ -21,6 +21,12 @@ vi.mock('lucide-react', () => ({
   Calendar: () => null,
   Megaphone: () => null,
   UserCheck: () => null,
+  Paperclip: () => null,
+  ChevronDown: () => null,
+  ChevronUp: () => null,
+  Loader2: () => null,
+  AlertCircle: () => null,
+  Upload: () => null,
 }));
 
 vi.mock('@/components/ui/dialog', () => ({
@@ -48,6 +54,26 @@ vi.mock('@/components/ui/checkbox', () => ({
       {description ? <span>{String(description)}</span> : null}
     </div>
   ),
+}));
+
+vi.mock('@/components/ui/select', () => ({
+  Select: ({ children, value, onValueChange }: Record<string, unknown>) => (
+    <div data-testid="radix-select" data-value={value as string}>
+      {children as React.ReactNode}
+    </div>
+  ),
+  SelectTrigger: ({ children }: { children: React.ReactNode }) => (
+    <button data-testid="select-trigger">{children}</button>
+  ),
+  SelectContent: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="select-content">{children}</div>
+  ),
+  SelectItem: ({ children, value }: { children: React.ReactNode; value: string }) => (
+    <div data-testid="select-item" data-value={value}>
+      {children}
+    </div>
+  ),
+  SelectValue: ({ placeholder }: { placeholder?: string }) => <span>{placeholder || ''}</span>,
 }));
 
 // ---------------------------------------------------------------------------

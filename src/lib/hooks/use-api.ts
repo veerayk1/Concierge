@@ -8,16 +8,35 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
+import { getAccessToken } from '@/lib/api-client';
+
 /**
- * Get the demo role from localStorage (set on login page)
+ * Get auth and demo headers for API requests.
+ * Demo mode (demo_role in localStorage) takes priority over Bearer tokens
+ * to prevent stale/expired tokens from bypassing the demo handler.
  */
-function getDemoHeaders(): Record<string, string> {
+function getAuthHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return {};
+  const headers: Record<string, string> = {};
+
+  // Demo mode takes priority — when demo_role is set, always use demo headers
+  // so demo requests never fall through to the auth guard with a stale token.
   const demoRole = localStorage.getItem('demo_role');
   if (demoRole) {
-    return { 'x-demo-role': demoRole };
+    headers['x-demo-role'] = demoRole;
+    const demoMode = localStorage.getItem('demo_mode');
+    if (demoMode) {
+      headers['x-demo-mode'] = demoMode;
+    }
+    return headers;
   }
-  return {};
+
+  // Real auth: include Bearer token if available
+  const token = getAccessToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
 }
 
 interface UseApiOptions {
@@ -50,7 +69,7 @@ export function useApi<T>(url: string | null, options: UseApiOptions = {}): UseA
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
-          ...getDemoHeaders(),
+          ...getAuthHeaders(),
         },
       });
 
@@ -101,7 +120,7 @@ export async function apiRequest(
     method: options.method,
     headers: {
       'Content-Type': 'application/json',
-      ...getDemoHeaders(),
+      ...getAuthHeaders(),
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });

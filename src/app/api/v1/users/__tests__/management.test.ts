@@ -972,7 +972,7 @@ describe('PATCH /api/v1/users/:id — Status Changes', () => {
 
 describe('DELETE /api/v1/users/:id — Soft Delete', () => {
   it('39. soft deletes user, revokes sessions, and revokes tokens in a TRANSACTION', async () => {
-    let txOperations: string[] = [];
+    const txOperations: string[] = [];
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
         user: {

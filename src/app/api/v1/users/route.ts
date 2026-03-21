@@ -13,12 +13,16 @@ import { createUserSchema } from '@/schemas/user';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { handleDemoRequest } from '@/server/demo';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/users — List users
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
+
   try {
     // Auth: Any authenticated staff member can list users
     const auth = await guardRoute(request);
@@ -149,6 +153,9 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
+
   try {
     // Auth: Only Super Admin and Property Admin can create accounts (PRD 08 Section 3.1.1)
     const auth = await guardRoute(request, {

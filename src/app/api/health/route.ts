@@ -7,12 +7,16 @@
  * Used by load balancers, uptime monitors, and deployment checks.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { handleDemoRequest } from '@/server/demo';
 
 /** Track process start time for uptime calculation */
 const startedAt = Date.now();
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
+
   const requestStart = performance.now();
 
   // Read version from package.json (bundled at build time)

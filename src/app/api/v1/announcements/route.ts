@@ -10,6 +10,7 @@ import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { sendPushToProperty } from '@/server/push';
 import { createLogger } from '@/server/logger';
+import { handleDemoRequest } from '@/server/demo';
 import type { Role } from '@/types';
 
 const logger = createLogger('announcements');
@@ -26,6 +27,8 @@ const createAnnouncementSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
@@ -90,6 +93,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
   try {
     const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
     if (auth.error) return auth.error;

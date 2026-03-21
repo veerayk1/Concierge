@@ -40,6 +40,22 @@ const nextConfig: NextConfig = {
   },
 
   typedRoutes: true,
+
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: [
+          '**/node_modules/**',
+          '**/.claude/**',
+          '**/.git/**',
+          '**/private/tmp/**',
+          '**/*.output',
+        ],
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

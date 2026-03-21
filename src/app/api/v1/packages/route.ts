@@ -12,12 +12,16 @@ import { createPackageSchema } from '@/schemas/package';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { handleDemoRequest } from '@/server/demo';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/packages
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
+
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
@@ -96,6 +100,9 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
+
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;

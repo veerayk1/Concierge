@@ -161,7 +161,15 @@ export function DataTable<T extends { id?: string }>({
                     {col.cell
                       ? col.cell(row)
                       : col.accessorKey
-                        ? String(row[col.accessorKey] ?? '')
+                        ? (() => {
+                            const val = row[col.accessorKey];
+                            if (val === null || val === undefined) return '';
+                            if (typeof val === 'object') {
+                              const obj = val as Record<string, unknown>;
+                              return String(obj.name ?? obj.number ?? obj.label ?? '');
+                            }
+                            return String(val);
+                          })()
                         : null}
                   </td>
                 ))}

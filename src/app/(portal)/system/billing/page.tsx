@@ -53,9 +53,9 @@ interface BillingData {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const statusVariant: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
+const statusVariant: Record<string, 'success' | 'warning' | 'error' | 'default' | 'info'> = {
   active: 'success',
-  trial: 'info' as 'default',
+  trial: 'info',
   past_due: 'warning',
   canceled: 'error',
   expired: 'error',

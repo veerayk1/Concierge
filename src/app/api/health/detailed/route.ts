@@ -12,8 +12,9 @@
  *   503 — Unhealthy (critical service down, e.g. database)
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
+import { handleDemoRequest } from '@/server/demo';
 
 /** Track process start time for uptime calculation */
 const startedAt = Date.now();
@@ -97,7 +98,10 @@ async function checkRedis(): Promise<ServiceCheck> {
   }
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
+
   const requestStart = performance.now();
 
   // Read version from package.json

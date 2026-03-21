@@ -7,8 +7,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { appCache } from '@/server/cache';
+import { handleDemoRequest } from '@/server/demo';
 
 export async function GET(request: NextRequest) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
+
   try {
     const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
     if (auth.error) return auth.error;
@@ -96,6 +100,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
+
   try {
     const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
     if (auth.error) return auth.error;

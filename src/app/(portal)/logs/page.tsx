@@ -31,6 +31,7 @@ interface AuditEntry {
   id: string;
   propertyId: string;
   userId: string;
+  actor?: string;
   action: string; // READ, CREATE, UPDATE, DELETE
   resource: string; // table name e.g. "event", "unit", "maintenance_request"
   resourceId: string;
@@ -167,7 +168,7 @@ export default function LogsPage() {
       sortable: true,
       cell: (row) => (
         <span className="text-[13px] font-medium text-neutral-700">
-          {row.resource.replace(/_/g, ' ')}
+          {(row.resource || '').replace(/_/g, ' ')}
         </span>
       ),
     },
@@ -177,7 +178,8 @@ export default function LogsPage() {
       accessorKey: 'resourceId',
       cell: (row) => (
         <span className="font-mono text-[12px] text-neutral-400">
-          {row.resourceId.slice(0, 8)}...
+          {(row.resourceId || '—').slice(0, 8)}
+          {row.resourceId ? '...' : ''}
         </span>
       ),
     },
@@ -189,7 +191,10 @@ export default function LogsPage() {
       cell: (row) => (
         <span className="flex items-center gap-1.5">
           <User className="h-3.5 w-3.5 text-neutral-400" />
-          <span className="font-mono text-[12px]">{row.userId.slice(0, 8)}...</span>
+          <span className="font-mono text-[12px]">
+            {(row.userId || row.actor || '—').slice(0, 8)}
+            {row.userId || row.actor ? '...' : ''}
+          </span>
         </span>
       ),
     },

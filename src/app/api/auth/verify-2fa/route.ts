@@ -76,7 +76,7 @@ function extractUserIdFromMfaToken(mfaToken: string): string {
 /**
  * Create an MFA challenge token encoding the user ID.
  */
-export function createMfaChallengeToken(userId: string): string {
+function createMfaChallengeToken(userId: string): string {
   const payload = {
     sub: userId,
     exp: Date.now() + 5 * 60 * 1000, // 5 minutes

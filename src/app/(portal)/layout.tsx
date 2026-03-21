@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/hooks/use-auth';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CommandPalette } from '@/components/layout/command-palette';
+import { DemoShowcaseBanner } from '@/components/layout/demo-showcase-banner';
 import type { Role } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -51,6 +52,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
   const [demoRole, setDemoRole] = useState<Role | null>(null);
+  const [demoMode, setDemoMode] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
@@ -64,7 +66,15 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     if (role) {
       setDemoRole(role);
     }
+    setDemoMode(localStorage.getItem('demo_mode'));
   }, []);
+
+  // Redirect to login if not authenticated (must be before early returns for Rules of Hooks)
+  useEffect(() => {
+    if (mounted && !loading && !isAuthenticated && !demoRole) {
+      router.replace('/login');
+    }
+  }, [mounted, loading, isAuthenticated, demoRole, router]);
 
   if (!mounted) {
     return <PortalSkeleton />;
@@ -74,38 +84,39 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
   if (demoRole) {
     const demoUser = DEMO_USERS[demoRole] ?? DEMO_USERS.front_desk;
     if (!demoUser) return <PortalSkeleton />;
+    const isShowcase = demoMode === 'showcase';
     return (
-      <AppShell
-        user={{
-          id: 'demo-user',
-          firstName: demoUser.firstName,
-          lastName: demoUser.lastName,
-          email: demoUser.email,
-          role: demoRole,
-          avatarUrl: undefined,
-        }}
-        currentProperty={MOCK_PROPERTY}
-        properties={MOCK_PROPERTIES}
-        notificationCount={3}
-        badgeCounts={{ unreleased_packages: 4 }}
-        onLogout={() => {
-          localStorage.removeItem('demo_role');
-          router.push('/login' as never);
-        }}
-        onSearchOpen={handleSearchOpen}
-      >
-        {children}
-        <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
-      </AppShell>
+      <>
+        {isShowcase && <DemoShowcaseBanner />}
+        <AppShell
+          user={{
+            id: 'demo-user',
+            firstName: demoUser.firstName,
+            lastName: demoUser.lastName,
+            email: demoUser.email,
+            role: demoRole,
+            avatarUrl: undefined,
+          }}
+          currentProperty={MOCK_PROPERTY}
+          properties={MOCK_PROPERTIES}
+          notificationCount={isShowcase ? 3 : 0}
+          badgeCounts={isShowcase ? { unreleased_packages: 4 } : {}}
+          onLogout={() => {
+            localStorage.removeItem('demo_role');
+            localStorage.removeItem('demo_mode');
+            localStorage.removeItem('demo_return_role');
+            router.push('/login' as never);
+          }}
+          onSearchOpen={handleSearchOpen}
+        >
+          {children}
+          <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
+        </AppShell>
+      </>
     );
   }
 
   // Real auth mode
-  if (!loading && !isAuthenticated) {
-    router.replace('/login' as never);
-    return null;
-  }
-
   if (loading || !user) {
     return <PortalSkeleton />;
   }

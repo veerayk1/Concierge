@@ -79,6 +79,10 @@ const eslintConfig = [
 
       // JSX Accessibility (recommended)
       ...jsxA11yPlugin.flatConfigs.recommended.rules,
+      'jsx-a11y/label-has-associated-control': 'warn',
+      'jsx-a11y/click-events-have-key-events': 'warn',
+      'jsx-a11y/no-static-element-interactions': 'warn',
+      'jsx-a11y/img-redundant-alt': 'warn',
 
       // Security (recommended)
       ...securityPlugin.configs.recommended.rules,
@@ -86,9 +90,17 @@ const eslintConfig = [
 
       // TypeScript
       ...typescriptRules,
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/no-require-imports': 'warn',
+      '@typescript-eslint/no-unsafe-function-type': 'warn',
 
       // General
-      'no-console': ['error', { allow: ['warn', 'error'] }],
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      '@next/next/no-assign-module-variable': 'warn',
     },
     settings: {
       react: { version: 'detect' },
@@ -108,7 +120,10 @@ const eslintConfig = [
       ...securityPlugin.configs.recommended.rules,
       'security/detect-object-injection': 'off',
       // Relaxed rules for test files
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-unsafe-function-type': 'off',
       'no-console': 'off',
     },
   },

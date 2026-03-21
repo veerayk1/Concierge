@@ -46,7 +46,7 @@ describe('GET /api/health', () => {
 
   it('returns 200 with status "ok"', async () => {
     const { GET } = await import('../../health/route');
-    const response = await GET();
+    const response = await GET(new Request('http://localhost/api/health') as any);
 
     expect(response.status).toBe(200);
 
@@ -65,7 +65,7 @@ describe('GET /api/health', () => {
 
   it('includes version info', async () => {
     const { GET } = await import('../../health/route');
-    const response = await GET();
+    const response = await GET(new Request('http://localhost/api/health') as any);
     const body = await parseResponse<{ version: string }>(response);
 
     // Version should be a string (either from package.json or 'unknown')
@@ -75,7 +75,7 @@ describe('GET /api/health', () => {
 
   it('includes uptime tracking', async () => {
     const { GET } = await import('../../health/route');
-    const response = await GET();
+    const response = await GET(new Request('http://localhost/api/health') as any);
     const body = await parseResponse<{ uptime: number }>(response);
 
     expect(typeof body.uptime).toBe('number');
@@ -84,7 +84,7 @@ describe('GET /api/health', () => {
 
   it('measures response time', async () => {
     const { GET } = await import('../../health/route');
-    const response = await GET();
+    const response = await GET(new Request('http://localhost/api/health') as any);
     const body = await parseResponse<{ responseTime: string }>(response);
 
     expect(body.responseTime).toBeDefined();
@@ -93,7 +93,7 @@ describe('GET /api/health', () => {
 
   it('sets correct cache and security headers', async () => {
     const { GET } = await import('../../health/route');
-    const response = await GET();
+    const response = await GET(new Request('http://localhost/api/health') as any);
 
     expect(response.headers.get('Cache-Control')).toBe('no-store, no-cache, must-revalidate');
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
@@ -115,7 +115,7 @@ describe('GET /api/health/detailed', () => {
 
   it('returns 200 with all services healthy', async () => {
     const { GET } = await import('../../health/detailed/route');
-    const response = await GET();
+    const response = await GET(new Request('http://localhost/api/health') as any);
 
     expect(response.status).toBe(200);
 
@@ -134,7 +134,7 @@ describe('GET /api/health/detailed', () => {
 
   it('includes database, redis, and version in response', async () => {
     const { GET } = await import('../../health/detailed/route');
-    const response = await GET();
+    const response = await GET(new Request('http://localhost/api/health') as any);
     const body = await parseResponse<{
       version: string;
       uptime: number;
@@ -158,7 +158,7 @@ describe('GET /api/health/detailed', () => {
 
   it('measures response time for the overall check', async () => {
     const { GET } = await import('../../health/detailed/route');
-    const response = await GET();
+    const response = await GET(new Request('http://localhost/api/health') as any);
     const body = await parseResponse<{ responseTime: string }>(response);
 
     expect(body.responseTime).toBeDefined();
@@ -169,7 +169,7 @@ describe('GET /api/health/detailed', () => {
     mockQueryRaw.mockRejectedValue(new Error('Connection refused'));
 
     const { GET } = await import('../../health/detailed/route');
-    const response = await GET();
+    const response = await GET(new Request('http://localhost/api/health') as any);
 
     expect(response.status).toBe(503);
 
@@ -189,7 +189,7 @@ describe('GET /api/health/detailed', () => {
     mockPing.mockRejectedValue(new Error('Redis connection failed'));
 
     const { GET } = await import('../../health/detailed/route');
-    const response = await GET();
+    const response = await GET(new Request('http://localhost/api/health') as any);
 
     expect(response.status).toBe(200);
 
@@ -211,7 +211,7 @@ describe('GET /api/health/detailed', () => {
     delete process.env['REDIS_URL'];
 
     const { GET } = await import('../../health/detailed/route');
-    const response = await GET();
+    const response = await GET(new Request('http://localhost/api/health') as any);
 
     expect(response.status).toBe(200);
 
@@ -229,7 +229,7 @@ describe('GET /api/health/detailed', () => {
 
   it('sets correct cache and security headers', async () => {
     const { GET } = await import('../../health/detailed/route');
-    const response = await GET();
+    const response = await GET(new Request('http://localhost/api/health') as any);
 
     expect(response.headers.get('Cache-Control')).toBe('no-store, no-cache, must-revalidate');
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');

@@ -16,14 +16,30 @@ import type { ApiError, ApiResponse } from '@/types';
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
 
-/** Set the current access token. */
+/** Set the current access token (persists to localStorage for HMR resilience). */
 export function setAccessToken(token: string | null): void {
   accessToken = token;
+  if (typeof window !== 'undefined') {
+    if (token) {
+      localStorage.setItem('auth_token', token);
+    } else {
+      localStorage.removeItem('auth_token');
+    }
+  }
 }
 
-/** Get the current access token. */
+/** Get the current access token (in-memory first, localStorage fallback). */
 export function getAccessToken(): string | null {
-  return accessToken;
+  if (accessToken) return accessToken;
+  // Fallback: check localStorage for token persisted across HMR/page reloads
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('auth_token');
+    if (stored) {
+      accessToken = stored;
+      return stored;
+    }
+  }
+  return null;
 }
 
 /** Set the current refresh token. */
@@ -40,6 +56,11 @@ export function getRefreshToken(): string | null {
 export function clearTokens(): void {
   accessToken = null;
   refreshToken = null;
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_refresh');
+    localStorage.removeItem('auth_user');
+  }
 }
 
 // ---------------------------------------------------------------------------

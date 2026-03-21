@@ -7,11 +7,13 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ADMIN_ROLES } from '@/types';
 import type { Role } from '@/types';
+import { getPropertyId, DEMO_PROPERTY } from '@/lib/demo-config';
+import { DemoShowcaseBanner } from '@/components/layout/demo-showcase-banner';
 
 const MOCK_PROPERTY = {
-  id: 'prop-1',
-  name: 'Bond Tower',
-  address: '123 Bond Street, Toronto, ON',
+  id: getPropertyId(),
+  name: DEMO_PROPERTY.name,
+  address: DEMO_PROPERTY.address,
 };
 
 const MOCK_PROPERTIES = [MOCK_PROPERTY];
@@ -42,27 +44,34 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       router.replace('/dashboard');
       return null;
     }
+    const isShowcase =
+      typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'showcase';
     return (
-      <AppShell
-        user={{
-          id: 'demo-user',
-          firstName: 'Admin',
-          lastName: 'User',
-          email: 'admin@bondtower.com',
-          role: demoRole,
-          avatarUrl: undefined,
-        }}
-        currentProperty={MOCK_PROPERTY}
-        properties={MOCK_PROPERTIES}
-        breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Administration' }]}
-        notificationCount={0}
-        onLogout={() => {
-          localStorage.removeItem('demo_role');
-          router.push('/login');
-        }}
-      >
-        {children}
-      </AppShell>
+      <>
+        {isShowcase && <DemoShowcaseBanner />}
+        <AppShell
+          user={{
+            id: 'demo-user',
+            firstName: 'Admin',
+            lastName: 'User',
+            email: 'admin@concierge.com',
+            role: demoRole,
+            avatarUrl: undefined,
+          }}
+          currentProperty={MOCK_PROPERTY}
+          properties={MOCK_PROPERTIES}
+          breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Administration' }]}
+          notificationCount={0}
+          onLogout={() => {
+            localStorage.removeItem('demo_role');
+            localStorage.removeItem('demo_mode');
+            localStorage.removeItem('demo_return_role');
+            router.push('/login');
+          }}
+        >
+          {children}
+        </AppShell>
+      </>
     );
   }
 

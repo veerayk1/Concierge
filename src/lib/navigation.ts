@@ -30,6 +30,7 @@ import {
   Activity,
   CreditCard,
   Brain,
+  Play,
   Gauge,
   Cog,
   User,
@@ -142,6 +143,13 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Billing',
         href: '/system/billing',
         icon: CreditCard,
+        roles: ['super_admin'],
+      },
+      {
+        id: 'demo-account',
+        label: 'Demo Account',
+        href: '/system/demo',
+        icon: Play,
         roles: ['super_admin'],
       },
     ],
@@ -352,7 +360,7 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         href: '/equipment',
         icon: HardHat,
         // Property-level — Super Admin excluded
-        roles: ['property_admin', 'property_manager', 'maintenance_staff'],
+        roles: ['property_admin', 'property_manager', 'maintenance_staff', 'superintendent'],
       },
       {
         id: 'recurring-tasks',
@@ -387,13 +395,6 @@ const ALL_NAV_GROUPS: NavGroup[] = [
   {
     label: 'RESOURCES',
     items: [
-      {
-        id: 'equipment',
-        label: 'Equipment',
-        href: '/equipment',
-        icon: Cog,
-        roles: ['superintendent'],
-      },
       {
         id: 'parts-supplies',
         label: 'Parts & Supplies',

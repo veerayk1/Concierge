@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import {
   AlertCircle,
@@ -97,11 +97,20 @@ function getDuration(arrival: string, departure: string): string {
 export default function VisitorsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [signingOutId, setSigningOutId] = useState<string | null>(null);
+
+  // Debounce search input to avoid firing API calls on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Fetch all visitors (status=all) so we can split into currently-in vs departed
   const {
@@ -113,7 +122,7 @@ export default function VisitorsPage() {
     apiUrl('/api/v1/visitors', {
       propertyId: getPropertyId(),
       status: 'all',
-      search: searchQuery || undefined,
+      search: debouncedSearch || undefined,
       visitorType: typeFilter !== 'all' ? typeFilter : undefined,
     }),
   );
@@ -122,9 +131,8 @@ export default function VisitorsPage() {
   const handleSignOut = async (visitorId: string) => {
     setSigningOutId(visitorId);
     try {
-      const res = await fetch(`/api/v1/visitors/${visitorId}/sign-out`, {
+      const res = await apiRequest(`/api/v1/visitors/${visitorId}/sign-out`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));

@@ -13,9 +13,10 @@
  */
 
 import type { NextRequest } from 'next/server';
-import { jwtVerify, errors as joseErrors } from 'jose';
+import { errors as joseErrors } from 'jose';
 
 import { AuthError } from '@/server/errors';
+import { verifyAccessToken } from '@/server/auth/jwt';
 import { createLogger } from '@/server/logger';
 import type { Role, TokenPayload } from '@/types';
 
@@ -26,12 +27,6 @@ import type { Role, TokenPayload } from '@/types';
 const logger = createLogger('auth');
 
 const isDev = process.env.NODE_ENV !== 'production';
-
-/**
- * JWT signing secret. In production this MUST be set via environment variable.
- * A 256-bit (32-byte) minimum is recommended for HS256.
- */
-const JWT_SECRET = process.env.JWT_SECRET ?? '';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -116,17 +111,9 @@ export async function requireAuth(req: NextRequest): Promise<TokenPayload> {
     throw new AuthError('Missing authorization token');
   }
 
-  // ---- Production: validate with jose ----
-  if (!JWT_SECRET) {
-    logger.error('JWT_SECRET is not configured');
-    throw new AuthError('Authentication service unavailable');
-  }
-
+  // Validate with RS256 via verifyAccessToken (shared key pair with login route)
   try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret, {
-      algorithms: ['HS256'],
-    });
+    const payload = await verifyAccessToken(token);
 
     if (!isTokenPayload(payload)) {
       throw new AuthError('Invalid token payload structure');

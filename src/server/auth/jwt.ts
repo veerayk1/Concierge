@@ -3,8 +3,9 @@ import * as jose from 'jose';
 import type { TokenPayload } from '@/types';
 
 // Keys loaded at startup from env paths
-let privateKey: CryptoKey | null = null;
-let publicKey: CryptoKey | null = null;
+let privateKey: CryptoKey | Uint8Array | null = null;
+let publicKey: CryptoKey | Uint8Array | null = null;
+let algorithm: string = 'RS256';
 
 const ACCESS_TOKEN_EXPIRY = process.env['JWT_ACCESS_TOKEN_EXPIRY'] || '15m';
 const REFRESH_TOKEN_EXPIRY = process.env['JWT_REFRESH_TOKEN_EXPIRY'] || '7d';
@@ -12,30 +13,38 @@ const ISSUER = 'concierge';
 const AUDIENCE = 'concierge-app';
 
 /**
- * Initialize JWT keys from PEM files.
- * Must be called at application startup.
+ * Initialize JWT keys from PEM files or fall back to HS256 with symmetric secret.
+ * In development without RSA keys, uses JWT_ACCESS_SECRET for HS256 so
+ * tokens are verifiable across Next.js API route module boundaries.
  */
 export async function initializeKeys(): Promise<void> {
   const privatePem = process.env['JWT_PRIVATE_KEY'];
   const publicPem = process.env['JWT_PUBLIC_KEY'];
 
-  if (!privatePem || !publicPem) {
-    if (process.env['NODE_ENV'] === 'production') {
-      throw new Error('JWT keys must be configured in production');
-    }
-    // Development: generate ephemeral keys
-    const { publicKey: pub, privateKey: priv } = await jose.generateKeyPair('RS256');
-    privateKey = priv;
-    publicKey = pub;
+  if (privatePem && publicPem) {
+    // Production: RS256 with PEM key pair
+    algorithm = 'RS256';
+    privateKey = await jose.importPKCS8(privatePem, 'RS256');
+    publicKey = await jose.importSPKI(publicPem, 'RS256');
     return;
   }
 
-  privateKey = await jose.importPKCS8(privatePem, 'RS256');
-  publicKey = await jose.importSPKI(publicPem, 'RS256');
+  if (process.env['NODE_ENV'] === 'production') {
+    throw new Error('JWT keys must be configured in production');
+  }
+
+  // Development: HS256 with symmetric secret (stable across module reloads)
+  const secret =
+    process.env['JWT_ACCESS_SECRET'] || 'dev-access-secret-change-in-production-min-32-chars';
+  algorithm = 'HS256';
+  const key = new TextEncoder().encode(secret);
+  privateKey = key;
+  publicKey = key;
 }
 
 /**
- * Sign an access token (RS256). Per SECURITY-RULEBOOK A.1
+ * Sign an access token. Per SECURITY-RULEBOOK A.1
+ * Uses RS256 in production, HS256 in development.
  */
 export async function signAccessToken(payload: TokenPayload): Promise<string> {
   if (!privateKey) await initializeKeys();
@@ -47,7 +56,7 @@ export async function signAccessToken(payload: TokenPayload): Promise<string> {
     perms: payload.perms,
     mfa: payload.mfa,
   })
-    .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
+    .setProtectedHeader({ alg: algorithm, typ: 'JWT' })
     .setIssuedAt()
     .setIssuer(ISSUER)
     .setAudience(AUDIENCE)

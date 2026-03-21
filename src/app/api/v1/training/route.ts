@@ -9,11 +9,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { handleDemoRequest } from '@/server/demo';
 import type { Role } from '@/types';
 
 const ADMIN_ROLES: Role[] = ['super_admin', 'property_admin', 'property_manager'];
 
 export async function GET(request: NextRequest) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
@@ -100,6 +103,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
+
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;

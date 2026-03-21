@@ -274,11 +274,13 @@ export default function TrainingPage() {
                           </div>
                           {course.learningPathCourses && course.learningPathCourses.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-1">
-                              {course.learningPathCourses.map((lpc) => (
-                                <Badge key={lpc.learningPath.id} variant="info" size="sm">
-                                  {lpc.learningPath.name}
-                                </Badge>
-                              ))}
+                              {course.learningPathCourses
+                                .filter((lpc) => lpc.learningPath)
+                                .map((lpc) => (
+                                  <Badge key={lpc.learningPath.id} variant="info" size="sm">
+                                    {lpc.learningPath.name}
+                                  </Badge>
+                                ))}
                             </div>
                           )}
                         </div>

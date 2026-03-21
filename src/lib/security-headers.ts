@@ -84,7 +84,7 @@ function buildCsp(nonce: string): string {
   const directives: string[] = [
     "default-src 'self'",
     isDev
-      ? `script-src 'self' 'unsafe-eval' 'nonce-${nonce}'`
+      ? `script-src 'self' 'unsafe-eval' 'unsafe-inline'`
       : `script-src 'self' 'nonce-${nonce}'`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
@@ -111,18 +111,25 @@ function buildCsp(nonce: string): string {
  * @returns A plain object mapping header names to their values.
  */
 export function getSecurityHeaders(nonce: string): Record<string, string> {
-  return {
+  const isDev = process.env.NODE_ENV === 'development';
+
+  const headers: Record<string, string> = {
     'Content-Security-Policy': buildCsp(nonce),
     'X-Frame-Options': 'DENY',
     'X-Content-Type-Options': 'nosniff',
     'X-XSS-Protection': '0',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
-    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
     'X-DNS-Prefetch-Control': 'off',
-    'Cross-Origin-Opener-Policy': 'same-origin',
-    'Cross-Origin-Resource-Policy': 'same-origin',
-    'Cross-Origin-Embedder-Policy': 'require-corp',
     'Cache-Control': 'no-store, no-cache, must-revalidate',
   };
+
+  if (!isDev) {
+    headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload';
+    headers['Cross-Origin-Opener-Policy'] = 'same-origin';
+    headers['Cross-Origin-Resource-Policy'] = 'same-origin';
+    headers['Cross-Origin-Embedder-Policy'] = 'require-corp';
+  }
+
+  return headers;
 }

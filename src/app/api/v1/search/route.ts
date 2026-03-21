@@ -20,6 +20,7 @@ import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { parsePagination, buildPaginationMeta } from '@/lib/pagination';
 import { appCache } from '@/server/cache';
+import { handleDemoRequest } from '@/server/demo';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -106,6 +107,9 @@ function buildDateFilter(from?: string | null, to?: string | null) {
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
+
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
@@ -374,6 +378,9 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function DELETE(request: NextRequest) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
+
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;

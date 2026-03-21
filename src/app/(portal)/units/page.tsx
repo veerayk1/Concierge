@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, Download, Grid3X3, List, Plus, Search, Users, X } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CreateUnitDialog } from '@/components/forms/create-unit-dialog';
 
 // ---------------------------------------------------------------------------
 // Types — matches API response shape from GET /api/v1/units
@@ -69,7 +70,17 @@ const TYPE_LABELS: Record<string, string> = {
 export default function UnitsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [showCreateUnit, setShowCreateUnit] = useState(false);
+
+  // Debounce search input to avoid firing API calls on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const {
     data: apiResponse,
@@ -79,7 +90,7 @@ export default function UnitsPage() {
   } = useApi<ApiResponse>(
     apiUrl('/api/v1/units', {
       propertyId: getPropertyId(),
-      search: searchQuery || undefined,
+      search: debouncedSearch || undefined,
       pageSize: '200',
     }),
   );
@@ -234,6 +245,10 @@ export default function UnitsPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
+          <Button size="sm" onClick={() => setShowCreateUnit(true)}>
+            <Plus className="h-4 w-4" />
+            Add Unit
+          </Button>
         </div>
       }
     >
@@ -264,7 +279,13 @@ export default function UnitsPage() {
         <EmptyState
           icon={<Building2 className="h-6 w-6" />}
           title="No units found"
-          description="Units will appear here once they are added to this property."
+          description="Get started by adding units to this property. You can add them one by one or import from a spreadsheet."
+          action={
+            <Button size="sm" onClick={() => setShowCreateUnit(true)}>
+              <Plus className="h-4 w-4" />
+              Add Unit
+            </Button>
+          }
         />
       ) : viewMode === 'table' ? (
         <DataTable

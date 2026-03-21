@@ -216,7 +216,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userProp = (user as any).userProperties?.[0];
     const roleSlug = (userProp?.role?.slug || 'visitor') as Role;
-    const permissions = userProp?.role?.permissions || [];
+    // permissions may be stored as JSON string or array — normalize to array
+    const rawPerms = userProp?.role?.permissions || [];
+    const permissions: string[] =
+      typeof rawPerms === 'string' ? JSON.parse(rawPerms) : Array.isArray(rawPerms) ? rawPerms : [];
     const propertyId = userProp?.propertyId || '';
 
     // 8. Check if MFA is required
@@ -259,20 +262,33 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const refreshToken = generateRefreshToken();
 
     // 10. Store refresh token in DB (best-effort)
+    const ip = req.headers.get('x-forwarded-for') || '0.0.0.0';
+    const ua = req.headers.get('user-agent') || 'unknown';
+    const fingerprint = generateDeviceFingerprint(ua, ip);
+
+    // Hash the refresh token for secure storage
+    const tokenHashBytes = await crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(refreshToken),
+    );
+    const tokenHash = Array.from(new Uint8Array(tokenHashBytes))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+
     await bestEffort(() =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (prisma.refreshToken.create as any)({
+      prisma.refreshToken.create({
         data: {
-          token: refreshToken,
+          tokenHash,
           userId: user.id,
+          deviceFingerprint: fingerprint,
+          ipAddress: ip,
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         },
       }),
     );
 
     // 11. Reset failed login attempts
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (prisma.user.update as any)({
+    await prisma.user.update({
       where: { id: user.id },
       data: {
         failedLoginAttempts: 0,
@@ -282,13 +298,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     // 12. Create session (best-effort)
-    const ip = req.headers.get('x-forwarded-for') || '0.0.0.0';
-    const ua = req.headers.get('user-agent') || 'unknown';
-
     await bestEffort(() =>
       createSession({
         userId: user.id,
-        deviceFingerprint: generateDeviceFingerprint(ua, ip),
+        deviceFingerprint: fingerprint,
         ipAddress: ip,
         userAgent: ua,
       }),
