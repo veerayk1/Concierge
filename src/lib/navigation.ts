@@ -185,11 +185,19 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         ],
       },
       {
-        id: 'units-residents',
-        label: 'Units & Residents',
+        id: 'units',
+        label: 'Units',
         href: '/units',
         icon: Building2,
         // 7.2 Property Admin, 7.4 Property Manager (Super Admin sees multi-property view instead)
+        roles: ['property_admin', 'property_manager'],
+      },
+      {
+        id: 'residents',
+        label: 'Residents',
+        href: '/residents',
+        icon: Users,
+        // 7.2 Property Admin, 7.4 Property Manager
         roles: ['property_admin', 'property_manager'],
       },
       {

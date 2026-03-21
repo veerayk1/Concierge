@@ -2,7 +2,18 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Download, Grid3X3, List, Plus, Search, Users, X } from 'lucide-react';
+import {
+  Building2,
+  Download,
+  Grid3X3,
+  List,
+  Plus,
+  Search,
+  Upload,
+  Users,
+  Wand2,
+  X,
+} from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
@@ -13,6 +24,8 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateUnitDialog } from '@/components/forms/create-unit-dialog';
+import { ImportWizard } from '@/components/import/import-wizard';
+import { GenerateUnitsDialog } from '@/components/forms/generate-units-dialog';
 
 // ---------------------------------------------------------------------------
 // Types — matches API response shape from GET /api/v1/units
@@ -27,6 +40,8 @@ interface ApiUnit {
   squareFootage: string | null;
   building: { id: string; name: string } | null;
   unitInstructions: { id: string; instructionText: string; priority: string }[];
+  occupantCount?: number;
+  primaryResident?: { id: string; name: string; email: string } | null;
 }
 
 interface ApiResponse {
@@ -73,6 +88,8 @@ export default function UnitsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [showCreateUnit, setShowCreateUnit] = useState(false);
+  const [showImportWizard, setShowImportWizard] = useState(false);
+  const [showGenerateUnits, setShowGenerateUnits] = useState(false);
 
   // Debounce search input to avoid firing API calls on every keystroke
   useEffect(() => {
@@ -82,6 +99,8 @@ export default function UnitsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  const propertyId = getPropertyId();
+
   const {
     data: apiResponse,
     loading,
@@ -89,7 +108,7 @@ export default function UnitsPage() {
     refetch,
   } = useApi<ApiResponse>(
     apiUrl('/api/v1/units', {
-      propertyId: getPropertyId(),
+      propertyId,
       search: debouncedSearch || undefined,
       pageSize: '200',
     }),
@@ -105,8 +124,8 @@ export default function UnitsPage() {
       floor: u.floor ?? 1,
       building: u.building?.name || 'Main',
       type: u.unitType || 'residential',
-      occupantCount: 0, // Would need a separate count or join; not in current API response
-      primaryResident: '', // Would need occupancy records; not in current API response
+      occupantCount: u.occupantCount ?? 0,
+      primaryResident: u.primaryResident?.name || '',
       status: normalizeUnitStatus(u.status),
       hasInstructions: (u.unitInstructions?.length ?? 0) > 0,
     }));
@@ -153,6 +172,19 @@ export default function UnitsPage() {
       cell: (row) => <span className="text-neutral-600">{TYPE_LABELS[row.type] || row.type}</span>,
     },
     {
+      id: 'occupants',
+      header: 'Occupants',
+      cell: (row) => (
+        <div className="flex items-center gap-1.5">
+          <Users className="h-3.5 w-3.5 text-neutral-400" />
+          <span className="text-neutral-600">{row.occupantCount}</span>
+          {row.primaryResident && (
+            <span className="ml-1 text-xs text-neutral-400">{row.primaryResident}</span>
+          )}
+        </div>
+      ),
+    },
+    {
       id: 'status',
       header: 'Status',
       accessorKey: 'status',
@@ -160,7 +192,10 @@ export default function UnitsPage() {
       cell: (row) => {
         const map: Record<
           string,
-          { variant: 'success' | 'default' | 'primary' | 'info' | 'warning'; label: string }
+          {
+            variant: 'success' | 'default' | 'primary' | 'info' | 'warning';
+            label: string;
+          }
         > = {
           occupied: { variant: 'success', label: 'Occupied' },
           vacant: { variant: 'default', label: 'Vacant' },
@@ -168,7 +203,10 @@ export default function UnitsPage() {
           rented: { variant: 'info', label: 'Rented' },
           under_renovation: { variant: 'warning', label: 'Renovation' },
         };
-        const s = map[row.status] || { variant: 'default' as const, label: row.status };
+        const s = map[row.status] || {
+          variant: 'default' as const,
+          label: row.status,
+        };
         return (
           <Badge variant={s.variant} size="sm">
             {s.label}
@@ -220,123 +258,173 @@ export default function UnitsPage() {
   }
 
   return (
-    <PageShell
-      title="Unit Directory"
-      description={`${units.length} units \u00B7 ${occupiedCount} occupied \u00B7 ${units.length - occupiedCount} vacant`}
-      actions={
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-neutral-200 bg-white p-0.5">
-            <button
-              type="button"
-              onClick={() => setViewMode('table')}
-              className={`rounded-md p-1.5 transition-all ${viewMode === 'table' ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-400'}`}
-            >
-              <List className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('grid')}
-              className={`rounded-md p-1.5 transition-all ${viewMode === 'grid' ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-400'}`}
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </button>
-          </div>
-          <Button variant="secondary" size="sm">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-          <Button size="sm" onClick={() => setShowCreateUnit(true)}>
-            <Plus className="h-4 w-4" />
-            Add Unit
-          </Button>
-        </div>
-      }
-    >
-      {/* Search */}
-      <div className="mb-6">
-        <div className="relative max-w-md">
-          <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-          <input
-            type="text"
-            placeholder="Search by unit number..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {units.length === 0 && !searchQuery ? (
-        <EmptyState
-          icon={<Building2 className="h-6 w-6" />}
-          title="No units found"
-          description="Get started by adding units to this property. You can add them one by one or import from a spreadsheet."
-          action={
+    <>
+      <PageShell
+        title="Unit Directory"
+        description={`${units.length} units \u00B7 ${occupiedCount} occupied \u00B7 ${units.length - occupiedCount} vacant`}
+        actions={
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg border border-neutral-200 bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`rounded-md p-1.5 transition-all ${viewMode === 'table' ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-400'}`}
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`rounded-md p-1.5 transition-all ${viewMode === 'grid' ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-400'}`}
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </button>
+            </div>
+            <Button variant="secondary" size="sm">
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowImportWizard(true)}>
+              <Upload className="h-4 w-4" />
+              Import
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowGenerateUnits(true)}>
+              <Wand2 className="h-4 w-4" />
+              Auto-Generate
+            </Button>
             <Button size="sm" onClick={() => setShowCreateUnit(true)}>
               <Plus className="h-4 w-4" />
               Add Unit
             </Button>
-          }
-        />
-      ) : viewMode === 'table' ? (
-        <DataTable
-          columns={columns}
-          data={units}
-          emptyMessage="No units match your search."
-          emptyIcon={<Building2 className="h-6 w-6" />}
-          onRowClick={(row) => router.push(`/units/${row.id}` as never)}
-        />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {units.length === 0 ? (
-            <div className="col-span-full">
-              <EmptyState
-                icon={<Building2 className="h-6 w-6" />}
-                title="No units match your search"
-              />
-            </div>
-          ) : (
-            units.map((unit) => (
-              <Card
-                key={unit.id}
-                hoverable
-                className="cursor-pointer"
-                onClick={() => router.push(`/units/${unit.id}` as never)}
+          </div>
+        }
+      >
+        {/* Search */}
+        <div className="mb-6">
+          <div className="relative max-w-md">
+            <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <input
+              type="text"
+              placeholder="Search by unit number..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[20px] font-bold text-neutral-900">{unit.number}</p>
-                    <p className="text-[13px] text-neutral-500">
-                      Floor {unit.floor} &middot; {TYPE_LABELS[unit.type] || unit.type}
-                    </p>
-                  </div>
-                  <Badge variant={unit.status === 'vacant' ? 'default' : 'success'} size="sm">
-                    {unit.status === 'vacant' ? 'Vacant' : 'Occupied'}
-                  </Badge>
-                </div>
-                <p className="mt-2 text-[13px] text-neutral-500">{unit.building}</p>
-                {unit.hasInstructions && (
-                  <div className="mt-2">
-                    <Badge variant="warning" size="sm">
-                      Has Instructions
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {units.length === 0 && !searchQuery ? (
+          <EmptyState
+            icon={<Building2 className="h-6 w-6" />}
+            title="No units found"
+            description="Get started by adding units to this property. You can add them one by one or import from a spreadsheet."
+            action={
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setShowImportWizard(true)}>
+                  <Upload className="h-4 w-4" />
+                  Import from Spreadsheet
+                </Button>
+                <Button size="sm" onClick={() => setShowCreateUnit(true)}>
+                  <Plus className="h-4 w-4" />
+                  Add Unit
+                </Button>
+              </div>
+            }
+          />
+        ) : viewMode === 'table' ? (
+          <DataTable
+            columns={columns}
+            data={units}
+            emptyMessage="No units match your search."
+            emptyIcon={<Building2 className="h-6 w-6" />}
+            onRowClick={(row) => router.push(`/units/${row.id}` as never)}
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {units.length === 0 ? (
+              <div className="col-span-full">
+                <EmptyState
+                  icon={<Building2 className="h-6 w-6" />}
+                  title="No units match your search"
+                />
+              </div>
+            ) : (
+              units.map((unit) => (
+                <Card
+                  key={unit.id}
+                  hoverable
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/units/${unit.id}` as never)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[20px] font-bold text-neutral-900">{unit.number}</p>
+                      <p className="text-[13px] text-neutral-500">
+                        Floor {unit.floor} &middot; {TYPE_LABELS[unit.type] || unit.type}
+                      </p>
+                    </div>
+                    <Badge variant={unit.status === 'vacant' ? 'default' : 'success'} size="sm">
+                      {unit.status === 'vacant' ? 'Vacant' : 'Occupied'}
                     </Badge>
                   </div>
-                )}
-              </Card>
-            ))
-          )}
-        </div>
-      )}
-    </PageShell>
+                  {unit.occupantCount > 0 && (
+                    <div className="mt-1.5 flex items-center gap-1 text-xs text-neutral-500">
+                      <Users className="h-3 w-3" />
+                      {unit.occupantCount} occupant
+                      {unit.occupantCount !== 1 ? 's' : ''}
+                      {unit.primaryResident && ` · ${unit.primaryResident}`}
+                    </div>
+                  )}
+                  <p className="mt-2 text-[13px] text-neutral-500">{unit.building}</p>
+                  {unit.hasInstructions && (
+                    <div className="mt-2">
+                      <Badge variant="warning" size="sm">
+                        Has Instructions
+                      </Badge>
+                    </div>
+                  )}
+                </Card>
+              ))
+            )}
+          </div>
+        )}
+      </PageShell>
+
+      {/* Dialogs */}
+      <CreateUnitDialog
+        open={showCreateUnit}
+        onOpenChange={setShowCreateUnit}
+        propertyId={propertyId}
+        onSuccess={() => {
+          setShowCreateUnit(false);
+          refetch();
+        }}
+      />
+
+      <ImportWizard
+        open={showImportWizard}
+        onOpenChange={setShowImportWizard}
+        entityType="units"
+        propertyId={propertyId}
+        onSuccess={() => refetch()}
+      />
+
+      <GenerateUnitsDialog
+        open={showGenerateUnits}
+        onOpenChange={setShowGenerateUnits}
+        propertyId={propertyId}
+        onSuccess={() => refetch()}
+      />
+    </>
   );
 }
 

@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, Phone, Plus, Search, Users, X } from 'lucide-react';
+import { Download, Phone, Plus, Search, Upload, Users, X } from 'lucide-react';
 import { AddResidentDialog } from '@/components/forms/add-resident-dialog';
+import { ImportWizard } from '@/components/import/import-wizard';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
@@ -28,6 +29,9 @@ interface ApiResident {
   role: { name: string; slug: string } | null;
   lastLoginAt: string | null;
   createdAt: string;
+  unit?: { id: string; number: string } | null;
+  residentType?: string | null;
+  moveInDate?: string | null;
 }
 
 interface ApiResponse {
@@ -49,6 +53,7 @@ interface Resident {
   avatarUrl: string | null;
   role: 'owner' | 'tenant' | 'family_member';
   roleLabel: string;
+  unitNumber: string;
   status: 'active' | 'inactive';
   createdAt: string;
 }
@@ -61,6 +66,9 @@ export default function ResidentsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showImportWizard, setShowImportWizard] = useState(false);
+
+  const propertyId = getPropertyId();
 
   const {
     data: apiResponse,
@@ -69,7 +77,7 @@ export default function ResidentsPage() {
     refetch,
   } = useApi<ApiResponse>(
     apiUrl('/api/v1/residents', {
-      propertyId: getPropertyId(),
+      propertyId,
       search: searchQuery || undefined,
       pageSize: '100',
     }),
@@ -88,6 +96,7 @@ export default function ResidentsPage() {
       avatarUrl: r.avatarUrl || null,
       role: normalizeRole(r.role?.slug),
       roleLabel: r.role?.name || 'Resident',
+      unitNumber: r.unit?.number || '',
       status: 'active' as const,
       createdAt: r.createdAt,
     }));
@@ -112,6 +121,18 @@ export default function ResidentsPage() {
       ),
     },
     {
+      id: 'unit',
+      header: 'Unit',
+      accessorKey: 'unitNumber',
+      sortable: true,
+      cell: (row) =>
+        row.unitNumber ? (
+          <span className="text-sm font-medium text-neutral-800">{row.unitNumber}</span>
+        ) : (
+          <span className="text-sm text-neutral-300">{'\u2014'}</span>
+        ),
+    },
+    {
       id: 'role',
       header: 'Type',
       accessorKey: 'role',
@@ -122,7 +143,10 @@ export default function ResidentsPage() {
           tenant: { variant: 'info', label: 'Tenant' },
           family_member: { variant: 'default', label: 'Family' },
         };
-        const r = map[row.role] || { variant: 'default' as const, label: row.roleLabel };
+        const r = map[row.role] || {
+          variant: 'default' as const,
+          label: row.roleLabel,
+        };
         return (
           <Badge variant={r.variant} size="sm">
             {r.label}
@@ -202,76 +226,96 @@ export default function ResidentsPage() {
   }
 
   return (
-    <PageShell
-      title="Resident Directory"
-      description={`${residents.length} residents`}
-      actions={
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-          <Button size="sm" onClick={() => setShowAddDialog(true)}>
-            <Plus className="h-4 w-4" />
-            Add Resident
-          </Button>
-        </div>
-      }
-    >
-      <div className="mb-6">
-        <div className="relative max-w-md">
-          <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-          <input
-            type="text"
-            placeholder="Search by name or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {residents.length === 0 && !searchQuery ? (
-        <EmptyState
-          icon={<Users className="h-6 w-6" />}
-          title="No residents found"
-          description="Residents will appear here once they are added to this property."
-          action={
+    <>
+      <PageShell
+        title="Resident Directory"
+        description={`${residents.length} residents`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm">
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowImportWizard(true)}>
+              <Upload className="h-4 w-4" />
+              Import
+            </Button>
             <Button size="sm" onClick={() => setShowAddDialog(true)}>
               <Plus className="h-4 w-4" />
               Add Resident
             </Button>
-          }
-        />
-      ) : (
-        <DataTable
-          columns={columns}
-          data={residents}
-          emptyMessage="No residents match your search."
-          emptyIcon={<Users className="h-6 w-6" />}
-          onRowClick={(row) => router.push(`/residents/${row.id}` as never)}
-        />
-      )}
+          </div>
+        }
+      >
+        <div className="mb-6">
+          <div className="relative max-w-md">
+            <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {residents.length === 0 && !searchQuery ? (
+          <EmptyState
+            icon={<Users className="h-6 w-6" />}
+            title="No residents found"
+            description="Residents will appear here once they are added. You can add them one by one or import from a spreadsheet."
+            action={
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setShowImportWizard(true)}>
+                  <Upload className="h-4 w-4" />
+                  Import from Spreadsheet
+                </Button>
+                <Button size="sm" onClick={() => setShowAddDialog(true)}>
+                  <Plus className="h-4 w-4" />
+                  Add Resident
+                </Button>
+              </div>
+            }
+          />
+        ) : (
+          <DataTable
+            columns={columns}
+            data={residents}
+            emptyMessage="No residents match your search."
+            emptyIcon={<Users className="h-6 w-6" />}
+            onRowClick={(row) => router.push(`/residents/${row.id}` as never)}
+          />
+        )}
+      </PageShell>
 
       <AddResidentDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        propertyId={getPropertyId()}
+        propertyId={propertyId}
         onSuccess={() => {
           setShowAddDialog(false);
           refetch();
         }}
       />
-    </PageShell>
+
+      <ImportWizard
+        open={showImportWizard}
+        onOpenChange={setShowImportWizard}
+        entityType="residents"
+        propertyId={propertyId}
+        onSuccess={() => refetch()}
+      />
+    </>
   );
 }
 
