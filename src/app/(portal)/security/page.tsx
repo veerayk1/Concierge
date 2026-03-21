@@ -72,6 +72,25 @@ const EVENT_TYPE_CONFIG: Record<
 };
 
 // ---------------------------------------------------------------------------
+// Event type slug → SecurityEvent type mapper
+// ---------------------------------------------------------------------------
+
+function mapEventType(rawType: string): SecurityEvent['type'] {
+  const slug = rawType.toLowerCase().replace(/[/ ]/g, '_');
+  // Map event type slugs/names to our config keys
+  if (slug.includes('visitor') || slug.includes('guest')) return 'visitor';
+  if (slug.includes('incident') || slug.includes('alert')) return 'incident';
+  if (slug.includes('package') || slug.includes('parcel') || slug.includes('delivery'))
+    return 'package';
+  if (slug.includes('key') || slug.includes('fob')) return 'key';
+  if (slug.includes('pass') || slug.includes('handoff') || slug.includes('shift')) return 'pass_on';
+  if (slug.includes('clean')) return 'cleaning';
+  // Direct match
+  if (slug in EVENT_TYPE_CONFIG) return slug as SecurityEvent['type'];
+  return 'note';
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -94,18 +113,25 @@ export default function SecurityPage() {
     if (!apiEvents || !Array.isArray(apiEvents)) return [];
     return apiEvents.map((e: SecurityEvent) => {
       const raw = e as unknown as Record<string, unknown>;
+      const rawStatus = (e.status as string) || 'open';
+      const validStatuses = ['open', 'in_progress', 'resolved', 'closed'];
       return {
-        id: e.id as string,
-        type: ((raw.eventType as Record<string, string>)?.name
-          ?.toLowerCase()
-          .replace(/[/ ]/g, '_') || 'note') as SecurityEvent['type'],
-        title: e.title as string,
+        id: (e.id as string) || '',
+        type: mapEventType(
+          (raw.eventType as Record<string, string>)?.slug ||
+            (raw.eventType as Record<string, string>)?.name ||
+            'note',
+        ),
+        title: (e.title as string) || 'Untitled Event',
         description: (e.description as string) || '',
-        unit: (raw.unit as Record<string, string>)?.number,
-        status: e.status as string as SecurityEvent['status'],
+        unit:
+          typeof raw.unit === 'string'
+            ? raw.unit
+            : ((raw.unit as Record<string, string>)?.number ?? undefined),
+        status: (validStatuses.includes(rawStatus) ? rawStatus : 'open') as SecurityEvent['status'],
         priority: e.priority as SecurityEvent['priority'],
         createdBy: 'Staff',
-        createdAt: e.createdAt as string,
+        createdAt: (e.createdAt as string) || new Date().toISOString(),
       };
     });
   }, [apiEvents]);
@@ -115,10 +141,10 @@ export default function SecurityPage() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
-        e.title.toLowerCase().includes(q) ||
-        e.description.toLowerCase().includes(q) ||
+        (e.title || '').toLowerCase().includes(q) ||
+        (e.description || '').toLowerCase().includes(q) ||
         e.unit?.toLowerCase().includes(q) ||
-        e.createdBy.toLowerCase().includes(q)
+        (e.createdBy || '').toLowerCase().includes(q)
       );
     }
     return true;
@@ -136,8 +162,14 @@ export default function SecurityPage() {
       accessorKey: 'type',
       sortable: true,
       cell: (row) => {
-        const config = EVENT_TYPE_CONFIG[row.type];
-        const Icon = config.icon;
+        const config = EVENT_TYPE_CONFIG[row.type] ||
+          EVENT_TYPE_CONFIG.note || {
+            label: row.type || 'Event',
+            icon: StickyNote,
+            color: 'text-neutral-600',
+            bgColor: 'bg-neutral-100',
+          };
+        const Icon = config?.icon || StickyNote;
         return (
           <div className="flex items-center gap-2">
             <div
@@ -167,7 +199,13 @@ export default function SecurityPage() {
       header: 'Unit',
       accessorKey: 'unit',
       sortable: true,
-      cell: (row) => <span className="font-medium">{row.unit || '\u2014'}</span>,
+      cell: (row) => (
+        <span className="font-medium">
+          {typeof row.unit === 'object'
+            ? (row.unit as Record<string, string>)?.number
+            : row.unit || '\u2014'}
+        </span>
+      ),
     },
     {
       id: 'status',
@@ -175,13 +213,19 @@ export default function SecurityPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
-        const statusMap = {
-          open: { variant: 'warning' as const, label: 'Open' },
-          in_progress: { variant: 'info' as const, label: 'In Progress' },
-          resolved: { variant: 'success' as const, label: 'Resolved' },
-          closed: { variant: 'default' as const, label: 'Closed' },
+        const statusMap: Record<
+          string,
+          { variant: 'warning' | 'info' | 'success' | 'default'; label: string }
+        > = {
+          open: { variant: 'warning', label: 'Open' },
+          in_progress: { variant: 'info', label: 'In Progress' },
+          resolved: { variant: 'success', label: 'Resolved' },
+          closed: { variant: 'default', label: 'Closed' },
         };
-        const s = statusMap[row.status];
+        const s = statusMap[row.status] ?? {
+          variant: 'default' as const,
+          label: row.status || 'Unknown',
+        };
         return (
           <Badge variant={s.variant} size="sm" dot>
             {s.label}
@@ -195,14 +239,15 @@ export default function SecurityPage() {
       accessorKey: 'priority',
       cell: (row) => {
         if (!row.priority) return null;
-        const priorityMap = {
-          low: 'default' as const,
-          medium: 'warning' as const,
-          high: 'error' as const,
-          urgent: 'error' as const,
+        const priorityMap: Record<string, 'default' | 'warning' | 'error'> = {
+          low: 'default',
+          normal: 'default',
+          medium: 'warning',
+          high: 'error',
+          urgent: 'error',
         };
         return (
-          <Badge variant={priorityMap[row.priority]} size="sm">
+          <Badge variant={priorityMap[row.priority] ?? 'default'} size="sm">
             {row.priority}
           </Badge>
         );
@@ -219,14 +264,14 @@ export default function SecurityPage() {
       header: 'Time',
       accessorKey: 'createdAt',
       sortable: true,
-      cell: (row) => (
-        <span className="text-[13px] text-neutral-500">
-          {new Date(row.createdAt).toLocaleString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-          })}
-        </span>
-      ),
+      cell: (row) => {
+        const date = row.createdAt ? new Date(row.createdAt) : null;
+        const formatted =
+          date && !isNaN(date.getTime())
+            ? date.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit' })
+            : '\u2014';
+        return <span className="text-[13px] text-neutral-500">{formatted}</span>;
+      },
     },
   ];
 

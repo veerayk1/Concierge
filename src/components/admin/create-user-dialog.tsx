@@ -1,5 +1,6 @@
 'use client';
 
+/* HMR force rebuild - v2 */
 /**
  * Create User Dialog — per PRD 08 Section 3.1.1
  * 13 fields: firstName, lastName, email, phone, property, role, unit,
@@ -10,17 +11,24 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { createUserSchema, type CreateUserInput } from '@/schemas/user';
 import { apiRequest } from '@/lib/hooks/use-api';
 
 // ---------------------------------------------------------------------------
-// Role type from API
+// Types
 // ---------------------------------------------------------------------------
 
 interface RoleFromApi {
@@ -30,17 +38,43 @@ interface RoleFromApi {
   description?: string;
 }
 
-const RESIDENT_ROLE_SLUGS = ['resident_owner', 'resident_tenant', 'family_member', 'offsite_owner'];
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 interface UnitFromApi {
   id: string;
   number: string;
   floor?: number;
 }
+
+const RESIDENT_ROLE_SLUGS = ['resident_owner', 'resident_tenant', 'family_member', 'offsite_owner'];
+
+// ---------------------------------------------------------------------------
+// Auth headers helper (supports both demo mode and real Bearer auth)
+// ---------------------------------------------------------------------------
+
+function getDialogHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (typeof window === 'undefined') return headers;
+
+  // Demo mode takes priority
+  const demoRole = localStorage.getItem('demo_role');
+  if (demoRole) {
+    headers['x-demo-role'] = demoRole;
+    const demoMode = localStorage.getItem('demo_mode');
+    if (demoMode) headers['x-demo-mode'] = demoMode;
+    return headers;
+  }
+
+  // Real auth: include Bearer token
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return headers;
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -61,40 +95,51 @@ export function CreateUserDialog({
   const [createdEmail, setCreatedEmail] = useState<string | null>(null);
   const [roles, setRoles] = useState<RoleFromApi[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
+  const [rolesError, setRolesError] = useState<string | null>(null);
   const [units, setUnits] = useState<UnitFromApi[]>([]);
   const [unitsLoading, setUnitsLoading] = useState(false);
 
   // Fetch roles and units from API when dialog opens
   useEffect(() => {
     if (!open) return;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (typeof window !== 'undefined' && localStorage.getItem('demo_role')) {
-      headers['x-demo-role'] = localStorage.getItem('demo_role')!;
-    }
+    const headers = getDialogHeaders();
 
     // Fetch roles
     setRolesLoading(true);
+    setRolesError(null);
     fetch(`/api/v1/roles?propertyId=${propertyId}`, { headers })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load roles (${res.status})`);
+        return res.json();
+      })
       .then((result) => {
         if (result.data && Array.isArray(result.data)) {
           setRoles(result.data);
+          if (result.data.length === 0) {
+            setRolesError('No roles found. Please ensure this property is set up correctly.');
+          }
+        } else {
+          setRolesError('Invalid response from roles API.');
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('Failed to fetch roles:', err);
+        setRolesError(err.message || 'Failed to load roles. Please try again.');
+      })
       .finally(() => setRolesLoading(false));
 
     // Fetch units for resident role assignment
     setUnitsLoading(true);
     fetch(`/api/v1/units?propertyId=${propertyId}&pageSize=500`, { headers })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) return { data: [] };
+        return res.json();
+      })
       .then((result) => {
         const data = result.data ?? result;
-        if (Array.isArray(data)) {
-          setUnits(data);
-        }
+        if (Array.isArray(data)) setUnits(data);
       })
-      .catch(() => {})
+      .catch((err) => console.error('Failed to fetch units:', err))
       .finally(() => setUnitsLoading(false));
 
     // Reset temp password display when opening fresh
@@ -149,8 +194,7 @@ export function CreateUserDialog({
 
       if (!response.ok) {
         if (result.fields) {
-          // Set field-level errors
-          Object.entries(result.fields).forEach(([field, messages]) => {
+          Object.entries(result.fields).forEach(([field]) => {
             // @ts-expect-error — dynamic field name
             setValue(field, watch(field), { shouldValidate: false });
           });
@@ -295,20 +339,25 @@ export function CreateUserDialog({
               <label className="text-[14px] font-medium text-neutral-700">
                 Role<span className="text-error-500 ml-0.5">*</span>
               </label>
-              <select
-                {...register('roleId')}
+              {rolesError && <p className="text-error-600 text-[13px]">{rolesError}</p>}
+              <Select
+                value={selectedRoleId || undefined}
+                onValueChange={(val) => setValue('roleId', val)}
                 disabled={rolesLoading}
-                className={`focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none ${
-                  errors.roleId ? 'border-error-300' : 'border-neutral-200 hover:border-neutral-300'
-                }`}
               >
-                <option value="">{rolesLoading ? 'Loading roles...' : 'Select a role...'}</option>
-                {roles.map((role) => (
-                  <option key={role.id} value={role.id}>
-                    {role.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger size="lg" error={!!errors.roleId} className="rounded-xl">
+                  <SelectValue
+                    placeholder={rolesLoading ? 'Loading roles...' : 'Select a role...'}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.roleId && (
                 <p className="text-error-600 text-[13px] font-medium">{errors.roleId.message}</p>
               )}
@@ -319,23 +368,25 @@ export function CreateUserDialog({
                 <label className="text-[14px] font-medium text-neutral-700">
                   Unit<span className="text-error-500 ml-0.5">*</span>
                 </label>
-                <select
-                  {...register('unitId')}
+                <Select
+                  value={watch('unitId') || undefined}
+                  onValueChange={(val) => setValue('unitId', val)}
                   disabled={unitsLoading}
-                  className={`focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none ${
-                    errors.unitId
-                      ? 'border-error-300'
-                      : 'border-neutral-200 hover:border-neutral-300'
-                  }`}
                 >
-                  <option value="">{unitsLoading ? 'Loading units...' : 'Select a unit...'}</option>
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.number}
-                      {unit.floor != null ? ` (Floor ${unit.floor})` : ''}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger size="lg" error={!!errors.unitId} className="rounded-xl">
+                    <SelectValue
+                      placeholder={unitsLoading ? 'Loading units...' : 'Select a unit...'}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {units.map((unit) => (
+                      <SelectItem key={unit.id} value={unit.id}>
+                        {unit.number}
+                        {unit.floor != null ? ` (Floor ${unit.floor})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {errors.unitId && (
                   <p className="text-error-600 text-[13px] font-medium">{errors.unitId.message}</p>
                 )}
@@ -403,13 +454,18 @@ export function CreateUserDialog({
           {/* Language */}
           <div className="flex flex-col gap-2">
             <label className="text-[14px] font-medium text-neutral-700">Language Preference</label>
-            <select
-              {...register('languagePreference')}
-              className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
+            <Select
+              value={watch('languagePreference') || 'en'}
+              onValueChange={(val) => setValue('languagePreference', val as 'en' | 'fr')}
             >
-              <option value="en">English</option>
-              <option value="fr">Fran\u00e7ais</option>
-            </select>
+              <SelectTrigger size="lg" className="rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="fr">Fran&ccedil;ais</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Actions */}

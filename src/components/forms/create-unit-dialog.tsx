@@ -71,6 +71,9 @@ export function CreateUnitDialog({
           ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
             ? { 'x-demo-role': localStorage.getItem('demo_role')! }
             : {}),
+          ...(typeof window !== 'undefined' && localStorage.getItem('auth_token')
+            ? { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
+            : {}),
         },
         body: JSON.stringify({ ...data, propertyId }),
       });

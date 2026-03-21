@@ -199,7 +199,13 @@ export default function PackagesPage() {
       header: 'Unit',
       accessorKey: 'unit',
       sortable: true,
-      cell: (row) => <span className="font-medium">{row.unit}</span>,
+      cell: (row) => (
+        <span className="font-medium">
+          {typeof row.unit === 'object' && row.unit !== null
+            ? (row.unit as Record<string, string>).number
+            : row.unit || '—'}
+        </span>
+      ),
     },
     {
       id: 'recipient',

@@ -144,7 +144,13 @@ export default function EventsPage() {
       header: 'Unit',
       accessorKey: 'unit',
       sortable: true,
-      cell: (row) => <span className="font-medium">{row.unit || '\u2014'}</span>,
+      cell: (row) => (
+        <span className="font-medium">
+          {typeof row.unit === 'object' && row.unit !== null
+            ? (row.unit as Record<string, string>).number
+            : row.unit || '\u2014'}
+        </span>
+      ),
     },
     {
       id: 'status',

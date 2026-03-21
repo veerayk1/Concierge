@@ -87,8 +87,59 @@ export default function ParkingPage() {
   const loading = tab === 'permits' ? loadingPermits : loadingViolations;
   const error = tab === 'permits' ? errorPermits : errorViolations;
 
-  const allPermits = useMemo<ParkingPermit[]>(() => apiPermits ?? [], [apiPermits]);
-  const allViolations = useMemo<ParkingViolation[]>(() => apiViolations ?? [], [apiViolations]);
+  const allPermits = useMemo<ParkingPermit[]>(() => {
+    if (!apiPermits) return [];
+    return (apiPermits as unknown as Array<Record<string, unknown>>).map((p) => {
+      const unit =
+        typeof p.unit === 'object' && p.unit !== null
+          ? (p.unit as Record<string, string>).number || ''
+          : (p.unit as string) || '';
+      const resident =
+        typeof p.resident === 'object' && p.resident !== null
+          ? `${(p.resident as Record<string, string>).firstName || ''} ${(p.resident as Record<string, string>).lastName || ''}`.trim()
+          : (p.resident as string) || '';
+      const permitType =
+        typeof p.permitType === 'object' && p.permitType !== null
+          ? (p.permitType as Record<string, string>).name || ''
+          : '';
+      return {
+        id: (p.id as string) || '',
+        permitNumber: (p.referenceNumber as string) || (p.permitNumber as string) || '',
+        unit,
+        resident,
+        vehicle: (p.vehicle as string) || '',
+        licensePlate: (p.licensePlate as string) || '',
+        spotNumber: (p.spotNumber as string) || '',
+        area: (p.area as string) || '',
+        type: (permitType.toLowerCase().includes('visitor')
+          ? 'visitor'
+          : permitType.toLowerCase().includes('reserved')
+            ? 'reserved'
+            : 'resident') as ParkingPermit['type'],
+        status: ((p.status as string) || 'active') as ParkingPermit['status'],
+        expiresAt: (p.validUntil as string) || (p.expiresAt as string) || undefined,
+      };
+    });
+  }, [apiPermits]);
+  const allViolations = useMemo<ParkingViolation[]>(() => {
+    if (!apiViolations) return [];
+    return (apiViolations as unknown as Array<Record<string, unknown>>).map((v) => {
+      const unit =
+        typeof v.unit === 'object' && v.unit !== null
+          ? (v.unit as Record<string, string>).number || ''
+          : (v.unit as string) || '';
+      return {
+        id: (v.id as string) || '',
+        licensePlate: (v.licensePlate as string) || '',
+        location: (v.location as string) || (v.area as string) || '',
+        violation: (v.violation as string) || (v.description as string) || '',
+        status: ((v.status as string) || 'open') as ParkingViolation['status'],
+        reportedBy: (v.reportedBy as string) || 'Staff',
+        reportedAt: (v.reportedAt as string) || (v.createdAt as string) || new Date().toISOString(),
+        unit,
+      };
+    });
+  }, [apiViolations]);
 
   const filteredPermits = useMemo(() => {
     if (!searchQuery) return allPermits;
@@ -119,7 +170,13 @@ export default function ParkingPage() {
       header: 'Unit',
       accessorKey: 'unit',
       sortable: true,
-      cell: (row) => <span className="font-medium">{row.unit}</span>,
+      cell: (row) => (
+        <span className="font-medium">
+          {typeof row.unit === 'object' && row.unit !== null
+            ? (row.unit as Record<string, string>).number
+            : row.unit || '—'}
+        </span>
+      ),
     },
     { id: 'resident', header: 'Resident', accessorKey: 'resident', sortable: true },
     { id: 'vehicle', header: 'Vehicle', accessorKey: 'vehicle' },

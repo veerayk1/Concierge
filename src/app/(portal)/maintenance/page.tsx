@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreateMaintenanceDialog } from '@/components/forms/create-maintenance-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
@@ -60,18 +60,27 @@ interface MaintenanceApiResponse {
 export default function MaintenancePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  // Debounce search input to avoid firing API calls on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Build API URL with search/filter params passed to the server
   const requestUrl = useMemo(() => {
     const params: Record<string, string | undefined | null> = {
       propertyId: getPropertyId(),
     };
-    if (searchQuery.trim()) params.search = searchQuery.trim();
+    if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
     if (statusFilter !== 'all') params.status = statusFilter;
     return apiUrl('/api/v1/maintenance', params);
-  }, [searchQuery, statusFilter]);
+  }, [debouncedSearch, statusFilter]);
 
   const {
     data: apiResponse,
@@ -95,7 +104,15 @@ export default function MaintenancePage() {
       id: (r.id as string) || '',
       referenceNumber: (r.referenceNumber as string) || '',
       unit: (r.unit as Record<string, string>)?.number || (r.unitId as string) || '',
-      resident: (r.residentId as string) || '',
+      resident: (() => {
+        const res = r.resident as Record<string, string> | undefined;
+        if (res?.firstName && res?.lastName) return `${res.firstName} ${res.lastName}`;
+        if (res?.firstName) return res.firstName;
+        // Show friendly label instead of raw UUID
+        const unitNum = (r.unit as Record<string, string>)?.number;
+        if (r.residentId) return unitNum ? `Unit ${unitNum} Resident` : 'Resident';
+        return '';
+      })(),
       category: (r.category as Record<string, string>)?.name || 'General',
       description: (r.description as string) || '',
       status: (r.status as MaintenanceRequest['status']) || 'open',
@@ -136,7 +153,13 @@ export default function MaintenancePage() {
       header: 'Unit',
       accessorKey: 'unit',
       sortable: true,
-      cell: (row) => <span className="font-medium">{row.unit}</span>,
+      cell: (row) => (
+        <span className="font-medium">
+          {typeof row.unit === 'object' && row.unit !== null
+            ? (row.unit as Record<string, string>).number
+            : row.unit || '—'}
+        </span>
+      ),
     },
     {
       id: 'resident',

@@ -252,7 +252,13 @@ export default function EventDetailPage() {
       header: 'Unit',
       accessorKey: 'unit',
       sortable: true,
-      cell: (row) => <span className="text-[13px] font-medium text-neutral-700">{row.unit}</span>,
+      cell: (row) => (
+        <span className="text-[13px] font-medium text-neutral-700">
+          {typeof row.unit === 'object' && row.unit !== null
+            ? (row.unit as Record<string, string>).number
+            : row.unit || '—'}
+        </span>
+      ),
     },
     {
       id: 'status',

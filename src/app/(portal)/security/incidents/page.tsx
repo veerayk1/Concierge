@@ -187,7 +187,13 @@ export default function IncidentsPage() {
       id: 'unit',
       header: 'Unit',
       accessorKey: 'unit',
-      cell: (row) => <span className="text-[13px] text-neutral-500">{row.unit || '\u2014'}</span>,
+      cell: (row) => (
+        <span className="text-[13px] text-neutral-500">
+          {typeof row.unit === 'object' && row.unit !== null
+            ? (row.unit as Record<string, string>).number
+            : row.unit || '\u2014'}
+        </span>
+      ),
     },
     {
       id: 'reportedAt',

@@ -69,6 +69,9 @@ export function AddResidentDialog({
     if (typeof window !== 'undefined' && localStorage.getItem('demo_role')) {
       headers['x-demo-role'] = localStorage.getItem('demo_role')!;
     }
+    if (typeof window !== 'undefined' && localStorage.getItem('auth_token')) {
+      headers['Authorization'] = `Bearer ${localStorage.getItem('auth_token')}`;
+    }
 
     setRolesLoading(true);
     fetch(`/api/v1/roles?propertyId=${propertyId}`, { headers })
@@ -115,6 +118,9 @@ export function AddResidentDialog({
           'Content-Type': 'application/json',
           ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
             ? { 'x-demo-role': localStorage.getItem('demo_role')! }
+            : {}),
+          ...(typeof window !== 'undefined' && localStorage.getItem('auth_token')
+            ? { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
             : {}),
         },
         body: JSON.stringify({

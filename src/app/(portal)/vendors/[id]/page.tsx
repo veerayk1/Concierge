@@ -279,7 +279,13 @@ export default function VendorDetailPage() {
       header: 'Unit',
       accessorKey: 'unit',
       sortable: true,
-      cell: (row) => <span className="text-[13px] font-medium text-neutral-900">{row.unit}</span>,
+      cell: (row) => (
+        <span className="text-[13px] font-medium text-neutral-900">
+          {typeof row.unit === 'object' && row.unit !== null
+            ? (row.unit as Record<string, string>).number
+            : row.unit || '—'}
+        </span>
+      ),
     },
     {
       id: 'description',

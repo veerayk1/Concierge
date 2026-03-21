@@ -1162,7 +1162,11 @@ function ResidentsStep() {
                     <tr key={i}>
                       <td className="px-4 py-2 text-[13px]">{r.name}</td>
                       <td className="px-4 py-2 text-[13px]">{r.email}</td>
-                      <td className="px-4 py-2 text-[13px]">{r.unit}</td>
+                      <td className="px-4 py-2 text-[13px]">
+                        {typeof r.unit === 'object' && r.unit !== null
+                          ? (r.unit as Record<string, string>).number
+                          : r.unit || '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -392,7 +392,11 @@ export default function AmenityDetailPage() {
                           <td className="py-3 text-[14px] font-medium text-neutral-900">
                             {b.resident}
                           </td>
-                          <td className="py-3 text-[14px] text-neutral-600">{b.unit}</td>
+                          <td className="py-3 text-[14px] text-neutral-600">
+                            {typeof b.unit === 'object' && b.unit !== null
+                              ? (b.unit as Record<string, string>).number
+                              : b.unit || '—'}
+                          </td>
                           <td className="py-3">
                             <Badge variant={statusVariants[b.status] ?? 'default'} size="sm" dot>
                               {b.status}
