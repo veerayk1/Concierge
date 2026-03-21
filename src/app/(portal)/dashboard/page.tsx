@@ -514,18 +514,12 @@ export default function DashboardPage() {
     return map;
   }, [apiData, upcomingTasksData, isSuperAdmin, platformProperties]);
 
-  if (loading && !demoRole) {
-    return <DashboardSkeleton />;
-  }
-
-  const config = DASHBOARD_CONFIGS[effectiveRole];
-  const greeting = getGreeting();
-
   // Check if we're in demo showcase mode (fake data OK) vs real auth (need real data)
   const isDemoShowcase =
     typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'showcase';
 
   // Fetch real AI analytics for building health score (skip in demo showcase or super_admin)
+  // NOTE: This hook MUST be called before any early returns to satisfy Rules of Hooks
   const { data: aiAnalytics } = useApi<{
     healthScore: number;
     trend: string;
@@ -537,6 +531,13 @@ export default function DashboardPage() {
   );
 
   const buildingHealthScore = isDemoShowcase ? 87 : (aiAnalytics?.healthScore ?? null);
+
+  if (loading && !demoRole) {
+    return <DashboardSkeleton />;
+  }
+
+  const config = DASHBOARD_CONFIGS[effectiveRole];
+  const greeting = getGreeting();
 
   // -------------------------------------------------------------------------
   // Super Admin — Platform-level dashboard
