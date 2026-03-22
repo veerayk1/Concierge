@@ -10,7 +10,7 @@ export function exportToCsv<T extends Record<string, any>>(
   filename: string,
 ) {
   if (data.length === 0) {
-    alert('No data to export.');
+    // Nothing to export — just return silently
     return;
   }
 
