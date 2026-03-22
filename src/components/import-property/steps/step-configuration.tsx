@@ -7,7 +7,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Rocket, PartyPopper } from 'lucide-react';
+import { Loader2, Rocket, PartyPopper, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { StepHeader } from '../shared/step-header';
@@ -20,6 +20,8 @@ interface StepConfigurationProps {
   stepData: WizardState['stepData'];
   completedSteps: number[];
   skippedSteps: number[];
+  onBack?: () => void;
+  onComplete?: () => void;
 }
 
 export function StepConfiguration({
@@ -28,6 +30,8 @@ export function StepConfiguration({
   stepData,
   completedSteps,
   skippedSteps,
+  onBack,
+  onComplete,
 }: StepConfigurationProps) {
   const router = useRouter();
   const [isActivating, setIsActivating] = useState(false);
@@ -52,18 +56,23 @@ export function StepConfiguration({
       });
 
       if (!response.ok) {
-        // Even if the endpoint doesn't exist yet, mark as activated for UX
-        // since property was already created in Step 1
+        const err = await response.json().catch(() => ({}));
+        setServerError(
+          err.message ||
+            'Failed to activate property. The property was created but may need manual activation.',
+        );
       }
 
       setIsActivated(true);
+      onComplete?.();
     } catch {
       // Mark as activated even on network error since property exists
       setIsActivated(true);
+      onComplete?.();
     } finally {
       setIsActivating(false);
     }
-  }, [propertyId]);
+  }, [propertyId, onComplete]);
 
   const summaryData = {
     property: propertyName,
@@ -92,7 +101,7 @@ export function StepConfiguration({
             immediately.
           </p>
 
-          <ImportSummaryCard data={summaryData} />
+          <ImportSummaryCard data={summaryData} skippedSteps={skippedSteps} />
 
           <div className="mt-8 flex gap-3">
             <Button variant="secondary" onClick={() => router.push('/dashboard')}>
@@ -116,7 +125,7 @@ export function StepConfiguration({
 
       {/* Summary */}
       <div className="mb-6">
-        <ImportSummaryCard data={summaryData} />
+        <ImportSummaryCard data={summaryData} skippedSteps={skippedSteps} />
       </div>
 
       {/* Steps overview */}
@@ -165,14 +174,23 @@ export function StepConfiguration({
         <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{serverError}</div>
       )}
 
-      <Button onClick={handleActivate} disabled={isActivating} fullWidth size="lg">
-        {isActivating ? (
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        ) : (
-          <Rocket className="mr-2 h-5 w-5" />
+      <div className="flex items-center justify-between">
+        {onBack && (
+          <Button variant="ghost" onClick={onBack}>
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            Back
+          </Button>
         )}
-        Activate Property
-      </Button>
+        <div className="flex-1" />
+        <Button onClick={handleActivate} disabled={isActivating} size="lg">
+          {isActivating ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <Rocket className="mr-2 h-5 w-5" />
+          )}
+          Activate Property
+        </Button>
+      </div>
     </div>
   );
 }

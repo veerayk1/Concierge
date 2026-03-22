@@ -9,6 +9,7 @@ import {
   Loader2,
   RotateCcw,
   FileSpreadsheet,
+  Download,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,13 +44,36 @@ interface ImportResult {
 }
 
 // ---------------------------------------------------------------------------
-// API endpoint map
+// API endpoint map — includes all bulk endpoints
 // ---------------------------------------------------------------------------
 
-const IMPORT_ENDPOINTS: Partial<Record<EntityType, { url: string; method: string }>> = {
-  units: { url: '/api/v1/units/bulk', method: 'POST' },
-  residents: { url: '/api/v1/users', method: 'POST' },
-  properties: { url: '/api/v1/properties', method: 'POST' },
+const IMPORT_ENDPOINTS: Partial<Record<EntityType, { url: string; bodyKey: string | null }>> = {
+  units: { url: '/api/v1/units/bulk', bodyKey: 'units' },
+  residents: { url: '/api/v1/users', bodyKey: null }, // one-at-a-time
+  properties: { url: '/api/v1/properties', bodyKey: null },
+  amenities: { url: '/api/v1/amenities/bulk', bodyKey: 'amenities' },
+  fobs: { url: '/api/v1/keys/bulk', bodyKey: 'fobs' },
+  buzzer_codes: { url: '/api/v1/buzzer-codes/bulk', bodyKey: 'codes' },
+  parking_permits: { url: '/api/v1/parking/bulk', bodyKey: 'permits' },
+  staff: { url: '/api/v1/staff/bulk', bodyKey: 'staff' },
+};
+
+// ---------------------------------------------------------------------------
+// Template download labels
+// ---------------------------------------------------------------------------
+
+const ENTITY_LABELS: Record<EntityType, string> = {
+  units: 'Units',
+  residents: 'Residents',
+  properties: 'Properties',
+  amenities: 'Amenities',
+  fobs: 'FOBs / Keys',
+  buzzer_codes: 'Buzzer Codes',
+  parking_permits: 'Parking Permits',
+  staff: 'Staff',
+  packages: 'Packages',
+  maintenance_requests: 'Maintenance Requests',
+  events: 'Events',
 };
 
 // ---------------------------------------------------------------------------
@@ -75,6 +99,7 @@ export function EntityImportSection({
   const [importError, setImportError] = useState<string | null>(null);
 
   const targetFields = getTargetFields(entityType);
+  const endpoint = IMPORT_ENDPOINTS[entityType];
 
   // -----------------------------------------------------------------------
   // Parse file and auto-map
@@ -110,13 +135,97 @@ export function EntityImportSection({
   );
 
   // -----------------------------------------------------------------------
+  // Build mapped data from validated rows for bulk endpoints
+  // -----------------------------------------------------------------------
+
+  const buildBulkPayload = useCallback(
+    (validRows: Array<{ mappedData: Record<string, string> }>) => {
+      switch (entityType) {
+        case 'units':
+          return validRows.map((row) => ({
+            number: row.mappedData.number,
+            floor: row.mappedData.floor ? parseInt(row.mappedData.floor, 10) : undefined,
+            building: row.mappedData.building || undefined,
+            unitType: row.mappedData.unitType || undefined,
+            squareFootage: row.mappedData.squareFootage
+              ? parseInt(row.mappedData.squareFootage.replace(/[,\s]/g, ''), 10)
+              : undefined,
+            status: row.mappedData.status || undefined,
+            enterPhoneCode: row.mappedData.enterPhoneCode || undefined,
+            parkingSpot: row.mappedData.parkingSpot || undefined,
+            locker: row.mappedData.locker || undefined,
+            comments: row.mappedData.comments || undefined,
+          }));
+
+        case 'amenities':
+          return validRows.map((row) => ({
+            name: row.mappedData.name,
+            description: row.mappedData.description || undefined,
+            capacity: row.mappedData.capacity ? parseInt(row.mappedData.capacity, 10) : undefined,
+            fee: row.mappedData.fee ? parseFloat(row.mappedData.fee) : undefined,
+            bookingStyle: row.mappedData.bookingStyle || undefined,
+            group: row.mappedData.group || undefined,
+          }));
+
+        case 'fobs':
+          return validRows.map((row) => ({
+            serialNumber: row.mappedData.serialNumber,
+            unitNumber: row.mappedData.unitNumber,
+            fobType: row.mappedData.fobType || undefined,
+            status: row.mappedData.status || undefined,
+            issuedDate: row.mappedData.issuedDate || undefined,
+            issuedToName: row.mappedData.issuedToName || undefined,
+            notes: row.mappedData.notes || undefined,
+          }));
+
+        case 'buzzer_codes':
+          return validRows.map((row) => ({
+            unitNumber: row.mappedData.unitNumber,
+            code: row.mappedData.code,
+            comments: row.mappedData.comments || undefined,
+          }));
+
+        case 'parking_permits':
+          return validRows.map((row) => ({
+            unitNumber: row.mappedData.unitNumber,
+            licensePlate: row.mappedData.licensePlate,
+            vehicleMake: row.mappedData.vehicleMake || undefined,
+            vehicleModel: row.mappedData.vehicleModel || undefined,
+            vehicleYear: row.mappedData.vehicleYear
+              ? parseInt(row.mappedData.vehicleYear, 10)
+              : undefined,
+            vehicleColor: row.mappedData.vehicleColor || undefined,
+            provinceState: row.mappedData.provinceState || undefined,
+            spotNumber: row.mappedData.spotNumber || undefined,
+            notes: row.mappedData.notes || undefined,
+          }));
+
+        case 'staff':
+          return validRows.map((row) => ({
+            firstName: row.mappedData.firstName || row.mappedData.fullName?.split(' ')[0] || '',
+            lastName:
+              row.mappedData.lastName ||
+              row.mappedData.fullName?.split(' ').slice(1).join(' ') ||
+              '',
+            email: row.mappedData.email,
+            phone: row.mappedData.phone || undefined,
+            role: row.mappedData.role || undefined,
+          }));
+
+        default:
+          return validRows.map((row) => row.mappedData);
+      }
+    },
+    [entityType],
+  );
+
+  // -----------------------------------------------------------------------
   // Execute import
   // -----------------------------------------------------------------------
 
   const handleImport = useCallback(async () => {
     if (!validation || !parsedFile) return;
 
-    const endpoint = IMPORT_ENDPOINTS[entityType];
     if (!endpoint) {
       setImportError('Import endpoint coming soon for this entity type.');
       return;
@@ -141,27 +250,16 @@ export function EntityImportSection({
       let skipped = 0;
       let errors = 0;
 
-      if (entityType === 'units') {
-        // Bulk endpoint
-        const units = validRows.map((row) => ({
-          number: row.mappedData.number,
-          floor: row.mappedData.floor ? parseInt(row.mappedData.floor, 10) : undefined,
-          building: row.mappedData.building || undefined,
-          unitType: row.mappedData.unitType || undefined,
-          squareFootage: row.mappedData.squareFootage
-            ? parseInt(row.mappedData.squareFootage.replace(/[,\s]/g, ''), 10)
-            : undefined,
-          status: row.mappedData.status || undefined,
-          enterPhoneCode: row.mappedData.enterPhoneCode || undefined,
-          parkingSpot: row.mappedData.parkingSpot || undefined,
-          locker: row.mappedData.locker || undefined,
-          comments: row.mappedData.comments || undefined,
-        }));
-
+      if (endpoint.bodyKey) {
+        // Bulk endpoint — send all records at once
+        const payload = buildBulkPayload(validRows);
         const response = await fetch(endpoint.url, {
-          method: endpoint.method,
+          method: 'POST',
           headers,
-          body: JSON.stringify({ propertyId, units }),
+          body: JSON.stringify({
+            propertyId,
+            [endpoint.bodyKey]: payload,
+          }),
         });
 
         if (!response.ok) {
@@ -170,10 +268,12 @@ export function EntityImportSection({
         }
 
         const result = await response.json();
-        created = result.data?.created ?? units.length;
+        created = result.data?.created ?? payload.length;
         skipped = result.data?.skipped ?? 0;
+        errors = result.data?.errors?.length ?? 0;
+        setImportProgress(100);
       } else if (entityType === 'residents') {
-        // One-at-a-time
+        // One-at-a-time for residents
         for (let i = 0; i < validRows.length; i++) {
           const row = validRows[i]!;
           const firstName =
@@ -183,7 +283,7 @@ export function EntityImportSection({
 
           try {
             const response = await fetch(endpoint.url, {
-              method: endpoint.method,
+              method: 'POST',
               headers,
               body: JSON.stringify({
                 firstName,
@@ -213,7 +313,7 @@ export function EntityImportSection({
         const row = validRows[0];
         if (row) {
           const response = await fetch(endpoint.url, {
-            method: endpoint.method,
+            method: 'POST',
             headers,
             body: JSON.stringify({
               name: row.mappedData.name,
@@ -237,9 +337,8 @@ export function EntityImportSection({
             throw new Error(err.message || 'Failed to create property');
           }
         }
+        setImportProgress(100);
       }
-
-      setImportProgress(100);
 
       const finalResult: ImportResult = {
         created,
@@ -253,7 +352,15 @@ export function EntityImportSection({
       setImportError(err instanceof Error ? err.message : 'Import failed');
       setPhase('mapping');
     }
-  }, [validation, parsedFile, entityType, propertyId, onImportComplete]);
+  }, [
+    validation,
+    parsedFile,
+    entityType,
+    propertyId,
+    endpoint,
+    buildBulkPayload,
+    onImportComplete,
+  ]);
 
   // -----------------------------------------------------------------------
   // Reset
@@ -291,11 +398,25 @@ export function EntityImportSection({
 
       {/* Phase: Upload */}
       {phase === 'upload' && (
-        <FileDropzone
-          onFileSelected={handleFileSelected}
-          isLoading={isParsing}
-          error={parseError}
-        />
+        <div>
+          {/* Template download link */}
+          <div className="mb-3 flex items-center gap-2">
+            <a
+              href={`/api/v1/import-templates?type=${entityType}`}
+              download={`${entityType}-template.csv`}
+              className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1.5 text-[13px] font-medium hover:underline"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download {ENTITY_LABELS[entityType]} Template
+            </a>
+          </div>
+
+          <FileDropzone
+            onFileSelected={handleFileSelected}
+            isLoading={isParsing}
+            error={parseError}
+          />
+        </div>
       )}
 
       {/* Phase: Mapping preview + import button */}

@@ -6,7 +6,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
-import { Loader2, Plus, Wand2 } from 'lucide-react';
+import { Loader2, Plus, Wand2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -19,9 +19,15 @@ interface StepBuildingsUnitsProps {
   propertyId: string;
   onComplete: (created: number) => void;
   onNext: () => void;
+  onBack?: () => void;
 }
 
-export function StepBuildingsUnits({ propertyId, onComplete, onNext }: StepBuildingsUnitsProps) {
+export function StepBuildingsUnits({
+  propertyId,
+  onComplete,
+  onNext,
+  onBack,
+}: StepBuildingsUnitsProps) {
   const [totalUnits, setTotalUnits] = useState(0);
 
   return (
@@ -85,6 +91,15 @@ export function StepBuildingsUnits({ propertyId, onComplete, onNext }: StepBuild
           />
         </TabsContent>
       </Tabs>
+
+      {onBack && (
+        <div className="mt-6">
+          <Button variant="ghost" onClick={onBack}>
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            Back
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

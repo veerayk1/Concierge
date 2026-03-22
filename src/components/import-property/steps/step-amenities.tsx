@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Loader2, Check } from 'lucide-react';
+import { Loader2, Check, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { StepHeader } from '../shared/step-header';
@@ -17,6 +17,7 @@ interface StepAmenitiesProps {
   onImportComplete: (result: { created: number; skipped: number; errors: number }) => void;
   onSkip: () => void;
   onNext: () => void;
+  onBack?: () => void;
 }
 
 interface AmenityPreset {
@@ -46,6 +47,7 @@ export function StepAmenities({
   onImportComplete,
   onSkip,
   onNext,
+  onBack,
 }: StepAmenitiesProps) {
   const [selectedPresets, setSelectedPresets] = useState<Set<string>>(new Set());
   const [isCreatingPresets, setIsCreatingPresets] = useState(false);
@@ -182,9 +184,17 @@ export function StepAmenities({
       />
 
       <div className="mt-6 flex items-center justify-between">
-        <Button variant="ghost" onClick={onSkip}>
-          Skip this step
-        </Button>
+        <div className="flex items-center gap-2">
+          {onBack && (
+            <Button variant="ghost" onClick={onBack}>
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              Back
+            </Button>
+          )}
+          <Button variant="ghost" onClick={onSkip}>
+            Skip this step
+          </Button>
+        </div>
         <Button onClick={onNext}>Continue</Button>
       </div>
     </div>

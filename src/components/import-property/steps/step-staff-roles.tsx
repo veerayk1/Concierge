@@ -5,6 +5,7 @@
  * Import staff members from a file.
  */
 
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StepHeader } from '../shared/step-header';
 import { EntityImportSection } from '../shared/entity-import-section';
@@ -14,6 +15,7 @@ interface StepStaffRolesProps {
   onImportComplete: (result: { created: number; skipped: number; errors: number }) => void;
   onSkip: () => void;
   onNext: () => void;
+  onBack?: () => void;
 }
 
 export function StepStaffRoles({
@@ -21,6 +23,7 @@ export function StepStaffRoles({
   onImportComplete,
   onSkip,
   onNext,
+  onBack,
 }: StepStaffRolesProps) {
   return (
     <div>
@@ -39,9 +42,17 @@ export function StepStaffRoles({
       />
 
       <div className="mt-6 flex items-center justify-between">
-        <Button variant="ghost" onClick={onSkip}>
-          Skip this step
-        </Button>
+        <div className="flex items-center gap-2">
+          {onBack && (
+            <Button variant="ghost" onClick={onBack}>
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              Back
+            </Button>
+          )}
+          <Button variant="ghost" onClick={onSkip}>
+            Skip this step
+          </Button>
+        </div>
         <Button onClick={onNext}>Continue</Button>
       </div>
     </div>
