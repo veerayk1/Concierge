@@ -626,13 +626,16 @@ export default function DashboardPage() {
               { label: 'User Management', href: '/users' },
               { label: 'Compliance', href: '/compliance' },
             ].map((action) => (
-              <a
+              <button
                 key={action.label}
-                href={action.href}
-                className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
+                type="button"
+                onClick={() => {
+                  window.location.href = action.href;
+                }}
+                className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 cursor-pointer rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
               >
                 {action.label}
-              </a>
+              </button>
             ))}
           </div>
         </div>
@@ -939,13 +942,16 @@ export default function DashboardPage() {
             const route = QUICK_ACTION_ROUTES[action];
             if (route) {
               return (
-                <a
+                <button
                   key={action}
-                  href={route}
-                  className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
+                  type="button"
+                  onClick={() => {
+                    window.location.href = route;
+                  }}
+                  className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 cursor-pointer rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
                 >
                   {action}
-                </a>
+                </button>
               );
             }
             return (
@@ -962,14 +968,17 @@ export default function DashboardPage() {
           {/* Dedicated quick action buttons */}
           <div className="mx-1 h-auto w-px bg-neutral-200" />
           {Object.entries(QUICK_ACTION_LINKS).map(([label, { href, icon: QAIcon }]) => (
-            <a
+            <button
               key={label}
-              href={href}
-              className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
+              type="button"
+              onClick={() => {
+                window.location.href = href;
+              }}
+              className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
             >
               <QAIcon className="h-4 w-4" />
               {label}
-            </a>
+            </button>
           ))}
         </div>
       </div>
