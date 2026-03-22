@@ -53,18 +53,186 @@ export async function POST(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 async function parsePdf(buffer: Buffer) {
-  // pdf-parse v1.1.1 — CommonJS, require to avoid test-file-on-import bug
+  const warnings: string[] = [];
+
+  // Use pdfjs-dist to get text items with their X positions.
+  // This allows us to detect column boundaries by position gaps.
+  try {
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    // Point worker to the actual file in node_modules
+    const path = await import('path');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = path.resolve(
+      process.cwd(),
+      'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
+    );
+    const doc = await pdfjsLib.getDocument({
+      data: new Uint8Array(buffer),
+      useWorkerFetch: false,
+      isEvalSupported: false,
+      useSystemFonts: true,
+    }).promise;
+
+    // Collect all text items with their (x, y) positions across all pages
+    type TextItem = { str: string; x: number; y: number; page: number };
+    const allItems: TextItem[] = [];
+
+    for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
+      const page = await doc.getPage(pageNum);
+      const content = await page.getTextContent();
+      for (const item of content.items) {
+        if ('str' in item && item.str.trim()) {
+          const tx = item.transform;
+          allItems.push({
+            str: item.str,
+            x: Math.round(tx[4]),
+            y: Math.round(tx[5]),
+            page: pageNum,
+          });
+        }
+      }
+    }
+
+    if (allItems.length === 0) {
+      return NextResponse.json({
+        headers: [],
+        rows: [],
+        totalRows: 0,
+        parseWarnings: ['No text found in PDF.'],
+        rawPreview: '',
+      });
+    }
+
+    // Group items into rows by Y coordinate (items within 3px are same row)
+    // Sort by page desc then Y desc (PDF Y goes bottom-to-top)
+    allItems.sort((a, b) => a.page - b.page || b.y - a.y || a.x - b.x);
+
+    const rowGroups: TextItem[][] = [];
+    let currentRow: TextItem[] = [allItems[0]!];
+    let currentY = allItems[0]!.y;
+    let currentPage = allItems[0]!.page;
+
+    for (let i = 1; i < allItems.length; i++) {
+      const item = allItems[i]!;
+      if (item.page === currentPage && Math.abs(item.y - currentY) < 4) {
+        currentRow.push(item);
+      } else {
+        if (currentRow.length > 0) rowGroups.push(currentRow);
+        currentRow = [item];
+        currentY = item.y;
+        currentPage = item.page;
+      }
+    }
+    if (currentRow.length > 0) rowGroups.push(currentRow);
+
+    // Sort items within each row by X position
+    for (const row of rowGroups) {
+      row.sort((a, b) => a.x - b.x);
+    }
+
+    // Find the header row: the FIRST row on page 1 that has many items
+    // (skip title/subtitle rows which typically have 1-3 items)
+    // The header row should have at least 4 items and be one of the first 10 rows
+    let headerRowIdx = -1;
+    const typicalDataColumnCount = Math.max(
+      ...rowGroups.slice(0, Math.min(rowGroups.length, 20)).map((r) => r.length),
+    );
+    const headerThreshold = Math.max(4, Math.floor(typicalDataColumnCount * 0.5));
+
+    for (let i = 0; i < Math.min(rowGroups.length, 15); i++) {
+      const row = rowGroups[i]!;
+      // Header rows are on page 1 and have enough items
+      if (row[0]?.page === 1 && row.length >= headerThreshold) {
+        // Check if items look like headers (contain text, not just numbers)
+        const textItems = row.filter((item) => isNaN(Number(item.str.replace(/[,$%]/g, ''))));
+        if (textItems.length >= Math.floor(row.length * 0.5)) {
+          headerRowIdx = i;
+          break;
+        }
+      }
+    }
+
+    // Fallback: first row with max items
+    if (headerRowIdx === -1) {
+      let maxItems = 0;
+      for (let i = 0; i < Math.min(rowGroups.length, 10); i++) {
+        if (rowGroups[i]!.length > maxItems) {
+          maxItems = rowGroups[i]!.length;
+          headerRowIdx = i;
+        }
+      }
+    }
+
+    const headerRow = rowGroups[headerRowIdx]!;
+    if (headerRow.length < 2) {
+      // Fallback to simple text extraction
+      return fallbackPdfParse(buffer, warnings);
+    }
+
+    // Build column boundaries from header X positions
+    const headers: string[] = headerRow.map((item) => item.str.trim());
+    const colStarts: number[] = headerRow.map((item) => item.x);
+
+    // Parse data rows (everything after the header)
+    const dataRows: Record<string, string>[] = [];
+
+    for (let r = headerRowIdx + 1; r < rowGroups.length; r++) {
+      const rowItems = rowGroups[r]!;
+      const record: Record<string, string> = {};
+
+      // Assign each text item to the nearest column
+      for (const item of rowItems) {
+        let bestCol = 0;
+        let bestDist = Math.abs(item.x - colStarts[0]!);
+        for (let c = 1; c < colStarts.length; c++) {
+          const dist = Math.abs(item.x - colStarts[c]!);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestCol = c;
+          }
+        }
+        const colName = headers[bestCol]!;
+        record[colName] = record[colName]
+          ? record[colName] + ' ' + item.str.trim()
+          : item.str.trim();
+      }
+
+      // Only add if it has some data
+      if (Object.values(record).some((v) => v.length > 0)) {
+        dataRows.push(record);
+      }
+    }
+
+    warnings.push(
+      `Extracted ${headers.length} columns and ${dataRows.length} rows from PDF using layout analysis.`,
+    );
+
+    const rawPreview = rowGroups
+      .slice(0, 15)
+      .map((row) => row.map((i) => i.str).join(' | '))
+      .join('\n');
+
+    return NextResponse.json({
+      headers,
+      rows: dataRows,
+      totalRows: dataRows.length,
+      parseWarnings: warnings,
+      rawPreview,
+    });
+  } catch (pdfjsError) {
+    console.error('pdfjs-dist parsing failed, falling back:', pdfjsError);
+    return fallbackPdfParse(buffer, warnings);
+  }
+}
+
+async function fallbackPdfParse(buffer: Buffer, warnings: string[]) {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const pdfParse = require('pdf-parse') as (
     buffer: Buffer,
   ) => Promise<{ text: string; numpages: number }>;
   const result = await pdfParse(buffer);
   const text = result.text;
-
-  const warnings: string[] = [];
   const rawPreview = text.split('\n').slice(0, 30).join('\n');
 
-  // Try to detect tabular structure
   const lines = text
     .split('\n')
     .map((l: string) => l.trim())
@@ -75,22 +243,17 @@ async function parsePdf(buffer: Buffer) {
       headers: [],
       rows: [],
       totalRows: 0,
-      parseWarnings: ['No tabular data found in PDF. Try exporting to CSV or Excel.'],
+      parseWarnings: ['No tabular data found in PDF.'],
       rawPreview,
     });
   }
 
-  // Heuristic: detect if lines have consistent tab/multi-space separation
   const { headers, rows } = extractTableFromLines(lines);
 
   if (headers.length === 0) {
-    warnings.push(
-      "This PDF doesn't have a parseable table structure. PDF files often merge columns together during extraction. For best results, please open this PDF in Excel or Google Sheets and re-save as CSV or .xlsx, then upload that file instead.",
-    );
+    warnings.push('Could not detect column structure. The raw text is shown below for reference.');
   } else {
-    warnings.push(
-      `Detected ${headers.length} columns and ${rows.length} data rows from PDF. Please verify the mapping is correct.`,
-    );
+    warnings.push(`Detected ${headers.length} columns and ${rows.length} rows from PDF.`);
   }
 
   return NextResponse.json({
