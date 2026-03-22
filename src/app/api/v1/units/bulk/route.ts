@@ -18,11 +18,15 @@ import { z } from 'zod';
 function sanitizeJsonValue(value: unknown): unknown {
   if (value === null || value === undefined) return null;
   if (typeof value === 'string') {
-    return stripControlChars(stripHtml(value))
-      .replace(/\0/g, '') // Remove null bytes
-      .replace(/\\x[0-9a-fA-F]{2}/g, '') // Remove hex escapes
-      .replace(/\\u0000/g, '') // Remove unicode null
-      .substring(0, 5000); // Limit length
+    let s = stripControlChars(stripHtml(value));
+    // Remove null bytes and hex/unicode escapes that break PostgreSQL JSONB
+    s = s.replace(/\0/g, '');
+    s = s.replace(/\\x[0-9a-fA-F]{0,2}/g, ''); // Remove incomplete hex escapes
+    s = s.replace(/\\u[0-9a-fA-F]{0,4}/g, ''); // Remove incomplete unicode escapes
+    s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // Remove control chars
+    // Remove any remaining characters that would break JSON/PostgreSQL
+    s = s.replace(/\\/g, ''); // Remove lone backslashes
+    return s.substring(0, 5000);
   }
   if (typeof value === 'number' || typeof value === 'boolean') return value;
   if (Array.isArray(value)) return value.map(sanitizeJsonValue);

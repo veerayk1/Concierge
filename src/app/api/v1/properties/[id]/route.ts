@@ -107,3 +107,35 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// DELETE /api/v1/properties/:id — Soft delete a property
+// ---------------------------------------------------------------------------
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const demoRes = await handleDemoRequest(request);
+  if (demoRes) return demoRes;
+
+  try {
+    const auth = await guardRoute(request, { roles: ['super_admin'] });
+    if (auth.error) return auth.error;
+
+    const { id } = await params;
+
+    await prisma.property.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+
+    return NextResponse.json({ message: 'Property deleted' });
+  } catch (error) {
+    console.error('DELETE /api/v1/properties/:id error:', error);
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', message: 'Failed to delete property' },
+      { status: 500 },
+    );
+  }
+}
