@@ -53,9 +53,10 @@ export async function POST(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 async function parsePdf(buffer: Buffer) {
-  // Dynamic import to avoid bundling issues
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ text: string }>;
+  // pdf-parse v1.1.1 — CommonJS module, no canvas dependency
+  const pdfParse = (await import('pdf-parse')).default as unknown as (
+    buffer: Buffer,
+  ) => Promise<{ text: string; numpages: number }>;
   const result = await pdfParse(buffer);
   const text = result.text;
 
