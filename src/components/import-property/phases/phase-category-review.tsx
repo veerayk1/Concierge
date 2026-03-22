@@ -233,6 +233,7 @@ export function PhaseCategoryReview({
   const [mappings, setMappings] = useState<ColumnMapping[]>(fileData.mappings);
   const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  const [previewFilter, setPreviewFilter] = useState<'all' | 'valid' | 'warning' | 'error'>('all');
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importError, setImportError] = useState<string | null>(null);
@@ -434,7 +435,14 @@ export function PhaseCategoryReview({
   // Render
   // -----------------------------------------------------------------------
 
-  const previewRows = validation.rows.slice(0, 10);
+  const filteredPreviewRows = useMemo(() => {
+    const filtered =
+      previewFilter === 'all'
+        ? validation.rows
+        : validation.rows.filter((r) => r.status === previewFilter);
+    return filtered.slice(0, 50); // Show up to 50 rows
+  }, [validation.rows, previewFilter]);
+  const previewRows = filteredPreviewRows;
   const mappedHeaders = mappings
     .filter((m) => m.targetField || m.isCustomField)
     .map((m) => {
@@ -529,31 +537,62 @@ export function PhaseCategoryReview({
         </div>
       </Card>
 
-      {/* Validation Summary */}
-      <div className="mb-4 flex items-center gap-4">
-        <div className="flex items-center gap-1.5">
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
-          <span className="text-[13px] text-neutral-700">{validation.validRows} valid</span>
-        </div>
-        {validation.warningRows > 0 && (
-          <div className="flex items-center gap-1.5">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <span className="text-[13px] text-neutral-700">{validation.warningRows} warnings</span>
-          </div>
-        )}
-        {validation.errorRows > 0 && (
-          <div className="flex items-center gap-1.5">
-            <XCircle className="h-4 w-4 text-red-500" />
-            <span className="text-[13px] text-neutral-700">{validation.errorRows} errors</span>
-          </div>
-        )}
+      {/* Validation Summary — clickable filter tabs */}
+      <div className="mb-4 flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 p-1">
+        {[
+          { key: 'all', label: 'All', count: validation.totalRows, icon: null, color: '' },
+          {
+            key: 'valid',
+            label: 'Valid',
+            count: validation.validRows,
+            icon: <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />,
+            color: 'text-green-700',
+          },
+          {
+            key: 'warning',
+            label: 'Warnings',
+            count: validation.warningRows,
+            icon: <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />,
+            color: 'text-amber-700',
+          },
+          {
+            key: 'error',
+            label: 'Errors',
+            count: validation.errorRows,
+            icon: <XCircle className="h-3.5 w-3.5 text-red-500" />,
+            color: 'text-red-700',
+          },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setPreviewFilter(tab.key as typeof previewFilter)}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+              previewFilter === tab.key
+                ? 'bg-white text-neutral-900 shadow-sm'
+                : 'text-neutral-500 hover:text-neutral-700'
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+            <span
+              className={`ml-0.5 ${previewFilter === tab.key ? tab.color : 'text-neutral-400'}`}
+            >
+              {tab.count}
+            </span>
+          </button>
+        ))}
       </div>
 
       {/* Data Preview Table */}
       <Card padding="none" className="mb-6 overflow-hidden">
-        <div className="border-b border-neutral-100 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
           <p className="text-[13px] font-semibold tracking-wide text-neutral-700 uppercase">
-            Data Preview (first {previewRows.length} rows)
+            Data Preview
+          </p>
+          <p className="text-xs text-neutral-400">
+            {filteredPreviewRows.length} of {validation.totalRows} rows
+            {previewFilter !== 'all' && ` · Showing ${previewFilter} only`}
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -574,28 +613,43 @@ export function PhaseCategoryReview({
                 return (
                   <React.Fragment key={row.index}>
                     <tr
-                      className={`cursor-pointer border-b border-neutral-50 transition-colors hover:bg-neutral-50 ${
-                        row.status === 'error' ? 'bg-red-50/30' : ''
+                      className={`border-b border-neutral-50 transition-colors ${
+                        row.issues.length > 0 ? 'cursor-pointer hover:bg-neutral-50' : ''
+                      } ${
+                        row.status === 'error'
+                          ? 'bg-red-50/40'
+                          : row.status === 'warning'
+                            ? 'bg-amber-50/30'
+                            : ''
                       }`}
-                      onClick={() => setExpandedRow(isExpanded ? null : row.index)}
+                      onClick={() =>
+                        row.issues.length > 0 && setExpandedRow(isExpanded ? null : row.index)
+                      }
                     >
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-1.5">
-                          {row.issues.length > 0 ? (
-                            isExpanded ? (
-                              <ChevronDown className="h-3.5 w-3.5 text-neutral-400" />
-                            ) : (
-                              <ChevronRight className="h-3.5 w-3.5 text-neutral-400" />
-                            )
-                          ) : null}
                           {row.status === 'valid' && (
                             <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                           )}
                           {row.status === 'warning' && (
-                            <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                            <div className="flex items-center gap-1">
+                              {isExpanded ? (
+                                <ChevronDown className="h-3.5 w-3.5 text-amber-500" />
+                              ) : (
+                                <ChevronRight className="h-3.5 w-3.5 text-amber-500" />
+                              )}
+                              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                            </div>
                           )}
                           {row.status === 'error' && (
-                            <XCircle className="h-3.5 w-3.5 text-red-500" />
+                            <div className="flex items-center gap-1">
+                              {isExpanded ? (
+                                <ChevronDown className="h-3.5 w-3.5 text-red-500" />
+                              ) : (
+                                <ChevronRight className="h-3.5 w-3.5 text-red-500" />
+                              )}
+                              <XCircle className="h-3.5 w-3.5 text-red-500" />
+                            </div>
                           )}
                         </div>
                       </td>
@@ -609,25 +663,59 @@ export function PhaseCategoryReview({
                       ))}
                     </tr>
                     {isExpanded && row.issues.length > 0 && (
-                      <tr className="bg-neutral-50/50">
-                        <td colSpan={mappedHeaders.slice(0, 6).length + 1} className="px-6 py-2">
-                          <div className="space-y-1">
-                            {row.issues.map((issue, idx) => (
-                              <div key={idx} className="flex items-center gap-2 text-[12px]">
-                                {issue.severity === 'error' ? (
-                                  <XCircle className="h-3 w-3 shrink-0 text-red-500" />
-                                ) : (
-                                  <AlertTriangle className="h-3 w-3 shrink-0 text-amber-500" />
-                                )}
-                                <span
-                                  className={
-                                    issue.severity === 'error' ? 'text-red-700' : 'text-amber-700'
-                                  }
-                                >
-                                  {issue.column}: {issue.message}
-                                </span>
-                              </div>
-                            ))}
+                      <tr>
+                        <td colSpan={mappedHeaders.slice(0, 6).length + 1} className="px-4 py-3">
+                          <div
+                            className={`rounded-lg border p-3 ${
+                              row.status === 'error'
+                                ? 'border-red-200 bg-red-50'
+                                : 'border-amber-200 bg-amber-50'
+                            }`}
+                          >
+                            <p
+                              className={`mb-2 text-xs font-semibold ${
+                                row.status === 'error' ? 'text-red-800' : 'text-amber-800'
+                              }`}
+                            >
+                              Row {row.index + 1} — {row.issues.length} issue
+                              {row.issues.length > 1 ? 's' : ''} found:
+                            </p>
+                            <div className="space-y-1.5">
+                              {row.issues.map((issue, idx) => (
+                                <div key={idx} className="flex items-start gap-2 text-[12px]">
+                                  <span
+                                    className={`mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
+                                      issue.severity === 'error' ? 'bg-red-500' : 'bg-amber-500'
+                                    }`}
+                                  />
+                                  <div>
+                                    <span
+                                      className={`font-medium ${
+                                        issue.severity === 'error'
+                                          ? 'text-red-800'
+                                          : 'text-amber-800'
+                                      }`}
+                                    >
+                                      {issue.column}:
+                                    </span>{' '}
+                                    <span
+                                      className={
+                                        issue.severity === 'error'
+                                          ? 'text-red-700'
+                                          : 'text-amber-700'
+                                      }
+                                    >
+                                      {issue.message}
+                                    </span>
+                                    {issue.value && (
+                                      <span className="ml-1 rounded bg-white/50 px-1 py-0.5 font-mono text-[11px] text-neutral-600">
+                                        &quot;{issue.value}&quot;
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </td>
                       </tr>
