@@ -221,8 +221,18 @@ async function parseDocumentFile(file: File, fileType: 'pdf' | 'docx'): Promise<
   formData.append('file', file);
   formData.append('fileType', fileType);
 
+  // Build auth headers for demo mode and real auth
+  const headers: Record<string, string> = {};
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('auth_token');
+    const demoRole = localStorage.getItem('demo_role');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (demoRole) headers['x-demo-role'] = demoRole;
+  }
+
   const response = await fetch('/api/v1/import/parse-document', {
     method: 'POST',
+    headers,
     body: formData,
   });
 
