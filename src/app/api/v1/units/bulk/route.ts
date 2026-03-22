@@ -11,6 +11,32 @@ import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
+/**
+ * Sanitize a JSON value for PostgreSQL JSONB storage.
+ * Removes null bytes, control characters, and XSS payloads from all string values.
+ */
+function sanitizeJsonValue(value: unknown): unknown {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') {
+    return stripControlChars(stripHtml(value))
+      .replace(/\0/g, '') // Remove null bytes
+      .replace(/\\x[0-9a-fA-F]{2}/g, '') // Remove hex escapes
+      .replace(/\\u0000/g, '') // Remove unicode null
+      .substring(0, 5000); // Limit length
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value.map(sanitizeJsonValue);
+  if (typeof value === 'object') {
+    const cleaned: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      const cleanKey = k.replace(/[^\w\s.-]/g, '').substring(0, 200);
+      if (cleanKey) cleaned[cleanKey] = sanitizeJsonValue(v);
+    }
+    return cleaned;
+  }
+  return String(value).substring(0, 5000);
+}
+
 const bulkRequestSchema = z.object({
   propertyId: z.string().uuid(),
   skipDuplicates: z.boolean().default(true),
@@ -159,7 +185,22 @@ export async function POST(request: NextRequest) {
 
     for (let i = 0; i < units.length; i++) {
       const unit = units[i]!;
-      const sanitizedNumber = stripControlChars(stripHtml(unit.number)).trim();
+      let sanitizedNumber = stripControlChars(stripHtml(unit.number)).trim();
+      // Remove path traversal, null bytes, and dangerous characters
+      sanitizedNumber = sanitizedNumber
+        .replace(/\.\.\//g, '')
+        .replace(/[<>"'`]/g, '')
+        .replace(/\0/g, '')
+        .replace(/\\x[0-9a-fA-F]{2}/g, '')
+        .substring(0, 20);
+      if (!sanitizedNumber) {
+        results.errors.push({
+          index: i,
+          number: unit.number,
+          message: 'Invalid unit number after sanitization',
+        });
+        continue;
+      }
       const lowerNumber = sanitizedNumber.toLowerCase();
 
       // Check for duplicates
@@ -182,7 +223,10 @@ export async function POST(request: NextRequest) {
       // Resolve buildingId from building name if needed
       let resolvedBuildingId = unit.buildingId ?? null;
       if (!resolvedBuildingId && unit.building) {
-        resolvedBuildingId = buildingNameToId.get(unit.building.trim().toLowerCase()) ?? null;
+        const cleanBuilding = stripControlChars(stripHtml(unit.building)).trim();
+        if (cleanBuilding) {
+          resolvedBuildingId = buildingNameToId.get(cleanBuilding.toLowerCase()) ?? null;
+        }
       }
 
       toCreate.push({
@@ -201,7 +245,7 @@ export async function POST(request: NextRequest) {
         keyTag: unit.keyTag ? stripControlChars(unit.keyTag).substring(0, 50) : null,
         comments: unit.comments ? stripControlChars(stripHtml(unit.comments)) : null,
         customFields: unit.customFields
-          ? (unit.customFields as Prisma.InputJsonValue)
+          ? (sanitizeJsonValue(unit.customFields) as Prisma.InputJsonValue)
           : Prisma.JsonNull,
       });
     }
