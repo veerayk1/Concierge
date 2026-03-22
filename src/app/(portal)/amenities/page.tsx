@@ -92,7 +92,13 @@ export default function AmenitiesPage() {
       description="Browse and reserve building amenities."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              alert('Calendar view coming soon. Amenities are currently displayed in list view.')
+            }
+          >
             <Calendar className="h-4 w-4" />
             Calendar View
           </Button>

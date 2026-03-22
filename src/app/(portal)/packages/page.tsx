@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -385,7 +386,26 @@ export default function PackagesPage() {
             <Package className="h-4 w-4" />
             Batch Intake
           </Button>
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              exportToCsv(
+                allPackages,
+                [
+                  { key: 'referenceNumber', header: 'Reference #' },
+                  { key: 'unit', header: 'Unit' },
+                  { key: 'recipient', header: 'Recipient' },
+                  { key: 'courier', header: 'Courier' },
+                  { key: 'description', header: 'Description' },
+                  { key: 'status', header: 'Status' },
+                  { key: 'storageSpot', header: 'Storage Spot' },
+                  { key: 'receivedAt', header: 'Received At' },
+                ],
+                'packages',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>

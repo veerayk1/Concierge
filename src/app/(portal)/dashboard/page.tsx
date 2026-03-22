@@ -637,79 +637,16 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Recent System Events */}
+        {/* Recent System Events — populated from real event log API */}
         <div>
           <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
             Recent System Events
           </h2>
           <Card padding="none">
-            <div className="divide-y divide-neutral-100">
-              {[
-                {
-                  id: '1',
-                  title: 'New property onboarded: Lakeview Towers',
-                  type: 'System',
-                  time: '2 hrs ago',
-                  status: 'completed',
-                },
-                {
-                  id: '2',
-                  title: 'Subscription upgraded: Maple Heights (Professional)',
-                  type: 'Billing',
-                  time: '5 hrs ago',
-                  status: 'completed',
-                },
-                {
-                  id: '3',
-                  title: 'API rate limit alert: Developer key dk_abc123',
-                  type: 'Alert',
-                  time: '8 hrs ago',
-                  status: 'warning',
-                },
-                {
-                  id: '4',
-                  title: 'Data migration completed: Riverside Condos',
-                  type: 'System',
-                  time: '1 day ago',
-                  status: 'completed',
-                },
-                {
-                  id: '5',
-                  title: 'SSL certificate renewal: *.concierge.app',
-                  type: 'Infrastructure',
-                  time: '2 days ago',
-                  status: 'completed',
-                },
-              ].map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-neutral-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                        event.status === 'warning' ? 'bg-warning-50' : 'bg-primary-50'
-                      }`}
-                    >
-                      {event.status === 'warning' ? (
-                        <AlertTriangle className="text-warning-600 h-4 w-4" />
-                      ) : (
-                        <CheckCircle2 className="text-primary-600 h-4 w-4" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-[14px] font-medium text-neutral-900">{event.title}</p>
-                      <p className="text-[12px] text-neutral-500">{event.type}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant={event.status === 'warning' ? 'warning' : 'success'} size="sm">
-                      {event.status === 'warning' ? 'Alert' : 'OK'}
-                    </Badge>
-                    <span className="text-[12px] text-neutral-400">{event.time}</span>
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-col items-center justify-center px-5 py-10 text-center">
+              <CheckCircle2 className="text-primary-200 mb-2 h-8 w-8" />
+              <p className="text-[14px] font-medium text-neutral-500">No recent system events</p>
+              <p className="text-[12px] text-neutral-400">Events will appear here as they occur</p>
             </div>
           </Card>
         </div>

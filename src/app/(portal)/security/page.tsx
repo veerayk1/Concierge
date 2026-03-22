@@ -281,7 +281,11 @@ export default function SecurityPage() {
       description="Unified security dashboard with real-time event logging."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => alert('Camera integration coming soon.')}
+          >
             <Eye className="h-4 w-4" />
             View Cameras
           </Button>

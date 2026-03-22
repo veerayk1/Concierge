@@ -506,7 +506,14 @@ export default function PropertiesPage() {
       description="Manage all properties in your portfolio."
       actions={
         <>
-          <Button variant="secondary">
+          <Button
+            variant="secondary"
+            onClick={() =>
+              alert(
+                'Property import wizard coming soon. Use Add Property to create properties manually.',
+              )
+            }
+          >
             <Upload className="h-4 w-4" />
             Import Property
           </Button>

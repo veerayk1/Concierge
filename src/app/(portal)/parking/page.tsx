@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -288,7 +289,42 @@ export default function ParkingPage() {
       }
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              if (tab === 'permits') {
+                exportToCsv(
+                  allPermits,
+                  [
+                    { key: 'permitNumber', header: 'Permit #' },
+                    { key: 'unit', header: 'Unit' },
+                    { key: 'resident', header: 'Resident' },
+                    { key: 'vehicle', header: 'Vehicle' },
+                    { key: 'licensePlate', header: 'License Plate' },
+                    { key: 'spotNumber', header: 'Spot' },
+                    { key: 'area', header: 'Area' },
+                    { key: 'type', header: 'Type' },
+                    { key: 'status', header: 'Status' },
+                  ],
+                  'parking-permits',
+                );
+              } else {
+                exportToCsv(
+                  allViolations,
+                  [
+                    { key: 'licensePlate', header: 'License Plate' },
+                    { key: 'location', header: 'Location' },
+                    { key: 'violation', header: 'Violation' },
+                    { key: 'status', header: 'Status' },
+                    { key: 'reportedBy', header: 'Reported By' },
+                    { key: 'reportedAt', header: 'Reported At' },
+                  ],
+                  'parking-violations',
+                );
+              }
+            }}
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>

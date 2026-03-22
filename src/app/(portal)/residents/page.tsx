@@ -14,6 +14,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
 // Types — matches API response shape from GET /api/v1/residents
@@ -232,7 +233,25 @@ export default function ResidentsPage() {
         description={`${residents.length} residents`}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                exportToCsv(
+                  residents,
+                  [
+                    { key: 'firstName', header: 'First Name' },
+                    { key: 'lastName', header: 'Last Name' },
+                    { key: 'email', header: 'Email' },
+                    { key: 'phone', header: 'Phone' },
+                    { key: 'unitNumber', header: 'Unit' },
+                    { key: 'roleLabel', header: 'Role' },
+                    { key: 'status', header: 'Status' },
+                  ],
+                  'residents',
+                )
+              }
+            >
               <Download className="h-4 w-4" />
               Export
             </Button>

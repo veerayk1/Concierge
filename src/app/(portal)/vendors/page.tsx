@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
 // Types — mapped from API response (Prisma Vendor + relations)
@@ -202,7 +203,23 @@ export default function VendorsPage() {
       description="Manage vendor relationships, contracts, and compliance."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              exportToCsv(
+                filteredVendors,
+                [
+                  { key: 'companyName', header: 'Company Name' },
+                  { key: 'contactName', header: 'Contact Name' },
+                  { key: 'phone', header: 'Phone' },
+                  { key: 'email', header: 'Email' },
+                  { key: 'complianceStatus', header: 'Compliance Status' },
+                ],
+                'vendors',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LogEventDialog } from '@/components/forms/log-event-dialog';
+import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
 // Types — Unified Event Model (API response shape)
@@ -206,7 +207,24 @@ export default function EventsPage() {
       description="Unified event log with configurable event types."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              exportToCsv(
+                allEvents,
+                [
+                  { key: 'typeLabel', header: 'Type' },
+                  { key: 'title', header: 'Title' },
+                  { key: 'unit', header: 'Unit' },
+                  { key: 'status', header: 'Status' },
+                  { key: 'createdBy', header: 'Created By' },
+                  { key: 'createdAt', header: 'Created At' },
+                ],
+                'events',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>

@@ -24,6 +24,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateUnitDialog } from '@/components/forms/create-unit-dialog';
+import { exportToCsv } from '@/lib/export-csv';
 import { ImportWizard } from '@/components/import/import-wizard';
 import { GenerateUnitsDialog } from '@/components/forms/generate-units-dialog';
 
@@ -280,7 +281,24 @@ export default function UnitsPage() {
                 <Grid3X3 className="h-4 w-4" />
               </button>
             </div>
-            <Button variant="secondary" size="sm">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                exportToCsv(
+                  units,
+                  [
+                    { key: 'number', header: 'Unit Number' },
+                    { key: 'floor', header: 'Floor' },
+                    { key: 'building', header: 'Building' },
+                    { key: 'type', header: 'Type' },
+                    { key: 'status', header: 'Status' },
+                    { key: 'occupantCount', header: 'Occupants' },
+                  ],
+                  'units',
+                )
+              }
+            >
               <Download className="h-4 w-4" />
               Export
             </Button>

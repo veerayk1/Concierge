@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -259,7 +260,26 @@ export default function MaintenancePage() {
       description="Track and manage all maintenance requests across the building."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              exportToCsv(
+                allRequests,
+                [
+                  { key: 'referenceNumber', header: 'Reference #' },
+                  { key: 'unit', header: 'Unit' },
+                  { key: 'resident', header: 'Resident' },
+                  { key: 'category', header: 'Category' },
+                  { key: 'description', header: 'Description' },
+                  { key: 'status', header: 'Status' },
+                  { key: 'priority', header: 'Priority' },
+                  { key: 'createdAt', header: 'Created At' },
+                ],
+                'maintenance-requests',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>
