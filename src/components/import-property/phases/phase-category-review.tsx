@@ -96,6 +96,22 @@ const safeStr = (val: string | undefined): string | undefined => {
   return trimmed && trimmed.length > 0 ? trimmed : undefined;
 };
 
+/**
+ * Extract custom fields from mappedData. The validator stores custom field
+ * values with a `custom:` prefix (e.g. `custom:beds`, `custom:baths`).
+ */
+function extractCustomFields(
+  mappedData: Record<string, string>,
+): Record<string, string> | undefined {
+  const customs: Record<string, string> = {};
+  for (const [key, value] of Object.entries(mappedData)) {
+    if (key.startsWith('custom:') && value?.trim()) {
+      customs[key.replace('custom:', '')] = value.trim();
+    }
+  }
+  return Object.keys(customs).length > 0 ? customs : undefined;
+}
+
 function buildBulkPayload(
   entityType: EntityType,
   validRows: Array<{ mappedData: Record<string, string> }>,
@@ -113,6 +129,7 @@ function buildBulkPayload(
         parkingSpot: safeStr(row.mappedData.parkingSpot),
         locker: safeStr(row.mappedData.locker),
         comments: safeStr(row.mappedData.comments),
+        customFields: extractCustomFields(row.mappedData),
       }));
 
     case 'amenities':
@@ -123,6 +140,7 @@ function buildBulkPayload(
         fee: row.mappedData.fee ? parseFloat(row.mappedData.fee) : undefined,
         bookingStyle: row.mappedData.bookingStyle || undefined,
         group: row.mappedData.group || undefined,
+        customFields: extractCustomFields(row.mappedData),
       }));
 
     case 'fobs':
@@ -134,6 +152,7 @@ function buildBulkPayload(
         issuedDate: row.mappedData.issuedDate || undefined,
         issuedToName: row.mappedData.issuedToName || undefined,
         notes: row.mappedData.notes || undefined,
+        customFields: extractCustomFields(row.mappedData),
       }));
 
     case 'buzzer_codes':
@@ -141,6 +160,7 @@ function buildBulkPayload(
         unitNumber: row.mappedData.unitNumber,
         code: row.mappedData.code,
         comments: row.mappedData.comments || undefined,
+        customFields: extractCustomFields(row.mappedData),
       }));
 
     case 'parking_permits':
@@ -151,6 +171,7 @@ function buildBulkPayload(
         vehicleModel: row.mappedData.vehicleModel || undefined,
         vehicleColor: row.mappedData.vehicleColor || undefined,
         spotNumber: row.mappedData.spotNumber || undefined,
+        customFields: extractCustomFields(row.mappedData),
       }));
 
     case 'staff':
@@ -161,10 +182,14 @@ function buildBulkPayload(
         email: row.mappedData.email,
         phone: row.mappedData.phone || undefined,
         role: row.mappedData.role || undefined,
+        customFields: extractCustomFields(row.mappedData),
       }));
 
     default:
-      return validRows.map((row) => row.mappedData);
+      return validRows.map((row) => ({
+        ...row.mappedData,
+        customFields: extractCustomFields(row.mappedData),
+      }));
   }
 }
 
@@ -213,6 +238,9 @@ export function PhaseCategoryReview({
       prev.map((m) => {
         if (m.sourceHeader !== sourceHeader) return m;
         if (newTargetField === '__skip__') {
+          return { ...m, targetField: null, confidence: 0, isCustomField: false };
+        }
+        if (newTargetField === '__custom__') {
           return { ...m, targetField: null, confidence: 0, isCustomField: true };
         }
         return { ...m, targetField: newTargetField, confidence: 80, isCustomField: false };
@@ -315,6 +343,7 @@ export function PhaseCategoryReview({
                 residentType: row.mappedData.residentType || 'resident',
                 propertyId,
                 role: 'RESIDENT',
+                customFields: extractCustomFields(row.mappedData),
               }),
             });
 
@@ -401,11 +430,18 @@ export function PhaseCategoryReview({
               </span>
               <ArrowRight className="h-3.5 w-3.5 shrink-0 text-neutral-300" />
               <select
-                value={mapping.targetField ?? '__skip__'}
+                value={
+                  mapping.targetField
+                    ? mapping.targetField
+                    : mapping.isCustomField
+                      ? '__custom__'
+                      : '__skip__'
+                }
                 onChange={(e) => handleMappingChange(mapping.sourceHeader, e.target.value)}
                 className="h-8 min-w-[180px] rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-800"
               >
-                <option value="__skip__">Skip this column</option>
+                <option value="__custom__">💾 Save as Custom Field</option>
+                <option value="__skip__">⏭ Skip this column</option>
                 {targetFields.map((field) => (
                   <option key={field.key} value={field.key}>
                     {field.label} {field.required ? '(required)' : ''}
@@ -413,9 +449,11 @@ export function PhaseCategoryReview({
                 ))}
               </select>
               <div className="w-14 shrink-0 text-right">
-                {mapping.targetField && !mapping.isCustomField && (
+                {mapping.targetField && !mapping.isCustomField ? (
                   <ConfidenceBadge confidence={mapping.confidence} />
-                )}
+                ) : mapping.isCustomField ? (
+                  <span className="text-xs font-medium text-blue-600">Custom</span>
+                ) : null}
               </div>
             </div>
           ))}

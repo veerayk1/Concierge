@@ -99,6 +99,9 @@ export const UNIT_FIELDS: FieldDefinition[] = [
       'bldg name',
       'tower name',
       'structure',
+      'building_code',
+      'building code',
+      'bldg code',
     ],
   },
   {
@@ -138,6 +141,11 @@ export const UNIT_FIELDS: FieldDefinition[] = [
       'square meters',
       'sq m',
       'sqm',
+      'area_sqft',
+      'area sqft',
+      'total sqft',
+      'unit area',
+      'living area',
     ],
   },
   {
@@ -248,6 +256,10 @@ export const UNIT_FIELDS: FieldDefinition[] = [
       'other',
       'misc',
       'miscellaneous',
+      'special notes',
+      'front desk notes',
+      'instructions',
+      'unit notes',
     ],
   },
 ];
@@ -1017,7 +1029,7 @@ export function autoMapColumns(
 
   const fuse = new Fuse(aliasEntries, {
     keys: ['alias'],
-    threshold: 0.3,
+    threshold: 0.25,
     includeScore: true,
   });
 
@@ -1050,7 +1062,7 @@ export function autoMapColumns(
     const fuseResults = fuse.search(normalizedHeader);
     const bestMatch = fuseResults.find((r) => !mappedFields.has(r.item.fieldKey));
 
-    if (bestMatch && bestMatch.score !== undefined && bestMatch.score < 0.4) {
+    if (bestMatch && bestMatch.score !== undefined && bestMatch.score < 0.3) {
       const confidence = Math.round((1 - bestMatch.score) * 100);
       mappings.push({
         sourceHeader: header,
