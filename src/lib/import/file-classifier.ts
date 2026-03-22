@@ -119,7 +119,8 @@ function scoreEntityType(mappings: ColumnMapping[], entityType: EntityType): num
   const mappedRatio = mapped.length / Math.max(mappings.length, 1);
   const mappedBonus = mappedRatio * 10;
 
-  return avgConfidence * 0.6 + requiredCoverage * 100 * 0.4 + mappedBonus;
+  const raw = avgConfidence * 0.6 + requiredCoverage * 100 * 0.4 + mappedBonus;
+  return Math.min(raw, 100);
 }
 
 /**

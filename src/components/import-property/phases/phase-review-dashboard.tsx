@@ -91,10 +91,13 @@ export function PhaseReviewDashboard({
       existing.validRows += file.validationResult.validRows;
       existing.warningRows += file.validationResult.warningRows;
       existing.errorRows += file.validationResult.errorRows;
-      // Average confidence
-      existing.confidence = Math.round(
-        (existing.confidence * (existing.sourceFiles.length - 1) + file.confidence) /
-          existing.sourceFiles.length,
+      // Average confidence, capped at 100
+      existing.confidence = Math.min(
+        100,
+        Math.round(
+          (existing.confidence * (existing.sourceFiles.length - 1) + file.confidence) /
+            existing.sourceFiles.length,
+        ),
       );
     } else {
       categoriesMap.set(file.detectedEntityType, {
@@ -103,7 +106,7 @@ export function PhaseReviewDashboard({
         validRows: file.validationResult.validRows,
         warningRows: file.validationResult.warningRows,
         errorRows: file.validationResult.errorRows,
-        confidence: file.confidence,
+        confidence: Math.min(100, file.confidence),
       });
     }
   }
