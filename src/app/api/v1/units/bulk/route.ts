@@ -17,16 +17,18 @@ const bulkUnitSchema = z.object({
   units: z
     .array(
       z.object({
-        number: z.string().min(1).max(20),
-        floor: z.number().int().min(0).max(200).optional().nullable(),
+        number: z.string().min(1).max(50),
+        floor: z.number().int().min(-10).max(200).optional().nullable(),
         buildingId: z.string().uuid().optional().nullable(),
-        unitType: z.string().max(50).default('residential'),
-        squareFootage: z.number().positive().optional().nullable(),
-        enterPhoneCode: z.string().max(20).optional().nullable(),
-        parkingSpot: z.string().max(20).optional().nullable(),
-        locker: z.string().max(20).optional().nullable(),
+        building: z.string().max(100).optional().nullable(),
+        unitType: z.string().max(50).optional().nullable(),
+        squareFootage: z.number().min(0).optional().nullable(),
+        status: z.string().max(50).optional().nullable(),
+        enterPhoneCode: z.string().max(50).optional().nullable(),
+        parkingSpot: z.string().max(50).optional().nullable(),
+        locker: z.string().max(50).optional().nullable(),
         keyTag: z.string().max(50).optional().nullable(),
-        comments: z.string().max(2000).optional().nullable(),
+        comments: z.string().max(5000).optional().nullable(),
         customFields: z.record(z.unknown()).optional().nullable(),
       }),
     )

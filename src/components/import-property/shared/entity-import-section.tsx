@@ -140,21 +140,39 @@ export function EntityImportSection({
 
   const buildBulkPayload = useCallback(
     (validRows: Array<{ mappedData: Record<string, string> }>) => {
+      // Helper to safely parse integers — returns undefined for NaN/invalid
+      const safeInt = (val: string | undefined): number | undefined => {
+        if (!val) return undefined;
+        const cleaned = val.replace(/[,\s$]/g, '').trim();
+        const num = parseInt(cleaned, 10);
+        return isNaN(num) ? undefined : num;
+      };
+      // Helper to safely parse floats
+      const safeFloat = (val: string | undefined): number | undefined => {
+        if (!val) return undefined;
+        const cleaned = val.replace(/[,\s$]/g, '').trim();
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? undefined : num;
+      };
+      // Helper: only include non-empty strings
+      const safeStr = (val: string | undefined): string | undefined => {
+        const trimmed = val?.trim();
+        return trimmed && trimmed.length > 0 ? trimmed : undefined;
+      };
+
       switch (entityType) {
         case 'units':
           return validRows.map((row) => ({
-            number: row.mappedData.number,
-            floor: row.mappedData.floor ? parseInt(row.mappedData.floor, 10) : undefined,
-            building: row.mappedData.building || undefined,
-            unitType: row.mappedData.unitType || undefined,
-            squareFootage: row.mappedData.squareFootage
-              ? parseInt(row.mappedData.squareFootage.replace(/[,\s]/g, ''), 10)
-              : undefined,
-            status: row.mappedData.status || undefined,
-            enterPhoneCode: row.mappedData.enterPhoneCode || undefined,
-            parkingSpot: row.mappedData.parkingSpot || undefined,
-            locker: row.mappedData.locker || undefined,
-            comments: row.mappedData.comments || undefined,
+            number: row.mappedData.number?.trim() || '',
+            floor: safeInt(row.mappedData.floor),
+            building: safeStr(row.mappedData.building),
+            unitType: safeStr(row.mappedData.unitType),
+            squareFootage: safeFloat(row.mappedData.squareFootage),
+            status: safeStr(row.mappedData.status),
+            enterPhoneCode: safeStr(row.mappedData.enterPhoneCode),
+            parkingSpot: safeStr(row.mappedData.parkingSpot),
+            locker: safeStr(row.mappedData.locker),
+            comments: safeStr(row.mappedData.comments),
           }));
 
         case 'amenities':
