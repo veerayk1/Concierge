@@ -11,29 +11,27 @@ import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
-const bulkUnitSchema = z.object({
+const bulkRequestSchema = z.object({
   propertyId: z.string().uuid(),
   skipDuplicates: z.boolean().default(true),
-  units: z
-    .array(
-      z.object({
-        number: z.string().min(1).max(50),
-        floor: z.number().int().min(-10).max(200).optional().nullable(),
-        buildingId: z.string().uuid().optional().nullable(),
-        building: z.string().max(100).optional().nullable(),
-        unitType: z.string().max(50).optional().nullable(),
-        squareFootage: z.number().min(0).optional().nullable(),
-        status: z.string().max(50).optional().nullable(),
-        enterPhoneCode: z.string().max(50).optional().nullable(),
-        parkingSpot: z.string().max(50).optional().nullable(),
-        locker: z.string().max(50).optional().nullable(),
-        keyTag: z.string().max(50).optional().nullable(),
-        comments: z.string().max(5000).optional().nullable(),
-        customFields: z.record(z.unknown()).optional().nullable(),
-      }),
-    )
-    .min(1)
-    .max(2000),
+  units: z.array(z.record(z.unknown())).min(1).max(2000),
+});
+
+// Individual unit schema — lenient, for per-row validation
+const unitItemSchema = z.object({
+  number: z.string().min(1).max(50),
+  floor: z.number().int().min(-10).max(999).optional().nullable(),
+  buildingId: z.string().uuid().optional().nullable(),
+  building: z.string().max(100).optional().nullable(),
+  unitType: z.string().max(50).optional().nullable(),
+  squareFootage: z.number().min(0).optional().nullable(),
+  status: z.string().max(50).optional().nullable(),
+  enterPhoneCode: z.string().max(50).optional().nullable(),
+  parkingSpot: z.string().max(50).optional().nullable(),
+  locker: z.string().max(50).optional().nullable(),
+  keyTag: z.string().max(50).optional().nullable(),
+  comments: z.string().max(5000).optional().nullable(),
+  customFields: z.record(z.unknown()).optional().nullable(),
 });
 
 export async function POST(request: NextRequest) {
@@ -47,20 +45,49 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const parsed = bulkUnitSchema.safeParse(body);
+    const parsed = bulkRequestSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
         {
           error: 'VALIDATION_ERROR',
-          message: 'Invalid input',
+          message: 'Invalid request format',
           fields: parsed.error.flatten().fieldErrors,
         },
         { status: 400 },
       );
     }
 
-    const { propertyId, units, skipDuplicates } = parsed.data;
+    const { propertyId, skipDuplicates } = parsed.data;
+    // Validate each unit individually — skip invalid ones instead of rejecting the whole batch
+    const units = parsed.data.units
+      .map((rawUnit, idx) => {
+        // Pre-clean: convert non-number floors/sqft to null
+        const cleaned = { ...rawUnit };
+        if (cleaned.floor !== undefined && cleaned.floor !== null) {
+          const f = Number(cleaned.floor);
+          cleaned.floor = isNaN(f) ? null : Math.round(f);
+        }
+        if (cleaned.squareFootage !== undefined && cleaned.squareFootage !== null) {
+          const s = Number(cleaned.squareFootage);
+          cleaned.squareFootage = isNaN(s) || s < 0 ? null : s;
+        }
+        // Truncate overly long strings
+        if (typeof cleaned.number === 'string')
+          cleaned.number = cleaned.number.trim().substring(0, 50);
+        if (typeof cleaned.comments === 'string')
+          cleaned.comments = cleaned.comments.substring(0, 5000);
+        if (typeof cleaned.unitType === 'string')
+          cleaned.unitType = cleaned.unitType.substring(0, 50);
+
+        const result = unitItemSchema.safeParse(cleaned);
+        if (!result.success) {
+          console.warn(`Unit row ${idx} validation failed:`, result.error.flatten().fieldErrors);
+          return null;
+        }
+        return result.data;
+      })
+      .filter((u): u is z.infer<typeof unitItemSchema> => u !== null && !!u.number);
 
     // Pre-fetch existing unit numbers for this property
     const existingUnits = await prisma.unit.findMany({

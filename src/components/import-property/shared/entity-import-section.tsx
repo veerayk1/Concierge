@@ -282,7 +282,18 @@ export function EntityImportSection({
 
         if (!response.ok) {
           const err = await response.json().catch(() => ({}));
-          throw new Error(err.message || 'Import failed');
+          // Build detailed error message including field-level validation errors
+          let errorMsg = err.message || 'Import failed';
+          if (err.fields) {
+            const fieldErrors = Object.entries(err.fields)
+              .map(([key, msgs]) => `${key}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+              .join('; ');
+            errorMsg += ` — ${fieldErrors}`;
+          }
+          if (err.error) {
+            errorMsg = `[${err.error}] ${errorMsg}`;
+          }
+          throw new Error(errorMsg);
         }
 
         const result = await response.json();
@@ -501,8 +512,12 @@ export function EntityImportSection({
 
           {/* Import error */}
           {importError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {importError}
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+              <p className="mb-1 text-sm font-medium text-red-800">Import Failed</p>
+              <p className="text-xs break-all whitespace-pre-wrap text-red-700">{importError}</p>
+              <p className="mt-2 text-xs text-red-500">
+                Try resetting and re-uploading the file after fixing the data.
+              </p>
             </div>
           )}
 
