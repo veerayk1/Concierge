@@ -1,87 +1,89 @@
 'use client';
 
 /**
- * Property Import Wizard — 8-Step Full-Page Wizard
+ * Property Import Wizard — "Dump Everything" 3-Phase Wizard
  *
- * Guides admins through importing an entire property ecosystem:
- * 1. Property Details (required)
- * 2. Buildings & Units (required)
- * 3. Residents (optional)
- * 4. Amenities (optional)
- * 5. Access & Security (optional)
- * 6. Staff & Roles (optional)
- * 7. Historical Data (optional)
- * 8. Review & Activate (required)
+ * Redesigned from 8 sequential steps to a 3-phase approach:
+ * Phase 0: Property Details (manual form)
+ * Phase 1: Upload & Process (multi-file drop, auto-classify)
+ * Phase 2: Review Data (category dashboard + per-category review)
+ * Phase 3: Activate Property (summary + go-live)
+ *
+ * The sidebar shows dynamic sub-items under "Review Data" for each
+ * detected category after processing completes.
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Building2,
-  DoorOpen,
-  Users,
-  TreePalm,
-  Shield,
-  UserCog,
-  Archive,
+  Upload,
+  Search,
   Rocket,
   Check,
   ChevronRight,
   ArrowLeft,
   AlertCircle,
+  Users,
+  CalendarDays,
+  Key,
+  Phone,
+  Car,
+  UserCog,
+  Package,
+  Wrench,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { StepPropertyDetails } from './steps/step-property-details';
-import { StepBuildingsUnits } from './steps/step-buildings-units';
-import { StepResidents } from './steps/step-residents';
-import { StepAmenities } from './steps/step-amenities';
-import { StepAccessSecurity } from './steps/step-access-security';
-import { StepStaffRoles } from './steps/step-staff-roles';
-import { StepHistoricalData } from './steps/step-historical-data';
-import { StepConfiguration } from './steps/step-configuration';
+import { PhaseDataUpload, type ProcessedResults } from './phases/phase-data-upload';
+import { PhaseReviewDashboard } from './phases/phase-review-dashboard';
+import { PhaseCategoryReview } from './phases/phase-category-review';
+import { PhaseActivate } from './phases/phase-activate';
+import type { EntityType } from '@/lib/import/column-mapper';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface WizardState {
-  currentStep: number;
+  currentPhase: number; // 0=property, 1=upload, 2=review, 3=activate
   propertyId: string | null;
   propertyName: string | null;
-  completedSteps: number[];
-  skippedSteps: number[];
-  stepData: {
-    units?: { created: number };
-    residents?: { created: number; linked: number };
-    amenities?: { created: number };
-    fobs?: { created: number };
-    buzzerCodes?: { created: number };
-    parkingPermits?: { created: number };
-    staff?: { created: number };
-    packages?: { created: number };
-    maintenanceRequests?: { created: number };
-    events?: { created: number };
-  };
+  processedResults: ProcessedResults | null;
+  reviewingCategory: EntityType | null;
+  importedCategories: Record<string, { created: number; skipped: number; errors: number }>;
+  completedPhases: number[];
+  activated: boolean;
 }
 
-interface StepConfig {
+interface PhaseConfig {
   id: number;
   label: string;
   icon: React.ElementType;
-  required: boolean;
 }
 
-const STEPS: StepConfig[] = [
-  { id: 0, label: 'Property Details', icon: Building2, required: true },
-  { id: 1, label: 'Buildings & Units', icon: DoorOpen, required: true },
-  { id: 2, label: 'Residents', icon: Users, required: false },
-  { id: 3, label: 'Amenities', icon: TreePalm, required: false },
-  { id: 4, label: 'Access & Security', icon: Shield, required: false },
-  { id: 5, label: 'Staff & Roles', icon: UserCog, required: false },
-  { id: 6, label: 'Historical Data', icon: Archive, required: false },
-  { id: 7, label: 'Review & Activate', icon: Rocket, required: true },
+const PHASES: PhaseConfig[] = [
+  { id: 0, label: 'Property Details', icon: Building2 },
+  { id: 1, label: 'Upload & Process', icon: Upload },
+  { id: 2, label: 'Review Data', icon: Search },
+  { id: 3, label: 'Activate Property', icon: Rocket },
 ];
+
+const ENTITY_SIDEBAR_CONFIG: Record<string, { label: string; icon: React.ElementType }> = {
+  units: { label: 'Units', icon: Building2 },
+  residents: { label: 'Residents', icon: Users },
+  amenities: { label: 'Amenities', icon: CalendarDays },
+  fobs: { label: 'FOBs / Keys', icon: Key },
+  buzzer_codes: { label: 'Buzzer Codes', icon: Phone },
+  parking_permits: { label: 'Parking Permits', icon: Car },
+  staff: { label: 'Staff', icon: UserCog },
+  packages: { label: 'Packages', icon: Package },
+  maintenance_requests: { label: 'Maintenance', icon: Wrench },
+  events: { label: 'Events', icon: Shield },
+  properties: { label: 'Properties', icon: Building2 },
+};
 
 const STORAGE_KEY = 'concierge_property_import_wizard';
 
@@ -94,8 +96,7 @@ function loadSavedState(): WizardState | null {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return null;
     const parsed = JSON.parse(saved);
-    // Basic validation
-    if (parsed && typeof parsed.currentStep === 'number' && parsed.propertyId) {
+    if (parsed && typeof parsed.currentPhase === 'number' && parsed.propertyId) {
       return parsed as WizardState;
     }
     return null;
@@ -120,6 +121,19 @@ function clearSavedState() {
   }
 }
 
+function getInitialState(): WizardState {
+  return {
+    currentPhase: 0,
+    propertyId: null,
+    propertyName: null,
+    processedResults: null,
+    reviewingCategory: null,
+    importedCategories: {},
+    completedPhases: [],
+    activated: false,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -131,16 +145,9 @@ export function PropertyImportWizard() {
   const [savedState, setSavedState] = useState<WizardState | null>(null);
   const initialized = useRef(false);
 
-  const [state, setState] = useState<WizardState>({
-    currentStep: 0,
-    propertyId: null,
-    propertyName: null,
-    completedSteps: [],
-    skippedSteps: [],
-    stepData: {},
-  });
+  const [state, setState] = useState<WizardState>(getInitialState);
 
-  // Check localStorage on mount for saved state
+  // Check localStorage on mount
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
@@ -152,7 +159,7 @@ export function PropertyImportWizard() {
     }
   }, []);
 
-  // Save state to localStorage on every change (after property is created)
+  // Persist state
   useEffect(() => {
     if (state.propertyId) {
       saveState(state);
@@ -177,48 +184,21 @@ export function PropertyImportWizard() {
   // Navigation
   // -----------------------------------------------------------------------
 
-  const goToStep = useCallback((step: number) => {
-    setState((s) => {
-      // If navigating to a previously skipped step via sidebar click, un-skip it
-      const newSkipped = s.skippedSteps.filter((sk) => sk !== step);
-      return { ...s, currentStep: step, skippedSteps: newSkipped };
-    });
+  const goToPhase = useCallback((phase: number) => {
+    setState((s) => ({ ...s, currentPhase: phase, reviewingCategory: null }));
   }, []);
 
-  const goBack = useCallback(() => {
+  const completePhase = useCallback((phase: number) => {
     setState((s) => ({
       ...s,
-      currentStep: Math.max(s.currentStep - 1, 0),
-    }));
-  }, []);
-
-  const completeStep = useCallback((step: number) => {
-    setState((s) => ({
-      ...s,
-      completedSteps: s.completedSteps.includes(step)
-        ? s.completedSteps
-        : [...s.completedSteps, step],
-      skippedSteps: s.skippedSteps.filter((sk) => sk !== step),
-    }));
-  }, []);
-
-  const skipStep = useCallback((step: number) => {
-    setState((s) => ({
-      ...s,
-      skippedSteps: s.skippedSteps.includes(step) ? s.skippedSteps : [...s.skippedSteps, step],
-      currentStep: Math.min(step + 1, STEPS.length - 1),
-    }));
-  }, []);
-
-  const nextStep = useCallback(() => {
-    setState((s) => ({
-      ...s,
-      currentStep: Math.min(s.currentStep + 1, STEPS.length - 1),
+      completedPhases: s.completedPhases.includes(phase)
+        ? s.completedPhases
+        : [...s.completedPhases, phase],
     }));
   }, []);
 
   // -----------------------------------------------------------------------
-  // Step callbacks
+  // Phase callbacks
   // -----------------------------------------------------------------------
 
   const handlePropertyCreated = useCallback((propertyId: string, propertyName: string) => {
@@ -226,64 +206,96 @@ export function PropertyImportWizard() {
       ...s,
       propertyId,
       propertyName,
-      completedSteps: s.completedSteps.includes(0) ? s.completedSteps : [...s.completedSteps, 0],
-      currentStep: 1,
+      completedPhases: s.completedPhases.includes(0)
+        ? s.completedPhases
+        : [...s.completedPhases, 0],
+      currentPhase: 1,
     }));
   }, []);
 
-  const handleUnitsComplete = useCallback(
-    (created: number) => {
-      setState((s) => ({
-        ...s,
-        stepData: { ...s.stepData, units: { created } },
-      }));
-      completeStep(1);
-    },
-    [completeStep],
-  );
+  const handleProcessingComplete = useCallback((results: ProcessedResults) => {
+    setState((s) => ({
+      ...s,
+      processedResults: results,
+      completedPhases: s.completedPhases.includes(1)
+        ? s.completedPhases
+        : [...s.completedPhases, 1],
+      currentPhase: 2,
+      reviewingCategory: null,
+    }));
+  }, []);
 
-  const handleStepDataUpdate = useCallback(
-    (
-      stepIndex: number,
-      dataKey: keyof WizardState['stepData'],
-      result: { created: number; skipped: number; errors: number },
-    ) => {
-      setState((s) => ({
-        ...s,
-        stepData: {
-          ...s.stepData,
-          [dataKey]: { created: result.created, linked: 0 },
-        },
-        completedSteps: s.completedSteps.includes(stepIndex)
-          ? s.completedSteps
-          : [...s.completedSteps, stepIndex],
-      }));
+  const handleReviewCategory = useCallback((entityType: EntityType) => {
+    setState((s) => ({ ...s, reviewingCategory: entityType }));
+  }, []);
+
+  const handleBackToOverview = useCallback(() => {
+    setState((s) => ({ ...s, reviewingCategory: null }));
+  }, []);
+
+  const handleCategoryImportComplete = useCallback(
+    (result: { created: number; skipped: number; errors: number }) => {
+      setState((s) => {
+        if (!s.reviewingCategory) return s;
+        return {
+          ...s,
+          importedCategories: {
+            ...s.importedCategories,
+            [s.reviewingCategory]: result,
+          },
+          reviewingCategory: null,
+        };
+      });
     },
     [],
   );
 
+  const handleGoToActivate = useCallback(() => {
+    setState((s) => ({
+      ...s,
+      completedPhases: s.completedPhases.includes(2)
+        ? s.completedPhases
+        : [...s.completedPhases, 2],
+      currentPhase: 3,
+      reviewingCategory: null,
+    }));
+  }, []);
+
   const handleWizardComplete = useCallback(() => {
+    setState((s) => ({
+      ...s,
+      activated: true,
+      completedPhases: s.completedPhases.includes(3)
+        ? s.completedPhases
+        : [...s.completedPhases, 3],
+    }));
     clearSavedState();
   }, []);
+
+  // -----------------------------------------------------------------------
+  // Sidebar helpers
+  // -----------------------------------------------------------------------
+
+  const canNavigateToPhase = (phaseId: number): boolean => {
+    if (phaseId <= state.currentPhase) return true;
+    if (phaseId > 0 && !state.completedPhases.includes(0)) return false;
+    if (phaseId > 1 && !state.completedPhases.includes(1)) return false;
+    if (phaseId > 2 && !state.completedPhases.includes(2)) return false;
+    return true;
+  };
+
+  // Detected categories for sidebar sub-items
+  const detectedCategories: EntityType[] = state.processedResults
+    ? [...new Set(state.processedResults.files.map((f) => f.detectedEntityType))]
+    : [];
 
   // -----------------------------------------------------------------------
   // Render
   // -----------------------------------------------------------------------
 
-  const canNavigateToStep = (stepId: number): boolean => {
-    // Can always go back to completed or current steps
-    if (stepId <= state.currentStep) return true;
-    // Step 0 must be completed before anything else
-    if (stepId > 0 && !state.completedSteps.includes(0)) return false;
-    // Step 1 must be completed (or current) for steps > 1
-    if (stepId > 1 && !state.completedSteps.includes(1) && state.currentStep < 1) return false;
-    // Allow navigating to any non-skipped step after prerequisites are met
-    return true;
-  };
-
   return (
     <div className="flex h-screen w-full bg-neutral-50">
-      {/* Left sidebar navigation */}
+      {/* Left sidebar */}
       <div className="flex w-[280px] shrink-0 flex-col border-r border-neutral-200 bg-white">
         {/* Header */}
         <div className="border-b border-neutral-200 px-5 py-4">
@@ -298,24 +310,23 @@ export function PropertyImportWizard() {
           </Button>
           <h1 className="text-[16px] font-semibold text-neutral-900">Import Property</h1>
           <p className="mt-0.5 text-[13px] text-neutral-500">
-            Set up a new property with all its data
+            Dump everything — we will sort it out
           </p>
         </div>
 
-        {/* Step list */}
+        {/* Phase list */}
         <nav className="flex-1 overflow-y-auto px-3 py-3">
           <ul className="space-y-1">
-            {STEPS.map((step) => {
-              const isActive = state.currentStep === step.id;
-              const isCompleted = state.completedSteps.includes(step.id);
-              const isSkipped = state.skippedSteps.includes(step.id);
-              const isClickable = canNavigateToStep(step.id);
-              const StepIcon = step.icon;
+            {PHASES.map((phase) => {
+              const isActive = state.currentPhase === phase.id && state.reviewingCategory === null;
+              const isCompleted = state.completedPhases.includes(phase.id);
+              const isClickable = canNavigateToPhase(phase.id);
+              const PhaseIcon = phase.icon;
 
               return (
-                <li key={step.id}>
+                <li key={phase.id}>
                   <button
-                    onClick={() => isClickable && goToStep(step.id)}
+                    onClick={() => isClickable && goToPhase(phase.id)}
                     disabled={!isClickable}
                     className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
                       isActive
@@ -333,23 +344,60 @@ export function PropertyImportWizard() {
                           ? 'bg-primary-500 text-white'
                           : isCompleted
                             ? 'bg-green-100 text-green-700'
-                            : isSkipped
-                              ? 'bg-neutral-100 text-neutral-400'
-                              : 'bg-neutral-100 text-neutral-500'
+                            : 'bg-neutral-100 text-neutral-500'
                       }`}
                     >
                       {isCompleted ? (
                         <Check className="h-3.5 w-3.5" />
                       ) : (
-                        <StepIcon className="h-3.5 w-3.5" />
+                        <PhaseIcon className="h-3.5 w-3.5" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-medium">{step.label}</p>
-                      {isSkipped && <p className="text-[11px] text-neutral-400">Skipped</p>}
+                      <p className="truncate text-[13px] font-medium">{phase.label}</p>
                     </div>
                     {isActive && <ChevronRight className="text-primary-400 h-4 w-4 shrink-0" />}
                   </button>
+
+                  {/* Dynamic sub-items under "Review Data" */}
+                  {phase.id === 2 &&
+                    detectedCategories.length > 0 &&
+                    (state.currentPhase === 2 || state.completedPhases.includes(2)) && (
+                      <ul className="mt-1 ml-4 space-y-0.5">
+                        {detectedCategories.map((entityType) => {
+                          const config = ENTITY_SIDEBAR_CONFIG[entityType];
+                          const SubIcon = config?.icon ?? Building2;
+                          const isSubActive =
+                            state.currentPhase === 2 && state.reviewingCategory === entityType;
+                          const isImported = entityType in state.importedCategories;
+
+                          return (
+                            <li key={entityType}>
+                              <button
+                                onClick={() => {
+                                  goToPhase(2);
+                                  handleReviewCategory(entityType);
+                                }}
+                                className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[12px] transition-colors ${
+                                  isSubActive
+                                    ? 'bg-primary-50 text-primary-700 font-medium'
+                                    : isImported
+                                      ? 'text-green-700 hover:bg-green-50'
+                                      : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700'
+                                }`}
+                              >
+                                {isImported ? (
+                                  <Check className="h-3 w-3 shrink-0 text-green-500" />
+                                ) : (
+                                  <SubIcon className="h-3 w-3 shrink-0" />
+                                )}
+                                <span className="truncate">{config?.label ?? entityType}</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
                 </li>
               );
             })}
@@ -379,8 +427,7 @@ export function PropertyImportWizard() {
               <div className="min-w-0 flex-1">
                 <p className="text-[14px] font-semibold text-amber-800">Resume previous import?</p>
                 <p className="mt-0.5 text-[13px] text-amber-700">
-                  You have an unfinished import for &ldquo;{savedState.propertyName}&rdquo; (Step{' '}
-                  {savedState.currentStep + 1} of 8).
+                  You have an unfinished import for &ldquo;{savedState.propertyName}&rdquo;.
                 </p>
                 <div className="mt-3 flex gap-2">
                   <Button size="sm" onClick={handleResume}>
@@ -394,100 +441,66 @@ export function PropertyImportWizard() {
             </div>
           )}
 
-          {state.currentStep === 0 && (
+          {/* Phase 0: Property Details */}
+          {state.currentPhase === 0 && (
             <StepPropertyDetails onPropertyCreated={handlePropertyCreated} />
           )}
 
-          {state.currentStep === 1 && state.propertyId && (
-            <StepBuildingsUnits
+          {/* Phase 1: Upload & Process */}
+          {state.currentPhase === 1 && state.propertyId && (
+            <PhaseDataUpload
               propertyId={state.propertyId}
-              onComplete={handleUnitsComplete}
-              onNext={nextStep}
-              onBack={goBack}
+              onProcessingComplete={handleProcessingComplete}
+              onBack={() => goToPhase(0)}
             />
           )}
 
-          {state.currentStep === 2 && state.propertyId && (
-            <StepResidents
-              propertyId={state.propertyId}
-              onImportComplete={(result) => handleStepDataUpdate(2, 'residents', result)}
-              onSkip={() => skipStep(2)}
-              onNext={() => {
-                completeStep(2);
-                nextStep();
-              }}
-              onBack={goBack}
-            />
+          {/* Phase 2: Review */}
+          {state.currentPhase === 2 && state.propertyId && state.processedResults && (
+            <>
+              {state.reviewingCategory === null ? (
+                <PhaseReviewDashboard
+                  processedResults={state.processedResults}
+                  propertyId={state.propertyId}
+                  importedCategories={state.importedCategories}
+                  onReviewCategory={handleReviewCategory}
+                  onActivate={handleGoToActivate}
+                  onBack={() => goToPhase(1)}
+                />
+              ) : (
+                (() => {
+                  // Find the file data for the reviewing category
+                  const fileData = state.processedResults!.files.find(
+                    (f) => f.detectedEntityType === state.reviewingCategory,
+                  );
+                  if (!fileData) return null;
+
+                  return (
+                    <PhaseCategoryReview
+                      entityType={state.reviewingCategory}
+                      fileData={fileData}
+                      propertyId={state.propertyId!}
+                      onImportComplete={handleCategoryImportComplete}
+                      onBack={handleBackToOverview}
+                    />
+                  );
+                })()
+              )}
+            </>
           )}
 
-          {state.currentStep === 3 && state.propertyId && (
-            <StepAmenities
+          {/* Phase 3: Activate */}
+          {state.currentPhase === 3 && state.propertyId && (
+            <PhaseActivate
               propertyId={state.propertyId}
-              onImportComplete={(result) => handleStepDataUpdate(3, 'amenities', result)}
-              onSkip={() => skipStep(3)}
-              onNext={() => {
-                completeStep(3);
-                nextStep();
-              }}
-              onBack={goBack}
-            />
-          )}
-
-          {state.currentStep === 4 && state.propertyId && (
-            <StepAccessSecurity
-              propertyId={state.propertyId}
-              onFobsImported={(result) => handleStepDataUpdate(4, 'fobs', result)}
-              onBuzzerCodesImported={(result) => handleStepDataUpdate(4, 'buzzerCodes', result)}
-              onParkingPermitsImported={(result) =>
-                handleStepDataUpdate(4, 'parkingPermits', result)
+              propertyName={state.propertyName ?? 'Property'}
+              importedCategories={state.importedCategories}
+              allDetectedCategories={
+                state.processedResults
+                  ? [...new Set(state.processedResults.files.map((f) => f.detectedEntityType))]
+                  : []
               }
-              onSkip={() => skipStep(4)}
-              onNext={() => {
-                completeStep(4);
-                nextStep();
-              }}
-              onBack={goBack}
-            />
-          )}
-
-          {state.currentStep === 5 && state.propertyId && (
-            <StepStaffRoles
-              propertyId={state.propertyId}
-              onImportComplete={(result) => handleStepDataUpdate(5, 'staff', result)}
-              onSkip={() => skipStep(5)}
-              onNext={() => {
-                completeStep(5);
-                nextStep();
-              }}
-              onBack={goBack}
-            />
-          )}
-
-          {state.currentStep === 6 && state.propertyId && (
-            <StepHistoricalData
-              propertyId={state.propertyId}
-              onPackagesImported={(result) => handleStepDataUpdate(6, 'packages', result)}
-              onMaintenanceImported={(result) =>
-                handleStepDataUpdate(6, 'maintenanceRequests', result)
-              }
-              onEventsImported={(result) => handleStepDataUpdate(6, 'events', result)}
-              onSkip={() => skipStep(6)}
-              onNext={() => {
-                completeStep(6);
-                nextStep();
-              }}
-              onBack={goBack}
-            />
-          )}
-
-          {state.currentStep === 7 && state.propertyId && (
-            <StepConfiguration
-              propertyId={state.propertyId}
-              propertyName={state.propertyName ?? ''}
-              stepData={state.stepData}
-              completedSteps={state.completedSteps}
-              skippedSteps={state.skippedSteps}
-              onBack={goBack}
+              onBack={() => goToPhase(2)}
               onComplete={handleWizardComplete}
             />
           )}
