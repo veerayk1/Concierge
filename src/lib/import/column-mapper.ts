@@ -12,7 +12,18 @@ import Fuse from 'fuse.js';
 // Types
 // ---------------------------------------------------------------------------
 
-export type EntityType = 'units' | 'residents' | 'properties';
+export type EntityType =
+  | 'units'
+  | 'residents'
+  | 'properties'
+  | 'amenities'
+  | 'fobs'
+  | 'buzzer_codes'
+  | 'parking_permits'
+  | 'staff'
+  | 'packages'
+  | 'maintenance_requests'
+  | 'events';
 
 export interface ColumnMapping {
   sourceHeader: string;
@@ -542,6 +553,435 @@ export const PROPERTY_FIELDS: FieldDefinition[] = [
   },
 ];
 
+export const AMENITY_FIELDS: FieldDefinition[] = [
+  {
+    key: 'name',
+    label: 'Amenity Name',
+    required: true,
+    aliases: [
+      'name',
+      'amenity',
+      'amenity name',
+      'space',
+      'space name',
+      'facility',
+      'facility name',
+      'room',
+      'room name',
+      'area',
+      'area name',
+    ],
+  },
+  {
+    key: 'group',
+    label: 'Group / Category',
+    required: false,
+    aliases: ['group', 'category', 'type', 'amenity group', 'amenity type', 'classification'],
+  },
+  {
+    key: 'description',
+    label: 'Description',
+    required: false,
+    aliases: ['description', 'details', 'notes', 'info', 'about'],
+  },
+  {
+    key: 'capacity',
+    label: 'Capacity',
+    required: false,
+    aliases: ['capacity', 'max capacity', 'max occupancy', 'seats', 'max people', 'limit'],
+  },
+  {
+    key: 'operatingHours',
+    label: 'Operating Hours',
+    required: false,
+    aliases: ['hours', 'operating hours', 'open hours', 'availability', 'schedule', 'time'],
+  },
+  {
+    key: 'fee',
+    label: 'Booking Fee',
+    required: false,
+    aliases: ['fee', 'price', 'cost', 'rate', 'booking fee', 'rental fee', 'charge'],
+  },
+  {
+    key: 'bookingStyle',
+    label: 'Booking Style',
+    required: false,
+    aliases: ['booking style', 'booking type', 'reservation type', 'approval', 'booking mode'],
+  },
+];
+
+export const FOB_FIELDS: FieldDefinition[] = [
+  {
+    key: 'serialNumber',
+    label: 'Serial Number',
+    required: true,
+    aliases: [
+      'serial',
+      'serial number',
+      'serial #',
+      'serial no',
+      'fob number',
+      'fob #',
+      'fob serial',
+      'key number',
+      'key #',
+      'key serial',
+      'tag number',
+      'tag #',
+      'card number',
+      'card #',
+      'access card',
+      'id number',
+    ],
+  },
+  {
+    key: 'unitNumber',
+    label: 'Unit Number',
+    required: true,
+    aliases: ['unit', 'unit #', 'unit number', 'suite', 'apt', 'apartment', 'room'],
+  },
+  {
+    key: 'fobType',
+    label: 'FOB Type',
+    required: false,
+    aliases: ['type', 'fob type', 'key type', 'card type', 'access type', 'device type'],
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    required: false,
+    aliases: ['status', 'state', 'active', 'condition'],
+  },
+  {
+    key: 'issuedDate',
+    label: 'Issued Date',
+    required: false,
+    aliases: [
+      'issued',
+      'issued date',
+      'date issued',
+      'activation date',
+      'start date',
+      'assigned date',
+    ],
+  },
+  {
+    key: 'issuedToName',
+    label: 'Issued To',
+    required: false,
+    aliases: ['issued to', 'assigned to', 'holder', 'owner', 'resident', 'name', 'person'],
+  },
+  {
+    key: 'notes',
+    label: 'Notes',
+    required: false,
+    aliases: ['notes', 'comments', 'remarks', 'description'],
+  },
+];
+
+export const BUZZER_CODE_FIELDS: FieldDefinition[] = [
+  {
+    key: 'unitNumber',
+    label: 'Unit Number',
+    required: true,
+    aliases: ['unit', 'unit #', 'unit number', 'suite', 'apt', 'apartment', 'room', 'door'],
+  },
+  {
+    key: 'code',
+    label: 'Buzzer Code',
+    required: true,
+    aliases: [
+      'code',
+      'buzzer',
+      'buzzer code',
+      'intercom',
+      'intercom code',
+      'dial code',
+      'entry code',
+      'access code',
+      'phone code',
+      'buzzer #',
+    ],
+  },
+  {
+    key: 'comments',
+    label: 'Comments',
+    required: false,
+    aliases: ['comments', 'notes', 'remarks', 'description', 'instructions'],
+  },
+];
+
+export const PARKING_PERMIT_FIELDS: FieldDefinition[] = [
+  {
+    key: 'unitNumber',
+    label: 'Unit Number',
+    required: true,
+    aliases: ['unit', 'unit #', 'unit number', 'suite', 'apt', 'apartment'],
+  },
+  {
+    key: 'licensePlate',
+    label: 'License Plate',
+    required: true,
+    aliases: [
+      'plate',
+      'license plate',
+      'licence plate',
+      'plate number',
+      'plate #',
+      'license',
+      'licence',
+      'registration',
+      'vehicle plate',
+      'tag',
+    ],
+  },
+  {
+    key: 'vehicleMake',
+    label: 'Vehicle Make',
+    required: false,
+    aliases: ['make', 'vehicle make', 'car make', 'manufacturer', 'brand'],
+  },
+  {
+    key: 'vehicleModel',
+    label: 'Vehicle Model',
+    required: false,
+    aliases: ['model', 'vehicle model', 'car model'],
+  },
+  {
+    key: 'vehicleColor',
+    label: 'Vehicle Color',
+    required: false,
+    aliases: ['color', 'colour', 'vehicle color', 'car color'],
+  },
+  {
+    key: 'permitType',
+    label: 'Permit Type',
+    required: false,
+    aliases: ['type', 'permit type', 'parking type', 'pass type', 'category'],
+  },
+  {
+    key: 'spotNumber',
+    label: 'Spot Number',
+    required: false,
+    aliases: ['spot', 'spot #', 'spot number', 'parking spot', 'stall', 'stall #', 'bay'],
+  },
+  {
+    key: 'validFrom',
+    label: 'Valid From',
+    required: false,
+    aliases: ['from', 'valid from', 'start', 'start date', 'effective date'],
+  },
+  {
+    key: 'validTo',
+    label: 'Valid To',
+    required: false,
+    aliases: ['to', 'valid to', 'end', 'end date', 'expiry', 'expiry date', 'expires'],
+  },
+];
+
+export const STAFF_FIELDS: FieldDefinition[] = [
+  {
+    key: 'firstName',
+    label: 'First Name',
+    required: true,
+    aliases: ['first name', 'fname', 'given name', 'first', 'firstname'],
+  },
+  {
+    key: 'lastName',
+    label: 'Last Name',
+    required: true,
+    aliases: ['last name', 'lname', 'surname', 'family name', 'last', 'lastname'],
+  },
+  {
+    key: 'fullName',
+    label: 'Full Name',
+    required: false,
+    aliases: ['name', 'full name', 'fullname', 'staff name', 'employee name'],
+  },
+  {
+    key: 'email',
+    label: 'Email',
+    required: true,
+    aliases: ['email', 'email address', 'e-mail', 'mail', 'work email'],
+  },
+  {
+    key: 'phone',
+    label: 'Phone',
+    required: false,
+    aliases: ['phone', 'phone number', 'telephone', 'mobile', 'cell', 'work phone'],
+  },
+  {
+    key: 'role',
+    label: 'Role',
+    required: true,
+    aliases: [
+      'role',
+      'position',
+      'title',
+      'job title',
+      'job role',
+      'designation',
+      'staff role',
+      'employee role',
+      'department',
+    ],
+  },
+];
+
+export const PACKAGE_HISTORY_FIELDS: FieldDefinition[] = [
+  {
+    key: 'unitNumber',
+    label: 'Unit Number',
+    required: true,
+    aliases: ['unit', 'unit #', 'unit number', 'suite', 'apt', 'apartment'],
+  },
+  {
+    key: 'recipientName',
+    label: 'Recipient',
+    required: false,
+    aliases: ['recipient', 'name', 'resident', 'for', 'delivered to', 'addressee'],
+  },
+  {
+    key: 'courier',
+    label: 'Courier',
+    required: false,
+    aliases: ['courier', 'carrier', 'shipper', 'delivery company', 'service', 'shipped by'],
+  },
+  {
+    key: 'trackingNumber',
+    label: 'Tracking Number',
+    required: false,
+    aliases: ['tracking', 'tracking #', 'tracking number', 'tracking no', 'barcode'],
+  },
+  {
+    key: 'receivedDate',
+    label: 'Received Date',
+    required: false,
+    aliases: [
+      'received',
+      'received date',
+      'intake date',
+      'arrived',
+      'arrival date',
+      'date received',
+    ],
+  },
+  {
+    key: 'releasedDate',
+    label: 'Released Date',
+    required: false,
+    aliases: ['released', 'released date', 'pickup date', 'collected', 'date released'],
+  },
+  {
+    key: 'storageLocation',
+    label: 'Storage Location',
+    required: false,
+    aliases: ['storage', 'location', 'shelf', 'spot', 'storage spot', 'stored at'],
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    required: false,
+    aliases: ['status', 'state', 'package status'],
+  },
+  {
+    key: 'notes',
+    label: 'Notes',
+    required: false,
+    aliases: ['notes', 'comments', 'description', 'remarks'],
+  },
+];
+
+export const MAINTENANCE_HISTORY_FIELDS: FieldDefinition[] = [
+  {
+    key: 'unitNumber',
+    label: 'Unit Number',
+    required: true,
+    aliases: ['unit', 'unit #', 'unit number', 'suite', 'apt', 'apartment'],
+  },
+  {
+    key: 'description',
+    label: 'Description',
+    required: true,
+    aliases: ['description', 'issue', 'problem', 'details', 'request', 'work description'],
+  },
+  {
+    key: 'category',
+    label: 'Category',
+    required: false,
+    aliases: ['category', 'type', 'trade', 'department', 'service type', 'work type'],
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    required: false,
+    aliases: ['status', 'state', 'request status', 'work order status'],
+  },
+  {
+    key: 'priority',
+    label: 'Priority',
+    required: false,
+    aliases: ['priority', 'urgency', 'severity', 'importance'],
+  },
+  {
+    key: 'createdDate',
+    label: 'Created Date',
+    required: false,
+    aliases: ['created', 'created date', 'reported', 'reported date', 'date', 'opened'],
+  },
+  {
+    key: 'closedDate',
+    label: 'Closed Date',
+    required: false,
+    aliases: ['closed', 'closed date', 'completed', 'completed date', 'resolved', 'resolved date'],
+  },
+  {
+    key: 'assignedTo',
+    label: 'Assigned To',
+    required: false,
+    aliases: ['assigned', 'assigned to', 'technician', 'worker', 'contractor', 'vendor'],
+  },
+];
+
+export const EVENT_HISTORY_FIELDS: FieldDefinition[] = [
+  {
+    key: 'unitNumber',
+    label: 'Unit Number',
+    required: false,
+    aliases: ['unit', 'unit #', 'unit number', 'suite', 'apt', 'apartment'],
+  },
+  {
+    key: 'eventType',
+    label: 'Event Type',
+    required: true,
+    aliases: ['type', 'event type', 'log type', 'category', 'incident type', 'entry type'],
+  },
+  {
+    key: 'description',
+    label: 'Description',
+    required: true,
+    aliases: ['description', 'details', 'notes', 'summary', 'entry', 'log entry', 'comments'],
+  },
+  {
+    key: 'date',
+    label: 'Date',
+    required: false,
+    aliases: ['date', 'event date', 'occurred', 'when', 'timestamp', 'date/time'],
+  },
+  {
+    key: 'createdBy',
+    label: 'Created By',
+    required: false,
+    aliases: ['created by', 'logged by', 'reported by', 'author', 'staff', 'officer', 'guard'],
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    required: false,
+    aliases: ['status', 'state', 'resolution'],
+  },
+];
+
 // ---------------------------------------------------------------------------
 // Normalization
 // ---------------------------------------------------------------------------
@@ -564,12 +1004,7 @@ export function autoMapColumns(
   entityType: EntityType,
   sampleRows?: Record<string, string>[],
 ): ColumnMapping[] {
-  const fields =
-    entityType === 'units'
-      ? UNIT_FIELDS
-      : entityType === 'properties'
-        ? PROPERTY_FIELDS
-        : RESIDENT_FIELDS;
+  const fields = getTargetFields(entityType);
 
   // Build flattened alias list for fuzzy search
   const aliasEntries = fields.flatMap((field) =>
@@ -646,12 +1081,22 @@ export function autoMapColumns(
 // Get Available Target Fields
 // ---------------------------------------------------------------------------
 
+const FIELD_MAP: Record<EntityType, FieldDefinition[]> = {
+  units: UNIT_FIELDS,
+  residents: RESIDENT_FIELDS,
+  properties: PROPERTY_FIELDS,
+  amenities: AMENITY_FIELDS,
+  fobs: FOB_FIELDS,
+  buzzer_codes: BUZZER_CODE_FIELDS,
+  parking_permits: PARKING_PERMIT_FIELDS,
+  staff: STAFF_FIELDS,
+  packages: PACKAGE_HISTORY_FIELDS,
+  maintenance_requests: MAINTENANCE_HISTORY_FIELDS,
+  events: EVENT_HISTORY_FIELDS,
+};
+
 export function getTargetFields(entityType: EntityType): FieldDefinition[] {
-  return entityType === 'units'
-    ? UNIT_FIELDS
-    : entityType === 'properties'
-      ? PROPERTY_FIELDS
-      : RESIDENT_FIELDS;
+  return FIELD_MAP[entityType] ?? UNIT_FIELDS;
 }
 
 // ---------------------------------------------------------------------------

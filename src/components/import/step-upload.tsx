@@ -63,8 +63,20 @@ export function StepUpload({ entityType, propertyId, onFileParsed }: StepUploadP
     }
   }, [parsedFile, mappings, onFileParsed]);
 
-  const entityLabel =
-    entityType === 'units' ? 'units' : entityType === 'properties' ? 'properties' : 'residents';
+  const ENTITY_LABELS: Record<string, string> = {
+    units: 'units',
+    residents: 'residents',
+    properties: 'properties',
+    amenities: 'amenities',
+    fobs: 'FOBs/keys',
+    buzzer_codes: 'buzzer codes',
+    parking_permits: 'parking permits',
+    staff: 'staff',
+    packages: 'packages',
+    maintenance_requests: 'maintenance requests',
+    events: 'events',
+  };
+  const entityLabel = ENTITY_LABELS[entityType] ?? entityType;
   const autoMappedCount = mappings.filter((m) => m.targetField && !m.isCustomField).length;
   const customFieldCount = mappings.filter((m) => m.isCustomField).length;
 

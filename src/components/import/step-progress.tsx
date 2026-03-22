@@ -384,8 +384,20 @@ export function StepProgress({
   }
 
   const isComplete = importResult !== null;
-  const entityLabel =
-    entityType === 'units' ? 'Units' : entityType === 'properties' ? 'Properties' : 'Residents';
+  const ENTITY_LABELS: Record<string, string> = {
+    units: 'Units',
+    residents: 'Residents',
+    properties: 'Properties',
+    amenities: 'Amenities',
+    fobs: 'FOBs/Keys',
+    buzzer_codes: 'Buzzer Codes',
+    parking_permits: 'Parking Permits',
+    staff: 'Staff',
+    packages: 'Packages',
+    maintenance_requests: 'Maintenance Requests',
+    events: 'Events',
+  };
+  const entityLabel = ENTITY_LABELS[entityType] ?? entityType;
 
   return (
     <div className="mx-auto max-w-lg space-y-8 py-8">
