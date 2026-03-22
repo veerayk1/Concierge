@@ -11,7 +11,7 @@
  * - Import execution via existing bulk APIs
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -19,8 +19,7 @@ import {
   AlertTriangle,
   XCircle,
   Loader2,
-  ChevronDown,
-  ChevronRight,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -232,8 +231,10 @@ export function PhaseCategoryReview({
   // Mutable mappings — user can change via dropdowns
   const [mappings, setMappings] = useState<ColumnMapping[]>(fileData.mappings);
   const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
-  const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
   const [previewFilter, setPreviewFilter] = useState<'all' | 'valid' | 'warning' | 'error'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 50;
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importError, setImportError] = useState<string | null>(null);
@@ -435,14 +436,22 @@ export function PhaseCategoryReview({
   // Render
   // -----------------------------------------------------------------------
 
-  const filteredPreviewRows = useMemo(() => {
-    const filtered =
-      previewFilter === 'all'
-        ? validation.rows
-        : validation.rows.filter((r) => r.status === previewFilter);
-    return filtered.slice(0, 50); // Show up to 50 rows
+  const filteredRows = useMemo(() => {
+    return previewFilter === 'all'
+      ? validation.rows
+      : validation.rows.filter((r) => r.status === previewFilter);
   }, [validation.rows, previewFilter]);
-  const previewRows = filteredPreviewRows;
+
+  const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+  const pageRows = filteredRows.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [previewFilter]);
+
+  const selectedRow =
+    selectedRowIndex !== null ? validation.rows.find((r) => r.index === selectedRowIndex) : null;
   const mappedHeaders = mappings
     .filter((m) => m.targetField || m.isCustomField)
     .map((m) => {
@@ -584,135 +593,220 @@ export function PhaseCategoryReview({
         ))}
       </div>
 
-      {/* Data Preview — Card-based layout showing ALL fields */}
-      <div className="mb-6">
+      {/* Data Preview — Paginated Table + Detail Panel */}
+      <div className="relative mb-6">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-[13px] font-semibold tracking-wide text-neutral-700 uppercase">
             Data Preview
           </p>
           <p className="text-xs text-neutral-400">
-            {filteredPreviewRows.length} of {validation.totalRows} rows
-            {previewFilter !== 'all' && ` · Showing ${previewFilter} only`}
+            {filteredRows.length} rows
+            {previewFilter !== 'all' && ` · ${previewFilter} only`}
+            {' · '}Page {currentPage} of {totalPages || 1}
           </p>
         </div>
-        <div className="space-y-2">
-          {previewRows.map((row) => {
-            const isExpanded = expandedRow === row.index;
-            return (
-              <div
-                key={row.index}
-                className={`rounded-xl border transition-all ${
-                  row.status === 'error'
-                    ? 'border-red-200 bg-red-50/30'
-                    : row.status === 'warning'
-                      ? 'border-amber-200 bg-amber-50/20'
-                      : 'border-neutral-200 bg-white'
-                } ${row.issues.length > 0 ? 'cursor-pointer hover:shadow-sm' : ''}`}
-                onClick={() =>
-                  row.issues.length > 0 && setExpandedRow(isExpanded ? null : row.index)
-                }
-              >
-                {/* Row header with status + key fields inline */}
-                <div className="flex items-center gap-2 border-b border-neutral-100/50 px-4 py-2">
-                  {row.status === 'valid' && (
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
-                  )}
-                  {row.status === 'warning' && (
-                    <>
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 shrink-0 text-amber-500" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 shrink-0 text-amber-500" />
-                      )}
-                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
-                    </>
-                  )}
-                  {row.status === 'error' && (
-                    <>
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 shrink-0 text-red-500" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 shrink-0 text-red-500" />
-                      )}
-                      <XCircle className="h-4 w-4 shrink-0 text-red-500" />
-                    </>
-                  )}
-                  <span className="text-xs font-medium text-neutral-500">Row {row.index + 1}</span>
-                  {row.issues.length > 0 && (
-                    <span
-                      className={`text-xs ${row.status === 'error' ? 'text-red-500' : 'text-amber-500'}`}
-                    >
-                      · {row.issues.length} issue{row.issues.length > 1 ? 's' : ''}
-                    </span>
-                  )}
-                </div>
 
-                {/* ALL mapped fields in a responsive grid */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 px-4 py-2.5 sm:grid-cols-3 lg:grid-cols-4">
-                  {mappedHeaders.map((h) => {
-                    const val = row.mappedData[h.target];
-                    if (!val) return null;
+        <div className="flex gap-4">
+          {/* Table */}
+          <div
+            className={`min-w-0 flex-1 transition-all ${selectedRow ? 'max-w-[calc(100%-370px)]' : ''}`}
+          >
+            <div className="overflow-hidden rounded-xl border border-neutral-200">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="border-b border-neutral-200 bg-neutral-50">
+                    <th className="w-10 px-2 py-2 text-center text-xs font-medium text-neutral-500">
+                      #
+                    </th>
+                    <th className="w-8 px-1 py-2" />
+                    {mappedHeaders.slice(0, 8).map((h) => (
+                      <th
+                        key={h.target}
+                        className="px-2 py-2 text-left text-xs font-medium text-neutral-500"
+                      >
+                        {h.label.replace(' (custom)', '')}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((row) => (
+                    <tr
+                      key={row.index}
+                      className={`cursor-pointer border-b border-neutral-50 transition-colors ${
+                        selectedRowIndex === row.index
+                          ? 'bg-blue-50'
+                          : row.status === 'error'
+                            ? 'bg-red-50/40 hover:bg-red-50'
+                            : row.status === 'warning'
+                              ? 'bg-amber-50/30 hover:bg-amber-50/50'
+                              : 'hover:bg-neutral-50'
+                      }`}
+                      onClick={() =>
+                        setSelectedRowIndex(selectedRowIndex === row.index ? null : row.index)
+                      }
+                    >
+                      <td className="px-2 py-1.5 text-center text-xs text-neutral-400">
+                        {row.index + 1}
+                      </td>
+                      <td className="px-1 py-1.5">
+                        {row.status === 'valid' && (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                        )}
+                        {row.status === 'warning' && (
+                          <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                        )}
+                        {row.status === 'error' && <XCircle className="h-3.5 w-3.5 text-red-500" />}
+                      </td>
+                      {mappedHeaders.slice(0, 8).map((h) => (
+                        <td
+                          key={h.target}
+                          className="max-w-[140px] truncate px-2 py-1.5 text-neutral-700"
+                        >
+                          {row.mappedData[h.target] || <span className="text-neutral-300">—</span>}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-3 flex items-center justify-between">
+                <p className="text-xs text-neutral-400">
+                  Showing {(currentPage - 1) * rowsPerPage + 1}–
+                  {Math.min(currentPage * rowsPerPage, filteredRows.length)} of{' '}
+                  {filteredRows.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className="rounded-md px-2 py-1 text-xs text-neutral-600 hover:bg-neutral-100 disabled:opacity-30"
+                  >
+                    ← Prev
+                  </button>
+                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                    let pageNum: number;
+                    if (totalPages <= 7) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 4) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 3) {
+                      pageNum = totalPages - 6 + i;
+                    } else {
+                      pageNum = currentPage - 3 + i;
+                    }
                     return (
-                      <div key={h.target} className="min-w-0 overflow-hidden">
-                        <p className="truncate text-[10px] font-medium text-neutral-400 uppercase">
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`min-w-[28px] rounded-md px-1.5 py-1 text-xs font-medium ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'text-neutral-600 hover:bg-neutral-100'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    className="rounded-md px-2 py-1 text-xs text-neutral-600 hover:bg-neutral-100 disabled:opacity-30"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Detail Panel */}
+          {selectedRow && (
+            <div
+              className="w-[350px] shrink-0 self-start overflow-y-auto rounded-xl border border-blue-200 bg-white shadow-lg"
+              style={{ maxHeight: 'calc(100vh - 200px)' }}
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-100 bg-white px-4 py-3">
+                <span className="text-sm font-semibold text-neutral-900">
+                  Row {selectedRow.index + 1}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRowIndex(null)}
+                  className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Issues */}
+              {selectedRow.issues.length > 0 && (
+                <div className="border-b border-neutral-100 px-4 py-3">
+                  <div
+                    className={`rounded-lg border p-2.5 ${
+                      selectedRow.status === 'error'
+                        ? 'border-red-200 bg-red-50'
+                        : 'border-amber-200 bg-amber-50'
+                    }`}
+                  >
+                    <p
+                      className={`mb-1.5 text-xs font-semibold ${
+                        selectedRow.status === 'error' ? 'text-red-800' : 'text-amber-800'
+                      }`}
+                    >
+                      {selectedRow.issues.length} issue{selectedRow.issues.length > 1 ? 's' : ''}
+                    </p>
+                    {selectedRow.issues.map((issue, idx) => (
+                      <div key={idx} className="mb-1 text-[11px]">
+                        <span
+                          className={`font-medium ${
+                            issue.severity === 'error' ? 'text-red-800' : 'text-amber-800'
+                          }`}
+                        >
+                          {issue.column}:
+                        </span>{' '}
+                        <span
+                          className={issue.severity === 'error' ? 'text-red-700' : 'text-amber-700'}
+                        >
+                          {issue.message}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* All fields */}
+              <div className="px-4 py-3">
+                <p className="mb-2 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase">
+                  All Fields
+                </p>
+                <div className="space-y-2">
+                  {mappedHeaders.map((h) => {
+                    const val = selectedRow.mappedData[h.target];
+                    return (
+                      <div key={h.target}>
+                        <p className="text-[10px] font-medium text-neutral-400 uppercase">
                           {h.label}
                         </p>
-                        <p className="truncate text-[13px] text-neutral-800" title={val}>
-                          {val}
+                        <p className="text-[13px] break-words text-neutral-800">
+                          {val || <span className="text-neutral-300">—</span>}
                         </p>
                       </div>
                     );
                   })}
                 </div>
-
-                {/* Expanded issues */}
-                {isExpanded && row.issues.length > 0 && (
-                  <div className="border-t border-neutral-100 px-4 py-3">
-                    <div
-                      className={`rounded-lg border p-3 ${
-                        row.status === 'error'
-                          ? 'border-red-200 bg-red-50'
-                          : 'border-amber-200 bg-amber-50'
-                      }`}
-                    >
-                      <div className="space-y-1.5">
-                        {row.issues.map((issue, idx) => (
-                          <div key={idx} className="flex items-start gap-2 text-[12px]">
-                            <span
-                              className={`mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
-                                issue.severity === 'error' ? 'bg-red-500' : 'bg-amber-500'
-                              }`}
-                            />
-                            <div>
-                              <span
-                                className={`font-medium ${
-                                  issue.severity === 'error' ? 'text-red-800' : 'text-amber-800'
-                                }`}
-                              >
-                                {issue.column}:
-                              </span>{' '}
-                              <span
-                                className={
-                                  issue.severity === 'error' ? 'text-red-700' : 'text-amber-700'
-                                }
-                              >
-                                {issue.message}
-                              </span>
-                              {issue.value && (
-                                <span className="ml-1 rounded bg-white/50 px-1 py-0.5 font-mono text-[11px] text-neutral-600">
-                                  &quot;{issue.value}&quot;
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
-            );
-          })}
+            </div>
+          )}
         </div>
       </div>
 
