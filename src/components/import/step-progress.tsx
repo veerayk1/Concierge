@@ -111,10 +111,29 @@ export function StepProgress({
         ? parseFloat(mapped.squareFootage.replace(/[,\s]/g, ''))
         : null;
 
+      // Collect extended fields (mapped but no dedicated DB column) into customFields
+      const extendedKeys = [
+        'bedrooms',
+        'bathrooms',
+        'rentAmount',
+        'securityDeposit',
+        'petFee',
+        'leaseStart',
+        'leaseEnd',
+        'zone',
+        'parkingType',
+      ];
+      for (const key of extendedKeys) {
+        const val = mapped[key]?.trim();
+        if (val) customFields[key] = val;
+      }
+
       return {
         number: mapped.number?.trim() || '',
         floor: floor && !isNaN(floor) ? floor : null,
+        building: mapped.building?.trim() || null,
         unitType: mapped.unitType?.trim() || 'residential',
+        status: mapped.status?.trim() || undefined,
         squareFootage: sqft && !isNaN(sqft) ? sqft : null,
         enterPhoneCode: mapped.enterPhoneCode?.trim() || null,
         parkingSpot: mapped.parkingSpot?.trim() || null,

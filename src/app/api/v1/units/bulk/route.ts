@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         }
         // Truncate overly long strings
         if (typeof cleaned.number === 'string')
-          cleaned.number = cleaned.number.trim().substring(0, 50);
+          cleaned.number = cleaned.number.trim().substring(0, 20); // DB column is VarChar(20)
         if (typeof cleaned.comments === 'string')
           cleaned.comments = cleaned.comments.substring(0, 5000);
         if (typeof cleaned.unitType === 'string')
@@ -95,6 +95,42 @@ export async function POST(request: NextRequest) {
       select: { number: true },
     });
     const existingNumbers = new Set(existingUnits.map((u) => u.number.toLowerCase()));
+
+    // Build a lookup of building names → IDs for this property.
+    // If a unit has a `building` string but no `buildingId`, we'll look it up
+    // or auto-create the building.
+    const buildingNameToId = new Map<string, string>();
+    const existingBuildings = await prisma.building.findMany({
+      where: { propertyId, deletedAt: null },
+      select: { id: true, name: true },
+    });
+    for (const b of existingBuildings) {
+      buildingNameToId.set(b.name.toLowerCase(), b.id);
+    }
+
+    // Collect unique building names that need to be created
+    const buildingNamesToCreate = new Set<string>();
+    for (const unit of units) {
+      if (unit.building && !unit.buildingId) {
+        const lower = unit.building.trim().toLowerCase();
+        if (lower && !buildingNameToId.has(lower)) {
+          buildingNamesToCreate.add(unit.building.trim());
+        }
+      }
+    }
+
+    // Auto-create missing buildings
+    if (buildingNamesToCreate.size > 0) {
+      for (const buildingName of buildingNamesToCreate) {
+        const created = await prisma.building.create({
+          data: {
+            propertyId,
+            name: buildingName,
+          },
+        });
+        buildingNameToId.set(buildingName.toLowerCase(), created.id);
+      }
+    }
 
     const results: {
       created: number;
@@ -142,18 +178,27 @@ export async function POST(request: NextRequest) {
       }
 
       batchNumbers.add(lowerNumber);
+
+      // Resolve buildingId from building name if needed
+      let resolvedBuildingId = unit.buildingId ?? null;
+      if (!resolvedBuildingId && unit.building) {
+        resolvedBuildingId = buildingNameToId.get(unit.building.trim().toLowerCase()) ?? null;
+      }
+
       toCreate.push({
         propertyId,
         number: sanitizedNumber,
         floor: unit.floor ?? null,
-        buildingId: unit.buildingId ?? null,
-        unitType: unit.unitType ?? 'residential',
-        status: 'vacant',
+        buildingId: resolvedBuildingId,
+        unitType: (unit.unitType ?? 'residential').substring(0, 50),
+        status: (unit.status ?? 'vacant').substring(0, 20),
         squareFootage: unit.squareFootage ?? null,
-        enterPhoneCode: unit.enterPhoneCode ? stripControlChars(unit.enterPhoneCode) : null,
-        parkingSpot: unit.parkingSpot ? stripControlChars(unit.parkingSpot) : null,
-        locker: unit.locker ? stripControlChars(unit.locker) : null,
-        keyTag: unit.keyTag ? stripControlChars(unit.keyTag) : null,
+        enterPhoneCode: unit.enterPhoneCode
+          ? stripControlChars(unit.enterPhoneCode).substring(0, 20)
+          : null,
+        parkingSpot: unit.parkingSpot ? stripControlChars(unit.parkingSpot).substring(0, 20) : null,
+        locker: unit.locker ? stripControlChars(unit.locker).substring(0, 20) : null,
+        keyTag: unit.keyTag ? stripControlChars(unit.keyTag).substring(0, 50) : null,
         comments: unit.comments ? stripControlChars(stripHtml(unit.comments)) : null,
         customFields: unit.customFields
           ? (unit.customFields as Prisma.InputJsonValue)

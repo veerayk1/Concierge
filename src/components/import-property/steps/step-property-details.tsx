@@ -70,7 +70,11 @@ export function StepPropertyDetails({ onPropertyCreated }: StepPropertyDetailsPr
         }
 
         const result = await response.json();
-        const propertyId = result.data?.id || result.id || 'new-property';
+        const propertyId = result.data?.id || result.id;
+        if (!propertyId) {
+          setServerError('Property was created but no ID was returned. Please try again.');
+          return;
+        }
         onPropertyCreated(propertyId, name);
       } catch {
         setServerError('Network error. Please try again.');

@@ -56,8 +56,95 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  if (type === 'amenities') {
+    const csv = [
+      'Amenity Name,Group,Description,Capacity,Operating Hours,Booking Fee,Booking Style',
+      'Party Room,Social,Large event space with kitchen,50,9:00 AM - 11:00 PM,75.00,approval_required',
+      'Gym,Fitness,24/7 fitness center,20,24 Hours,0,open',
+      'Pool,Recreation,Outdoor pool with deck,30,7:00 AM - 9:00 PM,0,open',
+      'Guest Suite,Accommodation,One-bedroom guest suite,2,Check-in 3:00 PM,50.00,approval_required',
+    ].join('\n');
+
+    return new NextResponse(csv, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="concierge-amenity-import-template.csv"',
+      },
+    });
+  }
+
+  if (type === 'fobs') {
+    const csv = [
+      'Serial Number,Unit Number,FOB Type,Status,Issued Date,Issued To,Notes',
+      'FOB-001,101,Main Entrance,Active,2025-01-15,Maria Santos,',
+      'FOB-002,102,Main Entrance,Active,2025-03-01,James Chen,',
+      'FOB-003,PH-A,All Access,Active,2024-01-10,Sarah Williams,Penthouse access',
+    ].join('\n');
+
+    return new NextResponse(csv, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="concierge-fob-import-template.csv"',
+      },
+    });
+  }
+
+  if (type === 'buzzer_codes') {
+    const csv = [
+      'Unit Number,Buzzer Code,Comments',
+      '101,1011,',
+      '102,1021,Ring twice for deaf resident',
+      'PH-A,2001,Penthouse buzzer',
+    ].join('\n');
+
+    return new NextResponse(csv, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="concierge-buzzer-code-import-template.csv"',
+      },
+    });
+  }
+
+  if (type === 'parking_permits') {
+    const csv = [
+      'Unit Number,License Plate,Vehicle Make,Vehicle Model,Vehicle Color,Spot Number',
+      '101,ABCD 123,Toyota,Camry,Silver,P-101',
+      '102,XYZ 789,Honda,Civic,Black,P-102',
+      'PH-A,PNTHS 1,BMW,X5,White,P-PH1',
+    ].join('\n');
+
+    return new NextResponse(csv, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition':
+          'attachment; filename="concierge-parking-permit-import-template.csv"',
+      },
+    });
+  }
+
+  if (type === 'staff') {
+    const csv = [
+      'First Name,Last Name,Email,Phone,Role',
+      'John,Smith,john.smith@building.com,+14165551111,Concierge',
+      'Lisa,Park,lisa.park@building.com,+14165552222,Security',
+      'Mike,Brown,mike.brown@building.com,+14165553333,Maintenance',
+    ].join('\n');
+
+    return new NextResponse(csv, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="concierge-staff-import-template.csv"',
+      },
+    });
+  }
+
+  // For unsupported types, return a generic CSV with a single "Data" column
+  // rather than an error, so the download link doesn't break
   return NextResponse.json(
-    { error: 'INVALID_TYPE', message: 'Type must be "units", "residents", or "properties"' },
+    {
+      error: 'INVALID_TYPE',
+      message: `Template not available for type "${type}". Supported types: units, residents, properties, amenities, fobs, buzzer_codes, parking_permits, staff`,
+    },
     { status: 400 },
   );
 }

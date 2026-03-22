@@ -76,8 +76,19 @@ export function validateImportData(
       validateUnitRow(mappedData, index, issues, seenUnitNumbers, existingUnitNumbers);
     } else if (entityType === 'properties') {
       validatePropertyRow(mappedData, issues, seenUnitNumbers);
-    } else {
+    } else if (entityType === 'residents' || entityType === 'staff') {
       validateResidentRow(mappedData, index, issues, seenEmails);
+    } else if (entityType === 'amenities') {
+      validateAmenityRow(mappedData, issues);
+    } else if (entityType === 'fobs') {
+      validateFobRow(mappedData, issues);
+    } else if (entityType === 'buzzer_codes') {
+      validateBuzzerCodeRow(mappedData, issues);
+    } else if (entityType === 'parking_permits') {
+      validateParkingPermitRow(mappedData, issues);
+    } else {
+      // Generic validation for packages, maintenance_requests, events, etc.
+      validateGenericRow(mappedData, entityType, issues);
     }
 
     const hasErrors = issues.some((i) => i.severity === 'error');
@@ -336,6 +347,141 @@ function validateResidentRow(
         value: moveInDate,
       });
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Amenity Validation
+// ---------------------------------------------------------------------------
+
+function validateAmenityRow(data: Record<string, string>, issues: RowIssue[]) {
+  const name = data.name?.trim();
+  if (!name) {
+    issues.push({
+      column: 'Amenity Name',
+      severity: 'error',
+      message: 'Amenity name is required',
+      value: '',
+    });
+  }
+
+  if (data.capacity) {
+    const cap = parseInt(data.capacity, 10);
+    if (isNaN(cap) || cap < 0) {
+      issues.push({
+        column: 'Capacity',
+        severity: 'warning',
+        message: `"${data.capacity}" is not a valid number — will be skipped`,
+        value: data.capacity,
+      });
+    }
+  }
+
+  if (data.fee) {
+    const fee = parseFloat(data.fee.replace(/[,$]/g, ''));
+    if (isNaN(fee) || fee < 0) {
+      issues.push({
+        column: 'Fee',
+        severity: 'warning',
+        message: `"${data.fee}" is not a valid amount — will be skipped`,
+        value: data.fee,
+      });
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// FOB Validation
+// ---------------------------------------------------------------------------
+
+function validateFobRow(data: Record<string, string>, issues: RowIssue[]) {
+  const serial = data.serialNumber?.trim();
+  if (!serial) {
+    issues.push({
+      column: 'Serial Number',
+      severity: 'error',
+      message: 'Serial number is required',
+      value: '',
+    });
+  }
+
+  const unitNumber = data.unitNumber?.trim();
+  if (!unitNumber) {
+    issues.push({
+      column: 'Unit Number',
+      severity: 'error',
+      message: 'Unit number is required for FOB assignment',
+      value: '',
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Buzzer Code Validation
+// ---------------------------------------------------------------------------
+
+function validateBuzzerCodeRow(data: Record<string, string>, issues: RowIssue[]) {
+  const unitNumber = data.unitNumber?.trim();
+  if (!unitNumber) {
+    issues.push({
+      column: 'Unit Number',
+      severity: 'error',
+      message: 'Unit number is required',
+      value: '',
+    });
+  }
+
+  const code = data.code?.trim();
+  if (!code) {
+    issues.push({
+      column: 'Buzzer Code',
+      severity: 'error',
+      message: 'Buzzer code is required',
+      value: '',
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Parking Permit Validation
+// ---------------------------------------------------------------------------
+
+function validateParkingPermitRow(data: Record<string, string>, issues: RowIssue[]) {
+  const unitNumber = data.unitNumber?.trim();
+  if (!unitNumber) {
+    issues.push({
+      column: 'Unit Number',
+      severity: 'error',
+      message: 'Unit number is required',
+      value: '',
+    });
+  }
+
+  const plate = data.licensePlate?.trim();
+  if (!plate) {
+    issues.push({
+      column: 'License Plate',
+      severity: 'error',
+      message: 'License plate is required',
+      value: '',
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Generic Validation (for packages, maintenance, events, etc.)
+// ---------------------------------------------------------------------------
+
+function validateGenericRow(data: Record<string, string>, _entityType: string, issues: RowIssue[]) {
+  // Check if the row has at least some data
+  const hasAnyData = Object.values(data).some((v) => v?.trim() && !v.startsWith('custom:'));
+  if (!hasAnyData) {
+    issues.push({
+      column: 'Row',
+      severity: 'error',
+      message: 'Row is completely empty',
+      value: '',
+    });
   }
 }
 

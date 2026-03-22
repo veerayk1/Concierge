@@ -11,7 +11,7 @@
  * - Import execution via existing bulk APIs
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -381,6 +381,42 @@ export function PhaseCategoryReview({
 
           setImportProgress(Math.round(((i + 1) / validRows.length) * 100));
         }
+      } else if (entityType === 'properties') {
+        // One-at-a-time for properties
+        for (let i = 0; i < validRows.length; i++) {
+          const row = validRows[i]!;
+          try {
+            const response = await fetch(endpoint.url, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                name: row.mappedData.name?.trim() || '',
+                address: row.mappedData.address?.trim() || '',
+                city: row.mappedData.city?.trim() || '',
+                province: row.mappedData.province?.trim() || '',
+                country: row.mappedData.country?.trim() || 'CA',
+                postalCode: row.mappedData.postalCode?.trim() || undefined,
+                unitCount: row.mappedData.unitCount
+                  ? parseInt(row.mappedData.unitCount, 10)
+                  : undefined,
+                timezone: row.mappedData.timezone?.trim() || 'America/Toronto',
+                propertyCode: row.mappedData.propertyCode?.trim() || undefined,
+              }),
+            });
+
+            if (response.ok) {
+              created++;
+            } else {
+              const err = await response.json().catch(() => ({}));
+              errors++;
+              console.warn(`Property row ${i} failed:`, err.message);
+            }
+          } catch {
+            errors++;
+          }
+
+          setImportProgress(Math.round(((i + 1) / validRows.length) * 100));
+        }
       }
 
       onImportComplete({
@@ -400,12 +436,22 @@ export function PhaseCategoryReview({
 
   const previewRows = validation.rows.slice(0, 10);
   const mappedHeaders = mappings
-    .filter((m) => m.targetField && !m.isCustomField)
-    .map((m) => ({
-      source: m.sourceHeader,
-      target: m.targetField!,
-      label: targetFields.find((f) => f.key === m.targetField)?.label ?? m.targetField!,
-    }));
+    .filter((m) => m.targetField || m.isCustomField)
+    .map((m) => {
+      if (m.isCustomField && !m.targetField) {
+        // Custom field — use source header as both key and label
+        return {
+          source: m.sourceHeader,
+          target: `custom:${m.sourceHeader}`,
+          label: `${m.sourceHeader} (custom)`,
+        };
+      }
+      return {
+        source: m.sourceHeader,
+        target: m.targetField!,
+        label: targetFields.find((f) => f.key === m.targetField)?.label ?? m.targetField!,
+      };
+    });
 
   return (
     <div>
@@ -526,9 +572,8 @@ export function PhaseCategoryReview({
               {previewRows.map((row) => {
                 const isExpanded = expandedRow === row.index;
                 return (
-                  <>
+                  <React.Fragment key={row.index}>
                     <tr
-                      key={row.index}
                       className={`cursor-pointer border-b border-neutral-50 transition-colors hover:bg-neutral-50 ${
                         row.status === 'error' ? 'bg-red-50/30' : ''
                       }`}
@@ -564,7 +609,7 @@ export function PhaseCategoryReview({
                       ))}
                     </tr>
                     {isExpanded && row.issues.length > 0 && (
-                      <tr key={`${row.index}-issues`} className="bg-neutral-50/50">
+                      <tr className="bg-neutral-50/50">
                         <td colSpan={mappedHeaders.slice(0, 6).length + 1} className="px-6 py-2">
                           <div className="space-y-1">
                             {row.issues.map((issue, idx) => (
@@ -587,7 +632,7 @@ export function PhaseCategoryReview({
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </tbody>

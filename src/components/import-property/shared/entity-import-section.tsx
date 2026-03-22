@@ -162,18 +162,45 @@ export function EntityImportSection({
 
       switch (entityType) {
         case 'units':
-          return validRows.map((row) => ({
-            number: row.mappedData.number?.trim() || '',
-            floor: safeInt(row.mappedData.floor),
-            building: safeStr(row.mappedData.building),
-            unitType: safeStr(row.mappedData.unitType),
-            squareFootage: safeFloat(row.mappedData.squareFootage),
-            status: safeStr(row.mappedData.status),
-            enterPhoneCode: safeStr(row.mappedData.enterPhoneCode),
-            parkingSpot: safeStr(row.mappedData.parkingSpot),
-            locker: safeStr(row.mappedData.locker),
-            comments: safeStr(row.mappedData.comments),
-          }));
+          return validRows.map((row) => {
+            // Collect extended fields into customFields
+            const extendedFields: Record<string, string> = {};
+            const extendedKeys = [
+              'bedrooms',
+              'bathrooms',
+              'rentAmount',
+              'securityDeposit',
+              'petFee',
+              'leaseStart',
+              'leaseEnd',
+              'zone',
+              'parkingType',
+            ];
+            for (const key of extendedKeys) {
+              const val = row.mappedData[key]?.trim();
+              if (val) extendedFields[key] = val;
+            }
+            // Also include custom: prefixed fields
+            for (const [key, value] of Object.entries(row.mappedData)) {
+              if (key.startsWith('custom:') && value?.trim()) {
+                extendedFields[key.replace('custom:', '')] = value.trim();
+              }
+            }
+
+            return {
+              number: row.mappedData.number?.trim() || '',
+              floor: safeInt(row.mappedData.floor),
+              building: safeStr(row.mappedData.building),
+              unitType: safeStr(row.mappedData.unitType),
+              squareFootage: safeFloat(row.mappedData.squareFootage),
+              status: safeStr(row.mappedData.status),
+              enterPhoneCode: safeStr(row.mappedData.enterPhoneCode),
+              parkingSpot: safeStr(row.mappedData.parkingSpot),
+              locker: safeStr(row.mappedData.locker),
+              comments: safeStr(row.mappedData.comments),
+              customFields: Object.keys(extendedFields).length > 0 ? extendedFields : undefined,
+            };
+          });
 
         case 'amenities':
           return validRows.map((row) => ({
