@@ -118,19 +118,42 @@ function buildBulkPayload(
 ) {
   switch (entityType) {
     case 'units':
-      return validRows.map((row) => ({
-        number: row.mappedData.number?.trim() || '',
-        floor: safeInt(row.mappedData.floor),
-        building: safeStr(row.mappedData.building),
-        unitType: safeStr(row.mappedData.unitType),
-        squareFootage: safeFloat(row.mappedData.squareFootage),
-        status: safeStr(row.mappedData.status),
-        enterPhoneCode: safeStr(row.mappedData.enterPhoneCode),
-        parkingSpot: safeStr(row.mappedData.parkingSpot),
-        locker: safeStr(row.mappedData.locker),
-        comments: safeStr(row.mappedData.comments),
-        customFields: extractCustomFields(row.mappedData),
-      }));
+      return validRows.map((row) => {
+        // Collect extended fields (mapped but no dedicated DB column) into customFields
+        const extendedFields: Record<string, string> = {};
+        const extendedKeys = [
+          'bedrooms',
+          'bathrooms',
+          'rentAmount',
+          'securityDeposit',
+          'petFee',
+          'leaseStart',
+          'leaseEnd',
+          'zone',
+          'parkingType',
+        ];
+        for (const key of extendedKeys) {
+          const val = row.mappedData[key]?.trim();
+          if (val) extendedFields[key] = val;
+        }
+        // Merge with any custom: prefixed fields
+        const autoCustom = extractCustomFields(row.mappedData) || {};
+        const allCustom = { ...extendedFields, ...autoCustom };
+
+        return {
+          number: row.mappedData.number?.trim() || '',
+          floor: safeInt(row.mappedData.floor),
+          building: safeStr(row.mappedData.building),
+          unitType: safeStr(row.mappedData.unitType),
+          squareFootage: safeFloat(row.mappedData.squareFootage),
+          status: safeStr(row.mappedData.status),
+          enterPhoneCode: safeStr(row.mappedData.enterPhoneCode),
+          parkingSpot: safeStr(row.mappedData.parkingSpot),
+          locker: safeStr(row.mappedData.locker),
+          comments: safeStr(row.mappedData.comments),
+          customFields: Object.keys(allCustom).length > 0 ? allCustom : undefined,
+        };
+      });
 
     case 'amenities':
       return validRows.map((row) => ({
