@@ -74,6 +74,8 @@ export function validateImportData(
 
     if (entityType === 'units') {
       validateUnitRow(mappedData, index, issues, seenUnitNumbers, existingUnitNumbers);
+    } else if (entityType === 'properties') {
+      validatePropertyRow(mappedData, issues, seenUnitNumbers);
     } else {
       validateResidentRow(mappedData, index, issues, seenEmails);
     }
@@ -159,6 +161,84 @@ function validateUnitRow(
         severity: 'warning',
         message: `"${data.squareFootage}" is not a valid number — will be skipped`,
         value: data.squareFootage,
+      });
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Resident Validation
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Property Validation
+// ---------------------------------------------------------------------------
+
+function validatePropertyRow(
+  data: Record<string, string>,
+  issues: RowIssue[],
+  seenNames: Set<string>,
+) {
+  const name = data.name?.trim();
+  if (!name) {
+    issues.push({
+      column: 'Property Name',
+      severity: 'error',
+      message: 'Property name is required',
+      value: '',
+    });
+    return;
+  }
+
+  const lowerName = name.toLowerCase();
+  if (seenNames.has(lowerName)) {
+    issues.push({
+      column: 'Property Name',
+      severity: 'warning',
+      message: `Duplicate property "${name}" in this file`,
+      value: name,
+    });
+  }
+  seenNames.add(lowerName);
+
+  const address = data.address?.trim();
+  if (!address) {
+    issues.push({
+      column: 'Address',
+      severity: 'error',
+      message: 'Address is required',
+      value: '',
+    });
+  }
+
+  const city = data.city?.trim();
+  if (!city) {
+    issues.push({
+      column: 'City',
+      severity: 'error',
+      message: 'City is required',
+      value: '',
+    });
+  }
+
+  const province = data.province?.trim();
+  if (!province) {
+    issues.push({
+      column: 'Province',
+      severity: 'error',
+      message: 'Province/State is required',
+      value: '',
+    });
+  }
+
+  if (data.unitCount) {
+    const count = parseInt(data.unitCount, 10);
+    if (isNaN(count) || count < 0) {
+      issues.push({
+        column: 'Unit Count',
+        severity: 'warning',
+        message: `"${data.unitCount}" is not a valid number — will default to 0`,
+        value: data.unitCount,
       });
     }
   }

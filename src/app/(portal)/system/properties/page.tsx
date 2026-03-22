@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { ImportWizard } from '@/components/import/import-wizard';
 
 // ---------------------------------------------------------------------------
 // Types (aligned with API response from /api/v1/properties)
@@ -415,6 +416,7 @@ export default function PropertiesPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showImportWizard, setShowImportWizard] = useState(false);
 
   // Fetch properties from API with search param
   const {
@@ -506,7 +508,7 @@ export default function PropertiesPage() {
       description="Manage all properties in your portfolio."
       actions={
         <>
-          <Button variant="secondary" disabled title="Property import — coming soon">
+          <Button variant="secondary" onClick={() => setShowImportWizard(true)}>
             <Upload className="h-4 w-4" />
             Import Property
           </Button>
@@ -616,6 +618,15 @@ export default function PropertiesPage() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onSuccess={handlePropertyCreated}
+      />
+
+      {/* Import Properties Wizard */}
+      <ImportWizard
+        open={showImportWizard}
+        onOpenChange={setShowImportWizard}
+        entityType="properties"
+        propertyId=""
+        onSuccess={() => refetch()}
       />
     </PageShell>
   );

@@ -40,8 +40,24 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  if (type === 'properties') {
+    const csv = [
+      'Property Name,Address,City,Province,Country,Postal Code,Unit Count,Timezone,Property Code',
+      'Maple Heights Condominiums,100 Front Street West,Toronto,ON,CA,M5J 1E3,171,America/Toronto,MPL-HTS',
+      'Lakeview Towers,250 Queens Quay West,Toronto,ON,CA,M5V 3K9,320,America/Toronto,LKV-TWR',
+      'Riverside Park Condos,45 River Street,Ottawa,ON,CA,K1S 1A2,95,America/Toronto,RVR-PRK',
+    ].join('\n');
+
+    return new NextResponse(csv, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="concierge-property-import-template.csv"',
+      },
+    });
+  }
+
   return NextResponse.json(
-    { error: 'INVALID_TYPE', message: 'Type must be "units" or "residents"' },
+    { error: 'INVALID_TYPE', message: 'Type must be "units", "residents", or "properties"' },
     { status: 400 },
   );
 }

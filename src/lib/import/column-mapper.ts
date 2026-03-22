@@ -12,7 +12,7 @@ import Fuse from 'fuse.js';
 // Types
 // ---------------------------------------------------------------------------
 
-export type EntityType = 'units' | 'residents';
+export type EntityType = 'units' | 'residents' | 'properties';
 
 export interface ColumnMapping {
   sourceHeader: string;
@@ -419,6 +419,129 @@ export const RESIDENT_FIELDS: FieldDefinition[] = [
   },
 ];
 
+export const PROPERTY_FIELDS: FieldDefinition[] = [
+  {
+    key: 'name',
+    label: 'Property Name',
+    required: true,
+    aliases: [
+      'name',
+      'property name',
+      'property',
+      'building name',
+      'building',
+      'condo name',
+      'condo',
+      'complex',
+      'complex name',
+      'community',
+      'community name',
+      'development',
+      'project name',
+    ],
+  },
+  {
+    key: 'address',
+    label: 'Address',
+    required: true,
+    aliases: [
+      'address',
+      'street address',
+      'street',
+      'location',
+      'addr',
+      'address line 1',
+      'address1',
+      'mailing address',
+      'property address',
+    ],
+  },
+  {
+    key: 'city',
+    label: 'City',
+    required: true,
+    aliases: ['city', 'town', 'municipality', 'city/town', 'locale'],
+  },
+  {
+    key: 'province',
+    label: 'Province / State',
+    required: true,
+    aliases: [
+      'province',
+      'state',
+      'prov',
+      'region',
+      'province/state',
+      'state/province',
+      'territory',
+    ],
+  },
+  {
+    key: 'country',
+    label: 'Country',
+    required: false,
+    aliases: ['country', 'country code', 'nation', 'country name'],
+  },
+  {
+    key: 'postalCode',
+    label: 'Postal / Zip Code',
+    required: false,
+    aliases: [
+      'postal code',
+      'zip',
+      'zip code',
+      'postcode',
+      'post code',
+      'postal',
+      'zip/postal',
+      'postal/zip',
+    ],
+  },
+  {
+    key: 'unitCount',
+    label: 'Unit Count',
+    required: false,
+    aliases: [
+      'units',
+      'unit count',
+      'total units',
+      '# of units',
+      'number of units',
+      'num units',
+      'suites',
+      'total suites',
+      'apartments',
+    ],
+  },
+  {
+    key: 'timezone',
+    label: 'Timezone',
+    required: false,
+    aliases: ['timezone', 'time zone', 'tz', 'time_zone'],
+  },
+  {
+    key: 'type',
+    label: 'Property Type',
+    required: false,
+    aliases: ['type', 'property type', 'building type', 'category', 'classification', 'class'],
+  },
+  {
+    key: 'propertyCode',
+    label: 'Property Code',
+    required: false,
+    aliases: [
+      'code',
+      'property code',
+      'building code',
+      'short code',
+      'id code',
+      'identifier',
+      'ref',
+      'reference',
+    ],
+  },
+];
+
 // ---------------------------------------------------------------------------
 // Normalization
 // ---------------------------------------------------------------------------
@@ -441,7 +564,12 @@ export function autoMapColumns(
   entityType: EntityType,
   sampleRows?: Record<string, string>[],
 ): ColumnMapping[] {
-  const fields = entityType === 'units' ? UNIT_FIELDS : RESIDENT_FIELDS;
+  const fields =
+    entityType === 'units'
+      ? UNIT_FIELDS
+      : entityType === 'properties'
+        ? PROPERTY_FIELDS
+        : RESIDENT_FIELDS;
 
   // Build flattened alias list for fuzzy search
   const aliasEntries = fields.flatMap((field) =>
@@ -519,7 +647,11 @@ export function autoMapColumns(
 // ---------------------------------------------------------------------------
 
 export function getTargetFields(entityType: EntityType): FieldDefinition[] {
-  return entityType === 'units' ? UNIT_FIELDS : RESIDENT_FIELDS;
+  return entityType === 'units'
+    ? UNIT_FIELDS
+    : entityType === 'properties'
+      ? PROPERTY_FIELDS
+      : RESIDENT_FIELDS;
 }
 
 // ---------------------------------------------------------------------------

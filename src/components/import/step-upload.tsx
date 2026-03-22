@@ -63,7 +63,8 @@ export function StepUpload({ entityType, propertyId, onFileParsed }: StepUploadP
     }
   }, [parsedFile, mappings, onFileParsed]);
 
-  const entityLabel = entityType === 'units' ? 'units' : 'residents';
+  const entityLabel =
+    entityType === 'units' ? 'units' : entityType === 'properties' ? 'properties' : 'residents';
   const autoMappedCount = mappings.filter((m) => m.targetField && !m.isCustomField).length;
   const customFieldCount = mappings.filter((m) => m.isCustomField).length;
 

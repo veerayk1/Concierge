@@ -81,6 +81,8 @@ export function StepProgress({
 
     if (entityType === 'units') {
       await importUnits(importableRows, fieldMap, customFieldMappings);
+    } else if (entityType === 'properties') {
+      await importProperties(importableRows, fieldMap);
     } else {
       await importResidents(importableRows, fieldMap, customFieldMappings);
     }
@@ -295,8 +297,95 @@ export function StepProgress({
     });
   }
 
+  async function importProperties(rows: ValidationResult['rows'], fieldMap: Map<string, string>) {
+    setStatusMessage(`Importing ${rows.length} properties...`);
+    setProgress(30);
+
+    let totalCreated = 0;
+    let totalSkipped = 0;
+    const allErrors: Array<{ index: number; message: string }> = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]!;
+      const mapped: Record<string, string> = {};
+      for (const [source, target] of fieldMap) {
+        mapped[target] = row.data[source] ?? '';
+      }
+
+      const pct = 30 + Math.round(((i + 1) / rows.length) * 60);
+      setProgress(pct);
+      if (i % 5 === 0) {
+        setStatusMessage(`Importing ${i + 1} of ${rows.length} properties...`);
+      }
+
+      const name = mapped.name?.trim();
+      if (!name) {
+        allErrors.push({ index: i, message: 'No property name found' });
+        continue;
+      }
+
+      const unitCount = mapped.unitCount ? parseInt(mapped.unitCount, 10) : 0;
+
+      try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch('/api/v1/properties', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+            ...(localStorage.getItem('demo_role') && {
+              'x-demo-role': localStorage.getItem('demo_role')!,
+            }),
+          },
+          body: JSON.stringify({
+            name,
+            address: mapped.address?.trim() || '',
+            city: mapped.city?.trim() || '',
+            province: mapped.province?.trim() || '',
+            country: mapped.country?.trim() || 'CA',
+            postalCode: mapped.postalCode?.trim() || '',
+            unitCount: !isNaN(unitCount) ? unitCount : 0,
+            timezone: mapped.timezone?.trim() || 'America/Toronto',
+            type: mapped.type?.trim()?.toUpperCase() || 'PRODUCTION',
+            propertyCode: mapped.propertyCode?.trim() || undefined,
+          }),
+        });
+
+        if (response.status === 409) {
+          totalSkipped++;
+          continue;
+        }
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          allErrors.push({
+            index: i,
+            message: err.message || `Failed (${response.status})`,
+          });
+          continue;
+        }
+
+        totalCreated++;
+      } catch (err) {
+        allErrors.push({
+          index: i,
+          message: err instanceof Error ? err.message : 'Network error',
+        });
+      }
+    }
+
+    setProgress(100);
+    setStatusMessage('Import complete!');
+    onComplete({
+      created: totalCreated,
+      skipped: totalSkipped,
+      errors: allErrors,
+    });
+  }
+
   const isComplete = importResult !== null;
-  const entityLabel = entityType === 'units' ? 'Units' : 'Residents';
+  const entityLabel =
+    entityType === 'units' ? 'Units' : entityType === 'properties' ? 'Properties' : 'Residents';
 
   return (
     <div className="mx-auto max-w-lg space-y-8 py-8">
