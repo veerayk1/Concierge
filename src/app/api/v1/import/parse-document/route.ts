@@ -53,8 +53,9 @@ export async function POST(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 async function parsePdf(buffer: Buffer) {
-  // pdf-parse v1.1.1 — CommonJS module, no canvas dependency
-  const pdfParse = (await import('pdf-parse')).default as unknown as (
+  // pdf-parse v1.1.1 — CommonJS, require to avoid test-file-on-import bug
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const pdfParse = require('pdf-parse') as (
     buffer: Buffer,
   ) => Promise<{ text: string; numpages: number }>;
   const result = await pdfParse(buffer);
@@ -84,7 +85,7 @@ async function parsePdf(buffer: Buffer) {
 
   if (headers.length === 0) {
     warnings.push(
-      'Could not detect column structure automatically. The raw text preview is shown below — please verify the data.',
+      "This PDF doesn't have a parseable table structure. PDF files often merge columns together during extraction. For best results, please open this PDF in Excel or Google Sheets and re-save as CSV or .xlsx, then upload that file instead.",
     );
   } else {
     warnings.push(
