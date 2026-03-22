@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import Link from 'next/link';
+// Using <a> tags instead of Next.js Link for demo mode compatibility
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
@@ -626,13 +626,13 @@ export default function DashboardPage() {
               { label: 'User Management', href: '/users' },
               { label: 'Compliance', href: '/compliance' },
             ].map((action) => (
-              <Link
+              <a
                 key={action.label}
-                href={action.href as never}
+                href={action.href}
                 className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
               >
                 {action.label}
-              </Link>
+              </a>
             ))}
           </div>
         </div>
@@ -939,13 +939,13 @@ export default function DashboardPage() {
             const route = QUICK_ACTION_ROUTES[action];
             if (route) {
               return (
-                <Link
+                <a
                   key={action}
-                  href={route as never}
+                  href={route}
                   className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
                 >
                   {action}
-                </Link>
+                </a>
               );
             }
             return (
@@ -962,14 +962,14 @@ export default function DashboardPage() {
           {/* Dedicated quick action buttons */}
           <div className="mx-1 h-auto w-px bg-neutral-200" />
           {Object.entries(QUICK_ACTION_LINKS).map(([label, { href, icon: QAIcon }]) => (
-            <Link
+            <a
               key={label}
-              href={href as never}
+              href={href}
               className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
             >
               <QAIcon className="h-4 w-4" />
               {label}
-            </Link>
+            </a>
           ))}
         </div>
       </div>
