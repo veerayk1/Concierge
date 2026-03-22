@@ -584,9 +584,9 @@ export function PhaseCategoryReview({
         ))}
       </div>
 
-      {/* Data Preview Table */}
-      <Card padding="none" className="mb-6 overflow-hidden">
-        <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+      {/* Data Preview — Card-based layout showing ALL fields */}
+      <div className="mb-6">
+        <div className="mb-3 flex items-center justify-between">
           <p className="text-[13px] font-semibold tracking-wide text-neutral-700 uppercase">
             Data Preview
           </p>
@@ -595,138 +595,126 @@ export function PhaseCategoryReview({
             {previewFilter !== 'all' && ` · Showing ${previewFilter} only`}
           </p>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="border-b border-neutral-100 bg-neutral-50">
-                <th className="px-3 py-2 text-left font-medium text-neutral-500">Status</th>
-                {mappedHeaders.slice(0, 6).map((h) => (
-                  <th key={h.target} className="px-3 py-2 text-left font-medium text-neutral-500">
-                    {h.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {previewRows.map((row) => {
-                const isExpanded = expandedRow === row.index;
-                return (
-                  <React.Fragment key={row.index}>
-                    <tr
-                      className={`border-b border-neutral-50 transition-colors ${
-                        row.issues.length > 0 ? 'cursor-pointer hover:bg-neutral-50' : ''
-                      } ${
-                        row.status === 'error'
-                          ? 'bg-red-50/40'
-                          : row.status === 'warning'
-                            ? 'bg-amber-50/30'
-                            : ''
-                      }`}
-                      onClick={() =>
-                        row.issues.length > 0 && setExpandedRow(isExpanded ? null : row.index)
-                      }
+        <div className="space-y-2">
+          {previewRows.map((row) => {
+            const isExpanded = expandedRow === row.index;
+            return (
+              <div
+                key={row.index}
+                className={`rounded-xl border transition-all ${
+                  row.status === 'error'
+                    ? 'border-red-200 bg-red-50/30'
+                    : row.status === 'warning'
+                      ? 'border-amber-200 bg-amber-50/20'
+                      : 'border-neutral-200 bg-white'
+                } ${row.issues.length > 0 ? 'cursor-pointer hover:shadow-sm' : ''}`}
+                onClick={() =>
+                  row.issues.length > 0 && setExpandedRow(isExpanded ? null : row.index)
+                }
+              >
+                {/* Row header with status + key fields inline */}
+                <div className="flex items-center gap-2 border-b border-neutral-100/50 px-4 py-2">
+                  {row.status === 'valid' && (
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                  )}
+                  {row.status === 'warning' && (
+                    <>
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 shrink-0 text-amber-500" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 shrink-0 text-amber-500" />
+                      )}
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+                    </>
+                  )}
+                  {row.status === 'error' && (
+                    <>
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 shrink-0 text-red-500" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 shrink-0 text-red-500" />
+                      )}
+                      <XCircle className="h-4 w-4 shrink-0 text-red-500" />
+                    </>
+                  )}
+                  <span className="text-xs font-medium text-neutral-500">Row {row.index + 1}</span>
+                  {row.issues.length > 0 && (
+                    <span
+                      className={`text-xs ${row.status === 'error' ? 'text-red-500' : 'text-amber-500'}`}
                     >
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-1.5">
-                          {row.status === 'valid' && (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                          )}
-                          {row.status === 'warning' && (
-                            <div className="flex items-center gap-1">
-                              {isExpanded ? (
-                                <ChevronDown className="h-3.5 w-3.5 text-amber-500" />
-                              ) : (
-                                <ChevronRight className="h-3.5 w-3.5 text-amber-500" />
-                              )}
-                              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                            </div>
-                          )}
-                          {row.status === 'error' && (
-                            <div className="flex items-center gap-1">
-                              {isExpanded ? (
-                                <ChevronDown className="h-3.5 w-3.5 text-red-500" />
-                              ) : (
-                                <ChevronRight className="h-3.5 w-3.5 text-red-500" />
-                              )}
-                              <XCircle className="h-3.5 w-3.5 text-red-500" />
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      {mappedHeaders.slice(0, 6).map((h) => (
-                        <td
-                          key={h.target}
-                          className="max-w-[200px] truncate px-3 py-2 text-neutral-700"
-                        >
-                          {row.mappedData[h.target] || <span className="text-neutral-300">—</span>}
-                        </td>
-                      ))}
-                    </tr>
-                    {isExpanded && row.issues.length > 0 && (
-                      <tr>
-                        <td colSpan={mappedHeaders.slice(0, 6).length + 1} className="px-4 py-3">
-                          <div
-                            className={`rounded-lg border p-3 ${
-                              row.status === 'error'
-                                ? 'border-red-200 bg-red-50'
-                                : 'border-amber-200 bg-amber-50'
-                            }`}
-                          >
-                            <p
-                              className={`mb-2 text-xs font-semibold ${
-                                row.status === 'error' ? 'text-red-800' : 'text-amber-800'
+                      · {row.issues.length} issue{row.issues.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+
+                {/* ALL mapped fields in a responsive grid */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 px-4 py-2.5 sm:grid-cols-3 lg:grid-cols-4">
+                  {mappedHeaders.map((h) => {
+                    const val = row.mappedData[h.target];
+                    if (!val) return null;
+                    return (
+                      <div key={h.target} className="min-w-0 overflow-hidden">
+                        <p className="truncate text-[10px] font-medium text-neutral-400 uppercase">
+                          {h.label}
+                        </p>
+                        <p className="truncate text-[13px] text-neutral-800" title={val}>
+                          {val}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Expanded issues */}
+                {isExpanded && row.issues.length > 0 && (
+                  <div className="border-t border-neutral-100 px-4 py-3">
+                    <div
+                      className={`rounded-lg border p-3 ${
+                        row.status === 'error'
+                          ? 'border-red-200 bg-red-50'
+                          : 'border-amber-200 bg-amber-50'
+                      }`}
+                    >
+                      <div className="space-y-1.5">
+                        {row.issues.map((issue, idx) => (
+                          <div key={idx} className="flex items-start gap-2 text-[12px]">
+                            <span
+                              className={`mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
+                                issue.severity === 'error' ? 'bg-red-500' : 'bg-amber-500'
                               }`}
-                            >
-                              Row {row.index + 1} — {row.issues.length} issue
-                              {row.issues.length > 1 ? 's' : ''} found:
-                            </p>
-                            <div className="space-y-1.5">
-                              {row.issues.map((issue, idx) => (
-                                <div key={idx} className="flex items-start gap-2 text-[12px]">
-                                  <span
-                                    className={`mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
-                                      issue.severity === 'error' ? 'bg-red-500' : 'bg-amber-500'
-                                    }`}
-                                  />
-                                  <div>
-                                    <span
-                                      className={`font-medium ${
-                                        issue.severity === 'error'
-                                          ? 'text-red-800'
-                                          : 'text-amber-800'
-                                      }`}
-                                    >
-                                      {issue.column}:
-                                    </span>{' '}
-                                    <span
-                                      className={
-                                        issue.severity === 'error'
-                                          ? 'text-red-700'
-                                          : 'text-amber-700'
-                                      }
-                                    >
-                                      {issue.message}
-                                    </span>
-                                    {issue.value && (
-                                      <span className="ml-1 rounded bg-white/50 px-1 py-0.5 font-mono text-[11px] text-neutral-600">
-                                        &quot;{issue.value}&quot;
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
+                            />
+                            <div>
+                              <span
+                                className={`font-medium ${
+                                  issue.severity === 'error' ? 'text-red-800' : 'text-amber-800'
+                                }`}
+                              >
+                                {issue.column}:
+                              </span>{' '}
+                              <span
+                                className={
+                                  issue.severity === 'error' ? 'text-red-700' : 'text-amber-700'
+                                }
+                              >
+                                {issue.message}
+                              </span>
+                              {issue.value && (
+                                <span className="ml-1 rounded bg-white/50 px-1 py-0.5 font-mono text-[11px] text-neutral-600">
+                                  &quot;{issue.value}&quot;
+                                </span>
+                              )}
                             </div>
                           </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-      </Card>
+      </div>
 
       {/* Import error */}
       {importError && (

@@ -250,14 +250,35 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Bulk create in transaction
+    // Bulk create — try createMany first, fall back to one-at-a-time if it fails
     if (toCreate.length > 0) {
-      await prisma.$transaction(async (tx) => {
-        // createMany doesn't support returning created records on all DBs,
-        // but it's the fastest approach for bulk inserts
-        await tx.unit.createMany({ data: toCreate });
-      });
-      results.created = toCreate.length;
+      try {
+        await prisma.$transaction(async (tx) => {
+          await tx.unit.createMany({ data: toCreate });
+        });
+        results.created = toCreate.length;
+      } catch (bulkError) {
+        console.warn(
+          'createMany failed, falling back to individual inserts:',
+          bulkError instanceof Error ? bulkError.message : bulkError,
+        );
+        // Fall back to creating one at a time — isolate bad rows
+        for (let j = 0; j < toCreate.length; j++) {
+          try {
+            await prisma.unit.create({ data: toCreate[j]! });
+            results.created++;
+          } catch (rowError) {
+            results.errors.push({
+              index: j,
+              number: toCreate[j]!.number,
+              message:
+                rowError instanceof Error
+                  ? rowError.message.substring(0, 200)
+                  : 'Failed to create unit',
+            });
+          }
+        }
+      }
     }
 
     return NextResponse.json(
