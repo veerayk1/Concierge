@@ -55,6 +55,7 @@ import {
   Image,
   Lightbulb,
   Bug,
+  Mail,
 } from 'lucide-react';
 import type { Role } from '@/types';
 
@@ -207,6 +208,14 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         icon: Users,
         // 7.2 Property Admin, 7.4 Property Manager
         roles: ['property_admin', 'property_manager'],
+      },
+      {
+        id: 'vacations',
+        label: 'Vacations',
+        href: '/residents/vacations',
+        icon: CalendarDays,
+        // Staff and admin can view resident vacations for planning
+        roles: ['property_admin', 'property_manager', 'front_desk', 'security_guard'],
       },
       {
         id: 'amenities',
@@ -700,6 +709,14 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         href: '/settings',
         icon: Settings,
         // 7.1, 7.2
+        roles: ['super_admin', 'property_admin'],
+      },
+      {
+        id: 'email-config',
+        label: 'Email Configuration',
+        href: '/settings/email-config',
+        icon: Mail,
+        // 7.1, 7.2 — Super Admin and Property Admin only
         roles: ['super_admin', 'property_admin'],
       },
       {

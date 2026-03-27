@@ -16,6 +16,7 @@ import {
   Shield,
   Users,
   Zap,
+  Mail,
 } from 'lucide-react';
 import { PageShell } from '@/components/layout/page-shell';
 import { Card } from '@/components/ui/card';
@@ -72,6 +73,14 @@ const SETTING_GROUPS = [
         href: '/settings/notifications',
         color: 'text-warning-600',
         bg: 'bg-warning-50',
+      },
+      {
+        label: 'Email Configuration',
+        description: 'Configure per-module email sender addresses',
+        icon: Mail,
+        href: '/settings/email-config',
+        color: 'text-info-600',
+        bg: 'bg-info-50',
       },
       {
         label: 'Integrations',

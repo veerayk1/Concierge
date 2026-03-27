@@ -176,6 +176,20 @@ model Property {
   // Vacation tracking
   vacationPeriods VacationPeriod[]
 
+  // Fire log & specialized event tracking
+  fireLogs        FireLog[]
+  noiseComplaints NoiseComplaint[]
+
+  // Consent & compliance
+  consentDocuments ConsentDocument[]
+
+  // Email configuration per module
+  moduleEmailConfigs ModuleEmailConfig[]
+
+  // Security company configuration
+  securityCompanyName  String? @db.VarChar(255)
+  securityCompanyLogo  String? @db.VarChar(500)
+
   @@index([type])
   @@index([slug])
   @@index([propertyCode])
@@ -2257,6 +2271,120 @@ model VacationPeriod {
   @@index([propertyId, startDate, endDate])
   @@index([userId])
   @@map("vacation_periods")
+}
+
+// ---------------------------------------------------------------------------
+// FIRE LOG (Gap 3.1: Fire Drill Specialized Checklist)
+// ---------------------------------------------------------------------------
+
+model FireLog {
+  id                            String   @id @default(uuid()) @db.Uuid
+  propertyId                    String   @db.Uuid
+  eventId                       String?  @db.Uuid // Link to parent Event if created via event system
+  alarmTime                     DateTime?
+  alarmLocation                 String?  @db.VarChar(255) // Where the alarm was triggered
+  alarmType                     String?  @db.VarChar(50) // manual_pull, heat_detector, smoke_detector, etc.
+  fireDeptCallTime              DateTime?
+  firstAnnouncementTime         DateTime?
+  secondAnnouncementTime        DateTime?
+  thirdAnnouncementTime         DateTime?
+  fireDeptArrivalTime           DateTime?
+  fireDeptAllClearTime          DateTime?
+  fireDeptDepartureTime         DateTime?
+  prepareForFdArrival           Json?    @db.JsonB // Checklist items: {items: [{name, completed, notes}]}
+  ensureElevatorsReset          Json?    @db.JsonB // Checklist items
+  resetDevices                  Json?    @db.JsonB // Detailed reset checklist for: Pull Station, Smoke Detector, Heat Detector, Sprinkler Head, Fire Panel, Mag Locks, Elevators
+  additionalNotes               String?  @db.Text
+  createdById                   String?  @db.Uuid
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, alarmTime])
+  @@index([propertyId, createdAt])
+  @@map("fire_logs")
+}
+
+// ---------------------------------------------------------------------------
+// NOISE COMPLAINT (Gap 3.2: Noise Complaint Specialized Fields)
+// ---------------------------------------------------------------------------
+
+model NoiseComplaint {
+  id                    String   @id @default(uuid()) @db.Uuid
+  propertyId            String   @db.Uuid
+  eventId               String?  @db.Uuid // Link to parent Event
+  complainantFloor      String?  @db.VarChar(20)
+  suspectFloor          String?  @db.VarChar(20)
+  noiseDuration         String?  @db.VarChar(100) // e.g., "5-10 minutes", "ongoing"
+  noiseVolume           Int?     // Degree scale 1-10
+  natureOfComplaint     String[] // Array of complaint types: Drop on Floor, Loud Music, Smoking Hallways, Smoking in Suite, Hallway Noise, Piano Playing, Dog Barking, Cooking Odors, Children Playing, Walking/Banging, Party, Talking, Construction, Other
+  suspectContactMethod  String?  @db.VarChar(100) // How to contact suspected noisemaker
+  counselingNotes       String?  @db.Text // Notes on counseling/resolution attempt
+  resolutionStatus      String?  @db.VarChar(50) // pending, resolved, escalated, ongoing
+  createdById           String?  @db.Uuid
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, createdAt])
+  @@index([propertyId, resolutionStatus])
+  @@map("noise_complaints")
+}
+
+// ---------------------------------------------------------------------------
+// CONSENT DOCUMENT (Gap 7.2: Electronic Consent Tracking)
+// ---------------------------------------------------------------------------
+
+model ConsentDocument {
+  id            String   @id @default(uuid()) @db.Uuid
+  propertyId    String   @db.Uuid
+  userId        String   @db.Uuid
+  documentType  String   @db.VarChar(100) // e.g., "package_liability", "emergency_contact_authorization", "photo_consent"
+  documentUrl   String   @db.VarChar(500) // URL to the consent document (e.g., S3 PDF)
+  signedAt      DateTime?
+  expiresAt     DateTime?
+  ipAddress     String?  @db.VarChar(45)
+  userAgent     String?  @db.VarChar(500)
+  isRevoked     Boolean  @default(false)
+  revokedAt     DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, userId])
+  @@index([propertyId, documentType])
+  @@index([propertyId, signedAt])
+  @@map("consent_documents")
+}
+
+// ---------------------------------------------------------------------------
+// MODULE EMAIL CONFIG (Gap 16.3: Per-Module From Email)
+// ---------------------------------------------------------------------------
+
+model ModuleEmailConfig {
+  id         String  @id @default(uuid()) @db.Uuid
+  propertyId String  @db.Uuid
+  moduleKey  String  @db.VarChar(50) // e.g., "packages", "maintenance", "announcements", "security"
+  fromEmail  String  @db.VarChar(254)
+  fromName   String  @db.VarChar(100)
+  replyTo    String? @db.VarChar(254)
+  isActive   Boolean @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([propertyId, moduleKey])
+  @@map("module_email_configs")
 }
 
 // ---------------------------------------------------------------------------

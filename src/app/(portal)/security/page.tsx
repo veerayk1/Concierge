@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog';
+import { CreateFireLogDialog } from '@/components/forms/create-fire-log-dialog';
+import { CreateNoiseComplaintDialog } from '@/components/forms/create-noise-complaint-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import {
@@ -99,6 +101,8 @@ export default function SecurityPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showFireLogDialog, setShowFireLogDialog] = useState(false);
+  const [showNoiseComplaintDialog, setShowNoiseComplaintDialog] = useState(false);
 
   // Fetch real events from database
   const {
@@ -295,6 +299,14 @@ export default function SecurityPage() {
             <Eye className="h-4 w-4" />
             View Cameras
           </Button>
+          <Button variant="secondary" size="sm" onClick={() => setShowFireLogDialog(true)}>
+            <AlertTriangle className="h-4 w-4" />
+            Fire Log
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setShowNoiseComplaintDialog(true)}>
+            <AlertTriangle className="h-4 w-4" />
+            Noise Complaint
+          </Button>
           <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             Log Event
@@ -451,6 +463,26 @@ export default function SecurityPage() {
         propertyId={getPropertyId()}
         onSuccess={() => {
           setShowCreateDialog(false);
+          refetch();
+        }}
+      />
+
+      <CreateFireLogDialog
+        open={showFireLogDialog}
+        onOpenChange={setShowFireLogDialog}
+        propertyId={getPropertyId()}
+        onSuccess={() => {
+          setShowFireLogDialog(false);
+          refetch();
+        }}
+      />
+
+      <CreateNoiseComplaintDialog
+        open={showNoiseComplaintDialog}
+        onOpenChange={setShowNoiseComplaintDialog}
+        propertyId={getPropertyId()}
+        onSuccess={() => {
+          setShowNoiseComplaintDialog(false);
           refetch();
         }}
       />

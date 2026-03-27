@@ -62,11 +62,13 @@ export function CreateMaintenanceDialog({
       permissionToEnter: false,
       entryInstructions: '',
       contactPhone: '',
+      hideFromResident: false,
     },
   });
 
   const permissionToEnter = watch('permissionToEnter');
   const selectedPriority = watch('priority');
+  const hideFromResident = watch('hideFromResident');
 
   async function onSubmit(data: CreateMaintenanceInput) {
     setServerError(null);
@@ -303,6 +305,15 @@ export function CreateMaintenanceDialog({
             label="Contact Phone"
             placeholder="Best number to reach resident"
             error={errors.contactPhone?.message}
+          />
+
+          {/* Hide from Resident — Staff/Admin only */}
+          <Checkbox
+            checked={hideFromResident}
+            onCheckedChange={(c) => setValue('hideFromResident', c === true)}
+            label="Hide from Resident"
+            description="Do not show this request in the resident portal"
+            id="hide-from-resident"
           />
 
           {/* Actions */}

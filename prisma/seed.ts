@@ -2193,6 +2193,208 @@ export async function main(): Promise<void> {
   log('OK', `  ${LOG_ENTRIES.length} shift log entries for Maple Heights`);
 
   // -------------------------------------------------------------------------
+  // Vacation Periods (Gap 3: Resident Vacation Tracking)
+  // -------------------------------------------------------------------------
+
+  const vacationPeriod1 = {
+    id: '00000000-0000-4000-b600-000000000001',
+    propertyId: mapleHeights.id,
+    userId: IDS.mh_resident01,
+    unitId: units[0]!.id,
+    startDate: new Date(2026, 3, 10), // April 10, 2026
+    endDate: new Date(2026, 3, 24), // April 24, 2026
+    notes: 'Traveling to Europe. Hold mail and packages.',
+    holdMail: true,
+    isActive: true,
+  };
+
+  const vacationPeriod2 = {
+    id: '00000000-0000-4000-b600-000000000002',
+    propertyId: mapleHeights.id,
+    userId: IDS.mh_resident02,
+    unitId: units[1]!.id,
+    startDate: new Date(2026, 5, 15), // June 15, 2026
+    endDate: new Date(2026, 5, 30), // June 30, 2026
+    notes: 'Summer cottage in Muskoka',
+    holdMail: true,
+    isActive: true,
+  };
+
+  await prisma.vacationPeriod.upsert({
+    where: { id: vacationPeriod1.id },
+    update: {},
+    create: vacationPeriod1,
+  });
+
+  await prisma.vacationPeriod.upsert({
+    where: { id: vacationPeriod2.id },
+    update: {},
+    create: vacationPeriod2,
+  });
+
+  log('OK', `  2 vacation periods for Maple Heights`);
+
+  // -------------------------------------------------------------------------
+  // Fire Logs (Gap 3.1: Fire Drill Specialized Checklist)
+  // -------------------------------------------------------------------------
+
+  const fireLog1 = {
+    id: '00000000-0000-4000-b700-000000000001',
+    propertyId: mapleHeights.id,
+    alarmTime: new Date(2026, 2, 15, 10, 30), // March 15, 2026, 10:30 AM
+    alarmLocation: 'Floor 4 - Hallway near stairwell',
+    alarmType: 'smoke_detector',
+    fireDeptCallTime: new Date(2026, 2, 15, 10, 32),
+    firstAnnouncementTime: new Date(2026, 2, 15, 10, 31),
+    secondAnnouncementTime: new Date(2026, 2, 15, 10, 33),
+    thirdAnnouncementTime: new Date(2026, 2, 15, 10, 35),
+    fireDeptArrivalTime: new Date(2026, 2, 15, 10, 42),
+    fireDeptAllClearTime: new Date(2026, 2, 15, 10, 58),
+    fireDeptDepartureTime: new Date(2026, 2, 15, 11, 5),
+    prepareForFdArrival: {
+      items: [
+        { name: 'Clear main lobby entrance', completed: true, notes: 'Cleared by front desk' },
+        { name: 'Position staff at elevator banks', completed: true, notes: 'Security staff posted' },
+        { name: 'Alert mechanical room', completed: true, notes: 'Superintendent notified' },
+      ],
+    },
+    ensureElevatorsReset: {
+      items: [
+        { name: 'Elevator A - recall button', completed: true, notes: 'Reset successfully' },
+        { name: 'Elevator B - recall button', completed: true, notes: 'Reset successfully' },
+        { name: 'Elevator C - recall button', completed: true, notes: 'Reset successfully' },
+      ],
+    },
+    resetDevices: {
+      items: [
+        { name: 'Pull Station - Floor 4', completed: true, notes: 'Reset by FD' },
+        { name: 'Smoke Detector - Floor 4', completed: true, notes: 'Reset by FD' },
+        { name: 'Fire Panel - Main', completed: true, notes: 'Cleared alarm' },
+        { name: 'Mag Locks - Entry', completed: true, notes: 'Re-locked' },
+      ],
+    },
+    additionalNotes:
+      'False alarm triggered by burnt toast in unit 408. Elevator system functioning normally. All staff performed well during drill.',
+    createdById: IDS.mh_securityGuard,
+  };
+
+  const fireLog2 = {
+    id: '00000000-0000-4000-b700-000000000002',
+    propertyId: mapleHeights.id,
+    alarmTime: new Date(2026, 2, 25, 14, 15), // March 25, 2026, 2:15 PM
+    alarmLocation: 'Floor 2 - Heat detector near kitchen',
+    alarmType: 'heat_detector',
+    fireDeptCallTime: new Date(2026, 2, 25, 14, 17),
+    firstAnnouncementTime: new Date(2026, 2, 25, 14, 16),
+    secondAnnouncementTime: new Date(2026, 2, 25, 14, 18),
+    thirdAnnouncementTime: null,
+    fireDeptArrivalTime: new Date(2026, 2, 25, 14, 28),
+    fireDeptAllClearTime: new Date(2026, 2, 25, 14, 40),
+    fireDeptDepartureTime: new Date(2026, 2, 25, 14, 45),
+    prepareForFdArrival: {
+      items: [
+        { name: 'Clear main lobby entrance', completed: true, notes: '' },
+        { name: 'Position staff at elevator banks', completed: true, notes: 'Quick response' },
+      ],
+    },
+    ensureElevatorsReset: {
+      items: [
+        { name: 'Elevator A - recall button', completed: true, notes: '' },
+        { name: 'Elevator B - recall button', completed: true, notes: '' },
+      ],
+    },
+    resetDevices: {
+      items: [
+        { name: 'Heat Detector - Floor 2', completed: true, notes: 'Reset by FD' },
+        { name: 'Fire Panel - Main', completed: true, notes: 'Cleared alarm' },
+      ],
+    },
+    additionalNotes:
+      'Scheduled test drill - all procedures followed correctly. Response time improved from last drill.',
+    createdById: IDS.mh_secSupervisorUser,
+  };
+
+  await prisma.fireLog.upsert({
+    where: { id: fireLog1.id },
+    update: {},
+    create: fireLog1,
+  });
+
+  await prisma.fireLog.upsert({
+    where: { id: fireLog2.id },
+    update: {},
+    create: fireLog2,
+  });
+
+  log('OK', `  2 fire logs for Maple Heights`);
+
+  // -------------------------------------------------------------------------
+  // Noise Complaints (Gap 3.2: Noise Complaint Specialized Fields)
+  // -------------------------------------------------------------------------
+
+  const noiseComplaint1 = {
+    id: '00000000-0000-4000-b800-000000000001',
+    propertyId: mapleHeights.id,
+    complainantFloor: '3',
+    suspectFloor: '4',
+    noiseDuration: '2 hours',
+    noiseVolume: 8,
+    natureOfComplaint: ['Party', 'Loud Music'],
+    suspectContactMethod: 'Unit 408 - Direct contact',
+    counselingNotes: 'Spoke with residents of unit 408. They were having small dinner party. Agreed to keep music lower after 10 PM.',
+    resolutionStatus: 'resolved',
+    createdById: IDS.mh_frontDesk1User,
+  };
+
+  const noiseComplaint2 = {
+    id: '00000000-0000-4000-b800-000000000002',
+    propertyId: mapleHeights.id,
+    complainantFloor: '5',
+    suspectFloor: '5',
+    noiseDuration: '30 minutes',
+    noiseVolume: 7,
+    natureOfComplaint: ['Dog Barking'],
+    suspectContactMethod: 'Unit 505 - Via text note',
+    counselingNotes: 'Contacted resident re: dog barking. They have small terrier with separation anxiety. Offered building resources and local trainer recommendations.',
+    resolutionStatus: 'ongoing',
+    createdById: IDS.mh_guard1User,
+  };
+
+  const noiseComplaint3 = {
+    id: '00000000-0000-4000-b800-000000000003',
+    propertyId: mapleHeights.id,
+    complainantFloor: '2',
+    suspectFloor: '3',
+    noiseDuration: 'ongoing (past 3 days)',
+    noiseVolume: 6,
+    natureOfComplaint: ['Construction', 'Walking/Banging'],
+    suspectContactMethod: 'Unknown - ongoing renovations',
+    counselingNotes: 'Unit 305 undergoing alteration project. Construction hours limited to 8 AM - 6 PM weekdays per bylaw. Complaint registered. Alteration project escalated for review.',
+    resolutionStatus: 'escalated',
+    createdById: IDS.mh_propertyManager,
+  };
+
+  await prisma.noiseComplaint.upsert({
+    where: { id: noiseComplaint1.id },
+    update: {},
+    create: noiseComplaint1,
+  });
+
+  await prisma.noiseComplaint.upsert({
+    where: { id: noiseComplaint2.id },
+    update: {},
+    create: noiseComplaint2,
+  });
+
+  await prisma.noiseComplaint.upsert({
+    where: { id: noiseComplaint3.id },
+    update: {},
+    create: noiseComplaint3,
+  });
+
+  log('OK', `  3 noise complaints for Maple Heights`);
+
+  // -------------------------------------------------------------------------
   // Summary
   // -------------------------------------------------------------------------
   console.log('\n========================================');

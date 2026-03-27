@@ -36,6 +36,10 @@ interface ProfileUpdatePayload {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  requiresAssistance?: boolean;
+  assistanceNotes?: string;
+  languagePreference?: 'en' | 'fr-CA';
+  emailSignature?: string;
 }
 
 interface ProfileResponse {
@@ -49,6 +53,10 @@ interface ProfileResponse {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  requiresAssistance?: boolean;
+  assistanceNotes?: string;
+  languagePreference?: 'en' | 'fr-CA';
+  emailSignature?: string;
 }
 
 interface NotificationPreference {
@@ -178,6 +186,10 @@ export default function MyAccountPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [languagePreference, setLanguagePreference] = useState<'en' | 'fr-CA'>('en');
+  const [requiresAssistance, setRequiresAssistance] = useState(false);
+  const [assistanceNotes, setAssistanceNotes] = useState('');
+  const [emailSignature, setEmailSignature] = useState('');
 
   // Notification preferences from API
   const {
@@ -235,6 +247,10 @@ export default function MyAccountPage() {
     setFirstName(user.firstName);
     setLastName(user.lastName);
     setPhone(user.phone ?? '');
+    setLanguagePreference(user.languagePreference ?? 'en');
+    setRequiresAssistance(user.requiresAssistance ?? false);
+    setAssistanceNotes(user.assistanceNotes ?? '');
+    setEmailSignature(user.emailSignature ?? '');
     setFieldErrors({});
     setFeedback(null);
     setDialogOpen(true);
@@ -254,6 +270,10 @@ export default function MyAccountPage() {
         if (firstName !== user.firstName) payload.firstName = firstName;
         if (lastName !== user.lastName) payload.lastName = lastName;
         if ((phone || '') !== (user.phone ?? '')) payload.phone = phone;
+        if (languagePreference !== (user.languagePreference ?? 'en')) payload.languagePreference = languagePreference;
+        if (requiresAssistance !== (user.requiresAssistance ?? false)) payload.requiresAssistance = requiresAssistance;
+        if (assistanceNotes !== (user.assistanceNotes ?? '')) payload.assistanceNotes = assistanceNotes;
+        if (emailSignature !== (user.emailSignature ?? '')) payload.emailSignature = emailSignature;
 
         if (Object.keys(payload).length === 0) {
           setFeedback({ type: 'success', message: 'No changes to save.' });
@@ -517,6 +537,56 @@ export default function MyAccountPage() {
               disabled
               helperText="Email changes require a verification process. Contact your administrator."
             />
+
+            {/* Language Preference */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">Language Preference</label>
+              <select
+                value={languagePreference}
+                onChange={(e) => setLanguagePreference(e.target.value as 'en' | 'fr-CA')}
+                disabled={saving}
+                className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
+              >
+                <option value="en">English</option>
+                <option value="fr-CA">Français (Québec)</option>
+              </select>
+            </div>
+
+            {/* Require Assistance */}
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-3 cursor-pointer text-[14px] font-medium text-neutral-700">
+                <input
+                  type="checkbox"
+                  checked={requiresAssistance}
+                  onChange={(e) => setRequiresAssistance(e.target.checked)}
+                  disabled={saving}
+                  className="h-4 w-4 rounded border-neutral-300 text-primary-500 focus:ring-2 focus:ring-primary-500"
+                />
+                I require assistance with building features
+              </label>
+            </div>
+
+            {requiresAssistance && (
+              <textarea
+                value={assistanceNotes}
+                onChange={(e) => setAssistanceNotes(e.target.value)}
+                disabled={saving}
+                placeholder="Describe what features you need help with..."
+                className="focus:border-primary-500 focus:ring-primary-100 min-h-[80px] w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none resize-none"
+              />
+            )}
+
+            {/* Email Signature */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium text-neutral-700">Email Signature</label>
+              <textarea
+                value={emailSignature}
+                onChange={(e) => setEmailSignature(e.target.value)}
+                disabled={saving}
+                placeholder="Optional signature to include in emails..."
+                className="focus:border-primary-500 focus:ring-primary-100 min-h-[80px] w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none resize-none"
+              />
+            </div>
 
             <div className="mt-2 flex justify-end gap-3">
               <Button
