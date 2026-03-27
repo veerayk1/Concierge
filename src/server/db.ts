@@ -4,6 +4,20 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+// Force fresh PrismaClient after prisma generate — clear stale cached instance
+if (globalForPrisma.prisma && process.env['NODE_ENV'] !== 'production') {
+  try {
+    // Check if the cached client has the Package model (indicator of regenerated client)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!(globalForPrisma.prisma as any).package) {
+      globalForPrisma.prisma.$disconnect();
+      globalForPrisma.prisma = undefined;
+    }
+  } catch {
+    globalForPrisma.prisma = undefined;
+  }
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({

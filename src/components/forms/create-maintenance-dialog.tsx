@@ -89,8 +89,15 @@ export function CreateMaintenanceDialog({
       });
 
       if (!response.ok) {
-        const result = await response.json();
-        setServerError(result.message || 'Failed to create request');
+        if (response.status === 401) {
+          setServerError('Your session has expired. Please log in again.');
+          if (typeof window !== 'undefined') {
+            setTimeout(() => { window.location.href = '/login'; }, 1500);
+          }
+          return;
+        }
+        const result = await response.json().catch(() => ({}));
+        setServerError(result.message || `Failed to create request (${response.status})`);
         return;
       }
 

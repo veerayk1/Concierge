@@ -4,16 +4,21 @@
  * Concierge — Client Providers
  *
  * Wraps the application in all required client-side context providers.
- * Currently a pass-through; providers will be added as features are built
- * (e.g. auth context, toast provider, query client).
  */
 
 import type { ReactNode } from 'react';
+import { DebugSessionProvider } from '@/lib/hooks/use-debug-session';
+import { FloatingDebugButton } from '@/components/debug/floating-debug-button';
 
 interface ProvidersProps {
   children: ReactNode;
 }
 
 export function Providers({ children }: ProvidersProps) {
-  return <>{children}</>;
+  return (
+    <DebugSessionProvider>
+      {children}
+      <FloatingDebugButton />
+    </DebugSessionProvider>
+  );
 }

@@ -8,16 +8,18 @@ import { prisma } from '@/server/db';
 import { createMaintenanceSchema } from '@/schemas/maintenance';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { requireModule } from '@/server/middleware/module-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
-import { handleDemoRequest } from '@/server/demo';
 
 export async function GET(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
+  // Skip demo handler — uses the real database for consistent GET/POST
 
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
+
+    const moduleCheck = await requireModule(request, 'maintenance');
+    if (moduleCheck) return moduleCheck;
 
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
@@ -87,12 +89,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
+  // Skip demo handler — uses the real database for consistent GET/POST
 
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
+
+    const moduleCheck = await requireModule(request, 'maintenance');
+    if (moduleCheck) return moduleCheck;
 
     const body = await request.json();
     const parsed = createMaintenanceSchema.safeParse(body);

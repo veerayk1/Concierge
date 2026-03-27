@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { Role, TokenPayload } from '@/types';
 import { requireAuth } from '@/server/middleware/auth';
 import { AuthError } from '@/server/errors';
+import { prisma } from '@/server/db';
 
 export interface AuthenticatedUser {
   userId: string;
@@ -51,18 +52,41 @@ interface GuardOptions {
  * Resolve demo mode authentication for development.
  * For resident roles, looks up the first unit in the property to assign unitId.
  */
-async function handleDemoMode(demoRole: Role, allowedRoles?: Role[]): Promise<GuardResponse> {
+async function handleDemoMode(request: NextRequest, demoRole: Role, allowedRoles?: Role[]): Promise<GuardResponse> {
   const isResident = demoRole === 'resident_owner' || demoRole === 'resident_tenant';
+
+  // Read propertyId from header or query string, fall back to Bond Tower default
+  const headerPropertyId = request.headers.get('x-demo-propertyId');
+  const url = new URL(request.url);
+  const queryPropertyId = url.searchParams.get('propertyId');
+  const DEFAULT_PROPERTY_ID = '8165b053-0af8-4e46-aa54-97f52ee9ea8d'; // Bond Tower
+  const propertyId = headerPropertyId || queryPropertyId || DEFAULT_PROPERTY_ID;
 
   const demoUser: AuthenticatedUser = {
     userId: isResident
       ? '00000000-0000-4000-d000-000000010101'
       : '00000000-0000-4000-a000-000000000001',
-    propertyId: '00000000-0000-4000-b000-000000000001',
+    propertyId,
     role: demoRole,
     permissions: ['*'],
     mfaVerified: true,
   };
+
+  // For resident roles, resolve a unitId from the database
+  if (isResident) {
+    try {
+      const rows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM units
+        WHERE "propertyId" = ${propertyId}::uuid
+        LIMIT 1
+      `;
+      if (rows.length > 0) {
+        demoUser.unitId = rows[0].id;
+      }
+    } catch {
+      // units table may not exist yet — continue without unitId
+    }
+  }
 
   if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(demoUser.role)) {
     return {
@@ -94,7 +118,7 @@ export async function guardRoute(
     if (allowDemo && process.env.NODE_ENV !== 'production') {
       const demoRole = request.headers.get('x-demo-role');
       if (demoRole) {
-        return handleDemoMode(demoRole as Role, roles);
+        return handleDemoMode(request, demoRole as Role, roles);
       }
     }
 
@@ -125,6 +149,39 @@ export async function guardRoute(
       permissions: payload.perms,
       mfaVerified: payload.mfa,
     };
+
+    // For resident roles, resolve unitId from occupancy records via raw SQL
+    // (OccupancyRecord model may not be in generated Prisma client)
+    if (
+      (user.role === 'resident_owner' || user.role === 'resident_tenant') &&
+      !user.unitId
+    ) {
+      try {
+        const rows = await prisma.$queryRaw<{ unitId: string }[]>`
+          SELECT "unitId" FROM occupancy_records
+          WHERE "userId" = ${user.userId}::uuid
+            AND "moveOutDate" IS NULL
+            AND "isPrimary" = true
+          LIMIT 1
+        `;
+        if (rows.length > 0) {
+          user.unitId = rows[0].unitId;
+        } else {
+          // Fall back to any active occupancy
+          const anyRows = await prisma.$queryRaw<{ unitId: string }[]>`
+            SELECT "unitId" FROM occupancy_records
+            WHERE "userId" = ${user.userId}::uuid
+              AND "moveOutDate" IS NULL
+            LIMIT 1
+          `;
+          if (anyRows.length > 0) {
+            user.unitId = anyRows[0].unitId;
+          }
+        }
+      } catch {
+        // Silently continue without unitId — stale client or table missing
+      }
+    }
 
     // Role-based authorization
     if (roles && roles.length > 0 && !roles.includes(user.role)) {

@@ -64,7 +64,7 @@ function getDialogHeaders(): Record<string, string> {
   }
 
   // Real auth: include Bearer token
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem('auth_token');
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }

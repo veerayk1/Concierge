@@ -9,9 +9,11 @@ import { test, expect } from '@playwright/test';
 
 async function loginAsAdmin(page: import('@playwright/test').Page) {
   await page.goto('/login');
-  await page.evaluate(() => localStorage.removeItem('demo_role'));
-  await page.getByText('Demo: Admin').click();
-  await page.waitForURL('**/dashboard', { timeout: 10_000 });
+  await page.evaluate(() => {
+    localStorage.setItem('demo_role', 'property_admin');
+    localStorage.setItem('demo_propertyId', '00000000-0000-4000-b000-000000000001');
+  });
+  await page.goto('/dashboard');
 }
 
 test.describe('Admin Settings', () => {
@@ -29,7 +31,7 @@ test.describe('Admin Settings', () => {
     await page.waitForTimeout(2000);
 
     // Should show property name, address, or timezone fields
-    const heading = page.getByRole('heading', { name: /general|property/i });
+    const heading = page.getByRole('heading', { name: /general|property/i }).first();
     if (await heading.isVisible()) {
       expect(await heading.isVisible()).toBeTruthy();
     }
@@ -80,7 +82,7 @@ test.describe('User Management', () => {
     await page.goto('/users');
     await page.waitForTimeout(1000);
 
-    const search = page.getByPlaceholder(/search/i);
+    const search = page.getByPlaceholder(/search/i).first();
     if (await search.isVisible()) {
       await search.fill('admin');
       await page.waitForTimeout(500);
@@ -118,7 +120,7 @@ test.describe('Onboarding Wizard', () => {
     await page.waitForTimeout(2000);
 
     // Should show "Property Setup" or step indicator
-    const heading = page.getByText(/property setup|step 1/i);
+    const heading = page.getByText(/property setup|step 1/i).first();
     if (await heading.isVisible()) {
       expect(await heading.isVisible()).toBeTruthy();
     }

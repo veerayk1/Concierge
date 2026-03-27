@@ -16,7 +16,19 @@ const addUpdateSchema = z.object({
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'security_guard',
+        'security_supervisor',
+        'front_desk',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -24,7 +36,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Incident updates stored as related events or in custom fields
     // For now, return the event with its description as the timeline
     const event = await prisma.event.findUnique({
-      where: { id },
+      where: { id, propertyId: auth.user.propertyId },
       select: {
         id: true,
         title: true,
@@ -53,7 +65,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'security_guard',
+        'security_supervisor',
+        'front_desk',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -70,7 +94,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const input = parsed.data;
 
     // Append update to the event's description
-    const event = await prisma.event.findUnique({ where: { id } });
+    const event = await prisma.event.findUnique({
+      where: { id, propertyId: auth.user.propertyId },
+    });
     if (!event) {
       return NextResponse.json(
         { error: 'NOT_FOUND', message: 'Incident not found' },

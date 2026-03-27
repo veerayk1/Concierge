@@ -5,7 +5,7 @@
  * Multi-row form for logging multiple packages at once
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Package, Plus, Trash2 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -31,16 +31,31 @@ const EMPTY_ROW = (): PackageRow => ({
   isPerishable: false,
 });
 
-const COURIERS = [
-  'Amazon',
-  'FedEx',
-  'UPS',
-  'Canada Post',
-  'DHL',
-  'Purolator',
-  'Uber Eats',
-  'Other',
-];
+interface CourierOption {
+  id: string;
+  name: string;
+}
+
+function useCouriers(propertyId: string) {
+  const [couriers, setCouriers] = useState<CourierOption[]>([]);
+  useEffect(() => {
+    if (!propertyId) return;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const demoRole = typeof window !== 'undefined' ? localStorage.getItem('demo_role') : null;
+    if (demoRole) headers['x-demo-role'] = demoRole;
+    fetch(`/api/v1/couriers?propertyId=${propertyId}`, { headers })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.data && Array.isArray(d.data)) {
+          setCouriers(d.data.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })));
+        }
+      })
+      .catch(() => {});
+  }, [propertyId]);
+  return couriers;
+}
 
 interface BatchPackageDialogProps {
   open: boolean;
@@ -56,6 +71,7 @@ export function BatchPackageDialog({
   onSuccess,
 }: BatchPackageDialogProps) {
   const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
+  const couriers = useCouriers(propertyId);
   const [rows, setRows] = useState<PackageRow[]>([EMPTY_ROW(), EMPTY_ROW(), EMPTY_ROW()]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -112,8 +128,15 @@ export function BatchPackageDialog({
       });
 
       if (!response.ok) {
-        const result = await response.json();
-        setServerError(result.message || 'Batch intake failed');
+        if (response.status === 401) {
+          setServerError('Your session has expired. Please log in again.');
+          if (typeof window !== 'undefined') {
+            setTimeout(() => { window.location.href = '/login'; }, 1500);
+          }
+          return;
+        }
+        const result = await response.json().catch(() => ({}));
+        setServerError(result.message || `Batch intake failed (${response.status})`);
         return;
       }
 
@@ -178,9 +201,9 @@ export function BatchPackageDialog({
                 className="focus:border-primary-500 focus:ring-primary-100 h-9 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none"
               >
                 <option value="">Courier...</option>
-                {COURIERS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                {couriers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
                   </option>
                 ))}
               </select>

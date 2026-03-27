@@ -14,10 +14,18 @@ async function loginAsDemo(
   page: import('@playwright/test').Page,
   role: 'Front Desk' | 'Security' | 'Admin' | 'Resident',
 ) {
+  const roleMap: Record<string, string> = {
+    'Front Desk': 'front_desk',
+    'Security': 'security_guard',
+    'Admin': 'property_admin',
+    'Resident': 'resident_owner',
+  };
   await page.goto('/login');
-  await page.evaluate(() => localStorage.removeItem('demo_role'));
-  await page.getByText(`Demo: ${role}`).click();
-  await page.waitForURL('**/dashboard', { timeout: 10_000 });
+  await page.evaluate((r) => {
+    localStorage.setItem('demo_role', r);
+    localStorage.setItem('demo_propertyId', '00000000-0000-4000-b000-000000000001');
+  }, roleMap[role] ?? 'front_desk');
+  await page.goto('/dashboard');
 }
 
 test.describe('Navigation — Sidebar', () => {
@@ -44,7 +52,8 @@ test.describe('Navigation — Sidebar', () => {
 
     // Property Admin should see management items
     await expect(sidebar.getByText('Dashboard')).toBeVisible();
-    await expect(sidebar.getByText('Units & Residents')).toBeVisible();
+    await expect(sidebar.getByText('Units')).toBeVisible();
+    await expect(sidebar.getByText('Residents')).toBeVisible();
     await expect(sidebar.getByText('Amenities')).toBeVisible();
     await expect(sidebar.getByText('User Management')).toBeVisible();
     await expect(sidebar.getByText('Settings')).toBeVisible();
@@ -168,12 +177,12 @@ test.describe('Navigation — Command Palette (Cmd+K)', () => {
     await page.keyboard.press('Meta+k');
 
     // Quick actions section should be visible
-    await expect(page.getByText('Quick Actions')).toBeVisible({ timeout: 3_000 });
-    await expect(page.getByText('Log Package')).toBeVisible();
-    await expect(page.getByText('Log Event')).toBeVisible();
-    await expect(page.getByText('New Request')).toBeVisible();
-    await expect(page.getByText('New Announcement')).toBeVisible();
-    await expect(page.getByText('Book Amenity')).toBeVisible();
+    await expect(page.getByText('Quick Actions').first()).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText('Log Package').first()).toBeVisible();
+    await expect(page.getByText('Log Event').first()).toBeVisible();
+    await expect(page.getByText('New Request').first()).toBeVisible();
+    await expect(page.getByText('New Announcement').first()).toBeVisible();
+    await expect(page.getByText('Book Amenity').first()).toBeVisible();
   });
 
   test('Escape closes the command palette', async ({ page }) => {
@@ -212,10 +221,11 @@ test.describe('Navigation — Command Palette (Cmd+K)', () => {
 
     // Open palette
     await page.keyboard.press('Meta+k');
-    await expect(page.getByText('Quick Actions')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText('Quick Actions').first()).toBeVisible({ timeout: 3_000 });
 
-    // Click "Log Package" quick action
-    await page.getByText('Log Package').click();
+    // Click "Log Package" quick action — scoped to the command palette overlay
+    const palette = page.locator('.fixed').filter({ has: page.getByPlaceholder('Search anything or type a command...') });
+    await palette.getByText('Log Package').click();
 
     // Should navigate to /packages
     await page.waitForURL('**/packages', { timeout: 5_000 });
@@ -260,8 +270,8 @@ test.describe('Navigation — Responsive Sidebar', () => {
       // After collapse, the expand button should appear
       await expect(page.getByLabel('Expand sidebar')).toBeVisible({ timeout: 2_000 });
 
-      // Click expand
-      await page.getByLabel('Expand sidebar').click();
+      // Click expand — use force to bypass Next.js dev overlay
+      await page.getByLabel('Expand sidebar').click({ force: true });
 
       // Sidebar should be expanded again — brand text visible
       await expect(sidebar.getByText('Concierge')).toBeVisible({ timeout: 2_000 });

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { CreateAnnouncementDialog } from '@/components/forms/create-announcement-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
+import { useAuth } from '@/lib/hooks/use-auth';
 import {
   Calendar,
   Clock,
@@ -92,9 +93,14 @@ function ChannelIcon({ channel }: { channel: string }) {
 
 export default function AnnouncementsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  // Residents can view announcements but not create them
+  const isResident = user?.role?.startsWith('resident') || user?.role === 'board_member';
+  const canCreate = !isResident;
 
   const {
     data: apiResponse,
@@ -180,10 +186,12 @@ export default function AnnouncementsPage() {
       title="Announcements"
       description="Create and distribute announcements via web, email, SMS, and push."
       actions={
-        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
-          <Plus className="h-4 w-4" />
-          New Announcement
-        </Button>
+        canCreate ? (
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4" />
+            New Announcement
+          </Button>
+        ) : undefined
       }
     >
       {/* Search + Filter */}
@@ -246,7 +254,7 @@ export default function AnnouncementsPage() {
                 : 'Create your first announcement to communicate with residents.'
             }
             action={
-              !searchQuery && statusFilter === 'all' ? (
+              canCreate && !searchQuery && statusFilter === 'all' ? (
                 <Button size="sm" onClick={() => setShowCreateDialog(true)}>
                   <Plus className="h-4 w-4" />
                   New Announcement

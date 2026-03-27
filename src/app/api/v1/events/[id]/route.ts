@@ -14,13 +14,25 @@ import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'security_guard',
+        'security_supervisor',
+        'front_desk',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
 
     const event = await prisma.event.findUnique({
-      where: { id, deletedAt: null },
+      where: { id, deletedAt: null, propertyId: auth.user.propertyId },
       include: {
         eventType: {
           select: { id: true, name: true, icon: true, color: true },
@@ -47,7 +59,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'security_guard',
+        'security_supervisor',
+        'front_desk',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -59,6 +83,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
+    }
+
+    // Tenant isolation: verify the event belongs to the user's property
+    const existingEvent = await prisma.event.findUnique({
+      where: { id, deletedAt: null, propertyId: auth.user.propertyId },
+      select: { id: true },
+    });
+
+    if (!existingEvent) {
+      return NextResponse.json({ error: 'NOT_FOUND', message: 'Event not found' }, { status: 404 });
     }
 
     const input = parsed.data;

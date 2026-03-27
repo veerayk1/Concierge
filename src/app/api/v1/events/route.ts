@@ -12,15 +12,13 @@ import { createEventSchema } from '@/schemas/event';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
-import { handleDemoRequest } from '@/server/demo';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/events
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
@@ -101,9 +99,7 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
-
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
@@ -128,19 +124,47 @@ export async function POST(request: NextRequest) {
     let resolvedEventTypeId = input.eventTypeId;
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(resolvedEventTypeId)) {
-      // Treat as slug — look up the event type
-      const eventType = await prisma.eventType.findFirst({
+      // Treat as slug — look up or auto-create the event type
+      let eventType = await prisma.eventType.findFirst({
         where: {
           slug: resolvedEventTypeId,
           propertyId: input.propertyId,
+          deletedAt: null,
         },
         select: { id: true },
       });
       if (!eventType) {
-        return NextResponse.json(
-          { error: 'NOT_FOUND', message: `Event type "${resolvedEventTypeId}" not found` },
-          { status: 404 },
-        );
+        // Auto-create: ensure an event group exists
+        let eventGroup = await prisma.eventGroup.findFirst({
+          where: { propertyId: input.propertyId, slug: 'security', deletedAt: null },
+        });
+        if (!eventGroup) {
+          eventGroup = await prisma.eventGroup.create({
+            data: {
+              propertyId: input.propertyId,
+              name: 'Security',
+              slug: 'security',
+              sortOrder: 0,
+            },
+          });
+        }
+        // Derive a human-readable name from the slug
+        const slugName = resolvedEventTypeId
+          .replace(/[-_]/g, ' ')
+          .replace(/\b\w/g, (c: string) => c.toUpperCase());
+        eventType = await prisma.eventType.create({
+          data: {
+            propertyId: input.propertyId,
+            eventGroupId: eventGroup.id,
+            name: slugName,
+            slug: resolvedEventTypeId,
+            icon: 'shield-alert',
+            color: '#DC2626',
+            defaultPriority: 'high',
+            notifyOnCreate: true,
+            notifyOnClose: false,
+          },
+        });
       }
       resolvedEventTypeId = eventType.id;
     }

@@ -211,11 +211,13 @@ export default function EquipmentPage() {
       sortable: true,
       cell: (row) => (
         <span className="text-[13px] text-neutral-500">
-          {new Date(row.lastServiceDate).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })}
+          {!row.lastServiceDate
+            ? '—'
+            : new Date(row.lastServiceDate).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
         </span>
       ),
     },
@@ -225,6 +227,9 @@ export default function EquipmentPage() {
       accessorKey: 'nextServiceDate',
       sortable: true,
       cell: (row) => {
+        if (!row.nextServiceDate) {
+          return <span className="text-[13px] text-neutral-500">—</span>;
+        }
         const next = new Date(row.nextServiceDate);
         const now = new Date();
         const isOverdue = next < now;
@@ -248,6 +253,9 @@ export default function EquipmentPage() {
       accessorKey: 'warrantyExpiry',
       sortable: true,
       cell: (row) => {
+        if (!row.warrantyExpiry) {
+          return <span className="text-[13px] text-neutral-500">—</span>;
+        }
         const expiry = new Date(row.warrantyExpiry);
         const now = new Date();
         const isExpired = expiry < now;

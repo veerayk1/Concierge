@@ -54,6 +54,7 @@ import {
   Landmark,
   Image,
   Lightbulb,
+  Bug,
 } from 'lucide-react';
 import type { Role } from '@/types';
 
@@ -150,6 +151,13 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Demo Account',
         href: '/system/demo',
         icon: Play,
+        roles: ['super_admin'],
+      },
+      {
+        id: 'debug-intelligence',
+        label: 'Debug Intelligence',
+        href: '/system/debug',
+        icon: Bug,
         roles: ['super_admin'],
       },
     ],

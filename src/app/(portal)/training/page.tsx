@@ -12,6 +12,7 @@ import {
   Play,
   Plus,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
@@ -64,7 +65,9 @@ function formatDuration(minutes: number): string {
 // ---------------------------------------------------------------------------
 
 export default function TrainingPage() {
+  const router = useRouter();
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const {
     data: apiCourses,
@@ -82,6 +85,7 @@ export default function TrainingPage() {
 
   const handleCreateCourse = async () => {
     setCreating(true);
+    setCreateError(null);
     try {
       const response = await apiRequest(
         apiUrl('/api/v1/training', { propertyId: getPropertyId() }),
@@ -98,10 +102,19 @@ export default function TrainingPage() {
         },
       );
       if (response.ok) {
-        await refetch();
+        setCreateError(null);
+        const result = await response.json().catch(() => null);
+        if (result?.data?.id) {
+          router.push(`/training/${result.data.id}`);
+        } else {
+          await refetch();
+        }
+      } else {
+        const result = await response.json().catch(() => null);
+        setCreateError(result?.message || `Failed to create course (${response.status})`);
       }
     } catch {
-      // Error handled silently; user can retry
+      setCreateError('An unexpected error occurred. Please try again.');
     } finally {
       setCreating(false);
     }
@@ -130,6 +143,13 @@ export default function TrainingPage() {
         </Button>
       }
     >
+      {/* Create Error */}
+      {createError && (
+        <div className="border-error-200 bg-error-50 text-error-700 mb-4 rounded-xl border px-4 py-3 text-[14px]">
+          {createError}
+        </div>
+      )}
+
       {/* Loading State */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-24">
@@ -220,7 +240,7 @@ export default function TrainingPage() {
               {/* Course List */}
               <div className="flex flex-col gap-4">
                 {allCourses.map((course) => (
-                  <Card key={course.id} hoverable className="cursor-pointer">
+                  <Card key={course.id} hoverable className="cursor-pointer" onClick={() => router.push(`/training/${course.id}`)}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4">
                         <div className="bg-primary-50 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl">

@@ -16,7 +16,6 @@ import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { RESIDENT_ROLES } from '@/types';
 import { appCache } from '@/server/cache';
-import { handleDemoRequest } from '@/server/demo';
 
 /** Default SLA threshold in hours for maintenance overdue calculation. */
 const MAINTENANCE_SLA_HOURS = 72;
@@ -28,9 +27,7 @@ const MONTHLY_VOLUME_DAYS = 30;
 const RESOLUTION_LOOKBACK_DAYS = 90;
 
 export async function GET(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
-
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;

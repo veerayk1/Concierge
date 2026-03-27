@@ -6,7 +6,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
-import { handleDemoRequest } from '@/server/demo';
 import { z } from 'zod';
 
 const generateSchema = z.object({
@@ -23,9 +22,7 @@ const generateSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
-
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request, {
       roles: ['super_admin', 'property_admin', 'property_manager'],
@@ -72,9 +69,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check existing unit numbers
+    // Check existing unit numbers (excluding seed/test markers)
+    const seedMarkers = ['__courier_seed__', '__test__', '__demo__', '__seed__'];
     const existingUnits = await prisma.unit.findMany({
-      where: { propertyId: input.propertyId, deletedAt: null },
+      where: {
+        propertyId: input.propertyId,
+        deletedAt: null,
+        number: { notIn: seedMarkers }
+      },
       select: { number: true },
     });
     const existingNumbers = new Set(existingUnits.map((u) => u.number.toLowerCase()));

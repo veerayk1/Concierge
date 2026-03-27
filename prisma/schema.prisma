@@ -206,21 +206,23 @@ model User {
   lastLoginAt  DateTime?
   failedLoginAttempts Int @default(0)
   lockedUntil  DateTime?
+  temporaryPassword String? @db.VarChar(255) // DEV ONLY: stores plain-text temp password for testing. Remove before production.
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   // Relations
-  userProperties       UserProperty[]
-  sessions             Session[]
-  refreshTokens        RefreshToken[]
-  loginAudits          LoginAudit[]
-  passwordHistory      PasswordHistory[]
-  devicePushTokens     DevicePushToken[]
-  occupancyRecords     OccupancyRecord[]
-  kyrSessions          KyrSession[]
-  kyrLeaderboardEntries KyrLeaderboard[]
+  userProperties           UserProperty[]
+  sessions                 Session[]
+  refreshTokens            RefreshToken[]
+  loginAudits              LoginAudit[]
+  passwordHistory          PasswordHistory[]
+  devicePushTokens         DevicePushToken[]
+  occupancyRecords         OccupancyRecord[]
+  kyrSessions              KyrSession[]
+  kyrLeaderboardEntries    KyrLeaderboard[]
+  maintenanceRequests      MaintenanceRequest[] @relation("MaintenanceRequestResident")
 
   @@map("users")
 }
@@ -360,6 +362,97 @@ model AuditEntry {
   @@index([userId])
   @@index([resource, resourceId])
   @@map("audit_entries")
+}
+
+// ---------------------------------------------------------------------------
+// DEBUGGING INTELLIGENCE LAYER
+// Development/staging — purgeable, not compliance-sensitive
+// ---------------------------------------------------------------------------
+
+enum DebugEventType {
+  FRONTEND_ERROR
+  API_ERROR
+  VALIDATION_ERROR
+  AUTH_ANOMALY
+  PERFORMANCE_ANOMALY
+  WORKFLOW_BREAK
+  MANUAL_BUG_REPORT
+  STATE_INCONSISTENCY
+}
+
+enum DebugSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum DebugEventStatus {
+  OPEN
+  INVESTIGATING
+  FIXED
+  WONT_FIX
+  DUPLICATE
+}
+
+model DebugEvent {
+  id           String          @id @default(uuid()) @db.Uuid
+  type         DebugEventType
+  severity     DebugSeverity   @default(MEDIUM)
+  source       String          @db.VarChar(10) // 'client' | 'server'
+
+  // Correlation triad — the spine of the system
+  sessionId    String?         @db.Uuid // browser tab session (sessionStorage)
+  requestId    String?         @db.Uuid // links client error ↔ server error
+  traceId      String?         @db.Uuid // groups a causality flow
+
+  // Who / where
+  userId       String?         @db.Uuid // no FK — survives property deletion
+  propertyId   String?         @db.Uuid // nullable — platform bugs have no property
+  userRole     String?         @db.VarChar(50)
+  route        String?         @db.VarChar(500) // URL pathname
+  module       String?         @db.VarChar(50) // e.g. 'packages', 'maintenance'
+
+  // What happened
+  title        String          @db.VarChar(200)
+  description  String?         @db.Text
+  errorCode    String?         @db.VarChar(100)
+  errorMessage String?         @db.Text
+  stackTrace   String?         @db.Text // dev/staging only
+
+  // Rich structured context (sanitized before storage)
+  context      Json?           @db.JsonB
+  // Shape: { httpMethod?, responseStatus?, requestBodySummary?, durationMs?, browserInfo? }
+
+  // Causality chain — what the user was doing
+  actionTrail  Json?           @db.JsonB
+  // Shape: Array<{ type, timestamp, route, element?, secondsBeforeCapture }>
+
+  // Deduplication
+  fingerprint  String?         @db.VarChar(64) // sha256(errorCode|route|message[:50])
+  groupId      String?         @db.Uuid // manual grouping
+
+  // Tester annotation
+  testerNote   String?         @db.Text
+  isManualFlag Boolean         @default(false)
+
+  // Lifecycle
+  status       DebugEventStatus @default(OPEN)
+  duplicateOf  String?          @db.Uuid // plain UUID, no FK
+
+  environment  String           @default("development") @db.VarChar(20)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([sessionId])
+  @@index([requestId])
+  @@index([fingerprint])
+  @@index([module, createdAt])
+  @@index([status, severity])
+  @@index([traceId])
+  @@index([groupId])
+  @@map("debug_events")
 }
 
 // ---------------------------------------------------------------------------
@@ -1075,6 +1168,7 @@ model MaintenanceRequest {
 
   property      Property                  @relation(fields: [propertyId], references: [id])
   unit          Unit?                     @relation(fields: [unitId], references: [id])
+  resident      User                      @relation("MaintenanceRequestResident", fields: [residentId], references: [id])
   category      MaintenanceCategory       @relation(fields: [categoryId], references: [id])
   vendor        Vendor?                   @relation(fields: [assignedVendorId], references: [id])
   equipment     Equipment?                @relation(fields: [equipmentId], references: [id])

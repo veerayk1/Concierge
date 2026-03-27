@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { AlertTriangle, RotateCcw, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { reportDebugEvent, inferModuleFromRoute } from '@/lib/hooks/use-debug-session';
 
 interface PortalErrorProps {
   error: Error & { digest?: string };
@@ -22,6 +23,20 @@ interface PortalErrorProps {
 export default function PortalError({ error, reset }: PortalErrorProps) {
   useEffect(() => {
     console.error('[Concierge] Portal error:', error);
+
+    // Report to debugging intelligence layer — fire-and-forget
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : undefined;
+    reportDebugEvent({
+      type: 'FRONTEND_ERROR',
+      source: 'client',
+      severity: 'HIGH',
+      title: error.message || 'Unhandled portal error',
+      errorMessage: error.message,
+      stackTrace: error.stack ?? null,
+      errorCode: error.digest ?? null,
+      route: pathname ?? null,
+      module: pathname ? inferModuleFromRoute(pathname) : null,
+    });
   }, [error]);
 
   return (

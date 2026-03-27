@@ -127,11 +127,11 @@ export default function VisitorsPage() {
     }),
   );
 
-  // Sign-out handler — calls PATCH /api/v1/visitors/{id}/sign-out then refetches
+  // Sign-out handler — calls PATCH /api/v1/visitors/{id} then refetches
   const handleSignOut = async (visitorId: string) => {
     setSigningOutId(visitorId);
     try {
-      const res = await apiRequest(`/api/v1/visitors/${visitorId}/sign-out`, {
+      const res = await apiRequest(`/api/v1/visitors/${visitorId}`, {
         method: 'PATCH',
       });
       if (!res.ok) {

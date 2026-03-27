@@ -1,8 +1,8 @@
 'use client';
-
+// Security Console — Updated to use ReportIncidentDialog
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { CreateEventDialog } from '@/components/forms/create-event-dialog';
+import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import {
@@ -107,6 +107,16 @@ export default function SecurityPage() {
     error,
     refetch,
   } = useApi<SecurityEvent[]>(apiUrl('/api/v1/events', { propertyId: getPropertyId() }));
+
+  // Fetch active visitors from VisitorEntry table (separate from events)
+  const { data: apiVisitors } = useApi<{ departureAt: string | null }[]>(
+    apiUrl('/api/v1/visitors', { propertyId: getPropertyId(), status: 'all' }),
+  );
+
+  const activeVisitorCount = useMemo(() => {
+    if (!apiVisitors || !Array.isArray(apiVisitors)) return 0;
+    return apiVisitors.filter((v) => !v.departureAt).length;
+  }, [apiVisitors]);
 
   // Map API data to SecurityEvent shape
   const allEvents = useMemo(() => {
@@ -346,7 +356,7 @@ export default function SecurityPage() {
               },
               {
                 label: 'Active Visitors',
-                value: allEvents.filter((e) => e.type === 'visitor' && e.status === 'open').length,
+                value: activeVisitorCount,
                 icon: Users,
                 color: 'text-success-600',
                 bg: 'bg-success-50',
@@ -435,7 +445,7 @@ export default function SecurityPage() {
         </>
       )}
 
-      <CreateEventDialog
+      <ReportIncidentDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         propertyId={getPropertyId()}

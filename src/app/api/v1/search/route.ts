@@ -20,7 +20,6 @@ import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { parsePagination, buildPaginationMeta } from '@/lib/pagination';
 import { appCache } from '@/server/cache';
-import { handleDemoRequest } from '@/server/demo';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -107,9 +106,7 @@ function buildDateFilter(from?: string | null, to?: string | null) {
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
-
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
@@ -195,7 +192,10 @@ export async function GET(request: NextRequest) {
       const where: Record<string, unknown> = {
         propertyId,
         deletedAt: null,
-        number: { contains: q, mode: 'insensitive' },
+        AND: [
+          { number: { contains: q, mode: 'insensitive' } },
+          { number: { notIn: ['__courier_seed__', '__test__', '__demo__', '__seed__'] } }
+        ]
       };
       if (statusFilter) where.status = statusFilter;
       if (dateFilter) where.createdAt = dateFilter;
@@ -378,9 +378,7 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function DELETE(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
-
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;

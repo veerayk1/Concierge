@@ -49,6 +49,7 @@ interface UserAccount {
   mfaEnabled: boolean;
   lastLogin?: string;
   createdAt: string;
+  temporaryPassword?: string | null;
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -108,13 +109,21 @@ export default function UsersPage() {
       mfaEnabled: (u.mfaEnabled as boolean) || false,
       lastLogin: (u as unknown as Record<string, unknown>).lastLoginAt as string | undefined,
       createdAt: u.createdAt as string,
+      temporaryPassword: (u as unknown as Record<string, string>).temporaryPassword || null,
     }));
   }, [apiUsers]);
 
   const filteredUsers = useMemo(
     () =>
       allUsers.filter((u) => {
-        if (roleFilter !== 'all' && u.role !== roleFilter) return false;
+        if (roleFilter !== 'all') {
+          // Security filter should include both guard and supervisor
+          if (roleFilter === 'security_guard') {
+            if (u.role !== 'security_guard' && u.role !== 'security_supervisor') return false;
+          } else if (u.role !== roleFilter) {
+            return false;
+          }
+        }
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
           const name = `${u.firstName} ${u.lastName}`.toLowerCase();
@@ -151,6 +160,24 @@ export default function UsersPage() {
               {row.firstName} {row.lastName}
             </p>
             <p className="text-[12px] text-neutral-500">{row.email}</p>
+            {row.temporaryPassword && (
+              <button
+                type="button"
+                className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 font-mono text-[11px] text-amber-700 hover:bg-amber-100 transition-colors border border-amber-200"
+                title="Click to copy password"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(row.temporaryPassword!);
+                  const btn = e.currentTarget;
+                  const orig = btn.textContent;
+                  btn.textContent = 'Copied!';
+                  setTimeout(() => { btn.textContent = orig; }, 1500);
+                }}
+              >
+                <KeyRound className="h-2.5 w-2.5" />
+                {row.temporaryPassword}
+              </button>
+            )}
           </div>
         </div>
       ),

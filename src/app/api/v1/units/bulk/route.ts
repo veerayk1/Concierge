@@ -6,7 +6,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
-import { handleDemoRequest } from '@/server/demo';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -65,9 +64,7 @@ const unitItemSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
-
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request, {
       roles: ['super_admin', 'property_admin', 'property_manager'],
@@ -119,9 +116,14 @@ export async function POST(request: NextRequest) {
       })
       .filter((u): u is z.infer<typeof unitItemSchema> => u !== null && !!u.number);
 
-    // Pre-fetch existing unit numbers for this property
+    // Pre-fetch existing unit numbers for this property (excluding seed/test markers)
+    const seedMarkers = ['__courier_seed__', '__test__', '__demo__', '__seed__'];
     const existingUnits = await prisma.unit.findMany({
-      where: { propertyId, deletedAt: null },
+      where: {
+        propertyId,
+        deletedAt: null,
+        number: { notIn: seedMarkers }
+      },
       select: { number: true },
     });
     const existingNumbers = new Set(existingUnits.map((u) => u.number.toLowerCase()));

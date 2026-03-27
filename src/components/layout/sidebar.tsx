@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { Role } from '@/types';
 import { getNavigationForRole, type NavGroup } from '@/lib/navigation';
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
+import { useModuleConfig } from '@/lib/hooks/use-module-config';
 
 export interface SidebarProps {
   role: Role;
@@ -25,7 +26,21 @@ export function Sidebar({
   className,
 }: SidebarProps) {
   const pathname = usePathname();
-  const navGroups = getNavigationForRole(role);
+  const roleNavGroups = getNavigationForRole(role);
+  const { disabledNavItemIds } = useModuleConfig();
+
+  // Filter out nav items whose modules are disabled for this property
+  const navGroups = useMemo(() => {
+    if (disabledNavItemIds.size === 0) return roleNavGroups;
+    const filtered: NavGroup[] = [];
+    for (const group of roleNavGroups) {
+      const items = group.items.filter((item) => !disabledNavItemIds.has(item.id));
+      if (items.length > 0) {
+        filtered.push({ label: group.label, items });
+      }
+    }
+    return filtered;
+  }, [roleNavGroups, disabledNavItemIds]);
 
   const toggleCollapsed = useCallback(() => {
     onCollapsedChange(!collapsed);

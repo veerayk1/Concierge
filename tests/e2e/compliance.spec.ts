@@ -10,9 +10,11 @@ import { test, expect } from '@playwright/test';
 
 async function loginAsAdmin(page: import('@playwright/test').Page) {
   await page.goto('/login');
-  await page.evaluate(() => localStorage.removeItem('demo_role'));
-  await page.getByText('Demo: Admin').click();
-  await page.waitForURL('**/dashboard', { timeout: 10_000 });
+  await page.evaluate(() => {
+    localStorage.setItem('demo_role', 'property_admin');
+    localStorage.setItem('demo_propertyId', '00000000-0000-4000-b000-000000000001');
+  });
+  await page.goto('/dashboard');
 }
 
 test.describe('Compliance Dashboard', () => {

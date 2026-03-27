@@ -57,6 +57,12 @@ interface MaintenanceDetail {
   completedDate: string | null;
   unit: { id: string; number: string } | null;
   category: { id: string; name: string } | null;
+  resident: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
 }
 
 interface MaintenanceComment {
@@ -628,7 +634,7 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Reported By
                   </p>
-                  <p className="mt-1 text-[15px] text-neutral-900">{req.residentId || 'Unknown'}</p>
+                  <p className="mt-1 text-[15px] text-neutral-900">{req.resident ? `${req.resident.firstName} ${req.resident.lastName}` : 'Unknown'}</p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">

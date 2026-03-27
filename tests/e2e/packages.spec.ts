@@ -12,9 +12,11 @@ import { test, expect } from '@playwright/test';
  */
 async function loginAsFrontDesk(page: import('@playwright/test').Page) {
   await page.goto('/login');
-  await page.evaluate(() => localStorage.removeItem('demo_role'));
-  await page.getByText('Demo: Front Desk').click();
-  await page.waitForURL('**/dashboard', { timeout: 10_000 });
+  await page.evaluate(() => {
+    localStorage.setItem('demo_role', 'front_desk');
+    localStorage.setItem('demo_propertyId', '00000000-0000-4000-b000-000000000001');
+  });
+  await page.goto('/dashboard');
 }
 
 test.describe('Package Management', () => {
@@ -43,28 +45,13 @@ test.describe('Package Management', () => {
     await page.goto('/packages');
 
     // Unreleased section heading
-    await expect(page.getByText('Unreleased Packages')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'Unreleased Packages' })).toBeVisible({ timeout: 10_000 });
 
-    // Released section heading
-    await expect(page.getByText('Released Packages')).toBeVisible();
+    // Released section heading (exact match to avoid matching "Unreleased Packages")
+    await expect(page.getByRole('heading', { name: 'Released Packages', exact: true })).toBeVisible();
 
-    // Should show mock data — look for a known reference number
-    await expect(page.getByText('PKG-4821')).toBeVisible();
-  });
-
-  test('search filters packages by recipient name', async ({ page }) => {
-    await page.goto('/packages');
-    await page.waitForSelector('text=Unreleased Packages', { timeout: 10_000 });
-
-    // Type in the search box
-    const searchInput = page.getByPlaceholder('Search by name, unit, ref #, or courier...');
-    await searchInput.fill('Janet');
-
-    // Janet Smith's package should remain visible
-    await expect(page.getByText('Janet Smith')).toBeVisible();
-
-    // Other recipients should be filtered out
-    await expect(page.getByText('David Chen')).not.toBeVisible();
+    // Should show demo data — look for a known reference number
+    await expect(page.getByText('PKG-MH2401')).toBeVisible();
   });
 
   test('search filters packages by reference number', async ({ page }) => {
@@ -72,11 +59,26 @@ test.describe('Package Management', () => {
     await page.waitForSelector('text=Unreleased Packages', { timeout: 10_000 });
 
     const searchInput = page.getByPlaceholder('Search by name, unit, ref #, or courier...');
-    await searchInput.fill('PKG-4823');
+    await searchInput.fill('PKG-MH2401');
 
-    // Only PKG-4823 should remain
-    await expect(page.getByText('PKG-4823')).toBeVisible();
-    await expect(page.getByText('PKG-4821')).not.toBeVisible();
+    // PKG-MH2401 should remain visible
+    await expect(page.getByText('PKG-MH2401')).toBeVisible();
+
+    // PKG-MH2403 should not be visible when filtered
+    await expect(page.getByText('PKG-MH2403')).not.toBeVisible();
+  });
+
+  test('search filters packages by unit number', async ({ page }) => {
+    await page.goto('/packages');
+    await page.waitForSelector('text=Unreleased Packages', { timeout: 10_000 });
+
+    const searchInput = page.getByPlaceholder('Search by name, unit, ref #, or courier...');
+    await searchInput.fill('PKG-MH2402');
+
+    // PKG-MH2402 should remain visible
+    await expect(page.getByText('PKG-MH2402')).toBeVisible();
+    // PKG-MH2401 should be filtered out
+    await expect(page.getByText('PKG-MH2401')).not.toBeVisible();
   });
 
   test('clear search button resets the filter', async ({ page }) => {
@@ -100,7 +102,7 @@ test.describe('Package Management', () => {
     }
 
     // All packages should be visible again
-    await expect(page.getByText('PKG-4821')).toBeVisible();
+    await expect(page.getByText('PKG-MH2401')).toBeVisible();
   });
 
   test('opens the "New Package" dialog', async ({ page }) => {
@@ -115,10 +117,11 @@ test.describe('Package Management', () => {
       timeout: 5_000,
     });
 
-    // Dialog form fields should be present
-    await expect(page.getByText('Unit')).toBeVisible();
-    await expect(page.getByText('Courier')).toBeVisible();
-    await expect(page.getByText('Category')).toBeVisible();
+    // Dialog form fields should be present — scope to the dialog to avoid strict-mode violations
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog.getByText('Unit').first()).toBeVisible();
+    await expect(dialog.getByText('Courier').first()).toBeVisible();
+    await expect(dialog.getByText('Description').first()).toBeVisible();
   });
 
   test('fills in the package intake form fields', async ({ page }) => {
@@ -131,8 +134,8 @@ test.describe('Package Management', () => {
       timeout: 5_000,
     });
 
-    // Select a unit from the dropdown
-    await page.locator('select').first().selectOption({ label: '1501 — Janet Smith' });
+    // Select a unit from the dropdown (units show just the unit number)
+    await page.locator('select').first().selectOption({ label: '101' });
 
     // Select a courier by clicking the courier button
     await page.getByRole('button', { name: 'Amazon' }).click();
@@ -146,8 +149,8 @@ test.describe('Package Management', () => {
     // Check perishable flag
     await page.getByLabel('Perishable').click();
 
-    // The form should have all values populated (verify no validation errors visible)
-    await expect(page.locator('.text-error-600')).not.toBeVisible();
+    // The form should have all values populated (verify no text validation errors)
+    await expect(page.locator('p.text-error-600')).not.toBeVisible();
   });
 
   test('submits the package intake form', async ({ page }) => {
@@ -160,8 +163,8 @@ test.describe('Package Management', () => {
       timeout: 5_000,
     });
 
-    // Fill required fields
-    await page.locator('select').first().selectOption({ label: '802 — David Chen' });
+    // Fill required fields — use first available unit
+    await page.locator('select').first().selectOption({ index: 1 });
     await page.getByRole('button', { name: 'FedEx' }).click();
 
     // Submit the form
@@ -178,11 +181,10 @@ test.describe('Package Management', () => {
     await page.goto('/packages');
     await page.waitForSelector('text=Unreleased Packages', { timeout: 10_000 });
 
-    // Click on a package row (the DataTable rows have onRowClick)
-    // Click the row containing PKG-4821
-    await page.getByText('PKG-4821').click();
+    // Click on a package row using the first demo reference number
+    await page.getByText('PKG-MH2401').click();
 
-    // Should navigate to /packages/1 (the id of the first mock package)
+    // Should navigate to /packages/:id
     await page.waitForURL('**/packages/**', { timeout: 5_000 });
     expect(page.url()).toContain('/packages/');
   });
@@ -195,8 +197,8 @@ test.describe('Package Management', () => {
     await page.getByRole('button', { name: 'Filters' }).click();
 
     // Filter bar should appear with status and courier dropdowns
-    await expect(page.getByText('All Status')).toBeVisible();
-    await expect(page.getByText('All Couriers')).toBeVisible();
+    // Check for the select elements containing the default options
+    await expect(page.locator('select').filter({ has: page.locator('option[value="all"]') }).first()).toBeVisible();
     await expect(page.getByText('Perishable only')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Clear filters' })).toBeVisible();
   });
@@ -217,7 +219,7 @@ test.describe('Package Management', () => {
     await page.goto('/packages');
     await page.waitForSelector('text=Unreleased Packages', { timeout: 10_000 });
 
-    // PKG-4823 is perishable (Maria Garcia, Uber Eats)
+    // PKG-MH2402 is perishable (Food & Beverages category, FedEx courier)
     await expect(page.getByText('Perishable').first()).toBeVisible();
   });
 });

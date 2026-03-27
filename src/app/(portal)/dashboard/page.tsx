@@ -447,8 +447,21 @@ export default function DashboardPage() {
   // Support demo mode — read role from localStorage
   const demoRole =
     typeof window !== 'undefined' ? (localStorage.getItem('demo_role') as Role | null) : null;
-  const effectiveRole: Role = user?.role ?? demoRole ?? 'front_desk';
-  const effectiveName = user?.firstName ?? (demoRole ? (DEMO_NAMES[demoRole] ?? 'User') : 'User');
+  // Map shorthand demo roles to actual Role enum values
+  const ROLE_ALIASES: Record<string, Role> = {
+    resident: 'resident_owner',
+    owner: 'resident_owner',
+    tenant: 'resident_tenant',
+    security: 'security_guard',
+    maintenance: 'maintenance_staff',
+    admin: 'property_admin',
+    manager: 'property_manager',
+  };
+  const resolvedDemoRole = demoRole
+    ? (ROLE_ALIASES[demoRole] ?? demoRole) as Role
+    : null;
+  const effectiveRole: Role = user?.role ?? resolvedDemoRole ?? 'front_desk';
+  const effectiveName = user?.firstName ?? (resolvedDemoRole ? (DEMO_NAMES[effectiveRole] ?? DEMO_NAMES[resolvedDemoRole] ?? 'User') : 'User');
 
   // Super Admin gets platform-level dashboard — no property-specific API calls
   const isSuperAdmin = effectiveRole === 'super_admin';
@@ -536,7 +549,7 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  const config = DASHBOARD_CONFIGS[effectiveRole];
+  const config = DASHBOARD_CONFIGS[effectiveRole] ?? DASHBOARD_CONFIGS['front_desk'];
   const greeting = getGreeting();
 
   // -------------------------------------------------------------------------

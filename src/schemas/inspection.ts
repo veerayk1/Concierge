@@ -14,6 +14,8 @@ export const INSPECTION_CATEGORIES = [
   'plumbing',
   'electrical',
   'structural',
+  'move_in',
+  'move_out',
 ] as const;
 
 export type InspectionCategory = (typeof INSPECTION_CATEGORIES)[number];

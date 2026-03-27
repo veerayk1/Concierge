@@ -12,7 +12,6 @@ import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
-import { handleDemoRequest } from '@/server/demo';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -46,8 +45,7 @@ const createShiftEntrySchema = z.object({
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
@@ -72,7 +70,7 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {
       propertyId,
       deletedAt: null,
-      eventType: { slug: 'shift_log' },
+      eventType: { slug: { in: ['shift_log', 'shift-log'] } },
     };
 
     // Date range filter
@@ -124,8 +122,7 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
@@ -135,12 +132,47 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { error: 'VALIDATION_ERROR', message: 'Invalid input', fields: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
 
     const input = parsed.data;
+
+    // Find or create the "Shift Log" event type for this property
+    let eventType = await prisma.eventType.findFirst({
+      where: { propertyId: input.propertyId, slug: 'shift-log', deletedAt: null },
+    });
+
+    if (!eventType) {
+      // Ensure an event group exists for this property
+      let eventGroup = await prisma.eventGroup.findFirst({
+        where: { propertyId: input.propertyId, slug: 'operations', deletedAt: null },
+      });
+      if (!eventGroup) {
+        eventGroup = await prisma.eventGroup.create({
+          data: {
+            propertyId: input.propertyId,
+            name: 'Operations',
+            slug: 'operations',
+            sortOrder: 0,
+          },
+        });
+      }
+      eventType = await prisma.eventType.create({
+        data: {
+          propertyId: input.propertyId,
+          eventGroupId: eventGroup.id,
+          name: 'Shift Log',
+          slug: 'shift-log',
+          icon: 'clock',
+          color: '#2563EB',
+          defaultPriority: 'normal',
+          notifyOnCreate: false,
+          notifyOnClose: false,
+        },
+      });
+    }
 
     // Build customFields
     const customFields: Record<string, unknown> = {
@@ -154,7 +186,7 @@ export async function POST(request: NextRequest) {
     const event = await prisma.event.create({
       data: {
         propertyId: input.propertyId,
-        eventTypeId: 'shift-log-type', // Will be seeded
+        eventTypeId: eventType.id,
         title: 'Shift log note',
         description: stripControlChars(stripHtml(input.content)),
         priority: input.priority,

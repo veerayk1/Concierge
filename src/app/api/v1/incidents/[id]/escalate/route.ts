@@ -23,7 +23,19 @@ const escalateSchema = z.object({
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'security_guard',
+        'security_supervisor',
+        'front_desk',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -38,6 +50,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const input = parsed.data;
+
+    // Tenant isolation: verify the event belongs to the user's property
+    const existingEvent = await prisma.event.findUnique({
+      where: { id, propertyId: auth.user.propertyId },
+      select: { id: true, propertyId: true },
+    });
+
+    if (!existingEvent) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Incident not found' },
+        { status: 404 },
+      );
+    }
 
     // Update the event priority and status
     const event = await prisma.event.update({

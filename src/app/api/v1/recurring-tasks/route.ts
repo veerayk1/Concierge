@@ -101,7 +101,57 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const parsed = createRecurringTaskSchema.safeParse(body);
+
+    const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+    const priorityMap: Record<string, string> = { medium: 'normal', low: 'low', high: 'high', critical: 'critical' };
+
+    // Map dialog field names to schema field names
+    const resolvedPropertyId = body.propertyId || auth.user.propertyId;
+
+    // Resolve categoryId: from UUID, name lookup, or auto-create
+    let categoryId = body.categoryId;
+    if (!categoryId && body.category) {
+      const cat = await prisma.maintenanceCategory.findFirst({
+        where: { propertyId: resolvedPropertyId, name: { equals: body.category, mode: 'insensitive' } },
+      });
+      if (cat) {
+        categoryId = cat.id;
+      } else {
+        // Auto-create the category
+        const newCat = await prisma.maintenanceCategory.create({
+          data: { propertyId: resolvedPropertyId, name: body.category.charAt(0).toUpperCase() + body.category.slice(1).replace(/_/g, ' ') },
+        });
+        categoryId = newCat.id;
+      }
+    }
+
+    // Resolve assignedEmployeeId: only pass if it's a valid UUID
+    const rawAssigned = body.assignedEmployeeId || body.assignedTo;
+    const assignedEmployeeId = rawAssigned && isUuid(rawAssigned) ? rawAssigned : undefined;
+
+    // Default startDate to now if not provided
+    const startDate = body.startDate || new Date().toISOString();
+    const rawPriority = body.priority || body.defaultPriority || 'normal';
+
+    const mapped: Record<string, unknown> = {
+      propertyId: resolvedPropertyId,
+      name: body.name || body.taskName,
+      description: body.description,
+      categoryId,
+      intervalType: body.intervalType || body.frequency || 'monthly',
+      assignedEmployeeId: assignedEmployeeId || undefined,
+      startDate,
+      endDate: body.endDate || undefined,
+      defaultPriority: priorityMap[rawPriority] || rawPriority,
+      autoCreateRequest: body.autoCreateRequest ?? true,
+      location: body.location,
+      notes: body.notes,
+      equipmentId: body.equipmentId,
+      unitId: body.unitId,
+      areaDescription: body.areaDescription,
+    };
+
+    const parsed = createRecurringTaskSchema.safeParse(mapped);
 
     if (!parsed.success) {
       return NextResponse.json(

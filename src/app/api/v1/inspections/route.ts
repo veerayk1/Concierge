@@ -91,7 +91,37 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const parsed = createInspectionSchema.safeParse(body);
+
+    // Map dialog field names to schema field names
+    // Dialog sends: type, assignedTo (name), checklistTemplate (string), priority with 'medium'
+    // Schema expects: category, inspectorId (uuid), templateId (uuid), priority with 'normal'
+
+    // Map priority: dialog uses 'medium' but schema expects 'normal'
+    const priorityMap: Record<string, string> = { medium: 'normal', low: 'low', high: 'high', critical: 'urgent', urgent: 'urgent' };
+    const rawPriority = body.priority || 'normal';
+
+    // Store inspector name for the record, but don't pass non-UUID to schema
+    const inspectorName = body.assignedTo || body.inspectorId;
+    const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
+    // Store template name for checklist lookup
+    const templateName = body.checklistTemplate || body.templateId;
+
+    const mapped = {
+      ...body,
+      category: body.category || body.type,
+      priority: priorityMap[rawPriority] || rawPriority,
+      // Only pass UUID values; non-UUID strings (names) get stripped
+      inspectorId: inspectorName && isUuid(inspectorName) ? inspectorName : undefined,
+      templateId: templateName && isUuid(templateName) ? templateName : undefined,
+      // Remove dialog-only fields that aren't in schema
+      type: undefined,
+      assignedTo: undefined,
+      checklistTemplate: undefined,
+      scheduledTime: undefined,
+    };
+
+    const parsed = createInspectionSchema.safeParse(mapped);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -129,7 +159,11 @@ export async function POST(request: NextRequest) {
         location: input.location ? stripControlChars(stripHtml(input.location)) : null,
         gpsLatitude: input.gpsLatitude ?? null,
         gpsLongitude: input.gpsLongitude ?? null,
-        notes: input.notes ? stripControlChars(stripHtml(input.notes)) : null,
+        notes: input.notes
+          ? stripControlChars(stripHtml(input.notes))
+          : inspectorName && !isUuid(inspectorName)
+            ? `Inspector: ${stripControlChars(stripHtml(inspectorName))}`
+            : null,
         status: 'scheduled',
         createdById: auth.user.userId,
         items: {

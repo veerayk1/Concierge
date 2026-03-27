@@ -32,7 +32,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface InspectionItem {
   id: string;
   title: string;
-  type:
+  type?: string;
+  category:
     | 'fire_safety'
     | 'elevator'
     | 'plumbing'
@@ -42,13 +43,15 @@ interface InspectionItem {
     | 'move_in'
     | 'move_out';
   status: 'scheduled' | 'in_progress' | 'completed' | 'failed' | 'overdue';
-  inspector: string;
-  location: string;
-  scheduledDate: string;
+  inspectorId?: string;
+  inspector?: string;
+  location?: string;
+  scheduledDate?: string;
   completedDate?: string;
-  checklistProgress: string;
-  findings: string;
+  checklistProgress?: string;
+  findings?: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
+  isOverdue?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -156,16 +159,17 @@ export default function InspectionsPage() {
   const filteredInspections = useMemo(
     () =>
       allInspections.filter((item) => {
-        if (typeFilter !== 'all' && item.type !== typeFilter) return false;
+        const itemType = item.type || item.category;
+        if (typeFilter !== 'all' && itemType !== typeFilter) return false;
         if (statusFilter !== 'all' && item.status !== statusFilter) return false;
         if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
           return (
             item.title.toLowerCase().includes(q) ||
-            item.inspector.toLowerCase().includes(q) ||
-            item.location.toLowerCase().includes(q) ||
-            item.findings.toLowerCase().includes(q)
+            (item.inspector?.toLowerCase().includes(q) ?? false) ||
+            (item.location?.toLowerCase().includes(q) ?? false) ||
+            (item.findings?.toLowerCase().includes(q) ?? false)
           );
         }
         return true;
@@ -204,13 +208,16 @@ export default function InspectionsPage() {
     {
       id: 'type',
       header: 'Type',
-      accessorKey: 'type',
+      accessorKey: 'category',
       sortable: true,
-      cell: (row) => (
-        <Badge variant={TYPE_BADGE_VARIANT[row.type]} size="sm">
-          {TYPE_LABELS[row.type]}
-        </Badge>
-      ),
+      cell: (row) => {
+        const itemType = (row.type || row.category) as InspectionItem['category'];
+        return (
+          <Badge variant={TYPE_BADGE_VARIANT[itemType]} size="sm">
+            {TYPE_LABELS[itemType] || row.type || row.category || '—'}
+          </Badge>
+        );
+      },
     },
     {
       id: 'inspector',
@@ -230,11 +237,13 @@ export default function InspectionsPage() {
       sortable: true,
       cell: (row) => (
         <span className="text-[13px] text-neutral-500">
-          {new Date(row.scheduledDate).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })}
+          {!row.scheduledDate
+            ? '—'
+            : new Date(row.scheduledDate).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
         </span>
       ),
     },

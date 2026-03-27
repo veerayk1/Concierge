@@ -29,13 +29,24 @@ import { Card, CardContent } from '@/components/ui/card';
 // Types
 // ---------------------------------------------------------------------------
 
+interface ApiBooking {
+  id: string;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+  status: string;
+  guestCount: number;
+  unit?: { id: string; number: string } | string;
+}
+
 interface Booking {
   id: string;
   resident: string;
-  unit: string;
+  unit: string | { id: string; number: string };
   date: string;
   timeSlot: string;
-  status: 'confirmed' | 'pending' | 'cancelled';
+  status: 'confirmed' | 'pending' | 'cancelled' | 'approved';
 }
 
 interface DayAvailability {
@@ -44,27 +55,53 @@ interface DayAvailability {
   booked: boolean[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface AmenityDetail {
   id: string;
   name: string;
-  category: string;
-  location: string;
-  capacity: number;
-  description: string;
-  hours: string;
-  rules: string[];
-  fee: number;
-  securityDeposit: number;
-  availableNow: boolean;
-  requiresApproval: boolean;
-  upcomingBookings: Booking[];
-  weekAvailability: DayAvailability[];
+  category?: string;
+  location?: string;
+  capacity?: number;
+  description?: string;
+  hours?: string;
+  rules?: string[];
+  fee?: number;
+  securityDeposit?: number;
+  availableNow?: boolean;
+  requiresApproval?: boolean;
+  approvalMode?: string;
+  upcomingBookings?: Booking[];
+  bookings?: ApiBooking[];
+  weekAvailability?: DayAvailability[];
+  group?: { id: string; name: string };
+}
+
+/** Map raw API bookings to the display shape */
+function mapBookings(raw: ApiBooking[]): Booking[] {
+  return raw.map((b) => {
+    const startDate = b.startDate ? new Date(b.startDate) : null;
+    const startTime = b.startTime ? new Date(b.startTime) : null;
+    const endTime = b.endTime ? new Date(b.endTime) : null;
+    const timeSlot = startTime && endTime
+      ? `${startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} – ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+      : '—';
+    return {
+      id: b.id,
+      resident: b.guestCount ? `${b.guestCount} guests` : 'Resident',
+      unit: b.unit ?? '—',
+      date: startDate ? startDate.toISOString() : '',
+      timeSlot,
+      status: b.status as Booking['status'],
+    };
+  });
 }
 
 const statusVariants: Record<string, 'success' | 'warning' | 'error'> = {
   confirmed: 'success',
+  approved: 'success',
   pending: 'warning',
   cancelled: 'error',
+  rejected: 'error',
 };
 
 // ---------------------------------------------------------------------------
@@ -187,9 +224,13 @@ export default function AmenityDetailPage() {
     );
   }
 
-  const bookings = amenity.upcomingBookings ?? [];
+  // API returns "bookings" from Prisma include; map to display shape
+  const rawBookings: ApiBooking[] = amenity.bookings ?? [];
+  const bookings: Booking[] = amenity.upcomingBookings ?? mapBookings(rawBookings);
   const weekAvailability = amenity.weekAvailability ?? [];
   const rules = amenity.rules ?? [];
+  const hasBookings = bookings.length > 0;
+  const category = amenity.category ?? amenity.group?.name ?? '';
 
   return (
     <div className="flex flex-col gap-6">
@@ -207,17 +248,17 @@ export default function AmenityDetailPage() {
             <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
               {amenity.name}
             </h1>
-            <Badge variant={amenity.availableNow ? 'success' : 'default'} size="lg" dot>
-              {amenity.availableNow ? 'Available' : 'Booked'}
+            <Badge variant={!hasBookings ? 'success' : 'default'} size="lg" dot>
+              {!hasBookings ? 'Available' : 'Booked'}
             </Badge>
-            {amenity.requiresApproval && (
+            {(amenity.requiresApproval || amenity.approvalMode === 'manual') && (
               <Badge variant="info" size="lg">
                 Approval Required
               </Badge>
             )}
           </div>
           <p className="text-[14px] text-neutral-500">
-            {amenity.category} &middot; {amenity.location}
+            {category} {amenity.location ? `· ${amenity.location}` : ''}
           </p>
         </div>
         <div className="flex items-center gap-2">

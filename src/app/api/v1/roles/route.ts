@@ -8,11 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
-import { handleDemoRequest } from '@/server/demo/demo-route-handler';
 
 export async function GET(request: NextRequest) {
-  const demoResponse = await handleDemoRequest(request);
-  if (demoResponse) return demoResponse;
+  // Skip demo handler — uses the real database for consistent GET/POST
 
   try {
     const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });

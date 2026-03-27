@@ -24,6 +24,7 @@ import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CreateKeyCheckoutDialog } from '@/components/forms/create-key-checkout-dialog';
+import { AddKeyDialog } from '@/components/forms/add-key-dialog';
 import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
@@ -61,6 +62,7 @@ export default function KeysPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showAddKeyDialog, setShowAddKeyDialog] = useState(false);
 
   // Fetch real data from API with server-side filters
   const { data: apiKeys, loading, error, refetch } = useApi<KeyItem[]>(
@@ -233,9 +235,13 @@ export default function KeysPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+          <Button size="sm" onClick={() => setShowAddKeyDialog(true)}>
             <Plus className="h-4 w-4" />
             Add Key / FOB
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => setShowCreateDialog(true)}>
+            <RotateCcw className="h-4 w-4" />
+            Check Out Key
           </Button>
         </div>
       }
@@ -380,6 +386,15 @@ export default function KeysPage() {
         emptyIcon={<Key className="h-6 w-6" />}
       />
       </>)}
+      <AddKeyDialog
+        open={showAddKeyDialog}
+        onOpenChange={setShowAddKeyDialog}
+        propertyId={getPropertyId()}
+        onSuccess={() => {
+          setShowAddKeyDialog(false);
+          refetch();
+        }}
+      />
       <CreateKeyCheckoutDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}

@@ -53,7 +53,10 @@ export function LoginForm() {
         return;
       }
 
-      router.push('/dashboard');
+      // Use hard navigation to ensure the full page lifecycle re-runs
+      // with the new auth state. router.push (soft nav) can fail when
+      // the auth layout still caches the unauthenticated state.
+      window.location.href = '/dashboard';
     } catch (error) {
       if (error instanceof ApiClientError) {
         setServerError(error.message);
@@ -180,7 +183,7 @@ export function LoginForm() {
           },
           {
             role: 'property_admin',
-            label: 'Property Admin',
+            label: 'Demo: Admin',
             desc: 'Property owner / buyer',
             color: 'border-purple-200 bg-purple-50 text-purple-700',
           },
@@ -214,13 +217,13 @@ export function LoginForm() {
           },
           {
             role: 'front_desk',
-            label: 'Front Desk',
+            label: 'Demo: Front Desk',
             desc: 'Concierge / reception',
             color: 'border-teal-200 bg-teal-50 text-teal-700',
           },
           {
             role: 'security_guard',
-            label: 'Security Guard',
+            label: 'Demo: Security',
             desc: 'Security console',
             color: 'border-amber-200 bg-amber-50 text-amber-700',
           },
@@ -266,7 +269,7 @@ export function LoginForm() {
         {[
           {
             role: 'resident_owner',
-            label: 'Resident (Owner)',
+            label: 'Demo: Resident',
             desc: 'Unit owner portal',
             color: 'border-indigo-200 bg-indigo-50 text-indigo-700',
           },

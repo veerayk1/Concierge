@@ -11,9 +11,11 @@ import { test, expect } from '@playwright/test';
 
 async function loginAsFrontDesk(page: import('@playwright/test').Page) {
   await page.goto('/login');
-  await page.evaluate(() => localStorage.removeItem('demo_role'));
-  await page.getByText('Demo: Front Desk').click();
-  await page.waitForURL('**/dashboard', { timeout: 10_000 });
+  await page.evaluate(() => {
+    localStorage.setItem('demo_role', 'front_desk');
+    localStorage.setItem('demo_propertyId', '00000000-0000-4000-b000-000000000001');
+  });
+  await page.goto('/dashboard');
 }
 
 test.describe('Mobile Responsiveness — iPhone (375x812)', () => {
@@ -27,7 +29,7 @@ test.describe('Mobile Responsiveness — iPhone (375x812)', () => {
     await page.waitForTimeout(1000);
 
     // On mobile, the sidebar should be hidden and a hamburger button visible
-    const hamburger = page.getByRole('button', { name: /menu|toggle|hamburger|open nav/i });
+    const hamburger = page.getByRole('button', { name: 'Open menu' });
     const sidebar = page.locator('aside[aria-label="Main navigation"]');
 
     // Either hamburger is visible or sidebar is collapsed/hidden
@@ -41,7 +43,7 @@ test.describe('Mobile Responsiveness — iPhone (375x812)', () => {
     await page.goto('/dashboard');
     await page.waitForTimeout(1000);
 
-    const hamburger = page.getByRole('button', { name: /menu|toggle|hamburger|open nav/i });
+    const hamburger = page.getByRole('button', { name: 'Open menu' });
     if (await hamburger.isVisible()) {
       await hamburger.click();
       await page.waitForTimeout(500);

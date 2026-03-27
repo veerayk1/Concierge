@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
+import { exportToCsv } from '@/lib/export-csv';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -230,8 +231,23 @@ export default function ReportsPage() {
         }
 
         const result = await resp.json();
-        // For now, log the result. In production, this would trigger a download.
-        console.log(`Report ${reportType} generated:`, result);
+        const records: Record<string, unknown>[] = result?.data?.records ?? [];
+
+        if (records.length === 0) {
+          // Show a brief visual feedback that the report ran but had no data
+          alert('Report generated — no records found for the selected date range.');
+          return;
+        }
+
+        // Derive columns from the first record's keys
+        const columns = Object.keys(records[0] ?? {})
+          .filter((k) => k !== 'id' && !k.endsWith('Id') && k !== 'propertyId')
+          .map((k) => ({
+            key: k,
+            header: k.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase()),
+          }));
+
+        exportToCsv(records, columns, reportType);
       } catch (err) {
         console.error('Report generation error:', err);
       } finally {

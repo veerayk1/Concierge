@@ -296,6 +296,11 @@ async function matchRoute(
   const pageSize = parseInt(params.get('pageSize') || '50');
   const propertyId = params.get('propertyId') || '00000000-0000-4000-b000-000000000001';
 
+  // --- Debug events — always pass through to real DB so events are captured ----
+  if (path === '/api/v1/debug/events') {
+    return null;
+  }
+
   // --- Health endpoints (no auth) ------------------------------------------
   if (path === '/api/health') {
     return json({
@@ -710,6 +715,80 @@ async function matchRoute(
     return json({ data: result.data, meta: result.meta });
   }
 
+  // GET /api/v1/units/:id — unit detail
+  const unitMatch = path.match(/^\/api\/v1\/units\/([^/]+)$/);
+  if (unitMatch && method === 'GET') {
+    const unit = store.getById('units', unitMatch[1]!) as Record<string, unknown> | null;
+    if (!unit) return json({ error: 'NOT_FOUND', message: 'Unit not found' }, 404);
+    // Attach related packages and maintenance for the detail view
+    const rawPackages = store.getAll('packages', { where: { unitId: unitMatch[1]! } }).data as Record<string, unknown>[];
+    const rawMaintenance = store.getAll('maintenance', { where: { unitId: unitMatch[1]! } }).data as Record<string, unknown>[];
+
+    // Map to the shape expected by UnitDetail interface on the page
+    const buildingObj = unit.building as Record<string, string> | undefined;
+    const mapped = {
+      ...unit,
+      // building must be a string (the page renders {unit.building} inline)
+      building: buildingObj?.name ?? (typeof unit.building === 'string' ? unit.building : 'Main Tower'),
+      // type comes from unitType in the store
+      type: unit.unitType ?? unit.type ?? 'Unit',
+      sqft: unit.sqft ?? 850,
+      enterPhoneCode: unit.enterPhoneCode ?? '—',
+      parkingSpot: unit.parkingSpot ?? '—',
+      locker: unit.locker ?? '—',
+      keyTag: unit.keyTag ?? '—',
+      customFields: unit.customFields ?? {},
+      // instructions: map from unitInstructions[]
+      instructions: ((unit.unitInstructions ?? []) as Record<string, unknown>[]).map((ins) => ({
+        id: ins.id ?? randomUUID(),
+        text: ins.instructionText ?? ins.text ?? '',
+        priority: ins.priority === 'high' ? 'critical' : ins.priority === 'medium' ? 'important' : 'normal',
+        createdBy: 'Staff',
+        createdAt: ins.createdAt ?? new Date().toISOString(),
+      })),
+      // packages: map courier object → string, createdAt → receivedAt
+      packages: rawPackages.map((pkg) => ({
+        id: pkg.id,
+        referenceNumber: pkg.referenceNumber,
+        courier: (pkg.courier as Record<string, string> | undefined)?.name ?? String(pkg.courier ?? 'Unknown'),
+        status: pkg.status,
+        receivedAt: pkg.createdAt,
+        releasedTo: pkg.releasedTo ?? null,
+      })),
+      // maintenance: map category object → string, maintenanceRequests → maintenance
+      maintenance: rawMaintenance.map((mr) => ({
+        id: mr.id,
+        referenceNumber: mr.referenceNumber,
+        category: (mr.category as Record<string, string> | undefined)?.name ?? String(mr.category ?? 'General'),
+        status: mr.status,
+        priority: mr.priority,
+        createdAt: mr.createdAt,
+      })),
+      occupants: [],
+      pets: [],
+      vehicles: [],
+      fobs: [],
+      buzzerCodes: [],
+      garageClickers: [],
+      emergencyContacts: [],
+      history: [],
+    };
+    return json({ data: mapped });
+  }
+
+  // --- Resident Packages -------------------------------------------------------
+  if (path === '/api/v1/resident/packages' && method === 'GET') {
+    // Resident unit: unit 101 (00000000-0000-4000-d000-0000unit0101) for demo
+    const residentUnitId = '00000000-0000-4000-d000-0000unit0101';
+    const statusFilter = params.get('status') || undefined;
+    const result = store.getAll('packages', {
+      where: { propertyId, unitId: residentUnitId, ...(statusFilter ? { status: statusFilter } : {}) },
+      page,
+      pageSize,
+    });
+    return json({ data: result.data, meta: result.meta });
+  }
+
   // --- Amenities --------------------------------------------------------------
   if (path === '/api/v1/amenities' && method === 'GET') {
     const result = store.getAll('amenities', {
@@ -775,21 +854,10 @@ async function matchRoute(
   }
 
   // --- Training ---------------------------------------------------------------
-  if (path === '/api/v1/training' && method === 'GET') {
-    const isReport = params.get('report') === 'true';
-    const courses = store.getAll('training', { where: { propertyId } }).data;
-    if (isReport) {
-      return json({
-        data: courses.map((c: Record<string, unknown>) => ({
-          id: c.id,
-          title: c.title,
-          enrollmentCount: c.enrollmentCount || 0,
-          completionRate: c.completionRate || 0,
-        })),
-      });
-    }
-    return json({ data: courses });
-  }
+  // Let training requests pass through to the real database so that
+  // course creation (POST) and listing (GET) stay consistent.
+  // Previously, GET returned from the demo store while POST wrote to the
+  // real DB, causing newly-created courses to never appear in the UI.
 
   // --- Compliance -------------------------------------------------------------
   if (path === '/api/v1/compliance/dashboard' || path === '/api/v1/compliance') {

@@ -9,17 +9,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { requireModule } from '@/server/middleware/module-guard';
 import { handleDemoRequest } from '@/server/demo';
 import type { Role } from '@/types';
 
 const ADMIN_ROLES: Role[] = ['super_admin', 'property_admin', 'property_manager'];
 
 export async function GET(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
+  // Skip demo handler — training uses the real database so GET/POST stay consistent
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
+
+    const moduleCheck = await requireModule(request, 'training_lms');
+    if (moduleCheck) return moduleCheck;
 
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
@@ -41,9 +44,8 @@ export async function GET(request: NextRequest) {
       where.status = statusFilter;
     } else if (!isAdmin) {
       where.status = 'published';
-    } else {
-      where.status = 'published';
     }
+    // Admins with no status filter see ALL courses (draft + published + archived)
 
     // Report mode: include enrollment stats for completion rates
     if (isReport && isAdmin) {
@@ -103,12 +105,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
-
+  // Skip demo handler — training uses the real database so GET/POST stay consistent
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
+
+    const moduleCheck = await requireModule(request, 'training_lms');
+    if (moduleCheck) return moduleCheck;
 
     // Only admins can create courses
     if (!ADMIN_ROLES.includes(auth.user.role)) {
@@ -150,9 +153,24 @@ export async function POST(request: NextRequest) {
     // Generate course code
     const courseCode = `TRN-${String(Date.now()).slice(-6)}`;
 
+    const resolvedPropertyId = body.propertyId || auth.user.propertyId;
+
+    // Resolve a real createdById — demo mode user may not exist in the DB
+    let createdById = auth.user.userId;
+    try {
+      const realUser = await prisma.user.findFirst({
+        where: { propertyId: resolvedPropertyId },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (realUser) createdById = realUser.id;
+    } catch {
+      // Ignore — use auth userId
+    }
+
     const course = await prisma.course.create({
       data: {
-        propertyId: body.propertyId || auth.user.propertyId,
+        propertyId: resolvedPropertyId,
         courseCode,
         title: body.title.trim(),
         description: body.description.trim(),
@@ -162,7 +180,7 @@ export async function POST(request: NextRequest) {
         passThreshold: body.passThreshold || 70,
         mandatory: body.mandatory || false,
         status: 'draft',
-        createdById: auth.user.userId,
+        createdById,
       },
     });
 
@@ -172,8 +190,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('POST /api/v1/training error:', error);
+    const errMsg = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'INTERNAL_ERROR', message: 'Failed to create course' },
+      { error: 'INTERNAL_ERROR', message: `Failed to create course: ${errMsg}` },
       { status: 500 },
     );
   }

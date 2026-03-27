@@ -7,6 +7,7 @@ import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;

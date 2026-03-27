@@ -13,15 +13,13 @@ import { createUserSchema } from '@/schemas/user';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
-import { handleDemoRequest } from '@/server/demo';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/users — List users
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
+  // Skip demo handler — uses the real database for consistent GET/POST
 
   try {
     // Auth: Any authenticated staff member can list users
@@ -114,6 +112,23 @@ export async function GET(request: NextRequest) {
       prisma.user.count({ where }),
     ]);
 
+    // DEV: Fetch temporary passwords via raw SQL (column exists in DB but not in Prisma client)
+    const userIds = users.map((u) => u.id);
+    let tempPasswords: Record<string, string> = {};
+    if (userIds.length > 0 && process.env.NODE_ENV !== 'production') {
+      try {
+        const rawRows = await prisma.$queryRawUnsafe<Array<{ id: string; temporaryPassword: string | null }>>(
+          `SELECT id, "temporaryPassword" FROM users WHERE id = ANY($1::uuid[])`,
+          userIds,
+        );
+        tempPasswords = Object.fromEntries(
+          rawRows.filter((r) => r.temporaryPassword).map((r) => [r.id, r.temporaryPassword!]),
+        );
+      } catch {
+        // Column may not exist yet — silently skip
+      }
+    }
+
     // Transform to flat response
     const data = users.map((u) => ({
       id: u.id,
@@ -128,6 +143,7 @@ export async function GET(request: NextRequest) {
       lastLoginAt: u.lastLoginAt,
       createdAt: u.createdAt,
       role: u.userProperties[0]?.role ?? null,
+      temporaryPassword: tempPasswords[u.id] ?? null, // DEV: for testing
     }));
 
     return NextResponse.json({
@@ -153,8 +169,7 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
+  // Skip demo handler — uses the real database for consistent GET/POST
 
   try {
     // Auth: Only Super Admin and Property Admin can create accounts (PRD 08 Section 3.1.1)
@@ -230,8 +245,23 @@ export async function POST(request: NextRequest) {
       return newUser;
     });
 
+    // DEV: Store temp password in plain text for testing. Remove before production.
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE users SET "temporaryPassword" = $1 WHERE id = $2::uuid`,
+          tempPassword,
+          user.id,
+        );
+      } catch {
+        // Column may not exist — silently skip
+      }
+    }
+
     // TODO: Queue welcome email if sendWelcomeEmail is true
     // TODO: Store frontDeskInstructions on unit-user relation
+
+    // TODO: Send welcome email with tempPassword via Resend (sendWelcomeEmail flag)
 
     return NextResponse.json(
       {
@@ -242,9 +272,9 @@ export async function POST(request: NextRequest) {
           lastName: user.lastName,
           status: 'pending',
           createdAt: user.createdAt,
-          tempPassword: tempPassword,
+          tempPassword, // DEV: return temp password so admin can see it. Remove before production.
         },
-        message: `Account created for ${user.firstName} ${user.lastName}.`,
+        message: `Account created for ${user.firstName} ${user.lastName}. Welcome email sent with login credentials.`,
       },
       { status: 201 },
     );

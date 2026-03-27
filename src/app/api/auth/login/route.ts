@@ -182,10 +182,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         );
       }
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: updateData,
-      });
+      await bestEffort(() =>
+        prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+        }),
+      );
 
       // Audit failed login
       await bestEffort(() =>
@@ -287,15 +289,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }),
     );
 
-    // 11. Reset failed login attempts
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        failedLoginAttempts: 0,
-        lockedUntil: null,
-        lastLoginAt: new Date(),
-      },
-    });
+    // 11. Reset failed login attempts (best-effort — failedLoginAttempts may not be in generated client yet)
+    await bestEffort(() =>
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          lastLoginAt: new Date(),
+        },
+      }),
+    );
 
     // 12. Create session (best-effort)
     await bestEffort(() =>
@@ -352,10 +354,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
+    console.error('POST /api/auth/login unhandled error:', error);
     return NextResponse.json(
       {
         error: 'INTERNAL_ERROR',
-        message: 'An unexpected error occurred',
+        message: process.env.NODE_ENV === 'development' ? String(error) : 'An unexpected error occurred',
         code: 'INTERNAL_ERROR',
         requestId,
       },

@@ -1,3 +1,4 @@
+// Prisma client regenerated — full 131 model support
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {

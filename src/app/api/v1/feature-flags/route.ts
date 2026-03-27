@@ -112,7 +112,9 @@ const DEFAULT_FLAGS: Record<
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    // All authenticated roles can READ flags (sidebar needs this to hide disabled modules)
+    // Only super_admin and property_admin can PATCH (modify) flags
+    const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
     const propertyId = new URL(request.url).searchParams.get('propertyId');

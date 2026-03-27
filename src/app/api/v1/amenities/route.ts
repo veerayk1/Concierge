@@ -6,14 +6,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
-import { handleDemoRequest } from '@/server/demo';
+import { requireModule } from '@/server/middleware/module-guard';
 
 export async function GET(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
+
+    const moduleCheck = await requireModule(request, 'amenity_booking');
+    if (moduleCheck) return moduleCheck;
 
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');

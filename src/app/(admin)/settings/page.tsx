@@ -10,6 +10,7 @@ import {
   Globe,
   Key,
   Layers,
+  ToggleRight,
   Palette,
   Settings,
   Shield,
@@ -34,6 +35,14 @@ const SETTING_GROUPS = [
         href: '/settings/general',
         color: 'text-neutral-600',
         bg: 'bg-neutral-100',
+      },
+      {
+        label: 'Modules',
+        description: 'Enable or disable modules like Amenities, Parking, Training for this property',
+        icon: ToggleRight,
+        href: '/settings/modules',
+        color: 'text-info-600',
+        bg: 'bg-info-50',
       },
       {
         label: 'Event Types',

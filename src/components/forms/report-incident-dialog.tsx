@@ -133,7 +133,7 @@ export function ReportIncidentDialog({
         },
         body: JSON.stringify({
           propertyId,
-          eventTypeId: incidentTypeId || undefined,
+          eventTypeId: incidentTypeId || 'incident-report',
           unitId: data.unitId || undefined,
           title: data.title,
           description: data.description,

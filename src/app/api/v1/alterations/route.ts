@@ -105,7 +105,35 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const parsed = createAlterationSchema.safeParse(body);
+
+    // Map dialog field names to schema field names
+    // Dialog sends: unit (unit number), unitId (if UUID)
+    // Schema expects: unitId (UUID)
+    let mapped: Record<string, unknown> = {
+      ...body,
+    };
+
+    // If dialog sent unit as string (unit number), resolve to UUID
+    if (body.unit && !body.unitId) {
+      const unit = await prisma.unit.findFirst({
+        where: {
+          propertyId: body.propertyId,
+          number: body.unit,
+        },
+      });
+      if (unit) {
+        mapped.unitId = unit.id;
+      } else {
+        return NextResponse.json(
+          { error: 'VALIDATION_ERROR', fields: { unit: ['Unit not found'] } },
+          { status: 400 },
+        );
+      }
+    } else if (body.unitId) {
+      mapped.unitId = body.unitId;
+    }
+
+    const parsed = createAlterationSchema.safeParse(mapped);
 
     if (!parsed.success) {
       return NextResponse.json(

@@ -33,6 +33,7 @@ import type { ZodSchema } from 'zod';
 import type { Role, TokenPayload, ApiError, ApiResponse } from '@/types';
 import { toErrorResponse, RateLimitError } from '@/server/errors';
 import { createLogger } from '@/server/logger';
+import { captureServerDebugEvent } from '@/server/debug';
 import { generateRequestId, getRequestId } from './request-id';
 import { requireAuth } from './auth';
 import { requireRole } from './rbac';
@@ -154,6 +155,10 @@ export function createApiHandler<
     // 1. Request ID
     const requestId = getRequestId(req.headers) ?? generateRequestId();
 
+    // Capture parsed body for debug reporting (assigned after validateBody succeeds)
+    let parsedBody: unknown = undefined;
+    let capturedToken: TokenPayload | null = null;
+
     try {
       // 2. Rate limiting (scaffold: logs only)
       const rateLimitKey =
@@ -177,6 +182,7 @@ export function createApiHandler<
           exp: 0,
         };
       }
+      capturedToken = token;
 
       // 4. RBAC
       if (authRequired && allowedRoles.length > 0) {
@@ -185,6 +191,7 @@ export function createApiHandler<
 
       // 5. Validation
       const body = bodySchema ? await validateBody<TBody>(req, bodySchema) : (undefined as TBody);
+      if (bodySchema) parsedBody = body; // capture for debug reporting
 
       const query = querySchema
         ? await validateQuery<TQuery>(req, querySchema)
@@ -229,6 +236,17 @@ export function createApiHandler<
         },
         `API Error: ${errorBody.message}`,
       );
+
+      // 9. Debug capture — fire-and-forget, must never affect response
+      captureServerDebugEvent({
+        error,
+        status,
+        errorCode: errorBody.code,
+        requestId,
+        token: capturedToken,
+        req,
+        parsedBody,
+      }).catch(() => {});
 
       const headers: Record<string, string> = {
         'x-request-id': requestId,

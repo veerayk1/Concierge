@@ -50,7 +50,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
-    return NextResponse.json({ data: req });
+    // Fetch resident separately to avoid crash if residentId references a deleted/missing user
+    let resident: { id: string; firstName: string; lastName: string; email: string } | null = null;
+    if (req.residentId) {
+      resident = await prisma.user.findUnique({
+        where: { id: req.residentId },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      });
+    }
+
+    return NextResponse.json({ data: { ...req, resident } });
   } catch (error) {
     console.error('GET /api/v1/maintenance/:id error:', error);
     return NextResponse.json(
@@ -89,6 +98,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       include: {
         unit: { select: { id: true, number: true } },
         category: { select: { id: true, name: true } },
+        resident: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
       },
     })) as
       | (Record<string, unknown> & {

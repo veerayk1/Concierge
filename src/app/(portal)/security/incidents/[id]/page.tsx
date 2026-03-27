@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getAccessToken } from '@/lib/api-client';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -155,7 +156,12 @@ export default function IncidentDetailPage() {
     async function fetchIncident() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/v1/events/${id}`);
+        const token = getAccessToken();
+        const res = await fetch(`/api/v1/events/${id}`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
         if (res.status === 404) {
           setNotFound(true);
           return;
@@ -310,7 +316,7 @@ export default function IncidentDetailPage() {
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
                     <MapPin className="h-3.5 w-3.5 text-neutral-400" />
-                    {incident.location || '\u2014'}
+                    {incident.location || String((incident.customFields as Record<string, unknown>)?.location || '') || '\u2014'}
                   </p>
                 </div>
                 {incident.unit && (

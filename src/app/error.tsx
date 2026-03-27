@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { reportDebugEvent, inferModuleFromRoute } from '@/lib/hooks/use-debug-session';
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -21,8 +22,22 @@ interface ErrorPageProps {
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
-    // Log the error for debugging — replace with error reporting service in production
+    // Log the error for debugging
     console.error('[Concierge] Unhandled error:', error);
+
+    // Report to debugging intelligence layer — fire-and-forget
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : undefined;
+    reportDebugEvent({
+      type: 'FRONTEND_ERROR',
+      source: 'client',
+      severity: 'CRITICAL',
+      title: error.message || 'Unhandled root-level error',
+      errorMessage: error.message,
+      stackTrace: error.stack ?? null,
+      errorCode: error.digest ?? null,
+      route: pathname ?? null,
+      module: pathname ? inferModuleFromRoute(pathname) : null,
+    });
   }, [error]);
 
   return (

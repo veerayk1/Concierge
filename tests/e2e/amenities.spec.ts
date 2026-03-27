@@ -7,21 +7,23 @@
 
 import { test, expect } from '@playwright/test';
 
-async function loginAsFrontDesk(page: import('@playwright/test').Page) {
+async function loginAsAdmin(page: import('@playwright/test').Page) {
   await page.goto('/login');
-  await page.evaluate(() => localStorage.removeItem('demo_role'));
-  await page.getByText('Demo: Front Desk').click();
-  await page.waitForURL('**/dashboard', { timeout: 10_000 });
+  await page.evaluate(() => {
+    localStorage.setItem('demo_role', 'property_admin');
+    localStorage.setItem('demo_propertyId', '00000000-0000-4000-b000-000000000001');
+  });
+  await page.goto('/dashboard');
 }
 
 test.describe('Amenity Booking', () => {
   test.beforeEach(async ({ page }) => {
-    await loginAsFrontDesk(page);
+    await loginAsAdmin(page);
   });
 
   test('navigates to /amenities and loads the amenity list', async ({ page }) => {
     await page.goto('/amenities');
-    await expect(page.getByRole('heading', { name: /amenities/i })).toBeVisible({
+    await expect(page.getByRole('heading', { name: /amenity/i })).toBeVisible({
       timeout: 10_000,
     });
   });

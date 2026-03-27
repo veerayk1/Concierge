@@ -156,7 +156,18 @@ export async function POST(request: NextRequest) {
     // ------------------------------------------------------------------
     // Single create path
     // ------------------------------------------------------------------
-    const parsed = createEquipmentSchema.safeParse(body);
+    // Normalize category: 'hvac' -> 'HVAC', others stay lowercase
+    let normalizedCategory = body.category;
+    if (normalizedCategory === 'hvac') {
+      normalizedCategory = 'HVAC';
+    }
+
+    const mapped = {
+      ...body,
+      category: normalizedCategory,
+    };
+
+    const parsed = createEquipmentSchema.safeParse(mapped);
 
     if (!parsed.success) {
       return NextResponse.json(

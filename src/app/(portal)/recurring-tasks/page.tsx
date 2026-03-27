@@ -39,15 +39,16 @@ type TaskPriority = 'low' | 'medium' | 'high';
 interface RecurringTaskItem {
   id: string;
   name: string;
-  category: TaskCategory;
-  frequency: TaskFrequency;
-  assignedTo: string;
+  category?: { id: string; name: string };
+  intervalType: TaskFrequency;
+  assignedEmployeeId?: string | null;
+  assignedTo?: string;
   location: string;
-  status: TaskStatus;
-  lastCompleted: string;
-  nextDue: string;
-  completionRate: number;
-  priority: TaskPriority;
+  isActive: boolean;
+  lastCompletedDate?: string | null;
+  nextOccurrence?: string | null;
+  completionRate?: number;
+  defaultPriority: TaskPriority;
 }
 
 // ---------------------------------------------------------------------------
@@ -149,22 +150,24 @@ export default function RecurringTasksPage() {
 
   const filteredTasks = useMemo(() => {
     return allTasks.filter((item) => {
-      if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
-      if (frequencyFilter !== 'all' && item.frequency !== frequencyFilter) return false;
-      if (statusFilter !== 'all' && item.status !== statusFilter) return false;
+      if (categoryFilter !== 'all' && item.category?.id !== categoryFilter) return false;
+      if (frequencyFilter !== 'all' && item.intervalType !== frequencyFilter) return false;
+      if (statusFilter !== 'all') {
+        const isActive = item.isActive ? 'active' : 'paused';
+        if (isActive !== statusFilter) return false;
+      }
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
       return (
         item.name.toLowerCase().includes(q) ||
-        item.assignedTo.toLowerCase().includes(q) ||
-        item.location.toLowerCase().includes(q)
+        (item.location?.toLowerCase().includes(q) ?? false)
       );
     });
   }, [allTasks, categoryFilter, frequencyFilter, statusFilter, searchQuery]);
 
   const totalCount = allTasks.length;
-  const activeCount = allTasks.filter((t) => t.status === 'active').length;
-  const overdueCount = allTasks.filter((t) => new Date(t.nextDue) < new Date()).length;
+  const activeCount = allTasks.filter((t) => t.isActive).length;
+  const overdueCount = allTasks.filter((t) => t.nextOccurrence && new Date(t.nextOccurrence) < new Date()).length;
 
   const hasActiveFilters =
     categoryFilter !== 'all' || frequencyFilter !== 'all' || statusFilter !== 'all';
@@ -180,22 +183,22 @@ export default function RecurringTasksPage() {
     {
       id: 'category',
       header: 'Category',
-      accessorKey: 'category',
+      accessorKey: 'category.name',
       sortable: true,
       cell: (row) => (
-        <Badge variant={CATEGORY_COLORS[row.category]} size="sm">
-          {CATEGORY_LABELS[row.category]}
+        <Badge variant={CATEGORY_COLORS[row.category?.name?.toLowerCase().replace(/\s+/g, '_') as TaskCategory] || 'info'} size="sm">
+          {row.category?.name || '—'}
         </Badge>
       ),
     },
     {
       id: 'frequency',
       header: 'Frequency',
-      accessorKey: 'frequency',
+      accessorKey: 'intervalType',
       sortable: true,
       cell: (row) => (
-        <Badge variant={FREQUENCY_COLORS[row.frequency]} size="sm">
-          {FREQUENCY_LABELS[row.frequency]}
+        <Badge variant={FREQUENCY_COLORS[row.intervalType]} size="sm">
+          {FREQUENCY_LABELS[row.intervalType]}
         </Badge>
       ),
     },
@@ -204,7 +207,7 @@ export default function RecurringTasksPage() {
       header: 'Assigned To',
       accessorKey: 'assignedTo',
       sortable: true,
-      cell: (row) => <span className="text-[13px] text-neutral-600">{row.assignedTo}</span>,
+      cell: (row) => <span className="text-[13px] text-neutral-600">{row.assignedTo || '—'}</span>,
     },
     {
       id: 'location',
@@ -216,36 +219,44 @@ export default function RecurringTasksPage() {
     {
       id: 'status',
       header: 'Status',
-      accessorKey: 'status',
+      accessorKey: 'isActive',
       sortable: true,
-      cell: (row) => (
-        <Badge variant={STATUS_COLORS[row.status]} size="sm" dot>
-          {STATUS_LABELS[row.status]}
-        </Badge>
-      ),
+      cell: (row) => {
+        const status = row.isActive ? 'active' : 'paused';
+        return (
+          <Badge variant={STATUS_COLORS[status as TaskStatus]} size="sm" dot>
+            {STATUS_LABELS[status as TaskStatus]}
+          </Badge>
+        );
+      },
     },
     {
       id: 'lastCompleted',
       header: 'Last Completed',
-      accessorKey: 'lastCompleted',
+      accessorKey: 'lastCompletedDate',
       sortable: true,
       cell: (row) => (
         <span className="text-[13px] text-neutral-500">
-          {new Date(row.lastCompleted).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })}
+          {!row.lastCompletedDate
+            ? '—'
+            : new Date(row.lastCompletedDate).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
         </span>
       ),
     },
     {
       id: 'nextDue',
       header: 'Next Due',
-      accessorKey: 'nextDue',
+      accessorKey: 'nextOccurrence',
       sortable: true,
       cell: (row) => {
-        const next = new Date(row.nextDue);
+        if (!row.nextOccurrence) {
+          return <span className="text-[13px] text-neutral-500">—</span>;
+        }
+        const next = new Date(row.nextOccurrence);
         const now = new Date();
         const isOverdue = next < now;
         return (
@@ -267,23 +278,26 @@ export default function RecurringTasksPage() {
       header: 'Completion Rate',
       accessorKey: 'completionRate',
       sortable: true,
-      cell: (row) => (
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-16 overflow-hidden rounded-full bg-neutral-100">
-            <div
-              className={`h-full rounded-full transition-all ${
-                row.completionRate >= 90
-                  ? 'bg-success-500'
-                  : row.completionRate >= 70
-                    ? 'bg-warning-500'
-                    : 'bg-error-500'
-              }`}
-              style={{ width: `${row.completionRate}%` }}
-            />
+      cell: (row) => {
+        const rate = row.completionRate ?? 0;
+        return (
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-16 overflow-hidden rounded-full bg-neutral-100">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  rate >= 90
+                    ? 'bg-success-500'
+                    : rate >= 70
+                      ? 'bg-warning-500'
+                      : 'bg-error-500'
+                }`}
+                style={{ width: `${rate}%` }}
+              />
+            </div>
+            <span className="text-[13px] font-medium text-neutral-600">{rate}%</span>
           </div>
-          <span className="text-[13px] font-medium text-neutral-600">{row.completionRate}%</span>
-        </div>
-      ),
+        );
+      },
     },
   ];
 

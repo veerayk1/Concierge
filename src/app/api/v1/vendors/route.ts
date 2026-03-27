@@ -5,20 +5,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { createVendorSchema } from '@/schemas/vendor';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { calculateComplianceStatus, getExpiringDocumentFilter } from '@/server/vendors/compliance';
-import { handleDemoRequest } from '@/server/demo';
+import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/vendors — List vendors with compliance status
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
-
+  // Skip demo handler — vendors uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
@@ -122,16 +119,38 @@ export async function GET(request: NextRequest) {
 // POST /api/v1/vendors — Create vendor
 // ---------------------------------------------------------------------------
 
-export async function POST(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
+// Flexible schema that accepts BOTH the dialog's field names and the strict schema
+const flexibleCreateVendorSchema = z.object({
+  propertyId: z.string().uuid(),
+  companyName: z.string().min(1, 'Company name is required').max(200),
+  // Accept either serviceCategoryId (UUID) OR category (string name)
+  serviceCategoryId: z.string().uuid().optional(),
+  category: z.string().max(100).optional(),
+  contactName: z.string().max(200).optional().or(z.literal('')),
+  phone: z.string().max(50).optional().or(z.literal('')),
+  email: z.string().email().max(200).optional().or(z.literal('')),
+  // Accept either split address fields or single address field
+  streetAddress: z.string().max(300).optional().or(z.literal('')),
+  city: z.string().max(100).optional().or(z.literal('')),
+  stateProvince: z.string().max(100).optional().or(z.literal('')),
+  postalCode: z.string().max(20).optional().or(z.literal('')),
+  address: z.string().max(500).optional().or(z.literal('')),
+  // Insurance fields from dialog — stored as VendorDocuments
+  licenseNumber: z.string().max(100).optional().or(z.literal('')),
+  insuranceProvider: z.string().max(200).optional().or(z.literal('')),
+  insurancePolicyNumber: z.string().max(100).optional().or(z.literal('')),
+  insuranceExpiry: z.string().optional().or(z.literal('')),
+  notes: z.string().max(2000).optional().or(z.literal('')),
+});
 
+export async function POST(request: NextRequest) {
+  // Skip demo handler — vendors uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const parsed = createVendorSchema.safeParse(body);
+    const parsed = flexibleCreateVendorSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -141,27 +160,109 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+    const resolvedPropertyId = input.propertyId || auth.user.propertyId;
+
+    // Resolve serviceCategoryId: use provided UUID, or look up / create from category name
+    let serviceCategoryId = input.serviceCategoryId;
+    if (!serviceCategoryId && input.category) {
+      // Try to find existing category by name
+      let cat = await prisma.vendorServiceCategory.findFirst({
+        where: {
+          propertyId: resolvedPropertyId,
+          name: { equals: input.category, mode: 'insensitive' },
+        },
+      });
+      if (!cat) {
+        // Auto-create the category
+        cat = await prisma.vendorServiceCategory.create({
+          data: {
+            propertyId: resolvedPropertyId,
+            name: input.category.charAt(0).toUpperCase() + input.category.slice(1),
+          },
+        });
+      }
+      serviceCategoryId = cat.id;
+    }
+
+    if (!serviceCategoryId) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Category or serviceCategoryId is required' },
+        { status: 400 },
+      );
+    }
+
+    // Handle address: use split fields if provided, otherwise parse single address field
+    const streetAddress = input.streetAddress || input.address || null;
+
+    // Resolve a real createdById — demo mode user may not exist in the DB
+    let createdById = auth.user.userId;
+    try {
+      const realUser = await prisma.user.findFirst({
+        where: { propertyId: resolvedPropertyId },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (realUser) createdById = realUser.id;
+    } catch {
+      // Ignore — use auth userId
+    }
 
     const vendor = await prisma.vendor.create({
       data: {
-        propertyId: input.propertyId,
+        propertyId: resolvedPropertyId,
         companyName: stripControlChars(stripHtml(input.companyName)),
-        serviceCategoryId: input.serviceCategoryId,
+        serviceCategoryId,
         contactName: input.contactName ? stripControlChars(stripHtml(input.contactName)) : null,
         phone: input.phone || null,
         email: input.email || null,
-        streetAddress: input.streetAddress || null,
+        streetAddress: streetAddress ? stripControlChars(stripHtml(streetAddress)) : null,
         city: input.city || null,
         stateProvince: input.stateProvince || null,
         postalCode: input.postalCode || null,
         notes: input.notes ? stripControlChars(stripHtml(input.notes)) : null,
         complianceStatus: 'not_tracking',
-        createdById: auth.user.userId,
+        createdById,
       },
       include: {
         serviceCategory: { select: { id: true, name: true } },
       },
     });
+
+    // If insurance info provided, create a VendorDocument for it
+    if (input.insuranceProvider || input.insurancePolicyNumber) {
+      try {
+        await prisma.vendorDocument.create({
+          data: {
+            vendorId: vendor.id,
+            documentType: 'insurance',
+            fileName: `Insurance - ${input.insuranceProvider || 'Policy'}`,
+            fileUrl: `policy://${input.insurancePolicyNumber || 'pending'}`,
+            expiresAt: input.insuranceExpiry ? new Date(input.insuranceExpiry) : null,
+            uploadedById: createdById,
+          },
+        });
+      } catch {
+        // Non-critical — vendor was still created
+      }
+    }
+
+    // If license number provided, create a VendorDocument for it
+    if (input.licenseNumber) {
+      try {
+        await prisma.vendorDocument.create({
+          data: {
+            vendorId: vendor.id,
+            documentType: 'license',
+            fileName: `License - ${input.licenseNumber}`,
+            fileUrl: `license://${input.licenseNumber}`,
+            expiresAt: null,
+            uploadedById: createdById,
+          },
+        });
+      } catch {
+        // Non-critical — vendor was still created
+      }
+    }
 
     return NextResponse.json(
       { data: vendor, message: `Vendor ${vendor.companyName} created.` },

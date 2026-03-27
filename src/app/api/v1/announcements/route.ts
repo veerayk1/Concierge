@@ -7,10 +7,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { requireModule } from '@/server/middleware/module-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { sendPushToProperty } from '@/server/push';
 import { createLogger } from '@/server/logger';
-import { handleDemoRequest } from '@/server/demo';
 import type { Role } from '@/types';
 
 const logger = createLogger('announcements');
@@ -27,11 +27,13 @@ const createAnnouncementSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
+
+    const moduleCheck = await requireModule(request, 'announcements');
+    if (moduleCheck) return moduleCheck;
 
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
@@ -93,11 +95,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const demoRes = await handleDemoRequest(request);
-  if (demoRes) return demoRes;
+  // Skip demo handler — uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin', 'property_manager'] });
     if (auth.error) return auth.error;
+
+    const moduleCheck = await requireModule(request, 'announcements');
+    if (moduleCheck) return moduleCheck;
 
     const body = await request.json();
     const parsed = createAnnouncementSchema.safeParse(body);

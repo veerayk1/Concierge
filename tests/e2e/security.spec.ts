@@ -9,16 +9,20 @@ import { test, expect } from '@playwright/test';
 
 async function loginAsSecurityGuard(page: import('@playwright/test').Page) {
   await page.goto('/login');
-  await page.evaluate(() => localStorage.removeItem('demo_role'));
-  await page.getByText('Demo: Security').click();
-  await page.waitForURL('**/dashboard', { timeout: 10_000 });
+  await page.evaluate(() => {
+    localStorage.setItem('demo_role', 'security_guard');
+    localStorage.setItem('demo_propertyId', '00000000-0000-4000-b000-000000000001');
+  });
+  await page.goto('/dashboard');
 }
 
 async function loginAsFrontDesk(page: import('@playwright/test').Page) {
   await page.goto('/login');
-  await page.evaluate(() => localStorage.removeItem('demo_role'));
-  await page.getByText('Demo: Front Desk').click();
-  await page.waitForURL('**/dashboard', { timeout: 10_000 });
+  await page.evaluate(() => {
+    localStorage.setItem('demo_role', 'front_desk');
+    localStorage.setItem('demo_propertyId', '00000000-0000-4000-b000-000000000001');
+  });
+  await page.goto('/dashboard');
 }
 
 test.describe('Security Console', () => {
@@ -37,7 +41,7 @@ test.describe('Security Console', () => {
     await page.goto('/security/incidents');
     await page.waitForTimeout(1000);
     // Should have search input
-    const search = page.getByPlaceholder(/search/i);
+    const search = page.getByPlaceholder(/search/i).first();
     if (await search.isVisible()) {
       expect(await search.isVisible()).toBeTruthy();
     }
@@ -47,7 +51,7 @@ test.describe('Security Console', () => {
     await page.goto('/security/incidents');
     await page.waitForTimeout(1000);
 
-    const reportBtn = page.getByRole('button', { name: /report|new|create/i });
+    const reportBtn = page.getByRole('button', { name: /report|new|create/i }).first();
     if (await reportBtn.isVisible()) {
       await reportBtn.click();
       await page.waitForTimeout(500);
@@ -99,7 +103,7 @@ test.describe('Shift Log', () => {
     await page.goto('/shift-log');
     await page.waitForTimeout(1000);
 
-    const addBtn = page.getByRole('button', { name: /new|add|create/i });
+    const addBtn = page.getByRole('button', { name: /new|add|create/i }).first();
     if (await addBtn.isVisible()) {
       expect(await addBtn.isVisible()).toBeTruthy();
     }

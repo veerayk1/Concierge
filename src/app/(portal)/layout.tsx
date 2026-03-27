@@ -7,6 +7,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CommandPalette } from '@/components/layout/command-palette';
 import { DemoShowcaseBanner } from '@/components/layout/demo-showcase-banner';
+import { ModuleConfigProvider } from '@/lib/hooks/use-module-config';
 import type { Role } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -62,8 +63,19 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    const role = localStorage.getItem('demo_role') as Role | null;
-    if (role) {
+    const rawRole = localStorage.getItem('demo_role');
+    if (rawRole) {
+      // Map shorthand demo roles to actual Role enum values
+      const ROLE_ALIASES: Record<string, Role> = {
+        resident: 'resident_owner',
+        owner: 'resident_owner',
+        tenant: 'resident_tenant',
+        security: 'security_guard',
+        maintenance: 'maintenance_staff',
+        admin: 'property_admin',
+        manager: 'property_manager',
+      };
+      const role = (ROLE_ALIASES[rawRole] ?? rawRole) as Role;
       setDemoRole(role);
     }
     setDemoMode(localStorage.getItem('demo_mode'));
@@ -86,7 +98,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     if (!demoUser) return <PortalSkeleton />;
     const isShowcase = demoMode === 'showcase';
     return (
-      <>
+      <ModuleConfigProvider>
         {isShowcase && <DemoShowcaseBanner />}
         <AppShell
           user={{
@@ -112,7 +124,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
           {children}
           <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
         </AppShell>
-      </>
+      </ModuleConfigProvider>
     );
   }
 
@@ -122,24 +134,26 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AppShell
-      user={{
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-        avatarUrl: undefined,
-      }}
-      currentProperty={MOCK_PROPERTY}
-      properties={MOCK_PROPERTIES}
-      notificationCount={0}
-      onLogout={logout}
-      onSearchOpen={handleSearchOpen}
-    >
-      {children}
-      <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
-    </AppShell>
+    <ModuleConfigProvider>
+      <AppShell
+        user={{
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          avatarUrl: undefined,
+        }}
+        currentProperty={MOCK_PROPERTY}
+        properties={MOCK_PROPERTIES}
+        notificationCount={0}
+        onLogout={logout}
+        onSearchOpen={handleSearchOpen}
+      >
+        {children}
+        <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
+      </AppShell>
+    </ModuleConfigProvider>
   );
 }
 
