@@ -1,0 +1,616 @@
+/* =============================================================================
+   Concierge Marketing Design System
+
+   All styles scoped under `.marketing` to prevent leaking into the portal.
+   Follows an 8px spacing grid, WCAG 2.2 AA contrast, and prefers-reduced-motion.
+   ============================================================================= */
+
+/* ---------------------------------------------------------------------------
+   1. Design Tokens
+   --------------------------------------------------------------------------- */
+
+.marketing {
+  /* Color Palette */
+  --color-obsidian: #0A0A0A;
+  --color-ivory: #FAFAF8;
+  --color-warm-white: #F5F3EF;
+  --color-graphite: #1A1A1A;
+  --color-slate: #6B6B6B;
+  --color-mist: #E8E6E1;
+  --color-brass: #C9A96E;
+  --color-brass-light: #D4BA85;
+  --color-brass-muted: rgba(201, 169, 110, 0.12);
+  --color-success: #2E7D5B;
+  --color-alert: #C45C3E;
+
+  /* Spacing — 8px grid */
+  --space-xs: 0.5rem;   /* 8px */
+  --space-sm: 1rem;     /* 16px */
+  --space-md: 1.5rem;   /* 24px */
+  --space-lg: 2rem;     /* 32px */
+  --space-xl: 3rem;     /* 48px */
+  --space-2xl: 4rem;    /* 64px */
+  --space-3xl: 6rem;    /* 96px */
+  --space-4xl: 8rem;    /* 128px */
+  --space-section: clamp(6rem, 12vh, 10rem);
+
+  /* Typography */
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+  /* Transitions */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Base */
+  font-family: var(--font-display);
+  color: var(--color-obsidian);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* ---------------------------------------------------------------------------
+   2. Typography
+   --------------------------------------------------------------------------- */
+
+/* Hero headline */
+.marketing .mkt-hero-headline {
+  font-size: clamp(3.5rem, 7vw, 6.5rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--color-obsidian);
+}
+
+/* Section headline */
+.marketing .mkt-section-headline {
+  font-size: clamp(2.5rem, 4.5vw, 4rem);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--color-obsidian);
+}
+
+/* Sub-headline */
+.marketing .mkt-sub-headline {
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  color: var(--color-slate);
+}
+
+/* Body */
+.marketing .mkt-body {
+  font-size: 1.125rem;
+  font-weight: 400;
+  line-height: 1.7;
+  color: var(--color-graphite);
+}
+
+/* Label / Eyebrow */
+.marketing .mkt-eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--color-brass);
+}
+
+/* Mono / code */
+.marketing .mkt-mono {
+  font-family: var(--font-mono);
+}
+
+/* Inverted typography for dark sections */
+.marketing .mkt-dark .mkt-hero-headline,
+.marketing .mkt-dark .mkt-section-headline {
+  color: var(--color-ivory);
+}
+
+.marketing .mkt-dark .mkt-sub-headline {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.marketing .mkt-dark .mkt-body {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+
+/* ---------------------------------------------------------------------------
+   3. Layout
+   --------------------------------------------------------------------------- */
+
+.marketing .mkt-container {
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: clamp(1.5rem, 4vw, 3rem);
+}
+
+.marketing .mkt-container--wide {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: clamp(1.5rem, 4vw, 3rem);
+}
+
+.marketing .mkt-container--narrow {
+  max-width: 720px;
+  margin-inline: auto;
+  padding-inline: clamp(1.5rem, 4vw, 3rem);
+}
+
+.marketing .mkt-section {
+  padding-block: var(--space-section);
+}
+
+.marketing .mkt-section--dark {
+  background: var(--color-obsidian);
+  color: var(--color-ivory);
+}
+
+.marketing .mkt-section--warm {
+  background: var(--color-warm-white);
+}
+
+.marketing .mkt-section--ivory {
+  background: var(--color-ivory);
+}
+
+/* Grid helpers */
+.marketing .mkt-grid {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.marketing .mkt-grid--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.marketing .mkt-grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.marketing .mkt-grid--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Flex helpers */
+.marketing .mkt-flex {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.marketing .mkt-flex--col {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.marketing .mkt-flex--center {
+  justify-content: center;
+  align-items: center;
+}
+
+/* Text alignment */
+.marketing .mkt-text-center {
+  text-align: center;
+}
+
+
+/* ---------------------------------------------------------------------------
+   4. Cards
+   --------------------------------------------------------------------------- */
+
+/* Standard card — light backgrounds */
+.marketing .mkt-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--color-mist);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.06);
+  padding: var(--space-xl);
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+
+.marketing .mkt-card:hover {
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.06),
+    0 12px 40px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Glass card — dark backgrounds */
+.marketing .mkt-glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: var(--space-xl);
+  transition: background 200ms ease, border-color 200ms ease;
+}
+
+.marketing .mkt-glass-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Feature card — icon + title + description */
+.marketing .mkt-feature-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.marketing .mkt-feature-card__icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--color-brass-muted);
+  color: var(--color-brass);
+  flex-shrink: 0;
+}
+
+.marketing .mkt-feature-card__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-obsidian);
+}
+
+.marketing .mkt-feature-card__desc {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--color-slate);
+}
+
+/* Dark variant */
+.marketing .mkt-dark .mkt-feature-card__title {
+  color: var(--color-ivory);
+}
+
+.marketing .mkt-dark .mkt-feature-card__desc {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+
+/* ---------------------------------------------------------------------------
+   5. Buttons
+   --------------------------------------------------------------------------- */
+
+/* Primary — brass fill */
+.marketing .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--color-brass);
+  color: var(--color-obsidian);
+  padding: 1rem 2.5rem;
+  border-radius: 100px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 200ms var(--ease-spring);
+}
+
+.marketing .btn-primary:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 24px rgba(201, 169, 110, 0.3);
+  background: var(--color-brass-light);
+}
+
+.marketing .btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* Secondary — brass outline */
+.marketing .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: var(--color-brass);
+  padding: 1rem 2.5rem;
+  border-radius: 100px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--color-brass);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 200ms ease;
+}
+
+.marketing .btn-secondary:hover {
+  background: var(--color-brass-muted);
+}
+
+.marketing .btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* Ghost — translucent on dark */
+.marketing .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 1rem 2.5rem;
+  border-radius: 100px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 200ms ease;
+}
+
+.marketing .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.marketing .btn-ghost:active {
+  transform: scale(0.98);
+}
+
+/* Small button variant */
+.marketing .btn-sm {
+  padding: 0.625rem 1.5rem;
+  font-size: 0.8125rem;
+}
+
+/* Large button variant */
+.marketing .btn-lg {
+  padding: 1.25rem 3rem;
+  font-size: 1rem;
+}
+
+/* Button group */
+.marketing .mkt-btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+
+/* ---------------------------------------------------------------------------
+   6. Scroll Reveal Animation
+   --------------------------------------------------------------------------- */
+
+.marketing .mkt-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.8s var(--ease-out-expo),
+    transform 0.8s var(--ease-out-expo);
+}
+
+.marketing .mkt-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.marketing .mkt-reveal--left {
+  transform: translateX(-40px);
+}
+
+.marketing .mkt-reveal--left.visible {
+  transform: translateX(0);
+}
+
+.marketing .mkt-reveal--right {
+  transform: translateX(40px);
+}
+
+.marketing .mkt-reveal--right.visible {
+  transform: translateX(0);
+}
+
+
+/* ---------------------------------------------------------------------------
+   7. Stats Counter
+   --------------------------------------------------------------------------- */
+
+.marketing .mkt-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-xs);
+}
+
+.marketing .mkt-stat__value {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--color-brass);
+}
+
+.marketing .mkt-stat__label {
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--color-slate);
+}
+
+.marketing .mkt-dark .mkt-stat__label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+
+/* ---------------------------------------------------------------------------
+   8. Navigation (marketing-specific)
+   --------------------------------------------------------------------------- */
+
+.marketing .mkt-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: var(--space-sm) 0;
+  transition: background 300ms ease, box-shadow 300ms ease;
+}
+
+.marketing .mkt-nav--scrolled {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+.marketing .mkt-nav--dark {
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+
+/* ---------------------------------------------------------------------------
+   9. Dividers & Decorative
+   --------------------------------------------------------------------------- */
+
+.marketing .mkt-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--color-mist);
+  border: none;
+  margin: 0;
+}
+
+.marketing .mkt-dark .mkt-divider {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.marketing .mkt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--color-brass-muted);
+  color: var(--color-brass);
+}
+
+
+/* ---------------------------------------------------------------------------
+   10. Focus Styles (Accessibility)
+   --------------------------------------------------------------------------- */
+
+.marketing a:focus-visible,
+.marketing button:focus-visible,
+.marketing [role="button"]:focus-visible,
+.marketing input:focus-visible,
+.marketing select:focus-visible,
+.marketing textarea:focus-visible,
+.marketing [tabindex]:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 4px;
+}
+
+/* Remove default focus ring when not keyboard navigating */
+.marketing a:focus:not(:focus-visible),
+.marketing button:focus:not(:focus-visible),
+.marketing [role="button"]:focus:not(:focus-visible) {
+  outline: none;
+}
+
+
+/* ---------------------------------------------------------------------------
+   11. Reduced Motion
+   --------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing .mkt-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .marketing * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* ---------------------------------------------------------------------------
+   12. Responsive — Mobile (< 768px)
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  .marketing .mkt-hero-headline {
+    font-size: clamp(2.5rem, 8vw, 3.5rem);
+  }
+
+  .marketing .mkt-section-headline {
+    font-size: clamp(2rem, 6vw, 2.5rem);
+  }
+
+  .marketing .mkt-section {
+    padding-block: var(--space-3xl);
+  }
+
+  .marketing .mkt-grid--2,
+  .marketing .mkt-grid--3,
+  .marketing .mkt-grid--4 {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing .mkt-btn-group {
+    flex-direction: column;
+  }
+
+  .marketing .mkt-btn-group .btn-primary,
+  .marketing .mkt-btn-group .btn-secondary,
+  .marketing .mkt-btn-group .btn-ghost {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .marketing .mkt-card,
+  .marketing .mkt-glass-card {
+    padding: var(--space-lg);
+  }
+
+  .marketing .mkt-stat__value {
+    font-size: 2.5rem;
+  }
+}
+
+/* Tablet (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .marketing .mkt-grid--4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .marketing .mkt-grid--3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

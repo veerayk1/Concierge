@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import '@/styles/marketing.css';
+import { useState, useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
+import { Preloader } from '@/components/marketing/Preloader';
+import { CustomCursor } from '@/components/marketing/CustomCursor';
 
 // ---------------------------------------------------------------------------
 // Navigation Links
@@ -9,9 +12,9 @@ import Link from 'next/link';
 
 const NAV_LINKS = [
   { label: 'Features', href: '/features' },
+  { label: 'For Teams', href: '/about' },
   { label: 'Pricing', href: '/pricing' },
-  { label: 'Contact', href: '/contact' },
-  { label: 'Login', href: '/login' },
+  { label: 'About', href: '/about' },
 ] as const;
 
 const FOOTER_LINKS = {
@@ -19,15 +22,21 @@ const FOOTER_LINKS = {
     { label: 'Features', href: '/features' },
     { label: 'Pricing', href: '/pricing' },
     { label: 'Security', href: '/security-privacy' },
+    { label: 'Integrations', href: '/features' },
+    { label: 'Changelog', href: '/blog' },
   ],
   company: [
     { label: 'About', href: '/about' },
-    { label: 'Contact', href: '/contact' },
+    { label: 'Careers', href: '/about' },
     { label: 'Blog', href: '/blog' },
+    { label: 'Contact', href: '/contact' },
+    { label: 'Press', href: '/about' },
   ],
   legal: [
     { label: 'Privacy Policy', href: '/privacy' },
     { label: 'Terms of Service', href: '/terms' },
+    { label: 'Cookie Policy', href: '/privacy' },
+    { label: 'Accessibility', href: '/about' },
   ],
 } as const;
 
@@ -37,132 +46,385 @@ const FOOTER_LINKS = {
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 100);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="marketing">
+      {/* Preloader */}
+      <Preloader />
+      {/* Custom Cursor (desktop only) */}
+      <CustomCursor />
+
       {/* Navbar */}
-      <header className="sticky top-0 z-50 border-b border-neutral-100 bg-white/95 backdrop-blur-sm">
+      <header
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          height: 72,
+          display: 'flex',
+          alignItems: 'center',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          background: 'rgba(10, 10, 10, 0.8)',
+          borderBottom: scrolled
+            ? '1px solid rgba(255,255,255,0.06)'
+            : '1px solid transparent',
+          transition: 'border-color 300ms ease',
+        }}
+      >
         <nav
-          className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6"
+          style={{
+            maxWidth: 1280,
+            width: '100%',
+            marginInline: 'auto',
+            paddingInline: 'clamp(1.5rem, 4vw, 3rem)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
           role="navigation"
           aria-label="Main navigation"
         >
           {/* Logo */}
           <Link
             href={'/' as never}
-            className="text-lg font-semibold tracking-tight text-neutral-900"
-            aria-label="Concierge"
+            style={{
+              fontWeight: 300,
+              fontSize: '1.375rem',
+              color: '#fff',
+              letterSpacing: '-0.02em',
+              textDecoration: 'none',
+            }}
+            aria-label="Concierge home"
           >
             Concierge
           </Link>
 
-          {/* Desktop nav */}
-          <div className="hidden items-center gap-8 md:flex">
+          {/* Desktop center nav */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '2rem',
+            }}
+            className="mkt-nav-desktop"
+          >
             {NAV_LINKS.map((link) => (
               <Link
-                key={link.href}
+                key={link.label}
                 href={link.href as never}
-                className="text-[14px] font-medium text-neutral-600 transition-colors hover:text-neutral-900"
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 400,
+                  color: 'rgba(255,255,255,0.6)',
+                  textDecoration: 'none',
+                  transition: 'color 200ms ease',
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLElement).style.color = 'rgba(255,255,255,1)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.6)';
+                }}
               >
                 {link.label}
               </Link>
             ))}
+          </div>
+
+          {/* Desktop right side */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+            }}
+            className="mkt-nav-desktop"
+          >
+            <Link
+              href={'/login' as never}
+              style={{
+                fontSize: '0.875rem',
+                fontWeight: 400,
+                color: 'rgba(255,255,255,0.6)',
+                textDecoration: 'none',
+                transition: 'color 200ms ease',
+              }}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.color = 'rgba(255,255,255,1)';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.6)';
+              }}
+            >
+              Log In
+            </Link>
             <Link
               href={'/contact' as never}
-              className="inline-flex h-9 items-center rounded-lg bg-neutral-900 px-4 text-[14px] font-medium text-white transition-colors hover:bg-neutral-800"
+              className="btn-primary btn-sm"
+              style={{
+                padding: '0.625rem 1.5rem',
+              }}
             >
-              Request a Demo
+              Get Started
             </Link>
           </div>
 
           {/* Mobile hamburger */}
           <button
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-100 md:hidden"
+            className="mkt-nav-mobile-toggle"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Menu"
             aria-expanded={mobileMenuOpen}
+            style={{
+              display: 'none',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 8,
+            }}
           >
             {mobileMenuOpen ? (
               <svg
                 width="20"
                 height="20"
-                viewBox="0 0 24 24"
+                viewBox="0 0 20 20"
                 fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+                stroke="rgba(255,255,255,0.8)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
               >
-                <path d="M18 6L6 18M6 6l12 12" />
+                <path d="M4 4l12 12M16 4L4 16" />
               </svg>
             ) : (
               <svg
                 width="20"
                 height="20"
-                viewBox="0 0 24 24"
+                viewBox="0 0 20 20"
                 fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+                stroke="rgba(255,255,255,0.8)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
               >
-                <path d="M3 12h18M3 6h18M3 18h18" />
+                <path d="M2 5h16M2 10h16M2 15h16" />
               </svg>
             )}
           </button>
         </nav>
-
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div
-            className="border-t border-neutral-100 bg-white px-6 py-4 md:hidden"
-            data-testid="mobile-menu"
-          >
-            <div className="flex flex-col gap-3">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href as never}
-                  className="text-[15px] font-medium text-neutral-700 transition-colors hover:text-neutral-900"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <Link
-                href={'/contact' as never}
-                className="mt-2 inline-flex h-10 items-center justify-center rounded-lg bg-neutral-900 text-[14px] font-medium text-white transition-colors hover:bg-neutral-800"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Request a Demo
-              </Link>
-            </div>
-          </div>
-        )}
       </header>
 
+      {/* Mobile menu overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="mkt-mobile-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 999,
+            background: '#0A0A0A',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '2rem',
+          }}
+          data-testid="mobile-menu"
+        >
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.label}
+              href={link.href as never}
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 400,
+                color: 'rgba(255,255,255,0.8)',
+                textDecoration: 'none',
+                transition: 'color 200ms ease',
+              }}
+              onClick={() => setMobileMenuOpen(false)}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.color = '#fff';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.8)';
+              }}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+            <Link
+              href={'/login' as never}
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 400,
+                color: 'rgba(255,255,255,0.6)',
+                textDecoration: 'none',
+                textAlign: 'center',
+              }}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Log In
+            </Link>
+            <Link
+              href={'/contact' as never}
+              className="btn-primary"
+              style={{ textAlign: 'center' }}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Get Started
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Main content */}
-      <main className="flex-1">{children}</main>
+      <main className="flex-1" style={{ paddingTop: 72 }}>
+        {children}
+      </main>
 
       {/* Footer */}
-      <footer className="border-t border-neutral-100 bg-neutral-50" role="contentinfo">
-        <div className="mx-auto max-w-7xl px-6 py-12">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            {/* Brand column */}
-            <div className="col-span-2 md:col-span-1">
-              <p className="text-lg font-semibold tracking-tight text-neutral-900">Concierge</p>
-              <p className="mt-2 text-[14px] leading-relaxed text-neutral-500">
-                Next-generation building management for Canadian properties.
+      <footer
+        role="contentinfo"
+        style={{
+          background: '#0E0E0E',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1280,
+            marginInline: 'auto',
+            paddingInline: 'clamp(1.5rem, 4vw, 3rem)',
+            paddingBlock: '4rem',
+          }}
+        >
+          <div className="mkt-footer-grid">
+            {/* Column 1 — Brand */}
+            <div>
+              <p
+                style={{
+                  fontWeight: 300,
+                  fontSize: '1.25rem',
+                  color: '#fff',
+                }}
+              >
+                Concierge
               </p>
+              <p
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'rgba(255,255,255,0.4)',
+                  marginTop: '0.75rem',
+                  lineHeight: 1.6,
+                }}
+              >
+                Building management, reimagined.
+              </p>
+              {/* Social icons */}
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.25rem' }}>
+                {/* LinkedIn */}
+                <a
+                  href="https://linkedin.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="LinkedIn"
+                  style={{ color: 'rgba(255,255,255,0.3)', transition: 'color 200ms ease' }}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.7)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.3)';
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                </a>
+                {/* X (Twitter) */}
+                <a
+                  href="https://x.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="X"
+                  style={{ color: 'rgba(255,255,255,0.3)', transition: 'color 200ms ease' }}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.7)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.3)';
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                </a>
+              </div>
             </div>
 
-            {/* Product links */}
+            {/* Column 2 — Product */}
             <div>
-              <p className="text-[13px] font-semibold tracking-wider text-neutral-400 uppercase">
+              <p
+                style={{
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  color: 'rgba(255,255,255,0.8)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
                 Product
               </p>
-              <ul className="mt-3 flex flex-col gap-2">
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  marginTop: '1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
+              >
                 {FOOTER_LINKS.product.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <Link
                       href={link.href as never}
-                      className="text-[14px] text-neutral-600 transition-colors hover:text-neutral-900"
+                      style={{
+                        fontSize: '0.8125rem',
+                        color: 'rgba(255,255,255,0.4)',
+                        textDecoration: 'none',
+                        transition: 'color 200ms ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.7)';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.4)';
+                      }}
                     >
                       {link.label}
                     </Link>
@@ -171,17 +433,46 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
               </ul>
             </div>
 
-            {/* Company links */}
+            {/* Column 3 — Company */}
             <div>
-              <p className="text-[13px] font-semibold tracking-wider text-neutral-400 uppercase">
+              <p
+                style={{
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  color: 'rgba(255,255,255,0.8)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
                 Company
               </p>
-              <ul className="mt-3 flex flex-col gap-2">
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  marginTop: '1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
+              >
                 {FOOTER_LINKS.company.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <Link
                       href={link.href as never}
-                      className="text-[14px] text-neutral-600 transition-colors hover:text-neutral-900"
+                      style={{
+                        fontSize: '0.8125rem',
+                        color: 'rgba(255,255,255,0.4)',
+                        textDecoration: 'none',
+                        transition: 'color 200ms ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.7)';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.4)';
+                      }}
                     >
                       {link.label}
                     </Link>
@@ -190,17 +481,46 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
               </ul>
             </div>
 
-            {/* Legal links */}
+            {/* Column 4 — Legal */}
             <div>
-              <p className="text-[13px] font-semibold tracking-wider text-neutral-400 uppercase">
+              <p
+                style={{
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  color: 'rgba(255,255,255,0.8)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
                 Legal
               </p>
-              <ul className="mt-3 flex flex-col gap-2">
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  marginTop: '1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
+              >
                 {FOOTER_LINKS.legal.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <Link
                       href={link.href as never}
-                      className="text-[14px] text-neutral-600 transition-colors hover:text-neutral-900"
+                      style={{
+                        fontSize: '0.8125rem',
+                        color: 'rgba(255,255,255,0.4)',
+                        textDecoration: 'none',
+                        transition: 'color 200ms ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.7)';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.4)';
+                      }}
                     >
                       {link.label}
                     </Link>
@@ -211,13 +531,51 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
           </div>
 
           {/* Bottom bar */}
-          <div className="mt-10 border-t border-neutral-200 pt-6">
-            <p className="text-[13px] text-neutral-400">
-              &copy; {new Date().getFullYear()} Concierge. All rights reserved.
+          <div
+            style={{
+              paddingTop: '2rem',
+              marginTop: '2rem',
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1rem',
+            }}
+          >
+            <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', margin: 0 }}>
+              &copy; 2026 Concierge. All rights reserved.
+            </p>
+            <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', margin: 0 }}>
+              Built in Toronto
             </p>
           </div>
         </div>
       </footer>
+
+      {/* Responsive styles for nav and footer */}
+      <style jsx global>{`
+        .mkt-footer-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 2rem;
+        }
+        .mkt-nav-mobile-toggle {
+          display: none !important;
+        }
+        @media (max-width: 767px) {
+          .mkt-nav-desktop {
+            display: none !important;
+          }
+          .mkt-nav-mobile-toggle {
+            display: flex !important;
+          }
+          .mkt-footer-grid {
+            grid-template-columns: 1fr;
+            gap: 2.5rem;
+          }
+        }
+      `}</style>
     </div>
   );
 }
