@@ -47,6 +47,7 @@
   color: var(--color-obsidian);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 
@@ -392,6 +393,41 @@
   gap: var(--space-sm);
 }
 
+
+/* ---------------------------------------------------------------------------
+   5b. Hero Entrance Animations
+   --------------------------------------------------------------------------- */
+
+@keyframes mktFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.marketing .mkt-hero-enter {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.marketing .mkt-hero-enter.mkt-hero-visible {
+  animation: mktFadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-1 { animation-delay: 0ms; }
+.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-2 { animation-delay: 200ms; }
+.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-3 { animation-delay: 400ms; }
+.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-4 { animation-delay: 600ms; }
+.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-5 { animation-delay: 800ms; }
+
+@keyframes mktChevronBob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(8px); }
+}
 
 /* ---------------------------------------------------------------------------
    6. Scroll Reveal Animation

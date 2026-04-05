@@ -277,6 +277,7 @@ export function DesignPhilosophy() {
                   display: 'grid',
                   gridTemplateColumns: '1fr',
                   gap: 'var(--space-xl)',
+                  overflow: 'hidden',
                   alignItems: 'center',
                 }}
               >
@@ -285,7 +286,7 @@ export function DesignPhilosophy() {
                   direction={imageFirst ? 'left' : 'right'}
                   delay={100}
                   className="design-phil__visual"
-                  style={{ order: imageFirst ? 0 : 1 }}
+                  style={{ order: imageFirst ? 0 : 1, maxWidth: '100%' }}
                 >
                   <Visual />
                 </ScrollReveal>

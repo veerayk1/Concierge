@@ -1,33 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import Link from 'next/link';
 
-// ---------------------------------------------------------------------------
-// CSS keyframes and animation styles
-// ---------------------------------------------------------------------------
-
-const fadeInUpKeyframes = `
-@keyframes heroFadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes heroChevronBob {
-  0%, 100% {
-    transform: translateX(-50%) translateY(0);
-  }
-  50% {
-    transform: translateX(-50%) translateY(8px);
-  }
-}
-`;
+// Lazy-load Three.js canvas to avoid SSR issues and reduce bundle
+const HeroCanvas = lazy(() =>
+  import('./HeroCanvas').then((mod) => ({ default: mod.HeroCanvas }))
+);
 
 // ---------------------------------------------------------------------------
 // Logo Placeholder
@@ -67,9 +46,18 @@ function LogoPlaceholder() {
 // ---------------------------------------------------------------------------
 
 export function HeroSection() {
+  const [visible, setVisible] = useState(false);
   const [showChevron, setShowChevron] = useState(true);
 
   useEffect(() => {
+    // Use double-rAF to ensure the browser has painted the initial state
+    // before triggering the CSS animation. This prevents hydration batching.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setVisible(true);
+      });
+    });
+
     const handleScroll = () => {
       setShowChevron(window.scrollY <= 100);
     };
@@ -85,6 +73,10 @@ export function HeroSection() {
     }
   };
 
+  // Class helper: applies the animation trigger class when visible
+  const heroClass = (delay: number) =>
+    `mkt-hero-enter${visible ? ` mkt-hero-visible mkt-hero-delay-${delay}` : ''}`;
+
   return (
     <section
       style={{
@@ -99,10 +91,9 @@ export function HeroSection() {
         paddingTop: 72,
       }}
     >
-      <style dangerouslySetInnerHTML={{ __html: fadeInUpKeyframes }} />
-
       {/* Background radial glow */}
       <div
+        aria-hidden="true"
         style={{
           position: 'absolute',
           inset: 0,
@@ -112,12 +103,20 @@ export function HeroSection() {
         }}
       />
 
-      {/* 3D canvas placeholder */}
+      {/* Three.js 3D canvas — lazy loaded, hidden on mobile */}
+      <Suspense fallback={null}>
+        <HeroCanvas />
+      </Suspense>
+
+      {/* Mobile fallback gradient (shown when Three.js canvas is hidden) */}
       <div
-        id="hero-canvas"
+        aria-hidden="true"
+        className="block md:hidden"
         style={{
           position: 'absolute',
           inset: 0,
+          background:
+            'radial-gradient(ellipse 400px 300px at 50% 50%, rgba(201, 169, 110, 0.06), transparent)',
           pointerEvents: 'none',
         }}
       />
@@ -138,6 +137,7 @@ export function HeroSection() {
       >
         {/* Eyebrow */}
         <p
+          className={heroClass(1)}
           style={{
             textTransform: 'uppercase',
             color: '#C9A96E',
@@ -145,8 +145,6 @@ export function HeroSection() {
             letterSpacing: '0.08em',
             fontWeight: 500,
             margin: 0,
-            opacity: 0,
-            animation: 'heroFadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0ms forwards',
           }}
         >
           BUILDING MANAGEMENT, REIMAGINED
@@ -154,6 +152,7 @@ export function HeroSection() {
 
         {/* Headline */}
         <h1
+          className={heroClass(2)}
           style={{
             fontSize: 'clamp(3.5rem, 7vw, 6.5rem)',
             fontWeight: 300,
@@ -162,8 +161,6 @@ export function HeroSection() {
             lineHeight: 1.05,
             marginTop: '1.5rem',
             marginBottom: 0,
-            opacity: 0,
-            animation: 'heroFadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 200ms forwards',
           }}
         >
           The last platform your building will ever need.
@@ -171,6 +168,7 @@ export function HeroSection() {
 
         {/* Sub-headline */}
         <p
+          className={heroClass(3)}
           style={{
             fontSize: 'clamp(1.25rem, 2vw, 1.75rem)',
             fontWeight: 400,
@@ -180,8 +178,6 @@ export function HeroSection() {
             marginTop: '1.5rem',
             marginBottom: 0,
             letterSpacing: '-0.01em',
-            opacity: 0,
-            animation: 'heroFadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 400ms forwards',
           }}
         >
           Concierge replaces your fragmented tools with one unified system — packages, maintenance,
@@ -191,14 +187,13 @@ export function HeroSection() {
 
         {/* CTA group */}
         <div
+          className={heroClass(4)}
           style={{
             display: 'flex',
             gap: '1rem',
             marginTop: '2.5rem',
             flexWrap: 'wrap',
             justifyContent: 'center',
-            opacity: 0,
-            animation: 'heroFadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 600ms forwards',
           }}
         >
           <Link href={'/contact' as never} className="btn-primary">
@@ -211,14 +206,13 @@ export function HeroSection() {
 
         {/* Trust strip */}
         <div
+          className={heroClass(5)}
           style={{
             marginTop: '3rem',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             gap: '1.25rem',
-            opacity: 0,
-            animation: 'heroFadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 800ms forwards',
           }}
         >
           <p
@@ -250,6 +244,7 @@ export function HeroSection() {
 
       {/* Scroll chevron */}
       <div
+        aria-hidden="true"
         style={{
           position: 'absolute',
           bottom: 32,
@@ -257,7 +252,7 @@ export function HeroSection() {
           transform: 'translateX(-50%)',
           opacity: showChevron ? 0.3 : 0,
           transition: 'opacity 400ms ease',
-          animation: 'heroChevronBob 2s ease-in-out infinite',
+          animation: 'mktChevronBob 2s ease-in-out infinite',
           pointerEvents: 'none',
         }}
       >
