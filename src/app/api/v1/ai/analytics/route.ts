@@ -133,6 +133,29 @@ export async function GET(request: NextRequest) {
     ]);
 
     // -------------------------------------------------------------------
+    // Short-circuit: no operational data → return null score
+    // -------------------------------------------------------------------
+
+    const hasOperationalData =
+      openMaintenanceCount > 0 ||
+      overdueMaintenanceCount > 0 ||
+      closedMaintenance.length > 0 ||
+      recentPackages.length > 0 ||
+      totalPackagesLast30 > 0;
+
+    if (!hasOperationalData) {
+      return NextResponse.json({
+        data: {
+          healthScore: null,
+          trend: 'flat',
+          factors: [],
+          packageDeliveryTrend: [],
+          maintenanceSlaCompliance: null,
+        },
+      });
+    }
+
+    // -------------------------------------------------------------------
     // Maintenance SLA compliance
     // -------------------------------------------------------------------
 
@@ -279,16 +302,11 @@ export async function GET(request: NextRequest) {
     // Return safe defaults instead of a 500 error when the database is empty
     return NextResponse.json({
       data: {
-        healthScore: 100,
+        healthScore: null,
         trend: 'flat',
-        factors: [
-          { name: 'Maintenance Backlog', score: 100, weight: 0.3 },
-          { name: 'Package Handling', score: 100, weight: 0.25 },
-          { name: 'SLA Compliance', score: 100, weight: 0.25 },
-          { name: 'Open Issues', score: 100, weight: 0.2 },
-        ],
+        factors: [],
         packageDeliveryTrend: [],
-        maintenanceSlaCompliance: 100,
+        maintenanceSlaCompliance: null,
       },
     });
   }

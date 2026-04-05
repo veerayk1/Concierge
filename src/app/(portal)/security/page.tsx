@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog';
 import { CreateFireLogDialog } from '@/components/forms/create-fire-log-dialog';
 import { CreateNoiseComplaintDialog } from '@/components/forms/create-noise-complaint-dialog';
+import { AuthorizedEntryDialog } from '@/components/forms/authorized-entry-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import {
   AlertTriangle,
   Eye,
   Key,
+  KeyRound,
   Package,
   Plus,
   Search,
@@ -103,6 +105,7 @@ export default function SecurityPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showFireLogDialog, setShowFireLogDialog] = useState(false);
   const [showNoiseComplaintDialog, setShowNoiseComplaintDialog] = useState(false);
+  const [showAuthorizedEntryDialog, setShowAuthorizedEntryDialog] = useState(false); // GAP 3.3
 
   // Fetch real events from database
   const {
@@ -299,6 +302,10 @@ export default function SecurityPage() {
             <Eye className="h-4 w-4" />
             View Cameras
           </Button>
+          <Button variant="secondary" size="sm" onClick={() => setShowAuthorizedEntryDialog(true)}>
+            <KeyRound className="h-4 w-4" />
+            Authorized Entry
+          </Button>
           <Button variant="secondary" size="sm" onClick={() => setShowFireLogDialog(true)}>
             <AlertTriangle className="h-4 w-4" />
             Fire Log
@@ -483,6 +490,17 @@ export default function SecurityPage() {
         propertyId={getPropertyId()}
         onSuccess={() => {
           setShowNoiseComplaintDialog(false);
+          refetch();
+        }}
+      />
+
+      {/* GAP 3.3 — Authorized Entry */}
+      <AuthorizedEntryDialog
+        open={showAuthorizedEntryDialog}
+        onOpenChange={setShowAuthorizedEntryDialog}
+        propertyId={getPropertyId()}
+        onSuccess={() => {
+          setShowAuthorizedEntryDialog(false);
           refetch();
         }}
       />

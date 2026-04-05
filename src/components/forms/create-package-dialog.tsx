@@ -132,10 +132,12 @@ export function CreatePackageDialog({
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
         <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
           <Package className="text-primary-500 h-5 w-5" />
-          Log Package
+          {direction === 'outgoing' ? 'Log Outgoing Package' : 'Log Package'}
         </DialogTitle>
         <DialogDescription className="text-[14px] text-neutral-500">
-          Record a new package delivery for a resident.
+          {direction === 'outgoing'
+            ? 'Record a package being dropped off by a resident for outbound delivery.'
+            : 'Record a new package delivery for a resident.'}
         </DialogDescription>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-5" noValidate>
@@ -220,16 +222,30 @@ export function CreatePackageDialog({
             </div>
           </div>
 
+          {/* Other courier name — shown only when "Other" is selected */}
+          {couriers?.find((c) => c.id === selectedCourierId)?.slug === 'other' && (
+            <Input
+              {...register('courierOtherName')}
+              label="Courier Name"
+              placeholder="e.g. Local delivery service"
+              error={errors.courierOtherName?.message}
+            />
+          )}
+
           {/* Description + Notify */}
           <div className="grid grid-cols-2 gap-4">
             <Input
               {...register('description')}
-              label="Description"
-              placeholder="e.g. Brown box, 30x20cm"
+              label={direction === 'outgoing' ? 'Recipient / Destination' : 'Description'}
+              placeholder={
+                direction === 'outgoing' ? 'e.g. Jane Doe, 123 Main St' : 'e.g. Brown box, 30x20cm'
+              }
               error={errors.description?.message}
             />
             <div className="flex flex-col gap-2">
-              <label className="text-[14px] font-medium text-neutral-700">Notify Resident</label>
+              <label className="text-[14px] font-medium text-neutral-700">
+                {direction === 'outgoing' ? 'Notify Sender' : 'Notify Resident'}
+              </label>
               <select
                 {...register('notifyChannel')}
                 className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
@@ -274,7 +290,11 @@ export function CreatePackageDialog({
               Cancel
             </Button>
             <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
-              {isSubmitting ? 'Logging...' : 'Log Package'}
+              {isSubmitting
+                ? 'Logging...'
+                : direction === 'outgoing'
+                  ? 'Log Outgoing Package'
+                  : 'Log Package'}
             </Button>
           </div>
         </form>

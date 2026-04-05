@@ -98,8 +98,11 @@ export default function AnnouncementsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  // Residents can view announcements but not create them
-  const isResident = user?.role?.startsWith('resident') || user?.role === 'board_member';
+  // Residents can view announcements but not create them.
+  // In demo mode useAuth() returns null — fall back to localStorage demo_role.
+  const demoRole = typeof window !== 'undefined' ? localStorage.getItem('demo_role') : null;
+  const effectiveRole = user?.role ?? demoRole;
+  const isResident = effectiveRole?.startsWith('resident') || effectiveRole === 'board_member';
   const canCreate = !isResident;
 
   const {

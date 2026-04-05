@@ -119,6 +119,21 @@ export const updateMyProfileSchema = z.object({
     .regex(/^[+\d\s()-]*$/, 'Enter a valid phone number')
     .optional()
     .or(z.literal('')),
+  /** GAP 8.2 — Self-declared accessibility/emergency assistance flag */
+  requiresAssistance: z.boolean().optional(),
+  assistanceNotes: z
+    .string()
+    .max(500, 'Assistance notes cannot exceed 500 characters')
+    .optional()
+    .or(z.literal('')),
+  /** GAP 8.1 — Rich HTML email signature for outgoing staff emails */
+  emailSignature: z
+    .string()
+    .max(5000, 'Email signature cannot exceed 5000 characters')
+    .optional()
+    .nullable(),
+  /** GAP 7.6 — Per-user portal language preference */
+  languagePreference: z.enum(['en', 'fr']).optional(),
 });
 
 export type UpdateMyProfileInput = z.infer<typeof updateMyProfileSchema>;

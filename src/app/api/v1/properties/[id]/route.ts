@@ -30,7 +30,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
-    return NextResponse.json({ data: property });
+    // Fetch parkingNotificationRoles via raw SQL (column added post-schema-lock)
+    let parkingNotificationRoles: string[] = [];
+    try {
+      const raw = await prisma.$queryRaw<Array<{ parkingNotificationRoles: unknown }>>`
+        SELECT "parkingNotificationRoles" FROM properties WHERE id = ${id}
+      `;
+      if (Array.isArray(raw) && raw.length > 0) {
+        const val = raw[0]?.parkingNotificationRoles;
+        parkingNotificationRoles = Array.isArray(val) ? (val as string[]) : [];
+      }
+    } catch {
+      // column may not exist yet on this env — fall through with empty array
+    }
+
+    return NextResponse.json({ data: { ...property, parkingNotificationRoles } });
   } catch (error) {
     console.error('GET /api/v1/properties/:id error:', error);
     return NextResponse.json(
@@ -86,12 +100,38 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
 
+    // Handle parkingNotificationRoles via raw SQL (column added post-schema-lock)
+    if (body.parkingNotificationRoles !== undefined) {
+      const roles = Array.isArray(body.parkingNotificationRoles)
+        ? body.parkingNotificationRoles.filter((r: unknown) => typeof r === 'string')
+        : [];
+      await prisma.$executeRaw`
+        UPDATE properties
+        SET "parkingNotificationRoles" = ${JSON.stringify(roles)}::jsonb
+        WHERE id = ${id}
+      `;
+    }
+
     const property = await prisma.property.update({
       where: { id },
       data: updateData,
     });
 
-    return NextResponse.json({ data: property });
+    // Re-fetch parkingNotificationRoles
+    let parkingNotificationRoles: string[] = [];
+    try {
+      const raw = await prisma.$queryRaw<Array<{ parkingNotificationRoles: unknown }>>`
+        SELECT "parkingNotificationRoles" FROM properties WHERE id = ${id}
+      `;
+      if (Array.isArray(raw) && raw.length > 0) {
+        const val = raw[0]?.parkingNotificationRoles;
+        parkingNotificationRoles = Array.isArray(val) ? (val as string[]) : [];
+      }
+    } catch {
+      // fall through
+    }
+
+    return NextResponse.json({ data: { ...property, parkingNotificationRoles } });
   } catch (error) {
     // Handle unique constraint violations (slug, propertyCode)
     if (error instanceof Error && (error as unknown as Record<string, unknown>).code === 'P2002') {

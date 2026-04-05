@@ -19,6 +19,7 @@ import {
   Calendar,
   Bell,
   Palette,
+  ParkingCircle,
   Rocket,
   Upload,
   Plus,
@@ -107,6 +108,13 @@ const STEPS: StepDef[] = [
   },
   {
     id: 8,
+    title: 'Parking Rules',
+    description: 'Set vehicle limits and visitor parking defaults',
+    icon: ParkingCircle,
+    required: false,
+  },
+  {
+    id: 9,
     title: 'Go Live',
     description: 'Review and activate your property',
     icon: Rocket,
@@ -1345,7 +1353,100 @@ function BrandingStep({
 }
 
 // ---------------------------------------------------------------------------
-// Step 8: Go Live
+// Step 8: Parking Rules (GAP 23.1)
+// ---------------------------------------------------------------------------
+
+function ParkingStep({
+  data,
+  onChange,
+}: {
+  data: Record<string, string>;
+  onChange: (field: string, value: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h3 className="text-[18px] font-bold text-neutral-900">Parking Rules</h3>
+        <p className="mt-1 text-[14px] text-neutral-500">
+          Set default vehicle limits and visitor parking policies. You can adjust these anytime in
+          Settings → Parking.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        {/* Max vehicles per unit */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[14px] font-medium text-neutral-700">Max vehicles per unit</label>
+          <p className="text-[12px] text-neutral-400">Enter 0 for unlimited</p>
+          <input
+            type="number"
+            min="0"
+            max="20"
+            value={data.maxVehiclesPerUnit ?? '2'}
+            onChange={(e) => onChange('maxVehiclesPerUnit', e.target.value)}
+            className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
+          />
+        </div>
+
+        {/* Max visitor parking days */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[14px] font-medium text-neutral-700">
+            Visitor parking — max consecutive days
+          </label>
+          <p className="text-[12px] text-neutral-400">
+            Days before a visitor permit must be renewed
+          </p>
+          <input
+            type="number"
+            min="1"
+            max="30"
+            value={data.maxVisitorConsecutiveDays ?? '3'}
+            onChange={(e) => onChange('maxVisitorConsecutiveDays', e.target.value)}
+            className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
+          />
+        </div>
+
+        {/* Max visitor days per week */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[14px] font-medium text-neutral-700">
+            Visitor parking — max days per week
+          </label>
+          <p className="text-[12px] text-neutral-400">0 = unlimited</p>
+          <input
+            type="number"
+            min="0"
+            max="7"
+            value={data.maxVisitorDaysPerWeek ?? '5'}
+            onChange={(e) => onChange('maxVisitorDaysPerWeek', e.target.value)}
+            className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
+          />
+        </div>
+
+        {/* Overnight parking */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[14px] font-medium text-neutral-700">Overnight parking</label>
+          <p className="text-[12px] text-neutral-400">Allow vehicles to remain overnight?</p>
+          <select
+            value={data.overnightParking ?? 'allowed'}
+            onChange={(e) => onChange('overnightParking', e.target.value)}
+            className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
+          >
+            <option value="allowed">Allowed</option>
+            <option value="permit_required">Permit required</option>
+            <option value="not_allowed">Not allowed</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-neutral-50 px-4 py-3 text-[13px] text-neutral-500">
+        <strong className="text-neutral-700">Tip:</strong> These are starting defaults. You can
+        create advanced per-area and per-permit-type rules in Settings → Parking after setup.
+      </div>
+    </div>
+  );
+}
+
+// Step 9: Go Live
 // ---------------------------------------------------------------------------
 
 function GoLiveStep({
@@ -1562,7 +1663,7 @@ export default function OnboardingPage() {
       setPercentComplete(((completedSteps.size + 1) / STEPS.length) * 100);
       setLastSaved(new Date());
 
-      if (currentStep < 8) setCurrentStep(currentStep + 1);
+      if (currentStep < 9) setCurrentStep(currentStep + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
     } finally {
@@ -1583,7 +1684,7 @@ export default function OnboardingPage() {
       });
       setLastSaved(new Date());
 
-      if (currentStep < 8) setCurrentStep(currentStep + 1);
+      if (currentStep < 9) setCurrentStep(currentStep + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to skip');
     } finally {
@@ -1634,6 +1735,8 @@ export default function OnboardingPage() {
       case 7:
         return <BrandingStep data={data} onChange={onChange} />;
       case 8:
+        return <ParkingStep data={data} onChange={onChange} />;
+      case 9:
         return (
           <GoLiveStep
             completedSteps={completedSteps}
@@ -1801,12 +1904,12 @@ export default function OnboardingPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {currentStep > 1 && currentStep < 8 && !STEPS[currentStep - 1]?.required && (
+          {currentStep > 1 && currentStep < 9 && !STEPS[currentStep - 1]?.required && (
             <Button variant="ghost" onClick={handleSkip} disabled={saving}>
               Skip for Now
             </Button>
           )}
-          {currentStep < 8 && (
+          {currentStep < 9 && (
             <Button onClick={handleNext} loading={saving} disabled={saving}>
               {saving ? 'Saving...' : 'Save & Continue'}
               <ChevronRight className="h-4 w-4" />

@@ -67,9 +67,34 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }));
 
     // Get individual delivery records
-    const deliveries = await prisma.announcementDelivery.findMany({
+    const deliveriesRaw = await prisma.announcementDelivery.findMany({
       where: { announcementId: id },
       orderBy: { createdAt: 'desc' },
+    });
+
+    // Manual join: resolve recipient name/email from User table
+    const recipientIds = [...new Set(deliveriesRaw.map((d) => d.recipientId))];
+    const users = await prisma.user.findMany({
+      where: { id: { in: recipientIds } },
+      select: { id: true, firstName: true, lastName: true, email: true },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    const deliveries = deliveriesRaw.map((d) => {
+      const user = userMap.get(d.recipientId);
+      return {
+        id: d.id,
+        channel: d.channel,
+        status: d.status,
+        sentAt: d.sentAt,
+        deliveredAt: d.deliveredAt,
+        failedAt: d.failedAt,
+        failureReason: d.failureReason,
+        retryCount: d.retryCount,
+        recipientId: d.recipientId,
+        recipientName: user ? `${user.firstName} ${user.lastName}`.trim() : null,
+        recipientEmail: user?.email ?? null,
+      };
     });
 
     return NextResponse.json({

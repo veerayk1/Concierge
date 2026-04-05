@@ -11,6 +11,7 @@ import {
   Loader2,
   Play,
   Plus,
+  Zap,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
@@ -77,6 +78,15 @@ export default function TrainingPage() {
   } = useApi<ApiCourse[]>(apiUrl('/api/v1/training', { propertyId: getPropertyId() }));
 
   const allCourses = useMemo<ApiCourse[]>(() => apiCourses ?? [], [apiCourses]);
+
+  // GAP 11.2 — Platform Updates learning path (courses tagged with this category)
+  const platformUpdateCourses = allCourses.filter(
+    (c) =>
+      c.category === 'Platform Updates' ||
+      c.learningPathCourses?.some((lpc) =>
+        lpc.learningPath?.name?.toLowerCase().includes('platform updates'),
+      ),
+  );
 
   const totalCount = allCourses.length;
   const publishedCount = allCourses.filter((c) => c.status === 'published').length;
@@ -172,6 +182,50 @@ export default function TrainingPage() {
         />
       )}
 
+      {/* GAP 11.2 — Platform Updates section (always visible when there are update courses) */}
+      {!loading && !error && platformUpdateCourses.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-violet-200 bg-violet-50 p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <Zap className="h-4 w-4 text-violet-600" />
+            <h2 className="text-[15px] font-semibold text-violet-900">Platform Updates</h2>
+            <span className="ml-auto rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700">
+              {platformUpdateCourses.length} update{platformUpdateCourses.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {platformUpdateCourses.map((course) => (
+              <div
+                key={course.id}
+                className="flex cursor-pointer items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm transition-shadow hover:shadow-md"
+                onClick={() => router.push(`/training/${course.id}`)}
+              >
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-violet-100">
+                  <Zap className="h-4 w-4 text-violet-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-medium text-neutral-900">{course.title}</p>
+                  {course.description && (
+                    <p className="truncate text-[12px] text-neutral-500">{course.description}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] text-neutral-400">
+                    {formatDuration(course.estimatedDurationMinutes)}
+                  </span>
+                  <Badge
+                    variant={course.status === 'published' ? 'success' : 'default'}
+                    size="sm"
+                    dot
+                  >
+                    {course.status}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {!loading && !error && (
         <>
           {/* Empty State */}
@@ -240,7 +294,12 @@ export default function TrainingPage() {
               {/* Course List */}
               <div className="flex flex-col gap-4">
                 {allCourses.map((course) => (
-                  <Card key={course.id} hoverable className="cursor-pointer" onClick={() => router.push(`/training/${course.id}`)}>
+                  <Card
+                    key={course.id}
+                    hoverable
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/training/${course.id}`)}
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4">
                         <div className="bg-primary-50 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl">

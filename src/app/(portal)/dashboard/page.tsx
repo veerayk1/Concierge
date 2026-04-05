@@ -457,11 +457,13 @@ export default function DashboardPage() {
     admin: 'property_admin',
     manager: 'property_manager',
   };
-  const resolvedDemoRole = demoRole
-    ? (ROLE_ALIASES[demoRole] ?? demoRole) as Role
-    : null;
+  const resolvedDemoRole = demoRole ? ((ROLE_ALIASES[demoRole] ?? demoRole) as Role) : null;
   const effectiveRole: Role = user?.role ?? resolvedDemoRole ?? 'front_desk';
-  const effectiveName = user?.firstName ?? (resolvedDemoRole ? (DEMO_NAMES[effectiveRole] ?? DEMO_NAMES[resolvedDemoRole] ?? 'User') : 'User');
+  const effectiveName =
+    user?.firstName ??
+    (resolvedDemoRole
+      ? (DEMO_NAMES[effectiveRole] ?? DEMO_NAMES[resolvedDemoRole] ?? 'User')
+      : 'User');
 
   // Super Admin gets platform-level dashboard — no property-specific API calls
   const isSuperAdmin = effectiveRole === 'super_admin';
@@ -534,7 +536,7 @@ export default function DashboardPage() {
   // Fetch real AI analytics for building health score (skip in demo showcase or super_admin)
   // NOTE: This hook MUST be called before any early returns to satisfy Rules of Hooks
   const { data: aiAnalytics } = useApi<{
-    healthScore: number;
+    healthScore: number | null;
     trend: string;
     factors: { name: string; score: number; weight: number }[];
   }>(

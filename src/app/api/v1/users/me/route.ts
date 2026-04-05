@@ -34,6 +34,10 @@ export async function GET(request: NextRequest) {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        assistanceRequired: true,
+        assistanceNotes: true,
+        emailSignature: true, // GAP 8.1
+        languagePreference: true, // GAP 7.6
       },
     });
 
@@ -41,7 +45,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ data: user });
+    return NextResponse.json({
+      data: {
+        ...user,
+        requiresAssistance: user.assistanceRequired, // GAP 8.2: rename for client
+        emailSignature: user.emailSignature ?? null, // GAP 8.1
+        languagePreference: user.languagePreference, // GAP 7.6
+      },
+    });
   } catch (error) {
     console.error('GET /api/v1/users/me error:', error);
     return NextResponse.json(
@@ -76,6 +87,14 @@ export async function PATCH(request: NextRequest) {
     if (input.firstName !== undefined) updateData.firstName = input.firstName;
     if (input.lastName !== undefined) updateData.lastName = input.lastName;
     if (input.phone !== undefined) updateData.phone = input.phone || null;
+    if (input.requiresAssistance !== undefined)
+      updateData.assistanceRequired = input.requiresAssistance; // GAP 8.2
+    if (input.assistanceNotes !== undefined)
+      updateData.assistanceNotes = input.assistanceNotes || null; // GAP 8.2
+    if (input.emailSignature !== undefined)
+      updateData.emailSignature = input.emailSignature ?? null; // GAP 8.1
+    if (input.languagePreference !== undefined)
+      updateData.languagePreference = input.languagePreference; // GAP 7.6
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
@@ -98,11 +117,20 @@ export async function PATCH(request: NextRequest) {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        assistanceRequired: true,
+        assistanceNotes: true,
+        emailSignature: true, // GAP 8.1
+        languagePreference: true, // GAP 7.6
       },
     });
 
     return NextResponse.json({
-      data: user,
+      data: {
+        ...user,
+        requiresAssistance: user.assistanceRequired, // GAP 8.2: rename for client
+        emailSignature: user.emailSignature ?? null, // GAP 8.1
+        languagePreference: user.languagePreference, // GAP 7.6
+      },
       message: 'Profile updated.',
     });
   } catch (error) {

@@ -31,6 +31,9 @@ type BookingInput = z.infer<typeof bookingSchema>;
 interface ApiAmenity {
   id: string;
   name: string;
+  fee?: number | string | null;
+  securityDeposit?: number | string | null;
+  operatingHours?: { excludedDays?: string[] } | null;
 }
 
 interface CreateBookingDialogProps {
@@ -65,6 +68,7 @@ export function CreateBookingDialog({
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<BookingInput>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,6 +83,22 @@ export function CreateBookingDialog({
       guests: 0,
     },
   });
+
+  const selectedAmenityId = watch('amenityId');
+  const selectedDate = watch('date');
+  const selectedAmenity = (amenities ?? []).find((a) => a.id === selectedAmenityId) ?? null;
+  const bookingFee = selectedAmenity ? Number(selectedAmenity.fee ?? 0) : 0;
+  const securityDeposit = selectedAmenity ? Number(selectedAmenity.securityDeposit ?? 0) : 0;
+  const totalDue = bookingFee + securityDeposit;
+
+  // Day exclusion check (Gap 6.1)
+  const excludedDays: string[] = selectedAmenity?.operatingHours?.excludedDays ?? [];
+  const selectedDayName = selectedDate
+    ? new Date(selectedDate + 'T12:00:00')
+        .toLocaleDateString('en-US', { weekday: 'long' })
+        .toLowerCase()
+    : '';
+  const isExcludedDay = selectedDate && excludedDays.includes(selectedDayName);
 
   async function onSubmit(data: BookingInput) {
     setServerError(null);
@@ -161,12 +181,46 @@ export function CreateBookingDialog({
             )}
           </div>
 
+          {/* Fee Breakdown (Gap 6.1) — shown when amenity has a security deposit */}
+          {selectedAmenity && securityDeposit > 0 && (
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+              <p className="mb-2 text-[12px] font-semibold tracking-wide text-neutral-500 uppercase">
+                Payment Summary
+              </p>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-[13px]">
+                  <span className="text-neutral-600">Booking fee</span>
+                  <span className="font-medium text-neutral-900">
+                    {bookingFee > 0 ? `$${bookingFee.toFixed(2)}` : 'Free'}
+                  </span>
+                </div>
+                {securityDeposit > 0 && (
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-neutral-600">
+                      Security deposit <span className="text-neutral-400">(refundable)</span>
+                    </span>
+                    <span className="font-medium text-neutral-900">
+                      ${securityDeposit.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                <div className="mt-1 flex justify-between border-t border-neutral-200 pt-2 text-[13px] font-semibold">
+                  <span className="text-neutral-900">Total due today</span>
+                  <span className="text-neutral-900">${totalDue.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <Input
             {...register('date')}
             type="date"
             label="Date"
             required
-            error={errors.date?.message}
+            error={
+              errors.date?.message ??
+              (isExcludedDay ? `This amenity is not available on ${selectedDayName}s` : undefined)
+            }
           />
 
           <div className="grid grid-cols-2 gap-4">

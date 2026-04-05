@@ -10,9 +10,12 @@ import {
   Building2,
   Calendar,
   Car,
+  CheckCircle2,
   Clock,
   Dog,
   Edit2,
+  FileText,
+  History,
   Key,
   Lock,
   Mail,
@@ -27,6 +30,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { useAuth } from '@/lib/hooks/use-auth';
 import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +64,22 @@ interface ResidentDetail {
   };
   stats: { packages: number; requests: number; bookings: number };
   recentActivity: { id: string; type: string; description: string; time: string }[];
+}
+
+interface ConsentDocument {
+  id: string;
+  documentType: string;
+  signedAt: string | null;
+  expiresAt: string | null;
+  isRevoked: boolean;
+}
+
+interface AuditEntry {
+  id: string;
+  action: string;
+  fields: Record<string, unknown> | null;
+  createdAt: string;
+  userId: string | null;
 }
 
 const activityIcons: Record<string, typeof Package> = {
@@ -108,12 +128,39 @@ export default function ResidentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
+  const { user: currentUser } = useAuth();
+  const demoRole = typeof window !== 'undefined' ? localStorage.getItem('demo_role') : null;
+  const effectiveRole = currentUser?.role ?? demoRole ?? '';
+  const isStaff = !effectiveRole.startsWith('resident') && effectiveRole !== 'board_member';
+  const isAdminOrManager = ['super_admin', 'property_admin', 'property_manager'].includes(
+    effectiveRole,
+  );
+
   const {
     data: resident,
     loading,
     error,
     refetch,
   } = useApi<ResidentDetail>(apiUrl(`/api/v1/users/${id}`, { propertyId: getPropertyId() }));
+
+  // Consent documents — GAP 7.2 (staff-only)
+  const { data: consentData } = useApi<{ data: ConsentDocument[] }>(
+    isStaff && id
+      ? apiUrl('/api/v1/consent-documents', { propertyId: getPropertyId(), userId: id })
+      : null,
+  );
+
+  // Audit history — GAP 7.3 (admin/manager-only)
+  const { data: historyData } = useApi<{ data: AuditEntry[] }>(
+    isAdminOrManager && id
+      ? apiUrl('/api/v1/audit-log', {
+          propertyId: getPropertyId(),
+          resource: 'users',
+          resourceId: id,
+          pageSize: '20',
+        })
+      : null,
+  );
 
   // --- Action dialog state ---
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
@@ -658,6 +705,131 @@ export default function ResidentDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* ---------- Consent Documents — GAP 7.2 ---------- */}
+      {isStaff && (
+        <Card>
+          <div className="mb-4 flex items-center gap-2">
+            <FileText className="h-4 w-4 text-neutral-400" />
+            <h2 className="text-[14px] font-semibold text-neutral-900">Consent Documents</h2>
+          </div>
+          <CardContent>
+            {(consentData?.data ?? []).length === 0 ? (
+              <p className="text-[14px] text-neutral-400">No consent documents on file.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-[13px]">
+                  <thead>
+                    <tr className="border-b border-neutral-100">
+                      <th className="pb-2 text-left font-medium text-neutral-500">Document Type</th>
+                      <th className="pb-2 text-left font-medium text-neutral-500">Signed At</th>
+                      <th className="pb-2 text-left font-medium text-neutral-500">Expires</th>
+                      <th className="pb-2 text-left font-medium text-neutral-500">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-50">
+                    {(consentData?.data ?? []).map((doc) => {
+                      const statusLabel = doc.isRevoked
+                        ? 'Revoked'
+                        : doc.signedAt
+                          ? 'Signed'
+                          : 'Pending';
+                      const statusClass = doc.isRevoked
+                        ? 'bg-red-100 text-red-700'
+                        : doc.signedAt
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-yellow-100 text-yellow-700';
+                      return (
+                        <tr key={doc.id}>
+                          <td className="py-2 pr-4 font-medium text-neutral-900 capitalize">
+                            {doc.documentType.replace(/_/g, ' ')}
+                          </td>
+                          <td className="py-2 pr-4 text-neutral-600">
+                            {doc.signedAt ? (
+                              new Date(doc.signedAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })
+                            ) : (
+                              <span className="text-neutral-300">—</span>
+                            )}
+                          </td>
+                          <td className="py-2 pr-4 text-neutral-600">
+                            {doc.expiresAt ? (
+                              new Date(doc.expiresAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })
+                            ) : (
+                              <span className="text-neutral-300">Never</span>
+                            )}
+                          </td>
+                          <td className="py-2">
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClass}`}
+                            >
+                              {doc.signedAt && !doc.isRevoked && (
+                                <CheckCircle2 className="h-3 w-3" />
+                              )}
+                              {statusLabel}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ---------- Resident History — GAP 7.3 ---------- */}
+      {isAdminOrManager && (
+        <Card>
+          <div className="mb-4 flex items-center gap-2">
+            <History className="h-4 w-4 text-neutral-400" />
+            <h2 className="text-[14px] font-semibold text-neutral-900">Change History</h2>
+          </div>
+          <CardContent>
+            {(historyData?.data ?? []).length === 0 ? (
+              <p className="text-[14px] text-neutral-400">No history records found.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {(historyData?.data ?? []).map((entry) => (
+                  <div key={entry.id} className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-neutral-100">
+                      <Clock className="h-3 w-3 text-neutral-500" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[13px] font-medium text-neutral-900 capitalize">
+                        {entry.action}
+                      </p>
+                      {entry.fields && Object.keys(entry.fields).length > 0 && (
+                        <p className="text-[12px] text-neutral-500">
+                          {Object.keys(entry.fields).join(', ')}
+                        </p>
+                      )}
+                      <p className="text-[12px] text-neutral-400">
+                        {new Date(entry.createdAt).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* ---------- Reset Password Confirmation Dialog ---------- */}
       <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>

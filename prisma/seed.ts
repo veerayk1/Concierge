@@ -1442,9 +1442,17 @@ export async function main(): Promise<void> {
   const AMENITY_GROUP_ID_MH = '00000000-0000-4000-ab00-000000010001';
   const AMENITY_GROUP_ID_LT = '00000000-0000-4000-ab00-000000020001';
 
+  const ELEVATOR_GROUP_ID_MH = '00000000-0000-4000-ab00-000000010002';
+  const ELEVATOR_GROUP_ID_LT = '00000000-0000-4000-ab00-000000020002';
+
   const amenityGroupIds: Record<string, string> = {
     [mapleHeights.id]: AMENITY_GROUP_ID_MH,
     [lakeshoreTowers.id]: AMENITY_GROUP_ID_LT,
+  };
+
+  const elevatorGroupIds: Record<string, string> = {
+    [mapleHeights.id]: ELEVATOR_GROUP_ID_MH,
+    [lakeshoreTowers.id]: ELEVATOR_GROUP_ID_LT,
   };
 
   for (const { property, prefix } of properties) {
@@ -1567,6 +1575,93 @@ export async function main(): Promise<void> {
       });
     }
     log('OK', `  ${AMENITY_DEFINITIONS.length} amenities for ${property.name}`);
+
+    // Elevator amenity group (Gap 6.1 — Move-In / Move-Out Elevator Booking)
+    const elevatorGroupId = elevatorGroupIds[property.id]!;
+    await prisma.amenityGroup.upsert({
+      where: { id: elevatorGroupId },
+      update: { name: 'Elevator Bookings', displayOrder: 2, isActive: true },
+      create: {
+        id: elevatorGroupId,
+        propertyId: property.id,
+        name: 'Elevator Bookings',
+        displayOrder: 2,
+        isActive: true,
+      },
+    });
+
+    const ELEVATOR_AMENITIES = [
+      {
+        name: 'Elevator – Move-In',
+        description:
+          'Reserve the service elevator for moving in. No Sundays or statutory holidays. Security deposit refunded after move-in inspection.',
+        color: '#7C3AED',
+        icon: 'arrow-up-circle',
+        fee: 50,
+        securityDeposit: 250,
+      },
+      {
+        name: 'Elevator – Move-Out',
+        description:
+          'Reserve the service elevator for moving out. No Sundays or statutory holidays. Security deposit refunded after move-out inspection.',
+        color: '#DC2626',
+        icon: 'arrow-down-circle',
+        fee: 50,
+        securityDeposit: 500,
+      },
+      {
+        name: 'Elevator – Delivery',
+        description:
+          'Reserve the service elevator for large deliveries. No Sundays or statutory holidays. Security deposit refunded after delivery inspection.',
+        color: '#0EA5E9',
+        icon: 'package',
+        fee: 50,
+        securityDeposit: 250,
+      },
+    ];
+
+    for (let i = 0; i < ELEVATOR_AMENITIES.length; i++) {
+      const eDef = ELEVATOR_AMENITIES[i]!;
+      const elevatorAmenityId = `00000000-0000-4000-ac00-${property.id.slice(-6)}${(AMENITY_DEFINITIONS.length + i + 1).toString().padStart(6, '0')}`;
+      await prisma.amenity.upsert({
+        where: { id: elevatorAmenityId },
+        update: {
+          name: eDef.name,
+          description: eDef.description,
+          color: eDef.color,
+          icon: eDef.icon,
+          bookingStyle: 'full_day',
+          maxConcurrent: 1,
+          maxGuests: 0,
+          displayOrder: AMENITY_DEFINITIONS.length + i,
+          isActive: true,
+          fee: eDef.fee,
+          securityDeposit: eDef.securityDeposit,
+          depositRefundPolicy: 'full',
+          operatingHours: { excludedDays: ['sunday'] },
+        },
+        create: {
+          id: elevatorAmenityId,
+          propertyId: property.id,
+          groupId: elevatorGroupId,
+          name: eDef.name,
+          description: eDef.description,
+          color: eDef.color,
+          icon: eDef.icon,
+          bookingStyle: 'full_day',
+          maxConcurrent: 1,
+          maxGuests: 0,
+          displayOrder: AMENITY_DEFINITIONS.length + i,
+          isActive: true,
+          fee: eDef.fee,
+          securityDeposit: eDef.securityDeposit,
+          depositRefundPolicy: 'full',
+          operatingHours: { excludedDays: ['sunday'] },
+          createdById: prefix === 'mh' ? IDS.mh_adminUser : IDS.lt_adminUser,
+        },
+      });
+    }
+    log('OK', `  3 elevator amenities for ${property.name}`);
   }
 
   // -------------------------------------------------------------------------
@@ -2254,7 +2349,11 @@ export async function main(): Promise<void> {
     prepareForFdArrival: {
       items: [
         { name: 'Clear main lobby entrance', completed: true, notes: 'Cleared by front desk' },
-        { name: 'Position staff at elevator banks', completed: true, notes: 'Security staff posted' },
+        {
+          name: 'Position staff at elevator banks',
+          completed: true,
+          notes: 'Security staff posted',
+        },
         { name: 'Alert mechanical room', completed: true, notes: 'Superintendent notified' },
       ],
     },
@@ -2341,7 +2440,8 @@ export async function main(): Promise<void> {
     noiseVolume: 8,
     natureOfComplaint: ['Party', 'Loud Music'],
     suspectContactMethod: 'Unit 408 - Direct contact',
-    counselingNotes: 'Spoke with residents of unit 408. They were having small dinner party. Agreed to keep music lower after 10 PM.',
+    counselingNotes:
+      'Spoke with residents of unit 408. They were having small dinner party. Agreed to keep music lower after 10 PM.',
     resolutionStatus: 'resolved',
     createdById: IDS.mh_frontDesk1User,
   };
@@ -2355,7 +2455,8 @@ export async function main(): Promise<void> {
     noiseVolume: 7,
     natureOfComplaint: ['Dog Barking'],
     suspectContactMethod: 'Unit 505 - Via text note',
-    counselingNotes: 'Contacted resident re: dog barking. They have small terrier with separation anxiety. Offered building resources and local trainer recommendations.',
+    counselingNotes:
+      'Contacted resident re: dog barking. They have small terrier with separation anxiety. Offered building resources and local trainer recommendations.',
     resolutionStatus: 'ongoing',
     createdById: IDS.mh_guard1User,
   };
@@ -2369,7 +2470,8 @@ export async function main(): Promise<void> {
     noiseVolume: 6,
     natureOfComplaint: ['Construction', 'Walking/Banging'],
     suspectContactMethod: 'Unknown - ongoing renovations',
-    counselingNotes: 'Unit 305 undergoing alteration project. Construction hours limited to 8 AM - 6 PM weekdays per bylaw. Complaint registered. Alteration project escalated for review.',
+    counselingNotes:
+      'Unit 305 undergoing alteration project. Construction hours limited to 8 AM - 6 PM weekdays per bylaw. Complaint registered. Alteration project escalated for review.',
     resolutionStatus: 'escalated',
     createdById: IDS.mh_propertyManager,
   };

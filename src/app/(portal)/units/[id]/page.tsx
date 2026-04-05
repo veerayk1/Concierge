@@ -12,6 +12,7 @@ import {
   Clock,
   Dog,
   Edit2,
+  History,
   Key,
   Mail,
   Package,
@@ -25,6 +26,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useAuth } from '@/lib/hooks/use-auth';
 import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -103,6 +105,14 @@ interface HistoryEvent {
   detail: string;
   actor: string;
   timestamp: string;
+}
+
+interface AuditEntry {
+  id: string;
+  action: string;
+  actorName: string | null;
+  fields: Record<string, unknown> | null;
+  createdAt: string;
 }
 
 interface UnitDetail {
@@ -192,11 +202,31 @@ export default function UnitDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Role detection (Gap 7.3) — works in demo mode where useAuth() returns null
+  const { user: currentUser } = useAuth();
+  const demoRole = typeof window !== 'undefined' ? localStorage.getItem('demo_role') : null;
+  const effectiveRole = currentUser?.role ?? demoRole ?? '';
+  const isAdminOrManager = ['super_admin', 'property_admin', 'property_manager'].includes(
+    effectiveRole,
+  );
+
   const {
     data: unit,
     loading,
     error,
   } = useApi<UnitDetail>(apiUrl(`/api/v1/units/${id}`, { propertyId: getPropertyId() }));
+
+  // Audit log (Gap 7.3) — admin/manager only
+  const { data: auditData } = useApi<{ data: AuditEntry[]; total: number }>(
+    apiUrl('/api/v1/audit-log', {
+      propertyId: getPropertyId(),
+      resource: 'units',
+      resourceId: id,
+      pageSize: '20',
+    }),
+    { enabled: isAdminOrManager },
+  );
+  const auditEntries: AuditEntry[] = auditData?.data ?? [];
 
   // -- Loading State --
   if (loading) {
@@ -949,41 +979,101 @@ export default function UnitDetailPage() {
 
         {/* Tab 7: History */}
         <TabsContent value="history">
-          <Card>
-            <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Unit Timeline</h2>
-            <CardContent>
-              {history.length > 0 ? (
-                <div className="relative">
-                  <div className="absolute top-2 bottom-2 left-[11px] w-px bg-neutral-200" />
-                  <div className="flex flex-col gap-4">
-                    {history.map((event) => (
-                      <div key={event.id} className="relative flex gap-3">
-                        <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-neutral-100">
-                          {getHistoryIcon(event.action)}
+          <div className="flex flex-col gap-6">
+            <Card>
+              <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Unit Timeline</h2>
+              <CardContent>
+                {history.length > 0 ? (
+                  <div className="relative">
+                    <div className="absolute top-2 bottom-2 left-[11px] w-px bg-neutral-200" />
+                    <div className="flex flex-col gap-4">
+                      {history.map((event) => (
+                        <div key={event.id} className="relative flex gap-3">
+                          <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-neutral-100">
+                            {getHistoryIcon(event.action)}
+                          </div>
+                          <div className="flex flex-col gap-0.5 pt-0.5">
+                            <p className="text-[13px] font-medium text-neutral-900">
+                              {event.detail}
+                            </p>
+                            <p className="text-[12px] text-neutral-400">
+                              {new Date(event.timestamp).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })}
+                              {' \u00B7 '}
+                              {event.actor}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-0.5 pt-0.5">
-                          <p className="text-[13px] font-medium text-neutral-900">{event.detail}</p>
-                          <p className="text-[12px] text-neutral-400">
-                            {new Date(event.timestamp).toLocaleString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit',
-                            })}
-                            {' \u00B7 '}
-                            {event.actor}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
+                ) : (
+                  <p className="text-[14px] text-neutral-400">No history events.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Change History (audit log) — admin/manager only (Gap 7.3) */}
+            {isAdminOrManager && (
+              <Card>
+                <div className="mb-4 flex items-center gap-2">
+                  <History className="h-4 w-4 text-neutral-400" />
+                  <h2 className="text-[14px] font-semibold text-neutral-900">Change History</h2>
+                  <span className="ml-auto text-[12px] text-neutral-400">Last 20 changes</span>
                 </div>
-              ) : (
-                <p className="text-[14px] text-neutral-400">No history events.</p>
-              )}
-            </CardContent>
-          </Card>
+                <CardContent>
+                  {auditEntries.length > 0 ? (
+                    <div className="flex flex-col divide-y divide-neutral-100">
+                      {auditEntries.map((entry) => (
+                        <div key={entry.id} className="py-3">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[13px] font-medium text-neutral-900 capitalize">
+                                {entry.action.replace(/_/g, ' ')}
+                              </p>
+                              {entry.fields && Object.keys(entry.fields).length > 0 && (
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {Object.keys(entry.fields).map((field) => (
+                                    <span
+                                      key={field}
+                                      className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[11px] text-neutral-600"
+                                    >
+                                      {field}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-[12px] text-neutral-500">
+                                {entry.actorName ?? 'System'}
+                              </p>
+                              <p className="text-[11px] text-neutral-400">
+                                {new Date(entry.createdAt).toLocaleString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[14px] text-neutral-400">No change history recorded.</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   AlertCircle,
+  AlertTriangle,
   Archive,
   ArrowLeft,
   BarChart3,
@@ -17,6 +18,7 @@ import {
   Smartphone,
   Trash2,
   Users,
+  XCircle,
 } from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
@@ -51,6 +53,24 @@ interface AnnouncementDetail {
     clickRate: number;
   };
   viewCount: number;
+}
+
+interface DeliveryRecord {
+  id: string;
+  channel: string;
+  status: string;
+  sentAt: string | null;
+  failedAt: string | null;
+  failureReason: string | null;
+  retryCount: number;
+  recipientName: string | null;
+  recipientEmail: string | null;
+}
+
+interface DeliveriesResponse {
+  summary: { total: number; sent: number; failed: number; pending: number };
+  channelBreakdown: { channel: string; status: string; count: number }[];
+  deliveries: DeliveryRecord[];
 }
 
 const channelIcons: Record<string, typeof Mail> = {
@@ -99,6 +119,11 @@ export default function AnnouncementDetailPage() {
     refetch,
   } = useApi<AnnouncementDetail>(
     apiUrl(`/api/v1/announcements/${id}`, { propertyId: getPropertyId() }),
+  );
+
+  // Fetch delivery records for the failure tracking section (GAP 9.3)
+  const { data: deliveriesData } = useApi<DeliveriesResponse>(
+    id ? `/api/v1/announcements/${id}/deliveries` : null,
   );
 
   // -- Action Handlers --
@@ -225,6 +250,11 @@ export default function AnnouncementDetailPage() {
     clickRate: 0,
   };
 
+  const failedDeliveries = (deliveriesData?.deliveries ?? []).filter(
+    (d) => d.status === 'failed' || d.status === 'bounced',
+  );
+  const failedCount = deliveriesData?.summary.failed ?? 0;
+
   const statusVariant =
     announcement.status === 'published'
       ? 'success'
@@ -296,8 +326,19 @@ export default function AnnouncementDetailPage() {
         </div>
       </div>
 
+      {/* Delivery failure banner (GAP 9.3) */}
+      {failedCount > 0 && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0 text-red-600" />
+          <span className="text-[14px] font-medium text-red-700">
+            {failedCount} delivery failure{failedCount !== 1 ? 's' : ''} — see the Non-Delivered
+            list below
+          </span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* Left Column -- Content */}
+        {/* Left Column — Content */}
         <div className="xl:col-span-2">
           <Card>
             <CardContent>
@@ -451,11 +492,88 @@ export default function AnnouncementDetailPage() {
                     {deliveryStats.clickRate}%
                   </span>
                 </div>
+                {failedCount > 0 && (
+                  <div className="flex items-center justify-between border-t border-neutral-100 pt-3">
+                    <span className="flex items-center gap-2 text-[14px] text-red-600">
+                      <XCircle className="h-4 w-4" />
+                      Failed
+                    </span>
+                    <span className="text-[14px] font-semibold text-red-700">{failedCount}</span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Non-Delivered Mailing List — GAP 9.3 */}
+      {failedDeliveries.length > 0 && (
+        <Card>
+          <div className="mb-4 flex items-center gap-2">
+            <XCircle className="h-4 w-4 text-red-500" />
+            <h2 className="text-[14px] font-semibold text-neutral-900">
+              Non-Delivered Mailing List
+            </h2>
+            <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+              {failedDeliveries.length} failed
+            </span>
+          </div>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="border-b border-neutral-100">
+                    <th className="pb-2 text-left font-medium text-neutral-500">Recipient</th>
+                    <th className="pb-2 text-left font-medium text-neutral-500">Email</th>
+                    <th className="pb-2 text-left font-medium text-neutral-500">Channel</th>
+                    <th className="pb-2 text-left font-medium text-neutral-500">Status</th>
+                    <th className="pb-2 text-left font-medium text-neutral-500">Error Reason</th>
+                    <th className="pb-2 text-left font-medium text-neutral-500">Time Recorded</th>
+                    <th className="pb-2 text-right font-medium text-neutral-500">Retries</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-50">
+                  {failedDeliveries.map((d) => (
+                    <tr key={d.id}>
+                      <td className="py-2 pr-4 font-medium text-neutral-900">
+                        {d.recipientName ?? '—'}
+                      </td>
+                      <td className="py-2 pr-4 text-neutral-600">{d.recipientEmail ?? '—'}</td>
+                      <td className="py-2 pr-4 text-neutral-600 capitalize">{d.channel}</td>
+                      <td className="py-2 pr-4">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            d.status === 'bounced'
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {d.status.charAt(0).toUpperCase() + d.status.slice(1)}
+                        </span>
+                      </td>
+                      <td className="py-2 pr-4 text-neutral-500">
+                        {d.failureReason ?? <span className="text-neutral-300">—</span>}
+                      </td>
+                      <td className="py-2 pr-4 text-neutral-500">
+                        {d.failedAt
+                          ? new Date(d.failedAt).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })
+                          : '—'}
+                      </td>
+                      <td className="py-2 text-right text-neutral-500">{d.retryCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
