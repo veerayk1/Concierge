@@ -43,13 +43,12 @@ export function TestimonialSection() {
             border: 'none',
           }}
         >
-          We evaluated every platform on the market. Most of them felt like they
-          were built by people who had never set foot in a residential building.
-          Concierge is the first system that actually understands how buildings
-          operate.
+          We evaluated every platform on the market. Most of them felt like they were built by
+          people who had never set foot in a residential building. Concierge is the first system
+          that actually understands how buildings operate.
         </blockquote>
 
-        {/* Attribution */}
+        {/* Attribution — Replace with real testimonials before launch */}
         <div style={{ marginTop: '1rem' }}>
           <p
             style={{
@@ -59,17 +58,7 @@ export function TestimonialSection() {
               margin: 0,
             }}
           >
-            — Sarah Chen
-          </p>
-          <p
-            style={{
-              fontSize: '0.875rem',
-              color: 'var(--color-slate)',
-              margin: 0,
-              marginTop: '0.25rem',
-            }}
-          >
-            Director of Operations, Meridian Property Group
+            — Property Manager, Toronto ON
           </p>
         </div>
       </div>

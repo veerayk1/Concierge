@@ -59,11 +59,11 @@ async function handleDemoMode(
 ): Promise<GuardResponse> {
   const isResident = demoRole === 'resident_owner' || demoRole === 'resident_tenant';
 
-  // Read propertyId from header or query string, fall back to Bond Tower default
+  // Read propertyId from header or query string, fall back to default seeded property
   const headerPropertyId = request.headers.get('x-demo-propertyId');
   const url = new URL(request.url);
   const queryPropertyId = url.searchParams.get('propertyId');
-  const DEFAULT_PROPERTY_ID = '8165b053-0af8-4e46-aa54-97f52ee9ea8d'; // Bond Tower
+  const DEFAULT_PROPERTY_ID = '8165b053-0af8-4e46-aa54-97f52ee9ea8d'; // Demo fallback property
   const propertyId = headerPropertyId || queryPropertyId || DEFAULT_PROPERTY_ID;
 
   const demoUser: AuthenticatedUser = {

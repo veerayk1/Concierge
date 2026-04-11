@@ -552,9 +552,7 @@ export default function BillingPage() {
                   <Button
                     variant="secondary"
                     fullWidth
-                    onClick={() =>
-                      alert('Contact sales at sales@concierge.com for Enterprise pricing.')
-                    }
+                    onClick={() => alert('Contact our sales team for Enterprise pricing.')}
                   >
                     Contact Sales
                     <ChevronRight className="h-4 w-4" />

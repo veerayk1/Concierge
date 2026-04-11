@@ -45,8 +45,8 @@ const CONTACT_INFO = [
   },
   {
     label: 'Phone',
-    value: '+1 (416) 555-0199',
-    href: 'tel:+14165550199',
+    value: 'Coming soon',
+    href: null,
     icon: (
       <svg
         width="20"

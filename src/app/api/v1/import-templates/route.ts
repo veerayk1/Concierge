@@ -27,9 +27,9 @@ export async function GET(request: NextRequest) {
   if (type === 'residents') {
     const csv = [
       'First Name,Last Name,Email,Phone,Unit Number,Resident Type,Move-in Date',
-      'Maria,Santos,maria.santos@email.com,+14165551234,101,Owner,2025-06-15',
-      'James,Chen,james.chen@email.com,,102,Tenant,2025-09-01',
-      'Sarah,Williams,sarah.w@email.com,+14165559876,PH-A,Owner,2024-01-10',
+      'Sample,Resident 1,resident1@example.com,+10000000001,101,Owner,2025-06-15',
+      'Sample,Resident 2,resident2@example.com,,102,Tenant,2025-09-01',
+      'Sample,Resident 3,resident3@example.com,+10000000002,PH-A,Owner,2024-01-10',
     ].join('\n');
 
     return new NextResponse(csv, {
@@ -43,9 +43,9 @@ export async function GET(request: NextRequest) {
   if (type === 'properties') {
     const csv = [
       'Property Name,Address,City,Province,Country,Postal Code,Unit Count,Timezone,Property Code',
-      'Maple Heights Condominiums,100 Front Street West,Toronto,ON,CA,M5J 1E3,171,America/Toronto,MPL-HTS',
-      'Lakeview Towers,250 Queens Quay West,Toronto,ON,CA,M5V 3K9,320,America/Toronto,LKV-TWR',
-      'Riverside Park Condos,45 River Street,Ottawa,ON,CA,K1S 1A2,95,America/Toronto,RVR-PRK',
+      'Sample Property A,123 Main Street,Toronto,ON,CA,M5J 1E3,171,America/Toronto,SMP-A',
+      'Sample Property B,456 Oak Avenue,Toronto,ON,CA,M5V 3K9,320,America/Toronto,SMP-B',
+      'Sample Property C,789 Elm Road,Ottawa,ON,CA,K1S 1A2,95,America/Toronto,SMP-C',
     ].join('\n');
 
     return new NextResponse(csv, {
@@ -76,9 +76,9 @@ export async function GET(request: NextRequest) {
   if (type === 'fobs') {
     const csv = [
       'Serial Number,Unit Number,FOB Type,Status,Issued Date,Issued To,Notes',
-      'FOB-001,101,Main Entrance,Active,2025-01-15,Maria Santos,',
-      'FOB-002,102,Main Entrance,Active,2025-03-01,James Chen,',
-      'FOB-003,PH-A,All Access,Active,2024-01-10,Sarah Williams,Penthouse access',
+      'FOB-001,101,Main Entrance,Active,2025-01-15,Sample Resident 1,',
+      'FOB-002,102,Main Entrance,Active,2025-03-01,Sample Resident 2,',
+      'FOB-003,PH-A,All Access,Active,2024-01-10,Sample Resident 3,Penthouse access',
     ].join('\n');
 
     return new NextResponse(csv, {
@@ -125,9 +125,9 @@ export async function GET(request: NextRequest) {
   if (type === 'staff') {
     const csv = [
       'First Name,Last Name,Email,Phone,Role',
-      'John,Smith,john.smith@building.com,+14165551111,Concierge',
-      'Lisa,Park,lisa.park@building.com,+14165552222,Security',
-      'Mike,Brown,mike.brown@building.com,+14165553333,Maintenance',
+      'Staff,Member 1,staff1@example.com,+10000000001,Concierge',
+      'Staff,Member 2,staff2@example.com,+10000000002,Security',
+      'Staff,Member 3,staff3@example.com,+10000000003,Maintenance',
     ].join('\n');
 
     return new NextResponse(csv, {

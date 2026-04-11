@@ -272,7 +272,7 @@ function PropertyDetailsStep({
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <Input
           label="Property Name"
-          placeholder="e.g. Maple Heights Condominiums"
+          placeholder="e.g. Your Property Name"
           value={data.propertyName ?? ''}
           onChange={(e) => onChange('propertyName', e.target.value)}
           required
@@ -280,7 +280,7 @@ function PropertyDetailsStep({
         <div className="sm:col-span-2">
           <Input
             label="Street Address"
-            placeholder="100 Queensway Park Dr"
+            placeholder="e.g. 123 Main Street"
             value={data.address ?? ''}
             onChange={(e) => onChange('address', e.target.value)}
             required
@@ -343,7 +343,7 @@ function PropertyDetailsStep({
         <Input
           label="Property Phone"
           type="tel"
-          placeholder="+1 (416) 555-0100"
+          placeholder="+1 (000) 000-0000"
           value={data.phone ?? ''}
           onChange={(e) => onChange('phone', e.target.value)}
           required
@@ -1010,7 +1010,7 @@ function StaffStep({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <Input
             label="Full Name"
-            placeholder="Jane Doe"
+            placeholder="Sample Resident"
             value={newStaff.name}
             onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
           />
@@ -1119,7 +1119,7 @@ function ResidentsStep() {
 
   function downloadTemplate() {
     const csv =
-      'Name,Email,Unit Number,Phone,Move-In Date\nJohn Smith,john@example.com,101,+1-416-555-0100,2026-04-01\n';
+      'Name,Email,Unit Number,Phone,Move-In Date\nSample Resident,resident@example.com,101,+1-000-000-0000,2026-04-01\n';
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

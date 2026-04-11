@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const propertyId = body.propertyId || '8165b053-0af8-4e46-aa54-97f52ee9ea8d';
+    const propertyId = body.propertyId || '8165b053-0af8-4e46-aa54-97f52ee9ea8d'; // Demo fallback property
     const results: Record<string, unknown> = {};
     const errors: string[] = [];
 
