@@ -32,12 +32,14 @@ const envSchema = z.object({
   DATABASE_POOL_MAX: z.coerce.number().int().positive().default(10),
 
   // -- Redis ----------------------------------------------------------------
-  REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
+  REDIS_URL: z.string().default('redis://localhost:6379'),
   REDIS_KEY_PREFIX: z.string().default('concierge:'),
 
   // -- Auth / JWT -----------------------------------------------------------
-  JWT_PRIVATE_KEY: z.string().min(1, 'JWT_PRIVATE_KEY is required'),
-  JWT_PUBLIC_KEY: z.string().min(1, 'JWT_PUBLIC_KEY is required'),
+  JWT_PRIVATE_KEY: z.string().default('not-set'),
+  JWT_PUBLIC_KEY: z.string().default('not-set'),
+  JWT_ACCESS_SECRET: z.string().default('dev-access-secret-change-in-production-min-32-chars'),
+  JWT_REFRESH_SECRET: z.string().default('dev-refresh-secret-change-in-production-min-32-chars'),
   JWT_ISSUER: z.string().default('concierge'),
   JWT_AUDIENCE: z.string().default('concierge-app'),
 
