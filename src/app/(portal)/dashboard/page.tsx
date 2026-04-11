@@ -529,23 +529,15 @@ export default function DashboardPage() {
     return map;
   }, [apiData, upcomingTasksData, isSuperAdmin, platformProperties]);
 
-  // Check if we're in demo showcase mode (fake data OK) vs real auth (need real data)
-  const isDemoShowcase =
-    typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'showcase';
-
-  // Fetch real AI analytics for building health score (skip in demo showcase or super_admin)
+  // Fetch real AI analytics for building health score (skip for super_admin)
   // NOTE: This hook MUST be called before any early returns to satisfy Rules of Hooks
   const { data: aiAnalytics } = useApi<{
     healthScore: number | null;
     trend: string;
     factors: { name: string; score: number; weight: number }[];
-  }>(
-    !isDemoShowcase && !isSuperAdmin
-      ? apiUrl('/api/v1/ai/analytics', { propertyId: getPropertyId() })
-      : null,
-  );
+  }>(!isSuperAdmin ? apiUrl('/api/v1/ai/analytics', { propertyId: getPropertyId() }) : null);
 
-  const buildingHealthScore = isDemoShowcase ? 87 : (aiAnalytics?.healthScore ?? null);
+  const buildingHealthScore = aiAnalytics?.healthScore ?? null;
 
   if (loading && !demoRole) {
     return <DashboardSkeleton />;
@@ -714,41 +706,7 @@ export default function DashboardPage() {
             </Badge>
           </CardHeader>
           <CardContent>
-            {isDemoShowcase ? (
-              <div className="space-y-2 text-[14px] leading-relaxed text-neutral-700">
-                <p>
-                  Good{' '}
-                  {new Date().getHours() < 12
-                    ? 'morning'
-                    : new Date().getHours() < 17
-                      ? 'afternoon'
-                      : 'evening'}
-                  . Here is your daily summary:
-                </p>
-                <ul className="ml-4 list-disc space-y-1 text-[13px] text-neutral-600">
-                  <li>
-                    <strong>Elevator B</strong> remains out of service. Technician expected at 2pm
-                    today. Residents should use Elevator A.
-                  </li>
-                  <li>
-                    <strong>3 maintenance requests</strong> are open, 1 marked as urgent (leaking
-                    faucet in Unit 1501).
-                  </li>
-                  <li>
-                    <strong>Fire alarm test</strong> scheduled today from 9am-11am. Residents have
-                    been notified.
-                  </li>
-                  <li>
-                    <strong>12 packages</strong> awaiting pickup. 1 is perishable (Unit 1802, stored
-                    in staff fridge).
-                  </li>
-                  <li>
-                    <strong>Easter weekend</strong> schedule change: building office closed April
-                    18-21.
-                  </li>
-                </ul>
-              </div>
-            ) : apiData?.recentActivity && apiData.recentActivity.length > 0 ? (
+            {apiData?.recentActivity && apiData.recentActivity.length > 0 ? (
               <div className="space-y-2 text-[14px] leading-relaxed text-neutral-700">
                 <p>
                   Good{' '}
@@ -889,23 +847,12 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p
-                    data-testid="weather-temperature"
-                    className="text-[24px] font-bold text-neutral-900"
-                  >
-                    8&deg;C
-                  </p>
-                  <p data-testid="weather-condition" className="text-[13px] text-neutral-500">
-                    Partly cloudy
-                  </p>
-                </div>
-                <div className="text-right text-[12px] text-neutral-500">
-                  <p>H: 12&deg; L: 3&deg;</p>
-                  <p>Humidity: 65%</p>
-                  <p>Wind: 15 km/h</p>
-                </div>
+              <div className="flex flex-col items-center justify-center py-2 text-center">
+                <CloudSun className="mb-2 h-8 w-8 text-neutral-300" />
+                <p className="text-[13px] font-medium text-neutral-500">Weather not configured</p>
+                <p className="mt-0.5 text-[12px] text-neutral-400">
+                  Connect a weather API in Settings
+                </p>
               </div>
             </CardContent>
           </Card>

@@ -43,9 +43,9 @@ const INITIAL_MODULES: EmailModuleConfig[] = [
     icon: Mail,
     iconColor: 'text-neutral-600',
     iconBg: 'bg-neutral-100',
-    fromAddress: 'info@harbourfront.concierge.app',
-    fromName: 'The Residence at Harbourfront',
-    replyToAddress: 'support@harbourfront.concierge.app',
+    fromAddress: '',
+    fromName: '',
+    replyToAddress: '',
   },
   {
     id: '2',
@@ -53,9 +53,9 @@ const INITIAL_MODULES: EmailModuleConfig[] = [
     icon: ShieldCheck,
     iconColor: 'text-error-600',
     iconBg: 'bg-error-50',
-    fromAddress: 'security@harbourfront.concierge.app',
-    fromName: 'Harbourfront Security',
-    replyToAddress: 'security@harbourfront.concierge.app',
+    fromAddress: '',
+    fromName: '',
+    replyToAddress: '',
   },
   {
     id: '3',
@@ -63,9 +63,9 @@ const INITIAL_MODULES: EmailModuleConfig[] = [
     icon: Wrench,
     iconColor: 'text-warning-600',
     iconBg: 'bg-warning-50',
-    fromAddress: 'maintenance@harbourfront.concierge.app',
-    fromName: 'Harbourfront Maintenance',
-    replyToAddress: 'maintenance@harbourfront.concierge.app',
+    fromAddress: '',
+    fromName: '',
+    replyToAddress: '',
   },
   {
     id: '4',
@@ -73,9 +73,9 @@ const INITIAL_MODULES: EmailModuleConfig[] = [
     icon: Package,
     iconColor: 'text-info-600',
     iconBg: 'bg-info-50',
-    fromAddress: 'packages@harbourfront.concierge.app',
-    fromName: 'Harbourfront Packages',
-    replyToAddress: 'concierge@harbourfront.concierge.app',
+    fromAddress: '',
+    fromName: '',
+    replyToAddress: '',
   },
   {
     id: '5',
@@ -83,9 +83,9 @@ const INITIAL_MODULES: EmailModuleConfig[] = [
     icon: Calendar,
     iconColor: 'text-primary-600',
     iconBg: 'bg-primary-50',
-    fromAddress: 'amenities@harbourfront.concierge.app',
-    fromName: 'Harbourfront Amenities',
-    replyToAddress: 'amenities@harbourfront.concierge.app',
+    fromAddress: '',
+    fromName: '',
+    replyToAddress: '',
   },
   {
     id: '6',
@@ -93,9 +93,9 @@ const INITIAL_MODULES: EmailModuleConfig[] = [
     icon: Megaphone,
     iconColor: 'text-success-600',
     iconBg: 'bg-success-50',
-    fromAddress: 'announcements@harbourfront.concierge.app',
-    fromName: 'Harbourfront Announcements',
-    replyToAddress: 'noreply@harbourfront.concierge.app',
+    fromAddress: '',
+    fromName: '',
+    replyToAddress: '',
   },
 ];
 
@@ -106,9 +106,7 @@ const INITIAL_MODULES: EmailModuleConfig[] = [
 export default function EmailConfigurationPage() {
   const [modules] = useState(INITIAL_MODULES);
   const [globalCc, setGlobalCc] = useState('');
-  const [emailSignature, setEmailSignature] = useState(
-    'The Residence at Harbourfront\n225 Queens Quay West, Toronto, ON M5J 1B5\nPhone: (416) 555-0100\nwww.harbourfront-residence.ca',
-  );
+  const [emailSignature, setEmailSignature] = useState('');
   const [deliveryFailureTracking, setDeliveryFailureTracking] = useState(true);
 
   return (

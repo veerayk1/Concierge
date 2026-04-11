@@ -54,10 +54,10 @@ interface QuietHoursConfig {
 // ---------------------------------------------------------------------------
 
 const INITIAL_GLOBAL: GlobalSettings = {
-  defaultFromName: 'The Residence at Harbourfront',
-  defaultFromEmail: 'notifications@harbourfront.concierge.app',
-  replyToEmail: 'support@harbourfront.concierge.app',
-  emailFooterText: 'The Residence at Harbourfront | 225 Queens Quay West, Toronto, ON M5J 1B5',
+  defaultFromName: '',
+  defaultFromEmail: '',
+  replyToEmail: '',
+  emailFooterText: '',
 };
 
 const INITIAL_CHANNELS: ChannelConfig = {

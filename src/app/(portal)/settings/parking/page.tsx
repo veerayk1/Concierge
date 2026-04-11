@@ -40,50 +40,9 @@ type LimitMatrix = Record<LimitScope, Record<LimitPeriod, number>>;
 // Mock Data
 // ---------------------------------------------------------------------------
 
-const INITIAL_AREAS: ParkingArea[] = [
-  { id: '1', name: 'P1 Underground', code: 'P1', totalSpots: 120, visitorSpots: 0 },
-  { id: '2', name: 'P2 Surface', code: 'P2', totalSpots: 80, visitorSpots: 10 },
-  { id: '3', name: 'Visitor Lot', code: 'VIS', totalSpots: 30, visitorSpots: 30 },
-];
+const INITIAL_AREAS: ParkingArea[] = [];
 
-const INITIAL_PERMIT_TYPES: PermitType[] = [
-  {
-    id: '1',
-    name: 'Resident',
-    duration: '1 Year',
-    renewable: true,
-    autoRenew: true,
-    requiresApproval: false,
-    maxPerUnit: 2,
-  },
-  {
-    id: '2',
-    name: 'Visitor',
-    duration: '24 Hours',
-    renewable: false,
-    autoRenew: false,
-    requiresApproval: false,
-    maxPerUnit: 3,
-  },
-  {
-    id: '3',
-    name: 'Contractor',
-    duration: '1 Week',
-    renewable: true,
-    autoRenew: false,
-    requiresApproval: true,
-    maxPerUnit: 1,
-  },
-  {
-    id: '4',
-    name: 'Reserved',
-    duration: '1 Month',
-    renewable: true,
-    autoRenew: true,
-    requiresApproval: true,
-    maxPerUnit: 1,
-  },
-];
+const INITIAL_PERMIT_TYPES: PermitType[] = [];
 
 const SCOPES: LimitScope[] = ['Per Unit', 'Per Plate', 'Per Area'];
 const PERIODS: LimitPeriod[] = [
@@ -116,25 +75,25 @@ const REVERSE_PERIOD_MAP: Record<string, LimitPeriod> = Object.fromEntries(
 
 const INITIAL_LIMITS: LimitMatrix = {
   'Per Unit': {
-    'Per Week': 5,
-    'Per Month': 15,
-    'Per Year': 100,
-    'Consecutive Days': 3,
-    'Day Visits': 2,
+    'Per Week': 0,
+    'Per Month': 0,
+    'Per Year': 0,
+    'Consecutive Days': 0,
+    'Day Visits': 0,
   },
   'Per Plate': {
-    'Per Week': 3,
-    'Per Month': 10,
-    'Per Year': 60,
-    'Consecutive Days': 2,
-    'Day Visits': 1,
+    'Per Week': 0,
+    'Per Month': 0,
+    'Per Year': 0,
+    'Consecutive Days': 0,
+    'Day Visits': 0,
   },
   'Per Area': {
-    'Per Week': 50,
-    'Per Month': 200,
+    'Per Week': 0,
+    'Per Month': 0,
     'Per Year': 0,
-    'Consecutive Days': 10,
-    'Day Visits': 15,
+    'Consecutive Days': 0,
+    'Day Visits': 0,
   },
 };
 
@@ -375,45 +334,65 @@ export default function ParkingConfigurationPage() {
               Add Area
             </Button>
           </div>
-          <div className="flex flex-col gap-3">
-            {areas.map((area) => (
-              <Card key={area.id}>
-                <CardContent>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className="bg-primary-50 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
-                        <Car className="text-primary-600 h-5 w-5" />
+          {areas.length === 0 ? (
+            <Card>
+              <CardContent>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-100">
+                    <Car className="h-6 w-6 text-neutral-400" />
+                  </div>
+                  <p className="text-[15px] font-semibold text-neutral-900">
+                    No parking areas configured
+                  </p>
+                  <p className="mt-1 text-[13px] text-neutral-500">
+                    Add parking areas to manage spots and visitor parking for your property.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {areas.map((area) => (
+                <Card key={area.id}>
+                  <CardContent>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <div className="bg-primary-50 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                          <Car className="text-primary-600 h-5 w-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-[15px] font-semibold text-neutral-900">
+                            {area.name}
+                          </h3>
+                          <p className="mt-0.5 text-[13px] text-neutral-500">Code: {area.code}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-[15px] font-semibold text-neutral-900">{area.name}</h3>
-                        <p className="mt-0.5 text-[13px] text-neutral-500">Code: {area.code}</p>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeArea(area.id)}
+                        className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeArea(area.id)}
-                      className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-4">
-                    <Input
-                      label="Total Spots"
-                      type="number"
-                      defaultValue={String(area.totalSpots)}
-                    />
-                    <Input
-                      label="Visitor Spots"
-                      type="number"
-                      defaultValue={String(area.visitorSpots)}
-                      helperText="Spots reserved for visitor parking."
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <div className="mt-4 grid grid-cols-2 gap-4">
+                      <Input
+                        label="Total Spots"
+                        type="number"
+                        defaultValue={String(area.totalSpots)}
+                      />
+                      <Input
+                        label="Visitor Spots"
+                        type="number"
+                        defaultValue={String(area.visitorSpots)}
+                        helperText="Spots reserved for visitor parking."
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -431,64 +410,82 @@ export default function ParkingConfigurationPage() {
               Add Permit Type
             </Button>
           </div>
-          <div className="flex flex-col gap-3">
-            {permitTypes.map((pt) => (
-              <Card key={pt.id}>
-                <CardContent>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className="bg-info-50 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
-                        <Clock className="text-info-600 h-5 w-5" />
-                      </div>
-                      <div>
-                        <h3 className="text-[15px] font-semibold text-neutral-900">{pt.name}</h3>
-                        <p className="mt-0.5 text-[13px] text-neutral-500">
-                          Duration: {pt.duration} &middot; Max per unit: {pt.maxPerUnit}
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {pt.renewable && (
-                            <Badge variant="success" size="sm">
-                              Renewable
-                            </Badge>
-                          )}
-                          {pt.autoRenew && (
-                            <Badge variant="info" size="sm">
-                              Auto-Renew
-                            </Badge>
-                          )}
-                          {pt.requiresApproval && (
-                            <Badge variant="warning" size="sm">
-                              Requires Approval
-                            </Badge>
-                          )}
+          {permitTypes.length === 0 ? (
+            <Card>
+              <CardContent>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-100">
+                    <Clock className="h-6 w-6 text-neutral-400" />
+                  </div>
+                  <p className="text-[15px] font-semibold text-neutral-900">
+                    No permit types configured
+                  </p>
+                  <p className="mt-1 text-[13px] text-neutral-500">
+                    Add permit types to define parking permit durations, limits, and approval rules.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {permitTypes.map((pt) => (
+                <Card key={pt.id}>
+                  <CardContent>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <div className="bg-info-50 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                          <Clock className="text-info-600 h-5 w-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-[15px] font-semibold text-neutral-900">{pt.name}</h3>
+                          <p className="mt-0.5 text-[13px] text-neutral-500">
+                            Duration: {pt.duration} &middot; Max per unit: {pt.maxPerUnit}
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {pt.renewable && (
+                              <Badge variant="success" size="sm">
+                                Renewable
+                              </Badge>
+                            )}
+                            {pt.autoRenew && (
+                              <Badge variant="info" size="sm">
+                                Auto-Renew
+                              </Badge>
+                            )}
+                            {pt.requiresApproval && (
+                              <Badge variant="warning" size="sm">
+                                Requires Approval
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="mt-4 grid grid-cols-3 gap-4">
-                    <Input label="Duration" defaultValue={pt.duration} />
-                    <Input
-                      label="Max Per Unit"
-                      type="number"
-                      defaultValue={String(pt.maxPerUnit)}
-                    />
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700">
-                        Requires Approval
-                      </label>
-                      <select
-                        defaultValue={pt.requiresApproval ? 'yes' : 'no'}
-                        className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 ease-out hover:border-neutral-300 focus:ring-4 focus:outline-none"
-                      >
-                        <option value="yes">Yes</option>
-                        <option value="no">No</option>
-                      </select>
+                    <div className="mt-4 grid grid-cols-3 gap-4">
+                      <Input label="Duration" defaultValue={pt.duration} />
+                      <Input
+                        label="Max Per Unit"
+                        type="number"
+                        defaultValue={String(pt.maxPerUnit)}
+                      />
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700">
+                          Requires Approval
+                        </label>
+                        <select
+                          defaultValue={pt.requiresApproval ? 'yes' : 'no'}
+                          className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 ease-out hover:border-neutral-300 focus:ring-4 focus:outline-none"
+                        >
+                          <option value="yes">Yes</option>
+                          <option value="no">No</option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
