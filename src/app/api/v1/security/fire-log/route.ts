@@ -36,19 +36,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Use raw query since Prisma client may not have this model generated yet
     const offset = (page - 1) * pageSize;
     let logs: any[];
     let countResult: any[];
 
     if (startDate && endDate) {
       logs = await prisma.$queryRaw`
-        SELECT * FROM fire_logs
-        WHERE "propertyId" = ${propertyId}::uuid
-          AND "deletedAt" IS NULL
-          AND "createdAt" >= ${new Date(startDate)}
-          AND "createdAt" <= ${new Date(endDate)}
-        ORDER BY "createdAt" DESC
+        SELECT fl.*, u.number as "unitNumber"
+        FROM fire_logs fl
+        LEFT JOIN units u ON fl."unitId" = u.id
+        WHERE fl."propertyId" = ${propertyId}::uuid
+          AND fl."deletedAt" IS NULL
+          AND fl."createdAt" >= ${new Date(startDate)}
+          AND fl."createdAt" <= ${new Date(endDate)}
+        ORDER BY fl."createdAt" DESC
         LIMIT ${pageSize} OFFSET ${offset}
       `;
       countResult = await prisma.$queryRaw<{ count: bigint }[]>`
@@ -60,10 +61,12 @@ export async function GET(request: NextRequest) {
       `;
     } else {
       logs = await prisma.$queryRaw`
-        SELECT * FROM fire_logs
-        WHERE "propertyId" = ${propertyId}::uuid
-          AND "deletedAt" IS NULL
-        ORDER BY "createdAt" DESC
+        SELECT fl.*, u.number as "unitNumber"
+        FROM fire_logs fl
+        LEFT JOIN units u ON fl."unitId" = u.id
+        WHERE fl."propertyId" = ${propertyId}::uuid
+          AND fl."deletedAt" IS NULL
+        ORDER BY fl."createdAt" DESC
         LIMIT ${pageSize} OFFSET ${offset}
       `;
       countResult = await prisma.$queryRaw<{ count: bigint }[]>`
@@ -106,6 +109,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       propertyId,
+      unitId,
+      title,
       alarmTime,
       alarmLocation,
       alarmType,
@@ -119,6 +124,8 @@ export async function POST(request: NextRequest) {
       prepareForFdArrival,
       ensureElevatorsReset,
       resetDevices,
+      fireLogDetails,
+      sendCopyEmails,
       additionalNotes,
     } = body;
 
@@ -129,31 +136,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!alarmTime || !alarmLocation || !alarmType) {
+    if (!title || !alarmTime || !alarmLocation || !alarmType) {
       return NextResponse.json(
         {
           error: 'VALIDATION_ERROR',
-          message: 'alarmTime, alarmLocation, and alarmType are required',
+          message: 'title, alarmTime, alarmLocation, and alarmType are required',
         },
         { status: 400 },
       );
     }
 
+    const sanitizedTitle = stripControlChars(stripHtml(title));
     const sanitizedLocation = stripControlChars(stripHtml(alarmLocation));
     const sanitizedType = stripControlChars(stripHtml(alarmType));
+    const sanitizedDetails = fireLogDetails ? stripControlChars(stripHtml(fireLogDetails)) : null;
     const sanitizedNotes = additionalNotes ? stripControlChars(stripHtml(additionalNotes)) : null;
 
-    // Use raw SQL to insert since Prisma client may not have this model generated
+    // sendCopyEmails: array from client, stored as Postgres text[]
+    const emailArray: string[] = Array.isArray(sendCopyEmails)
+      ? sendCopyEmails.filter(Boolean)
+      : [];
+
     const result = await prisma.$queryRaw<any[]>`
       INSERT INTO fire_logs (
-        id, "propertyId", "alarmTime", "alarmLocation", "alarmType",
+        id, "propertyId", "unitId", title,
+        "alarmTime", "alarmLocation", "alarmType",
         "fireDeptCallTime", "firstAnnouncementTime", "secondAnnouncementTime", "thirdAnnouncementTime",
         "fireDeptArrivalTime", "fireDeptAllClearTime", "fireDeptDepartureTime",
         "prepareForFdArrival", "ensureElevatorsReset", "resetDevices",
-        "additionalNotes", "createdById", "createdAt", "updatedAt"
+        "fireLogDetails", "sendCopyEmails", "additionalNotes",
+        "createdById", "createdAt", "updatedAt"
       ) VALUES (
         gen_random_uuid(),
         ${propertyId}::uuid,
+        ${unitId ? unitId : null}::uuid,
+        ${sanitizedTitle},
         ${new Date(alarmTime)},
         ${sanitizedLocation},
         ${sanitizedType},
@@ -167,6 +184,8 @@ export async function POST(request: NextRequest) {
         ${prepareForFdArrival ? JSON.stringify(prepareForFdArrival) : null}::jsonb,
         ${ensureElevatorsReset ? JSON.stringify(ensureElevatorsReset) : null}::jsonb,
         ${resetDevices ? JSON.stringify(resetDevices) : null}::jsonb,
+        ${sanitizedDetails},
+        ${emailArray},
         ${sanitizedNotes},
         ${auth.user.userId}::uuid,
         NOW(),

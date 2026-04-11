@@ -2,7 +2,8 @@
  * Parking Limit Configuration API — per PRD 13 Parking Management
  *
  * GET  — List parking limit configs for a property
- * POST — Create a new parking limit config
+ * POST — Create a single parking limit config
+ * PUT  — Bulk upsert the full limit matrix (used by Settings UI)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,6 +17,23 @@ import { guardRoute } from '@/server/middleware/api-guard';
 
 const VALID_SCOPES = ['per_unit', 'per_plate', 'per_area'] as const;
 const VALID_PERIODS = ['per_week', 'per_month', 'per_year', 'consecutive', 'day_visit'] as const;
+
+// ---------------------------------------------------------------------------
+// PUT schema — bulk upsert
+// ---------------------------------------------------------------------------
+
+const bulkUpsertSchema = z.object({
+  propertyId: z.string().uuid(),
+  limits: z.array(
+    z.object({
+      scope: z.enum(VALID_SCOPES),
+      period: z.enum(VALID_PERIODS),
+      maxCount: z.number().int().min(0), // 0 = unlimited (disables limit)
+      consecutiveDays: z.number().int().min(1).optional(),
+      dayVisitLimit: z.number().int().min(1).optional(),
+    }),
+  ),
+});
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -166,6 +184,75 @@ export async function POST(request: NextRequest) {
     console.error('POST /api/v1/parking/limits error:', error);
     return NextResponse.json(
       { error: 'INTERNAL_ERROR', message: 'Failed to create parking limit config' },
+      { status: 500 },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// PUT /api/v1/parking/limits — Bulk upsert full limit matrix
+// ---------------------------------------------------------------------------
+
+export async function PUT(request: NextRequest) {
+  try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
+    const body = await request.json();
+    const parsed = bulkUpsertSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+
+    const { propertyId, limits } = parsed.data;
+
+    // Prisma upsert can't handle nullable fields in the unique where clause,
+    // so we use findFirst + update/create pattern for each entry.
+    const upserted = await Promise.all(
+      limits.map(async (entry) => {
+        const isActive = entry.maxCount > 0;
+        const consecutiveDays =
+          entry.period === 'consecutive' ? (entry.consecutiveDays ?? null) : null;
+        const dayVisitLimit = entry.period === 'day_visit' ? (entry.dayVisitLimit ?? null) : null;
+
+        const existing = await prisma.parkingLimitConfig.findFirst({
+          where: { propertyId, permitTypeId: null, scope: entry.scope, period: entry.period },
+        });
+
+        if (existing) {
+          return prisma.parkingLimitConfig.update({
+            where: { id: existing.id },
+            data: { maxCount: entry.maxCount, isActive, consecutiveDays, dayVisitLimit },
+          });
+        }
+
+        return prisma.parkingLimitConfig.create({
+          data: {
+            propertyId,
+            permitTypeId: null,
+            scope: entry.scope,
+            period: entry.period,
+            maxCount: entry.maxCount,
+            isActive,
+            consecutiveDays,
+            dayVisitLimit,
+          },
+        });
+      }),
+    );
+
+    return NextResponse.json(
+      { data: upserted, message: 'Parking limits updated.' },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error('PUT /api/v1/parking/limits error:', error);
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', message: 'Failed to update parking limits' },
       { status: 500 },
     );
   }

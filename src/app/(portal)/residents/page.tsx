@@ -33,6 +33,7 @@ interface ApiResident {
   unit?: { id: string; number: string } | null;
   residentType?: string | null;
   moveInDate?: string | null;
+  assistanceRequired?: boolean; // GAP 8.2
 }
 
 interface ApiResponse {
@@ -57,6 +58,7 @@ interface Resident {
   unitNumber: string;
   status: 'active' | 'inactive';
   createdAt: string;
+  assistanceRequired: boolean; // GAP 8.2
 }
 
 // ---------------------------------------------------------------------------
@@ -100,6 +102,7 @@ export default function ResidentsPage() {
       unitNumber: r.unit?.number || '',
       status: 'active' as const,
       createdAt: r.createdAt,
+      assistanceRequired: r.assistanceRequired ?? false, // GAP 8.2
     }));
   }, [apiResponse]);
 
@@ -113,8 +116,13 @@ export default function ResidentsPage() {
         <div className="flex items-center gap-3">
           <Avatar name={`${row.firstName} ${row.lastName}`} size="sm" />
           <div>
-            <p className="text-[14px] font-medium text-neutral-900">
+            <p className="flex items-center gap-1.5 text-[14px] font-medium text-neutral-900">
               {row.firstName} {row.lastName}
+              {row.assistanceRequired && (
+                <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                  Assistance
+                </span>
+              )}
             </p>
             <p className="text-[12px] text-neutral-500">{row.email}</p>
           </div>

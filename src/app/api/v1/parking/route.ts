@@ -14,6 +14,32 @@ import { guardRoute } from '@/server/middleware/api-guard';
 import { requireModule } from '@/server/middleware/module-guard';
 
 // ---------------------------------------------------------------------------
+// Date helpers for limit enforcement
+// ---------------------------------------------------------------------------
+
+function getPeriodWindowStart(period: string, now: Date): Date {
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = now.getDate();
+  switch (period) {
+    case 'per_week': {
+      // Monday 00:00 of the current week
+      const day = now.getDay(); // 0=Sun
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      return new Date(y, m, d + diffToMonday);
+    }
+    case 'per_month':
+      return new Date(y, m, 1);
+    case 'per_year':
+      return new Date(y, 0, 1);
+    case 'day_visit':
+      return new Date(y, m, d);
+    default:
+      return new Date(y, m, d);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Schemas
 // ---------------------------------------------------------------------------
 
@@ -194,6 +220,55 @@ export async function POST(request: NextRequest) {
         },
         { status: 409 },
       );
+    }
+
+    // ---- Parking limit enforcement ----
+    const limitConfigs = await prisma.parkingLimitConfig.findMany({
+      where: { propertyId: data.propertyId, isActive: true },
+    });
+
+    if (limitConfigs.length > 0) {
+      const now = new Date();
+      for (const config of limitConfigs) {
+        // Skip consecutive-day enforcement (requires chain analysis — future work)
+        if (config.period === 'consecutive') continue;
+
+        const windowStart = getPeriodWindowStart(config.period, now);
+        const whereClause: Record<string, unknown> = {
+          propertyId: data.propertyId,
+          status: { in: ['active', 'pending_review'] },
+          deletedAt: null,
+          validFrom: { gte: windowStart },
+        };
+
+        if (config.scope === 'per_unit') {
+          whereClause.unitId = data.unitId;
+        } else if (config.scope === 'per_plate') {
+          whereClause.licensePlate = { equals: data.licensePlate, mode: 'insensitive' };
+        }
+        // per_area: skip (areaId not always present on permit)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const count = await prisma.parkingPermit.count({ where: whereClause as any });
+
+        if (config.maxCount > 0 && count >= config.maxCount) {
+          const scopeLabel = config.scope.replace(/_/g, ' ');
+          const periodLabel = config.period.replace(/_/g, ' ');
+          return NextResponse.json(
+            {
+              error: 'LIMIT_EXCEEDED',
+              message: `Parking limit exceeded: max ${config.maxCount} permit${config.maxCount === 1 ? '' : 's'} ${periodLabel} ${scopeLabel}`,
+              config: {
+                scope: config.scope,
+                period: config.period,
+                limit: config.maxCount,
+                current: count,
+              },
+            },
+            { status: 422 },
+          );
+        }
+      }
     }
 
     // Find available spot if areaId provided

@@ -212,6 +212,7 @@ model User {
   salutation   String?   @db.VarChar(10) // Mr., Mrs., Ms., Dr., etc.
   languagePreference String @default("en") @db.VarChar(5) // en, fr-CA
   assistanceRequired Boolean @default(false) // Emergency mobility/medical needs flag
+  assistanceNotes    String?   @db.VarChar(500)  // GAP 8.2: Notes on assistance needed
   emailSignature     String?   @db.Text // GAP 8.1: Rich HTML email signature for staff
   mfaEnabled   Boolean   @default(false)
   mfaSecret    String?   @db.VarChar(500) // Encrypted at application layer
@@ -616,6 +617,7 @@ model Unit {
   visitorEntries      VisitorEntry[]
   authorizedDelegates AuthorizedDelegate[]
   alterationProjects  AlterationProject[]
+  fireLogs            FireLog[]
 
   @@unique([propertyId, number])
   @@index([propertyId])
@@ -2260,8 +2262,9 @@ model VacationPeriod {
   startDate  DateTime @db.Date
   endDate    DateTime @db.Date
   notes      String?  @db.VarChar(500)
-  holdMail   Boolean  @default(false) // Hold packages during vacation
-  isActive   Boolean  @default(true)
+  holdMail             Boolean  @default(false) // Hold packages during vacation
+  pauseNotifications   Boolean  @default(false) // Pause all notifications during vacation
+  isActive             Boolean  @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2280,10 +2283,12 @@ model VacationPeriod {
 model FireLog {
   id                            String   @id @default(uuid()) @db.Uuid
   propertyId                    String   @db.Uuid
-  eventId                       String?  @db.Uuid // Link to parent Event if created via event system
+  unitId                        String?  @db.Uuid            // Related Unit
+  eventId                       String?  @db.Uuid            // Link to parent Event if created via event system
+  title                         String?  @db.VarChar(200)    // Log Title
   alarmTime                     DateTime?
-  alarmLocation                 String?  @db.VarChar(255) // Where the alarm was triggered
-  alarmType                     String?  @db.VarChar(50) // manual_pull, heat_detector, smoke_detector, etc.
+  alarmLocation                 String?  @db.VarChar(255)    // Where the alarm was triggered
+  alarmType                     String?  @db.VarChar(50)     // manual_pull, heat_detector, smoke_detector, etc.
   fireDeptCallTime              DateTime?
   firstAnnouncementTime         DateTime?
   secondAnnouncementTime        DateTime?
@@ -2291,9 +2296,11 @@ model FireLog {
   fireDeptArrivalTime           DateTime?
   fireDeptAllClearTime          DateTime?
   fireDeptDepartureTime         DateTime?
-  prepareForFdArrival           Json?    @db.JsonB // Checklist items: {items: [{name, completed, notes}]}
-  ensureElevatorsReset          Json?    @db.JsonB // Checklist items
-  resetDevices                  Json?    @db.JsonB // Detailed reset checklist for: Pull Station, Smoke Detector, Heat Detector, Sprinkler Head, Fire Panel, Mag Locks, Elevators
+  prepareForFdArrival           Json?    @db.JsonB // {fireSafetyPlan, fireDeptKeys, residentsNeedingAssistance}
+  ensureElevatorsReset          Json?    @db.JsonB // {elevator1, elevator2, elevator3, elevator4}
+  resetDevices                  Json?    @db.JsonB // {pullStation, smokeDetector, heatDetector, sprinklerHead, firePanel, magLocks, elevators}
+  fireLogDetails                String?  @db.Text            // Main description, pre-filled "Full Report to Follow..."
+  sendCopyEmails                String[]                     // Email recipients for copy
   additionalNotes               String?  @db.Text
   createdById                   String?  @db.Uuid
 
@@ -2302,6 +2309,7 @@ model FireLog {
   deletedAt DateTime?
 
   property Property @relation(fields: [propertyId], references: [id])
+  unit     Unit?    @relation(fields: [unitId], references: [id])
 
   @@index([propertyId, alarmTime])
   @@index([propertyId, createdAt])
@@ -2313,18 +2321,25 @@ model FireLog {
 // ---------------------------------------------------------------------------
 
 model NoiseComplaint {
-  id                    String   @id @default(uuid()) @db.Uuid
-  propertyId            String   @db.Uuid
-  eventId               String?  @db.Uuid // Link to parent Event
-  complainantFloor      String?  @db.VarChar(20)
-  suspectFloor          String?  @db.VarChar(20)
-  noiseDuration         String?  @db.VarChar(100) // e.g., "5-10 minutes", "ongoing"
-  noiseVolume           Int?     // Degree scale 1-10
-  natureOfComplaint     String[] // Array of complaint types: Drop on Floor, Loud Music, Smoking Hallways, Smoking in Suite, Hallway Noise, Piano Playing, Dog Barking, Cooking Odors, Children Playing, Walking/Banging, Party, Talking, Construction, Other
-  suspectContactMethod  String?  @db.VarChar(100) // How to contact suspected noisemaker
-  counselingNotes       String?  @db.Text // Notes on counseling/resolution attempt
-  resolutionStatus      String?  @db.VarChar(50) // pending, resolved, escalated, ongoing
-  createdById           String?  @db.Uuid
+  id                           String   @id @default(uuid()) @db.Uuid
+  propertyId                   String   @db.Uuid
+  eventId                      String?  @db.Uuid            // Link to parent Event
+  title                        String?  @db.VarChar(200)    // Log title
+  complainantFloor             String?  @db.VarChar(20)     // Complainant unit/floor
+  suspectFloor                 String?  @db.VarChar(20)     // Suspect unit/floor
+  natureOfComplaint            String[]                     // 14 types: Drop on Floor, Loud Music, etc.
+  complainantFloorNoticeable   String?  @db.VarChar(100)    // How noise was noticeable on complainant floor
+  suspectFloorNoticeable       String?  @db.VarChar(100)    // Noise noticeable from suspect floor
+  noiseDuration                String?  @db.VarChar(100)    // Length of time verified (free text)
+  noiseDurationAssessment      String?  @db.VarChar(100)    // Categorical duration assessment
+  noiseDegreeAssessment        String?  @db.VarChar(100)    // Categorical volume/degree assessment
+  noiseVolume                  Int?                         // Numeric scale 1-10 (legacy)
+  suspectContactedBy           String[]                     // Multi-select: Home Phone, Work Phone, Other Phone, At the door, No one home
+  complainantAdvised           String?  @db.VarChar(100)    // How complainant was advised of action taken
+  counselingNotes              String?  @db.Text            // Legacy counseling notes
+  noiseLogDetails              String?  @db.Text            // Main description, pre-filled "Full Report to Follow..."
+  resolutionStatus             String?  @db.VarChar(50)     // pending, resolved, escalated, ongoing
+  createdById                  String?  @db.Uuid
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

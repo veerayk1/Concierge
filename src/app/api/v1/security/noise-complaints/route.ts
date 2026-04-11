@@ -1,9 +1,9 @@
 /**
  * Noise Complaint API — Investigation & Tracking
- * Per GAP 3.2 — Noise complaint specialized fields with 14 nature types
+ * Per GAP 3.2 — Complete noise complaint with all investigation fields
  *
  * GET  /api/v1/security/noise-complaints — List complaints with unit/floor filtering
- * POST /api/v1/security/noise-complaints — Create complaint with nature types and investigation fields
+ * POST /api/v1/security/noise-complaints — Create complaint with full investigation fields
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,7 +11,6 @@ import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
-// The 14 nature-of-complaint types from P1 research
 const NOISE_NATURES = [
   'Drop on Floor',
   'Loud Music',
@@ -27,6 +26,14 @@ const NOISE_NATURES = [
   'Talking',
   'Construction',
   'Other',
+];
+
+const SUSPECT_CONTACT_OPTIONS = [
+  'Home Phone',
+  'Work Phone',
+  'Other Phone',
+  'At the door',
+  'No one home',
 ];
 
 // ---------------------------------------------------------------------------
@@ -70,12 +77,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       data: complaints,
-      meta: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
-      },
+      meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
     });
   } catch (error) {
     console.error('GET /api/v1/security/noise-complaints error:', error);
@@ -100,17 +102,27 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       propertyId,
+      title,
       complainantFloor,
       suspectFloor,
-      noiseDuration,
-      noiseVolume,
       natureOfComplaint,
-      suspectContactMethod,
-      counselingNotes,
+      complainantFloorNoticeable,
+      suspectFloorNoticeable,
+      noiseDuration,
+      noiseDurationAssessment,
+      noiseDegreeAssessment,
+      suspectContactedBy,
+      complainantAdvised,
+      noiseLogDetails,
       resolutionStatus,
     } = body;
 
-    if (!propertyId || !natureOfComplaint || !Array.isArray(natureOfComplaint) || natureOfComplaint.length === 0) {
+    if (
+      !propertyId ||
+      !natureOfComplaint ||
+      !Array.isArray(natureOfComplaint) ||
+      natureOfComplaint.length === 0
+    ) {
       return NextResponse.json(
         {
           error: 'VALIDATION_ERROR',
@@ -120,41 +132,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate nature types
     const validNatures = natureOfComplaint.filter((n: string) => NOISE_NATURES.includes(n));
     if (validNatures.length === 0) {
       return NextResponse.json(
         {
           error: 'VALIDATION_ERROR',
-          message: `Invalid complaint natures. Valid types: ${NOISE_NATURES.join(', ')}`,
+          message: `Invalid complaint natures. Valid: ${NOISE_NATURES.join(', ')}`,
         },
         { status: 400 },
       );
     }
 
-    const sanitizedFloor1 = complainantFloor ? stripControlChars(stripHtml(complainantFloor)) : null;
-    const sanitizedFloor2 = suspectFloor ? stripControlChars(stripHtml(suspectFloor)) : null;
-    const sanitizedDuration = noiseDuration ? stripControlChars(stripHtml(noiseDuration)) : null;
-    const sanitizedMethod = suspectContactMethod ? stripControlChars(stripHtml(suspectContactMethod)) : null;
-    const sanitizedNotes = counselingNotes ? stripControlChars(stripHtml(counselingNotes)) : null;
-    const vol = noiseVolume ? parseInt(String(noiseVolume), 10) : null;
+    const sanitize = (s: string | null | undefined) => (s ? stripControlChars(stripHtml(s)) : null);
+
+    const sanitizedTitle = sanitize(title);
+    const sanitizedFloor1 = sanitize(complainantFloor);
+    const sanitizedFloor2 = sanitize(suspectFloor);
+    const sanitizedDuration = sanitize(noiseDuration);
+    const sanitizedDetails = sanitize(noiseLogDetails);
+
+    const contactedBy: string[] = Array.isArray(suspectContactedBy)
+      ? suspectContactedBy.filter((c: string) => SUSPECT_CONTACT_OPTIONS.includes(c))
+      : [];
 
     const result = await prisma.$queryRaw<any[]>`
       INSERT INTO noise_complaints (
-        id, "propertyId", "complainantFloor", "suspectFloor",
-        "noiseDuration", "noiseVolume", "natureOfComplaint",
-        "suspectContactMethod", "counselingNotes", "resolutionStatus",
+        id, "propertyId", title,
+        "complainantFloor", "suspectFloor",
+        "natureOfComplaint",
+        "complainantFloorNoticeable", "suspectFloorNoticeable",
+        "noiseDuration", "noiseDurationAssessment", "noiseDegreeAssessment",
+        "suspectContactedBy", "complainantAdvised",
+        "noiseLogDetails", "resolutionStatus",
         "createdById", "createdAt", "updatedAt"
       ) VALUES (
         gen_random_uuid(),
         ${propertyId}::uuid,
+        ${sanitizedTitle},
         ${sanitizedFloor1},
         ${sanitizedFloor2},
-        ${sanitizedDuration},
-        ${vol},
         ${validNatures},
-        ${sanitizedMethod},
-        ${sanitizedNotes},
+        ${complainantFloorNoticeable || null},
+        ${suspectFloorNoticeable || null},
+        ${sanitizedDuration},
+        ${noiseDurationAssessment || null},
+        ${noiseDegreeAssessment || null},
+        ${contactedBy},
+        ${complainantAdvised || null},
+        ${sanitizedDetails},
         ${resolutionStatus || 'pending'},
         ${auth.user.userId}::uuid,
         NOW(),
@@ -164,16 +189,17 @@ export async function POST(request: NextRequest) {
     `;
 
     return NextResponse.json(
-      {
-        data: result[0],
-        message: 'Noise complaint created successfully.',
-      },
+      { data: result[0], message: 'Noise complaint created successfully.' },
       { status: 201 },
     );
   } catch (error) {
     console.error('POST /api/v1/security/noise-complaints error:', error);
     return NextResponse.json(
-      { error: 'INTERNAL_ERROR', message: 'Failed to create noise complaint', detail: String(error) },
+      {
+        error: 'INTERNAL_ERROR',
+        message: 'Failed to create noise complaint',
+        detail: String(error),
+      },
       { status: 500 },
     );
   }

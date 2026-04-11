@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       endDate: v.endDate,
       notes: v.notes,
       holdPackages: v.holdMail ?? false,
-      pauseNotifications: false,
+      pauseNotifications: v.pauseNotifications ?? false,
       status: v.status || 'upcoming',
       createdAt: v.createdAt,
       resident: {
@@ -85,7 +85,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('GET /api/v1/vacations error:', error);
     return NextResponse.json(
-      { error: 'INTERNAL_ERROR', message: 'Failed to fetch vacation periods', detail: String(error) },
+      {
+        error: 'INTERNAL_ERROR',
+        message: 'Failed to fetch vacation periods',
+        detail: String(error),
+      },
       { status: 500 },
     );
   }
@@ -101,14 +105,7 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const {
-      propertyId,
-      userId,
-      startDate,
-      endDate,
-      notes,
-      holdMail,
-    } = body;
+    const { propertyId, userId, startDate, endDate, notes, holdMail, pauseNotifications } = body;
     let { unitId } = body;
 
     if (!propertyId || !userId || !startDate || !endDate) {
@@ -153,10 +150,7 @@ export async function POST(request: NextRequest) {
     `;
 
     if (!userResult || userResult.length === 0) {
-      return NextResponse.json(
-        { error: 'NOT_FOUND', message: 'User not found' },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: 'NOT_FOUND', message: 'User not found' }, { status: 404 });
     }
 
     const user = userResult[0];
@@ -180,7 +174,7 @@ export async function POST(request: NextRequest) {
     const result = await prisma.$queryRaw<any[]>`
       INSERT INTO vacation_periods (
         id, "propertyId", "userId", "unitId", "startDate", "endDate",
-        notes, "createdAt", "updatedAt"
+        notes, "holdMail", "pauseNotifications", "createdAt", "updatedAt"
       ) VALUES (
         gen_random_uuid(),
         ${propertyId}::uuid,
@@ -189,6 +183,8 @@ export async function POST(request: NextRequest) {
         ${start}::date,
         ${end}::date,
         ${sanitizedNotes},
+        ${!!holdMail},
+        ${!!pauseNotifications},
         NOW(),
         NOW()
       )
@@ -205,7 +201,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('POST /api/v1/vacations error:', error);
     return NextResponse.json(
-      { error: 'INTERNAL_ERROR', message: 'Failed to create vacation period', detail: String(error) },
+      {
+        error: 'INTERNAL_ERROR',
+        message: 'Failed to create vacation period',
+        detail: String(error),
+      },
       { status: 500 },
     );
   }

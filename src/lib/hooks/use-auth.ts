@@ -32,6 +32,10 @@ export interface AuthUser {
   phone?: string | null;
   role: Role;
   propertyId?: string;
+  requiresAssistance?: boolean; // GAP 8.2
+  assistanceNotes?: string | null; // GAP 8.2
+  languagePreference?: 'en' | 'fr-CA';
+  emailSignature?: string;
 }
 
 interface LoginSuccessResponse {

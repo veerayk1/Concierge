@@ -214,7 +214,7 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         label: 'Vacations',
         href: '/residents/vacations',
         icon: CalendarDays,
-        // Staff and admin can view resident vacations for planning
+        // Staff and admin can view all resident vacations for planning
         roles: ['property_admin', 'property_manager', 'front_desk', 'security_guard'],
       },
       {
@@ -264,6 +264,14 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         icon: CalendarDays,
         // 7.10 Owner, 7.11 Tenant, 7.13 Family Member
         roles: ['resident_owner', 'resident_tenant', 'family_member'],
+      },
+      {
+        id: 'my-vacations',
+        label: 'My Vacations',
+        href: '/residents/vacations',
+        icon: CalendarDays,
+        // Residents mark their own away periods (Gap 7.1)
+        roles: ['resident_owner', 'resident_tenant', 'offsite_owner', 'family_member'],
       },
     ],
   },

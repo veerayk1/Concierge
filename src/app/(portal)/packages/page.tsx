@@ -19,6 +19,8 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -36,6 +38,8 @@ import { exportToCsv } from '@/lib/export-csv';
 interface PackageItem {
   id: string;
   referenceNumber: string;
+  direction: 'incoming' | 'outgoing';
+  trackingNumber: string;
   unit: string;
   recipient: string;
   courier: string;
@@ -55,6 +59,8 @@ interface PackageItem {
 interface ApiPackage {
   id: string;
   referenceNumber: string;
+  direction: string;
+  trackingNumber: string | null;
   status: string;
   description: string | null;
   isPerishable: boolean;
@@ -81,6 +87,8 @@ function normalizePackage(raw: ApiPackage): PackageItem {
   return {
     id: raw.id,
     referenceNumber: raw.referenceNumber,
+    direction: (raw.direction === 'outgoing' ? 'outgoing' : 'incoming') as 'incoming' | 'outgoing',
+    trackingNumber: raw.trackingNumber ?? '',
     unit: raw.unit?.number ?? 'N/A',
     recipient: raw.releasedToName ?? '',
     courier: raw.courier?.name ?? 'Other',
@@ -137,6 +145,7 @@ export default function PackagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [directionFilter, setDirectionFilter] = useState<'all' | 'incoming' | 'outgoing'>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [courierFilter, setCourierFilter] = useState<string>('');
   const [perishableOnly, setPerishableOnly] = useState(false);
@@ -158,12 +167,13 @@ export default function PackagesPage() {
       apiUrl('/api/v1/packages', {
         propertyId: getPropertyId(),
         search: debouncedSearch || undefined,
+        direction: directionFilter !== 'all' ? directionFilter : undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         courierId: courierFilter || undefined,
         perishable: perishableOnly ? 'true' : undefined,
         pageSize: '200',
       }),
-    [debouncedSearch, statusFilter, courierFilter, perishableOnly],
+    [debouncedSearch, directionFilter, statusFilter, courierFilter, perishableOnly],
   );
 
   const { data: apiPackages, loading, error, refetch } = useApi<ApiPackage[]>(fetchUrl);
@@ -194,6 +204,22 @@ export default function PackagesPage() {
           {row.referenceNumber}
         </span>
       ),
+    },
+    {
+      id: 'direction',
+      header: '',
+      cell: (row) =>
+        row.direction === 'outgoing' ? (
+          <span className="inline-flex items-center gap-1 rounded-lg bg-purple-50 px-2 py-0.5 text-[11px] font-semibold text-purple-700">
+            <ArrowUp className="h-3 w-3" />
+            Out
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+            <ArrowDown className="h-3 w-3" />
+            In
+          </span>
+        ),
     },
     {
       id: 'unit',
@@ -229,6 +255,17 @@ export default function PackagesPage() {
           </span>
         );
       },
+    },
+    {
+      id: 'trackingNumber',
+      header: 'Tracking #',
+      accessorKey: 'trackingNumber',
+      cell: (row) =>
+        row.trackingNumber ? (
+          <span className="font-mono text-[12px] text-neutral-600">{row.trackingNumber}</span>
+        ) : (
+          <span className="text-[12px] text-neutral-300">—</span>
+        ),
     },
     {
       id: 'description',
@@ -321,6 +358,22 @@ export default function PackagesPage() {
       ),
     },
     {
+      id: 'direction',
+      header: '',
+      cell: (row) =>
+        row.direction === 'outgoing' ? (
+          <span className="inline-flex items-center gap-1 rounded-lg bg-purple-50 px-2 py-0.5 text-[11px] font-semibold text-purple-700">
+            <ArrowUp className="h-3 w-3" />
+            Out
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+            <ArrowDown className="h-3 w-3" />
+            In
+          </span>
+        ),
+    },
+    {
       id: 'unit',
       header: 'Unit',
       accessorKey: 'unit',
@@ -394,9 +447,11 @@ export default function PackagesPage() {
                 allPackages,
                 [
                   { key: 'referenceNumber', header: 'Reference #' },
+                  { key: 'direction', header: 'Direction' },
                   { key: 'unit', header: 'Unit' },
                   { key: 'recipient', header: 'Recipient' },
                   { key: 'courier', header: 'Courier' },
+                  { key: 'trackingNumber', header: 'Tracking #' },
                   { key: 'description', header: 'Description' },
                   { key: 'status', header: 'Status' },
                   { key: 'storageSpot', header: 'Storage Spot' },
@@ -451,6 +506,30 @@ export default function PackagesPage() {
             <p className="text-[13px] text-neutral-500">Perishable</p>
           </div>
         </Card>
+      </div>
+
+      {/* Direction Tabs */}
+      <div className="mb-4 flex w-fit items-center gap-1 rounded-xl bg-neutral-100 p-1">
+        {(
+          [
+            { value: 'all', label: 'All Packages' },
+            { value: 'incoming', label: '↓ Incoming', icon: ArrowDown },
+            { value: 'outgoing', label: '↑ Outgoing', icon: ArrowUp },
+          ] as const
+        ).map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setDirectionFilter(value)}
+            className={`rounded-lg px-4 py-1.5 text-[13px] font-medium transition-all ${
+              directionFilter === value
+                ? 'bg-white text-neutral-900 shadow-sm'
+                : 'text-neutral-500 hover:text-neutral-700'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Search + Filters */}
@@ -524,6 +603,7 @@ export default function PackagesPage() {
             variant="ghost"
             size="sm"
             onClick={() => {
+              setDirectionFilter('all');
               setStatusFilter('all');
               setCourierFilter('');
               setPerishableOnly(false);

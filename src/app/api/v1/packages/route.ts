@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
     const propertyId = searchParams.get('propertyId');
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status');
+    const direction = searchParams.get('direction');
     const courierId = searchParams.get('courierId');
     const unitId = searchParams.get('unitId');
     const perishable = searchParams.get('perishable');
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
     };
 
     if (status) where.status = status;
+    if (direction === 'incoming' || direction === 'outgoing') where.direction = direction;
     if (courierId) where.courierId = courierId;
     if (unitId) where.unitId = unitId;
     if (perishable === 'true') where.isPerishable = true;

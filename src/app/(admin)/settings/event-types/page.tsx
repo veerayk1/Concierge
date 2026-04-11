@@ -13,6 +13,9 @@ import {
   Circle,
   Plus,
   Loader2,
+  Mail,
+  X,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -373,6 +376,92 @@ export default function EventTypesPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // ---- Email Config state ----
+  const [emailConfigOpen, setEmailConfigOpen] = useState(false);
+  const [emailConfigType, setEmailConfigType] = useState<EventType | null>(null);
+  const [ccInput, setCcInput] = useState('');
+  const [ccAddresses, setCcAddresses] = useState<string[]>([]);
+  const [ccLoading, setCcLoading] = useState(false);
+  const [ccSaving, setCcSaving] = useState(false);
+  const [ccSaved, setCcSaved] = useState(false);
+  const [ccError, setCcError] = useState<string | null>(null);
+  const [ccInputError, setCcInputError] = useState<string | null>(null);
+
+  function openEmailConfig(et: EventType) {
+    setEmailConfigType(et);
+    setCcAddresses([]);
+    setCcInput('');
+    setCcError(null);
+    setCcInputError(null);
+    setCcSaved(false);
+    setEmailConfigOpen(true);
+    setCcLoading(true);
+    apiRequest(
+      `/api/v1/event-types/email-config?propertyId=${getPropertyId()}&eventTypeId=${et.id}`,
+      { method: 'GET' },
+    )
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.data?.autoCcAddresses) {
+          setCcAddresses(json.data.autoCcAddresses);
+        }
+      })
+      .catch(() => {}) // 404 = no config yet, start with empty list
+      .finally(() => setCcLoading(false));
+  }
+
+  function addCcAddress() {
+    const addr = ccInput.trim();
+    if (!addr) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)) {
+      setCcInputError('Enter a valid email address');
+      return;
+    }
+    if (ccAddresses.includes(addr)) {
+      setCcInputError('Address already added');
+      return;
+    }
+    if (ccAddresses.length >= 10) {
+      setCcInputError('Maximum 10 CC recipients allowed');
+      return;
+    }
+    setCcAddresses((prev) => [...prev, addr]);
+    setCcInput('');
+    setCcInputError(null);
+    setCcSaved(false);
+  }
+
+  function removeCcAddress(addr: string) {
+    setCcAddresses((prev) => prev.filter((a) => a !== addr));
+    setCcSaved(false);
+  }
+
+  async function saveCcConfig() {
+    if (!emailConfigType) return;
+    setCcSaving(true);
+    setCcError(null);
+    try {
+      const res = await apiRequest('/api/v1/event-types/email-config', {
+        method: 'POST',
+        body: {
+          propertyId: getPropertyId(),
+          eventTypeId: emailConfigType.id,
+          autoCcAddresses: ccAddresses,
+        },
+      });
+      if (res.ok) {
+        setCcSaved(true);
+      } else {
+        const json = await res.json().catch(() => ({}));
+        setCcError((json as { message?: string }).message || 'Failed to save. Please try again.');
+      }
+    } catch {
+      setCcError('Network error. Please try again.');
+    } finally {
+      setCcSaving(false);
+    }
+  }
+
   const {
     data: apiEventTypes,
     loading,
@@ -502,6 +591,15 @@ export default function EventTypesPage() {
                         </div>
                         <p className="mt-0.5 text-[13px] text-neutral-500">{et.description}</p>
                       </div>
+                      {/* Auto-CC Email Config Button */}
+                      <button
+                        type="button"
+                        onClick={() => openEmailConfig(et)}
+                        title="Configure auto-CC emails"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-400 transition-colors hover:border-neutral-300 hover:text-neutral-700"
+                      >
+                        <Mail className="h-4 w-4" />
+                      </button>
                       {/* Toggle */}
                       <button
                         type="button"
@@ -551,6 +649,140 @@ export default function EventTypesPage() {
           )}
         </Button>
       </div>
+
+      {/* Email Config Dialog */}
+      <Dialog open={emailConfigOpen} onOpenChange={(o) => !o && setEmailConfigOpen(false)}>
+        <DialogContent className="max-w-lg">
+          <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
+            <Mail className="text-primary-500 h-5 w-5" />
+            Email Configuration
+            {emailConfigType && (
+              <span className="font-normal text-neutral-500">— {emailConfigType.name}</span>
+            )}
+          </DialogTitle>
+          <DialogDescription className="text-[14px] text-neutral-500">
+            These addresses are automatically notified whenever a new event of this type is created.
+            Maximum 10 recipients.
+          </DialogDescription>
+
+          <div className="mt-6 flex flex-col gap-5">
+            {/* Input row */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[14px] font-medium text-neutral-700">AUTO-CC RECIPIENTS</label>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={ccInput}
+                  onChange={(e) => {
+                    setCcInput(e.target.value);
+                    setCcInputError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      addCcAddress();
+                    }
+                  }}
+                  placeholder="manager@building.com"
+                  disabled={ccLoading || ccAddresses.length >= 10}
+                  className="focus:border-primary-500 focus:ring-primary-100 h-[44px] flex-1 rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 focus:ring-4 focus:outline-none disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  onClick={addCcAddress}
+                  disabled={ccLoading || !ccInput.trim() || ccAddresses.length >= 10}
+                  className="bg-primary-500 hover:bg-primary-600 disabled:bg-primary-200 flex h-[44px] items-center gap-1.5 rounded-xl px-4 text-[14px] font-medium text-white transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add
+                </button>
+              </div>
+              {ccInputError && <p className="text-error-600 text-[13px]">{ccInputError}</p>}
+              <p className="text-[12px] text-neutral-400">
+                Press Enter or comma to add. {ccAddresses.length}/10 addresses.
+              </p>
+            </div>
+
+            {/* Loading */}
+            {ccLoading && (
+              <div className="flex items-center gap-2 text-[14px] text-neutral-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading configuration...
+              </div>
+            )}
+
+            {/* Tags */}
+            {!ccLoading && ccAddresses.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {ccAddresses.map((addr) => (
+                  <span
+                    key={addr}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[13px] text-neutral-700"
+                  >
+                    {addr}
+                    <button
+                      type="button"
+                      onClick={() => removeCcAddress(addr)}
+                      className="text-neutral-400 transition-colors hover:text-neutral-700"
+                      aria-label={`Remove ${addr}`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {!ccLoading && ccAddresses.length === 0 && (
+              <p className="rounded-xl border border-dashed border-neutral-200 py-4 text-center text-[13px] text-neutral-400">
+                No auto-CC recipients configured. Add addresses above.
+              </p>
+            )}
+
+            {/* Error */}
+            {ccError && (
+              <div className="border-error-200 bg-error-50 text-error-700 rounded-xl border px-4 py-3 text-[14px]">
+                {ccError}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 border-t border-neutral-100 pt-4">
+              <button
+                type="button"
+                onClick={() => setEmailConfigOpen(false)}
+                className="rounded-xl border border-neutral-200 px-4 py-2 text-[14px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveCcConfig}
+                disabled={ccSaving || ccLoading}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[14px] font-medium text-white transition-colors ${
+                  ccSaved
+                    ? 'bg-success-500'
+                    : 'bg-primary-500 hover:bg-primary-600 disabled:bg-primary-200'
+                }`}
+              >
+                {ccSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : ccSaved ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Saved
+                  </>
+                ) : (
+                  'Save Configuration'
+                )}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Event Type Dialog */}
       <CreateEventTypeDialog

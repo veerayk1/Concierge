@@ -23,9 +23,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { usePropertyUnits } from '@/lib/hooks/use-property-units';
+import { useAuth } from '@/lib/hooks/use-auth';
+
+const RESIDENT_ROLES = ['resident_owner', 'resident_tenant', 'offsite_owner', 'family_member'];
 
 const vacationSchema = z.object({
-  residentId: z.string().min(1, 'Select a resident'),
+  residentId: z.string().optional(),
   startDate: z.string().min(1, 'Start date is required'),
   endDate: z.string().min(1, 'End date is required'),
   notes: z.string().max(500).optional(),
@@ -71,13 +74,19 @@ export default function VacationsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const propertyId = getPropertyId();
+  const { user } = useAuth();
+
+  const isResident = user ? RESIDENT_ROLES.includes(user.role as string) : false;
 
   const { units } = usePropertyUnits(propertyId);
-  const { data: apiVacations, loading, error, refetch } = useApi<ApiVacation[]>(
-    apiUrl('/api/v1/vacations', { propertyId }),
-  );
+  // Residents only see their own vacations; staff see all
+  const vacationsUrl =
+    isResident && user
+      ? apiUrl('/api/v1/vacations', { propertyId, userId: user.id })
+      : apiUrl('/api/v1/vacations', { propertyId });
+  const { data: apiVacations, loading, error, refetch } = useApi<ApiVacation[]>(vacationsUrl);
   const { data: residents } = useApi<ApiResident[]>(
-    apiUrl('/api/v1/residents', { propertyId, limit: '1000' }),
+    !isResident ? apiUrl('/api/v1/residents', { propertyId, limit: '1000' }) : null,
   );
 
   const {
@@ -89,7 +98,7 @@ export default function VacationsPage() {
   } = useForm<VacationInput>({
     resolver: zodResolver(vacationSchema) as any,
     defaultValues: {
-      residentId: '',
+      residentId: isResident && user ? user.id : '',
       startDate: '',
       endDate: '',
       notes: '',
@@ -113,7 +122,9 @@ export default function VacationsPage() {
       if (today >= endDate) status = 'completed';
       else if (today >= startDate && today < endDate) status = 'active';
 
-      const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const daysRemaining = Math.ceil(
+        (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
 
       return {
         id: v.id,
@@ -136,20 +147,21 @@ export default function VacationsPage() {
   async function onSubmit(data: VacationInput) {
     setServerError(null);
     try {
-      // Find the resident's unit for the API payload
-      const selectedResident = residents?.find((r) => r.id === data.residentId);
+      // Residents always submit for themselves; staff select a resident
+      const targetUserId = isResident && user ? user.id : data.residentId;
       const residentUnit = units?.find((u: any) =>
-        u.residents?.some((r: any) => r.id === data.residentId),
+        u.residents?.some((r: any) => r.id === targetUserId),
       );
 
       const payload = {
         propertyId,
-        userId: data.residentId, // residentId IS the userId in this context
+        userId: targetUserId,
         unitId: residentUnit?.id || null,
         startDate: data.startDate,
         endDate: data.endDate,
         notes: data.notes || null,
         holdMail: data.holdPackages,
+        pauseNotifications: data.pauseNotifications,
       };
 
       const response = await apiRequest('/api/v1/vacations', {
@@ -202,7 +214,10 @@ export default function VacationsPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
-        const statusConfig: Record<string, { label: string; variant: 'success' | 'info' | 'default' }> = {
+        const statusConfig: Record<
+          string,
+          { label: string; variant: 'success' | 'info' | 'default' }
+        > = {
           active: { label: 'Active', variant: 'success' },
           upcoming: { label: 'Upcoming', variant: 'info' },
           completed: { label: 'Completed', variant: 'default' },
@@ -248,12 +263,16 @@ export default function VacationsPage() {
 
   return (
     <PageShell
-      title="Vacation Tracking"
-      description="Monitor resident vacations and manage package holds and notifications."
+      title={isResident ? 'My Vacations' : 'Vacation Tracking'}
+      description={
+        isResident
+          ? 'Mark your away periods so staff can hold packages and pause notifications.'
+          : 'Monitor resident vacations and manage package holds and notifications.'
+      }
       actions={
         <Button size="sm" onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4" />
-          Add Vacation
+          {isResident ? 'Mark Vacation' : 'Add Vacation'}
         </Button>
       }
     >
@@ -344,27 +363,29 @@ export default function VacationsPage() {
               </div>
             )}
 
-            <div className="flex flex-col gap-2">
-              <label className="text-[14px] font-medium text-neutral-700">
-                Resident<span className="text-error-500 ml-0.5">*</span>
-              </label>
-              <select
-                {...register('residentId')}
-                className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
-              >
-                <option value="">Select a resident...</option>
-                {residents &&
-                  Array.isArray(residents) &&
-                  residents.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.firstName} {r.lastName}
-                    </option>
-                  ))}
-              </select>
-              {errors.residentId && (
-                <span className="text-[12px] text-error-600">{errors.residentId.message}</span>
-              )}
-            </div>
+            {!isResident && (
+              <div className="flex flex-col gap-2">
+                <label className="text-[14px] font-medium text-neutral-700">
+                  Resident<span className="text-error-500 ml-0.5">*</span>
+                </label>
+                <select
+                  {...register('residentId')}
+                  className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
+                >
+                  <option value="">Select a resident...</option>
+                  {residents &&
+                    Array.isArray(residents) &&
+                    residents.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.firstName} {r.lastName}
+                      </option>
+                    ))}
+                </select>
+                {errors.residentId && (
+                  <span className="text-error-600 text-[12px]">{errors.residentId.message}</span>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
@@ -377,7 +398,7 @@ export default function VacationsPage() {
                   className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
                 />
                 {errors.startDate && (
-                  <span className="text-[12px] text-error-600">{errors.startDate.message}</span>
+                  <span className="text-error-600 text-[12px]">{errors.startDate.message}</span>
                 )}
               </div>
 
@@ -391,7 +412,7 @@ export default function VacationsPage() {
                   className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
                 />
                 {errors.endDate && (
-                  <span className="text-[12px] text-error-600">{errors.endDate.message}</span>
+                  <span className="text-error-600 text-[12px]">{errors.endDate.message}</span>
                 )}
               </div>
             </div>
@@ -401,18 +422,20 @@ export default function VacationsPage() {
               <textarea
                 {...register('notes')}
                 placeholder="e.g., Destination, emergency contact details..."
-                className="focus:border-primary-500 focus:ring-primary-100 min-h-[80px] w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none resize-none"
+                className="focus:border-primary-500 focus:ring-primary-100 min-h-[80px] w-full resize-none rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
               />
             </div>
 
-            <div className="border-neutral-200 rounded-xl border p-4 bg-neutral-50">
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
               <h3 className="mb-3 text-[14px] font-semibold text-neutral-900">Options</h3>
               <div className="flex flex-col gap-3">
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label className="flex cursor-pointer items-center gap-3">
                   <Checkbox {...register('holdPackages')} checked={holdPackages} />
-                  <span className="text-[14px] text-neutral-700">Hold packages during vacation</span>
+                  <span className="text-[14px] text-neutral-700">
+                    Hold packages during vacation
+                  </span>
                 </label>
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label className="flex cursor-pointer items-center gap-3">
                   <Checkbox {...register('pauseNotifications')} checked={pauseNotifications} />
                   <span className="text-[14px] text-neutral-700">Pause notifications</span>
                 </label>

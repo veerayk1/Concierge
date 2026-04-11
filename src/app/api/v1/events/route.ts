@@ -12,6 +12,7 @@ import { createEventSchema } from '@/schemas/event';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { sendBulkEmail } from '@/server/email';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/events
@@ -187,13 +188,20 @@ export async function POST(request: NextRequest) {
       },
       include: {
         eventType: {
-          select: { id: true, name: true, icon: true, color: true },
+          select: { id: true, name: true, icon: true, color: true, notifyOnCreate: true },
         },
         unit: {
           select: { id: true, number: true },
         },
       },
     });
+
+    // ---- Auto-CC notification (fire-and-forget, never blocks 201 response) ----
+    if (event.eventType?.notifyOnCreate) {
+      sendEventAutoCc(event, auth.user).catch(() => {
+        /* silent — email failures never block event creation */
+      });
+    }
 
     return NextResponse.json({ data: event, message: 'Event created.' }, { status: 201 });
   } catch (error) {
@@ -203,4 +211,103 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Auto-CC notification helpers
+// ---------------------------------------------------------------------------
+
+interface CreatedEventForNotification {
+  id: string;
+  referenceNo: string;
+  title: string;
+  description: string | null;
+  priority: string;
+  createdAt: Date;
+  eventTypeId: string;
+  eventType: { id: string; name: string } | null;
+  unit: { id: string; number: string } | null;
+}
+
+interface AuthActor {
+  userId: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+}
+
+/**
+ * Fetches the EventTypeEmailConfig for the given event's type and sends
+ * notification emails to all configured autoCcAddresses.
+ * This function is fire-and-forget — callers should `.catch(() => {})` it.
+ */
+async function sendEventAutoCc(
+  event: CreatedEventForNotification,
+  actor: AuthActor,
+): Promise<void> {
+  const emailConfig = await prisma.eventTypeEmailConfig.findFirst({
+    where: { eventTypeId: event.eventTypeId, isActive: true },
+  });
+
+  if (!emailConfig || emailConfig.autoCcAddresses.length === 0) return;
+
+  const subject = `[Event Alert] ${event.eventType?.name ?? 'Event'}: ${event.title}`;
+  const html = buildEventNotificationHtml(event, actor);
+
+  await sendBulkEmail({
+    to: emailConfig.autoCcAddresses,
+    subject,
+    html,
+    from: emailConfig.fromAddress
+      ? `${emailConfig.fromName ?? 'Concierge'} <${emailConfig.fromAddress}>`
+      : undefined,
+    replyTo: emailConfig.replyToAddress ?? undefined,
+  });
+}
+
+function buildEventNotificationHtml(event: CreatedEventForNotification, actor: AuthActor): string {
+  const actorName =
+    [actor.firstName, actor.lastName].filter(Boolean).join(' ') || actor.email || 'Staff';
+  const unitLabel = event.unit?.number ? `Unit ${event.unit.number}` : 'N/A';
+  const priority = event.priority.charAt(0).toUpperCase() + event.priority.slice(1);
+  const createdAt = new Date(event.createdAt).toLocaleString('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+
+  return `<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;color:#1a1a1a;max-width:560px;margin:0 auto;padding:24px;">
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:4px;">New Event Created</h2>
+  <p style="color:#6b7280;font-size:14px;margin-top:0;">Reference: <strong>${event.referenceNo}</strong></p>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:16px;">
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <th style="text-align:left;padding:8px 12px;background:#f9fafb;color:#6b7280;font-weight:600;width:130px;">Type</th>
+      <td style="padding:8px 12px;">${event.eventType?.name ?? '—'}</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <th style="text-align:left;padding:8px 12px;background:#f9fafb;color:#6b7280;font-weight:600;">Title</th>
+      <td style="padding:8px 12px;">${event.title}</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <th style="text-align:left;padding:8px 12px;background:#f9fafb;color:#6b7280;font-weight:600;">Unit</th>
+      <td style="padding:8px 12px;">${unitLabel}</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <th style="text-align:left;padding:8px 12px;background:#f9fafb;color:#6b7280;font-weight:600;">Priority</th>
+      <td style="padding:8px 12px;">${priority}</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <th style="text-align:left;padding:8px 12px;background:#f9fafb;color:#6b7280;font-weight:600;">Created by</th>
+      <td style="padding:8px 12px;">${actorName}</td>
+    </tr>
+    <tr>
+      <th style="text-align:left;padding:8px 12px;background:#f9fafb;color:#6b7280;font-weight:600;">Time</th>
+      <td style="padding:8px 12px;">${createdAt}</td>
+    </tr>
+  </table>
+  ${event.description ? `<p style="margin-top:16px;font-size:14px;"><strong>Notes:</strong> ${event.description}</p>` : ''}
+  <p style="margin-top:24px;font-size:12px;color:#9ca3af;">This is an automated notification from Concierge. You are receiving this because you are configured as an auto-CC recipient for ${event.eventType?.name ?? 'this event type'} events.</p>
+</body>
+</html>`;
 }

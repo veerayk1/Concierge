@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Clock,
   Edit2,
+  ExternalLink,
   ImageIcon,
   Inbox,
   Loader2,
@@ -78,6 +79,27 @@ function getCourierVariant(courier: string): 'info' | 'warning' | 'primary' | 'd
     default:
       return 'default';
   }
+}
+
+// ---------------------------------------------------------------------------
+// Carrier Tracking URL templates — keyed by lowercase courier name
+// ---------------------------------------------------------------------------
+
+const CARRIER_TRACKING_URLS: Record<string, string> = {
+  amazon: 'https://track.amazon.com/tracking/{tracking}',
+  fedex: 'https://www.fedex.com/fedextrack/?trknbr={tracking}',
+  ups: 'https://www.ups.com/track?tracknum={tracking}',
+  'canada post': 'https://www.canadapost-postescanada.ca/track-reperage/en#/details/{tracking}',
+  dhl: 'https://www.dhl.com/us-en/home/tracking/tracking-express.html?submit=1&tracking-id={tracking}',
+  purolator: 'https://www.purolator.com/en/tools/track-shipment.page?pin={tracking}',
+  usps: 'https://tools.usps.com/go/TrackConfirmAction?tLabels={tracking}',
+  intelcom: 'https://tracking.intelcom.ca/s/{tracking}',
+};
+
+function getCarrierTrackingUrl(courierName: string, trackingNumber: string): string | null {
+  const template = CARRIER_TRACKING_URLS[courierName.toLowerCase()];
+  if (!template) return null;
+  return template.replace('{tracking}', encodeURIComponent(trackingNumber));
 }
 
 // ---------------------------------------------------------------------------
@@ -319,9 +341,31 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Tracking Number
                   </p>
-                  <p className="text-primary-600 mt-1 font-mono text-[14px]">
-                    {pkg.trackingNumber || '\u2014'}
-                  </p>
+                  {pkg.trackingNumber ? (
+                    (() => {
+                      const trackingUrl = getCarrierTrackingUrl(
+                        pkg.courier?.name ?? '',
+                        pkg.trackingNumber,
+                      );
+                      return trackingUrl ? (
+                        <a
+                          href={trackingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-600 hover:text-primary-700 mt-1 inline-flex items-center gap-1.5 font-mono text-[14px] underline-offset-2 hover:underline"
+                        >
+                          {pkg.trackingNumber}
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                        </a>
+                      ) : (
+                        <p className="text-primary-600 mt-1 font-mono text-[14px]">
+                          {pkg.trackingNumber}
+                        </p>
+                      );
+                    })()
+                  ) : (
+                    <p className="mt-1 text-[14px] text-neutral-300">—</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">

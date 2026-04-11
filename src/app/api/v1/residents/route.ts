@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
           avatarUrl: true,
           lastLoginAt: true,
           createdAt: true,
+          assistanceRequired: true, // GAP 8.2
           userProperties: {
             where: { propertyId, deletedAt: null },
             select: {
@@ -92,6 +93,7 @@ export async function GET(request: NextRequest) {
       role: r.userProperties[0]?.role ?? null,
       lastLoginAt: r.lastLoginAt,
       createdAt: r.createdAt,
+      assistanceRequired: r.assistanceRequired, // GAP 8.2
     }));
 
     return NextResponse.json({

@@ -1,8 +1,13 @@
 'use client';
 
 /**
- * Noise Complaint Dialog — Critical gap feature for security console
- * Track noise complaints with 14 complaint types and investigation details
+ * Noise Complaint Dialog — Complete per docs/logs.md spec
+ * Gap 3.2: All missing investigation fields now implemented:
+ *   - Title field
+ *   - 4 specific investigation dropdowns (per spec question text)
+ *   - "Suspect contacted by" as 5-checkbox multi-select
+ *   - "Complainant advised of action taken" dropdown
+ *   - "Noise log Details" required textarea (pre-filled)
  */
 
 import { useState } from 'react';
@@ -16,11 +21,11 @@ import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/hooks/use-api';
 
 const noiseComplaintSchema = z.object({
+  title: z.string().optional(),
   complainantUnit: z.string().min(1, 'Complainant unit is required'),
   suspectUnit: z.string().min(1, 'Suspect unit is required'),
-  floors: z.string().optional(),
   dateTime: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/, 'Invalid date/time'),
-  // Complaint types (14 options)
+  // 14 complaint types
   complaintDropOnFloor: z.boolean().default(false),
   complaintLoudMusic: z.boolean().default(false),
   complaintSmokingHallway: z.boolean().default(false),
@@ -35,12 +40,22 @@ const noiseComplaintSchema = z.object({
   complaintTalking: z.boolean().default(false),
   complaintConstruction: z.boolean().default(false),
   complaintOther: z.boolean().default(false),
-  // Investigation
-  noiseNoticeable: z.enum(['yes', 'no', 'unknown']).default('unknown'),
-  duration: z.string().optional(),
-  volume: z.number().min(1).max(10).optional(),
-  contactMethod: z.enum(['phone', 'email', 'in_person', 'letter']).default('phone'),
-  counselingNotes: z.string().max(2000).optional(),
+  // Investigation — 4 specific dropdowns per spec
+  complainantFloorNoticeable: z.string().optional(),
+  suspectFloorNoticeable: z.string().optional(),
+  noiseDurationAssessment: z.string().optional(),
+  noiseDegreeAssessment: z.string().optional(),
+  lengthOfTimeVerified: z.string().optional(),
+  // Suspect contacted by — 5 checkboxes
+  contactHomePhone: z.boolean().default(false),
+  contactWorkPhone: z.boolean().default(false),
+  contactOtherPhone: z.boolean().default(false),
+  contactAtDoor: z.boolean().default(false),
+  contactNoOneHome: z.boolean().default(false),
+  // Complainant advised
+  complainantAdvised: z.string().optional(),
+  // Main description
+  noiseLogDetails: z.string().min(1, 'Noise log details are required').max(5000),
 });
 
 type NoiseComplaintInput = z.infer<typeof noiseComplaintSchema>;
@@ -48,7 +63,7 @@ type NoiseComplaintInput = z.infer<typeof noiseComplaintSchema>;
 const COMPLAINT_TYPES = [
   { field: 'complaintDropOnFloor', label: 'Drop on Floor' },
   { field: 'complaintLoudMusic', label: 'Loud Music' },
-  { field: 'complaintSmokingHallway', label: 'Smoking in Hallways' },
+  { field: 'complaintSmokingHallway', label: 'Smoking Hallways' },
   { field: 'complaintSmokingSuite', label: 'Smoking in Suite' },
   { field: 'complaintHallwayNoise', label: 'Hallway Noise' },
   { field: 'complaintPianoPlaying', label: 'Piano Playing' },
@@ -60,7 +75,15 @@ const COMPLAINT_TYPES = [
   { field: 'complaintTalking', label: 'Talking' },
   { field: 'complaintConstruction', label: 'Construction' },
   { field: 'complaintOther', label: 'Other' },
-];
+] as const;
+
+const SUSPECT_CONTACT_FIELDS = [
+  { field: 'contactHomePhone', label: 'Home Phone' },
+  { field: 'contactWorkPhone', label: 'Work Phone' },
+  { field: 'contactOtherPhone', label: 'Other Phone' },
+  { field: 'contactAtDoor', label: 'At the door' },
+  { field: 'contactNoOneHome', label: 'No one home' },
+] as const;
 
 interface CreateNoiseComplaintDialogProps {
   open: boolean;
@@ -88,19 +111,13 @@ export function CreateNoiseComplaintDialog({
     resolver: zodResolver(noiseComplaintSchema) as any,
     defaultValues: {
       dateTime: new Date().toISOString().slice(0, 16),
-      noiseNoticeable: 'unknown',
-      contactMethod: 'phone',
+      noiseLogDetails: 'Full Report to Follow...',
     },
   });
-
-  const volume = watch('volume');
-  const noiseNoticeable = watch('noiseNoticeable');
-  const contactMethod = watch('contactMethod');
 
   async function onSubmit(data: NoiseComplaintInput) {
     setServerError(null);
     try {
-      // Transform form booleans into natureOfComplaint array for API
       const natureOfComplaint: string[] = [];
       if (data.complaintDropOnFloor) natureOfComplaint.push('Drop on Floor');
       if (data.complaintLoudMusic) natureOfComplaint.push('Loud Music');
@@ -122,15 +139,27 @@ export function CreateNoiseComplaintDialog({
         return;
       }
 
+      const suspectContactedBy: string[] = [];
+      if (data.contactHomePhone) suspectContactedBy.push('Home Phone');
+      if (data.contactWorkPhone) suspectContactedBy.push('Work Phone');
+      if (data.contactOtherPhone) suspectContactedBy.push('Other Phone');
+      if (data.contactAtDoor) suspectContactedBy.push('At the door');
+      if (data.contactNoOneHome) suspectContactedBy.push('No one home');
+
       const payload = {
         propertyId,
+        title: data.title || null,
         complainantFloor: data.complainantUnit,
         suspectFloor: data.suspectUnit,
         natureOfComplaint,
-        noiseDuration: data.duration || null,
-        noiseVolume: data.volume || null,
-        suspectContactMethod: data.contactMethod,
-        counselingNotes: data.counselingNotes || null,
+        complainantFloorNoticeable: data.complainantFloorNoticeable || null,
+        suspectFloorNoticeable: data.suspectFloorNoticeable || null,
+        noiseDuration: data.lengthOfTimeVerified || null,
+        noiseDurationAssessment: data.noiseDurationAssessment || null,
+        noiseDegreeAssessment: data.noiseDegreeAssessment || null,
+        suspectContactedBy,
+        complainantAdvised: data.complainantAdvised || null,
+        noiseLogDetails: data.noiseLogDetails,
         resolutionStatus: 'pending',
       };
 
@@ -153,9 +182,13 @@ export function CreateNoiseComplaintDialog({
     }
   }
 
+  const inputCls =
+    'focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none';
+  const sectionCls = 'border-neutral-200 rounded-xl border p-4 bg-neutral-50';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
           <Volume2 className="text-warning-500 h-5 w-5" />
           Noise Complaint Report
@@ -172,9 +205,19 @@ export function CreateNoiseComplaintDialog({
           )}
 
           {/* Complaint Details */}
-          <div className="border-neutral-200 rounded-xl border p-4 bg-neutral-50">
+          <div className={sectionCls}>
             <h3 className="mb-3 text-[14px] font-semibold text-neutral-900">Complaint Details</h3>
             <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2 flex flex-col gap-2">
+                <label className="text-[14px] font-medium text-neutral-700">Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Noise complaint — Unit 402"
+                  {...register('title')}
+                  className={inputCls}
+                />
+              </div>
+
               <div className="flex flex-col gap-2">
                 <label className="text-[14px] font-medium text-neutral-700">
                   Complainant Unit<span className="text-error-500 ml-0.5">*</span>
@@ -183,10 +226,12 @@ export function CreateNoiseComplaintDialog({
                   type="text"
                   placeholder="e.g., 302"
                   {...register('complainantUnit')}
-                  className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
+                  className={inputCls}
                 />
                 {errors.complainantUnit && (
-                  <span className="text-[12px] text-error-600">{errors.complainantUnit.message}</span>
+                  <span className="text-error-600 text-[12px]">
+                    {errors.complainantUnit.message}
+                  </span>
                 )}
               </div>
 
@@ -198,50 +243,38 @@ export function CreateNoiseComplaintDialog({
                   type="text"
                   placeholder="e.g., 402"
                   {...register('suspectUnit')}
-                  className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
+                  className={inputCls}
                 />
                 {errors.suspectUnit && (
-                  <span className="text-[12px] text-error-600">{errors.suspectUnit.message}</span>
+                  <span className="text-error-600 text-[12px]">{errors.suspectUnit.message}</span>
                 )}
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-[14px] font-medium text-neutral-700">Floors Involved</label>
-                <input
-                  type="text"
-                  placeholder="e.g., 2nd-3rd floor"
-                  {...register('floors')}
-                  className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
-                />
               </div>
 
               <div className="col-span-2 flex flex-col gap-2">
                 <label className="text-[14px] font-medium text-neutral-700">
                   Date & Time<span className="text-error-500 ml-0.5">*</span>
                 </label>
-                <input
-                  type="datetime-local"
-                  {...register('dateTime')}
-                  className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
-                />
+                <input type="datetime-local" {...register('dateTime')} className={inputCls} />
                 {errors.dateTime && (
-                  <span className="text-[12px] text-error-600">{errors.dateTime.message}</span>
+                  <span className="text-error-600 text-[12px]">{errors.dateTime.message}</span>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Complaint Types */}
-          <div className="border-neutral-200 rounded-xl border p-4 bg-neutral-50">
-            <h3 className="mb-3 text-[14px] font-semibold text-neutral-900">Complaint Type</h3>
+          {/* Nature of Complaint — 14 checkboxes */}
+          <div className={sectionCls}>
+            <h3 className="mb-3 text-[14px] font-semibold text-neutral-900">Nature of Complaint</h3>
             <div className="grid grid-cols-2 gap-3">
               {COMPLAINT_TYPES.map(({ field, label }) => (
-                <label key={field} className="flex items-center gap-3 cursor-pointer">
+                <label key={field} className="flex cursor-pointer items-center gap-3">
                   <input
                     type="checkbox"
                     checked={!!watch(field as any)}
-                    onChange={(e) => setValue(field as any, e.target.checked, { shouldValidate: true })}
-                    className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500 accent-blue-600"
+                    onChange={(e) =>
+                      setValue(field as any, e.target.checked, { shouldValidate: true })
+                    }
+                    className="text-primary-600 focus:ring-primary-500 h-4 w-4 rounded border-neutral-300 accent-blue-600"
                   />
                   <span className="text-[14px] text-neutral-700">{label}</span>
                 </label>
@@ -250,66 +283,129 @@ export function CreateNoiseComplaintDialog({
           </div>
 
           {/* Investigation */}
-          <div className="border-neutral-200 rounded-xl border p-4 bg-neutral-50">
+          <div className={sectionCls}>
             <h3 className="mb-3 text-[14px] font-semibold text-neutral-900">Investigation</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
-                <label className="text-[14px] font-medium text-neutral-700">Noise Noticeable?</label>
-                <select
-                  {...register('noiseNoticeable')}
-                  className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
-                >
-                  <option value="unknown">Unknown</option>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
+                <label className="text-[14px] font-medium text-neutral-700">
+                  Upon investigating the complainant's floor, the noise was noticeable by
+                </label>
+                <select {...register('complainantFloorNoticeable')} className={inputCls}>
+                  <option value="">— Select —</option>
+                  <option value="Hearing it clearly">Hearing it clearly</option>
+                  <option value="Hearing it faintly">Hearing it faintly</option>
+                  <option value="Feeling vibrations">Feeling vibrations</option>
+                  <option value="Both hearing and vibrations">Both hearing and vibrations</option>
+                  <option value="Not noticeable">Not noticeable</option>
                 </select>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-[14px] font-medium text-neutral-700">Duration</label>
-                <input
-                  type="text"
-                  placeholder="e.g., 30 minutes, 1 hour"
-                  {...register('duration')}
-                  className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
-                />
               </div>
 
               <div className="flex flex-col gap-2">
                 <label className="text-[14px] font-medium text-neutral-700">
-                  Volume Level {volume && `(${volume}/10)`}
+                  Upon investigating the suspect's floor, the noise was noticeable
                 </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  {...register('volume', { valueAsNumber: true })}
-                  className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer"
-                />
+                <select {...register('suspectFloorNoticeable')} className={inputCls}>
+                  <option value="">— Select —</option>
+                  <option value="Yes, clearly">Yes, clearly</option>
+                  <option value="Yes, faintly">Yes, faintly</option>
+                  <option value="Slightly">Slightly</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[14px] font-medium text-neutral-700">
+                    Upon investigating, the noise duration was
+                  </label>
+                  <select {...register('noiseDurationAssessment')} className={inputCls}>
+                    <option value="">— Select —</option>
+                    <option value="Brief (< 5 min)">Brief ({'<'} 5 min)</option>
+                    <option value="Short (5-15 min)">Short (5–15 min)</option>
+                    <option value="Moderate (15-30 min)">Moderate (15–30 min)</option>
+                    <option value="Long (30-60 min)">Long (30–60 min)</option>
+                    <option value="Extended (> 60 min)">Extended ({'>'} 60 min)</option>
+                    <option value="Ongoing">Ongoing</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-[14px] font-medium text-neutral-700">
+                    Upon investigating, the noise degree/volume was
+                  </label>
+                  <select {...register('noiseDegreeAssessment')} className={inputCls}>
+                    <option value="">— Select —</option>
+                    <option value="Low">Low</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="High">High</option>
+                    <option value="Very High / Excessive">Very High / Excessive</option>
+                  </select>
+                </div>
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-[14px] font-medium text-neutral-700">Contact Method</label>
-                <select
-                  {...register('contactMethod')}
-                  className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
-                >
-                  <option value="phone">Phone</option>
-                  <option value="email">Email</option>
-                  <option value="in_person">In Person</option>
-                  <option value="letter">Letter</option>
-                </select>
+                <label className="text-[14px] font-medium text-neutral-700">
+                  Length of time verified
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., 25 minutes"
+                  {...register('lengthOfTimeVerified')}
+                  className={inputCls}
+                />
               </div>
             </div>
+          </div>
 
-            <div className="mt-4 flex flex-col gap-2">
-              <label className="text-[14px] font-medium text-neutral-700">Counseling Notes</label>
-              <textarea
-                {...register('counselingNotes')}
-                placeholder="Notes from conversation with resident..."
-                className="focus:border-primary-500 focus:ring-primary-100 min-h-[100px] w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none resize-none"
-              />
+          {/* Suspect Contacted By — 5 checkboxes */}
+          <div className={sectionCls}>
+            <h3 className="mb-3 text-[14px] font-semibold text-neutral-900">
+              Suspect Contacted By
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              {SUSPECT_CONTACT_FIELDS.map(({ field, label }) => (
+                <label key={field} className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={!!watch(field as any)}
+                    onChange={(e) =>
+                      setValue(field as any, e.target.checked, { shouldValidate: true })
+                    }
+                    className="text-primary-600 focus:ring-primary-500 h-4 w-4 rounded border-neutral-300 accent-blue-600"
+                  />
+                  <span className="text-[14px] text-neutral-700">{label}</span>
+                </label>
+              ))}
             </div>
+          </div>
+
+          {/* Complainant Advised */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] font-medium text-neutral-700">
+              Complainant contacted to advise of action taken
+            </label>
+            <select {...register('complainantAdvised')} className={inputCls}>
+              <option value="">— Select —</option>
+              <option value="Yes - by phone">Yes — by phone</option>
+              <option value="Yes - in person">Yes — in person</option>
+              <option value="Yes - by note/letter">Yes — by note/letter</option>
+              <option value="Unable to reach">Unable to reach</option>
+              <option value="Not yet">Not yet</option>
+            </select>
+          </div>
+
+          {/* Noise Log Details */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] font-medium text-neutral-700">
+              Noise Log Details<span className="text-error-500 ml-0.5">*</span>
+            </label>
+            <textarea
+              {...register('noiseLogDetails')}
+              className="focus:border-primary-500 focus:ring-primary-100 min-h-[120px] w-full resize-none rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
+            />
+            {errors.noiseLogDetails && (
+              <span className="text-error-600 text-[12px]">{errors.noiseLogDetails.message}</span>
+            )}
           </div>
 
           {/* Footer */}

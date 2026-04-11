@@ -158,6 +158,10 @@ type AuthUser = {
   lastName: string;
   phone?: string | null;
   role: Role;
+  requiresAssistance?: boolean; // GAP 8.2
+  assistanceNotes?: string | null; // GAP 8.2
+  languagePreference?: 'en' | 'fr-CA';
+  emailSignature?: string;
 };
 
 export default function MyAccountPage() {
@@ -270,9 +274,12 @@ export default function MyAccountPage() {
         if (firstName !== user.firstName) payload.firstName = firstName;
         if (lastName !== user.lastName) payload.lastName = lastName;
         if ((phone || '') !== (user.phone ?? '')) payload.phone = phone;
-        if (languagePreference !== (user.languagePreference ?? 'en')) payload.languagePreference = languagePreference;
-        if (requiresAssistance !== (user.requiresAssistance ?? false)) payload.requiresAssistance = requiresAssistance;
-        if (assistanceNotes !== (user.assistanceNotes ?? '')) payload.assistanceNotes = assistanceNotes;
+        if (languagePreference !== (user.languagePreference ?? 'en'))
+          payload.languagePreference = languagePreference;
+        if (requiresAssistance !== (user.requiresAssistance ?? false))
+          payload.requiresAssistance = requiresAssistance;
+        if (assistanceNotes !== (user.assistanceNotes ?? ''))
+          payload.assistanceNotes = assistanceNotes;
         if (emailSignature !== (user.emailSignature ?? '')) payload.emailSignature = emailSignature;
 
         if (Object.keys(payload).length === 0) {
@@ -540,7 +547,9 @@ export default function MyAccountPage() {
 
             {/* Language Preference */}
             <div className="flex flex-col gap-2">
-              <label className="text-[14px] font-medium text-neutral-700">Language Preference</label>
+              <label className="text-[14px] font-medium text-neutral-700">
+                Language Preference
+              </label>
               <select
                 value={languagePreference}
                 onChange={(e) => setLanguagePreference(e.target.value as 'en' | 'fr-CA')}
@@ -554,13 +563,13 @@ export default function MyAccountPage() {
 
             {/* Require Assistance */}
             <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-3 cursor-pointer text-[14px] font-medium text-neutral-700">
+              <label className="flex cursor-pointer items-center gap-3 text-[14px] font-medium text-neutral-700">
                 <input
                   type="checkbox"
                   checked={requiresAssistance}
                   onChange={(e) => setRequiresAssistance(e.target.checked)}
                   disabled={saving}
-                  className="h-4 w-4 rounded border-neutral-300 text-primary-500 focus:ring-2 focus:ring-primary-500"
+                  className="text-primary-500 focus:ring-primary-500 h-4 w-4 rounded border-neutral-300 focus:ring-2"
                 />
                 I require assistance with building features
               </label>
@@ -572,7 +581,7 @@ export default function MyAccountPage() {
                 onChange={(e) => setAssistanceNotes(e.target.value)}
                 disabled={saving}
                 placeholder="Describe what features you need help with..."
-                className="focus:border-primary-500 focus:ring-primary-100 min-h-[80px] w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none resize-none"
+                className="focus:border-primary-500 focus:ring-primary-100 min-h-[80px] w-full resize-none rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
               />
             )}
 
@@ -584,7 +593,7 @@ export default function MyAccountPage() {
                 onChange={(e) => setEmailSignature(e.target.value)}
                 disabled={saving}
                 placeholder="Optional signature to include in emails..."
-                className="focus:border-primary-500 focus:ring-primary-100 min-h-[80px] w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none resize-none"
+                className="focus:border-primary-500 focus:ring-primary-100 min-h-[80px] w-full resize-none rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 focus:ring-4 focus:outline-none"
               />
             </div>
 
