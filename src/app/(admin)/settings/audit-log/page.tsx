@@ -13,7 +13,7 @@ import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// Types
 // ---------------------------------------------------------------------------
 
 interface AuditEntry {
@@ -26,129 +26,6 @@ interface AuditEntry {
   ipAddress: string;
   category: string;
 }
-
-const AUDIT_DATA: AuditEntry[] = [
-  {
-    id: '1',
-    timestamp: '2026-03-18 14:32:05',
-    user: 'Sarah Chen',
-    role: 'Property Admin',
-    action: 'Updated notification settings',
-    target: 'Notification Settings',
-    ipAddress: '192.168.1.45',
-    category: 'Settings',
-  },
-  {
-    id: '2',
-    timestamp: '2026-03-18 13:15:22',
-    user: 'Sarah Chen',
-    role: 'Property Admin',
-    action: 'Created new role',
-    target: 'Cleaning Staff',
-    ipAddress: '192.168.1.45',
-    category: 'Roles',
-  },
-  {
-    id: '3',
-    timestamp: '2026-03-18 11:48:10',
-    user: 'James Rodriguez',
-    role: 'Property Manager',
-    action: 'Assigned vendor to work order',
-    target: 'WO-2026-0147',
-    ipAddress: '10.0.0.88',
-    category: 'Maintenance',
-  },
-  {
-    id: '4',
-    timestamp: '2026-03-18 10:22:33',
-    user: 'Sarah Chen',
-    role: 'Property Admin',
-    action: 'Enabled AI auto-categorization',
-    target: 'AI Configuration',
-    ipAddress: '192.168.1.45',
-    category: 'Settings',
-  },
-  {
-    id: '5',
-    timestamp: '2026-03-17 16:55:41',
-    user: 'Mike Thompson',
-    role: 'Front Desk',
-    action: 'Logged package for unit 1205',
-    target: 'PKG-2026-0892',
-    ipAddress: '10.0.0.12',
-    category: 'Events',
-  },
-  {
-    id: '6',
-    timestamp: '2026-03-17 15:30:19',
-    user: 'Sarah Chen',
-    role: 'Property Admin',
-    action: 'Updated property branding',
-    target: 'General Settings',
-    ipAddress: '192.168.1.45',
-    category: 'Settings',
-  },
-  {
-    id: '7',
-    timestamp: '2026-03-17 14:12:07',
-    user: 'James Rodriguez',
-    role: 'Property Manager',
-    action: 'Approved amenity booking',
-    target: 'BK-2026-0234',
-    ipAddress: '10.0.0.88',
-    category: 'Amenities',
-  },
-  {
-    id: '8',
-    timestamp: '2026-03-17 11:05:55',
-    user: 'Sarah Chen',
-    role: 'Property Admin',
-    action: 'Connected Slack integration',
-    target: 'Integrations',
-    ipAddress: '192.168.1.45',
-    category: 'Settings',
-  },
-  {
-    id: '9',
-    timestamp: '2026-03-17 09:45:30',
-    user: 'David Kim',
-    role: 'Security Guard',
-    action: 'Filed incident report',
-    target: 'INC-2026-0058',
-    ipAddress: '10.0.0.15',
-    category: 'Events',
-  },
-  {
-    id: '10',
-    timestamp: '2026-03-16 17:20:14',
-    user: 'Sarah Chen',
-    role: 'Property Admin',
-    action: 'Deactivated user account',
-    target: 'john.doe@resident.com',
-    ipAddress: '192.168.1.45',
-    category: 'Users',
-  },
-  {
-    id: '11',
-    timestamp: '2026-03-16 14:55:02',
-    user: 'James Rodriguez',
-    role: 'Property Manager',
-    action: 'Generated monthly report',
-    target: 'March 2026 Operations Report',
-    ipAddress: '10.0.0.88',
-    category: 'Reports',
-  },
-  {
-    id: '12',
-    timestamp: '2026-03-16 10:10:48',
-    user: 'Sarah Chen',
-    role: 'Property Admin',
-    action: 'Updated event type template',
-    target: 'Package Arrival',
-    ipAddress: '192.168.1.45',
-    category: 'Settings',
-  },
-];
 
 const ACTION_CATEGORIES = [
   'All Actions',
@@ -261,7 +138,7 @@ export default function AuditLogPage() {
 
   // Map API entries to the AuditEntry shape, falling back to mock data
   const allData = useMemo<AuditEntry[]>(() => {
-    if (!apiEntries || apiEntries.length === 0) return AUDIT_DATA;
+    if (!apiEntries || apiEntries.length === 0) return [];
     return apiEntries.map((e, i) => ({
       id: e.id || String(i),
       timestamp: new Date(e.createdAt).toISOString().replace('T', ' ').slice(0, 19),

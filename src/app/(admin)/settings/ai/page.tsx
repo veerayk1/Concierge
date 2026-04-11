@@ -20,10 +20,10 @@ const AI_MODELS = [
 ];
 
 const USAGE_STATS = [
-  { label: 'Requests This Month', value: '2,847', change: '+12%' },
-  { label: 'Tokens Used', value: '1.2M', change: '+8%' },
-  { label: 'Monthly Spend', value: '$24.50', change: '-3%' },
-  { label: 'Avg Response Time', value: '340ms', change: '-15%' },
+  { label: 'Requests This Month', value: '0', change: '' },
+  { label: 'Tokens Used', value: '0', change: '' },
+  { label: 'Monthly Spend', value: '$0.00', change: '' },
+  { label: 'Avg Response Time', value: '—', change: '' },
 ];
 
 // ---------------------------------------------------------------------------

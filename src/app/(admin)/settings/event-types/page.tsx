@@ -27,7 +27,7 @@ import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// Types
 // ---------------------------------------------------------------------------
 
 interface EventType {
@@ -41,76 +41,6 @@ interface EventType {
   notificationTemplate: string;
   description: string;
 }
-
-const INITIAL_EVENT_TYPES: EventType[] = [
-  {
-    id: '1',
-    name: 'Package',
-    group: 'Logistics',
-    icon: Box,
-    color: 'text-primary-600',
-    bgColor: 'bg-primary-50',
-    enabled: true,
-    notificationTemplate:
-      'A package has arrived for unit {{unit}}. Please pick up at the front desk.',
-    description: 'Track incoming and outgoing packages, parcels, and deliveries.',
-  },
-  {
-    id: '2',
-    name: 'Visitor',
-    group: 'Access',
-    icon: UserCheck,
-    color: 'text-success-600',
-    bgColor: 'bg-success-50',
-    enabled: true,
-    notificationTemplate: 'A visitor ({{visitor_name}}) has arrived for unit {{unit}}.',
-    description: 'Log visitors, expected guests, and contractor access.',
-  },
-  {
-    id: '3',
-    name: 'Incident',
-    group: 'Security',
-    icon: FileWarning,
-    color: 'text-error-600',
-    bgColor: 'bg-error-50',
-    enabled: true,
-    notificationTemplate: 'An incident has been reported: {{summary}}. Location: {{location}}.',
-    description: 'Report security incidents, disturbances, and safety concerns.',
-  },
-  {
-    id: '4',
-    name: 'Key / FOB',
-    group: 'Access',
-    icon: Key,
-    color: 'text-warning-600',
-    bgColor: 'bg-warning-50',
-    enabled: true,
-    notificationTemplate: 'Key/FOB {{action}} for unit {{unit}}. Serial: {{serial}}.',
-    description: 'Track key and FOB sign-outs, returns, and replacements.',
-  },
-  {
-    id: '5',
-    name: 'Pass-On',
-    group: 'Operations',
-    icon: MessageSquare,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-    enabled: true,
-    notificationTemplate: 'New pass-on note from {{author}}: {{summary}}.',
-    description: 'Shift handoff notes and inter-staff communication.',
-  },
-  {
-    id: '6',
-    name: 'Cleaning',
-    group: 'Operations',
-    icon: Brush,
-    color: 'text-info-600',
-    bgColor: 'bg-info-50',
-    enabled: false,
-    notificationTemplate: 'Cleaning {{status}} for {{area}}. Completed by {{staff}}.',
-    description: 'Log cleaning tasks, schedules, and inspections.',
-  },
-];
 
 // ---------------------------------------------------------------------------
 // API response shape
@@ -469,7 +399,7 @@ export default function EventTypesPage() {
   } = useApi<ApiEventType[]>(apiUrl('/api/v1/event-types', { propertyId: getPropertyId() }));
 
   const mergedEventTypes = useMemo<EventType[]>(() => {
-    if (!apiEventTypes || apiEventTypes.length === 0) return INITIAL_EVENT_TYPES;
+    if (!apiEventTypes || apiEventTypes.length === 0) return [];
     return apiEventTypes.map((et) => {
       const colors = COLOR_MAP[et.color || ''] || {
         color: 'text-neutral-600',
@@ -489,7 +419,7 @@ export default function EventTypesPage() {
     });
   }, [apiEventTypes]);
 
-  const [eventTypes, setEventTypes] = useState(INITIAL_EVENT_TYPES);
+  const [eventTypes, setEventTypes] = useState<EventType[]>([]);
 
   // Use API data when available
   const displayEventTypes = apiEventTypes ? mergedEventTypes : eventTypes;
@@ -568,72 +498,97 @@ export default function EventTypesPage() {
         <h2 className="mb-4 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
           Event Types ({displayEventTypes.length})
         </h2>
-        <div className="space-y-3">
-          {displayEventTypes.map((et) => {
-            const Icon = et.icon;
-            return (
-              <Card key={et.id}>
-                <CardContent>
-                  <div className="space-y-4">
-                    {/* Header Row */}
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${et.bgColor}`}
-                      >
-                        <Icon className={`h-5 w-5 ${et.color}`} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-[15px] font-semibold text-neutral-900">{et.name}</h3>
-                          <Badge variant="default" size="sm">
-                            {et.group}
-                          </Badge>
+        {displayEventTypes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-200 py-16">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100">
+              <Circle className="h-5 w-5 text-neutral-400" />
+            </div>
+            <p className="mt-4 text-[15px] font-medium text-neutral-600">
+              No event types configured
+            </p>
+            <p className="mt-1 text-[13px] text-neutral-400">
+              Create event types to start logging events in the security console.
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-5"
+              onClick={() => setShowCreateDialog(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Add Event Type
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {displayEventTypes.map((et) => {
+              const Icon = et.icon;
+              return (
+                <Card key={et.id}>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Header Row */}
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${et.bgColor}`}
+                        >
+                          <Icon className={`h-5 w-5 ${et.color}`} />
                         </div>
-                        <p className="mt-0.5 text-[13px] text-neutral-500">{et.description}</p>
-                      </div>
-                      {/* Auto-CC Email Config Button */}
-                      <button
-                        type="button"
-                        onClick={() => openEmailConfig(et)}
-                        title="Configure auto-CC emails"
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-400 transition-colors hover:border-neutral-300 hover:text-neutral-700"
-                      >
-                        <Mail className="h-4 w-4" />
-                      </button>
-                      {/* Toggle */}
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={et.enabled}
-                        onClick={() => toggleEventType(et.id)}
-                        className={`focus:ring-primary-100 relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:ring-4 focus:outline-none ${
-                          et.enabled ? 'bg-primary-500' : 'bg-neutral-200'
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            et.enabled ? 'translate-x-5' : 'translate-x-0'
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-[15px] font-semibold text-neutral-900">
+                              {et.name}
+                            </h3>
+                            <Badge variant="default" size="sm">
+                              {et.group}
+                            </Badge>
+                          </div>
+                          <p className="mt-0.5 text-[13px] text-neutral-500">{et.description}</p>
+                        </div>
+                        {/* Auto-CC Email Config Button */}
+                        <button
+                          type="button"
+                          onClick={() => openEmailConfig(et)}
+                          title="Configure auto-CC emails"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-400 transition-colors hover:border-neutral-300 hover:text-neutral-700"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </button>
+                        {/* Toggle */}
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={et.enabled}
+                          onClick={() => toggleEventType(et.id)}
+                          className={`focus:ring-primary-100 relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:ring-4 focus:outline-none ${
+                            et.enabled ? 'bg-primary-500' : 'bg-neutral-200'
                           }`}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Notification Template */}
-                    {et.enabled && (
-                      <div className="pl-14">
-                        <Input
-                          label="Notification Template"
-                          defaultValue={et.notificationTemplate}
-                          helperText="Use {{unit}}, {{visitor_name}}, {{summary}}, {{staff}} as placeholders."
-                        />
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              et.enabled ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+
+                      {/* Notification Template */}
+                      {et.enabled && (
+                        <div className="pl-14">
+                          <Input
+                            label="Notification Template"
+                            defaultValue={et.notificationTemplate}
+                            helperText="Use {{unit}}, {{visitor_name}}, {{summary}}, {{staff}} as placeholders."
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Save */}

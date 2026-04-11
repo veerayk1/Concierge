@@ -10,13 +10,12 @@ import type { Role } from '@/types';
 import { getPropertyId, DEMO_PROPERTY } from '@/lib/demo-config';
 import { DemoShowcaseBanner } from '@/components/layout/demo-showcase-banner';
 
-const MOCK_PROPERTY = {
+// Property info derived from centralized config
+const currentProperty = {
   id: getPropertyId(),
   name: DEMO_PROPERTY.name,
   address: DEMO_PROPERTY.address,
 };
-
-const MOCK_PROPERTIES = [MOCK_PROPERTY];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user, loading, isAuthenticated, logout } = useAuth();
@@ -58,8 +57,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             role: demoRole,
             avatarUrl: undefined,
           }}
-          currentProperty={MOCK_PROPERTY}
-          properties={MOCK_PROPERTIES}
+          currentProperty={currentProperty}
+          properties={[currentProperty]}
           breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Administration' }]}
           notificationCount={0}
           onLogout={() => {
@@ -104,8 +103,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         role: user.role,
         avatarUrl: undefined,
       }}
-      currentProperty={MOCK_PROPERTY}
-      properties={MOCK_PROPERTIES}
+      currentProperty={currentProperty}
+      properties={[currentProperty]}
       breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Administration' }]}
       notificationCount={0}
       onLogout={logout}

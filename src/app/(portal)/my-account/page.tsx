@@ -88,67 +88,20 @@ const NOTIFICATION_MODULES = [
 // Component
 // ---------------------------------------------------------------------------
 
-// Demo user lookup for when useAuth returns no user (demo mode)
-const DEMO_USERS: Record<
-  string,
-  {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    phone: string | null;
-    role: Role;
-  }
-> = {
-  resident_owner: {
-    id: 'demo-resident-owner',
-    email: 'janet.smith@email.com',
-    firstName: 'Janet',
-    lastName: 'Smith',
-    phone: '+14165552001',
-    role: 'resident_owner',
-  },
-  resident_tenant: {
-    id: 'demo-resident-tenant',
-    email: 'david.chen@email.com',
-    firstName: 'David',
-    lastName: 'Chen',
-    phone: '+14165552003',
-    role: 'resident_tenant',
-  },
-  front_desk: {
-    id: 'demo-front-desk',
-    email: 'mike.j@bondtower.com',
-    firstName: 'Mike',
-    lastName: 'Johnson',
-    phone: null,
-    role: 'front_desk',
-  },
-  property_admin: {
-    id: 'demo-admin',
-    email: 'admin@bondtower.com',
-    firstName: 'Admin',
-    lastName: 'User',
-    phone: null,
-    role: 'property_admin',
-  },
-  super_admin: {
-    id: 'demo-super-admin',
-    email: 'superadmin@concierge.com',
-    firstName: 'Super',
-    lastName: 'Admin',
-    phone: null,
-    role: 'super_admin',
-  },
-};
-
+// Build a minimal demo user from the role name when useAuth returns no user (demo mode)
 function getDemoUser(): AuthUser | null {
   if (typeof window === 'undefined') return null;
   const role = localStorage.getItem('demo_role');
   if (!role) return null;
-  const demoUser = DEMO_USERS[role];
-  if (!demoUser) return null;
-  return demoUser;
+  const roleName = role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return {
+    id: `demo-${role}`,
+    email: '',
+    firstName: roleName,
+    lastName: '',
+    phone: null,
+    role: role as Role,
+  };
 }
 
 type AuthUser = {

@@ -31,9 +31,7 @@ const INTEGRATIONS: Integration[] = [
     icon: MessageCircle,
     color: 'text-purple-600',
     bgColor: 'bg-purple-50',
-    connected: true,
-    lastSync: '2 minutes ago',
-    details: 'Connected to #concierge-alerts and #maintenance channels.',
+    connected: false,
   },
   {
     id: '2',
@@ -42,9 +40,7 @@ const INTEGRATIONS: Integration[] = [
     icon: ShieldAlert,
     color: 'text-error-600',
     bgColor: 'bg-error-50',
-    connected: true,
-    lastSync: '5 minutes ago',
-    details: 'Project: concierge-prod. 0 unresolved issues.',
+    connected: false,
   },
   {
     id: '3',
@@ -53,9 +49,7 @@ const INTEGRATIONS: Integration[] = [
     icon: Cloud,
     color: 'text-warning-600',
     bgColor: 'bg-warning-50',
-    connected: true,
-    lastSync: 'Just now',
-    details: 'Bucket: concierge-prod-uploads. Region: ca-central-1. 2.4 GB used.',
+    connected: false,
   },
   {
     id: '4',

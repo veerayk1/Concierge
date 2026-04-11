@@ -10,39 +10,13 @@ import { DemoShowcaseBanner } from '@/components/layout/demo-showcase-banner';
 import { ModuleConfigProvider } from '@/lib/hooks/use-module-config';
 import type { Role } from '@/types';
 
-// ---------------------------------------------------------------------------
-// Mock data
-// ---------------------------------------------------------------------------
-
 import { getPropertyId, DEMO_PROPERTY } from '@/lib/demo-config';
 
-const MOCK_PROPERTY = {
+// Property info derived from centralized config
+const currentProperty = {
   id: getPropertyId(),
   name: DEMO_PROPERTY.name,
   address: DEMO_PROPERTY.address,
-};
-
-const MOCK_PROPERTIES = [MOCK_PROPERTY];
-
-const DEMO_USERS: Record<string, { firstName: string; lastName: string; email: string }> = {
-  front_desk: { firstName: 'Mike', lastName: 'Johnson', email: 'mike.j@bondtower.com' },
-  security_guard: { firstName: 'Guard', lastName: 'Patel', email: 'guard.patel@bondtower.com' },
-  property_admin: { firstName: 'Admin', lastName: 'User', email: 'admin@bondtower.com' },
-  property_manager: { firstName: 'Sarah', lastName: 'Lee', email: 'sarah.l@bondtower.com' },
-  resident_owner: { firstName: 'Janet', lastName: 'Smith', email: 'janet.smith@email.com' },
-  resident_tenant: { firstName: 'David', lastName: 'Chen', email: 'david.chen@email.com' },
-  board_member: { firstName: 'Board', lastName: 'Member', email: 'board@bondtower.com' },
-  super_admin: { firstName: 'Super', lastName: 'Admin', email: 'superadmin@concierge.com' },
-  maintenance_staff: { firstName: 'Mike', lastName: 'Thompson', email: 'mike.t@bondtower.com' },
-  security_supervisor: {
-    firstName: 'Supervisor',
-    lastName: 'Chen',
-    email: 'supervisor@bondtower.com',
-  },
-  superintendent: { firstName: 'James', lastName: 'Wilson', email: 'james.w@bondtower.com' },
-  family_member: { firstName: 'Tom', lastName: 'Smith', email: 'tom.s@email.com' },
-  offsite_owner: { firstName: 'Offsite', lastName: 'Owner', email: 'offsite@email.com' },
-  visitor: { firstName: 'Guest', lastName: 'Visitor', email: 'guest@email.com' },
 };
 
 // ---------------------------------------------------------------------------
@@ -92,10 +66,9 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     return <PortalSkeleton />;
   }
 
-  // Demo mode — use mock user based on selected role
+  // Demo mode — derive display name from role
   if (demoRole) {
-    const demoUser = DEMO_USERS[demoRole] ?? DEMO_USERS.front_desk;
-    if (!demoUser) return <PortalSkeleton />;
+    const roleName = demoRole.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
     const isShowcase = demoMode === 'showcase';
     return (
       <ModuleConfigProvider>
@@ -103,14 +76,14 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
         <AppShell
           user={{
             id: 'demo-user',
-            firstName: demoUser.firstName,
-            lastName: demoUser.lastName,
-            email: demoUser.email,
+            firstName: roleName,
+            lastName: '',
+            email: '',
             role: demoRole,
             avatarUrl: undefined,
           }}
-          currentProperty={MOCK_PROPERTY}
-          properties={MOCK_PROPERTIES}
+          currentProperty={currentProperty}
+          properties={[currentProperty]}
           notificationCount={isShowcase ? 3 : 0}
           badgeCounts={isShowcase ? { unreleased_packages: 4 } : {}}
           onLogout={() => {
@@ -144,8 +117,8 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
           role: user.role,
           avatarUrl: undefined,
         }}
-        currentProperty={MOCK_PROPERTY}
-        properties={MOCK_PROPERTIES}
+        currentProperty={currentProperty}
+        properties={[currentProperty]}
         notificationCount={0}
         onLogout={logout}
         onSearchOpen={handleSearchOpen}
