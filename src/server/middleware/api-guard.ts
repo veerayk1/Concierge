@@ -118,8 +118,8 @@ export async function guardRoute(
   const { roles, allowDemo = true } = options;
 
   try {
-    // Check for demo mode first (development only)
-    if (allowDemo && process.env.NODE_ENV !== 'production') {
+    // Check for demo mode (always enabled — demo buttons are part of the product)
+    if (allowDemo) {
       const demoRole = request.headers.get('x-demo-role');
       if (demoRole) {
         return handleDemoMode(request, demoRole as Role, roles);
@@ -128,7 +128,7 @@ export async function guardRoute(
 
     // Check if there's actually a token before calling requireAuth
     const authHeader = request.headers.get('authorization');
-    if (!authHeader && process.env.NODE_ENV !== 'production') {
+    if (!authHeader) {
       // In dev mode without demo header AND without token = unauthorized
       // This prevents the requireAuth dev bypass from silently succeeding
       return {
