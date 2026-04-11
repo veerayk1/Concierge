@@ -23,6 +23,12 @@ export async function handleDemoRequest(request: NextRequest): Promise<NextRespo
   if (!demoRole) return null;
 
   const demoMode = request.headers.get('x-demo-mode');
+
+  // Only serve demo/fake data when explicitly in "showcase" mode
+  // (i.e. from the Demo Account sandbox section for sales demos).
+  // Regular demo role buttons should use REAL database data.
+  if (demoMode !== 'showcase') return null;
+
   const isSuperAdminClean = demoRole === 'super_admin' && demoMode !== 'showcase';
 
   const url = new URL(request.url);
@@ -721,15 +727,18 @@ async function matchRoute(
     const unit = store.getById('units', unitMatch[1]!) as Record<string, unknown> | null;
     if (!unit) return json({ error: 'NOT_FOUND', message: 'Unit not found' }, 404);
     // Attach related packages and maintenance for the detail view
-    const rawPackages = store.getAll('packages', { where: { unitId: unitMatch[1]! } }).data as Record<string, unknown>[];
-    const rawMaintenance = store.getAll('maintenance', { where: { unitId: unitMatch[1]! } }).data as Record<string, unknown>[];
+    const rawPackages = store.getAll('packages', { where: { unitId: unitMatch[1]! } })
+      .data as Record<string, unknown>[];
+    const rawMaintenance = store.getAll('maintenance', { where: { unitId: unitMatch[1]! } })
+      .data as Record<string, unknown>[];
 
     // Map to the shape expected by UnitDetail interface on the page
     const buildingObj = unit.building as Record<string, string> | undefined;
     const mapped = {
       ...unit,
       // building must be a string (the page renders {unit.building} inline)
-      building: buildingObj?.name ?? (typeof unit.building === 'string' ? unit.building : 'Main Tower'),
+      building:
+        buildingObj?.name ?? (typeof unit.building === 'string' ? unit.building : 'Main Tower'),
       // type comes from unitType in the store
       type: unit.unitType ?? unit.type ?? 'Unit',
       sqft: unit.sqft ?? 850,
@@ -742,7 +751,8 @@ async function matchRoute(
       instructions: ((unit.unitInstructions ?? []) as Record<string, unknown>[]).map((ins) => ({
         id: ins.id ?? randomUUID(),
         text: ins.instructionText ?? ins.text ?? '',
-        priority: ins.priority === 'high' ? 'critical' : ins.priority === 'medium' ? 'important' : 'normal',
+        priority:
+          ins.priority === 'high' ? 'critical' : ins.priority === 'medium' ? 'important' : 'normal',
         createdBy: 'Staff',
         createdAt: ins.createdAt ?? new Date().toISOString(),
       })),
@@ -750,7 +760,9 @@ async function matchRoute(
       packages: rawPackages.map((pkg) => ({
         id: pkg.id,
         referenceNumber: pkg.referenceNumber,
-        courier: (pkg.courier as Record<string, string> | undefined)?.name ?? String(pkg.courier ?? 'Unknown'),
+        courier:
+          (pkg.courier as Record<string, string> | undefined)?.name ??
+          String(pkg.courier ?? 'Unknown'),
         status: pkg.status,
         receivedAt: pkg.createdAt,
         releasedTo: pkg.releasedTo ?? null,
@@ -759,7 +771,9 @@ async function matchRoute(
       maintenance: rawMaintenance.map((mr) => ({
         id: mr.id,
         referenceNumber: mr.referenceNumber,
-        category: (mr.category as Record<string, string> | undefined)?.name ?? String(mr.category ?? 'General'),
+        category:
+          (mr.category as Record<string, string> | undefined)?.name ??
+          String(mr.category ?? 'General'),
         status: mr.status,
         priority: mr.priority,
         createdAt: mr.createdAt,
@@ -782,7 +796,11 @@ async function matchRoute(
     const residentUnitId = '00000000-0000-4000-d000-0000unit0101';
     const statusFilter = params.get('status') || undefined;
     const result = store.getAll('packages', {
-      where: { propertyId, unitId: residentUnitId, ...(statusFilter ? { status: statusFilter } : {}) },
+      where: {
+        propertyId,
+        unitId: residentUnitId,
+        ...(statusFilter ? { status: statusFilter } : {}),
+      },
       page,
       pageSize,
     });
