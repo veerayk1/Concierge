@@ -58,9 +58,9 @@ export async function GET(request: NextRequest) {
       // Filter out seed/test data markers
       number: {
         not: {
-          in: ['__courier_seed__', '__test__', '__demo__', '__seed__']
-        }
-      }
+          in: ['__courier_seed__', '__test__', '__demo__', '__seed__'],
+        },
+      },
     };
     if (buildingId) where.buildingId = buildingId;
     if (floor !== null && floor !== undefined && floor !== '') {
@@ -217,12 +217,12 @@ export async function POST(request: NextRequest) {
     let unit;
     try {
       unit = await prisma.unit.create({
-        data: { ...createData, ...optionalFields },
+        data: { ...createData, ...optionalFields } as any,
       });
     } catch {
       // Stale client — create with only core fields
       unit = await prisma.unit.create({
-        data: createData,
+        data: createData as any,
       });
     }
 

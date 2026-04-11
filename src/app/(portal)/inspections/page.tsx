@@ -67,7 +67,7 @@ interface ApiResponse {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const TYPE_LABELS: Record<InspectionItem['type'], string> = {
+const TYPE_LABELS: Record<NonNullable<InspectionItem['type']>, string> = {
   fire_safety: 'Fire Safety',
   elevator: 'Elevator',
   plumbing: 'Plumbing',
@@ -79,7 +79,7 @@ const TYPE_LABELS: Record<InspectionItem['type'], string> = {
 };
 
 const TYPE_BADGE_VARIANT: Record<
-  InspectionItem['type'],
+  NonNullable<InspectionItem['type']>,
   'primary' | 'info' | 'warning' | 'error' | 'success' | 'default'
 > = {
   fire_safety: 'error',

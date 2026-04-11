@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     // Map dialog field names to schema field names
     // Dialog sends: unit (unit number), unitId (if UUID)
     // Schema expects: unitId (UUID)
-    let mapped: Record<string, unknown> = {
+    const mapped: Record<string, unknown> = {
       ...body,
     };
 

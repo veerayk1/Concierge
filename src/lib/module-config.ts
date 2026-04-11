@@ -246,7 +246,7 @@ export function getModulesByCategory(): Record<string, ModuleDefinition[]> {
   const grouped: Record<string, ModuleDefinition[]> = {};
   for (const mod of MODULE_DEFINITIONS) {
     if (!grouped[mod.category]) grouped[mod.category] = [];
-    grouped[mod.category].push(mod);
+    grouped[mod.category]!.push(mod);
   }
   return grouped;
 }

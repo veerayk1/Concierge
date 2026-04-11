@@ -159,15 +159,16 @@ export default function RecurringTasksPage() {
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
       return (
-        item.name.toLowerCase().includes(q) ||
-        (item.location?.toLowerCase().includes(q) ?? false)
+        item.name.toLowerCase().includes(q) || (item.location?.toLowerCase().includes(q) ?? false)
       );
     });
   }, [allTasks, categoryFilter, frequencyFilter, statusFilter, searchQuery]);
 
   const totalCount = allTasks.length;
   const activeCount = allTasks.filter((t) => t.isActive).length;
-  const overdueCount = allTasks.filter((t) => t.nextOccurrence && new Date(t.nextOccurrence) < new Date()).length;
+  const overdueCount = allTasks.filter(
+    (t) => t.nextOccurrence && new Date(t.nextOccurrence) < new Date(),
+  ).length;
 
   const hasActiveFilters =
     categoryFilter !== 'all' || frequencyFilter !== 'all' || statusFilter !== 'all';
@@ -183,10 +184,17 @@ export default function RecurringTasksPage() {
     {
       id: 'category',
       header: 'Category',
-      accessorKey: 'category.name',
+      accessorKey: 'category' as keyof RecurringTaskItem,
       sortable: true,
       cell: (row) => (
-        <Badge variant={CATEGORY_COLORS[row.category?.name?.toLowerCase().replace(/\s+/g, '_') as TaskCategory] || 'info'} size="sm">
+        <Badge
+          variant={
+            CATEGORY_COLORS[
+              row.category?.name?.toLowerCase().replace(/\s+/g, '_') as TaskCategory
+            ] || 'info'
+          }
+          size="sm"
+        >
           {row.category?.name || '—'}
         </Badge>
       ),
@@ -285,11 +293,7 @@ export default function RecurringTasksPage() {
             <div className="h-2 w-16 overflow-hidden rounded-full bg-neutral-100">
               <div
                 className={`h-full rounded-full transition-all ${
-                  rate >= 90
-                    ? 'bg-success-500'
-                    : rate >= 70
-                      ? 'bg-warning-500'
-                      : 'bg-error-500'
+                  rate >= 90 ? 'bg-success-500' : rate >= 70 ? 'bg-warning-500' : 'bg-error-500'
                 }`}
                 style={{ width: `${rate}%` }}
               />

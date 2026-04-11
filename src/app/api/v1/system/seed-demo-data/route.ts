@@ -85,7 +85,6 @@ export async function POST(request: NextRequest) {
               propertyId,
               name: s.name,
               code: s.code,
-              description: s.description,
               isActive: true,
             },
           });

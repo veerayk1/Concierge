@@ -223,7 +223,7 @@ export default function VacationsPage() {
           completed: { label: 'Completed', variant: 'default' },
         };
         const config = statusConfig[row.status];
-        return <Badge variant={config.variant}>{config.label}</Badge>;
+        return <Badge variant={config?.variant}>{config?.label}</Badge>;
       },
     },
     {

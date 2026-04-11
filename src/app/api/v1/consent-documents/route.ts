@@ -92,13 +92,7 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const {
-      propertyId,
-      userId,
-      documentType,
-      documentUrl,
-      expiresAt,
-    } = body;
+    const { propertyId, userId, documentType, documentUrl, expiresAt } = body;
 
     if (!propertyId || !userId || !documentType || !documentUrl) {
       return NextResponse.json(
@@ -112,7 +106,7 @@ export async function POST(request: NextRequest) {
 
     // Capture IP and user agent from request (for audit trail)
     const ipAddress =
-      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       request.headers.get('x-real-ip') ||
       'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
@@ -124,10 +118,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'NOT_FOUND', message: 'User not found' },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: 'NOT_FOUND', message: 'User not found' }, { status: 404 });
     }
 
     const document = await prisma.consentDocument.create({

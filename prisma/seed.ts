@@ -2295,7 +2295,7 @@ export async function main(): Promise<void> {
     id: '00000000-0000-4000-b600-000000000001',
     propertyId: mapleHeights.id,
     userId: IDS.mh_resident01,
-    unitId: units[0]!.id,
+    unitId: mhUnits[0]!.id,
     startDate: new Date(2026, 3, 10), // April 10, 2026
     endDate: new Date(2026, 3, 24), // April 24, 2026
     notes: 'Traveling to Europe. Hold mail and packages.',
@@ -2307,7 +2307,7 @@ export async function main(): Promise<void> {
     id: '00000000-0000-4000-b600-000000000002',
     propertyId: mapleHeights.id,
     userId: IDS.mh_resident02,
-    unitId: units[1]!.id,
+    unitId: mhUnits[1]!.id,
     startDate: new Date(2026, 5, 15), // June 15, 2026
     endDate: new Date(2026, 5, 30), // June 30, 2026
     notes: 'Summer cottage in Muskoka',

@@ -129,7 +129,7 @@ function ModuleCard({
             <div className="flex items-center gap-2">
               <h3 className="text-[14px] font-semibold text-neutral-900">{name}</h3>
               <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${tierColor.bg} ${tierColor.text}`}
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${tierColor?.bg} ${tierColor?.text}`}
               >
                 {TIER_LABELS[tier] ?? tier}
               </span>

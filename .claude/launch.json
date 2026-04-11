@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "/Users/yaswanth/Desktop/ZAZZ_RFP_-AutoPilot/.local/node-v20.19.5-darwin-arm64/bin/node",
+      "runtimeExecutable": "node",
       "runtimeArgs": ["node_modules/next/dist/bin/next", "dev"],
       "port": 3000
     }

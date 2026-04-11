@@ -52,7 +52,11 @@ interface GuardOptions {
  * Resolve demo mode authentication for development.
  * For resident roles, looks up the first unit in the property to assign unitId.
  */
-async function handleDemoMode(request: NextRequest, demoRole: Role, allowedRoles?: Role[]): Promise<GuardResponse> {
+async function handleDemoMode(
+  request: NextRequest,
+  demoRole: Role,
+  allowedRoles?: Role[],
+): Promise<GuardResponse> {
   const isResident = demoRole === 'resident_owner' || demoRole === 'resident_tenant';
 
   // Read propertyId from header or query string, fall back to Bond Tower default
@@ -81,7 +85,7 @@ async function handleDemoMode(request: NextRequest, demoRole: Role, allowedRoles
         LIMIT 1
       `;
       if (rows.length > 0) {
-        demoUser.unitId = rows[0].id;
+        demoUser.unitId = rows[0]!.id;
       }
     } catch {
       // units table may not exist yet — continue without unitId
@@ -152,10 +156,7 @@ export async function guardRoute(
 
     // For resident roles, resolve unitId from occupancy records via raw SQL
     // (OccupancyRecord model may not be in generated Prisma client)
-    if (
-      (user.role === 'resident_owner' || user.role === 'resident_tenant') &&
-      !user.unitId
-    ) {
+    if ((user.role === 'resident_owner' || user.role === 'resident_tenant') && !user.unitId) {
       try {
         const rows = await prisma.$queryRaw<{ unitId: string }[]>`
           SELECT "unitId" FROM occupancy_records
@@ -165,7 +166,7 @@ export async function guardRoute(
           LIMIT 1
         `;
         if (rows.length > 0) {
-          user.unitId = rows[0].unitId;
+          user.unitId = rows[0]!.unitId;
         } else {
           // Fall back to any active occupancy
           const anyRows = await prisma.$queryRaw<{ unitId: string }[]>`
@@ -175,7 +176,7 @@ export async function guardRoute(
             LIMIT 1
           `;
           if (anyRows.length > 0) {
-            user.unitId = anyRows[0].unitId;
+            user.unitId = anyRows[0]!.unitId;
           }
         }
       } catch {

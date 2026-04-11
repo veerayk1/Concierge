@@ -58,14 +58,18 @@ export default function EmailConfigPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { data: configsResponse, loading, error, refetch } = useApi<any>(
-    apiUrl('/api/v1/settings/email-config', { propertyId }),
-  );
+  const {
+    data: configsResponse,
+    loading,
+    error,
+    refetch,
+  } = useApi<any>(apiUrl('/api/v1/settings/email-config', { propertyId }));
 
   const configMap = useMemo(() => {
     const map: Record<string, EmailModuleConfig> = {};
     // API returns { propertyId, configs: [...] } — useApi unwraps .data
-    const configs = configsResponse?.configs ?? (Array.isArray(configsResponse) ? configsResponse : []);
+    const configs =
+      configsResponse?.configs ?? (Array.isArray(configsResponse) ? configsResponse : []);
     if (configs && Array.isArray(configs)) {
       configs.forEach((c: any) => {
         map[c.moduleKey] = c;
@@ -87,7 +91,7 @@ export default function EmailConfigPage() {
         active: true,
         ...(configMap[mod.key] || {}),
         // Ensure active defaults to true when not stored in DB
-        ...(configMap[mod.key] && configMap[mod.key].active === undefined ? { active: true } : {}),
+        ...(configMap[mod.key] && configMap[mod.key]?.active === undefined ? { active: true } : {}),
       },
     }));
   }, [configMap]);
@@ -115,20 +119,17 @@ export default function EmailConfigPage() {
     setSaveError(null);
 
     try {
-      const response = await apiRequest(
-        `/api/v1/settings/email-config`,
-        {
-          method: 'POST',
-          body: {
-            propertyId,
-            moduleKey: editingId,
-            fromEmail: editForm.fromEmail,
-            fromName: editForm.fromName,
-            replyTo: editForm.replyTo,
-            isActive: editForm.active,
-          },
+      const response = await apiRequest(`/api/v1/settings/email-config`, {
+        method: 'POST',
+        body: {
+          propertyId,
+          moduleKey: editingId,
+          fromEmail: editForm.fromEmail,
+          fromName: editForm.fromName,
+          replyTo: editForm.replyTo,
+          isActive: editForm.active,
         },
-      );
+      });
 
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
@@ -192,15 +193,15 @@ export default function EmailConfigPage() {
             {displayConfigs.map((item) => (
               <Card key={item.key} padding="md">
                 <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-start gap-3 flex-1">
+                  <div className="flex flex-1 items-start gap-3">
                     <Mail className="mt-1 h-5 w-5 text-neutral-400" />
                     <div className="flex-1">
                       <h3 className="text-[14px] font-semibold text-neutral-900">{item.name}</h3>
                       <div className="mt-2 space-y-1">
                         {item.config.fromEmail && (
                           <p className="text-[13px] text-neutral-600">
-                            From: <span className="font-medium">{item.config.fromName}</span>{' '}
-                            &lt;{item.config.fromEmail}&gt;
+                            From: <span className="font-medium">{item.config.fromName}</span> &lt;
+                            {item.config.fromEmail}&gt;
                           </p>
                         )}
                         {item.config.replyTo && (
@@ -219,11 +220,7 @@ export default function EmailConfigPage() {
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => openEdit(item)}
-                  >
+                  <Button variant="secondary" size="sm" onClick={() => openEdit(item)}>
                     Edit
                   </Button>
                 </div>
@@ -234,9 +231,12 @@ export default function EmailConfigPage() {
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={!!editingId} onOpenChange={(open) => {
-        if (!open) setEditingId(null);
-      }}>
+      <Dialog
+        open={!!editingId}
+        onOpenChange={(open) => {
+          if (!open) setEditingId(null);
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
             <Mail className="text-primary-500 h-5 w-5" />
@@ -293,13 +293,13 @@ export default function EmailConfigPage() {
               />
             </div>
 
-            <label className="flex items-center gap-3 cursor-pointer text-[14px] font-medium text-neutral-700">
+            <label className="flex cursor-pointer items-center gap-3 text-[14px] font-medium text-neutral-700">
               <input
                 type="checkbox"
                 checked={editForm.active}
                 onChange={(e) => setEditForm({ ...editForm, active: e.target.checked })}
                 disabled={isSaving}
-                className="h-4 w-4 rounded border-neutral-300 text-primary-500 focus:ring-2 focus:ring-primary-500"
+                className="text-primary-500 focus:ring-primary-500 h-4 w-4 rounded border-neutral-300 focus:ring-2"
               />
               Active
             </label>

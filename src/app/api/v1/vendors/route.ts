@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
     let createdById = auth.user.userId;
     try {
       const realUser = await prisma.user.findFirst({
-        where: { propertyId: resolvedPropertyId },
+        where: { userProperties: { some: { propertyId: resolvedPropertyId } } },
         select: { id: true },
         orderBy: { createdAt: 'asc' },
       });
