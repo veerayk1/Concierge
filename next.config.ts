@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
     'isomorphic-dompurify',
     'jsdom',
     'dompurify',
+    'socket.io',
+    'socket.io-client',
+    'bullmq',
+    'ioredis',
   ],
 
   images: {
