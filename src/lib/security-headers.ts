@@ -83,9 +83,7 @@ function buildCsp(nonce: string): string {
 
   const directives: string[] = [
     "default-src 'self'",
-    isDev
-      ? `script-src 'self' 'unsafe-eval' 'unsafe-inline'`
-      : `script-src 'self' 'nonce-${nonce}'`,
+    isDev ? `script-src 'self' 'unsafe-eval' 'unsafe-inline'` : `script-src 'self' 'unsafe-inline'`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self'",
@@ -126,9 +124,8 @@ export function getSecurityHeaders(nonce: string): Record<string, string> {
 
   if (!isDev) {
     headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload';
-    headers['Cross-Origin-Opener-Policy'] = 'same-origin';
-    headers['Cross-Origin-Resource-Policy'] = 'same-origin';
-    headers['Cross-Origin-Embedder-Policy'] = 'require-corp';
+    headers['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups';
+    headers['Cross-Origin-Resource-Policy'] = 'same-site';
   }
 
   return headers;
