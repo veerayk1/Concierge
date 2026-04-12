@@ -407,8 +407,27 @@ export default function MaintenancePage() {
         <DataTable
           columns={columns}
           data={filteredRequests}
-          emptyMessage="No maintenance requests found."
+          emptyMessage={
+            statusFilter ? 'No requests match this filter' : 'No maintenance requests yet'
+          }
+          emptyDescription={
+            statusFilter
+              ? 'Try selecting a different status tab.'
+              : 'Create your first service request to track maintenance across the building.'
+          }
           emptyIcon={<Wrench className="h-6 w-6" />}
+          emptyAction={
+            !statusFilter ? (
+              <button
+                type="button"
+                onClick={() => setShowCreateDialog(true)}
+                className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13px] font-semibold text-white transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                New Request
+              </button>
+            ) : undefined
+          }
           onRowClick={(row) => router.push(`/maintenance/${row.id}` as never)}
         />
       )}

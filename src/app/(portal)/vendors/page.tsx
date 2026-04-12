@@ -400,20 +400,35 @@ export default function VendorsPage() {
           ) : (
             <EmptyState
               icon={<Truck className="h-6 w-6" />}
-              title="No vendors found"
-              description="Try adjusting your search or filters to find what you are looking for."
+              title={
+                searchQuery || statusFilter !== 'all' || categoryFilter !== 'all'
+                  ? 'No vendors found'
+                  : 'No vendors yet'
+              }
+              description={
+                searchQuery || statusFilter !== 'all' || categoryFilter !== 'all'
+                  ? 'Try adjusting your search or filters to find what you are looking for.'
+                  : 'Add your first vendor to manage contractor relationships, track insurance compliance, and assign work orders.'
+              }
               action={
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setStatusFilter('all');
-                    setCategoryFilter('all');
-                  }}
-                >
-                  Clear Filters
-                </Button>
+                searchQuery || statusFilter !== 'all' || categoryFilter !== 'all' ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('all');
+                      setCategoryFilter('all');
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add Vendor
+                  </Button>
+                )
               }
             />
           )}

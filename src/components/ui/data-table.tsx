@@ -22,7 +22,9 @@ export interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
   emptyMessage?: string;
+  emptyDescription?: string;
   emptyIcon?: ReactNode;
+  emptyAction?: ReactNode;
   onRowClick?: (row: T) => void;
   className?: string;
   compact?: boolean;
@@ -38,7 +40,9 @@ export function DataTable<T extends { id?: string }>({
   columns,
   data,
   emptyMessage = 'No data to display',
+  emptyDescription,
   emptyIcon,
+  emptyAction,
   onRowClick,
   className,
   compact = false,
@@ -90,7 +94,11 @@ export function DataTable<T extends { id?: string }>({
             {emptyIcon}
           </div>
         )}
-        <p className="text-[14px] text-neutral-500">{emptyMessage}</p>
+        <p className="text-[14px] font-medium text-neutral-700">{emptyMessage}</p>
+        {emptyDescription && (
+          <p className="mt-1 max-w-sm text-[13px] text-neutral-500">{emptyDescription}</p>
+        )}
+        {emptyAction && <div className="mt-4">{emptyAction}</div>}
       </div>
     );
   }
