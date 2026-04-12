@@ -8,7 +8,7 @@
  * - Falls back to the seeded demo property for backwards compatibility
  */
 
-export const DEFAULT_DEMO_PROPERTY_ID = '8165b053-0af8-4e46-aa54-97f52ee9ea8d';
+export const DEFAULT_DEMO_PROPERTY_ID = '94fd28bd-37ce-4fb1-952e-4c182634fc90';
 
 /** @deprecated Use getPropertyId() instead — this constant breaks multi-tenancy */
 export const DEMO_PROPERTY_ID = DEFAULT_DEMO_PROPERTY_ID;

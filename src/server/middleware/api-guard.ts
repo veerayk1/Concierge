@@ -63,7 +63,7 @@ async function handleDemoMode(
   const headerPropertyId = request.headers.get('x-demo-propertyId');
   const url = new URL(request.url);
   const queryPropertyId = url.searchParams.get('propertyId');
-  const DEFAULT_PROPERTY_ID = '8165b053-0af8-4e46-aa54-97f52ee9ea8d'; // Demo fallback property
+  const DEFAULT_PROPERTY_ID = '94fd28bd-37ce-4fb1-952e-4c182634fc90'; // Demo fallback property
   const propertyId = headerPropertyId || queryPropertyId || DEFAULT_PROPERTY_ID;
 
   const demoUser: AuthenticatedUser = {

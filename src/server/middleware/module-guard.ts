@@ -47,7 +47,7 @@ export async function requireModule(
     const propertyId =
       url.searchParams.get('propertyId') ||
       request.headers.get('x-demo-propertyId') ||
-      '8165b053-0af8-4e46-aa54-97f52ee9ea8d'; // Demo fallback property
+      '94fd28bd-37ce-4fb1-952e-4c182634fc90'; // Demo fallback property
 
     // Check the DB for this flag
     const flag = await prisma.featureFlag.findUnique({
