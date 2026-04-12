@@ -173,6 +173,11 @@ const PHASES: Phase[] = [
         label: 'Verify Super Admin can switch between properties',
         href: '/dashboard',
       },
+      {
+        id: '1.32',
+        label: 'Settings → Notifications: fill From Name/Email, click Save, verify "Changes saved"',
+        href: '/settings/notifications',
+      },
     ],
   },
 
@@ -534,6 +539,37 @@ const PHASES: Phase[] = [
         label: 'Parking → issue permit with vehicle details (auto-create vehicle)',
         href: '/parking',
       },
+      {
+        id: '3.58',
+        label:
+          'Amenities → verify 5 amenity cards render (Party Room, Fitness, Guest Suite, Meeting, BBQ)',
+        href: '/amenities',
+      },
+      {
+        id: '3.59',
+        label: 'Amenities → click into Party Room detail, verify fee, description, Quick Info',
+        href: '/amenities',
+      },
+      {
+        id: '3.60',
+        label: 'Amenities → create booking via New Booking dialog (date, time, unit, guests)',
+        href: '/amenities',
+      },
+      {
+        id: '3.61',
+        label: 'Amenities → verify booking shows as CONFIRMED in Upcoming Bookings',
+        href: '/amenities',
+      },
+      {
+        id: '3.62',
+        label: 'Dashboard → verify Bookings KPI increments after booking creation',
+        href: '/dashboard',
+      },
+      {
+        id: '3.63',
+        label: 'Dashboard → verify AI briefing mentions booking pending review',
+        href: '/dashboard',
+      },
     ],
   },
 
@@ -657,6 +693,11 @@ const PHASES: Phase[] = [
         href: '/security',
       },
       { id: '4.31', label: 'Security Console → log pass-on note', href: '/security' },
+      {
+        id: '4.32',
+        label: 'Verify email notification sent when package logged (requires Resend API key)',
+        href: '/packages',
+      },
     ],
   },
 
@@ -751,6 +792,12 @@ const PHASES: Phase[] = [
         label: 'Verify Security Guard CANNOT access User Management',
         href: '/users',
       },
+      {
+        id: '5.23',
+        label:
+          'Fire Log → verify comprehensive form (elevator checkboxes, FD timeline, device resets)',
+        href: '/security',
+      },
     ],
   },
 
@@ -816,6 +863,11 @@ const PHASES: Phase[] = [
       { id: '6.14', label: "Review guard's incident report", href: '/security' },
       { id: '6.15', label: 'Add investigation notes to incident', href: '/security' },
       { id: '6.16', label: 'Close incident with resolution summary', href: '/security' },
+      {
+        id: '6.17',
+        label: 'Keys → verify Return button works (PATCH API, status back to AVAILABLE)',
+        href: '/keys',
+      },
     ],
   },
 
@@ -1125,6 +1177,16 @@ const PHASES: Phase[] = [
           'My Requests → verify Permission to Enter reveals Entry Instructions (progressive disclosure)',
         href: '/my-requests',
       },
+      {
+        id: '9.32',
+        label: 'Amenity Booking → browse amenities, view detail, create booking for Party Room',
+        href: '/amenities',
+      },
+      {
+        id: '9.33',
+        label: 'Amenity Booking → verify booking in My Bookings with Cancel option',
+        href: '/amenity-booking',
+      },
     ],
   },
 
@@ -1380,6 +1442,21 @@ const PHASES: Phase[] = [
         label: 'Integrations → verify calendar sync config',
         href: '/settings',
       },
+      {
+        id: '12.34',
+        label: 'Notifications → verify Save Changes shows success message',
+        href: '/settings/notifications',
+      },
+      {
+        id: '12.35',
+        label: 'Notifications → verify 11-module x 4-channel matrix renders correctly',
+        href: '/settings/notifications',
+      },
+      {
+        id: '12.36',
+        label: 'Notifications → verify Quiet Hours and Digest Settings sections',
+        href: '/settings/notifications',
+      },
     ],
   },
 
@@ -1544,6 +1621,26 @@ const PHASES: Phase[] = [
       { id: '13.34', label: 'Browser refresh on detail page → verify data persists from DB' },
       { id: '13.35', label: 'Empty maintenance form → verify field-specific error messages' },
       { id: '13.36', label: 'Maintenance filter tabs → verify each tab shows correct subset' },
+      {
+        id: '13.37',
+        label: 'Parking permit → create with vehicle details (API auto-creates vehicle record)',
+        href: '/parking',
+      },
+      {
+        id: '13.38',
+        label: 'Equipment → create via UI form with HVAC category (correct casing)',
+        href: '/equipment',
+      },
+      {
+        id: '13.39',
+        label: 'Recurring Tasks → create with date-only startDate (auto-converted to ISO)',
+        href: '/recurring-tasks',
+      },
+      {
+        id: '13.40',
+        label: 'Alteration → verify start/end dates marked as required with asterisk',
+        href: '/alterations',
+      },
     ],
   },
 
