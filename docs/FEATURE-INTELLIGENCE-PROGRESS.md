@@ -16,8 +16,8 @@
 | Properties             | 1     | Parkview Terrace (55 Harbour Square, Toronto, ON M5J 2G4, 150 units)                                                                                                                                  |
 | Users                  | 7     | Nadia Kowalski (PM), Alex Brennan (Front Desk), Ravi Patel (Security Guard), Lena Fischer (Security Supervisor), Omar Hassan (Maintenance), Yuki Tanaka (Superintendent), Maya Singh (Resident Owner) |
 | Units                  | 1     | Unit 101 (Floor 1, Residential, Vacant)                                                                                                                                                               |
-| Packages               | 1     | PKG-TRJC_0 (Unit 101, AMZ-98765432, Released to Maya Singh)                                                                                                                                           |
-| Maintenance Requests   | 2     | MR-JINM (Unit 101, Resolved, High), MR-KBCN (Unit 101, Open, High)                                                                                                                                    |
+| Packages               | 2     | PKG-TRJC_0 (Released), PKG-PQI1RW (Unreleased, logged by Front Desk)                                                                                                                                  |
+| Maintenance Requests   | 3     | MR-JINM (Resolved), MR-KBCN (Open), MR-QGTG (Open, created by Resident)                                                                                                                               |
 | Maintenance Comments   | 1     | On MR-JINM: "Contacted building plumber..."                                                                                                                                                           |
 | Maintenance Categories | 8     | Auto-seeded: General, Plumbing, Electrical, HVAC, Appliance, Structural, Pest Control, Other                                                                                                          |
 | Announcements          | 1     | "Water Shutoff Notice — April 15, 2026" (Published, Urgent, Email channel)                                                                                                                            |
@@ -148,11 +148,37 @@ This ID is set in `src/lib/demo-config.ts` as `DEFAULT_DEMO_PROPERTY_ID`.
 - [x] **Shift Log** (Front Desk role): Current Shift banner, filter by priority, Add Entry, Pass-On Note
 - [x] **Vacations** page: Available on multiple roles
 
-### Phases 6, 8, 11-14: NOT YET STARTED
+### Phase 4: Front Desk — CRUD Operations (COMPLETE)
+
+- [x] Log package as Front Desk (PKG-PQI1RW, Unit 101, FDX-98761234, fragile box) — 201 success
+- [x] Package appears in unreleased list with all fields correct
+- [x] Shift Log: created entry (Morning shift, Important, package notification) — 201 success
+- [x] Shift Log entry appears with MORNING + IMPORTANT badges, reference SL-MNVVO85N
+
+### Phase 5-6: Security — CRUD Operations (COMPLETE)
+
+- [x] Security Console shows cross-role data (PM incident + Front Desk shift log)
+- [x] Fire Log: created fire event (5th Floor smoke detector, false alarm) — 201 success
+- [x] Parking Management: Permits/Violations tabs both load, search works
+
+### Phase 9: Resident Self-Service (COMPLETE)
+
+- [x] Resident form is simplified vs PM form (no unit selector, no category — great UX)
+- [x] Created maintenance request MR-QGTG (exhaust fan noise, Medium priority) — 201 success
+- [x] Request appears in My Requests with correct KPI update (Open: 2)
+
+### Phase 13: Edge Cases (PARTIAL)
+
+- [x] Maintenance filter tabs (Open, Resolved) correctly filter data
+- [x] Global search command palette opens but doesn't find maintenance data (Bug #19)
+- [ ] Empty form submission validation — not yet tested
+- [ ] Duplicate data handling — not yet tested
+
+### Phases 8, 11-12, 14: NOT YET STARTED
 
 ---
 
-## Bugs Found & Fixed: 17
+## Bugs Found & Fixed: 19
 
 | #   | Bug                                                                                                                                  | Severity | Phase         | Status   |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------- | -------- |
@@ -173,6 +199,8 @@ This ID is set in `src/lib/demo-config.ts` as `DEFAULT_DEMO_PROPERTY_ID`.
 | 15  | Maintenance list shows "Unit 101 Resident" instead of actual resident name                                                           | LOW      | 3.Maintenance | FIXED    |
 | 16  | Empty state messages could be more actionable (Vendors, Maintenance)                                                                 | LOW      | 3.Various     | LOGGED   |
 | 17  | AI Dashboard Package Handling score shows unrounded float (99.89519444444444)                                                        | LOW      | AI Dashboard  | FIXED    |
+| 18  | Resident self-service request fails — demo user UUID doesn't exist in DB (systemic fix: resolve real user in api-guard middleware)   | CRITICAL | 9.Resident    | FIXED    |
+| 19  | Global search returns "No results" for maintenance data that exists (search may not cover all modules)                               | MEDIUM   | 13.Search     | LOGGED   |
 
 ---
 
