@@ -25,7 +25,14 @@ import { appCache } from '@/server/cache';
 // Types
 // ---------------------------------------------------------------------------
 
-type SearchModule = 'users' | 'units' | 'packages' | 'events' | 'announcements';
+type SearchModule =
+  | 'users'
+  | 'units'
+  | 'packages'
+  | 'events'
+  | 'announcements'
+  | 'maintenance'
+  | 'visitors';
 
 interface SearchResult {
   id: string;
@@ -37,7 +44,15 @@ interface SearchResult {
   highlights: Record<string, string>;
 }
 
-const ALL_MODULES: SearchModule[] = ['users', 'units', 'packages', 'events', 'announcements'];
+const ALL_MODULES: SearchModule[] = [
+  'users',
+  'units',
+  'packages',
+  'events',
+  'announcements',
+  'maintenance',
+  'visitors',
+];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -194,8 +209,8 @@ export async function GET(request: NextRequest) {
         deletedAt: null,
         AND: [
           { number: { contains: q, mode: 'insensitive' } },
-          { number: { notIn: ['__courier_seed__', '__test__', '__demo__', '__seed__'] } }
-        ]
+          { number: { notIn: ['__courier_seed__', '__test__', '__demo__', '__seed__'] } },
+        ],
       };
       if (statusFilter) where.status = statusFilter;
       if (dateFilter) where.createdAt = dateFilter;
@@ -288,6 +303,58 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (modules.includes('maintenance')) {
+      const where: Record<string, unknown> = {
+        propertyId,
+        deletedAt: null,
+        OR: [
+          { title: { contains: q, mode: 'insensitive' } },
+          { description: { contains: q, mode: 'insensitive' } },
+          { referenceNumber: { contains: q, mode: 'insensitive' } },
+        ],
+      };
+      if (statusFilter) where.status = statusFilter;
+      if (dateFilter) where.createdAt = dateFilter;
+
+      searchPromises.push(
+        Promise.all([
+          prisma.maintenanceRequest.findMany({
+            where,
+            select: {
+              id: true,
+              title: true,
+              referenceNumber: true,
+              description: true,
+              status: true,
+            },
+            take: perModuleLimit,
+            ...(typeFilter ? { skip } : {}),
+          }),
+          typeFilter ? prisma.maintenanceRequest.count({ where }) : Promise.resolve(0),
+        ]).then(([items, count]) => ({ items, count, module: 'maintenance' as const })),
+      );
+    }
+
+    if (modules.includes('visitors')) {
+      const where: Record<string, unknown> = {
+        propertyId,
+        OR: [{ visitorName: { contains: q, mode: 'insensitive' } }],
+      };
+      if (dateFilter) where.createdAt = dateFilter;
+
+      searchPromises.push(
+        Promise.all([
+          prisma.visitorEntry.findMany({
+            where,
+            select: { id: true, visitorName: true, visitorType: true },
+            take: perModuleLimit,
+            ...(typeFilter ? { skip } : {}),
+          }),
+          typeFilter ? prisma.visitorEntry.count({ where }) : Promise.resolve(0),
+        ]).then(([items, count]) => ({ items, count, module: 'visitors' as const })),
+      );
+    }
+
     const moduleResults = await Promise.all(searchPromises);
 
     // Build categorized results (backwards compatible)
@@ -297,6 +364,8 @@ export async function GET(request: NextRequest) {
       packages: [],
       events: [],
       announcements: [],
+      maintenance: [],
+      visitors: [],
     };
 
     let totalCount = 0;
@@ -416,6 +485,14 @@ function getSearchableFields(
       return { title: item.title, referenceNo: item.referenceNo };
     case 'announcements':
       return { title: item.title, content: item.content };
+    case 'maintenance':
+      return {
+        title: item.title,
+        description: item.description,
+        referenceNumber: item.referenceNumber,
+      };
+    case 'visitors':
+      return { visitorName: item.visitorName };
     default:
       return {};
   }
@@ -433,6 +510,10 @@ function getTitle(item: Record<string, string | null | undefined>, module: Searc
       return item.title ?? '';
     case 'announcements':
       return item.title ?? '';
+    case 'maintenance':
+      return item.title ?? item.referenceNumber ?? '';
+    case 'visitors':
+      return item.visitorName ?? '';
     default:
       return '';
   }
@@ -449,6 +530,10 @@ function getSubtitle(
       return item.trackingNumber ?? undefined;
     case 'events':
       return item.referenceNo ?? undefined;
+    case 'maintenance':
+      return item.referenceNumber ? `${item.referenceNumber}` : undefined;
+    case 'visitors':
+      return item.visitorType ?? undefined;
     default:
       return undefined;
   }

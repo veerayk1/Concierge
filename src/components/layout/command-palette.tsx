@@ -7,11 +7,23 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, FileText, Megaphone, Package, Search, Shield, Users, X } from 'lucide-react';
+import {
+  Building2,
+  FileText,
+  Megaphone,
+  Package,
+  Search,
+  Shield,
+  Users,
+  Wrench,
+  UserCheck,
+  X,
+} from 'lucide-react';
+import { getPropertyId } from '@/lib/demo-config';
 
 interface SearchResult {
   id: string;
-  type: 'user' | 'unit' | 'package' | 'event' | 'announcement';
+  type: 'user' | 'unit' | 'package' | 'event' | 'announcement' | 'maintenance' | 'visitor';
   title: string;
   subtitle?: string;
   href: string;
@@ -27,6 +39,18 @@ const TYPE_CONFIG = {
     label: 'Announcement',
     color: 'text-purple-600',
     bg: 'bg-purple-50',
+  },
+  maintenance: {
+    icon: Wrench,
+    label: 'Maintenance',
+    color: 'text-orange-600',
+    bg: 'bg-orange-50',
+  },
+  visitor: {
+    icon: UserCheck,
+    label: 'Visitor',
+    color: 'text-teal-600',
+    bg: 'bg-teal-50',
   },
 };
 
@@ -72,8 +96,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       setLoading(true);
       try {
         const demoRole = localStorage.getItem('demo_role');
+        const propertyId = getPropertyId();
         const res = await fetch(
-          `/api/v1/search?propertyId=00000000-0000-4000-b000-000000000001&q=${encodeURIComponent(query)}`,
+          `/api/v1/search?propertyId=${propertyId}&q=${encodeURIComponent(query)}`,
           {
             headers: {
               ...(demoRole ? { 'x-demo-role': demoRole } : {}),
@@ -133,6 +158,28 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               href: `/announcements/${a.id}`,
             });
           });
+          data.data.maintenance?.forEach(
+            (m: { id: string; title: string; referenceNumber: string; status: string }) => {
+              mapped.push({
+                id: m.id,
+                type: 'maintenance',
+                title: m.title || m.referenceNumber,
+                subtitle: `${m.referenceNumber} — ${m.status}`,
+                href: `/maintenance/${m.id}`,
+              });
+            },
+          );
+          data.data.visitors?.forEach(
+            (v: { id: string; visitorName: string; visitorType: string }) => {
+              mapped.push({
+                id: v.id,
+                type: 'visitor',
+                title: v.visitorName,
+                subtitle: v.visitorType,
+                href: `/visitors/${v.id}`,
+              });
+            },
+          );
 
           setResults(mapped);
         }

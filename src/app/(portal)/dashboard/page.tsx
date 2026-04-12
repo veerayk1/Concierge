@@ -300,23 +300,6 @@ const DASHBOARD_CONFIGS: Record<Role, DashboardConfig> = {
 // Greeting helper
 // ---------------------------------------------------------------------------
 
-const DEMO_NAMES: Partial<Record<Role, string>> = {
-  front_desk: 'Mike',
-  security_guard: 'Patel',
-  property_admin: 'Admin',
-  property_manager: 'Sarah',
-  resident_owner: 'Janet',
-  resident_tenant: 'David',
-  board_member: 'Director',
-  super_admin: 'Super Admin',
-  maintenance_staff: 'Mike',
-  security_supervisor: 'Supervisor',
-  superintendent: 'James',
-  family_member: 'Tom',
-  offsite_owner: 'Owner',
-  visitor: 'Guest',
-};
-
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';
@@ -459,11 +442,16 @@ export default function DashboardPage() {
   };
   const resolvedDemoRole = demoRole ? ((ROLE_ALIASES[demoRole] ?? demoRole) as Role) : null;
   const effectiveRole: Role = user?.role ?? resolvedDemoRole ?? 'front_desk';
+
+  // In demo mode (no real auth), fetch the demo user's profile so we can greet
+  // them by their actual DB name instead of a hardcoded placeholder.
+  const { data: meData } = useApi<{ firstName: string; lastName: string }>(
+    !user && resolvedDemoRole ? '/api/v1/users/me' : null,
+  );
   const effectiveName =
     user?.firstName ??
-    (resolvedDemoRole
-      ? (DEMO_NAMES[effectiveRole] ?? DEMO_NAMES[resolvedDemoRole] ?? 'User')
-      : 'User');
+    meData?.firstName ??
+    (resolvedDemoRole ? (ROLE_DISPLAY_NAMES[effectiveRole] ?? 'User') : 'User');
 
   // Super Admin gets platform-level dashboard — no property-specific API calls
   const isSuperAdmin = effectiveRole === 'super_admin';
