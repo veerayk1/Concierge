@@ -136,12 +136,14 @@ Modules remaining:
 
 ## Technical Notes
 
-### Deployment
+### Git Remotes & Deployment
 
+- **PRIMARY repo**: `veerayk1` → `https://github.com/veerayk1/Concierge.git` — push here FIRST, this triggers Vercel auto-deploy
+- **SECONDARY repo**: `origin` → `https://github.com/yaswanth-zazz/Concierge.git` — push here after to keep in sync
+- **Push order**: Always `git push veerayk1 main` first, then `git push origin main`
 - Vercel CLI: `/Users/yaswanth/Desktop/ZAZZ_RFP_-AutoPilot/.local/node-v20.19.5-darwin-arm64/bin/vercel`
-- Deploy command: `vercel --prod --yes`
+- Manual deploy (if needed): `vercel --prod --yes`
 - Build: `prisma generate && next build`
-- GitHub remote: `veerayk1` (push to this, not `origin`)
 
 ### Key Fixes Applied
 
