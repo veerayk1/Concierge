@@ -161,6 +161,13 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         icon: Bug,
         roles: ['super_admin'],
       },
+      {
+        id: 'feature-intelligence',
+        label: 'Feature Intelligence',
+        href: '/system/features',
+        icon: ClipboardCheck,
+        roles: ['super_admin'],
+      },
     ],
   },
 
