@@ -1,6 +1,6 @@
 # Feature Intelligence Testing — Progress Report
 
-**Last Updated:** April 12, 2026
+**Last Updated:** April 12, 2026 (Session 2)
 **Live Site:** https://concierge-sigma-seven.vercel.app
 **GitHub:** veerayk1/Concierge
 **Database:** Neon (wiped clean, all data created during testing)
@@ -11,13 +11,21 @@
 
 ### Data Created During Testing (Clean DB)
 
-| Entity     | Count | Details                                                                                                                                                                                               |
-| ---------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Properties | 1     | Parkview Terrace (55 Harbour Square, Toronto, ON M5J 2G4, 150 units)                                                                                                                                  |
-| Users      | 7     | Nadia Kowalski (PM), Alex Brennan (Front Desk), Ravi Patel (Security Guard), Lena Fischer (Security Supervisor), Omar Hassan (Maintenance), Yuki Tanaka (Superintendent), Maya Singh (Resident Owner) |
-| Units      | 1     | Unit 101 (Floor 1, Residential, Vacant)                                                                                                                                                               |
-| Packages   | 1     | PKG-TRJC_0 (Unit 101, AMZ-98765432, Released to Maya Singh)                                                                                                                                           |
-| Roles      | 13    | Auto-created per property                                                                                                                                                                             |
+| Entity                 | Count | Details                                                                                                                                                                                               |
+| ---------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Properties             | 1     | Parkview Terrace (55 Harbour Square, Toronto, ON M5J 2G4, 150 units)                                                                                                                                  |
+| Users                  | 7     | Nadia Kowalski (PM), Alex Brennan (Front Desk), Ravi Patel (Security Guard), Lena Fischer (Security Supervisor), Omar Hassan (Maintenance), Yuki Tanaka (Superintendent), Maya Singh (Resident Owner) |
+| Units                  | 1     | Unit 101 (Floor 1, Residential, Vacant)                                                                                                                                                               |
+| Packages               | 1     | PKG-TRJC_0 (Unit 101, AMZ-98765432, Released to Maya Singh)                                                                                                                                           |
+| Maintenance Requests   | 2     | MR-JINM (Unit 101, Resolved, High), MR-KBCN (Unit 101, Open, High)                                                                                                                                    |
+| Maintenance Comments   | 1     | On MR-JINM: "Contacted building plumber..."                                                                                                                                                           |
+| Maintenance Categories | 8     | Auto-seeded: General, Plumbing, Electrical, HVAC, Appliance, Structural, Pest Control, Other                                                                                                          |
+| Announcements          | 1     | "Water Shutoff Notice — April 15, 2026" (Published, Urgent, Email channel)                                                                                                                            |
+| Visitors               | 1     | James Williams (Visitor, Unit 101, signed in and out — 1m visit)                                                                                                                                      |
+| Security Events        | 1     | "Unauthorized person in P1 parking garage" (Incident, High, Trespassing, Open)                                                                                                                        |
+| Vendors                | 1     | Mike's Plumbing Services (Plumbing, Mike Henderson, Not Tracking compliance)                                                                                                                          |
+| Equipment              | 1     | Lobby Elevator #1 (Elevator, Otis Gen3 MRL, OTIS-2024-11582, Main Lobby, Active)                                                                                                                      |
+| Roles                  | 13    | Auto-created per property                                                                                                                                                                             |
 
 ### Property ID
 
@@ -45,41 +53,75 @@ This ID is set in `src/lib/demo-config.ts` as `DEFAULT_DEMO_PROPERTY_ID`.
 - [ ] 1.7-1.10 Settings sub-pages (Event Types, Roles, Notifications, Email Config) — not yet tested
 - [ ] 1.17-1.31 Remaining system pages — not yet tested
 
-### Phase 3: Property Manager — Operations (IN PROGRESS)
+### Phase 3: Property Manager — Operations (MAJOR PROGRESS)
 
-- [x] Dashboard verified (all KPIs 0, no fake data)
-- [x] Packages: FULL CRUD tested (Create → Verify → Release → Verify Release)
-- [ ] Maintenance: Dialog opened, about to create request
-- [ ] Announcements: Not tested
-- [ ] Visitors: Not tested
-- [ ] Security Console: Not tested
-- [ ] Keys & FOBs: Not tested
-- [ ] Vendors: Not tested
-- [ ] Equipment: Not tested
-- [ ] Inspections: Not tested
-- [ ] Recurring Tasks: Not tested
-- [ ] Alterations: Not tested
-- [ ] Reports: Not tested
+- [x] Dashboard verified (all KPIs accurate: Open Requests 1, Unreleased Packages 0, Building Health 98)
+- [x] **Packages**: FULL CRUD tested (Create → Verify → Release → Verify Release) — Session 1
+- [x] **Maintenance Requests**: FULL CRUD tested
+  - [x] Create request (Unit 101, High priority, kitchen leak description)
+  - [x] Verify in list with correct data
+  - [x] Detail page — all fields correct (reference, category, description, unit, reporter, date, SLA tracking)
+  - [x] Status changes: Open → In Progress → Resolved (all work via PATCH API)
+  - [x] Edit description (Save Changes works)
+  - [x] Comments: add comment, verify displays (found & fixed author name bug)
+  - [x] SLA Tracking widget shows real data (ON TRACK, 24h target)
+- [x] **Announcements**: CREATE tested
+  - [x] "Water Shutoff Notice" created with Urgent priority, Email channel, All Residents target
+  - [x] Appears in list with PUBLISHED + URGENT badges
+  - [x] Visible to Resident role (cross-role verified)
+- [x] **Visitors**: FULL LIFECYCLE tested
+  - [x] Sign In: James Williams, Visitor type, Unit 101, Maya Singh
+  - [x] KPIs update: Currently In Building 1, Total Today 1
+  - [x] Sign Out: visitor moves to Recent Departures, duration tracked (1m)
+- [x] **Security Console**: CREATE tested
+  - [x] Incident reported: "Unauthorized person in P1 parking garage" (Trespassing, High, Police Notified)
+  - [x] KPIs update: Open Events 1, Incidents 1
+  - [x] Event appears in list with type, status, priority badges
+- [x] **Keys & FOBs**: Page loads correctly (was 404 — found & fixed gitignore blocking entire keys/ directory)
+- [x] **Vendors**: CREATE tested
+  - [x] Mike's Plumbing Services added (Plumbing, contact, phone, email)
+  - [x] KPI shows Total Vendors 1, Compliance "NOT TRACKING"
+- [x] **Equipment**: CREATE tested
+  - [x] Lobby Elevator #1 added (Otis Gen3 MRL, serial, location)
+  - [x] Shows in list with all fields
+- [x] **Inspections**: Page loads, KPIs show 0s, create form available
+- [x] **Recurring Tasks**: Page loads, KPIs show 0s, create form available
+- [x] **Alterations**: Page loads, KPIs show 0s, create form available
+- [x] **Amenities**: Page loads, empty state ("No amenities set up yet"), booking form available
 
-### Phases 4-14: NOT STARTED
+### Phase 9: Resident — Cross-Role Verification (STARTED)
+
+- [x] Login as Demo: Resident (Resident Owner)
+- [x] Role-aware sidebar confirmed (only resident-relevant items shown)
+- [x] AI Daily Briefing shows real data: "1 maintenance request currently open"
+- [x] My Requests shows both maintenance requests (MR-JINM Resolved, MR-KBCN Open)
+- [x] Announcements shows PM-created water shutoff notice
+- [x] Dashboard KPIs: My Packages 0, Open Requests 1, Upcoming Bookings —
+
+### Phases 4-8, 10-14: NOT YET STARTED
 
 ---
 
-## Bugs Found & Fixed: 11
+## Bugs Found & Fixed: 16
 
-| #   | Bug                                                                                        | Severity | Phase         | Status |
-| --- | ------------------------------------------------------------------------------------------ | -------- | ------------- | ------ |
-| 1   | Dashboard "Active Users" showed unitCount (550) not real count                             | HIGH     | 1.2           | FIXED  |
-| 2   | Dashboard "Platform Health" hardcoded as "99.7%"                                           | HIGH     | 1.2           | FIXED  |
-| 3   | Dashboard "Active Subscriptions" counted properties not subscriptions                      | HIGH     | 1.2           | FIXED  |
-| 4   | "Maple Heights Condominiums" placeholder in property form                                  | MEDIUM   | 1.3           | FIXED  |
-| 5   | "maple-heights" slug placeholder                                                           | LOW      | 1.3           | FIXED  |
-| 6   | "+1 416-555-0100" fake phone placeholder                                                   | LOW      | 1.3           | FIXED  |
-| 7   | All operations fail after DB wipe — stale hardcoded property ID in 4 files                 | CRITICAL | 1.11          | FIXED  |
-| 8   | Add Unit form silently fails — NaN from empty optional number fields breaks zod validation | CRITICAL | Unit creation | FIXED  |
-| 9   | User filter count header doesn't update to show filtered count                             | LOW      | 1.11          | LOGGED |
-| 10  | AI Dashboard: contradictory "Stable" + "NEEDS ATTENTION" labels                            | LOW      | 1.13          | LOGGED |
-| 11  | AI Dashboard: SLA compliance shows red bar with empty "%" on clean DB                      | LOW      | 1.13          | LOGGED |
+| #   | Bug                                                                                                                                  | Severity | Phase         | Status |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------- | ------ |
+| 1   | Dashboard "Active Users" showed unitCount (550) not real count                                                                       | HIGH     | 1.2           | FIXED  |
+| 2   | Dashboard "Platform Health" hardcoded as "99.7%"                                                                                     | HIGH     | 1.2           | FIXED  |
+| 3   | Dashboard "Active Subscriptions" counted properties not subscriptions                                                                | HIGH     | 1.2           | FIXED  |
+| 4   | "Maple Heights Condominiums" placeholder in property form                                                                            | MEDIUM   | 1.3           | FIXED  |
+| 5   | "maple-heights" slug placeholder                                                                                                     | LOW      | 1.3           | FIXED  |
+| 6   | "+1 416-555-0100" fake phone placeholder                                                                                             | LOW      | 1.3           | FIXED  |
+| 7   | All operations fail after DB wipe — stale hardcoded property ID in 4 files                                                           | CRITICAL | 1.11          | FIXED  |
+| 8   | Add Unit form silently fails — NaN from empty optional number fields breaks zod validation                                           | CRITICAL | Unit creation | FIXED  |
+| 9   | User filter count header doesn't update to show filtered count                                                                       | LOW      | 1.11          | LOGGED |
+| 10  | AI Dashboard: contradictory "Stable" + "NEEDS ATTENTION" labels                                                                      | LOW      | 1.13          | LOGGED |
+| 11  | AI Dashboard: SLA compliance shows red bar with empty "%" on clean DB                                                                | LOW      | 1.13          | LOGGED |
+| 12  | Maintenance POST returns 500 — categoryId NOT nullable but code passes null, residentId uses fake demo UUID, contactPhone not mapped | CRITICAL | 3.Maintenance | FIXED  |
+| 13  | Comment author shows raw UUID (00000000-...) instead of name                                                                         | MEDIUM   | 3.Maintenance | FIXED  |
+| 14  | Keys & FOBs API returns 404 — .gitignore `keys/` blocks ALL keys/ directories including API routes                                   | CRITICAL | 3.Keys        | FIXED  |
+| 15  | Maintenance list shows "Unit 101 Resident" instead of actual resident name                                                           | LOW      | 3.Maintenance | FIXED  |
+| 16  | Empty state messages could be more actionable (Vendors, Maintenance)                                                                 | LOW      | 3.Various     | LOGGED |
 
 ---
 
@@ -92,45 +134,36 @@ This ID is set in `src/lib/demo-config.ts` as `DEFAULT_DEMO_PROPERTY_ID`.
 - Test: log package → resident gets HTML email notification
 - Verify email template is professionally designed (not plain text)
 
-### Priority 2: Continue CRUD Testing Per Module
+### Priority 2: Continue Testing Remaining Phases
 
-For EACH module, test the full lifecycle:
+**Phase 4: Front Desk** — Test as Demo: Front Desk role
 
-1. CREATE through UI (fill form, submit, verify)
-2. VERIFY data appears correctly in list
-3. CLICK INTO detail page (verify all fields)
-4. EDIT (if supported)
-5. DELETE or status change (if supported)
-6. CHECK notifications/emails fire
+- Package intake, visitor log, shift notes
+- Verify front desk sees package and visitor data
 
-Modules remaining:
+**Phase 5-6: Security** — Test as Demo: Security role
 
-- Maintenance Requests (was about to test)
-- Announcements
-- Visitors
-- Security Console (incidents, fire log, noise complaints)
-- Keys & FOBs
-- Vendors
-- Equipment
-- Inspections
-- Recurring Tasks
-- Alterations
-- Amenities/Bookings
+- Security console, incidents, fire log, parking violations
+- Verify security-specific features
 
-### Priority 3: Cross-Role Testing
+**Phase 7-8: Maintenance/Superintendent** — Test as those roles
 
-- Log in as each role and verify:
-  - Correct dashboard
-  - Correct sidebar
-  - Data created by other roles visible where expected
-  - Data NOT visible where restricted
+- Work orders, equipment management
+- Verify maintenance-specific workflows
 
-### Priority 4: UX Evaluation
+**Phase 10: Board Member** — Test governance view
+**Phase 11: Full Cross-Role** — Verify ALL data flows
+**Phase 12: Settings** — Every settings sub-page with CRUD
+**Phase 13: Edge Cases** — Validation, errors, search, empty states
+**Phase 14: Training & Onboarding** — LMS, onboarding wizard
 
-- Does the flow make sense for each role?
-- Are there confusing labels, missing buttons, dead ends?
-- Are empty states helpful?
-- Do placeholders make sense?
+### Priority 3: Fix Logged UX Issues
+
+- Bug #9: User filter count header
+- Bug #10: AI Dashboard contradictory labels
+- Bug #11: AI Dashboard SLA bar on clean DB
+- Bug #16: Empty state messages need action buttons
+- Equipment "Operational" KPI shows 0 when 1 piece of equipment is active
 
 ---
 
@@ -138,14 +171,22 @@ Modules remaining:
 
 ### Git Remotes & Deployment
 
-- **PRIMARY repo**: `veerayk1` → `https://github.com/veerayk1/Concierge.git` — push here FIRST, this triggers Vercel auto-deploy
-- **SECONDARY repo**: `origin` → `https://github.com/yaswanth-zazz/Concierge.git` — push here after to keep in sync
-- **Push order**: Always `git push veerayk1 main` first, then `git push origin main`
+- **PRIMARY repo**: `origin` → `https://github.com/veerayk1/Concierge.git` — push here FIRST, this triggers Vercel auto-deploy
+- **SECONDARY repo**: `yaswanth-zazz` → `https://github.com/yaswanth-zazz/Concierge.git` — push here after to keep in sync
+- **Push order**: Always `git push origin main` first, then `git push yaswanth-zazz main`
 - Vercel CLI: `/Users/yaswanth/Desktop/ZAZZ_RFP_-AutoPilot/.local/node-v20.19.5-darwin-arm64/bin/vercel`
-- Manual deploy (if needed): `vercel --prod --yes`
 - Build: `prisma generate && next build`
 
-### Key Fixes Applied
+### Key Fixes Applied (Session 2)
+
+- `src/app/api/v1/maintenance/route.ts` — Auto-seed 8 maintenance categories, resolve real user for residentId, map contactPhone to contactNumbers
+- `src/app/api/v1/maintenance/[id]/comments/route.ts` — Resolve author names from User table, use real user for authorId
+- `src/app/(portal)/maintenance/[id]/page.tsx` — Display authorName instead of authorId in comments
+- `src/app/api/v1/maintenance/route.ts` (GET) — Include resident relation for name display
+- `.gitignore` — Changed `keys/` to `/keys/` to stop blocking API route directories
+- 12 previously-gitignored files in src/app/api/v1/keys/ and src/app/(portal)/keys/ now tracked
+
+### Key Fixes Applied (Session 1)
 
 - `src/lib/sanitize.ts` — lazy-load DOMPurify (fixed all Vercel 500s)
 - `src/lib/demo-config.ts` — DEFAULT_DEMO_PROPERTY_ID updated to current property
@@ -153,3 +194,7 @@ Modules remaining:
 - `src/server/demo/demo-route-handler.ts` — only serve fake data in showcase mode
 - `src/components/forms/create-unit-dialog.tsx` — z.preprocess for NaN handling
 - 23 files cleaned of hardcoded fake data
+
+### Known Tool Limitation
+
+Chrome MCP's `form_input` tool does NOT trigger React's synthetic change events. When using native `<select>` elements with react-hook-form's `register()`, the internal form state doesn't update even though the DOM value changes. Workaround: use JavaScript to dispatch change events via `Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set` + `dispatchEvent(new Event('change', { bubbles: true }))`.
