@@ -102,8 +102,14 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
-    const priorityMap: Record<string, string> = { medium: 'normal', low: 'low', high: 'high', critical: 'critical' };
+    const isUuid = (s: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+    const priorityMap: Record<string, string> = {
+      medium: 'normal',
+      low: 'low',
+      high: 'high',
+      critical: 'critical',
+    };
 
     // Map dialog field names to schema field names
     const resolvedPropertyId = body.propertyId || auth.user.propertyId;
@@ -112,14 +118,20 @@ export async function POST(request: NextRequest) {
     let categoryId = body.categoryId;
     if (!categoryId && body.category) {
       const cat = await prisma.maintenanceCategory.findFirst({
-        where: { propertyId: resolvedPropertyId, name: { equals: body.category, mode: 'insensitive' } },
+        where: {
+          propertyId: resolvedPropertyId,
+          name: { equals: body.category, mode: 'insensitive' },
+        },
       });
       if (cat) {
         categoryId = cat.id;
       } else {
         // Auto-create the category
         const newCat = await prisma.maintenanceCategory.create({
-          data: { propertyId: resolvedPropertyId, name: body.category.charAt(0).toUpperCase() + body.category.slice(1).replace(/_/g, ' ') },
+          data: {
+            propertyId: resolvedPropertyId,
+            name: body.category.charAt(0).toUpperCase() + body.category.slice(1).replace(/_/g, ' '),
+          },
         });
         categoryId = newCat.id;
       }
@@ -129,8 +141,11 @@ export async function POST(request: NextRequest) {
     const rawAssigned = body.assignedEmployeeId || body.assignedTo;
     const assignedEmployeeId = rawAssigned && isUuid(rawAssigned) ? rawAssigned : undefined;
 
-    // Default startDate to now if not provided
-    const startDate = body.startDate || new Date().toISOString();
+    // Default startDate to now if not provided. Convert date-only to full ISO.
+    let startDate = body.startDate || new Date().toISOString();
+    if (startDate && !startDate.includes('T')) {
+      startDate = startDate + 'T09:00:00.000Z';
+    }
     const rawPriority = body.priority || body.defaultPriority || 'normal';
 
     const mapped: Record<string, unknown> = {
