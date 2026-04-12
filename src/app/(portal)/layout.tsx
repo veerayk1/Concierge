@@ -63,23 +63,24 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     }
   }, [mounted, loading, isAuthenticated, demoRole, router]);
 
-  if (!mounted) {
-    return <PortalSkeleton />;
-  }
+  // usePathname must be called unconditionally (before any early returns)
+  // to comply with React's Rules of Hooks
+  const pathname = usePathname();
 
   // Route guard — block access to pages not allowed for the current role.
-  // The sidebar hides items, but users can still type URLs directly.
-  // This is a PIPEDA compliance requirement — residents must not see other
-  // residents' maintenance requests, vendor contacts, or security incidents.
-  const pathname = usePathname();
+  // PIPEDA compliance: residents must not see other residents' data.
   const isRouteBlocked = (() => {
-    if (!demoRole || !pathname) return false;
+    if (!mounted || !demoRole || !pathname) return false;
     const universalPaths = ['/dashboard', '/my-account', '/my-requests', '/my-packages'];
     if (universalPaths.some((p) => pathname.startsWith(p))) return false;
-    const allowedPaths = getFlatNavigationForRole(demoRole).map((item) => item.href);
-    return !allowedPaths.some(
-      (allowed) => pathname === allowed || pathname.startsWith(allowed + '/'),
-    );
+    try {
+      const allowedPaths = getFlatNavigationForRole(demoRole).map((item) => item.href);
+      return !allowedPaths.some(
+        (allowed) => pathname === allowed || pathname.startsWith(allowed + '/'),
+      );
+    } catch {
+      return false; // Fail-open if navigation config errors
+    }
   })();
 
   useEffect(() => {
@@ -88,7 +89,11 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     }
   }, [isRouteBlocked, router]);
 
-  // Block rendering entirely while redirecting — prevents flash of restricted content
+  if (!mounted) {
+    return <PortalSkeleton />;
+  }
+
+  // Block rendering while redirecting — prevents flash of restricted content
   if (isRouteBlocked) {
     return <PortalSkeleton />;
   }
