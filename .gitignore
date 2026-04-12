@@ -21,7 +21,7 @@ dist/
 # Keys & Certificates
 *.pem
 *.key
-keys/
+/keys/
 
 # IDE
 .vscode/settings.json
