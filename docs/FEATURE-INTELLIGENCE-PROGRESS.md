@@ -98,7 +98,42 @@ This ID is set in `src/lib/demo-config.ts` as `DEFAULT_DEMO_PROPERTY_ID`.
 - [x] Announcements shows PM-created water shutoff notice
 - [x] Dashboard KPIs: My Packages 0, Open Requests 1, Upcoming Bookings —
 
-### Phases 4-8, 10-14: NOT YET STARTED
+### Phase 4: Front Desk — Cross-Role Verification (COMPLETE)
+
+- [x] Login as Demo: Front Desk
+- [x] Role-aware sidebar: Dashboard, Vacations, Security Console, Packages, Announcements, Visitors, Keys & FOBs, Shift Log
+- [x] No maintenance/vendor/equipment modules visible (correct restriction)
+- [x] AI Daily Briefing shows real data
+- [x] KPIs: Unreleased Packages 0, Expected Visitors 0, Pending Items 0
+- [x] **Shift Log**: Page loads with Current Shift banner (Morning Shift, 6:00 AM - 2:00 PM), filter tabs, "+ Add Entry" and "Add Pass-On Note" buttons
+
+### Phase 5: Security Guard — Cross-Role Verification (COMPLETE)
+
+- [x] Login as Demo: Security
+- [x] Role-aware sidebar: Dashboard, Vacations, Security Console, Packages, **Parking** (unique!), Visitors, Keys & FOBs, Shift Log
+- [x] No maintenance/announcements/vendor modules visible (correct restriction)
+- [x] AI Daily Briefing shows real data
+- [x] KPIs: Active Visitors 0, Unreleased Packages 0, Keys Out —
+
+### Phase 7: Maintenance Staff — Cross-Role Verification (COMPLETE)
+
+- [x] Login as Maintenance Staff
+- [x] Role-aware sidebar: Dashboard, Service Requests, Inspections, Equipment, Recurring Tasks, Shift Log
+- [x] No packages/visitors/security/announcements (correct restriction)
+- [x] AI Daily Briefing shows "1 maintenance request currently open"
+- [x] KPIs: Assigned Requests 1, Equipment Alerts 0, Scheduled Tasks 0
+
+### Role-Aware Interface Summary
+
+| Role              | Sidebar Items                                | KPI Focus                                   | Verified |
+| ----------------- | -------------------------------------------- | ------------------------------------------- | -------- |
+| Property Manager  | All 13 modules                               | Open Requests, Packages, Visitors, Bookings | ✓        |
+| Front Desk        | 8 items (no maintenance/vendor/equipment)    | Packages, Visitors, Pending                 | ✓        |
+| Security Guard    | 8 items (includes Parking, no announcements) | Visitors, Packages, Keys                    | ✓        |
+| Maintenance Staff | 5 items (service/equipment focus)            | Assigned Requests, Alerts, Tasks            | ✓        |
+| Resident Owner    | 8 items (self-service only)                  | My Packages, Requests, Bookings             | ✓        |
+
+### Phases 6, 8, 10-14: NOT YET STARTED
 
 ---
 
