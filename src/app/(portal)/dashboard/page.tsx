@@ -499,11 +499,12 @@ export default function DashboardPage() {
       const totalUnits = props.reduce((sum, p) => sum + (p.unitCount || 0), 0);
       return {
         'Total Properties': String(activeProps.length),
-        'Total Users': String(totalUnits), // approximate via units
-        'Platform Health': '99.7%',
-        'Active Subscriptions': String(activeProps.length),
+        'Total Users': '\u2014',
+        'Platform Health': '\u2014',
+        'Active Subscriptions': '\u2014',
         'AI Spend': '\u2014',
-        'Active Users': String(totalUnits),
+        'Active Users': '\u2014',
+        'Total Units': String(totalUnits),
       };
     }
 
