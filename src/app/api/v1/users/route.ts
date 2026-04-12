@@ -13,6 +13,8 @@ import { createUserSchema } from '@/schemas/user';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { sendEmail } from '@/server/email';
+import { renderTemplate } from '@/server/email-templates';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/users — List users
@@ -259,10 +261,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // TODO: Queue welcome email if sendWelcomeEmail is true
-    // TODO: Store frontDeskInstructions on unit-user relation
+    // Send welcome email (fire-and-forget)
+    void (async () => {
+      const property = await prisma.property.findUnique({
+        where: { id: input.propertyId },
+        select: { name: true },
+      });
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+      await sendEmail({
+        to: user.email,
+        subject: `Welcome to ${property?.name ?? 'Concierge'}`,
+        html: renderTemplate('welcome', {
+          firstName: user.firstName,
+          propertyName: property?.name ?? 'your property',
+          loginUrl: `${appUrl}/auth/login`,
+        }),
+      });
+    })().catch((err) => console.error('Failed to send welcome email:', err));
 
-    // TODO: Send welcome email with tempPassword via Resend (sendWelcomeEmail flag)
+    // TODO: Store frontDeskInstructions on unit-user relation
 
     return NextResponse.json(
       {

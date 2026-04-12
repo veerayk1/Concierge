@@ -10,6 +10,8 @@ import { guardRoute } from '@/server/middleware/api-guard';
 import { requireModule } from '@/server/middleware/module-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { sendPushToProperty } from '@/server/push';
+import { sendBulkEmail } from '@/server/email';
+import { renderTemplate } from '@/server/email-templates';
 import { createLogger } from '@/server/logger';
 import type { Role } from '@/types';
 
@@ -97,7 +99,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin', 'property_manager'] });
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin', 'property_manager'],
+    });
     if (auth.error) return auth.error;
 
     const moduleCheck = await requireModule(request, 'announcements');
@@ -153,6 +157,48 @@ export async function POST(request: NextRequest) {
           logger.error(
             { err, announcementId: announcement.id },
             'Failed to send announcement push notification',
+          );
+        });
+      }
+
+      // Send email for published announcements with email channel (fire-and-forget)
+      if (input.channels.includes('email')) {
+        void (async () => {
+          const [userProperties, property, author] = await Promise.all([
+            prisma.userProperty.findMany({
+              where: { propertyId: input.propertyId, deletedAt: null },
+              select: { user: { select: { email: true } } },
+            }),
+            prisma.property.findUnique({
+              where: { id: input.propertyId },
+              select: { name: true },
+            }),
+            prisma.user.findUnique({
+              where: { id: auth.user.userId },
+              select: { firstName: true, lastName: true },
+            }),
+          ]);
+
+          const emails = userProperties.map((up) => up.user.email).filter(Boolean);
+
+          if (emails.length > 0) {
+            await sendBulkEmail({
+              to: emails,
+              subject: `Announcement: ${announcement.title}`,
+              html: renderTemplate('announcement', {
+                title: announcement.title,
+                body: input.content.substring(0, 500),
+                propertyName: property?.name ?? 'Your Property',
+                publishedBy: author
+                  ? `${author.firstName} ${author.lastName}`
+                  : 'Property Management',
+              }),
+            });
+          }
+        })().catch((err) => {
+          logger.error(
+            { err, announcementId: announcement.id },
+            'Failed to send announcement email',
           );
         });
       }

@@ -13,6 +13,7 @@
 
 import { createLogger } from '@/server/logger';
 import { renderTemplate } from '@/server/email-templates';
+import { prisma } from '@/server/db';
 
 const logger = createLogger('email');
 
@@ -195,4 +196,29 @@ export async function sendPasswordResetEmail(payload: PasswordResetEmailPayload)
       expiresIn: '1 hour',
     }),
   });
+}
+
+// ---------------------------------------------------------------------------
+// Unit Resident Email Lookup
+// ---------------------------------------------------------------------------
+
+/**
+ * Look up current residents of a unit (moveOutDate is null) and return their
+ * email addresses with first names. Used by package and visitor notifications.
+ */
+export async function getUnitResidentEmails(
+  unitId: string,
+): Promise<Array<{ email: string; firstName: string }>> {
+  const records = await prisma.occupancyRecord.findMany({
+    where: { unitId, moveOutDate: null },
+    select: {
+      user: {
+        select: { email: true, firstName: true },
+      },
+    },
+  });
+
+  return records
+    .filter((r) => r.user.email)
+    .map((r) => ({ email: r.user.email, firstName: r.user.firstName }));
 }

@@ -13,6 +13,8 @@ import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { requireModule } from '@/server/middleware/module-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { sendEmail, getUnitResidentEmails } from '@/server/email';
+import { renderTemplate } from '@/server/email-templates';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/packages
@@ -157,7 +159,25 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // TODO: Send notification to resident based on notifyChannel
+    // Notify unit residents about the new package (fire-and-forget)
+    void getUnitResidentEmails(input.unitId)
+      .then((residents) => {
+        for (const resident of residents) {
+          void sendEmail({
+            to: resident.email,
+            subject: `Package ${referenceNumber} received`,
+            html: renderTemplate('package_received', {
+              residentName: resident.firstName,
+              packageRef: referenceNumber,
+              unitNumber: pkg.unit?.number ?? '',
+            }),
+          }).catch((err) => console.error('Failed to send package email:', err));
+        }
+      })
+      .catch((err) =>
+        console.error('Failed to look up unit residents for package notification:', err),
+      );
+
     // TODO: Log to PackageHistory
 
     return NextResponse.json(

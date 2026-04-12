@@ -12,6 +12,8 @@ import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { requireModule } from '@/server/middleware/module-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { sendEmail, getUnitResidentEmails } from '@/server/email';
+import { renderTemplate } from '@/server/email-templates';
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -242,7 +244,28 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // TODO: Send notification to resident if notifyResident is true
+    // Notify unit residents about the visitor (fire-and-forget)
+    if (input.notifyResident) {
+      void getUnitResidentEmails(input.unitId)
+        .then((residents) => {
+          for (const resident of residents) {
+            void sendEmail({
+              to: resident.email,
+              subject: `Visitor arrived: ${input.visitorName}`,
+              html: renderTemplate('visitor_checkin', {
+                residentName: resident.firstName,
+                visitorName: input.visitorName,
+                visitorType: resolvedVisitorType.replace(/_/g, ' '),
+                unitNumber: visitor.unit?.number ?? '',
+                arrivalTime: new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' }),
+              }),
+            }).catch((err) => console.error('Failed to send visitor checkin email:', err));
+          }
+        })
+        .catch((err) =>
+          console.error('Failed to look up unit residents for visitor notification:', err),
+        );
+    }
 
     return NextResponse.json(
       {

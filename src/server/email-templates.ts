@@ -158,6 +158,30 @@ const templates: Record<string, TemplateDefinition> = {
   },
 
   // -----------------------------------------------------------------------
+  // Visitor Check-in
+  // -----------------------------------------------------------------------
+  visitor_checkin: {
+    requiredVars: ['residentName', 'visitorName', 'visitorType', 'unitNumber', 'arrivalTime'],
+    render: (vars) =>
+      baseLayout(
+        'Visitor Arrived',
+        `<h1>A Visitor Has Arrived</h1>
+        <p>Hi ${v(vars, 'residentName')},</p>
+        <p>A visitor has arrived for you at the front desk.</p>
+        <dl class="info-card">
+          <dt>Visitor</dt>
+          <dd>${v(vars, 'visitorName')}</dd>
+          <dt>Type</dt>
+          <dd>${v(vars, 'visitorType')}</dd>
+          <dt>Unit</dt>
+          <dd>${v(vars, 'unitNumber')}</dd>
+          <dt>Arrival Time</dt>
+          <dd>${v(vars, 'arrivalTime')}</dd>
+        </dl>`,
+      ),
+  },
+
+  // -----------------------------------------------------------------------
   // Maintenance Update
   // -----------------------------------------------------------------------
   maintenance_update: {
