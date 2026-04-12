@@ -111,19 +111,70 @@ export async function POST(request: NextRequest) {
     const input = parsed.data;
     const referenceNumber = `MR-${nanoid(4).toUpperCase()}`;
 
-    // Resolve categoryId — fall back to first active category if not provided
+    // Resolve categoryId — fall back to first active category if not provided.
+    // If NO categories exist for the property, auto-create a "General" default.
     let categoryId = input.categoryId && input.categoryId !== '' ? input.categoryId : null;
     if (!categoryId) {
       try {
-        const defaultCat = await prisma.maintenanceCategory.findFirst({
+        let defaultCat = await prisma.maintenanceCategory.findFirst({
           where: { propertyId: input.propertyId, isActive: true },
           orderBy: { sortOrder: 'asc' },
           select: { id: true },
         });
+        if (!defaultCat) {
+          // Auto-seed default categories for this property
+          const defaults = [
+            { name: 'General', sortOrder: 0, icon: 'wrench' },
+            { name: 'Plumbing', sortOrder: 1, icon: 'droplet' },
+            { name: 'Electrical', sortOrder: 2, icon: 'zap' },
+            { name: 'HVAC', sortOrder: 3, icon: 'thermometer' },
+            { name: 'Appliance', sortOrder: 4, icon: 'refrigerator' },
+            { name: 'Structural', sortOrder: 5, icon: 'building' },
+            { name: 'Pest Control', sortOrder: 6, icon: 'bug' },
+            { name: 'Other', sortOrder: 7, icon: 'help-circle' },
+          ];
+          await prisma.maintenanceCategory.createMany({
+            data: defaults.map((d) => ({
+              propertyId: input.propertyId,
+              name: d.name,
+              sortOrder: d.sortOrder,
+              icon: d.icon,
+              isActive: true,
+            })),
+          });
+          defaultCat = await prisma.maintenanceCategory.findFirst({
+            where: { propertyId: input.propertyId, isActive: true },
+            orderBy: { sortOrder: 'asc' },
+            select: { id: true },
+          });
+        }
         categoryId = defaultCat?.id ?? null;
       } catch {
         // Category lookup failed — proceed with null (tests may not mock this)
       }
+    }
+
+    // Resolve residentId — verify the auth userId exists in DB.
+    // In demo mode the hardcoded UUID may not exist after a DB wipe,
+    // so fall back to a real user from the property.
+    let residentId = auth.user.userId;
+    try {
+      const userExists = await prisma.user.findUnique({
+        where: { id: residentId },
+        select: { id: true },
+      });
+      if (!userExists) {
+        // Fall back: find any staff/PM user for this property
+        const fallbackUser = await prisma.user.findFirst({
+          where: {
+            userProperties: { some: { propertyId: input.propertyId } },
+          },
+          select: { id: true },
+        });
+        if (fallbackUser) residentId = fallbackUser.id;
+      }
+    } catch {
+      // User lookup failed — proceed with auth userId
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -144,8 +195,9 @@ export async function POST(request: NextRequest) {
         entryInstructions: input.entryInstructions
           ? stripControlChars(stripHtml(input.entryInstructions))
           : null,
+        contactNumbers: input.contactPhone || null,
         referenceNumber,
-        residentId: auth.user.userId,
+        residentId,
         status: 'open',
         hideFromResident: input.hideFromResident ?? false,
       },
