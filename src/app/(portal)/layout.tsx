@@ -69,23 +69,29 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
 
   // Route guard — block access to pages not allowed for the current role.
   // The sidebar hides items, but users can still type URLs directly.
+  // This is a PIPEDA compliance requirement — residents must not see other
+  // residents' maintenance requests, vendor contacts, or security incidents.
   const pathname = usePathname();
-  useEffect(() => {
-    if (!demoRole || !pathname) return;
-    // Always allow dashboard and account pages
+  const isRouteBlocked = (() => {
+    if (!demoRole || !pathname) return false;
     const universalPaths = ['/dashboard', '/my-account', '/my-requests', '/my-packages'];
-    if (universalPaths.some((p) => pathname.startsWith(p))) return;
-
-    const allowedItems = getFlatNavigationForRole(demoRole);
-    const allowedPaths = allowedItems.map((item) => item.href);
-    // Check if the current path starts with any allowed path
-    const isAllowed = allowedPaths.some(
+    if (universalPaths.some((p) => pathname.startsWith(p))) return false;
+    const allowedPaths = getFlatNavigationForRole(demoRole).map((item) => item.href);
+    return !allowedPaths.some(
       (allowed) => pathname === allowed || pathname.startsWith(allowed + '/'),
     );
-    if (!isAllowed) {
+  })();
+
+  useEffect(() => {
+    if (isRouteBlocked) {
       router.replace('/dashboard');
     }
-  }, [demoRole, pathname, router]);
+  }, [isRouteBlocked, router]);
+
+  // Block rendering entirely while redirecting — prevents flash of restricted content
+  if (isRouteBlocked) {
+    return <PortalSkeleton />;
+  }
 
   // Demo mode — derive display name from role
   if (demoRole) {
