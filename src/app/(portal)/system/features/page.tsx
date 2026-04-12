@@ -488,6 +488,52 @@ const PHASES: Phase[] = [
         label: 'Residents → click into resident detail page',
         href: '/residents',
       },
+      {
+        id: '3.48',
+        label: 'Maintenance → verify SLA Tracking widget on detail page',
+        href: '/maintenance',
+      },
+      {
+        id: '3.49',
+        label: 'Maintenance → edit description via Edit button and Save Changes',
+        href: '/maintenance',
+      },
+      {
+        id: '3.50',
+        label: 'Security Console → log Fire Event via Fire Log quick action',
+        href: '/security',
+      },
+      {
+        id: '3.51',
+        label: 'Security Console → log Noise Complaint via quick action',
+        href: '/security',
+      },
+      {
+        id: '3.52',
+        label: 'Global Search → verify Cmd+K finds maintenance requests',
+        href: '/dashboard',
+      },
+      { id: '3.53', label: 'Global Search → verify Cmd+K finds users by name', href: '/dashboard' },
+      {
+        id: '3.54',
+        label: 'AI Daily Briefing → verify shows real data (open requests, packages)',
+        href: '/dashboard',
+      },
+      {
+        id: '3.55',
+        label: 'Dashboard → verify greeting shows real user name from DB',
+        href: '/dashboard',
+      },
+      {
+        id: '3.56',
+        label: 'Keys & FOBs → create key, checkout to resident, return key',
+        href: '/keys',
+      },
+      {
+        id: '3.57',
+        label: 'Parking → issue permit with vehicle details (auto-create vehicle)',
+        href: '/parking',
+      },
     ],
   },
 
@@ -1068,6 +1114,17 @@ const PHASES: Phase[] = [
         label: 'Surveys → respond to active survey',
         href: '/surveys',
       },
+      {
+        id: '9.30',
+        label: 'My Requests → verify simplified form (no unit selector, no category)',
+        href: '/my-requests',
+      },
+      {
+        id: '9.31',
+        label:
+          'My Requests → verify Permission to Enter reveals Entry Instructions (progressive disclosure)',
+        href: '/my-requests',
+      },
     ],
   },
 
@@ -1136,6 +1193,14 @@ const PHASES: Phase[] = [
       { id: '11.15', label: 'Board Member CANNOT see: packages, visitors, security ops' },
       { id: '11.16', label: 'Maintenance Staff CANNOT see: Billing, Users, Security Console' },
       { id: '11.17', label: 'Superintendent CANNOT see: Security Console, Residents, Billing' },
+      {
+        id: '11.18',
+        label: 'Shift log by Front Desk → appears in Security Console as Pass-On event',
+      },
+      { id: '11.19', label: 'Resident CANNOT access /api/v1/vendors (403 Forbidden)' },
+      { id: '11.20', label: 'Resident CANNOT access /api/v1/users (403 Forbidden)' },
+      { id: '11.21', label: 'Resident CANNOT access /api/v1/equipment (403 Forbidden)' },
+      { id: '11.22', label: 'Maintenance requests filtered by resident unit (PIPEDA compliance)' },
     ],
   },
 
@@ -1473,6 +1538,12 @@ const PHASES: Phase[] = [
         label: 'Test print view on reports page',
         href: '/reports',
       },
+      { id: '13.31', label: 'Duplicate unit number → verify 409 DUPLICATE_UNIT error' },
+      { id: '13.32', label: 'Duplicate email address → verify 409 EMAIL_EXISTS error' },
+      { id: '13.33', label: 'Long text (500+ chars) in description → verify no layout break' },
+      { id: '13.34', label: 'Browser refresh on detail page → verify data persists from DB' },
+      { id: '13.35', label: 'Empty maintenance form → verify field-specific error messages' },
+      { id: '13.36', label: 'Maintenance filter tabs → verify each tab shows correct subset' },
     ],
   },
 
