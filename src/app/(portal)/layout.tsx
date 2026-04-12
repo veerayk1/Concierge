@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CommandPalette } from '@/components/layout/command-palette';
 import { DemoShowcaseBanner } from '@/components/layout/demo-showcase-banner';
 import { ModuleConfigProvider } from '@/lib/hooks/use-module-config';
+import { getFlatNavigationForRole } from '@/lib/navigation';
 import type { Role } from '@/types';
 
 import { getPropertyId, DEMO_PROPERTY } from '@/lib/demo-config';
@@ -65,6 +66,26 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
   if (!mounted) {
     return <PortalSkeleton />;
   }
+
+  // Route guard — block access to pages not allowed for the current role.
+  // The sidebar hides items, but users can still type URLs directly.
+  const pathname = usePathname();
+  useEffect(() => {
+    if (!demoRole || !pathname) return;
+    // Always allow dashboard and account pages
+    const universalPaths = ['/dashboard', '/my-account', '/my-requests', '/my-packages'];
+    if (universalPaths.some((p) => pathname.startsWith(p))) return;
+
+    const allowedItems = getFlatNavigationForRole(demoRole);
+    const allowedPaths = allowedItems.map((item) => item.href);
+    // Check if the current path starts with any allowed path
+    const isAllowed = allowedPaths.some(
+      (allowed) => pathname === allowed || pathname.startsWith(allowed + '/'),
+    );
+    if (!isAllowed) {
+      router.replace('/dashboard');
+    }
+  }, [demoRole, pathname, router]);
 
   // Demo mode — derive display name from role
   if (demoRole) {
