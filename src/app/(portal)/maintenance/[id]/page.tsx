@@ -169,6 +169,8 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [closingRequest, setClosingRequest] = useState(false);
+  const [updatingStaff, setUpdatingStaff] = useState(false);
+  const [updatingVendor, setUpdatingVendor] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -191,6 +193,21 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
     if (!commentsData) return [];
     return Array.isArray(commentsData) ? commentsData : [];
   }, [commentsData]);
+
+  // Fetch staff users for assignment dropdown
+  const propertyId = getPropertyId();
+  const { data: staffData } = useApi<{
+    data: Array<{ id: string; firstName: string; lastName: string; role: { name: string } | null }>;
+  }>(`/api/v1/users?propertyId=${propertyId}&pageSize=100`);
+  const staffUsers = useMemo(() => {
+    if (!staffData?.data) return [];
+    return staffData.data;
+  }, [staffData]);
+
+  // Fetch vendors for assignment dropdown
+  const { data: vendorData } = useApi<{
+    data: Array<{ id: string; companyName: string }>;
+  }>(`/api/v1/vendors?propertyId=${propertyId}&pageSize=100`);
 
   // -----------------------------------------------------------------------
   // Status update handler
@@ -267,6 +284,54 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
       setClosingRequest(false);
     }
   }, [req, id, refetch]);
+
+  // -----------------------------------------------------------------------
+  // Assign staff handler
+  // -----------------------------------------------------------------------
+  const handleAssignStaff = useCallback(
+    async (employeeId: string) => {
+      if (!req) return;
+      setUpdatingStaff(true);
+      try {
+        const response = await apiRequest(`/api/v1/maintenance/${id}`, {
+          method: 'PATCH',
+          body: { assignedEmployeeId: employeeId || null },
+        });
+        if (response.ok) {
+          refetch();
+        }
+      } catch {
+        // silent — dropdown reverts on next refetch
+      } finally {
+        setUpdatingStaff(false);
+      }
+    },
+    [req, id, refetch],
+  );
+
+  // -----------------------------------------------------------------------
+  // Assign vendor handler
+  // -----------------------------------------------------------------------
+  const handleAssignVendor = useCallback(
+    async (vendorId: string) => {
+      if (!req) return;
+      setUpdatingVendor(true);
+      try {
+        const response = await apiRequest(`/api/v1/maintenance/${id}`, {
+          method: 'PATCH',
+          body: { assignedVendorId: vendorId || null },
+        });
+        if (response.ok) {
+          refetch();
+        }
+      } catch {
+        // silent — dropdown reverts on next refetch
+      } finally {
+        setUpdatingVendor(false);
+      }
+    },
+    [req, id, refetch],
+  );
 
   // -----------------------------------------------------------------------
   // File upload handler (photo or attachment)
@@ -865,8 +930,19 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   <p className="mb-1.5 text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Assign Staff
                   </p>
-                  <select className="focus:ring-primary-500 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[14px] text-neutral-700 focus:ring-2 focus:outline-none">
+                  <select
+                    value={req.assignedEmployeeId || ''}
+                    disabled={updatingStaff}
+                    onChange={(e) => handleAssignStaff(e.target.value)}
+                    className="focus:ring-primary-500 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[14px] text-neutral-700 focus:ring-2 focus:outline-none disabled:opacity-50"
+                  >
                     <option value="">Select staff member...</option>
+                    {staffUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.firstName} {u.lastName}
+                        {u.role ? ` (${u.role.name})` : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -875,8 +951,18 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   <p className="mb-1.5 text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Assign Vendor
                   </p>
-                  <select className="focus:ring-primary-500 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[14px] text-neutral-700 focus:ring-2 focus:outline-none">
+                  <select
+                    value={req.assignedVendorId || ''}
+                    disabled={updatingVendor}
+                    onChange={(e) => handleAssignVendor(e.target.value)}
+                    className="focus:ring-primary-500 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[14px] text-neutral-700 focus:ring-2 focus:outline-none disabled:opacity-50"
+                  >
                     <option value="">Select vendor...</option>
+                    {vendorData?.data?.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.companyName}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

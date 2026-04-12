@@ -570,6 +570,24 @@ const PHASES: Phase[] = [
         label: 'Dashboard → verify AI briefing mentions booking pending review',
         href: '/dashboard',
       },
+      {
+        id: '3.64',
+        label:
+          'Service Requests → assign staff via dropdown (verify list populates with real users)',
+        href: '/maintenance',
+      },
+      {
+        id: '3.65',
+        label:
+          'Service Requests → assign vendor via dropdown (verify list populates with real vendors)',
+        href: '/maintenance',
+      },
+      {
+        id: '3.66',
+        label:
+          'Service Requests → change assignment and verify PATCH saves (Currently Assigned updates)',
+        href: '/maintenance',
+      },
     ],
   },
 
