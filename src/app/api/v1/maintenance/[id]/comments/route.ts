@@ -37,7 +37,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       orderBy: { createdAt: 'asc' },
     });
 
-    return NextResponse.json({ data: comments });
+    // Resolve author names from User table
+    const authorIds = [...new Set(comments.map((c) => c.authorId))];
+    const authors = authorIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: authorIds } },
+          select: { id: true, firstName: true, lastName: true },
+        })
+      : [];
+    const authorMap = new Map(authors.map((a) => [a.id, `${a.firstName} ${a.lastName}`]));
+
+    const mapped = comments.map((c) => ({
+      ...c,
+      authorName: authorMap.get(c.authorId) ?? 'System',
+    }));
+
+    return NextResponse.json({ data: mapped });
   } catch (error) {
     console.error('GET /api/v1/maintenance/:id/comments error:', error);
     return NextResponse.json(
@@ -81,10 +96,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const input = parsed.data;
 
+    // Resolve authorId — verify the auth userId exists in DB.
+    // In demo mode the hardcoded UUID may not exist after a DB wipe.
+    let authorId = auth.user.userId;
+    try {
+      const userExists = await prisma.user.findUnique({
+        where: { id: authorId },
+        select: { id: true },
+      });
+      if (!userExists) {
+        const fallbackUser = await prisma.user.findFirst({
+          where: {
+            userProperties: { some: { propertyId: maintenanceRequest.propertyId } },
+          },
+          select: { id: true },
+        });
+        if (fallbackUser) authorId = fallbackUser.id;
+      }
+    } catch {
+      // User lookup failed — proceed with auth userId
+    }
+
     const comment = await prisma.maintenanceComment.create({
       data: {
         requestId: id,
-        authorId: auth.user.userId,
+        authorId,
         body: stripControlChars(stripHtml(input.body)),
         visibleToResident: input.visibleToResident,
       },

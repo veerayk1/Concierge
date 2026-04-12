@@ -69,6 +69,7 @@ interface MaintenanceComment {
   id: string;
   requestId: string;
   authorId: string;
+  authorName?: string;
   body: string;
   visibleToResident: boolean;
   createdAt: string;
@@ -634,7 +635,11 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Reported By
                   </p>
-                  <p className="mt-1 text-[15px] text-neutral-900">{req.resident ? `${req.resident.firstName} ${req.resident.lastName}` : 'Unknown'}</p>
+                  <p className="mt-1 text-[15px] text-neutral-900">
+                    {req.resident
+                      ? `${req.resident.firstName} ${req.resident.lastName}`
+                      : 'Unknown'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
@@ -765,7 +770,7 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                         </div>
                         <div>
                           <span className="text-[13px] font-semibold text-neutral-900">
-                            {comment.authorId}
+                            {comment.authorName || 'Staff'}
                           </span>
                         </div>
                       </div>

@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
         include: {
           unit: { select: { id: true, number: true } },
           category: { select: { id: true, name: true } },
+          resident: { select: { id: true, firstName: true, lastName: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
