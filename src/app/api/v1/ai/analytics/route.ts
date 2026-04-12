@@ -246,10 +246,10 @@ export async function GET(request: NextRequest) {
     );
 
     const factors: Factor[] = [
-      { name: 'Maintenance Backlog', score: maintenanceBacklogScore, weight: 0.3 },
-      { name: 'Package Handling', score: packageHandlingScore, weight: 0.25 },
-      { name: 'SLA Compliance', score: slaComplianceScore, weight: 0.25 },
-      { name: 'Open Issues', score: openIssueScore, weight: 0.2 },
+      { name: 'Maintenance Backlog', score: Math.round(maintenanceBacklogScore), weight: 0.3 },
+      { name: 'Package Handling', score: Math.round(packageHandlingScore), weight: 0.25 },
+      { name: 'SLA Compliance', score: Math.round(slaComplianceScore), weight: 0.25 },
+      { name: 'Open Issues', score: Math.round(openIssueScore), weight: 0.2 },
     ];
 
     const healthScore = Math.round(factors.reduce((sum, f) => sum + f.score * f.weight, 0));
