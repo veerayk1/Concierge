@@ -17,7 +17,9 @@ import { z } from 'zod';
 export async function GET(request: NextRequest) {
   // Skip demo handler — vendors uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, {
+      roles: ['property_admin', 'property_manager', 'superintendent', 'maintenance_staff'],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

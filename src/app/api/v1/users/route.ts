@@ -22,8 +22,10 @@ export async function GET(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
 
   try {
-    // Auth: Any authenticated staff member can list users
-    const auth = await guardRoute(request);
+    // Auth: Only admins and managers can list users
+    const auth = await guardRoute(request, {
+      roles: ['property_admin', 'property_manager', 'super_admin'],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
@@ -117,10 +119,9 @@ export async function GET(request: NextRequest) {
     let tempPasswords: Record<string, string> = {};
     if (userIds.length > 0 && process.env.NODE_ENV !== 'production') {
       try {
-        const rawRows = await prisma.$queryRawUnsafe<Array<{ id: string; temporaryPassword: string | null }>>(
-          `SELECT id, "temporaryPassword" FROM users WHERE id = ANY($1::uuid[])`,
-          userIds,
-        );
+        const rawRows = await prisma.$queryRawUnsafe<
+          Array<{ id: string; temporaryPassword: string | null }>
+        >(`SELECT id, "temporaryPassword" FROM users WHERE id = ANY($1::uuid[])`, userIds);
         tempPasswords = Object.fromEntries(
           rawRows.filter((r) => r.temporaryPassword).map((r) => [r.id, r.temporaryPassword!]),
         );

@@ -16,7 +16,9 @@ import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, {
+      roles: ['property_admin', 'property_manager', 'superintendent', 'maintenance_staff'],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // GAP 5.1: Residents only see requests not hidden from them
+    // PIPEDA compliance: Residents only see their own unit's requests
     const userRole = auth.user.role;
     const isResident = [
       'resident',
@@ -59,6 +59,13 @@ export async function GET(request: NextRequest) {
     ].includes(userRole);
     if (isResident) {
       where.hideFromResident = false;
+      // Restrict to resident's own unit only — prevents cross-unit data access
+      if (auth.user.unitId) {
+        where.unitId = auth.user.unitId;
+      } else {
+        // No unit assigned — return empty (don't show all requests)
+        where.unitId = '00000000-0000-0000-0000-000000000000';
+      }
     }
 
     const [requests, total] = await Promise.all([
