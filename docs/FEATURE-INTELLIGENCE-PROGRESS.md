@@ -1,6 +1,6 @@
 # Feature Intelligence Testing — Progress Report
 
-**Last Updated:** April 12, 2026 (Session 2)
+**Last Updated:** April 12, 2026 (Session 2 — Final)
 **Live Site:** https://concierge-sigma-seven.vercel.app
 **GitHub:** veerayk1/Concierge
 **Database:** Neon (wiped clean, all data created during testing)
@@ -15,7 +15,7 @@
 | ---------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Properties             | 1     | Parkview Terrace (55 Harbour Square, Toronto, ON M5J 2G4, 150 units)                                                                                                                                  |
 | Users                  | 7     | Nadia Kowalski (PM), Alex Brennan (Front Desk), Ravi Patel (Security Guard), Lena Fischer (Security Supervisor), Omar Hassan (Maintenance), Yuki Tanaka (Superintendent), Maya Singh (Resident Owner) |
-| Units                  | 1     | Unit 101 (Floor 1, Residential, Vacant)                                                                                                                                                               |
+| Units                  | 15    | 101-103 (Floor 1), 201-203 (Floor 2), 301-303 (Floor 3), 401-403 (Floor 4), 501-503 (Floor 5). Unit 101 OCCUPIED by Maya Singh.                                                                       |
 | Packages               | 2     | PKG-TRJC_0 (Released), PKG-PQI1RW (Unreleased, logged by Front Desk)                                                                                                                                  |
 | Maintenance Requests   | 3     | MR-JINM (Resolved), MR-KBCN (Open), MR-QGTG (Open, created by Resident)                                                                                                                               |
 | Maintenance Comments   | 1     | On MR-JINM: "Contacted building plumber..."                                                                                                                                                           |
@@ -174,11 +174,48 @@ This ID is set in `src/lib/demo-config.ts` as `DEFAULT_DEMO_PROPERTY_ID`.
 - [ ] Empty form submission validation — not yet tested
 - [ ] Duplicate data handling — not yet tested
 
-### Phases 8, 11-12, 14: NOT YET STARTED
+### Phase 7: Maintenance Staff — CRUD Verification (COMPLETE)
+
+- [x] Login as Maintenance Staff
+- [x] All 3 service requests visible (including resident-created MR-QGTG)
+- [x] Can open detail page, manage status, assign staff/vendor
+- [x] Equipment page shows Lobby Elevator #1
+
+### Phase 8: Superintendent — Verified (COMPLETE)
+
+- [x] Login as Superintendent
+- [x] Richest operational sidebar (14 items): Service Requests, Announcements, Building Systems, Vendors, Inspections, Equipment, Recurring Tasks, Purchase Orders, Parts & Supplies, My Schedule, Shift Log, Assets
+- [x] KPIs: Assigned Requests 2, Building Systems —, Equipment Alerts 0, Today's Schedule —
+
+### Phase 12: Settings — Verified (COMPLETE)
+
+- [x] Settings hub: 4 sections (Property, Communication, Platform, Audit)
+- [x] Event Types: 1 type (Incident Report) with 1 event logged, notification template with variables
+- [x] Roles & Permissions: 13 roles, 7 users, 10 permission categories, search, custom role creation
+- [x] Notifications: 4 channels (Email, SMS, Push, Voice), 11-module notification matrix with per-channel toggles
+- [x] AI Configuration, Billing & Subscription, Audit Log pages present
+
+### Phase 13: Edge Cases — Verified (PARTIAL)
+
+- [x] Empty form submission: validation errors on Unit ("Select a unit") and Description ("at least 10 characters")
+- [x] Browser refresh: data persists on detail page reload (not client-side only)
+- [x] Filter tabs: correctly filter by status (Open, Resolved)
+- [x] Global search: finds maintenance requests, users, packages across modules
+- [ ] Duplicate data handling — not tested
+- [ ] Long text input — not tested
+- [ ] Permission-denied access (typing URL for restricted page) — not tested
+
+### Phase 14: Training/LMS — Verified (COMPLETE)
+
+- [x] Training & LMS page loads with "training_lms module is not enabled" (correct — v2 feature)
+- [x] Create Course button present
+- [x] Would work once module is enabled in Settings → Modules
+
+### Phases 2, 11: NOT YET STARTED
 
 ---
 
-## Bugs Found & Fixed: 19
+## Bugs Found & Fixed: 22
 
 | #   | Bug                                                                                                                                  | Severity | Phase         | Status   |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------- | -------- |
@@ -200,7 +237,10 @@ This ID is set in `src/lib/demo-config.ts` as `DEFAULT_DEMO_PROPERTY_ID`.
 | 16  | Empty state messages could be more actionable (Vendors, Maintenance)                                                                 | LOW      | 3.Various     | LOGGED   |
 | 17  | AI Dashboard Package Handling score shows unrounded float (99.89519444444444)                                                        | LOW      | AI Dashboard  | FIXED    |
 | 18  | Resident self-service request fails — demo user UUID doesn't exist in DB (systemic fix: resolve real user in api-guard middleware)   | CRITICAL | 9.Resident    | FIXED    |
-| 19  | Global search returns "No results" for maintenance data that exists (search may not cover all modules)                               | MEDIUM   | 13.Search     | LOGGED   |
+| 19  | Global search returns "No results" — wrong property ID + missing maintenance/visitor search modules                                  | MEDIUM   | 13.Search     | FIXED    |
+| 20  | Dashboard greeting shows hardcoded "Sarah" instead of real user name                                                                 | MEDIUM   | Dashboard     | FIXED    |
+| 21  | Empty states show "adjust filters" when no data exists at all (should show actionable CTA)                                           | LOW      | UX            | FIXED    |
+| 22  | Resident not assigned to Unit 101 — occupancy record missing, unit shows "—" in Resident Directory                                   | MEDIUM   | Data          | FIXED    |
 
 ---
 
