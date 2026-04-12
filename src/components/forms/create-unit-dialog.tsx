@@ -16,10 +16,16 @@ import { Input } from '@/components/ui/input';
 
 const unitSchema = z.object({
   number: z.string().min(1, 'Unit number is required').max(20),
-  floor: z.number().int().min(0).max(200).optional(),
+  floor: z.preprocess(
+    (val) => (val === '' || val === undefined || Number.isNaN(val) ? undefined : Number(val)),
+    z.number().int().min(0).max(200).optional(),
+  ),
   buildingId: z.string().optional(),
   unitType: z.enum(['residential', 'commercial', 'storage', 'parking']).default('residential'),
-  squareFootage: z.number().min(0).optional(),
+  squareFootage: z.preprocess(
+    (val) => (val === '' || val === undefined || Number.isNaN(val) ? undefined : Number(val)),
+    z.number().min(0).optional(),
+  ),
   enterPhoneCode: z.string().max(20).optional().or(z.literal('')),
   parkingSpot: z.string().max(20).optional().or(z.literal('')),
   locker: z.string().max(20).optional().or(z.literal('')),
