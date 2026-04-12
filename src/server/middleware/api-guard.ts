@@ -66,10 +66,23 @@ async function handleDemoMode(
   const DEFAULT_PROPERTY_ID = '94fd28bd-37ce-4fb1-952e-4c182634fc90'; // Demo fallback property
   const propertyId = headerPropertyId || queryPropertyId || DEFAULT_PROPERTY_ID;
 
+  // Resolve a real userId from the database — demo UUIDs don't exist after DB wipes
+  let resolvedUserId = isResident
+    ? '00000000-0000-4000-d000-000000010101'
+    : '00000000-0000-4000-a000-000000000001';
+  try {
+    const realUser = await prisma.user.findFirst({
+      where: { userProperties: { some: { propertyId } } },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (realUser) resolvedUserId = realUser.id;
+  } catch {
+    // User lookup failed — proceed with demo UUID
+  }
+
   const demoUser: AuthenticatedUser = {
-    userId: isResident
-      ? '00000000-0000-4000-d000-000000010101'
-      : '00000000-0000-4000-a000-000000000001',
+    userId: resolvedUserId,
     propertyId,
     role: demoRole,
     permissions: ['*'],
