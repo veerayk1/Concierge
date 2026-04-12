@@ -46,10 +46,19 @@ function getPeriodWindowStart(period: string, now: Date): Date {
 const createPermitSchema = z.object({
   propertyId: z.string().uuid(),
   unitId: z.string().uuid(),
-  vehicleId: z.string().uuid(),
-  permitTypeId: z.string().uuid(),
+  // vehicleId OR raw vehicle fields — auto-create if vehicleId not provided
+  vehicleId: z.string().uuid().optional(),
+  vehicleMake: z.string().max(50).optional(),
+  vehicleModel: z.string().max(50).optional(),
+  vehicleColor: z.string().max(30).optional(),
+  // permitTypeId OR permitType string — look up / auto-create if permitTypeId not provided
+  permitTypeId: z.string().uuid().optional(),
+  permitType: z.string().max(50).optional(),
   licensePlate: z.string().min(1).max(15),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   endDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -201,14 +210,72 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data;
 
+    // Default startDate to today if not provided
+    if (!data.startDate) {
+      data.startDate = new Date().toISOString().split('T')[0];
+    }
+
+    // Auto-create vehicle from raw fields if vehicleId not provided
+    if (!data.vehicleId) {
+      if (!data.vehicleMake || !data.vehicleModel) {
+        return NextResponse.json(
+          {
+            error: 'VALIDATION_ERROR',
+            message: 'vehicleId or vehicleMake+vehicleModel is required',
+          },
+          { status: 400 },
+        );
+      }
+      const vehicle = await prisma.vehicle.create({
+        data: {
+          propertyId: data.propertyId,
+          unitId: data.unitId,
+          userId: auth.user.userId,
+          make: data.vehicleMake,
+          model: data.vehicleModel,
+          color: data.vehicleColor || null,
+          licensePlate: data.licensePlate,
+          provinceState: 'ON', // default province
+        },
+      });
+      data.vehicleId = vehicle.id;
+    }
+
+    // Look up or auto-create permit type if permitTypeId not provided
+    if (!data.permitTypeId) {
+      const permitTypeName = data.permitType || 'resident';
+      let existingType = await prisma.permitType.findFirst({
+        where: {
+          OR: [
+            { propertyId: data.propertyId, name: { equals: permitTypeName, mode: 'insensitive' } },
+            { propertyId: null, name: { equals: permitTypeName, mode: 'insensitive' } },
+          ],
+          isActive: true,
+        },
+      });
+      if (!existingType) {
+        existingType = await prisma.permitType.create({
+          data: {
+            propertyId: data.propertyId,
+            name: permitTypeName.charAt(0).toUpperCase() + permitTypeName.slice(1),
+            defaultDurationDays: 365,
+            renewable: true,
+            requiresApproval: false,
+            maxPerUnit: 2,
+          },
+        });
+      }
+      data.permitTypeId = existingType.id;
+    }
+
     // Check for overlapping active permits on the same vehicle
     const overlap = await prisma.parkingPermit.findFirst({
       where: {
-        vehicleId: data.vehicleId,
+        vehicleId: data.vehicleId!,
         status: { in: ['active', 'draft', 'pending_review'] },
         deletedAt: null,
         validFrom: { lte: new Date(data.endDate || '2099-12-31') },
-        validUntil: { gte: new Date(data.startDate) },
+        validUntil: { gte: new Date(data.startDate!) },
       },
     });
 
@@ -293,7 +360,7 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     });
 
-    const referenceNumber = generateReferenceNumber(data.startDate);
+    const referenceNumber = generateReferenceNumber(data.startDate!);
 
     // Use transaction for atomicity
     const result = await prisma.$transaction(
@@ -306,10 +373,10 @@ export async function POST(request: NextRequest) {
           data: {
             propertyId: data.propertyId,
             unitId: data.unitId,
-            vehicleId: data.vehicleId,
-            permitTypeId: data.permitTypeId,
+            vehicleId: data.vehicleId!,
+            permitTypeId: data.permitTypeId!,
             licensePlate: data.licensePlate,
-            validFrom: new Date(data.startDate),
+            validFrom: new Date(data.startDate!),
             validUntil: data.endDate ? new Date(data.endDate) : new Date('2099-12-31'),
             areaId: data.areaId || null,
             spotId,

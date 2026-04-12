@@ -25,8 +25,8 @@ const alterationSchema = z.object({
   hasPermit: z.boolean().default(false),
   permitNumber: z.string().max(50).optional(),
   hasInsurance: z.boolean().default(false),
-  expectedStartDate: z.string().optional(),
-  expectedEndDate: z.string().optional(),
+  expectedStartDate: z.string().min(1, 'Start date is required'),
+  expectedEndDate: z.string().min(1, 'End date is required'),
   notes: z.string().max(2000).optional(),
 });
 
@@ -244,12 +244,14 @@ export function CreateAlterationDialog({
               {...register('expectedStartDate')}
               type="date"
               label="Expected Start Date"
+              required
               error={errors.expectedStartDate?.message}
             />
             <Input
               {...register('expectedEndDate')}
               type="date"
               label="Expected End Date"
+              required
               error={errors.expectedEndDate?.message}
             />
           </div>

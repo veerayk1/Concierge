@@ -65,7 +65,12 @@ export default function KeysPage() {
   const [showAddKeyDialog, setShowAddKeyDialog] = useState(false);
 
   // Fetch real data from API with server-side filters
-  const { data: apiKeys, loading, error, refetch } = useApi<KeyItem[]>(
+  const {
+    data: apiKeys,
+    loading,
+    error,
+    refetch,
+  } = useApi<KeyItem[]>(
     apiUrl('/api/v1/keys', {
       propertyId: getPropertyId(),
       search: searchQuery || undefined,
@@ -85,19 +90,20 @@ export default function KeysPage() {
   const lostCount = allKeys.filter((k) => k.status === 'lost').length;
 
   // Category badge color map
-  const categoryBadgeVariant: Record<string, 'info' | 'error' | 'default' | 'warning' | 'success'> = {
-    fob: 'info',
-    master: 'error',
-    unit: 'default',
-    garage_clicker: 'warning',
-    buzzer_code: 'success',
-    common_area: 'info',
-    mailbox: 'default',
-    storage_locker: 'default',
-    vehicle: 'warning',
-    equipment: 'default',
-    other: 'default',
-  };
+  const categoryBadgeVariant: Record<string, 'info' | 'error' | 'default' | 'warning' | 'success'> =
+    {
+      fob: 'info',
+      master: 'error',
+      unit: 'default',
+      garage_clicker: 'warning',
+      buzzer_code: 'success',
+      common_area: 'info',
+      mailbox: 'default',
+      storage_locker: 'default',
+      vehicle: 'warning',
+      equipment: 'default',
+      other: 'default',
+    };
 
   // Status badge config
   const statusBadgeVariant: Record<string, 'success' | 'info' | 'error' | 'default'> = {
@@ -136,9 +142,7 @@ export default function KeysPage() {
       accessorKey: 'keyName',
       sortable: true,
       cell: (row) => (
-        <span className="text-primary-600 font-mono text-[13px] font-semibold">
-          {row.keyName}
-        </span>
+        <span className="text-primary-600 font-mono text-[13px] font-semibold">{row.keyName}</span>
       ),
     },
     {
@@ -147,9 +151,7 @@ export default function KeysPage() {
       accessorKey: 'keyNumber',
       sortable: true,
       cell: (row) => (
-        <span className="text-[13px] text-neutral-700">
-          {row.keyNumber || '\u2014'}
-        </span>
+        <span className="text-[13px] text-neutral-700">{row.keyNumber || '\u2014'}</span>
       ),
     },
     {
@@ -180,9 +182,7 @@ export default function KeysPage() {
       accessorKey: 'keyOwner',
       sortable: true,
       cell: (row) => (
-        <span className="text-[13px] text-neutral-700">
-          {row.keyOwner || '\u2014'}
-        </span>
+        <span className="text-[13px] text-neutral-700">{row.keyOwner || '\u2014'}</span>
       ),
     },
     {
@@ -199,7 +199,9 @@ export default function KeysPage() {
       header: 'Expected Return',
       cell: (row) =>
         row.activeCheckout?.expectedReturn ? (
-          <span className={`text-[13px] ${row.isOverdue ? 'text-error-600 font-medium' : 'text-neutral-500'}`}>
+          <span
+            className={`text-[13px] ${row.isOverdue ? 'text-error-600 font-medium' : 'text-neutral-500'}`}
+          >
             {new Date(row.activeCheckout.expectedReturn).toLocaleString('en-US', {
               month: 'short',
               day: 'numeric',
@@ -216,8 +218,37 @@ export default function KeysPage() {
       header: 'Actions',
       accessorKey: 'id',
       cell: (row) =>
-        row.status === 'checked_out' ? (
-          <Button variant="secondary" size="sm">
+        row.status === 'checked_out' && row.activeCheckout ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              try {
+                const headers: Record<string, string> = {
+                  'Content-Type': 'application/json',
+                };
+                if (typeof window !== 'undefined') {
+                  const demoRole = localStorage.getItem('demo_role');
+                  if (demoRole) headers['x-demo-role'] = demoRole;
+                  const token = localStorage.getItem('auth_token');
+                  if (token) headers['Authorization'] = `Bearer ${token}`;
+                }
+                const res = await fetch(`/api/v1/keys/checkouts/${row.activeCheckout!.id}`, {
+                  method: 'PATCH',
+                  headers,
+                  body: JSON.stringify({ action: 'return' }),
+                });
+                if (!res.ok) {
+                  const err = await res.json();
+                  alert(err.message || 'Failed to return key');
+                  return;
+                }
+                refetch();
+              } catch {
+                alert('An unexpected error occurred while returning the key.');
+              }
+            }}
+          >
             <RotateCcw className="h-3.5 w-3.5" />
             Return
           </Button>
@@ -231,7 +262,24 @@ export default function KeysPage() {
       description="Track all keys, FOBs, garage clickers, and buzzer codes."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => exportToCsv(allKeys, [{ key: 'keyName', header: 'Key Name' }, { key: 'keyNumber', header: 'Key Number' }, { key: 'keyOwner', header: 'Owner' }, { key: 'category', header: 'Category' }, { key: 'status', header: 'Status' }, { key: 'notes', header: 'Notes' }], 'keys-fobs')}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              exportToCsv(
+                allKeys,
+                [
+                  { key: 'keyName', header: 'Key Name' },
+                  { key: 'keyNumber', header: 'Key Number' },
+                  { key: 'keyOwner', header: 'Owner' },
+                  { key: 'category', header: 'Category' },
+                  { key: 'status', header: 'Status' },
+                  { key: 'notes', header: 'Notes' },
+                ],
+                'keys-fobs',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>
@@ -268,124 +316,128 @@ export default function KeysPage() {
         />
       )}
 
-      {!loading && !error && (<>
-      {/* Summary Cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {[
-          {
-            label: 'Total Inventory',
-            value: totalCount,
-            icon: Key,
-            color: 'text-primary-600',
-            bg: 'bg-primary-50',
-          },
-          {
-            label: 'Checked Out',
-            value: checkedOutCount,
-            icon: CheckCircle2,
-            color: 'text-info-600',
-            bg: 'bg-info-50',
-          },
-          {
-            label: 'Lost',
-            value: lostCount,
-            icon: AlertTriangle,
-            color: 'text-error-600',
-            bg: 'bg-error-50',
-          },
-        ].map((stat) => (
-          <Card key={stat.label} padding="sm" className="flex items-center gap-4">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.bg}`}>
-              <stat.icon className={`h-5 w-5 ${stat.color}`} />
-            </div>
-            <div>
-              <p className="text-[24px] font-bold tracking-tight text-neutral-900">{stat.value}</p>
-              <p className="text-[13px] text-neutral-500">{stat.label}</p>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {!loading && !error && (
+        <>
+          {/* Summary Cards */}
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {[
+              {
+                label: 'Total Inventory',
+                value: totalCount,
+                icon: Key,
+                color: 'text-primary-600',
+                bg: 'bg-primary-50',
+              },
+              {
+                label: 'Checked Out',
+                value: checkedOutCount,
+                icon: CheckCircle2,
+                color: 'text-info-600',
+                bg: 'bg-info-50',
+              },
+              {
+                label: 'Lost',
+                value: lostCount,
+                icon: AlertTriangle,
+                color: 'text-error-600',
+                bg: 'bg-error-50',
+              },
+            ].map((stat) => (
+              <Card key={stat.label} padding="sm" className="flex items-center gap-4">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.bg}`}>
+                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                </div>
+                <div>
+                  <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                    {stat.value}
+                  </p>
+                  <p className="text-[13px] text-neutral-500">{stat.label}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
 
-      {/* Search + Filters */}
-      <div className="mb-4 flex items-center gap-3">
-        <div className="relative max-w-md flex-1">
-          <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-          <input
-            type="text"
-            placeholder="Search keys & FOBs..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
+          {/* Search + Filters */}
+          <div className="mb-4 flex items-center gap-3">
+            <div className="relative max-w-md flex-1">
+              <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Search keys & FOBs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Type filter pills */}
+            <div className="flex items-center gap-1.5">
+              {[
+                { key: 'all', label: 'All' },
+                { key: 'fob', label: 'FOBs' },
+                { key: 'master', label: 'Master' },
+                { key: 'unit', label: 'Unit' },
+                { key: 'garage_clicker', label: 'Clicker' },
+                { key: 'buzzer_code', label: 'Buzzer' },
+              ].map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setTypeFilter(t.key)}
+                  className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 ${
+                    typeFilter === t.key
+                      ? 'bg-primary-500 text-white shadow-sm'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Status filter */}
+            <div className="flex items-center gap-1.5">
+              <Filter className="h-4 w-4 text-neutral-400" />
+              {[
+                { key: 'all', label: 'All Status' },
+                { key: 'available', label: 'Available' },
+                { key: 'checked_out', label: 'Checked Out' },
+                { key: 'lost', label: 'Lost' },
+              ].map((s) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => setStatusFilter(s.key)}
+                  className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 ${
+                    statusFilter === s.key
+                      ? 'bg-primary-500 text-white shadow-sm'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Data Table */}
+          <DataTable
+            columns={columns}
+            data={filteredKeys}
+            emptyMessage="No keys or FOBs found."
+            emptyIcon={<Key className="h-6 w-6" />}
           />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Type filter pills */}
-        <div className="flex items-center gap-1.5">
-          {[
-            { key: 'all', label: 'All' },
-            { key: 'fob', label: 'FOBs' },
-            { key: 'master', label: 'Master' },
-            { key: 'unit', label: 'Unit' },
-            { key: 'garage_clicker', label: 'Clicker' },
-            { key: 'buzzer_code', label: 'Buzzer' },
-          ].map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTypeFilter(t.key)}
-              className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 ${
-                typeFilter === t.key
-                  ? 'bg-primary-500 text-white shadow-sm'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Status filter */}
-        <div className="flex items-center gap-1.5">
-          <Filter className="h-4 w-4 text-neutral-400" />
-          {[
-            { key: 'all', label: 'All Status' },
-            { key: 'available', label: 'Available' },
-            { key: 'checked_out', label: 'Checked Out' },
-            { key: 'lost', label: 'Lost' },
-          ].map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => setStatusFilter(s.key)}
-              className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 ${
-                statusFilter === s.key
-                  ? 'bg-primary-500 text-white shadow-sm'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Data Table */}
-      <DataTable
-        columns={columns}
-        data={filteredKeys}
-        emptyMessage="No keys or FOBs found."
-        emptyIcon={<Key className="h-6 w-6" />}
-      />
-      </>)}
+        </>
+      )}
       <AddKeyDialog
         open={showAddKeyDialog}
         onOpenChange={setShowAddKeyDialog}
