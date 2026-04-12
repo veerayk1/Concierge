@@ -275,16 +275,16 @@ function CreatePropertyDialog({ open, onOpenChange, onSuccess }: CreatePropertyD
             <Input
               name="name"
               label="Property Name"
-              placeholder="e.g. Maple Heights Condominiums"
+              placeholder="e.g. Your Property Name"
               required
             />
-            <Input name="slug" label="Slug (optional)" placeholder="e.g. maple-heights" />
+            <Input name="slug" label="Slug (optional)" placeholder="e.g. your-property-name" />
           </div>
 
           <Input
             name="address"
             label="Street Address"
-            placeholder="e.g. 100 Maple Avenue"
+            placeholder="e.g. 123 Main Street"
             required
           />
 
@@ -383,7 +383,7 @@ function CreatePropertyDialog({ open, onOpenChange, onSuccess }: CreatePropertyD
           </p>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input name="phone" label="Phone" placeholder="+1 416-555-0100" />
+            <Input name="phone" label="Phone" placeholder="+1 000-000-0000" />
             <Input name="email" label="Email" type="email" placeholder="admin@property.com" />
           </div>
 

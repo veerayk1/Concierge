@@ -125,7 +125,7 @@ export function StepPropertyDetails({ onPropertyCreated }: StepPropertyDetailsPr
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g., Maple Heights Condominiums"
+            placeholder="e.g., Your Property Name"
           />
 
           <Input
