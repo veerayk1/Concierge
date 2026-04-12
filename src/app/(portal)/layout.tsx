@@ -1,14 +1,13 @@
 'use client';
 
 import { useEffect, useState, useCallback, type ReactNode } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CommandPalette } from '@/components/layout/command-palette';
 import { DemoShowcaseBanner } from '@/components/layout/demo-showcase-banner';
 import { ModuleConfigProvider } from '@/lib/hooks/use-module-config';
-import { getFlatNavigationForRole } from '@/lib/navigation';
 import type { Role } from '@/types';
 
 import { getPropertyId, DEMO_PROPERTY } from '@/lib/demo-config';
@@ -63,40 +62,15 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     }
   }, [mounted, loading, isAuthenticated, demoRole, router]);
 
-  // usePathname must be called unconditionally (before any early returns)
-  // to comply with React's Rules of Hooks
-  const pathname = usePathname();
-
-  // Route guard — block access to pages not allowed for the current role.
-  // PIPEDA compliance: residents must not see other residents' data.
-  const isRouteBlocked = (() => {
-    if (!mounted || !demoRole || !pathname) return false;
-    const universalPaths = ['/dashboard', '/my-account', '/my-requests', '/my-packages'];
-    if (universalPaths.some((p) => pathname.startsWith(p))) return false;
-    try {
-      const allowedPaths = getFlatNavigationForRole(demoRole).map((item) => item.href);
-      return !allowedPaths.some(
-        (allowed) => pathname === allowed || pathname.startsWith(allowed + '/'),
-      );
-    } catch {
-      return false; // Fail-open if navigation config errors
-    }
-  })();
-
-  useEffect(() => {
-    if (isRouteBlocked) {
-      router.replace('/dashboard');
-    }
-  }, [isRouteBlocked, router]);
-
   if (!mounted) {
     return <PortalSkeleton />;
   }
 
-  // Block rendering while redirecting — prevents flash of restricted content
-  if (isRouteBlocked) {
-    return <PortalSkeleton />;
-  }
+  // NOTE: Route-level access control is handled at the API layer (RBAC in guardRoute).
+  // Residents calling /api/v1/vendors, /api/v1/equipment, /api/v1/users get 403.
+  // Residents calling /api/v1/maintenance only see their own unit's requests.
+  // UI-level route guard was removed because adding usePathname() here caused
+  // React error #310 (hook count mismatch) in production builds.
 
   // Demo mode — derive display name from role
   if (demoRole) {
