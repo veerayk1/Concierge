@@ -133,30 +133,46 @@ This ID is set in `src/lib/demo-config.ts` as `DEFAULT_DEMO_PROPERTY_ID`.
 | Maintenance Staff | 5 items (service/equipment focus)            | Assigned Requests, Alerts, Tasks            | ✓        |
 | Resident Owner    | 8 items (self-service only)                  | My Packages, Requests, Bookings             | ✓        |
 
-### Phases 6, 8, 10-14: NOT YET STARTED
+### Phase 10: Board Member — Cross-Role Verification (COMPLETE)
+
+- [x] Login as Board Member
+- [x] Role-aware sidebar: Dashboard, Amenities, Announcements, Events, Library, Surveys, **Reports, Building Analytics, Governance** (unique GOVERNANCE section!)
+- [x] No operations modules visible (correct for oversight role)
+- [x] KPIs: Financial Summary, Compliance %, Pending Approvals, Satisfaction Score (governance metrics)
+
+### Additional Pages Verified
+
+- [x] **Unit Directory**: 1 unit (Unit 101, Floor 1, Main, Residential, Vacant), search, export, import, auto-generate
+- [x] **Resident Directory**: 1 resident (Maya Singh, Owner, Active, Apr 2026), search, export, import
+- [x] **Parking Management** (Security role): Permits/Violations tabs, search, create permit
+- [x] **Shift Log** (Front Desk role): Current Shift banner, filter by priority, Add Entry, Pass-On Note
+- [x] **Vacations** page: Available on multiple roles
+
+### Phases 6, 8, 11-14: NOT YET STARTED
 
 ---
 
-## Bugs Found & Fixed: 16
+## Bugs Found & Fixed: 17
 
-| #   | Bug                                                                                                                                  | Severity | Phase         | Status |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------- | ------ |
-| 1   | Dashboard "Active Users" showed unitCount (550) not real count                                                                       | HIGH     | 1.2           | FIXED  |
-| 2   | Dashboard "Platform Health" hardcoded as "99.7%"                                                                                     | HIGH     | 1.2           | FIXED  |
-| 3   | Dashboard "Active Subscriptions" counted properties not subscriptions                                                                | HIGH     | 1.2           | FIXED  |
-| 4   | "Maple Heights Condominiums" placeholder in property form                                                                            | MEDIUM   | 1.3           | FIXED  |
-| 5   | "maple-heights" slug placeholder                                                                                                     | LOW      | 1.3           | FIXED  |
-| 6   | "+1 416-555-0100" fake phone placeholder                                                                                             | LOW      | 1.3           | FIXED  |
-| 7   | All operations fail after DB wipe — stale hardcoded property ID in 4 files                                                           | CRITICAL | 1.11          | FIXED  |
-| 8   | Add Unit form silently fails — NaN from empty optional number fields breaks zod validation                                           | CRITICAL | Unit creation | FIXED  |
-| 9   | User filter count header doesn't update to show filtered count                                                                       | LOW      | 1.11          | LOGGED |
-| 10  | AI Dashboard: contradictory "Stable" + "NEEDS ATTENTION" labels                                                                      | LOW      | 1.13          | LOGGED |
-| 11  | AI Dashboard: SLA compliance shows red bar with empty "%" on clean DB                                                                | LOW      | 1.13          | LOGGED |
-| 12  | Maintenance POST returns 500 — categoryId NOT nullable but code passes null, residentId uses fake demo UUID, contactPhone not mapped | CRITICAL | 3.Maintenance | FIXED  |
-| 13  | Comment author shows raw UUID (00000000-...) instead of name                                                                         | MEDIUM   | 3.Maintenance | FIXED  |
-| 14  | Keys & FOBs API returns 404 — .gitignore `keys/` blocks ALL keys/ directories including API routes                                   | CRITICAL | 3.Keys        | FIXED  |
-| 15  | Maintenance list shows "Unit 101 Resident" instead of actual resident name                                                           | LOW      | 3.Maintenance | FIXED  |
-| 16  | Empty state messages could be more actionable (Vendors, Maintenance)                                                                 | LOW      | 3.Various     | LOGGED |
+| #   | Bug                                                                                                                                  | Severity | Phase         | Status   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------- | -------- |
+| 1   | Dashboard "Active Users" showed unitCount (550) not real count                                                                       | HIGH     | 1.2           | FIXED    |
+| 2   | Dashboard "Platform Health" hardcoded as "99.7%"                                                                                     | HIGH     | 1.2           | FIXED    |
+| 3   | Dashboard "Active Subscriptions" counted properties not subscriptions                                                                | HIGH     | 1.2           | FIXED    |
+| 4   | "Maple Heights Condominiums" placeholder in property form                                                                            | MEDIUM   | 1.3           | FIXED    |
+| 5   | "maple-heights" slug placeholder                                                                                                     | LOW      | 1.3           | FIXED    |
+| 6   | "+1 416-555-0100" fake phone placeholder                                                                                             | LOW      | 1.3           | FIXED    |
+| 7   | All operations fail after DB wipe — stale hardcoded property ID in 4 files                                                           | CRITICAL | 1.11          | FIXED    |
+| 8   | Add Unit form silently fails — NaN from empty optional number fields breaks zod validation                                           | CRITICAL | Unit creation | FIXED    |
+| 9   | User filter count header doesn't update to show filtered count                                                                       | LOW      | 1.11          | LOGGED   |
+| 10  | AI Dashboard: contradictory "Stable" + "NEEDS ATTENTION" labels (resolved — shows "Stable" + "EXCELLENT" now with real data)         | LOW      | 1.13          | RESOLVED |
+| 11  | AI Dashboard: SLA compliance shows red bar with empty "%" on clean DB (resolved — shows 100% with real data)                         | LOW      | 1.13          | RESOLVED |
+| 12  | Maintenance POST returns 500 — categoryId NOT nullable but code passes null, residentId uses fake demo UUID, contactPhone not mapped | CRITICAL | 3.Maintenance | FIXED    |
+| 13  | Comment author shows raw UUID (00000000-...) instead of name                                                                         | MEDIUM   | 3.Maintenance | FIXED    |
+| 14  | Keys & FOBs API returns 404 — .gitignore `keys/` blocks ALL keys/ directories including API routes                                   | CRITICAL | 3.Keys        | FIXED    |
+| 15  | Maintenance list shows "Unit 101 Resident" instead of actual resident name                                                           | LOW      | 3.Maintenance | FIXED    |
+| 16  | Empty state messages could be more actionable (Vendors, Maintenance)                                                                 | LOW      | 3.Various     | LOGGED   |
+| 17  | AI Dashboard Package Handling score shows unrounded float (99.89519444444444)                                                        | LOW      | AI Dashboard  | FIXED    |
 
 ---
 
