@@ -279,42 +279,6 @@ export default function InspectionsPage() {
     },
   ];
 
-  // Loading state
-  if (loading) {
-    return (
-      <PageShell title="Inspections" description="Loading...">
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full" />
-          ))}
-        </div>
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
-      </PageShell>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <PageShell title="Inspections" description="Error loading inspections">
-        <EmptyState
-          icon={<ClipboardCheck className="h-6 w-6" />}
-          title="Failed to load inspections"
-          description={error}
-          action={
-            <Button size="sm" onClick={() => refetch()}>
-              Try Again
-            </Button>
-          }
-        />
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell
       title="Inspections"
@@ -332,126 +296,167 @@ export default function InspectionsPage() {
         </div>
       }
     >
+      {/* Loading State */}
+      {loading && (
+        <>
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full" />
+            ))}
+          </div>
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Error State */}
+      {!loading && error && (
+        <EmptyState
+          icon={<ClipboardCheck className="h-6 w-6" />}
+          title="Failed to load inspections"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      )}
+
       {/* Summary Cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
-            <ClipboardCheck className="h-5 w-5 text-neutral-600" />
+      {!loading && !error && (
+        <>
+          {/* Summary Cards */}
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Card padding="sm" className="flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
+                <ClipboardCheck className="h-5 w-5 text-neutral-600" />
+              </div>
+              <div>
+                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                  {totalCount}
+                </p>
+                <p className="text-[13px] text-neutral-500">Total Inspections</p>
+              </div>
+            </Card>
+            <Card padding="sm" className="flex items-center gap-4">
+              <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
+                <Calendar className="text-info-600 h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                  {upcomingCount}
+                </p>
+                <p className="text-[13px] text-neutral-500">Upcoming</p>
+              </div>
+            </Card>
+            <Card padding="sm" className="flex items-center gap-4">
+              <div className="bg-error-50 flex h-10 w-10 items-center justify-center rounded-xl">
+                <AlertTriangle className="text-error-600 h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                  {overdueCount}
+                </p>
+                <p className="text-[13px] text-neutral-500">Overdue</p>
+              </div>
+            </Card>
           </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalCount}</p>
-            <p className="text-[13px] text-neutral-500">Total Inspections</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Calendar className="text-info-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{upcomingCount}</p>
-            <p className="text-[13px] text-neutral-500">Upcoming</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-error-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <AlertTriangle className="text-error-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{overdueCount}</p>
-            <p className="text-[13px] text-neutral-500">Overdue</p>
-          </div>
-        </Card>
-      </div>
 
-      {/* Search + Filters */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative max-w-md flex-1">
-          <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-          <input
-            type="text"
-            placeholder="Search inspections..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+          {/* Search + Filters */}
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="relative max-w-md flex-1">
+              <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Search inspections..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Type Filter */}
+            <div className="flex items-center gap-1.5">
+              <Filter className="h-4 w-4 text-neutral-400" />
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="focus:border-primary-300 focus:ring-primary-100 h-10 rounded-xl border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 transition-all focus:ring-4 focus:outline-none"
+              >
+                <option value="all">All Types</option>
+                <option value="fire_safety">Fire Safety</option>
+                <option value="elevator">Elevator</option>
+                <option value="plumbing">Plumbing</option>
+                <option value="electrical">Electrical</option>
+                <option value="structural">Structural</option>
+                <option value="general">General</option>
+                <option value="move_in">Move-In</option>
+                <option value="move_out">Move-Out</option>
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="focus:border-primary-300 focus:ring-primary-100 h-10 rounded-xl border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 transition-all focus:ring-4 focus:outline-none"
             >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+              <option value="all">All Statuses</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="failed">Failed</option>
+              <option value="overdue">Overdue</option>
+            </select>
 
-        {/* Type Filter */}
-        <div className="flex items-center gap-1.5">
-          <Filter className="h-4 w-4 text-neutral-400" />
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="focus:border-primary-300 focus:ring-primary-100 h-10 rounded-xl border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 transition-all focus:ring-4 focus:outline-none"
-          >
-            <option value="all">All Types</option>
-            <option value="fire_safety">Fire Safety</option>
-            <option value="elevator">Elevator</option>
-            <option value="plumbing">Plumbing</option>
-            <option value="electrical">Electrical</option>
-            <option value="structural">Structural</option>
-            <option value="general">General</option>
-            <option value="move_in">Move-In</option>
-            <option value="move_out">Move-Out</option>
-          </select>
-        </div>
+            {/* Priority Filter */}
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="focus:border-primary-300 focus:ring-primary-100 h-10 rounded-xl border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 transition-all focus:ring-4 focus:outline-none"
+            >
+              <option value="all">All Priorities</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
 
-        {/* Status Filter */}
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="focus:border-primary-300 focus:ring-primary-100 h-10 rounded-xl border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 transition-all focus:ring-4 focus:outline-none"
-        >
-          <option value="all">All Statuses</option>
-          <option value="scheduled">Scheduled</option>
-          <option value="in_progress">In Progress</option>
-          <option value="completed">Completed</option>
-          <option value="failed">Failed</option>
-          <option value="overdue">Overdue</option>
-        </select>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-[13px] font-medium text-neutral-500 transition-all hover:bg-neutral-100 hover:text-neutral-700"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear Filters
+              </button>
+            )}
+          </div>
 
-        {/* Priority Filter */}
-        <select
-          value={priorityFilter}
-          onChange={(e) => setPriorityFilter(e.target.value)}
-          className="focus:border-primary-300 focus:ring-primary-100 h-10 rounded-xl border border-neutral-200 bg-white px-3 text-[13px] text-neutral-700 transition-all focus:ring-4 focus:outline-none"
-        >
-          <option value="all">All Priorities</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="critical">Critical</option>
-        </select>
-
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-[13px] font-medium text-neutral-500 transition-all hover:bg-neutral-100 hover:text-neutral-700"
-          >
-            <X className="h-3.5 w-3.5" />
-            Clear Filters
-          </button>
-        )}
-      </div>
-
-      {/* Inspections Table */}
-      <DataTable
-        columns={columns}
-        data={filteredInspections}
-        emptyMessage="No inspections found."
-        emptyIcon={<ClipboardCheck className="h-6 w-6" />}
-        onRowClick={(row) => router.push(`/inspections/${row.id}` as never)}
-      />
+          {/* Inspections Table */}
+          <DataTable
+            columns={columns}
+            data={filteredInspections}
+            emptyMessage="No inspections found."
+            emptyIcon={<ClipboardCheck className="h-6 w-6" />}
+            onRowClick={(row) => router.push(`/inspections/${row.id}` as never)}
+          />
+        </>
+      )}
       <CreateInspectionDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}

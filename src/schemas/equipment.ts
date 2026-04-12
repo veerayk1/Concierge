@@ -10,6 +10,7 @@ export const EQUIPMENT_CATEGORIES = [
   'electrical',
   'fire_safety',
   'elevator',
+  'security',
   'other',
 ] as const;
 

@@ -79,6 +79,14 @@ export function CreateParkingPermitDialog({
   async function onSubmit(data: PermitInput) {
     setServerError(null);
     try {
+      // Map form field names to API schema field names
+      const { type, spotNumber, expiresAt, ...rest } = data;
+      const payload = {
+        ...rest,
+        propertyId,
+        permitType: type,
+        ...(expiresAt ? { endDate: expiresAt.split('T')[0] } : {}),
+      };
       const response = await fetch('/api/v1/parking', {
         method: 'POST',
         headers: {
@@ -90,7 +98,7 @@ export function CreateParkingPermitDialog({
             ? { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
             : {}),
         },
-        body: JSON.stringify({ ...data, propertyId }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

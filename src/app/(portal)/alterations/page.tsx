@@ -293,42 +293,6 @@ export default function AlterationsPage() {
     },
   ];
 
-  // Loading state
-  if (loading) {
-    return (
-      <PageShell title="Alterations" description="Loading...">
-        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full" />
-          ))}
-        </div>
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
-      </PageShell>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <PageShell title="Alterations" description="Error loading alterations">
-        <EmptyState
-          icon={<Hammer className="h-6 w-6" />}
-          title="Failed to load alterations"
-          description={error}
-          action={
-            <Button size="sm" onClick={() => refetch()}>
-              Try Again
-            </Button>
-          }
-        />
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell
       title="Alterations"
@@ -346,160 +310,200 @@ export default function AlterationsPage() {
         </div>
       }
     >
-      {/* Summary Cards */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
-            <Hammer className="h-5 w-5 text-neutral-600" />
+      {/* Loading State */}
+      {loading && (
+        <>
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full" />
+            ))}
           </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalCount}</p>
-            <p className="text-[13px] text-neutral-500">Total Projects</p>
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
           </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <TrendingUp className="text-info-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {inProgressCount}
-            </p>
-            <p className="text-[13px] text-neutral-500">In Progress</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-error-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <AlertTriangle className="text-error-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {stalledStoppedCount}
-            </p>
-            <p className="text-[13px] text-neutral-500">Stalled / Stopped</p>
-          </div>
-        </Card>
-      </div>
-
-      {/* Search & Filters */}
-      <div className="mb-4 flex items-center gap-3">
-        <div className="relative max-w-md flex-1">
-          <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-          <input
-            type="text"
-            placeholder="Search alterations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-        <Button
-          variant={showFilters || hasActiveFilters ? 'primary' : 'secondary'}
-          size="sm"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <Filter className="h-4 w-4" />
-          Filters
-          {hasActiveFilters && (
-            <Badge variant="primary" size="sm">
-              {(statusFilter !== 'all' ? 1 : 0) +
-                (typeFilter !== 'all' ? 1 : 0) +
-                (momentumFilter !== 'all' ? 1 : 0)}
-            </Badge>
-          )}
-        </Button>
-        {hasActiveFilters && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setStatusFilter('all');
-              setTypeFilter('all');
-              setMomentumFilter('all');
-            }}
-          >
-            <X className="h-4 w-4" />
-            Clear
-          </Button>
-        )}
-      </div>
-
-      {/* Filter Dropdowns */}
-      {showFilters && (
-        <div className="mb-4 flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-          <div className="flex items-center gap-2">
-            <label htmlFor="status-filter" className="text-[13px] font-medium text-neutral-600">
-              Status:
-            </label>
-            <select
-              id="status-filter"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as AlterationStatus | 'all')}
-              className="focus:border-primary-300 focus:ring-primary-100 h-8 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none"
-            >
-              <option value="all">All Statuses</option>
-              <option value="submitted">Submitted</option>
-              <option value="under_review">Under Review</option>
-              <option value="approved">Approved</option>
-              <option value="in_progress">In Progress</option>
-              <option value="inspection">Inspection</option>
-              <option value="completed">Completed</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="type-filter" className="text-[13px] font-medium text-neutral-600">
-              Type:
-            </label>
-            <select
-              id="type-filter"
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as AlterationType | 'all')}
-              className="focus:border-primary-300 focus:ring-primary-100 h-8 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none"
-            >
-              <option value="all">All Types</option>
-              <option value="renovation">Renovation</option>
-              <option value="repair">Repair</option>
-              <option value="addition">Addition</option>
-              <option value="removal">Removal</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="momentum-filter" className="text-[13px] font-medium text-neutral-600">
-              Momentum:
-            </label>
-            <select
-              id="momentum-filter"
-              value={momentumFilter}
-              onChange={(e) => setMomentumFilter(e.target.value as AlterationMomentum | 'all')}
-              className="focus:border-primary-300 focus:ring-primary-100 h-8 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none"
-            >
-              <option value="all">All Momentum</option>
-              <option value="ok">OK</option>
-              <option value="slow">Slow</option>
-              <option value="stalled">Stalled</option>
-              <option value="stopped">Stopped</option>
-            </select>
-          </div>
-        </div>
+        </>
       )}
 
-      {/* Data Table */}
-      <DataTable
-        columns={columns}
-        data={filteredAlterations}
-        emptyMessage="No alteration projects found."
-        emptyIcon={<Hammer className="h-6 w-6" />}
-      />
+      {/* Error State */}
+      {!loading && error && (
+        <EmptyState
+          icon={<Hammer className="h-6 w-6" />}
+          title="Failed to load alterations"
+          description={error}
+          action={
+            <Button size="sm" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          }
+        />
+      )}
+
+      {/* Summary Cards */}
+      {!loading && !error && (
+        <>
+          {/* Summary Cards */}
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Card padding="sm" className="flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
+                <Hammer className="h-5 w-5 text-neutral-600" />
+              </div>
+              <div>
+                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                  {totalCount}
+                </p>
+                <p className="text-[13px] text-neutral-500">Total Projects</p>
+              </div>
+            </Card>
+            <Card padding="sm" className="flex items-center gap-4">
+              <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
+                <TrendingUp className="text-info-600 h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                  {inProgressCount}
+                </p>
+                <p className="text-[13px] text-neutral-500">In Progress</p>
+              </div>
+            </Card>
+            <Card padding="sm" className="flex items-center gap-4">
+              <div className="bg-error-50 flex h-10 w-10 items-center justify-center rounded-xl">
+                <AlertTriangle className="text-error-600 h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+                  {stalledStoppedCount}
+                </p>
+                <p className="text-[13px] text-neutral-500">Stalled / Stopped</p>
+              </div>
+            </Card>
+          </div>
+
+          {/* Search & Filters */}
+          <div className="mb-4 flex items-center gap-3">
+            <div className="relative max-w-md flex-1">
+              <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Search alterations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 transition-all duration-200 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <Button
+              variant={showFilters || hasActiveFilters ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+              {hasActiveFilters && (
+                <Badge variant="primary" size="sm">
+                  {(statusFilter !== 'all' ? 1 : 0) +
+                    (typeFilter !== 'all' ? 1 : 0) +
+                    (momentumFilter !== 'all' ? 1 : 0)}
+                </Badge>
+              )}
+            </Button>
+            {hasActiveFilters && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setStatusFilter('all');
+                  setTypeFilter('all');
+                  setMomentumFilter('all');
+                }}
+              >
+                <X className="h-4 w-4" />
+                Clear
+              </Button>
+            )}
+          </div>
+
+          {/* Filter Dropdowns */}
+          {showFilters && (
+            <div className="mb-4 flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+              <div className="flex items-center gap-2">
+                <label htmlFor="status-filter" className="text-[13px] font-medium text-neutral-600">
+                  Status:
+                </label>
+                <select
+                  id="status-filter"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as AlterationStatus | 'all')}
+                  className="focus:border-primary-300 focus:ring-primary-100 h-8 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="submitted">Submitted</option>
+                  <option value="under_review">Under Review</option>
+                  <option value="approved">Approved</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="inspection">Inspection</option>
+                  <option value="completed">Completed</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="type-filter" className="text-[13px] font-medium text-neutral-600">
+                  Type:
+                </label>
+                <select
+                  id="type-filter"
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value as AlterationType | 'all')}
+                  className="focus:border-primary-300 focus:ring-primary-100 h-8 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none"
+                >
+                  <option value="all">All Types</option>
+                  <option value="renovation">Renovation</option>
+                  <option value="repair">Repair</option>
+                  <option value="addition">Addition</option>
+                  <option value="removal">Removal</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="momentum-filter"
+                  className="text-[13px] font-medium text-neutral-600"
+                >
+                  Momentum:
+                </label>
+                <select
+                  id="momentum-filter"
+                  value={momentumFilter}
+                  onChange={(e) => setMomentumFilter(e.target.value as AlterationMomentum | 'all')}
+                  className="focus:border-primary-300 focus:ring-primary-100 h-8 rounded-lg border border-neutral-200 bg-white px-2 text-[13px] text-neutral-900 focus:ring-2 focus:outline-none"
+                >
+                  <option value="all">All Momentum</option>
+                  <option value="ok">OK</option>
+                  <option value="slow">Slow</option>
+                  <option value="stalled">Stalled</option>
+                  <option value="stopped">Stopped</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Data Table */}
+          <DataTable
+            columns={columns}
+            data={filteredAlterations}
+            emptyMessage="No alteration projects found."
+            emptyIcon={<Hammer className="h-6 w-6" />}
+          />
+        </>
+      )}
       <CreateAlterationDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}

@@ -29,7 +29,7 @@ const equipmentSchema = z.object({
 type EquipmentInput = z.infer<typeof equipmentSchema>;
 
 const CATEGORIES = [
-  { value: 'hvac', label: 'HVAC' },
+  { value: 'HVAC', label: 'HVAC' },
   { value: 'elevator', label: 'Elevator' },
   { value: 'plumbing', label: 'Plumbing' },
   { value: 'electrical', label: 'Electrical' },
