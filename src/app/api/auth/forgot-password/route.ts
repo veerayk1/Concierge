@@ -48,12 +48,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await checkRateLimit('auth', clientIp);
     } catch (e) {
       if (e instanceof RateLimitError) {
+        // Return identical response to prevent timing/header enumeration
         return NextResponse.json(
           { message: GENERIC_MESSAGE },
-          {
-            status: 200,
-            headers: { 'Retry-After': String(e.retryAfter), 'X-Request-Id': requestId },
-          },
+          { status: 200, headers: { 'X-Request-Id': requestId } },
         );
       }
       throw e;

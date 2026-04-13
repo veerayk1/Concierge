@@ -21,7 +21,7 @@ import { verifyPassword } from '@/server/auth/password';
 import { signAccessToken, generateRefreshToken } from '@/server/auth/jwt';
 import { createSession, generateDeviceFingerprint } from '@/server/auth/session';
 import { AuthError, RateLimitError } from '@/server/errors';
-import { checkRateLimit, rateLimitHeaders } from '@/server/middleware/rate-limit';
+import { checkRateLimit } from '@/server/middleware/rate-limit';
 import { PASSWORD_POLICY } from '@/lib/constants';
 import type { Role, TokenPayload } from '@/types';
 

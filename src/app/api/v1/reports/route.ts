@@ -14,14 +14,23 @@ export async function GET(request: NextRequest) {
   if (demoRes) return demoRes;
 
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'superintendent',
+        'security_supervisor',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const moduleCheck = await requireModule(request, 'reports');
     if (moduleCheck) return moduleCheck;
 
     const { searchParams } = new URL(request.url);
-    const propertyId = searchParams.get('propertyId');
+    // Use authenticated user's propertyId to prevent IDOR
+    const propertyId = auth.user.propertyId || searchParams.get('propertyId');
     const reportType = searchParams.get('type');
     const from = searchParams.get('from');
     const to = searchParams.get('to');
@@ -115,6 +124,7 @@ export async function GET(request: NextRequest) {
             unit: { select: { number: true } },
           },
           orderBy: { arrivalAt: 'desc' },
+          take: 10000,
         });
 
         const byType: Record<string, number> = {};
@@ -159,6 +169,7 @@ export async function GET(request: NextRequest) {
             },
           },
           orderBy: { keyName: 'asc' },
+          take: 10000,
         });
 
         const summary = {
@@ -194,6 +205,7 @@ export async function GET(request: NextRequest) {
             },
           },
           orderBy: { startTime: 'desc' },
+          take: 5000,
         });
 
         const allEntries = shifts.flatMap((s) =>
@@ -235,6 +247,7 @@ export async function GET(request: NextRequest) {
             unit: { select: { number: true } },
           },
           orderBy: { startDate: 'desc' },
+          take: 10000,
         });
 
         const byAmenity: Record<string, { name: string; count: number }> = {};
@@ -281,6 +294,7 @@ export async function GET(request: NextRequest) {
             unit: { select: { number: true } },
           },
           orderBy: { user: { lastName: 'asc' } },
+          take: 10000,
         });
 
         const byType: Record<string, number> = {};
@@ -494,6 +508,7 @@ export async function GET(request: NextRequest) {
             permitType: { select: { name: true } },
           },
           orderBy: { createdAt: 'desc' },
+          take: 10000,
         });
 
         const now = new Date();

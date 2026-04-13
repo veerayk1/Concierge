@@ -171,6 +171,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (step !== 'complete' && (!data || typeof data !== 'object')) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'data object is required' },
+        { status: 400 },
+      );
+    }
+
     switch (step) {
       // -------------------------------------------------------------------
       // Profile — update phone, language preference
@@ -258,7 +265,7 @@ export async function POST(request: NextRequest) {
         }
 
         const createdVehicles = [];
-        for (const v of data.vehicles) {
+        for (const v of data.vehicles.slice(0, 5)) {
           if (!v.make || !v.model || !v.licensePlate) continue;
 
           const vehicle = await prisma.vehicle.create({
@@ -301,7 +308,7 @@ export async function POST(request: NextRequest) {
         }
 
         const createdPets = [];
-        for (const p of data.pets) {
+        for (const p of data.pets.slice(0, 5)) {
           if (!p.name || !p.species) continue;
 
           const pet = await prisma.pet.create({

@@ -89,11 +89,14 @@ function toCsv(headers: string[], data: Record<string, unknown>[]): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin', 'property_manager', 'superintendent'],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
-    const propertyId = searchParams.get('propertyId');
+    // Use authenticated user's propertyId to prevent IDOR
+    const propertyId = auth.user.propertyId || searchParams.get('propertyId');
     // eslint-disable-next-line @next/next/no-assign-module-variable
     const module = searchParams.get('module');
     const format = searchParams.get('format') || 'csv';
