@@ -1863,6 +1863,14 @@ const PHASES: Phase[] = [
         label: 'Demo Environment → verify demo reset functionality',
         href: '/system/demo',
       },
+      {
+        id: '14.16',
+        label: 'Puppeteer → run pnpm test:puppeteer and verify all 34 tests pass in visible Chrome',
+      },
+      {
+        id: '14.17',
+        label: 'Puppeteer → verify 17 screenshots captured in tests/puppeteer/screenshots/',
+      },
     ],
   },
 ];
