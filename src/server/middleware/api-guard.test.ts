@@ -200,46 +200,44 @@ describe('guardRoute — Demo Mode', () => {
     }
   });
 
-  it('demo mode is disabled in production when DEMO_MODE_ENABLED is not set', async () => {
-    const origEnv = process.env.NODE_ENV;
-    const origDemo = process.env.DEMO_MODE_ENABLED;
-    process.env.NODE_ENV = 'production';
-    delete process.env.DEMO_MODE_ENABLED;
+  it('demo mode is disabled when DEMO_MODE_DISABLED=true', async () => {
+    const origDemo = process.env.DEMO_MODE_DISABLED;
+    process.env.DEMO_MODE_DISABLED = 'true';
 
     vi.mocked(requireAuth).mockRejectedValue(new AuthError('Missing authorization token'));
 
     const req = makeRequest({ 'x-demo-role': 'property_admin' });
     const result = await guardRoute(req);
 
-    // In production without DEMO_MODE_ENABLED=true, demo mode should be off
+    // With DEMO_MODE_DISABLED=true, demo headers should be ignored
     expect(result.error).not.toBeNull();
     if (result.error) {
       expect(result.error.status).toBe(401);
     }
 
-    process.env.NODE_ENV = origEnv;
-    if (origDemo !== undefined) process.env.DEMO_MODE_ENABLED = origDemo;
+    if (origDemo !== undefined) {
+      process.env.DEMO_MODE_DISABLED = origDemo;
+    } else {
+      delete process.env.DEMO_MODE_DISABLED;
+    }
   });
 
-  it('demo mode works in production when DEMO_MODE_ENABLED=true', async () => {
-    const origEnv = process.env.NODE_ENV;
-    const origDemo = process.env.DEMO_MODE_ENABLED;
-    process.env.NODE_ENV = 'production';
-    process.env.DEMO_MODE_ENABLED = 'true';
+  it('demo mode works by default (DEMO_MODE_DISABLED not set)', async () => {
+    const origDemo = process.env.DEMO_MODE_DISABLED;
+    delete process.env.DEMO_MODE_DISABLED;
 
     const req = makeRequest({ 'x-demo-role': 'property_admin' });
     const result = await guardRoute(req);
 
-    // With DEMO_MODE_ENABLED=true, demo mode should work even in production
+    // Without DEMO_MODE_DISABLED, demo mode should work
     expect(result.error).toBeNull();
     expect(result.user).not.toBeNull();
     expect(result.user?.role).toBe('property_admin');
 
-    process.env.NODE_ENV = origEnv;
     if (origDemo !== undefined) {
-      process.env.DEMO_MODE_ENABLED = origDemo;
+      process.env.DEMO_MODE_DISABLED = origDemo;
     } else {
-      delete process.env.DEMO_MODE_ENABLED;
+      delete process.env.DEMO_MODE_DISABLED;
     }
   });
 });
