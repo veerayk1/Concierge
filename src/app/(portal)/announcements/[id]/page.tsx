@@ -343,15 +343,18 @@ export default function AnnouncementDetailPage() {
           <Card>
             <CardContent>
               <div className="prose prose-neutral max-w-none">
-                {announcement.body.split('\n').map((p, i) =>
-                  p ? (
-                    <p key={i} className="text-[15px] leading-relaxed text-neutral-700">
-                      {p}
-                    </p>
-                  ) : (
-                    <br key={i} />
-                  ),
-                )}
+                {announcement.body
+                  .replace(/<[^>]*>/g, '')
+                  .split('\n')
+                  .map((p, i) =>
+                    p ? (
+                      <p key={i} className="text-[15px] leading-relaxed text-neutral-700">
+                        {p}
+                      </p>
+                    ) : (
+                      <br key={i} />
+                    ),
+                  )}
               </div>
             </CardContent>
           </Card>
