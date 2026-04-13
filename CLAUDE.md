@@ -493,6 +493,62 @@ Three-way feature matrix: 79+ features compared across all 3 platforms, Concierg
 
 ---
 
-_Last updated: 2026-03-18_
+---
+
+## Developer Tools & Workflow
+
+### Installed Tools (6 total)
+
+| Layer         | Tool              | Role                                         | Trigger                           |
+| ------------- | ----------------- | -------------------------------------------- | --------------------------------- |
+| **Always-On** | Security Guidance | Real-time XSS/injection scanner              | Auto on every Write/Edit          |
+| **Always-On** | Frontend Design   | Production-grade UI enforcement              | Auto on frontend work             |
+| **On-Demand** | Code Review       | 4-agent PR review with CLAUDE.md compliance  | `/code-review`                    |
+| **On-Demand** | GStack            | 23 virtual team roles (security, design, QA) | `/cso`, `/review`, `/qa`, `/ship` |
+| **Workflow**  | Superpowers       | Spec-first, TDD enforcement                  | Auto on feature builds            |
+| **Memory**    | Claude-Mem        | Auto-persistent session memory               | Always active                     |
+
+### Testing Tools (4 total)
+
+| Tool                     | Target            | Mode                        | Command               |
+| ------------------------ | ----------------- | --------------------------- | --------------------- |
+| **Playwright**           | Live deployed URL | Headless, parallel, CI/CD   | `pnpm test:e2e`       |
+| **Puppeteer**            | Live deployed URL | Visible Chrome, screenshots | `pnpm test:puppeteer` |
+| **Vitest**               | Unit/integration  | Fast, watch mode            | `pnpm test`           |
+| **Feature Intelligence** | Manual checklist  | 416 steps, 14 phases        | `/system/features`    |
+
+### Code Change Lifecycle
+
+```
+1. PLAN → Superpowers (spec-first, task breakdown)
+2. WRITE → Security Guidance + Frontend Design (real-time guards)
+3. TEST → Puppeteer (visible) + Playwright (automated)
+4. REVIEW → /code-review (CLAUDE.md compliance) + /cso (security)
+5. SHIP → /ship (pre-merge) + git push (both remotes)
+6. REMEMBER → Claude-Mem (auto) + MEMORY.md (strategic)
+```
+
+### Frontend Design Constraints
+
+> **IMPORTANT**: The frontend-design plugin must respect these project-specific rules.
+> These override any generic design suggestions from the plugin.
+
+- **White backgrounds only**. No dark sidebars, no gradient headers, no colored backgrounds.
+- **Color is ONLY for status and actions**. Never decorative.
+- **Progressive disclosure**. Advanced features hide until needed.
+- **One primary action per screen**. If there are 2 competing CTAs, redesign.
+- **Desktop-first** (99% of users on desktop monitors, not laptops).
+- **No emojis in UI** unless user explicitly requests.
+- **Typography**: System font stack, no custom fonts. 13-15px body text.
+- **Spacing**: 4px grid system. Generous padding (16-24px).
+- **Borders**: 1px neutral-200. Rounded corners 8-16px.
+- **Shadows**: Minimal — shadow-xs or shadow-sm only.
+- Reference: `docs/DESIGN-SYSTEM.md` (2,243 lines) and `docs/design/DESIGN-SYSTEM-v2.md`
+
+---
+
+_Last updated: 2026-04-13_
 _Platforms researched: 3 (Aquarius, BuildingLink, Condo Control)_
 _Total documentation: 80+ files, ~77,000 lines, 800+ fields documented_
+_Developer tools: 6 installed (Security Guidance, Frontend Design, Code Review, GStack, Superpowers, Claude-Mem)_
+_Testing tools: 4 (Playwright, Puppeteer, Vitest, Feature Intelligence 416 steps)_

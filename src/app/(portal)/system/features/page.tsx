@@ -1871,6 +1871,31 @@ const PHASES: Phase[] = [
         id: '14.17',
         label: 'Puppeteer → verify 17 screenshots captured in tests/puppeteer/screenshots/',
       },
+      {
+        id: '14.18',
+        label:
+          'Security Guidance → verify plugin warns on dangerouslySetInnerHTML in new component',
+      },
+      {
+        id: '14.19',
+        label: 'Code Review → run /code-review and verify CLAUDE.md compliance check runs',
+      },
+      {
+        id: '14.20',
+        label: 'GStack → run /cso and verify OWASP security audit produces findings',
+      },
+      {
+        id: '14.21',
+        label: 'Claude-Mem → verify session memory auto-captures at localhost:37777',
+      },
+      {
+        id: '14.22',
+        label: 'Superpowers → verify spec-first workflow enforced on next feature build',
+      },
+      {
+        id: '14.23',
+        label: 'Frontend Design → verify plugin respects design constraints in CLAUDE.md',
+      },
     ],
   },
 ];
