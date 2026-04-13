@@ -178,6 +178,17 @@ const PHASES: Phase[] = [
         label: 'Settings → Notifications: fill From Name/Email, click Save, verify "Changes saved"',
         href: '/settings/notifications',
       },
+      {
+        id: '1.33',
+        label:
+          'Seed Demo: run POST /api/v1/system/seed-demo to populate property with realistic data',
+        href: '/system/features',
+      },
+      {
+        id: '1.34',
+        label: 'Verify seed created: 10 residents, 20 packages, 10 requests, 5 incidents, 10 keys',
+        href: '/settings/notifications',
+      },
     ],
   },
 
