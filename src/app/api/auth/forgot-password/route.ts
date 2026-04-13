@@ -13,6 +13,8 @@ import { z } from 'zod';
 
 import { prisma } from '@/server/db';
 import { sendPasswordResetEmail } from '@/server/email';
+import { RateLimitError } from '@/server/errors';
+import { checkRateLimit } from '@/server/middleware/rate-limit';
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -38,8 +40,25 @@ const TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
   try {
+    // 0. Rate limit check
+    try {
+      await checkRateLimit('auth', clientIp);
+    } catch (e) {
+      if (e instanceof RateLimitError) {
+        return NextResponse.json(
+          { message: GENERIC_MESSAGE },
+          {
+            status: 200,
+            headers: { 'Retry-After': String(e.retryAfter), 'X-Request-Id': requestId },
+          },
+        );
+      }
+      throw e;
+    }
+
     // 1. Parse and validate request body
     let body: z.infer<typeof forgotPasswordSchema>;
     try {

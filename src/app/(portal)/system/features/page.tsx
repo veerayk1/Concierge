@@ -1896,6 +1896,54 @@ const PHASES: Phase[] = [
         id: '14.23',
         label: 'Frontend Design → verify plugin respects design constraints in CLAUDE.md',
       },
+      {
+        id: '14.24',
+        label:
+          'Design Review → hero section text visible on landing page (CSS fallback + reduced motion)',
+        description: 'mkt-hero-enter has 1.5s fallback reveal + prefers-reduced-motion support',
+        href: '/',
+      },
+      {
+        id: '14.25',
+        label:
+          'Design Review → amenity cards show unique icons per type (Party, BBQ, Gym, Guest, Meeting)',
+        href: '/amenities',
+      },
+      {
+        id: '14.26',
+        label: 'Design Review → free amenities display green "Free" badge',
+        href: '/amenities',
+      },
+      {
+        id: '14.27',
+        label: 'Design Review → language selector shows "English" / "Français" not "en" / "fr-CA"',
+        href: '/resident-onboarding',
+      },
+      {
+        id: '14.28',
+        label: 'Security → rate limiting active on /api/auth/login (10 req / 15 min per IP)',
+      },
+      {
+        id: '14.29',
+        label: 'Security → rate limiting active on /api/auth/forgot-password',
+      },
+      {
+        id: '14.30',
+        label: 'Security → rate limiting active on /api/auth/reset-password',
+      },
+      {
+        id: '14.31',
+        label: 'Security → rate limiting active on /api/auth/verify-2fa',
+      },
+      {
+        id: '14.32',
+        label: 'Security → demo mode disable-able via DEMO_MODE_DISABLED=true env var',
+      },
+      {
+        id: '14.33',
+        label:
+          'Security → CSO audit report: all 4 findings resolved (2 CRITICAL + 1 HIGH + 1 MEDIUM)',
+      },
     ],
   },
 ];

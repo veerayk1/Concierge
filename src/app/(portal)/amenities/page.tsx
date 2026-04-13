@@ -7,12 +7,16 @@ import { getPropertyId } from '@/lib/demo-config';
 import { CreateBookingDialog } from '@/components/forms/create-booking-dialog';
 import {
   AlertCircle,
+  Bed,
   Calendar,
   Clock,
   Dumbbell,
+  Flame,
   Loader2,
   MapPin,
+  PartyPopper,
   Plus,
+  Presentation,
   Search,
   Tv,
   Users,
@@ -59,7 +63,17 @@ function getAmenityIcon(name: string) {
   const lower = name.toLowerCase();
   if (lower.includes('pool') || lower.includes('swim')) return <Waves className="h-5 w-5" />;
   if (lower.includes('gym') || lower.includes('fitness')) return <Dumbbell className="h-5 w-5" />;
-  if (lower.includes('theatre') || lower.includes('theater')) return <Tv className="h-5 w-5" />;
+  if (lower.includes('theatre') || lower.includes('theater') || lower.includes('media'))
+    return <Tv className="h-5 w-5" />;
+  if (lower.includes('party') || lower.includes('lounge') || lower.includes('social'))
+    return <PartyPopper className="h-5 w-5" />;
+  if (lower.includes('bbq') || lower.includes('grill') || lower.includes('rooftop'))
+    return <Flame className="h-5 w-5" />;
+  if (lower.includes('guest') || lower.includes('suite')) return <Bed className="h-5 w-5" />;
+  if (lower.includes('meeting') || lower.includes('board') || lower.includes('conference'))
+    return <Presentation className="h-5 w-5" />;
+  if (lower.includes('court') || lower.includes('tennis') || lower.includes('sport'))
+    return <Users className="h-5 w-5" />;
   return <Calendar className="h-5 w-5" />;
 }
 
@@ -219,9 +233,13 @@ export default function AmenitiesPage() {
                       Requires Approval
                     </Badge>
                   )}
-                  {amenity.fee !== null && amenity.fee > 0 && (
+                  {amenity.fee !== null && amenity.fee > 0 ? (
                     <Badge variant="default" size="sm">
                       ${amenity.fee}/booking
+                    </Badge>
+                  ) : (
+                    <Badge variant="success" size="sm">
+                      Free
                     </Badge>
                   )}
                 </div>

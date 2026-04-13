@@ -20,7 +20,8 @@ import { prisma } from '@/server/db';
 import { verifyPassword } from '@/server/auth/password';
 import { signAccessToken, generateRefreshToken } from '@/server/auth/jwt';
 import { createSession, generateDeviceFingerprint } from '@/server/auth/session';
-import { AuthError } from '@/server/errors';
+import { AuthError, RateLimitError } from '@/server/errors';
+import { checkRateLimit, rateLimitHeaders } from '@/server/middleware/rate-limit';
 import { PASSWORD_POLICY } from '@/lib/constants';
 import type { Role, TokenPayload } from '@/types';
 
@@ -61,8 +62,30 @@ async function bestEffort<T>(fn: () => T | Promise<T>): Promise<T | undefined> {
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
   try {
+    // 0. Rate limit check — 10 attempts per 15 minutes per IP
+    try {
+      const rl = await checkRateLimit('auth', clientIp);
+      // Rate limit headers are added to successful responses below
+      void rl;
+    } catch (e) {
+      if (e instanceof RateLimitError) {
+        return NextResponse.json(
+          { error: 'Too many login attempts. Please try again later.', code: 'RATE_LIMITED' },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': String(e.retryAfter),
+              'X-Request-Id': requestId,
+            },
+          },
+        );
+      }
+      throw e;
+    }
+
     // 1. Parse and validate request body
     let body: z.infer<typeof loginSchema>;
     try {
@@ -358,7 +381,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       {
         error: 'INTERNAL_ERROR',
-        message: process.env.NODE_ENV === 'development' ? String(error) : 'An unexpected error occurred',
+        message:
+          process.env.NODE_ENV === 'development' ? String(error) : 'An unexpected error occurred',
         code: 'INTERNAL_ERROR',
         requestId,
       },

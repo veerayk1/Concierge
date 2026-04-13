@@ -131,8 +131,9 @@ export async function guardRoute(
   const { roles, allowDemo = true } = options;
 
   try {
-    // Check for demo mode (always enabled — demo buttons are part of the product)
-    if (allowDemo) {
+    // Check for demo mode (disable via DEMO_MODE_DISABLED=true in production)
+    const demoDisabled = process.env.DEMO_MODE_DISABLED === 'true';
+    if (allowDemo && !demoDisabled) {
       const demoRole = request.headers.get('x-demo-role');
       if (demoRole) {
         return handleDemoMode(request, demoRole as Role, roles);

@@ -13,6 +13,8 @@ import { z } from 'zod';
 import { prisma } from '@/server/db';
 import { hashPassword, verifyPassword } from '@/server/auth/password';
 import { revokeAllUserSessions } from '@/server/auth/session';
+import { RateLimitError } from '@/server/errors';
+import { checkRateLimit } from '@/server/middleware/rate-limit';
 import { PASSWORD_POLICY, PASSWORD_PATTERNS } from '@/lib/constants';
 
 // ---------------------------------------------------------------------------
@@ -52,8 +54,25 @@ const resetPasswordSchema = z.object({
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
   try {
+    // 0. Rate limit check
+    try {
+      await checkRateLimit('auth', clientIp);
+    } catch (e) {
+      if (e instanceof RateLimitError) {
+        return NextResponse.json(
+          { error: 'Too many attempts. Please try again later.', code: 'RATE_LIMITED' },
+          {
+            status: 429,
+            headers: { 'Retry-After': String(e.retryAfter), 'X-Request-Id': requestId },
+          },
+        );
+      }
+      throw e;
+    }
+
     // 1. Parse and validate request body
     let body: z.infer<typeof resetPasswordSchema>;
     try {

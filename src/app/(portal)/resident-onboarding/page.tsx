@@ -201,7 +201,7 @@ function NativeSelect({
   label: string;
   value: string;
   onChange: (v: string) => void;
-  options: string[];
+  options: (string | { label: string; value: string })[];
   required?: boolean;
 }) {
   const id = label.toLowerCase().replace(/\s+/g, '-');
@@ -221,11 +221,15 @@ function NativeSelect({
         onChange={(e) => onChange(e.target.value)}
         className="focus:ring-primary-200 h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-[14px] text-neutral-900 hover:border-neutral-300 focus:ring-2 focus:ring-offset-1 focus:outline-none"
       >
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
+        {options.map((o) => {
+          const val = typeof o === 'string' ? o : o.value;
+          const lbl = typeof o === 'string' ? o : o.label;
+          return (
+            <option key={val} value={val}>
+              {lbl}
+            </option>
+          );
+        })}
       </select>
     </div>
   );
@@ -493,11 +497,11 @@ export default function ResidentOnboardingPage() {
           label="Preferred Language"
           value={language}
           onChange={setLanguage}
-          options={['en', 'fr-CA']}
+          options={[
+            { label: 'English', value: 'en' },
+            { label: 'Français (Canada)', value: 'fr-CA' },
+          ]}
         />
-        <p className="mt-1 text-[12px] text-neutral-400">
-          {language === 'fr-CA' ? 'Fran\u00e7ais (Canada)' : 'English'}
-        </p>
       </div>
     </div>
   );

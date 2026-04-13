@@ -11,27 +11,27 @@
 
 .marketing {
   /* Color Palette */
-  --color-obsidian: #0A0A0A;
-  --color-ivory: #FAFAF8;
-  --color-warm-white: #F5F3EF;
-  --color-graphite: #1A1A1A;
-  --color-slate: #6B6B6B;
-  --color-mist: #E8E6E1;
-  --color-brass: #C9A96E;
-  --color-brass-light: #D4BA85;
+  --color-obsidian: #0a0a0a;
+  --color-ivory: #fafaf8;
+  --color-warm-white: #f5f3ef;
+  --color-graphite: #1a1a1a;
+  --color-slate: #6b6b6b;
+  --color-mist: #e8e6e1;
+  --color-brass: #c9a96e;
+  --color-brass-light: #d4ba85;
   --color-brass-muted: rgba(201, 169, 110, 0.12);
-  --color-success: #2E7D5B;
-  --color-alert: #C45C3E;
+  --color-success: #2e7d5b;
+  --color-alert: #c45c3e;
 
   /* Spacing — 8px grid */
-  --space-xs: 0.5rem;   /* 8px */
-  --space-sm: 1rem;     /* 16px */
-  --space-md: 1.5rem;   /* 24px */
-  --space-lg: 2rem;     /* 32px */
-  --space-xl: 3rem;     /* 48px */
-  --space-2xl: 4rem;    /* 64px */
-  --space-3xl: 6rem;    /* 96px */
-  --space-4xl: 8rem;    /* 128px */
+  --space-xs: 0.5rem; /* 8px */
+  --space-sm: 1rem; /* 16px */
+  --space-md: 1.5rem; /* 24px */
+  --space-lg: 2rem; /* 32px */
+  --space-xl: 3rem; /* 48px */
+  --space-2xl: 4rem; /* 64px */
+  --space-3xl: 6rem; /* 96px */
+  --space-4xl: 8rem; /* 128px */
   --space-section: clamp(6rem, 12vh, 10rem);
 
   /* Typography */
@@ -49,7 +49,6 @@
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
-
 
 /* ---------------------------------------------------------------------------
    2. Typography
@@ -118,7 +117,6 @@
 .marketing .mkt-dark .mkt-body {
   color: rgba(255, 255, 255, 0.8);
 }
-
 
 /* ---------------------------------------------------------------------------
    3. Layout
@@ -199,7 +197,6 @@
   text-align: center;
 }
 
-
 /* ---------------------------------------------------------------------------
    4. Cards
    --------------------------------------------------------------------------- */
@@ -213,7 +210,9 @@
     0 1px 3px rgba(0, 0, 0, 0.04),
     0 8px 32px rgba(0, 0, 0, 0.06);
   padding: var(--space-xl);
-  transition: box-shadow 200ms ease, transform 200ms ease;
+  transition:
+    box-shadow 200ms ease,
+    transform 200ms ease;
 }
 
 .marketing .mkt-card:hover {
@@ -231,7 +230,9 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: var(--space-xl);
-  transition: background 200ms ease, border-color 200ms ease;
+  transition:
+    background 200ms ease,
+    border-color 200ms ease;
 }
 
 .marketing .mkt-glass-card:hover {
@@ -279,7 +280,6 @@
 .marketing .mkt-dark .mkt-feature-card__desc {
   color: rgba(255, 255, 255, 0.6);
 }
-
 
 /* ---------------------------------------------------------------------------
    5. Buttons
@@ -393,7 +393,6 @@
   gap: var(--space-sm);
 }
 
-
 /* ---------------------------------------------------------------------------
    5b. Hero Entrance Animations
    --------------------------------------------------------------------------- */
@@ -414,19 +413,55 @@
   transform: translateY(24px);
 }
 
+/* Fallback: if animation hasn't triggered after 2s, show content anyway */
+.marketing .mkt-hero-enter:not(.mkt-hero-visible) {
+  animation: mktFallbackReveal 0s 1.5s forwards;
+}
+
+@keyframes mktFallbackReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .marketing .mkt-hero-enter.mkt-hero-visible {
   animation: mktFadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-1 { animation-delay: 0ms; }
-.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-2 { animation-delay: 200ms; }
-.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-3 { animation-delay: 400ms; }
-.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-4 { animation-delay: 600ms; }
-.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-5 { animation-delay: 800ms; }
+.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-1 {
+  animation-delay: 0ms;
+}
+.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-2 {
+  animation-delay: 200ms;
+}
+.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-3 {
+  animation-delay: 400ms;
+}
+.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-4 {
+  animation-delay: 600ms;
+}
+.marketing .mkt-hero-enter.mkt-hero-visible.mkt-hero-delay-5 {
+  animation-delay: 800ms;
+}
+
+/* Reduced motion: skip hero animation entirely */
+@media (prefers-reduced-motion: reduce) {
+  .marketing .mkt-hero-enter {
+    opacity: 1;
+    transform: none;
+    animation: none !important;
+  }
+}
 
 @keyframes mktChevronBob {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50% { transform: translateX(-50%) translateY(8px); }
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(8px);
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -462,7 +497,6 @@
   transform: translateX(0);
 }
 
-
 /* ---------------------------------------------------------------------------
    7. Stats Counter
    --------------------------------------------------------------------------- */
@@ -493,7 +527,6 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
-
 /* ---------------------------------------------------------------------------
    8. Navigation (marketing-specific)
    --------------------------------------------------------------------------- */
@@ -505,7 +538,9 @@
   right: 0;
   z-index: 1000;
   padding: var(--space-sm) 0;
-  transition: background 300ms ease, box-shadow 300ms ease;
+  transition:
+    background 300ms ease,
+    box-shadow 300ms ease;
 }
 
 .marketing .mkt-nav--scrolled {
@@ -520,7 +555,6 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
-
 
 /* ---------------------------------------------------------------------------
    9. Dividers & Decorative
@@ -552,14 +586,13 @@
   color: var(--color-brass);
 }
 
-
 /* ---------------------------------------------------------------------------
    10. Focus Styles (Accessibility)
    --------------------------------------------------------------------------- */
 
 .marketing a:focus-visible,
 .marketing button:focus-visible,
-.marketing [role="button"]:focus-visible,
+.marketing [role='button']:focus-visible,
 .marketing input:focus-visible,
 .marketing select:focus-visible,
 .marketing textarea:focus-visible,
@@ -571,10 +604,9 @@
 /* Remove default focus ring when not keyboard navigating */
 .marketing a:focus:not(:focus-visible),
 .marketing button:focus:not(:focus-visible),
-.marketing [role="button"]:focus:not(:focus-visible) {
+.marketing [role='button']:focus:not(:focus-visible) {
   outline: none;
 }
-
 
 /* ---------------------------------------------------------------------------
    11. Reduced Motion
@@ -594,7 +626,6 @@
     scroll-behavior: auto !important;
   }
 }
-
 
 /* ---------------------------------------------------------------------------
    12. Responsive — Mobile (< 768px)

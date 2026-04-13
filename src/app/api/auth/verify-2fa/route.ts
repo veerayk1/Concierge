@@ -14,6 +14,8 @@ import { prisma } from '@/server/db';
 import { verifyTotpCode } from '@/server/auth/totp';
 import { signAccessToken, generateRefreshToken } from '@/server/auth/jwt';
 import { createSession, generateDeviceFingerprint } from '@/server/auth/session';
+import { RateLimitError } from '@/server/errors';
+import { checkRateLimit } from '@/server/middleware/rate-limit';
 import type { Role, TokenPayload } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -91,8 +93,25 @@ function createMfaChallengeToken(userId: string): string {
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
   try {
+    // 0. Rate limit check — 2FA brute force prevention
+    try {
+      await checkRateLimit('auth', clientIp);
+    } catch (e) {
+      if (e instanceof RateLimitError) {
+        return NextResponse.json(
+          { error: 'Too many attempts. Please try again later.', code: 'RATE_LIMITED' },
+          {
+            status: 429,
+            headers: { 'Retry-After': String(e.retryAfter), 'X-Request-Id': requestId },
+          },
+        );
+      }
+      throw e;
+    }
+
     // 1. Parse and validate request body
     let body: z.infer<typeof verify2faSchema>;
     try {
