@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: 'html',
 
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env['PLAYWRIGHT_BASE_URL'] || 'https://concierge-sigma-seven.vercel.app',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -57,9 +57,7 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env['CI'],
-  },
+  // Test against live deployed site by default.
+  // Override with PLAYWRIGHT_BASE_URL env var if needed.
+  // webServer not needed — testing against deployed URL.
 });
