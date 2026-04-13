@@ -1944,6 +1944,68 @@ const PHASES: Phase[] = [
         label:
           'Security → CSO audit report: all 4 findings resolved (2 CRITICAL + 1 HIGH + 1 MEDIUM)',
       },
+      {
+        id: '14.34',
+        label:
+          'Code Review → RBAC added to reports API (admin/PM/superintendent/security_supervisor)',
+      },
+      {
+        id: '14.35',
+        label: 'Code Review → IDOR fix on reports + export APIs (propertyId from auth context)',
+      },
+      {
+        id: '14.36',
+        label:
+          'Code Review → demo mode disabled by default in production (opt-in DEMO_MODE_ENABLED)',
+      },
+      {
+        id: '14.37',
+        label: 'Code Review → unbounded query safety caps (take:10000) on all report findMany',
+      },
+      {
+        id: '14.38',
+        label: 'Code Review → onboarding vehicles/pets capped at 5, data validation added',
+      },
+      {
+        id: '14.39',
+        label: 'Tests → 9 tests for resident onboarding API (GET + POST all 5 steps)',
+        description: 'src/app/api/v1/resident/onboarding/__tests__/route.test.ts',
+      },
+      {
+        id: '14.40',
+        label: 'Tests → rate limit 429 tests for all 4 auth endpoints',
+      },
+      {
+        id: '14.41',
+        label: 'Tests → DEMO_MODE_ENABLED env var tests (production disabled + opt-in)',
+      },
+      {
+        id: '14.42',
+        label: 'Lint → 13 unused variable warnings fixed across test files',
+      },
+      {
+        id: '14.43',
+        label: 'TypeScript → 0 production errors (puppeteer readonly array fix)',
+      },
+      {
+        id: '14.44',
+        label: 'Design → AI briefing card max-height 320px with scroll overflow',
+        href: '/dashboard',
+      },
+      {
+        id: '14.45',
+        label: 'Design → weather widget shows "Coming soon" instead of "not configured"',
+        href: '/dashboard',
+      },
+      {
+        id: '14.46',
+        label: 'Design → onboarding active step icon solid primary fill',
+        href: '/resident-onboarding',
+      },
+      {
+        id: '14.47',
+        label: 'Health → code health dashboard baseline: 6.6/10 (TS 7, Lint 4, Tests 8)',
+      },
     ],
   },
 ];
