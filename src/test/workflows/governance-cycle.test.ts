@@ -93,7 +93,10 @@ import {
   GET as getGovernanceItem,
   PATCH as updateGovernanceItem,
 } from '@/app/api/v1/governance/[id]/route';
-import { GET as listMeetings, POST as createMeeting } from '@/app/api/v1/governance/meetings/route';
+import {
+  GET as listMeetings,
+  POST as _createMeeting,
+} from '@/app/api/v1/governance/meetings/route';
 import { POST as recordMinutes } from '@/app/api/v1/governance/meetings/minutes/route';
 import { GET as getVotes, POST as castVote } from '@/app/api/v1/governance/meetings/votes/route';
 

@@ -15,7 +15,7 @@ const FRONT_DESK = {
   lastName: 'Johnson',
 };
 
-const ADMIN = {
+const _ADMIN = {
   email: 'admin@concierge.app',
   password: 'SuperAdmin123!',
   firstName: 'Admin',

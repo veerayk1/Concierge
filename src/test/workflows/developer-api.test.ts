@@ -804,7 +804,7 @@ describe('Developer API: Validation & Edge Cases', () => {
   it('webhook delete via bulk endpoint returns 404 for nonexistent', async () => {
     mockWebhookFindUnique.mockResolvedValue(null);
 
-    const req = createDeleteRequest('/api/v1/developer/webhooks', {
+    const _req = createDeleteRequest('/api/v1/developer/webhooks', {
       headers: {},
     });
 

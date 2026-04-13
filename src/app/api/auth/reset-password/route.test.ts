@@ -55,6 +55,11 @@ vi.mock('@/server/auth/session', () => ({
   revokeAllUserSessions: vi.fn(),
 }));
 
+// Mock rate limiter — allow by default, tests override
+vi.mock('@/server/middleware/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { prisma } from '@/server/db';
 import { hashPassword, verifyPassword } from '@/server/auth/password';
 import { revokeAllUserSessions } from '@/server/auth/session';
@@ -265,6 +270,23 @@ describe('POST /api/auth/reset-password', () => {
 
     // Should reject with 422 for password reuse
     expect(res.status).toBe(422);
+  });
+
+  it('returns 429 with RATE_LIMITED code when rate limited', async () => {
+    const { checkRateLimit } = await import('@/server/middleware/rate-limit');
+    const { RateLimitError } = await import('@/server/errors');
+
+    vi.mocked(checkRateLimit).mockRejectedValueOnce(new RateLimitError(60));
+
+    const res = await callResetPassword({
+      token: 'any-token',
+      password: STRONG_PASSWORD,
+    });
+
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.code).toBe('RATE_LIMITED');
+    expect(body.error).toMatch(/too many attempts/i);
   });
 
   it('marks the reset token as used after successful reset', async () => {

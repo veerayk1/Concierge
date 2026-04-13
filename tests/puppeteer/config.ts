@@ -14,7 +14,7 @@ export const CONFIG = {
     headless: false,
     slowMo: 100, // Slow down actions so they're observable
     defaultViewport: { width: 1440, height: 900 },
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: ['--no-sandbox', '--disable-setuid-sandbox'] as string[],
   },
 
   /** Screenshot directory */

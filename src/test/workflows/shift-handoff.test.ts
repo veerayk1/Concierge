@@ -71,7 +71,7 @@ import { POST as pinEntry } from '@/app/api/v1/shift-log/[id]/pin/route';
 const PROPERTY_ID = '00000000-0000-4000-b000-000000000001';
 
 // Shift times
-const MORNING_SHIFT_START = '2026-03-19T07:00:00Z';
+const _MORNING_SHIFT_START = '2026-03-19T07:00:00Z';
 const EVENING_SHIFT_START = '2026-03-19T15:00:00Z';
 const NIGHT_SHIFT_START = '2026-03-19T23:00:00Z';
 

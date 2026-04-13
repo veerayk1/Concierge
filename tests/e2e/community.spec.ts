@@ -16,7 +16,7 @@ async function loginAsFrontDesk(page: import('@playwright/test').Page) {
   await page.goto('/dashboard');
 }
 
-async function loginAsAdmin(page: import('@playwright/test').Page) {
+async function _loginAsAdmin(page: import('@playwright/test').Page) {
   await page.goto('/login');
   await page.evaluate(() => {
     localStorage.setItem('demo_role', 'property_admin');

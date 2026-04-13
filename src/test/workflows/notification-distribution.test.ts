@@ -16,7 +16,7 @@ import {
   createGetRequest,
   createPostRequest,
   createPutRequest,
-  createPatchRequest,
+  createPatchRequest as _createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
 

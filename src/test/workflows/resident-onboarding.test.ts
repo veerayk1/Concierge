@@ -193,9 +193,9 @@ vi.mock('@/server/middleware/api-guard', () => ({
 // Import route handlers AFTER mocks
 // ---------------------------------------------------------------------------
 
-import { POST as createUser, GET as listUsers } from '@/app/api/v1/users/route';
+import { POST as createUser, GET as _listUsers } from '@/app/api/v1/users/route';
 import { PATCH as updateUser, DELETE as deleteUser } from '@/app/api/v1/users/[id]/route';
-import { POST as issueKey, GET as listKeyCheckouts } from '@/app/api/v1/keys/checkouts/route';
+import { POST as issueKey, GET as _listKeyCheckouts } from '@/app/api/v1/keys/checkouts/route';
 import { PATCH as returnKey } from '@/app/api/v1/keys/checkouts/[id]/route';
 import {
   POST as createParkingPermit,
@@ -215,7 +215,7 @@ import {
 const PROPERTY_ID = '00000000-0000-4000-b000-000000000001';
 const UNIT_ID = '00000000-0000-4000-a000-000000000501';
 const RESIDENT_ROLE_ID = '00000000-0000-4000-c000-000000010003';
-const ADMIN_ROLE_ID = '00000000-0000-4000-c000-000000010001';
+const _ADMIN_ROLE_ID = '00000000-0000-4000-c000-000000010001';
 const VEHICLE_ID = '00000000-0000-4000-d000-000000000001';
 const PERMIT_TYPE_ID = '00000000-0000-4000-e000-000000000001';
 

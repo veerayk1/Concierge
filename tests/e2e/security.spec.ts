@@ -7,7 +7,7 @@
 
 import { test, expect } from '@playwright/test';
 
-async function loginAsSecurityGuard(page: import('@playwright/test').Page) {
+async function _loginAsSecurityGuard(page: import('@playwright/test').Page) {
   await page.goto('/login');
   await page.evaluate(() => {
     localStorage.setItem('demo_role', 'security_guard');

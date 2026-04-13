@@ -199,4 +199,47 @@ describe('guardRoute — Demo Mode', () => {
       expect(result.error.status).toBe(401);
     }
   });
+
+  it('demo mode is disabled in production when DEMO_MODE_ENABLED is not set', async () => {
+    const origEnv = process.env.NODE_ENV;
+    const origDemo = process.env.DEMO_MODE_ENABLED;
+    process.env.NODE_ENV = 'production';
+    delete process.env.DEMO_MODE_ENABLED;
+
+    vi.mocked(requireAuth).mockRejectedValue(new AuthError('Missing authorization token'));
+
+    const req = makeRequest({ 'x-demo-role': 'property_admin' });
+    const result = await guardRoute(req);
+
+    // In production without DEMO_MODE_ENABLED=true, demo mode should be off
+    expect(result.error).not.toBeNull();
+    if (result.error) {
+      expect(result.error.status).toBe(401);
+    }
+
+    process.env.NODE_ENV = origEnv;
+    if (origDemo !== undefined) process.env.DEMO_MODE_ENABLED = origDemo;
+  });
+
+  it('demo mode works in production when DEMO_MODE_ENABLED=true', async () => {
+    const origEnv = process.env.NODE_ENV;
+    const origDemo = process.env.DEMO_MODE_ENABLED;
+    process.env.NODE_ENV = 'production';
+    process.env.DEMO_MODE_ENABLED = 'true';
+
+    const req = makeRequest({ 'x-demo-role': 'property_admin' });
+    const result = await guardRoute(req);
+
+    // With DEMO_MODE_ENABLED=true, demo mode should work even in production
+    expect(result.error).toBeNull();
+    expect(result.user).not.toBeNull();
+    expect(result.user?.role).toBe('property_admin');
+
+    process.env.NODE_ENV = origEnv;
+    if (origDemo !== undefined) {
+      process.env.DEMO_MODE_ENABLED = origDemo;
+    } else {
+      delete process.env.DEMO_MODE_ENABLED;
+    }
+  });
 });

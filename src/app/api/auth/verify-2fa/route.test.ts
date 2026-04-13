@@ -69,6 +69,11 @@ vi.mock('@/server/auth/session', () => ({
   generateDeviceFingerprint: vi.fn().mockReturnValue('mock-fp'),
 }));
 
+// Mock rate limiter — allow by default, tests override
+vi.mock('@/server/middleware/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Must import after mocks
 import { prisma } from '@/server/db';
 import { verifyTotpCode } from '@/server/auth/totp';
@@ -244,5 +249,22 @@ describe('POST /api/auth/verify-2fa', () => {
     });
 
     expect(res.status).toBe(422);
+  });
+
+  it('returns 429 with RATE_LIMITED code when rate limited', async () => {
+    const { checkRateLimit } = await import('@/server/middleware/rate-limit');
+    const { RateLimitError } = await import('@/server/errors');
+
+    vi.mocked(checkRateLimit).mockRejectedValueOnce(new RateLimitError(60));
+
+    const res = await callVerify2fa({
+      code: '123456',
+      mfaToken: 'valid-mfa-token',
+    });
+
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.code).toBe('RATE_LIMITED');
+    expect(body.error).toMatch(/too many attempts/i);
   });
 });

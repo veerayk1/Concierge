@@ -132,7 +132,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
 import { GET as listVendors, POST as createVendor } from '@/app/api/v1/vendors/route';
 import { GET as getVendor, PATCH as updateVendor } from '@/app/api/v1/vendors/[id]/route';
 import {
-  GET as listVendorDocuments,
+  GET as _listVendorDocuments,
   POST as uploadVendorDocument,
 } from '@/app/api/v1/vendors/[id]/documents/route';
 

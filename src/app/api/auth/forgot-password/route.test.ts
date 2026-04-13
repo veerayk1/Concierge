@@ -37,6 +37,11 @@ vi.mock('@/server/email', () => ({
   sendPasswordResetEmail: mockSendEmail,
 }));
 
+// Mock rate limiter — allow by default, tests override
+vi.mock('@/server/middleware/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { prisma } from '@/server/db';
 
 // ---------------------------------------------------------------------------
@@ -152,6 +157,22 @@ describe('POST /api/auth/forgot-password', () => {
     const res = await callForgotPassword({});
 
     expect(res.status).toBe(422);
+  });
+
+  it('returns 200 with generic message when IP rate limited (anti-enumeration)', async () => {
+    const { checkRateLimit } = await import('@/server/middleware/rate-limit');
+    const { RateLimitError } = await import('@/server/errors');
+
+    vi.mocked(checkRateLimit).mockRejectedValueOnce(new RateLimitError(60));
+
+    const res = await callForgotPassword({ email: 'any@example.com' });
+
+    // Anti-enumeration: returns 200, not 429
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.message).toMatch(/password reset link/i);
+    // Should NOT send email when rate limited
+    expect(mockSendEmail).not.toHaveBeenCalled();
   });
 
   it('does not send email for inactive/deactivated user', async () => {

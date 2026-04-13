@@ -7,7 +7,7 @@
  * Usage: npx tsx tests/puppeteer/critical-flows.test.ts
  */
 
-import type { Browser, Page } from 'puppeteer';
+import type { Page } from 'puppeteer';
 import {
   launchBrowser,
   loginAs,
@@ -16,7 +16,6 @@ import {
   waitForText,
   clickButton,
   runTest,
-  logResult,
 } from './helpers';
 import { CONFIG } from './config';
 

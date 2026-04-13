@@ -63,6 +63,11 @@ vi.mock('@/server/auth/jwt', () => ({
   initializeKeys: vi.fn(),
 }));
 
+// Mock rate limiter — allow by default, tests override
+vi.mock('@/server/middleware/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock session
 vi.mock('@/server/auth/session', () => ({
   createSession: vi.fn().mockResolvedValue({
@@ -334,6 +339,21 @@ describe('POST /api/auth/login', () => {
         }),
       }),
     );
+  });
+
+  it('returns 429 with RATE_LIMITED code when rate limited', async () => {
+    const { checkRateLimit } = await import('@/server/middleware/rate-limit');
+    const { RateLimitError } = await import('@/server/errors');
+
+    vi.mocked(checkRateLimit).mockRejectedValueOnce(new RateLimitError(60));
+
+    const req = createLoginRequest('any@example.com', 'AnyPassword1!');
+    const res = await POST(req);
+
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.code).toBe('RATE_LIMITED');
+    expect(body.error).toMatch(/too many login attempts/i);
   });
 
   it('resets failed login attempts on successful login', async () => {

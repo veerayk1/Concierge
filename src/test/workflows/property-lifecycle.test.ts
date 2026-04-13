@@ -17,7 +17,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   createGetRequest,
   createPostRequest,
-  createPatchRequest,
+  createPatchRequest as _createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
 

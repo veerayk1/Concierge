@@ -682,7 +682,7 @@ export default function DashboardPage() {
       {/* AI Briefing + Building Health + Weather Row */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* AI Daily Briefing */}
-        <Card className="lg:col-span-2">
+        <Card className="max-h-[320px] overflow-y-auto lg:col-span-2">
           <CardHeader>
             <div className="flex items-center gap-2">
               <div className="bg-info-50 flex h-8 w-8 items-center justify-center rounded-lg">
@@ -838,9 +838,9 @@ export default function DashboardPage() {
             <CardContent>
               <div className="flex flex-col items-center justify-center py-2 text-center">
                 <CloudSun className="mb-2 h-8 w-8 text-neutral-300" />
-                <p className="text-[13px] font-medium text-neutral-500">Weather not configured</p>
+                <p className="text-[13px] font-medium text-neutral-500">Coming soon</p>
                 <p className="mt-0.5 text-[12px] text-neutral-400">
-                  Connect a weather API in Settings
+                  Local weather integration planned for v2
                 </p>
               </div>
             </CardContent>

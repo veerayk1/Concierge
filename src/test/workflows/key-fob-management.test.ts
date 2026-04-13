@@ -84,7 +84,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
 // ---------------------------------------------------------------------------
 
 import { GET as listKeys, POST as createKey } from '@/app/api/v1/keys/route';
-import { GET as getKey, PATCH as updateKey } from '@/app/api/v1/keys/[id]/route';
+import { GET as _getKey, PATCH as updateKey } from '@/app/api/v1/keys/[id]/route';
 import { POST as issueKey } from '@/app/api/v1/keys/checkouts/route';
 import { PATCH as returnKey } from '@/app/api/v1/keys/checkouts/[id]/route';
 

@@ -100,7 +100,7 @@ import {
 import {
   GET as getBroadcast,
   PATCH as patchBroadcast,
-  POST as acknowledgeBroadcastFromDetail,
+  POST as _acknowledgeBroadcastFromDetail,
 } from '@/app/api/v1/emergency/broadcast/[id]/route';
 import { POST as sendAllClear } from '@/app/api/v1/emergency/broadcast/[id]/all-clear/route';
 import { POST as acknowledgeBroadcast } from '@/app/api/v1/emergency/broadcast/[id]/acknowledge/route';
