@@ -105,6 +105,191 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ data: { summary: { total: events.length }, records: events } });
       }
 
+      case 'visitor_log': {
+        const visitors = await prisma.visitorEntry.findMany({
+          where: {
+            propertyId,
+            ...(hasDateFilter ? { arrivalAt: dateFilter } : {}),
+          },
+          include: {
+            unit: { select: { number: true } },
+          },
+          orderBy: { arrivalAt: 'desc' },
+        });
+
+        const byType: Record<string, number> = {};
+        for (const v of visitors) {
+          byType[v.visitorType] = (byType[v.visitorType] || 0) + 1;
+        }
+
+        const records = visitors.map((v) => {
+          const arrival = new Date(v.arrivalAt);
+          const departure = v.departureAt ? new Date(v.departureAt) : null;
+          const durationMs = departure ? departure.getTime() - arrival.getTime() : null;
+          const durationMin = durationMs !== null ? Math.round(durationMs / 60000) : null;
+          return {
+            name: v.visitorName,
+            type: v.visitorType,
+            unit: v.unit?.number || '',
+            arrivalTime: v.arrivalAt.toISOString(),
+            departureTime: v.departureAt?.toISOString() || '',
+            duration: durationMin !== null ? `${durationMin} min` : 'Still on-site',
+          };
+        });
+
+        const headers = ['name', 'type', 'unit', 'arrivalTime', 'departureTime', 'duration'];
+
+        return NextResponse.json({
+          data: {
+            summary: { total: visitors.length, byType },
+            records,
+            headers,
+          },
+        });
+      }
+
+      case 'key_inventory': {
+        const keys = await prisma.keyInventory.findMany({
+          where: { propertyId },
+          include: {
+            checkouts: {
+              where: { returnTime: null },
+              select: { checkedOutTo: true },
+              take: 1,
+            },
+          },
+          orderBy: { keyName: 'asc' },
+        });
+
+        const summary = {
+          total: keys.length,
+          available: keys.filter((k) => k.status === 'available').length,
+          checkedOut: keys.filter((k) => k.status === 'checked_out').length,
+          lost: keys.filter((k) => k.status === 'lost').length,
+        };
+
+        const records = keys.map((k) => ({
+          name: k.keyName,
+          type: k.category,
+          serial: k.keyNumber || '',
+          status: k.status,
+          owner: k.keyOwner || '',
+          checkedOutTo: k.checkouts[0]?.checkedOutTo || '',
+        }));
+
+        const headers = ['name', 'type', 'serial', 'status', 'owner', 'checkedOutTo'];
+
+        return NextResponse.json({ data: { summary, records, headers } });
+      }
+
+      case 'shift_log_summary': {
+        const shifts = await prisma.securityShift.findMany({
+          where: {
+            propertyId,
+            ...(hasDateFilter ? { startTime: dateFilter } : {}),
+          },
+          include: {
+            logEntries: {
+              orderBy: { entryTime: 'asc' },
+            },
+          },
+          orderBy: { startTime: 'desc' },
+        });
+
+        const allEntries = shifts.flatMap((s) =>
+          s.logEntries.map((e) => ({
+            shiftId: s.id,
+            shiftStart: s.startTime.toISOString(),
+            shiftEnd: s.endTime.toISOString(),
+            entryTime: e.entryTime.toISOString(),
+            category: e.category,
+            entryText: e.entryText,
+          })),
+        );
+
+        const byCategory: Record<string, number> = {};
+        for (const e of allEntries) {
+          byCategory[e.category] = (byCategory[e.category] || 0) + 1;
+        }
+
+        const summary = {
+          totalEntries: allEntries.length,
+          totalShifts: shifts.length,
+          byCategory,
+        };
+
+        const headers = ['shiftStart', 'shiftEnd', 'entryTime', 'category', 'entryText'];
+
+        return NextResponse.json({ data: { summary, records: allEntries, headers } });
+      }
+
+      case 'parking_permits': {
+        const permits = await prisma.parkingPermit.findMany({
+          where: {
+            propertyId,
+            deletedAt: null,
+          },
+          include: {
+            unit: { select: { number: true } },
+            permitType: { select: { name: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        const now = new Date();
+        const summary = {
+          total: permits.length,
+          active: permits.filter((p) => p.status === 'active').length,
+          expired: permits.filter(
+            (p) =>
+              p.status === 'expired' ||
+              (p.validUntil && new Date(p.validUntil) < now && p.status === 'active'),
+          ).length,
+          suspended: permits.filter((p) => p.status === 'suspended').length,
+        };
+
+        const violations = await prisma.parkingViolation.count({
+          where: {
+            propertyId,
+            ...(hasDateFilter ? { createdAt: dateFilter } : {}),
+          },
+        });
+
+        const records = permits.map((p) => ({
+          referenceNumber: p.referenceNumber,
+          permitType: p.permitType?.name || '',
+          unit: p.unit?.number || '',
+          licensePlate: p.licensePlate,
+          vehicleMake: p.vehicleMake || '',
+          vehicleModel: p.vehicleModel || '',
+          vehicleColor: p.vehicleColor || '',
+          status: p.status,
+          validFrom: p.validFrom.toISOString().split('T')[0],
+          validUntil: p.validUntil.toISOString().split('T')[0],
+        }));
+
+        const headers = [
+          'referenceNumber',
+          'permitType',
+          'unit',
+          'licensePlate',
+          'vehicleMake',
+          'vehicleModel',
+          'vehicleColor',
+          'status',
+          'validFrom',
+          'validUntil',
+        ];
+
+        return NextResponse.json({
+          data: {
+            summary: { ...summary, violations },
+            records,
+            headers,
+          },
+        });
+      }
+
       default: {
         // Return available report types
         return NextResponse.json({

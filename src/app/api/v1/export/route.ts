@@ -48,6 +48,18 @@ const MODULE_HEADERS: Record<string, string[]> = {
   units: ['number', 'floor', 'building', 'type', 'status', 'sq_ft', 'parking', 'locker'],
   events: ['reference', 'type', 'title', 'unit', 'status', 'priority', 'created_at'],
   users: ['first_name', 'last_name', 'email', 'phone', 'role', 'status', 'created_at'],
+  equipment: [
+    'name',
+    'category',
+    'location',
+    'manufacturer',
+    'model',
+    'serial',
+    'status',
+    'install_date',
+    'warranty_expiry',
+    'asset_tag',
+  ],
 };
 
 const VALID_MODULES = Object.keys(MODULE_HEADERS);
@@ -264,6 +276,31 @@ export async function GET(request: NextRequest) {
           published_at: a.publishedAt?.toISOString() || '',
           expires_at: a.expiresAt?.toISOString() || '',
           created_at: a.createdAt.toISOString(),
+        }));
+        break;
+      }
+
+      case 'equipment': {
+        const equipment = await prisma.equipment.findMany({
+          where: {
+            propertyId,
+            deletedAt: null,
+            ...(hasDateFilter ? { createdAt: dateFilter } : {}),
+            ...(status ? { status } : {}),
+          },
+          orderBy: { name: 'asc' },
+        });
+        data = equipment.map((e) => ({
+          name: e.name,
+          category: e.category,
+          location: e.location || '',
+          manufacturer: e.manufacturer || '',
+          model: e.modelNumber || '',
+          serial: e.serialNumber || '',
+          status: e.status,
+          install_date: e.installDate?.toISOString().split('T')[0] || '',
+          warranty_expiry: e.warrantyExpiry?.toISOString().split('T')[0] || '',
+          asset_tag: e.assetTag || '',
         }));
         break;
       }

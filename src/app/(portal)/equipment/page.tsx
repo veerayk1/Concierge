@@ -23,6 +23,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateEquipmentDialog } from '@/components/forms/create-equipment-dialog';
+import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -310,7 +311,29 @@ export default function EquipmentPage() {
       description="Track building equipment lifecycle, maintenance schedules, and warranties."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              exportToCsv(
+                allEquipment,
+                [
+                  { key: 'name', header: 'Name' },
+                  { key: 'category', header: 'Category' },
+                  { key: 'location', header: 'Location' },
+                  { key: 'manufacturer', header: 'Manufacturer' },
+                  { key: 'modelNumber', header: 'Model' },
+                  { key: 'serialNumber', header: 'Serial Number' },
+                  { key: 'status', header: 'Status' },
+                  { key: 'installDate', header: 'Install Date' },
+                  { key: 'warrantyExpiry', header: 'Warranty Expiry' },
+                  { key: 'lastServiceDate', header: 'Last Service' },
+                  { key: 'nextServiceDate', header: 'Next Service' },
+                ],
+                'equipment',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>

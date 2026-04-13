@@ -599,6 +599,26 @@ const PHASES: Phase[] = [
           'Service Requests → change assignment and verify PATCH saves (Currently Assigned updates)',
         href: '/maintenance',
       },
+      {
+        id: '3.67',
+        label: 'Reports → generate Package Activity report and download CSV',
+        href: '/reports',
+      },
+      {
+        id: '3.68',
+        label: 'Reports → generate Maintenance Summary report and download CSV',
+        href: '/reports',
+      },
+      {
+        id: '3.69',
+        label: 'Reports → generate Visitor Log report and verify data',
+        href: '/reports',
+      },
+      {
+        id: '3.70',
+        label: 'Equipment → click Export button and verify CSV downloads',
+        href: '/equipment',
+      },
     ],
   },
 
