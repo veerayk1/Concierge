@@ -1278,6 +1278,41 @@ const PHASES: Phase[] = [
         label: 'Amenity Booking → verify booking in My Bookings with Cancel option',
         href: '/amenity-booking',
       },
+      {
+        id: '9.34',
+        label: 'Onboarding → verify welcome screen shows property name, unit, resident type',
+        href: '/resident-onboarding',
+      },
+      {
+        id: '9.35',
+        label: 'Onboarding → complete profile step (phone, contact method, accessibility)',
+        href: '/resident-onboarding',
+      },
+      {
+        id: '9.36',
+        label: 'Onboarding → add emergency contact (name, relationship, phone)',
+        href: '/resident-onboarding',
+      },
+      {
+        id: '9.37',
+        label: 'Onboarding → register vehicle or skip (make, model, plate)',
+        href: '/resident-onboarding',
+      },
+      {
+        id: '9.38',
+        label: 'Onboarding → register pet or skip (name, species, breed)',
+        href: '/resident-onboarding',
+      },
+      {
+        id: '9.39',
+        label: 'Onboarding → verify completion screen with summary cards and quick actions',
+        href: '/resident-onboarding',
+      },
+      {
+        id: '9.40',
+        label: 'Onboarding → click "Go to Dashboard" and verify redirect',
+        href: '/dashboard',
+      },
     ],
   },
 
