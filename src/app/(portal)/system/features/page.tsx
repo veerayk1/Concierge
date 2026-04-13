@@ -793,6 +793,12 @@ const PHASES: Phase[] = [
       },
       { id: '5.14', label: 'Parking → verify violation appears in list', href: '/parking' },
       {
+        id: '5.14b',
+        label:
+          'Parking → Report Violation via dialog (license plate, type, location, notify owner)',
+        href: '/parking',
+      },
+      {
         id: '5.15',
         label: 'Visitors → pre-register expected visitor',
         description: 'Set name, unit, expected arrival time',

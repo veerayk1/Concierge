@@ -15,6 +15,7 @@ import {
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { CreateParkingPermitDialog } from '@/components/forms/create-parking-permit-dialog';
+import { CreateParkingViolationDialog } from '@/components/forms/create-parking-violation-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -59,6 +60,7 @@ export default function ParkingPage() {
   const [tab, setTab] = useState<'permits' | 'violations'>('permits');
   const [searchQuery, setSearchQuery] = useState('');
   const [showPermitDialog, setShowPermitDialog] = useState(false);
+  const [showViolationDialog, setShowViolationDialog] = useState(false);
 
   const {
     data: apiPermits,
@@ -328,6 +330,10 @@ export default function ParkingPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
+          <Button size="sm" variant="danger" onClick={() => setShowViolationDialog(true)}>
+            <AlertTriangle className="h-4 w-4" />
+            Report Violation
+          </Button>
           <Button size="sm" onClick={() => setShowPermitDialog(true)}>
             <Plus className="h-4 w-4" />
             New Permit
@@ -441,6 +447,17 @@ export default function ParkingPage() {
         propertyId={getPropertyId()}
         onSuccess={() => {
           setShowPermitDialog(false);
+          refetchPermits();
+          refetchViolations();
+        }}
+      />
+
+      <CreateParkingViolationDialog
+        open={showViolationDialog}
+        onOpenChange={setShowViolationDialog}
+        propertyId={getPropertyId()}
+        onSuccess={() => {
+          setShowViolationDialog(false);
           refetchPermits();
           refetchViolations();
         }}
