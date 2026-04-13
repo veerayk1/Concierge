@@ -201,7 +201,20 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
   }>(`/api/v1/users?propertyId=${propertyId}&pageSize=100`);
   const staffUsers = useMemo(() => {
     if (!staffData?.data) return [];
-    return staffData.data;
+    const STAFF_ROLES = [
+      'property_manager',
+      'property_admin',
+      'maintenance_staff',
+      'superintendent',
+      'security_supervisor',
+      'front_desk',
+    ];
+    return staffData.data.filter((u) => {
+      const roleSlug = (u.role as { slug?: string } | null)?.slug ?? '';
+      const roleName =
+        (u.role as { name?: string } | null)?.name?.toLowerCase().replace(/[^a-z]/g, '_') ?? '';
+      return STAFF_ROLES.some((r) => roleSlug.includes(r) || roleName.includes(r));
+    });
   }, [staffData]);
 
   // Fetch vendors for assignment dropdown

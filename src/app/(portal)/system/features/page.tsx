@@ -630,6 +630,26 @@ const PHASES: Phase[] = [
         label: 'Equipment → click Export button and verify CSV downloads',
         href: '/equipment',
       },
+      {
+        id: '3.71',
+        label: 'Equipment → verify Operational KPI shows correct count (not 0 when items active)',
+        href: '/equipment',
+      },
+      {
+        id: '3.72',
+        label: 'Amenity Detail → verify capacity shows number (e.g. "30 people" not just "people")',
+        href: '/amenities',
+      },
+      {
+        id: '3.73',
+        label: 'Reports → generate all 12 report types and verify data returned',
+        href: '/reports',
+      },
+      {
+        id: '3.74',
+        label: 'Service Requests → verify Assign Staff shows only maintenance-relevant roles',
+        href: '/maintenance',
+      },
     ],
   },
 

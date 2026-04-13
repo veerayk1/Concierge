@@ -128,11 +128,21 @@ export default function EquipmentPage() {
   );
 
   const allEquipment = useMemo<EquipmentItem[]>(() => {
-    if (!apiEquipment) return [];
-    if (Array.isArray(apiEquipment)) return apiEquipment;
-    if (Array.isArray((apiEquipment as ApiResponse).data))
-      return (apiEquipment as ApiResponse).data;
-    return [];
+    let items: EquipmentItem[] = [];
+    if (!apiEquipment) return items;
+    if (Array.isArray(apiEquipment)) items = apiEquipment;
+    else if (Array.isArray((apiEquipment as ApiResponse).data))
+      items = (apiEquipment as ApiResponse).data;
+    // Normalize: DB stores 'active' but UI uses 'operational'
+    const STATUS_MAP: Record<string, EquipmentStatus> = {
+      active: 'operational',
+      maintenance_required: 'needs_maintenance',
+      inactive: 'out_of_service',
+    };
+    return items.map((item) => ({
+      ...item,
+      status: STATUS_MAP[item.status] ?? (item.status as EquipmentStatus),
+    }));
   }, [apiEquipment]);
 
   const filteredEquipment = useMemo(() => {

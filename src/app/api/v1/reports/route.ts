@@ -223,6 +223,266 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ data: { summary, records: allEntries, headers } });
       }
 
+      case 'amenity_usage': {
+        const bookings = await prisma.booking.findMany({
+          where: {
+            propertyId,
+            status: { not: 'cancelled' },
+            ...(hasDateFilter ? { startDate: dateFilter } : {}),
+          },
+          include: {
+            amenity: { select: { id: true, name: true } },
+            unit: { select: { number: true } },
+          },
+          orderBy: { startDate: 'desc' },
+        });
+
+        const byAmenity: Record<string, { name: string; count: number }> = {};
+        let totalGuests = 0;
+        for (const b of bookings) {
+          const aid = b.amenityId;
+          if (!byAmenity[aid]) {
+            byAmenity[aid] = { name: b.amenity?.name || 'Unknown', count: 0 };
+          }
+          byAmenity[aid].count += 1;
+          totalGuests += b.guestCount;
+        }
+
+        const summary = {
+          totalBookings: bookings.length,
+          byAmenity: Object.values(byAmenity),
+          avgGuestsPerBooking:
+            bookings.length > 0 ? Math.round((totalGuests / bookings.length) * 10) / 10 : 0,
+        };
+
+        const records = bookings.map((b) => ({
+          amenityName: b.amenity?.name || '',
+          date: b.startDate.toISOString().split('T')[0],
+          timeSlot: `${b.startTime.toISOString().substring(11, 16)} - ${b.endTime.toISOString().substring(11, 16)}`,
+          unit: b.unit?.number || '',
+          guests: b.guestCount,
+          status: b.status,
+          fee: Number(b.feeAmount),
+        }));
+
+        const headers = ['amenityName', 'date', 'timeSlot', 'unit', 'guests', 'status', 'fee'];
+
+        return NextResponse.json({ data: { summary, records, headers } });
+      }
+
+      case 'resident_directory': {
+        const occupants = await prisma.occupancyRecord.findMany({
+          where: {
+            propertyId,
+            moveOutDate: null,
+          },
+          include: {
+            user: { select: { firstName: true, lastName: true, email: true, phone: true } },
+            unit: { select: { number: true } },
+          },
+          orderBy: { user: { lastName: 'asc' } },
+        });
+
+        const byType: Record<string, number> = {};
+        for (const o of occupants) {
+          byType[o.residentType] = (byType[o.residentType] || 0) + 1;
+        }
+
+        const summary = {
+          totalResidents: occupants.length,
+          byType,
+        };
+
+        const records = occupants.map((o) => ({
+          firstName: o.user?.firstName || '',
+          lastName: o.user?.lastName || '',
+          email: o.user?.email || '',
+          phone: o.user?.phone || '',
+          unitNumber: o.unit?.number || '',
+          type: o.residentType,
+          moveInDate: o.moveInDate.toISOString().split('T')[0],
+        }));
+
+        const headers = [
+          'firstName',
+          'lastName',
+          'email',
+          'phone',
+          'unitNumber',
+          'type',
+          'moveInDate',
+        ];
+
+        return NextResponse.json({ data: { summary, records, headers } });
+      }
+
+      case 'financial_summary': {
+        const paidBookings = await prisma.booking.findMany({
+          where: {
+            propertyId,
+            status: { not: 'cancelled' },
+            ...(hasDateFilter ? { startDate: dateFilter } : {}),
+          },
+          select: {
+            referenceNumber: true,
+            feeAmount: true,
+            depositAmount: true,
+            totalAmount: true,
+            paymentStatus: true,
+            startDate: true,
+            depositRefunded: true,
+          },
+        });
+
+        const bookingRevenue = paidBookings.reduce((sum, b) => sum + Number(b.feeAmount), 0);
+        const outstandingDeposits = paidBookings
+          .filter((b) => Number(b.depositAmount) > 0 && !b.depositRefunded)
+          .reduce((sum, b) => sum + Number(b.depositAmount), 0);
+
+        const summary = {
+          totalRevenue: Math.round(bookingRevenue * 100) / 100,
+          bookingRevenue: Math.round(bookingRevenue * 100) / 100,
+          parkingRevenue: 0,
+          outstandingDeposits: Math.round(outstandingDeposits * 100) / 100,
+        };
+
+        const records = paidBookings.map((b) => ({
+          type: 'booking' as const,
+          reference: b.referenceNumber,
+          amount: Number(b.totalAmount),
+          date: b.startDate.toISOString().split('T')[0],
+          status: b.paymentStatus,
+        }));
+
+        const headers = ['type', 'reference', 'amount', 'date', 'status'];
+
+        return NextResponse.json({ data: { summary, records, headers } });
+      }
+
+      case 'training_compliance': {
+        try {
+          const progress = await prisma.trainingProgress.findMany({
+            where: { propertyId },
+          });
+
+          const totalCourses = new Set(progress.map((p) => p.moduleSlug)).size;
+          const completed = progress.filter((p) => p.tutorialCompleted).length;
+          const completionRate =
+            progress.length > 0 ? `${Math.round((completed / progress.length) * 100)}%` : '0%';
+          const overdueCount = progress.filter(
+            (p) => !p.tutorialCompleted && !p.assessmentPassed,
+          ).length;
+
+          const summary = { totalCourses, completionRate, overdueCount };
+
+          const records = progress.map((p) => ({
+            moduleSlug: p.moduleSlug,
+            completed: p.tutorialCompleted,
+            completedAt: p.tutorialCompletedAt?.toISOString() || '',
+            assessmentPassed: p.assessmentPassed ?? false,
+            assessmentScore: p.assessmentScore ?? 0,
+            timeSpentSeconds: p.timeSpentSeconds,
+          }));
+
+          const headers = [
+            'moduleSlug',
+            'completed',
+            'completedAt',
+            'assessmentPassed',
+            'assessmentScore',
+            'timeSpentSeconds',
+          ];
+
+          return NextResponse.json({ data: { summary, records, headers } });
+        } catch {
+          return NextResponse.json({
+            data: {
+              summary: { totalCourses: 0, completionRate: '0%', overdueCount: 0 },
+              records: [],
+              headers: [],
+            },
+          });
+        }
+      }
+
+      case 'building_analytics': {
+        const [openMaintenance, allMaintenance, packages, visitors] = await Promise.all([
+          prisma.maintenanceRequest.count({
+            where: { propertyId, status: 'open', deletedAt: null },
+          }),
+          prisma.maintenanceRequest.findMany({
+            where: {
+              propertyId,
+              deletedAt: null,
+              status: 'resolved',
+              ...(hasDateFilter ? { createdAt: dateFilter } : {}),
+            },
+            select: { createdAt: true, updatedAt: true },
+          }),
+          prisma.package.findMany({
+            where: {
+              propertyId,
+              deletedAt: null,
+              status: 'released',
+              ...(hasDateFilter ? { createdAt: dateFilter } : {}),
+            },
+            select: { createdAt: true, releasedAt: true },
+          }),
+          prisma.visitorEntry.count({
+            where: {
+              propertyId,
+              ...(hasDateFilter ? { arrivalAt: dateFilter } : {}),
+            },
+          }),
+        ]);
+
+        const avgResolutionMs =
+          allMaintenance.length > 0
+            ? allMaintenance.reduce(
+                (sum, m) => sum + (m.updatedAt.getTime() - m.createdAt.getTime()),
+                0,
+              ) / allMaintenance.length
+            : 0;
+        const avgResolutionDays = Math.round((avgResolutionMs / (1000 * 60 * 60 * 24)) * 10) / 10;
+
+        const releasedWithTime = packages.filter((p) => p.releasedAt);
+        const avgReleaseMs =
+          releasedWithTime.length > 0
+            ? releasedWithTime.reduce(
+                (sum, p) => sum + (p.releasedAt!.getTime() - p.createdAt.getTime()),
+                0,
+              ) / releasedWithTime.length
+            : 0;
+        const avgReleaseHours = Math.round((avgReleaseMs / (1000 * 60 * 60)) * 10) / 10;
+
+        // Simple health score: 100 - penalties
+        let healthScore = 100;
+        if (openMaintenance > 10) healthScore -= 15;
+        else if (openMaintenance > 5) healthScore -= 5;
+        if (avgResolutionDays > 14) healthScore -= 20;
+        else if (avgResolutionDays > 7) healthScore -= 10;
+        if (avgReleaseHours > 48) healthScore -= 10;
+        else if (avgReleaseHours > 24) healthScore -= 5;
+
+        const summary = {
+          maintenance: {
+            openCount: openMaintenance,
+            resolvedCount: allMaintenance.length,
+            avgResolutionDays,
+          },
+          packages: {
+            releasedCount: packages.length,
+            avgReleaseHours,
+          },
+          visitors: {
+            totalVisitors: visitors,
+          },
+          buildingHealthScore: Math.max(0, healthScore),
+        };
+
+        return NextResponse.json({ data: { summary, records: [], headers: [] } });
+      }
+
       case 'parking_permits': {
         const permits = await prisma.parkingPermit.findMany({
           where: {

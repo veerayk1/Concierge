@@ -62,6 +62,7 @@ interface AmenityDetail {
   category?: string;
   location?: string;
   capacity?: number;
+  maxConcurrent?: number;
   description?: string;
   hours?: string;
   rules?: string[];
@@ -82,9 +83,10 @@ function mapBookings(raw: ApiBooking[]): Booking[] {
     const startDate = b.startDate ? new Date(b.startDate) : null;
     const startTime = b.startTime ? new Date(b.startTime) : null;
     const endTime = b.endTime ? new Date(b.endTime) : null;
-    const timeSlot = startTime && endTime
-      ? `${startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} – ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
-      : '—';
+    const timeSlot =
+      startTime && endTime
+        ? `${startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} – ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+        : '—';
     return {
       id: b.id,
       resident: b.guestCount ? `${b.guestCount} guests` : 'Resident',
@@ -339,7 +341,7 @@ export default function AmenityDetailPage() {
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
                     <Users className="h-4 w-4 text-neutral-400" />
-                    {amenity.capacity} people
+                    {amenity.capacity ?? amenity.maxConcurrent ?? '—'} people
                   </p>
                 </div>
                 <div>
@@ -582,7 +584,7 @@ export default function AmenityDetailPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-[14px] text-neutral-600">Capacity</span>
                   <span className="text-[14px] font-medium text-neutral-900">
-                    {amenity.capacity} people
+                    {amenity.capacity ?? amenity.maxConcurrent ?? '—'} people
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
