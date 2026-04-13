@@ -301,6 +301,11 @@ const PHASES: Phase[] = [
         label: 'Test deactivating and reactivating a user account',
         href: '/users',
       },
+      {
+        id: '2.31',
+        label: 'Verify welcome email auto-sends when creating a user (requires Resend API key)',
+        href: '/users',
+      },
     ],
   },
 
@@ -401,6 +406,12 @@ const PHASES: Phase[] = [
       {
         id: '3.22',
         label: 'Announcements → verify delivery channels (Email + Push)',
+        href: '/announcements',
+      },
+      {
+        id: '3.22b',
+        label:
+          'Announcements → verify email sent to all residents on publish (requires Resend API key)',
         href: '/announcements',
       },
       {
@@ -746,6 +757,11 @@ const PHASES: Phase[] = [
         id: '4.32',
         label: 'Verify email notification sent when package logged (requires Resend API key)',
         href: '/packages',
+      },
+      {
+        id: '4.33',
+        label: 'Verify visitor check-in email sent to resident (requires Resend API key)',
+        href: '/visitors',
       },
     ],
   },
@@ -1695,6 +1711,12 @@ const PHASES: Phase[] = [
         id: '13.40',
         label: 'Alteration → verify start/end dates marked as required with asterisk',
         href: '/alterations',
+      },
+      {
+        id: '13.41',
+        label:
+          'Dialog buttons → verify all "New" buttons open dialog on FIRST click (not double-click)',
+        href: '/inspections',
       },
     ],
   },
