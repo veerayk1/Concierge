@@ -20,6 +20,7 @@ import { createLogger } from '@/server/logger';
 import { sendEmail } from '@/server/email';
 import { sendSms } from '@/server/sms';
 import { sendPushToUser } from '@/server/push';
+import { sendVoiceCall } from '@/server/voice';
 
 const logger = createLogger('notification-router');
 
@@ -43,7 +44,7 @@ export type Module =
   | 'system';
 
 /** Supported delivery channels. */
-export type Channel = 'email' | 'sms' | 'push' | 'in_app';
+export type Channel = 'email' | 'sms' | 'push' | 'in_app' | 'voice';
 
 /** Payload describing the notification to be routed. */
 export interface NotificationPayload {
@@ -123,7 +124,7 @@ const MODULE_DEFAULT_CHANNELS: Record<Module, Channel[]> = {
   training: ['email', 'in_app'],
   community: ['in_app'],
   governance: ['email', 'in_app'],
-  emergency: ['email', 'sms', 'push', 'in_app'],
+  emergency: ['email', 'sms', 'push', 'voice', 'in_app'],
   system: ['email'],
 };
 
@@ -361,6 +362,33 @@ async function deliverPush(
   }
 }
 
+async function deliverVoice(
+  profile: UserNotificationProfile,
+  payload: NotificationPayload,
+): Promise<ChannelResult> {
+  if (!profile.phone) {
+    return { channel: 'voice', success: false, error: 'No phone number on file' };
+  }
+  try {
+    const callSid = await sendVoiceCall({
+      to: profile.phone,
+      message: `Emergency alert from your building. ${payload.title}. ${payload.body}`,
+      repeatCount: 2,
+    });
+    return {
+      channel: 'voice',
+      success: callSid !== null,
+      messageId: callSid ?? undefined,
+    };
+  } catch (err) {
+    return {
+      channel: 'voice',
+      success: false,
+      error: err instanceof Error ? err.message : 'Unknown error',
+    };
+  }
+}
+
 async function deliverInApp(
   _profile: UserNotificationProfile,
   _payload: NotificationPayload,
@@ -377,6 +405,7 @@ const CHANNEL_DISPATCHERS: Record<
   email: deliverEmail,
   sms: deliverSms,
   push: deliverPush,
+  voice: deliverVoice,
   in_app: deliverInApp,
 };
 

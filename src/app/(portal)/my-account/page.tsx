@@ -28,6 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ChangePasswordDialog } from '@/components/forms/change-password-dialog';
+import { ManageSessionsDialog } from '@/components/forms/manage-sessions-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -135,6 +136,7 @@ export default function MyAccountPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [sessionsDialogOpen, setSessionsDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
@@ -377,10 +379,12 @@ export default function MyAccountPage() {
                     <Globe className="h-4 w-4 text-neutral-500" />
                     <div>
                       <p className="text-[14px] font-medium text-neutral-900">Active Sessions</p>
-                      <p className="text-[13px] text-neutral-500">2 devices currently signed in</p>
+                      <p className="text-[13px] text-neutral-500">
+                        View and manage signed-in devices
+                      </p>
                     </div>
                   </div>
-                  <Button variant="secondary" size="sm">
+                  <Button variant="secondary" size="sm" onClick={() => setSessionsDialogOpen(true)}>
                     Manage
                   </Button>
                 </div>
@@ -445,6 +449,15 @@ export default function MyAccountPage() {
           </Card>
         </div>
       </div>
+
+      {/* Manage Sessions Dialog */}
+      {user && (
+        <ManageSessionsDialog
+          open={sessionsDialogOpen}
+          onOpenChange={setSessionsDialogOpen}
+          userId={user.id}
+        />
+      )}
 
       {/* Change Password Dialog */}
       <ChangePasswordDialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen} />

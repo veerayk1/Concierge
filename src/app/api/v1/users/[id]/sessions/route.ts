@@ -9,10 +9,16 @@ import { guardRoute } from '@/server/middleware/api-guard';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
     const { id } = await params;
+
+    // Users can view their own sessions; admins can view anyone's
+    const isAdmin = ['super_admin', 'property_admin'].includes(auth.user.role);
+    if (!isAdmin && auth.user.userId !== id) {
+      return NextResponse.json({ error: 'FORBIDDEN', message: 'Access denied' }, { status: 403 });
+    }
 
     const sessions = await prisma.session.findMany({
       where: {
@@ -55,10 +61,17 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
     const { id: userId } = await params;
+
+    // Users can revoke their own sessions; admins can revoke anyone's
+    const isAdmin = ['super_admin', 'property_admin'].includes(auth.user.role);
+    if (!isAdmin && auth.user.userId !== userId) {
+      return NextResponse.json({ error: 'FORBIDDEN', message: 'Access denied' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
 

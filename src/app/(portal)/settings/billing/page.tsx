@@ -12,7 +12,8 @@ import {
   ChevronRight,
   AlertTriangle,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useCallback } from 'react';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -207,6 +208,51 @@ export default function BillingPage() {
   const loading = subLoading || invLoading;
   const error = subError || invError;
 
+  // Stripe checkout handler
+  const handleUpgrade = useCallback(async (tier: 'starter' | 'professional' | 'enterprise') => {
+    try {
+      const resp = await apiRequest('/api/v1/billing/checkout', {
+        method: 'POST',
+        body: {
+          propertyId: getPropertyId(),
+          tier,
+          successUrl: `${window.location.origin}/settings/billing?success=true`,
+          cancelUrl: `${window.location.origin}/settings/billing?cancelled=true`,
+        },
+      });
+      const result = (await resp.json()) as { data?: { checkoutUrl?: string } };
+      if (result.data?.checkoutUrl) {
+        window.location.href = result.data.checkoutUrl;
+      } else {
+        alert('Unable to start checkout. Please ensure Stripe is configured.');
+      }
+    } catch {
+      alert('Unable to start checkout. Please try again or contact support.');
+    }
+  }, []);
+
+  // Stripe billing portal handler (for payment method management)
+  const handleManagePayment = useCallback(async () => {
+    try {
+      const resp = await apiRequest('/api/v1/billing', {
+        method: 'POST',
+        body: {
+          propertyId: getPropertyId(),
+          action: 'create_portal_session',
+          returnUrl: window.location.href,
+        },
+      });
+      const result = (await resp.json()) as { data?: { portalUrl?: string } };
+      if (result.data?.portalUrl) {
+        window.location.href = result.data.portalUrl;
+      } else {
+        alert('Unable to open billing portal. Please ensure Stripe is configured.');
+      }
+    } catch {
+      alert('Unable to open billing portal. Please try again or contact support.');
+    }
+  }, []);
+
   // Mark current plan tier
   const planTiers = useMemo(() => {
     const currentTier = subscription?.tier?.toLowerCase() ?? 'professional';
@@ -322,7 +368,7 @@ export default function BillingPage() {
             <Button
               variant="secondary"
               className="mt-2"
-              onClick={() => alert('Plan upgrade is coming soon. Contact sales for changes.')}
+              onClick={() => handleUpgrade('professional')}
             >
               <TrendingUp className="h-4 w-4" />
               Upgrade Plan
@@ -392,11 +438,7 @@ export default function BillingPage() {
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>Payment Methods</CardTitle>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => alert('Payment method management is coming soon.')}
-          >
+          <Button variant="secondary" size="sm" onClick={handleManagePayment}>
             Add Payment Method
           </Button>
         </CardHeader>
@@ -418,11 +460,7 @@ export default function BillingPage() {
             <Badge variant="success" size="sm">
               Default
             </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => alert('Payment method management is coming soon.')}
-            >
+            <Button variant="ghost" size="sm" onClick={handleManagePayment}>
               Update Payment
             </Button>
           </div>
@@ -549,11 +587,7 @@ export default function BillingPage() {
                     Current Plan
                   </Button>
                 ) : tier.name === 'Enterprise' ? (
-                  <Button
-                    variant="secondary"
-                    fullWidth
-                    onClick={() => alert('Contact our sales team for Enterprise pricing.')}
-                  >
+                  <Button variant="secondary" fullWidth onClick={() => handleUpgrade('enterprise')}>
                     Contact Sales
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -561,7 +595,7 @@ export default function BillingPage() {
                   <Button
                     variant={selectedPlan === tier.name ? 'primary' : 'secondary'}
                     fullWidth
-                    onClick={() => alert('Plan upgrade is coming soon. Contact sales for changes.')}
+                    onClick={() => handleUpgrade('professional')}
                   >
                     {tier.name === 'Starter' ? 'Downgrade' : 'Upgrade'}
                   </Button>
