@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import {
@@ -194,6 +194,52 @@ export default function AnalyticsPage() {
   const kpis = dashboardData?.kpis;
   const recentActivity = dashboardData?.recentActivity || [];
 
+  // Export analytics as CSV (must be before early returns per hooks rules)
+  const handleExport = useCallback(() => {
+    if (!kpis) return;
+
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const lines: string[] = [];
+
+    // KPI summary section
+    lines.push('Building Analytics Report');
+    lines.push(`Generated,${new Date().toLocaleString()}`);
+    lines.push(`Date Range,${dateRange}`);
+    lines.push('');
+    lines.push('KPI Summary');
+    lines.push('Metric,Value');
+    for (const def of KPI_DEFS) {
+      const value = kpis[def.key];
+      const formatted = def.format ? def.format(value) : String(value);
+      lines.push(`"${def.label}",${formatted}`);
+    }
+
+    // Recent activity section
+    if (recentActivity.length > 0) {
+      lines.push('');
+      lines.push('Recent Activity');
+      lines.push('Type,Title,Unit,Status,Date');
+      for (const item of recentActivity) {
+        const date = new Date(item.createdAt).toLocaleString();
+        lines.push(
+          `"${item.type}","${(item.title ?? '').replace(/"/g, '""')}","${item.unit ?? ''}","${item.status}","${date}"`,
+        );
+      }
+    }
+
+    // Download as CSV
+    const csv = lines.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `analytics-${timestamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [kpis, recentActivity, dateRange]);
+
   // Loading skeleton
   if (loading) {
     return (
@@ -258,11 +304,7 @@ export default function AnalyticsPage() {
       title="Building Analytics"
       description="Insights and trends across all building operations."
       actions={
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => alert('Analytics export is coming soon.')}
-        >
+        <Button variant="secondary" size="sm" onClick={handleExport}>
           <Download className="h-4 w-4" />
           Export Analytics
         </Button>

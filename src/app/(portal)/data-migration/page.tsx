@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import {
@@ -296,6 +297,7 @@ function StartImportDialog({
 // ---------------------------------------------------------------------------
 
 export default function DataMigrationPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showImportDialog, setShowImportDialog] = useState(false);
 
@@ -684,7 +686,7 @@ export default function DataMigrationPage() {
                   if (action.buttonLabel === 'Import') setShowImportDialog(true);
                   if (action.buttonLabel === 'Export') handleExportCsv();
                   if (action.buttonLabel === 'Generate') handleGenerateDsar();
-                  if (action.buttonLabel === 'Migrate') alert('Migration wizard is coming soon.');
+                  if (action.buttonLabel === 'Migrate') router.push('/data-migration/migrate');
                 }}
               >
                 {action.buttonLabel}
