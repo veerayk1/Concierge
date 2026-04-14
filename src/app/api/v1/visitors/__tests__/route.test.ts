@@ -52,6 +52,15 @@ vi.mock('@/lib/sanitize', () => ({
   stripControlChars: (s: string) => s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''),
 }));
 
+vi.mock('@/server/email', () => ({
+  sendEmail: vi.fn().mockResolvedValue(undefined),
+  getUnitResidentEmails: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@/server/email-templates', () => ({
+  renderTemplate: vi.fn().mockReturnValue({ subject: 'Test', html: '<p>Test</p>' }),
+}));
+
 import { GET, POST } from '../route';
 import { PATCH } from '../[id]/route';
 

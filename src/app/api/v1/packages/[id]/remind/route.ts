@@ -42,6 +42,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
+    // Resolve actor name
+    let actorName = 'System';
+    try {
+      const actor = await prisma.user.findUnique({
+        where: { id: auth.user.userId },
+        select: { firstName: true, lastName: true },
+      });
+      if (actor) actorName = `${actor.firstName} ${actor.lastName}`.trim();
+    } catch {
+      /* non-critical */
+    }
+
     // Log reminder to history
     await prisma.packageHistory.create({
       data: {
@@ -49,7 +61,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         action: 'reminder_sent',
         details: `Reminder notification sent for package ${pkg.referenceNumber}`,
         actorId: auth.user.userId,
-        actorName: 'Staff',
+        actorName,
       },
     });
 

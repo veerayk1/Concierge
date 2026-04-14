@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { EditEventDialog } from '@/components/forms/edit-event-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -142,6 +143,7 @@ export default function EventDetailPage() {
   const [commentText, setCommentText] = useState('');
   const [postingComment, setPostingComment] = useState(false);
   const [cancellingEvent, setCancellingEvent] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   async function handleCancelEvent() {
     if (!confirm('Are you sure you want to cancel this event? This action cannot be undone.'))
@@ -297,7 +299,7 @@ export default function EventDetailPage() {
       description="Community Event"
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => alert('Edit Event is coming soon.')}>
+          <Button variant="secondary" size="sm" onClick={() => setEditDialogOpen(true)}>
             <Edit2 className="h-4 w-4" />
             Edit Event
           </Button>
@@ -573,7 +575,7 @@ export default function EventDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button fullWidth onClick={() => alert('Edit Event is coming soon.')}>
+                <Button fullWidth onClick={() => setEditDialogOpen(true)}>
                   <Edit2 className="h-4 w-4" />
                   Edit Event
                 </Button>
@@ -597,7 +599,31 @@ export default function EventDetailPage() {
                 <Button
                   variant="secondary"
                   fullWidth
-                  onClick={() => alert('RSVP Export is coming soon.')}
+                  onClick={() => {
+                    const rows = [['Name', 'Unit', 'Status', 'RSVP Date']];
+                    rsvps.forEach((r) => {
+                      const unit =
+                        typeof r.unit === 'object' && r.unit !== null
+                          ? (r.unit as unknown as Record<string, string>).number
+                          : r.unit || '';
+                      const rsvpDate = r.rsvpDate
+                        ? new Date(r.rsvpDate).toLocaleDateString('en-US')
+                        : '';
+                      rows.push([r.name, unit ?? '', r.status, rsvpDate]);
+                    });
+                    const csv = rows
+                      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+                      .join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `rsvp-export-${event.title.replace(/\s+/g, '-').toLowerCase()}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  }}
                 >
                   <Download className="h-4 w-4" />
                   Export RSVP List
@@ -628,6 +654,15 @@ export default function EventDetailPage() {
           </Card>
         </div>
       </div>
+
+      {event && (
+        <EditEventDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          event={event}
+          onSuccess={() => refetch()}
+        />
+      )}
     </PageShell>
   );
 }

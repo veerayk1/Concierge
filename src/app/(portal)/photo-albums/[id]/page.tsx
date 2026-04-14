@@ -14,7 +14,8 @@ import {
   Upload,
   User,
 } from 'lucide-react';
-import { useApi } from '@/lib/hooks/use-api';
+import { useState, useRef, useCallback } from 'react';
+import { useApi, apiRequest } from '@/lib/hooks/use-api';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -98,12 +99,68 @@ const PHOTO_COLORS = [
 export default function PhotoAlbumDetailPage() {
   const { id } = useParams<{ id: string }>();
 
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const {
     data: album,
     loading,
     error,
     refetch,
   } = useApi<ApiAlbumDetail>(`/api/v1/photo-albums/${id}`);
+
+  const handleUpload = useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      setUploading(true);
+
+      try {
+        for (const file of Array.from(files)) {
+          // 1. Get presigned upload URL
+          const uploadResp = await apiRequest('/api/v1/upload', {
+            method: 'POST',
+            body: { module: 'photo_albums', fileName: file.name, contentType: file.type },
+          });
+          const presigned = (await uploadResp.json()) as {
+            data: { url: string; key: string; fields?: Record<string, string> };
+          };
+
+          // 2. Upload to storage (in dev mode, URL is mock — skip actual upload)
+          if (presigned.data.url.startsWith('https://')) {
+            const formData = new FormData();
+            if (presigned.data.fields) {
+              for (const [k, v] of Object.entries(presigned.data.fields)) {
+                formData.append(k, v);
+              }
+            }
+            formData.append('file', file);
+            await fetch(presigned.data.url, { method: 'POST', body: formData });
+          }
+
+          // 3. Create photo record in the album
+          await apiRequest(`/api/v1/photo-albums/${id}`, {
+            method: 'POST',
+            body: {
+              filePath: presigned.data.key,
+              caption: file.name.replace(/\.[^.]+$/, ''),
+            },
+          });
+        }
+
+        refetch();
+      } catch {
+        // Upload failed silently — page will refetch anyway
+      } finally {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    },
+    [id, refetch],
+  );
+
+  const triggerUpload = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
   // Loading
   if (loading) {
@@ -159,10 +216,20 @@ export default function PhotoAlbumDetailPage() {
       title={album.title}
       description="Photo Albums"
       actions={
-        <Button size="sm" onClick={() => alert('Photo upload is coming soon.')}>
-          <Upload className="h-4 w-4" />
-          Upload Photo
-        </Button>
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/heic,image/webp"
+            multiple
+            className="hidden"
+            onChange={(e) => handleUpload(e.target.files)}
+          />
+          <Button size="sm" onClick={triggerUpload} disabled={uploading}>
+            <Upload className="h-4 w-4" />
+            {uploading ? 'Uploading...' : 'Upload Photo'}
+          </Button>
+        </>
       }
     >
       {/* Back link */}
@@ -233,9 +300,9 @@ export default function PhotoAlbumDetailPage() {
           <p className="mt-1 text-[13px] text-neutral-400">
             Upload your first photo to get started.
           </p>
-          <Button size="sm" className="mt-4" onClick={() => alert('Photo upload is coming soon.')}>
+          <Button size="sm" className="mt-4" onClick={triggerUpload} disabled={uploading}>
             <Upload className="h-4 w-4" />
-            Upload Photo
+            {uploading ? 'Uploading...' : 'Upload Photo'}
           </Button>
         </div>
       ) : (
@@ -274,13 +341,20 @@ export default function PhotoAlbumDetailPage() {
           <Card padding="none" className="overflow-hidden">
             <button
               type="button"
-              className="flex h-full w-full flex-col items-center justify-center gap-3 border-2 border-dashed border-neutral-200 py-16 text-center transition-colors hover:border-neutral-300 hover:bg-neutral-50"
-              onClick={() => alert('Photo upload is coming soon.')}
+              className="flex h-full w-full flex-col items-center justify-center gap-3 border-2 border-dashed border-neutral-200 py-16 text-center transition-colors hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50"
+              onClick={triggerUpload}
+              disabled={uploading}
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100">
-                <Plus className="h-6 w-6 text-neutral-400" />
+                {uploading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
+                ) : (
+                  <Plus className="h-6 w-6 text-neutral-400" />
+                )}
               </div>
-              <p className="text-[13px] font-medium text-neutral-500">Upload Photo</p>
+              <p className="text-[13px] font-medium text-neutral-500">
+                {uploading ? 'Uploading...' : 'Upload Photo'}
+              </p>
             </button>
           </Card>
         </div>

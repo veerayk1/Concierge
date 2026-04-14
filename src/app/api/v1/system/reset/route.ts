@@ -9,7 +9,22 @@ import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 
 export async function POST(request: NextRequest) {
-  // Skip demo handler — this always goes to real DB
+  // === TRIPLE GUARD: This route TRUNCATES ALL TABLES ===
+
+  // Guard 1: Block in production unless explicitly allowed
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_SYSTEM_ROUTES) {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
+
+  // Guard 2: Require explicit confirmation header
+  if (request.headers.get('x-confirm-reset') !== 'yes-i-am-sure') {
+    return NextResponse.json(
+      { error: 'FORBIDDEN', message: 'Missing required header: x-confirm-reset: yes-i-am-sure' },
+      { status: 403 },
+    );
+  }
+
+  // Guard 3: Require super_admin role via guardRoute or demo header
   const demoRole = request.headers.get('x-demo-role');
   if (demoRole && demoRole !== 'super_admin') {
     return NextResponse.json(
@@ -18,7 +33,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // If not demo mode, check real auth
   if (!demoRole) {
     const auth = await guardRoute(request, { roles: ['super_admin'] });
     if (auth.error) return auth.error;

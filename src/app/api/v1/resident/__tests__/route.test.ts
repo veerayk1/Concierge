@@ -90,6 +90,11 @@ vi.mock('@/server/db', () => ({
     attachment: {
       create: (...args: unknown[]) => mockAttachmentCreate(...args),
     },
+    maintenanceCategory: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'cat-general', name: 'General' }),
+    },
+    $queryRaw: vi.fn().mockResolvedValue([]),
+    $executeRaw: vi.fn().mockResolvedValue(0),
   },
 }));
 

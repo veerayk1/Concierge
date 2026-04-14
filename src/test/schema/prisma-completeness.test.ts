@@ -640,9 +640,9 @@ describe('Schema structural sanity checks', () => {
     expect(models.length).toBeGreaterThanOrEqual(130);
   });
 
-  it('schema has exactly 3 enum definitions', () => {
+  it('schema has exactly 6 enum definitions', () => {
     const enums = parseEnums();
-    expect(enums.length).toBe(3);
+    expect(enums.length).toBe(6);
   });
 
   it('schema defines postgresql as the datasource provider', () => {

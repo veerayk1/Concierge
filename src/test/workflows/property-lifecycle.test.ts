@@ -107,6 +107,31 @@ vi.mock('@/server/db', () => ({
       count: (...args: unknown[]) => mockInvoiceCount(...args),
       update: (...args: unknown[]) => mockInvoiceUpdate(...args),
     },
+    eventType: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'evt-type-1', name: 'Security Event' }),
+      create: vi
+        .fn()
+        .mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'evt-type-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+    },
+    eventGroup: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'evt-group-1', name: 'Security' }),
+      create: vi
+        .fn()
+        .mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'evt-group-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+    },
+    eventTypeEmailConfig: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
     $transaction: (...args: unknown[]) => {
       const first = args[0];
       if (typeof first === 'function') {
@@ -168,6 +193,15 @@ vi.mock('@/server/middleware/api-guard', () => ({
     },
     error: null,
   }),
+}));
+
+vi.mock('@/server/email', () => ({
+  sendEmail: vi.fn().mockResolvedValue(undefined),
+  getUnitResidentEmails: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@/server/email-templates', () => ({
+  renderTemplate: vi.fn().mockReturnValue({ subject: 'Test', html: '<p>Test</p>' }),
 }));
 
 vi.mock('@/server/billing', () => ({

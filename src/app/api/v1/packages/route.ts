@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
         isPerishable: input.isPerishable,
         isOversized: input.isOversized,
         notifyChannel: input.notifyChannel,
-        createdById: auth.user.userId, // TODO: Get from auth context
+        createdById: auth.user.userId, // From authenticated user
         status: 'unreleased',
       },
       include: {
@@ -178,7 +178,26 @@ export async function POST(request: NextRequest) {
         console.error('Failed to look up unit residents for package notification:', err),
       );
 
-    // TODO: Log to PackageHistory
+    // Log to PackageHistory
+    try {
+      const actor = await prisma.user.findUnique({
+        where: { id: auth.user.userId },
+        select: { firstName: true, lastName: true },
+      });
+      const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : 'System';
+
+      await prisma.packageHistory.create({
+        data: {
+          packageId: pkg.id,
+          action: 'received',
+          details: `Package ${referenceNumber} logged for unit ${pkg.unit?.number ?? 'unknown'}`,
+          actorId: auth.user.userId,
+          actorName,
+        },
+      });
+    } catch {
+      // Non-critical — don't fail package creation if history write fails
+    }
 
     return NextResponse.json(
       {

@@ -34,6 +34,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { Avatar } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { EditUnitDialog } from '@/components/forms/edit-unit-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -116,6 +117,7 @@ interface AuditEntry {
 }
 
 interface UnitDetail {
+  id: string;
   number: string;
   floor: number;
   building: string;
@@ -201,6 +203,7 @@ function UnitDetailSkeleton() {
 export default function UnitDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('overview');
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Role detection (Gap 7.3) — works in demo mode where useAuth() returns null
   const { user: currentUser } = useAuth();
@@ -214,6 +217,7 @@ export default function UnitDetailPage() {
     data: unit,
     loading,
     error,
+    refetch,
   } = useApi<UnitDetail>(apiUrl(`/api/v1/units/${id}`, { propertyId: getPropertyId() }));
 
   // Audit log (Gap 7.3) — admin/manager only
@@ -528,11 +532,7 @@ export default function UnitDetailPage() {
             ft
           </p>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => alert('Edit Unit is coming soon. This feature is under development.')}
-        >
+        <Button variant="secondary" size="sm" onClick={() => setEditDialogOpen(true)}>
           <Edit2 className="h-4 w-4" />
           Edit Unit
         </Button>
@@ -1076,6 +1076,16 @@ export default function UnitDetailPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Unit Dialog */}
+      {unit && (
+        <EditUnitDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          unit={unit}
+          onSuccess={refetch}
+        />
+      )}
     </div>
   );
 }

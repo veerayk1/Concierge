@@ -57,6 +57,9 @@ vi.mock('@/server/db', () => ({
     notificationPreference: {
       findMany: (...args: unknown[]) => mockNotificationPreferenceFindMany(...args),
     },
+    user: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 

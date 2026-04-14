@@ -74,12 +74,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const body = await request.json();
 
     const updateData: Record<string, unknown> = {};
-    if (body.status) updateData.status = body.status;
+    if (body.number !== undefined) updateData.number = body.number;
+    if (body.floor !== undefined)
+      updateData.floor = body.floor !== null ? Number(body.floor) : null;
+    if (body.unitType !== undefined) updateData.unitType = body.unitType;
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.squareFootage !== undefined)
+      updateData.squareFootage = body.squareFootage !== null ? Number(body.squareFootage) : null;
+    if (body.enterPhoneCode !== undefined) updateData.enterPhoneCode = body.enterPhoneCode || null;
+    if (body.parkingSpot !== undefined) updateData.parkingSpot = body.parkingSpot || null;
+    if (body.locker !== undefined) updateData.locker = body.locker || null;
+    if (body.keyTag !== undefined) updateData.keyTag = body.keyTag || null;
+    if (body.packageEmailNotification !== undefined)
+      updateData.packageEmailNotification = body.packageEmailNotification;
     if (body.comments !== undefined) updateData.comments = body.comments;
     if (body.customFields !== undefined) updateData.customFields = body.customFields;
-    if (body.enterPhoneCode !== undefined) updateData.enterPhoneCode = body.enterPhoneCode;
-    if (body.parkingSpot !== undefined) updateData.parkingSpot = body.parkingSpot;
-    if (body.locker !== undefined) updateData.locker = body.locker;
 
     const unit = await prisma.unit.update({
       where: { id },

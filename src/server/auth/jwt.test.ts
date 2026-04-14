@@ -87,12 +87,13 @@ describe('signAccessToken', () => {
     expect(decoded.iat).toBeLessThanOrEqual(nowSeconds + 5);
   });
 
-  it('uses RS256 algorithm in the header', async () => {
+  it('uses HS256 algorithm in development (RS256 in production with PEM keys)', async () => {
     const token = await signAccessToken(VALID_PAYLOAD);
 
     // Decode the header without verification
     const header = jose.decodeProtectedHeader(token);
-    expect(header.alg).toBe('RS256');
+    // In dev/test environment without JWT_PRIVATE_KEY/JWT_PUBLIC_KEY, HS256 is used
+    expect(header.alg).toBe('HS256');
     expect(header.typ).toBe('JWT');
   });
 

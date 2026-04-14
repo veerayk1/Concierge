@@ -12,7 +12,8 @@ import {
   FileText,
   User,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { useCallback, useState } from 'react';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -119,6 +120,7 @@ function DocumentSkeleton() {
 
 export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [downloading, setDownloading] = useState(false);
 
   const {
     data: doc,
@@ -126,6 +128,28 @@ export default function DocumentDetailPage() {
     error,
     refetch,
   } = useApi<DocumentDetail>(apiUrl(`/api/v1/library/${id}`, { propertyId: getPropertyId() }));
+
+  const handleDownload = useCallback(async () => {
+    setDownloading(true);
+    try {
+      const resp = await apiRequest(`/api/v1/library/${id}/download`, { method: 'GET' });
+      const result = (await resp.json()) as { data?: { url: string; fileName: string } };
+      if (result.data?.url) {
+        // Open the presigned URL to trigger download
+        const link = document.createElement('a');
+        link.href = result.data.url;
+        link.download = result.data.fileName || 'download';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch {
+      // Silently fail — in dev mode without S3, the URL may not work
+    } finally {
+      setDownloading(false);
+    }
+  }, [id]);
 
   if (loading) return <DocumentSkeleton />;
 
@@ -200,7 +224,14 @@ export default function DocumentDetailPage() {
       header: '',
       className: 'text-right',
       cell: () => (
-        <Button variant="secondary" size="sm" onClick={(e) => e.stopPropagation()}>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDownload();
+          }}
+        >
           <Download className="h-3.5 w-3.5" />
           Download
         </Button>
@@ -213,9 +244,9 @@ export default function DocumentDetailPage() {
       title={doc.name}
       description="Library"
       actions={
-        <Button size="sm" onClick={() => alert('Download is coming soon.')}>
+        <Button size="sm" onClick={handleDownload} disabled={downloading}>
           <Download className="h-4 w-4" />
-          Download
+          {downloading ? 'Downloading...' : 'Download'}
         </Button>
       }
     >

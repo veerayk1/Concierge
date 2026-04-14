@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
-import { getPropertyId } from '@/lib/demo-config';
+import { useApi } from '@/lib/hooks/use-api';
 import {
   HelpCircle,
   Search,
@@ -18,6 +17,7 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CreateHelpTicketDialog } from '@/components/forms/create-help-ticket-dialog';
 
@@ -44,8 +44,23 @@ interface HelpArticle {
   isFeatured: boolean;
 }
 
+/** Shape returned by the API (Prisma HelpArticle model) */
+interface ApiHelpArticle {
+  id: string;
+  title: string;
+  slug: string;
+  body: string;
+  category: string;
+  tags: string[];
+  isFeatured: boolean;
+  sortOrder: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /* -------------------------------------------------------------------------- */
-/*  Static data                                                               */
+/*  Static data (categories remain static, articles are fetched)              */
 /* -------------------------------------------------------------------------- */
 
 const CATEGORIES: HelpCategory[] = [
@@ -99,7 +114,7 @@ const CATEGORIES: HelpCategory[] = [
   },
 ];
 
-const FEATURED_ARTICLES: HelpArticle[] = [
+const FALLBACK_ARTICLES: HelpArticle[] = [
   {
     id: 'art-1',
     title: 'How to log a package delivery',
@@ -163,6 +178,96 @@ const FEATURED_ARTICLES: HelpArticle[] = [
 ];
 
 /* -------------------------------------------------------------------------- */
+/*  Helpers                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/** Estimate read time from body text length */
+function estimateReadTime(body: string): string {
+  const words = body.split(/\s+/).length;
+  const mins = Math.max(1, Math.round(words / 200));
+  return `${mins} min`;
+}
+
+/** Extract a plain-text excerpt from article body (strip markdown/html) */
+function extractExcerpt(body: string, maxLength = 160): string {
+  const plain = body
+    .replace(/#{1,6}\s+/g, '') // headings
+    .replace(/[*_~`]/g, '') // emphasis
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
+    .replace(/<[^>]+>/g, '') // html tags
+    .replace(/\n+/g, ' ')
+    .trim();
+  return plain.length > maxLength ? plain.slice(0, maxLength).trimEnd() + '...' : plain;
+}
+
+/** Map API article to the UI shape */
+function mapApiArticle(a: ApiHelpArticle): HelpArticle {
+  return {
+    id: a.id,
+    title: a.title,
+    category: a.category,
+    excerpt: extractExcerpt(a.body),
+    readTime: estimateReadTime(a.body),
+    updatedAt: a.updatedAt.slice(0, 10),
+    isFeatured: a.isFeatured,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Loading skeleton                                                          */
+/* -------------------------------------------------------------------------- */
+
+function HelpCenterSkeleton() {
+  return (
+    <PageShell title="Help Center" description="Find answers, browse guides, and get support.">
+      {/* Search bar skeleton */}
+      <div className="mb-8">
+        <Skeleton className="h-12 w-full rounded-xl" />
+      </div>
+      {/* Category grid skeleton */}
+      <section className="mb-10">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="rounded-2xl border border-neutral-200/80 bg-white p-4">
+              <div className="flex items-start gap-4">
+                <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+      {/* Articles skeleton */}
+      <section className="mb-10">
+        <Skeleton className="mb-4 h-5 w-36" />
+        <div className="flex flex-col gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="rounded-2xl border border-neutral-200/80 bg-white p-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-5 w-24 rounded-full" />
+                </div>
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-3/4" />
+                <div className="flex gap-3 pt-1">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 w-28" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </PageShell>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Component                                                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -170,17 +275,33 @@ export default function HelpCenterPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showTicketDialog, setShowTicketDialog] = useState(false);
 
+  // Fetch articles from API (featured first)
+  const {
+    data: apiArticles,
+    loading,
+    error,
+  } = useApi<ApiHelpArticle[]>('/api/v1/help/articles?featured=true&pageSize=20');
+
+  // Map API articles to UI shape, falling back to static data if API returns empty or errors
+  const articles: HelpArticle[] = useMemo(() => {
+    if (apiArticles && apiArticles.length > 0) {
+      return apiArticles.map(mapApiArticle);
+    }
+    // Fallback to static articles when API returns nothing or on error
+    return FALLBACK_ARTICLES;
+  }, [apiArticles]);
+
   /* ---- Filter articles by search ---- */
   const filteredArticles = useMemo(() => {
-    if (!searchQuery.trim()) return FEATURED_ARTICLES;
+    if (!searchQuery.trim()) return articles;
     const q = searchQuery.toLowerCase();
-    return FEATURED_ARTICLES.filter(
+    return articles.filter(
       (a) =>
         a.title.toLowerCase().includes(q) ||
         a.category.toLowerCase().includes(q) ||
         a.excerpt.toLowerCase().includes(q),
     );
-  }, [searchQuery]);
+  }, [searchQuery, articles]);
 
   /* ---- Filter categories by search ---- */
   const filteredCategories = useMemo(() => {
@@ -192,6 +313,11 @@ export default function HelpCenterPage() {
   }, [searchQuery]);
 
   const hasResults = filteredCategories.length > 0 || filteredArticles.length > 0;
+
+  // Show loading skeleton on initial load
+  if (loading) {
+    return <HelpCenterSkeleton />;
+  }
 
   return (
     <PageShell title="Help Center" description="Find answers, browse guides, and get support.">

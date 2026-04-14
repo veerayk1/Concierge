@@ -1,7 +1,19 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
-import { AlertCircle, AlertTriangle, CheckCircle2, Clock, Plus, Wrench } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef } from 'react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Plus,
+  Wrench,
+  Paperclip,
+  X as XIcon,
+  Loader2,
+  ImageIcon,
+  FileText,
+} from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
@@ -69,6 +81,10 @@ export default function MyRequestsPage() {
   const [newPriority, setNewPriority] = useState<string>('medium');
   const [newPermissionToEnter, setNewPermissionToEnter] = useState(false);
   const [newEntryInstructions, setNewEntryInstructions] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const MAX_FILE_SIZE = 4 * 1024 * 1024;
 
   const {
     data: response,
@@ -105,6 +121,55 @@ export default function MyRequestsPage() {
       setFeedback(null);
 
       try {
+        // 1. Upload files if any
+        let uploadedAttachments: {
+          fileName: string;
+          contentType: string;
+          fileSizeBytes: number;
+          key: string;
+        }[] = [];
+        if (attachedFiles.length > 0) {
+          setUploading(true);
+          try {
+            uploadedAttachments = await Promise.all(
+              attachedFiles.map(async (file) => {
+                const uploadResp = await apiRequest('/api/v1/upload', {
+                  method: 'POST',
+                  body: { module: 'maintenance', fileName: file.name, contentType: file.type },
+                });
+                const presigned = (await uploadResp.json()) as {
+                  data: { url: string; key: string; fields?: Record<string, string> };
+                };
+
+                if (presigned.data.url.startsWith('https://')) {
+                  const formData = new FormData();
+                  if (presigned.data.fields) {
+                    for (const [k, v] of Object.entries(presigned.data.fields)) {
+                      formData.append(k, v);
+                    }
+                  }
+                  formData.append('file', file);
+                  await fetch(presigned.data.url, { method: 'POST', body: formData });
+                }
+
+                return {
+                  fileName: file.name,
+                  contentType: file.type,
+                  fileSizeBytes: file.size,
+                  key: presigned.data.key,
+                };
+              }),
+            );
+          } catch {
+            setFeedback({ type: 'error', message: 'Failed to upload files. Please try again.' });
+            setUploading(false);
+            setSubmitting(false);
+            return;
+          }
+          setUploading(false);
+        }
+
+        // 2. Create the request
         const resp = await apiRequest('/api/v1/resident/maintenance', {
           method: 'POST',
           body: {
@@ -112,6 +177,7 @@ export default function MyRequestsPage() {
             priority: newPriority,
             permissionToEnter: newPermissionToEnter,
             entryInstructions: newEntryInstructions || undefined,
+            attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
           },
         });
 
@@ -135,6 +201,7 @@ export default function MyRequestsPage() {
         setNewPriority('medium');
         setNewPermissionToEnter(false);
         setNewEntryInstructions('');
+        setAttachedFiles([]);
 
         // Close dialog after brief delay and refetch
         setTimeout(() => {
@@ -146,9 +213,17 @@ export default function MyRequestsPage() {
         setFeedback({ type: 'error', message: 'An unexpected error occurred.' });
       } finally {
         setSubmitting(false);
+        setUploading(false);
       }
     },
-    [newDescription, newPriority, newPermissionToEnter, newEntryInstructions, refetch],
+    [
+      newDescription,
+      newPriority,
+      newPermissionToEnter,
+      newEntryInstructions,
+      attachedFiles,
+      refetch,
+    ],
   );
 
   const columns: Column<MyRequest>[] = [
@@ -443,6 +518,70 @@ export default function MyRequestsPage() {
               </p>
             </div>
 
+            {/* File Attachments */}
+            <div>
+              <label className="mb-1.5 block text-[14px] font-medium text-neutral-700">
+                Photos &amp; Documents
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/heic,image/webp,application/pdf,.doc,.docx,.xlsx"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (!files) return;
+                  const valid = Array.from(files).filter((f) => f.size <= MAX_FILE_SIZE);
+                  setAttachedFiles((prev) => [...prev, ...valid]);
+                  e.target.value = '';
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50 px-4 py-3 text-[14px] text-neutral-500 transition-colors hover:border-neutral-300 hover:bg-neutral-100 disabled:opacity-50"
+              >
+                <Paperclip className="h-4 w-4" />
+                Attach photos or documents
+              </button>
+              {attachedFiles.length > 0 && (
+                <div className="mt-2 flex flex-col gap-1.5">
+                  {attachedFiles.map((file, idx) => (
+                    <div
+                      key={`${file.name}-${idx}`}
+                      className="flex items-center gap-3 rounded-lg bg-neutral-50 px-3 py-2"
+                    >
+                      {file.type.startsWith('image/') ? (
+                        <ImageIcon className="h-4 w-4 shrink-0 text-blue-500" />
+                      ) : (
+                        <FileText className="h-4 w-4 shrink-0 text-neutral-400" />
+                      )}
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-neutral-700">
+                        {file.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setAttachedFiles((prev) => prev.filter((_, i) => i !== idx))}
+                        disabled={submitting}
+                        className="flex-shrink-0 text-neutral-400 hover:text-neutral-600"
+                      >
+                        <XIcon className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <p className="text-[12px] text-neutral-400">Max 4MB per file</p>
+                </div>
+              )}
+              {uploading && (
+                <div className="mt-2 flex items-center gap-2 text-[13px] text-neutral-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Uploading files...
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="mb-1.5 block text-[14px] font-medium text-neutral-700">
                 Priority
@@ -493,8 +632,11 @@ export default function MyRequestsPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting || newDescription.length < 10}>
-                {submitting ? 'Submitting...' : 'Submit Request'}
+              <Button
+                type="submit"
+                disabled={submitting || uploading || newDescription.length < 10}
+              >
+                {uploading ? 'Uploading files...' : submitting ? 'Submitting...' : 'Submit Request'}
               </Button>
             </div>
           </form>

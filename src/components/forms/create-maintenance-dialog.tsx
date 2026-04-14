@@ -7,7 +7,7 @@
 import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Wrench, Paperclip, X } from 'lucide-react';
+import { Wrench, Paperclip, X, Loader2, ImageIcon, FileText } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,30 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { createMaintenanceSchema, type CreateMaintenanceInput } from '@/schemas/maintenance';
 import { usePropertyUnits } from '@/lib/hooks/use-property-units';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+
+// ---------------------------------------------------------------------------
+// File upload helpers
+// ---------------------------------------------------------------------------
+
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB per PRD
+
+interface UploadedFile {
+  fileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  key: string; // Storage key returned by upload API
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function isImage(file: File): boolean {
+  return file.type.startsWith('image/');
+}
 
 interface ApiCategory {
   id: string;
@@ -37,6 +60,9 @@ export function CreateMaintenanceDialog({
 }: CreateMaintenanceDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
   const { data: categories } = useApi<ApiCategory[]>(
@@ -70,58 +96,131 @@ export function CreateMaintenanceDialog({
   const selectedPriority = watch('priority');
   const hideFromResident = watch('hideFromResident');
 
+  // Upload a single file to the storage API and return metadata
+  async function uploadFile(file: File): Promise<UploadedFile> {
+    // 1. Get presigned URL from our API
+    const resp = await apiRequest('/api/v1/upload', {
+      method: 'POST',
+      body: { module: 'maintenance', fileName: file.name, contentType: file.type },
+    });
+    const presigned = (await resp.json()) as {
+      data: { url: string; key: string; fields?: Record<string, string> };
+    };
+
+    // 2. Upload file to presigned URL (or dev mock)
+    if (presigned.data.url.startsWith('https://')) {
+      // Real S3 presigned POST
+      const formData = new FormData();
+      if (presigned.data.fields) {
+        for (const [k, v] of Object.entries(presigned.data.fields)) {
+          formData.append(k, v);
+        }
+      }
+      formData.append('file', file);
+      await fetch(presigned.data.url, { method: 'POST', body: formData });
+    }
+    // In dev mode the URL is a mock — no actual upload needed
+
+    return {
+      fileName: file.name,
+      contentType: file.type,
+      fileSizeBytes: file.size,
+      key: presigned.data.key,
+    };
+  }
+
   async function onSubmit(data: CreateMaintenanceInput) {
     setServerError(null);
-    try {
-      const response = await fetch('/api/v1/maintenance', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
-            ? { 'x-demo-role': localStorage.getItem('demo_role')! }
-            : {}),
-          ...(typeof window !== 'undefined' && localStorage.getItem('auth_token')
-            ? { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
-            : {}),
-        },
-        body: JSON.stringify({
-          ...data,
-          pendingAttachments: attachedFiles.map((f) => f.name),
-        }),
-      });
+    setUploadError(null);
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          setServerError('Your session has expired. Please log in again.');
-          if (typeof window !== 'undefined') {
-            setTimeout(() => { window.location.href = '/login'; }, 1500);
-          }
+    try {
+      // 1. Upload all attached files first
+      let uploaded = uploadedFiles;
+      const newFiles = attachedFiles.filter(
+        (f) => !uploadedFiles.some((u) => u.fileName === f.name && u.fileSizeBytes === f.size),
+      );
+
+      if (newFiles.length > 0) {
+        setUploading(true);
+        try {
+          const results = await Promise.all(newFiles.map(uploadFile));
+          uploaded = [...uploadedFiles, ...results];
+          setUploadedFiles(uploaded);
+        } catch {
+          setUploadError('Failed to upload one or more files. Please try again.');
+          setUploading(false);
           return;
         }
-        const result = await response.json().catch(() => ({}));
-        setServerError(result.message || `Failed to create request (${response.status})`);
+        setUploading(false);
+      }
+
+      // 2. Create the maintenance request with attachment metadata
+      const resp = await apiRequest('/api/v1/maintenance', {
+        method: 'POST',
+        body: {
+          ...data,
+          attachments: uploaded.map((f) => ({
+            fileName: f.fileName,
+            contentType: f.contentType,
+            fileSizeBytes: f.fileSizeBytes,
+            key: f.key,
+          })),
+        },
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        setServerError((errData as { message?: string }).message || 'Failed to create request.');
         return;
       }
 
       reset();
       setAttachedFiles([]);
+      setUploadedFiles([]);
       onOpenChange(false);
       onSuccess?.();
-    } catch {
-      setServerError('An unexpected error occurred.');
+    } catch (err: unknown) {
+      const apiErr = err as { message?: string; status?: number };
+      if (apiErr.status === 401) {
+        setServerError('Your session has expired. Please log in again.');
+        if (typeof window !== 'undefined') {
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1500);
+        }
+        return;
+      }
+      setServerError(apiErr.message || 'An unexpected error occurred.');
     }
   }
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
-    if (files) {
-      setAttachedFiles((prev) => [...prev, ...Array.from(files)]);
+    if (!files) return;
+
+    const newFiles = Array.from(files);
+    const errors: string[] = [];
+
+    for (const f of newFiles) {
+      if (f.size > MAX_FILE_SIZE) {
+        errors.push(`${f.name} exceeds 4MB limit`);
+      }
     }
+
+    if (errors.length > 0) {
+      setUploadError(errors.join('. '));
+      return;
+    }
+
+    setUploadError(null);
+    setAttachedFiles((prev) => [...prev, ...newFiles]);
     e.target.value = '';
   }
 
   function removeFile(index: number) {
     setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
+    // Also remove from uploaded list if it was already uploaded
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
   return (
@@ -224,26 +323,46 @@ export function CreateMaintenanceDialog({
               Attach photos or documents
             </button>
 
+            {uploadError && <p className="text-[13px] font-medium text-red-600">{uploadError}</p>}
+
             {attachedFiles.length > 0 && (
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1.5">
                 {attachedFiles.map((file, idx) => (
                   <div
                     key={`${file.name}-${idx}`}
-                    className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 text-[13px] text-neutral-700"
+                    className="flex items-center gap-3 rounded-lg bg-neutral-50 px-3 py-2"
                   >
-                    <span className="truncate">{file.name}</span>
+                    {isImage(file) ? (
+                      <ImageIcon className="h-4 w-4 shrink-0 text-blue-500" />
+                    ) : (
+                      <FileText className="h-4 w-4 shrink-0 text-neutral-400" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-medium text-neutral-700">
+                        {file.name}
+                      </p>
+                      <p className="text-[11px] text-neutral-400">{formatFileSize(file.size)}</p>
+                    </div>
                     <button
                       type="button"
                       onClick={() => removeFile(idx)}
-                      className="ml-2 flex-shrink-0 text-neutral-400 hover:text-neutral-600"
+                      disabled={isSubmitting || uploading}
+                      className="flex-shrink-0 text-neutral-400 hover:text-neutral-600 disabled:opacity-40"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ))}
                 <p className="text-[12px] text-neutral-400">
-                  Files will be uploaded after submission
+                  Max 4MB per file. JPG, PNG, GIF, HEIC, PDF, DOC, XLSX accepted.
                 </p>
+              </div>
+            )}
+
+            {uploading && (
+              <div className="flex items-center gap-2 text-[13px] text-neutral-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Uploading files...
               </div>
             )}
           </div>
@@ -328,8 +447,12 @@ export function CreateMaintenanceDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Submit Request'}
+            <Button
+              type="submit"
+              loading={isSubmitting || uploading}
+              disabled={isSubmitting || uploading}
+            >
+              {uploading ? 'Uploading files...' : isSubmitting ? 'Submitting...' : 'Submit Request'}
             </Button>
           </div>
         </form>

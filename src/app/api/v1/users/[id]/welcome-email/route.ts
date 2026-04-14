@@ -28,16 +28,30 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'NOT_FOUND', message: 'User not found' }, { status: 404 });
     }
 
-    // Send the welcome email via Resend (fire-and-forget)
+    // Generate a secure activation token (72-hour expiry)
+    const activationToken = crypto.randomUUID() + '-' + crypto.randomUUID();
+    const activationTokenExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+
+    // Store token on the user record
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        activationToken,
+        activationTokenExpiresAt,
+      },
+    });
+
+    // Send the welcome email with activation link
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const activateUrl = `${appUrl}/activate?token=${encodeURIComponent(activationToken)}`;
 
     void sendEmail({
       to: user.email,
-      subject: 'Welcome to Concierge',
+      subject: 'Welcome to Concierge — Activate Your Account',
       html: renderTemplate('welcome', {
         firstName: user.firstName ?? 'there',
         propertyName: 'Concierge',
-        loginUrl: `${appUrl}/auth/login`,
+        loginUrl: activateUrl,
       }),
     }).catch((err) => {
       logger.error({ err, userId: user.id, email: user.email }, 'Failed to send welcome email');

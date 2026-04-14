@@ -23,6 +23,8 @@ const mockUnitFindMany = vi.fn();
 const mockPackageFindMany = vi.fn();
 const mockEventFindMany = vi.fn();
 const mockAnnouncementFindMany = vi.fn();
+const mockMaintenanceRequestFindMany = vi.fn();
+const mockVisitorEntryFindMany = vi.fn();
 
 vi.mock('@/server/db', () => ({
   prisma: {
@@ -40,6 +42,12 @@ vi.mock('@/server/db', () => ({
     },
     announcement: {
       findMany: (...args: unknown[]) => mockAnnouncementFindMany(...args),
+    },
+    maintenanceRequest: {
+      findMany: (...args: unknown[]) => mockMaintenanceRequestFindMany(...args),
+    },
+    visitorEntry: {
+      findMany: (...args: unknown[]) => mockVisitorEntryFindMany(...args),
     },
   },
 }));
@@ -68,6 +76,8 @@ beforeEach(() => {
   mockPackageFindMany.mockResolvedValue([]);
   mockEventFindMany.mockResolvedValue([]);
   mockAnnouncementFindMany.mockResolvedValue([]);
+  mockMaintenanceRequestFindMany.mockResolvedValue([]);
+  mockVisitorEntryFindMany.mockResolvedValue([]);
 });
 
 // ---------------------------------------------------------------------------

@@ -53,6 +53,13 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Resolve actor name
+      const actor = await tx.user.findUnique({
+        where: { id: auth.user.userId },
+        select: { firstName: true, lastName: true },
+      });
+      const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : 'System';
+
       // Log history for each package
       for (const pkgId of input.packageIds) {
         await tx.packageHistory.create({
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest) {
             action: 'released',
             details: `Batch released to ${input.releasedToName}`,
             actorId: auth.user.userId,
-            actorName: 'Staff',
+            actorName,
           },
         });
       }

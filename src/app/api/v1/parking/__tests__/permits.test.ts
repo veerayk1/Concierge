@@ -49,12 +49,50 @@ vi.mock('@/server/db', () => ({
     },
     parkingViolation: {
       findMany: (...args: unknown[]) => mockViolationFindMany(...args),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     parkingSpot: {
       findFirst: (...args: unknown[]) => mockSpotFindFirst(...args),
       update: (...args: unknown[]) => mockSpotUpdate(...args),
     },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
+    vehicle: {
+      create: vi.fn().mockResolvedValue({ id: 'vehicle-1' }),
+    },
+    permitType: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'permit-type-1', name: 'Resident' }),
+      create: vi
+        .fn()
+        .mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'permit-type-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+    },
+    parkingLimitConfig: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    $transaction: (...args: unknown[]) => {
+      const first = args[0];
+      if (typeof first === 'function') {
+        return (first as (tx: unknown) => Promise<unknown>)({
+          parkingPermit: {
+            create: (...a: unknown[]) => mockPermitCreate(...a),
+            findUnique: (...a: unknown[]) => mockPermitFindUnique(...a),
+          },
+          parkingSpot: {
+            update: (...a: unknown[]) => mockSpotUpdate(...a),
+          },
+          parkingViolation: {
+            updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+          },
+        });
+      }
+      if (Array.isArray(first)) {
+        return Promise.all(first);
+      }
+      return mockTransaction(...args);
+    },
   },
 }));
 

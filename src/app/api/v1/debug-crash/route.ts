@@ -4,6 +4,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
+  // Production guard — block in production unless explicitly allowed
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_SYSTEM_ROUTES) {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
+
   const results: Record<string, string> = {};
 
   // Test 1: Prisma import

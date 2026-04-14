@@ -53,6 +53,20 @@ export function LoginForm() {
         return;
       }
 
+      // Check if this is a first-time login for a resident — redirect to onboarding
+      const userData =
+        'user' in response
+          ? (response as { user?: { isFirstLogin?: boolean; role?: string } }).user
+          : null;
+      const isFirstLogin = userData?.isFirstLogin === true;
+      const isResident =
+        userData?.role === 'resident_owner' || userData?.role === 'resident_tenant';
+
+      if (isFirstLogin && isResident) {
+        window.location.href = '/resident-onboarding';
+        return;
+      }
+
       // Use hard navigation to ensure the full page lifecycle re-runs
       // with the new auth state. router.push (soft nav) can fail when
       // the auth layout still caches the unauthenticated state.

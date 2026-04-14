@@ -27,6 +27,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ChangePasswordDialog } from '@/components/forms/change-password-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -133,6 +134,7 @@ export default function MyAccountPage() {
   const loading = authLoading && !demoUser;
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
@@ -349,10 +351,10 @@ export default function MyAccountPage() {
                     <Key className="h-4 w-4 text-neutral-500" />
                     <div>
                       <p className="text-[14px] font-medium text-neutral-900">Password</p>
-                      <p className="text-[13px] text-neutral-500">Last changed 30 days ago</p>
+                      <p className="text-[13px] text-neutral-500">Change your account password</p>
                     </div>
                   </div>
-                  <Button variant="secondary" size="sm">
+                  <Button variant="secondary" size="sm" onClick={() => setPasswordDialogOpen(true)}>
                     Change
                   </Button>
                 </div>
@@ -443,6 +445,9 @@ export default function MyAccountPage() {
           </Card>
         </div>
       </div>
+
+      {/* Change Password Dialog */}
+      <ChangePasswordDialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen} />
 
       {/* Edit Profile Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

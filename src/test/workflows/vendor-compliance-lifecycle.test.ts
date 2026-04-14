@@ -47,6 +47,17 @@ vi.mock('@/server/db', () => ({
       create: (...args: unknown[]) => mockVendorDocumentCreate(...args),
       findMany: (...args: unknown[]) => mockVendorDocumentFindMany(...args),
     },
+    vendorServiceCategory: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'cat-1', name: 'General' }),
+      create: vi
+        .fn()
+        .mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({ id: 'cat-new', ...(args as { data?: Record<string, unknown> }).data }),
+        ),
+    },
+    user: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
 }));

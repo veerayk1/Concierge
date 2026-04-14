@@ -120,6 +120,23 @@ vi.mock('@/server/db', () => ({
       upsert: (...args: unknown[]) => mockNotificationPreferenceUpsert(...args),
       findMany: (...args: unknown[]) => mockNotificationPreferenceFindMany(...args),
     },
+    vehicle: {
+      create: vi.fn().mockResolvedValue({ id: 'vehicle-1' }),
+    },
+    permitType: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'permit-type-1', name: 'Resident' }),
+      create: vi
+        .fn()
+        .mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'permit-type-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+    },
+    parkingLimitConfig: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     $transaction: (...args: unknown[]) => {
       const first = args[0];
       if (typeof first === 'function') {
@@ -172,6 +189,16 @@ vi.mock('@/server/auth/password', () => ({
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: (s: string) => s,
   stripControlChars: (s: string) => s,
+}));
+
+vi.mock('@/server/email', () => ({
+  sendEmail: vi.fn().mockResolvedValue(undefined),
+  getUnitResidentEmails: vi.fn().mockResolvedValue([]),
+  sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/server/email-templates', () => ({
+  renderTemplate: vi.fn().mockReturnValue({ subject: 'Test', html: '<p>Test</p>' }),
 }));
 
 const mockGuardRoute = vi.fn().mockResolvedValue({

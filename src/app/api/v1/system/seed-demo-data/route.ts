@@ -32,6 +32,11 @@ const STORAGE_SPOTS = [
 ];
 
 export async function POST(request: NextRequest) {
+  // Production guard — block in production unless explicitly allowed
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_SYSTEM_ROUTES) {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
+
   const demoRole = request.headers.get('x-demo-role');
   if (demoRole !== 'super_admin') {
     return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });

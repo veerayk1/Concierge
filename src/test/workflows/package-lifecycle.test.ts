@@ -129,6 +129,15 @@ vi.mock('@/lib/sanitize', () => ({
   stripControlChars: (s: string) => s,
 }));
 
+vi.mock('@/server/email', () => ({
+  sendEmail: vi.fn().mockResolvedValue(undefined),
+  getUnitResidentEmails: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@/server/email-templates', () => ({
+  renderTemplate: vi.fn().mockReturnValue({ subject: 'Test', html: '<p>Test</p>' }),
+}));
+
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn().mockResolvedValue({
     user: {

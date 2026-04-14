@@ -346,6 +346,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
 
     // 14. Return tokens (include propertyId so frontend can store it for multi-tenancy)
+    // Include activatedAt so frontend can detect first-login and redirect to onboarding
     return NextResponse.json(
       {
         data: {
@@ -358,6 +359,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             lastName: user.lastName,
             role: roleSlug,
             propertyId,
+            activatedAt: user.activatedAt?.toISOString() ?? null,
+            isFirstLogin: !user.lastLoginAt,
           },
         },
         requestId,

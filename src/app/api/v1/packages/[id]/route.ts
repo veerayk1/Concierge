@@ -13,6 +13,19 @@ import { releasePackageSchema } from '@/schemas/package';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
+/** Resolve actor name from userId — returns 'System' on failure */
+async function resolveActorName(userId: string): Promise<string> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true },
+    });
+    return user ? `${user.firstName} ${user.lastName}`.trim() : 'System';
+  } catch {
+    return 'System';
+  }
+}
+
 // ---------------------------------------------------------------------------
 // GET /api/v1/packages/:id
 // ---------------------------------------------------------------------------
@@ -94,7 +107,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           status: 'released',
           releasedToName: input.releasedToName,
           releasedAt: new Date(),
-          releasedById: auth.user.userId, // TODO: Get from auth
+          releasedById: auth.user.userId, // From authenticated user
           idVerified: input.idVerified,
           isAuthorizedDelegate: input.isAuthorizedDelegate,
           releaseComments: input.releaseComments
@@ -104,13 +117,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       });
 
       // Log to history
+      const releaseActorName = await resolveActorName(auth.user.userId);
       await prisma.packageHistory.create({
         data: {
           packageId: id,
           action: 'released',
           details: `Released to ${input.releasedToName}`,
           actorId: auth.user.userId,
-          actorName: 'Staff', // TODO: Get from auth
+          actorName: releaseActorName,
         },
       });
 
@@ -162,13 +176,14 @@ export async function DELETE(
       data: { deletedAt: new Date() },
     });
 
+    const deleteActorName = await resolveActorName(auth.user.userId);
     await prisma.packageHistory.create({
       data: {
         packageId: id,
         action: 'deleted',
         details: 'Package deleted',
         actorId: auth.user.userId,
-        actorName: 'Staff', // TODO: Get from auth
+        actorName: deleteActorName,
       },
     });
 

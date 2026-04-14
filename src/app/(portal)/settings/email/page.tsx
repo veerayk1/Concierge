@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -11,11 +11,18 @@ import {
   ShieldCheck,
   Calendar,
   Wrench,
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
 } from 'lucide-react';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -24,6 +31,7 @@ import { Input } from '@/components/ui/input';
 interface EmailModuleConfig {
   id: string;
   module: string;
+  moduleKey: string;
   icon: React.ElementType;
   iconColor: string;
   iconBg: string;
@@ -33,81 +41,244 @@ interface EmailModuleConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Mock Data
+// Module definitions (visual config only — data comes from API)
 // ---------------------------------------------------------------------------
 
-const INITIAL_MODULES: EmailModuleConfig[] = [
+const MODULE_DEFS = [
   {
-    id: '1',
+    moduleKey: 'general',
     module: 'General',
     icon: Mail,
     iconColor: 'text-neutral-600',
     iconBg: 'bg-neutral-100',
-    fromAddress: '',
-    fromName: '',
-    replyToAddress: '',
   },
   {
-    id: '2',
+    moduleKey: 'security',
     module: 'Security',
     icon: ShieldCheck,
     iconColor: 'text-error-600',
     iconBg: 'bg-error-50',
-    fromAddress: '',
-    fromName: '',
-    replyToAddress: '',
   },
   {
-    id: '3',
+    moduleKey: 'maintenance',
     module: 'Maintenance',
     icon: Wrench,
     iconColor: 'text-warning-600',
     iconBg: 'bg-warning-50',
-    fromAddress: '',
-    fromName: '',
-    replyToAddress: '',
   },
   {
-    id: '4',
+    moduleKey: 'packages',
     module: 'Packages',
     icon: Package,
     iconColor: 'text-info-600',
     iconBg: 'bg-info-50',
-    fromAddress: '',
-    fromName: '',
-    replyToAddress: '',
   },
   {
-    id: '5',
+    moduleKey: 'amenities',
     module: 'Amenities',
     icon: Calendar,
     iconColor: 'text-primary-600',
     iconBg: 'bg-primary-50',
-    fromAddress: '',
-    fromName: '',
-    replyToAddress: '',
   },
   {
-    id: '6',
+    moduleKey: 'announcements',
     module: 'Announcements',
     icon: Megaphone,
     iconColor: 'text-success-600',
     iconBg: 'bg-success-50',
-    fromAddress: '',
-    fromName: '',
-    replyToAddress: '',
   },
-];
+] as const;
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function EmailConfigurationPage() {
-  const [modules] = useState(INITIAL_MODULES);
+  const propertyId = getPropertyId();
+
+  // Fetch existing email configs from API
+  const {
+    data: apiResponse,
+    loading,
+    error,
+    refetch,
+  } = useApi<{ propertyId: string; configs: any[] }>(
+    apiUrl('/api/v1/settings/email-config', { propertyId }),
+  );
+
+  // Module form state — keyed by moduleKey
+  const [moduleFormData, setModuleFormData] = useState<
+    Record<string, { fromAddress: string; fromName: string; replyToAddress: string }>
+  >({});
+
+  // Global settings state
   const [globalCc, setGlobalCc] = useState('');
   const [emailSignature, setEmailSignature] = useState('');
   const [deliveryFailureTracking, setDeliveryFailureTracking] = useState(true);
+
+  // Save state
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Populate form state from API data
+  useEffect(() => {
+    if (!apiResponse) return;
+    const configs = apiResponse.configs ?? (Array.isArray(apiResponse) ? apiResponse : []);
+    const formData: Record<
+      string,
+      { fromAddress: string; fromName: string; replyToAddress: string }
+    > = {};
+    for (const def of MODULE_DEFS) {
+      const existing = configs.find((c: any) => c.moduleKey === def.moduleKey);
+      formData[def.moduleKey] = {
+        fromAddress: existing?.fromEmail ?? '',
+        fromName: existing?.fromName ?? '',
+        replyToAddress: existing?.replyTo ?? '',
+      };
+    }
+    setModuleFormData(formData);
+  }, [apiResponse]);
+
+  // Update a single module field
+  const updateModuleField = useCallback(
+    (moduleKey: string, field: 'fromAddress' | 'fromName' | 'replyToAddress', value: string) => {
+      setModuleFormData((prev) => {
+        const current = prev[moduleKey] ?? { fromAddress: '', fromName: '', replyToAddress: '' };
+        return {
+          ...prev,
+          [moduleKey]: {
+            ...current,
+            [field]: value,
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  // Clear save message after timeout
+  const showSaveMessage = useCallback((type: 'success' | 'error', text: string) => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    setSaveMessage({ type, text });
+    saveTimeoutRef.current = setTimeout(() => setSaveMessage(null), 5000);
+  }, []);
+
+  // Save all module configs
+  const handleSave = useCallback(async () => {
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    try {
+      // Save each module that has at least a fromAddress and fromName
+      const savePromises = MODULE_DEFS.map(async (def) => {
+        const data = moduleFormData[def.moduleKey];
+        if (!data) return;
+
+        // Only save modules that have required fields filled
+        if (!data.fromAddress && !data.fromName) return;
+
+        // Validate: if one required field is set, both must be
+        if (!data.fromAddress || !data.fromName) {
+          throw new Error(`${def.module}: Both "From Address" and "From Name" are required.`);
+        }
+
+        const response = await apiRequest('/api/v1/settings/email-config', {
+          method: 'POST',
+          body: {
+            propertyId,
+            moduleKey: def.moduleKey,
+            fromEmail: data.fromAddress,
+            fromName: data.fromName,
+            replyTo: data.replyToAddress || undefined,
+            isActive: true,
+          },
+        });
+
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}));
+          throw new Error(result.message || `Failed to save ${def.module} configuration.`);
+        }
+      });
+
+      await Promise.all(savePromises);
+      showSaveMessage('success', 'Email configuration saved successfully.');
+      refetch();
+    } catch (err: any) {
+      showSaveMessage('error', err.message || 'An unexpected error occurred.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [moduleFormData, propertyId, refetch, showSaveMessage]);
+
+  // Build the modules array with current form data
+  const modules: EmailModuleConfig[] = MODULE_DEFS.map((def, index) => ({
+    id: String(index + 1),
+    module: def.module,
+    moduleKey: def.moduleKey,
+    icon: def.icon,
+    iconColor: def.iconColor,
+    iconBg: def.iconBg,
+    fromAddress: moduleFormData[def.moduleKey]?.fromAddress ?? '',
+    fromName: moduleFormData[def.moduleKey]?.fromName ?? '',
+    replyToAddress: moduleFormData[def.moduleKey]?.replyToAddress ?? '',
+  }));
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-8 py-8">
+        <Link
+          href="/settings"
+          className="inline-flex items-center gap-2 text-[14px] font-medium text-neutral-500 transition-colors hover:text-neutral-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Settings
+        </Link>
+        <div>
+          <h1 className="text-[24px] font-bold tracking-tight text-neutral-900">
+            Email Configuration
+          </h1>
+          <p className="mt-1 text-[14px] text-neutral-500">
+            Configure per-module email addresses, signatures, and delivery settings.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-48 rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-8 py-8">
+        <Link
+          href="/settings"
+          className="inline-flex items-center gap-2 text-[14px] font-medium text-neutral-500 transition-colors hover:text-neutral-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Settings
+        </Link>
+        <EmptyState
+          icon={<AlertTriangle className="h-6 w-6" />}
+          title="Failed to load email configuration"
+          description={error}
+          action={
+            <Button variant="secondary" size="sm" onClick={refetch}>
+              Try Again
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 py-8">
@@ -129,6 +300,24 @@ export default function EmailConfigurationPage() {
           Configure per-module email addresses, signatures, and delivery settings.
         </p>
       </div>
+
+      {/* Save feedback message */}
+      {saveMessage && (
+        <div
+          className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-[14px] ${
+            saveMessage.type === 'success'
+              ? 'border-success-200 bg-success-50 text-success-700'
+              : 'border-error-200 bg-error-50 text-error-700'
+          }`}
+        >
+          {saveMessage.type === 'success' ? (
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+          ) : (
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+          )}
+          {saveMessage.text}
+        </div>
+      )}
 
       {/* Module Email Addresses */}
       <div>
@@ -159,14 +348,33 @@ export default function EmailConfigurationPage() {
                   </div>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                      <Input label="From Address" type="email" defaultValue={mod.fromAddress} />
-                      <Input label="From Name" defaultValue={mod.fromName} />
+                      <Input
+                        label="From Address"
+                        type="email"
+                        value={mod.fromAddress}
+                        onChange={(e) =>
+                          updateModuleField(mod.moduleKey, 'fromAddress', e.target.value)
+                        }
+                        disabled={isSaving}
+                      />
+                      <Input
+                        label="From Name"
+                        value={mod.fromName}
+                        onChange={(e) =>
+                          updateModuleField(mod.moduleKey, 'fromName', e.target.value)
+                        }
+                        disabled={isSaving}
+                      />
                     </div>
                     <Input
                       label="Reply-To Address"
                       type="email"
-                      defaultValue={mod.replyToAddress}
+                      value={mod.replyToAddress}
+                      onChange={(e) =>
+                        updateModuleField(mod.moduleKey, 'replyToAddress', e.target.value)
+                      }
                       helperText="Address recipients will reply to."
+                      disabled={isSaving}
                     />
                   </div>
                 </CardContent>
@@ -190,6 +398,7 @@ export default function EmailConfigurationPage() {
               onChange={(e) => setGlobalCc(e.target.value)}
               placeholder="management@example.com"
               helperText="If set, this address will be CC'd on all outgoing emails from every module."
+              disabled={isSaving}
             />
           </CardContent>
         </Card>
@@ -214,7 +423,8 @@ export default function EmailConfigurationPage() {
                 rows={5}
                 value={emailSignature}
                 onChange={(e) => setEmailSignature(e.target.value)}
-                className="focus:border-primary-500 focus:ring-primary-100 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 ease-out hover:border-neutral-300 focus:ring-4 focus:outline-none"
+                disabled={isSaving}
+                className="focus:border-primary-500 focus:ring-primary-100 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 transition-all duration-200 ease-out hover:border-neutral-300 focus:ring-4 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               />
               <p className="text-[13px] text-neutral-500">
                 This signature is appended to all outgoing emails. Supports plain text only.
@@ -251,7 +461,8 @@ export default function EmailConfigurationPage() {
                 role="switch"
                 aria-checked={deliveryFailureTracking}
                 onClick={() => setDeliveryFailureTracking(!deliveryFailureTracking)}
-                className={`focus:ring-primary-100 relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:ring-4 focus:outline-none ${
+                disabled={isSaving}
+                className={`focus:ring-primary-100 relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:ring-4 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
                   deliveryFailureTracking ? 'bg-primary-500' : 'bg-neutral-200'
                 }`}
               >
@@ -268,7 +479,16 @@ export default function EmailConfigurationPage() {
 
       {/* Save */}
       <div className="flex justify-end pt-2">
-        <Button size="lg">Save Changes</Button>
+        <Button size="lg" onClick={handleSave} disabled={isSaving}>
+          {isSaving ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Changes'
+          )}
+        </Button>
       </div>
     </div>
   );

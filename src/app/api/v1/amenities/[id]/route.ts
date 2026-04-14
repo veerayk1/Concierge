@@ -131,3 +131,45 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     );
   }
 }
+
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const auth = await guardRoute(request);
+    if (auth.error) return auth.error;
+
+    const { id } = await params;
+    const body = await request.json();
+
+    const updateData: Record<string, unknown> = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.location !== undefined) updateData.location = body.location;
+    if (body.capacity !== undefined)
+      updateData.capacity = body.capacity !== null ? Number(body.capacity) : null;
+    if (body.fee !== undefined) updateData.fee = body.fee !== null ? Number(body.fee) : null;
+    if (body.securityDeposit !== undefined)
+      updateData.securityDeposit =
+        body.securityDeposit !== null ? Number(body.securityDeposit) : null;
+    if (body.requiresApproval !== undefined) updateData.requiresApproval = body.requiresApproval;
+    if (body.approvalMode !== undefined) updateData.approvalMode = body.approvalMode;
+    if (body.isActive !== undefined) updateData.isActive = body.isActive;
+    if (body.rules !== undefined) updateData.rules = body.rules;
+    if (body.openTime !== undefined) updateData.openTime = body.openTime;
+    if (body.closeTime !== undefined) updateData.closeTime = body.closeTime;
+    if (body.maxConcurrent !== undefined)
+      updateData.maxConcurrent = body.maxConcurrent !== null ? Number(body.maxConcurrent) : null;
+
+    const amenity = await prisma.amenity.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return NextResponse.json({ data: amenity, message: 'Amenity updated.' });
+  } catch (error) {
+    console.error('PATCH /api/v1/amenities/:id error:', error);
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', message: 'Failed to update amenity' },
+      { status: 500 },
+    );
+  }
+}

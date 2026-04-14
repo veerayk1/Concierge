@@ -24,6 +24,7 @@ import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { EditAmenityDialog } from '@/components/forms/edit-amenity-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -148,6 +149,7 @@ export default function AmenityDetailPage() {
   } = useApi<AmenityDetail>(apiUrl(`/api/v1/amenities/${id}`, { propertyId: getPropertyId() }));
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   async function handleBookingAction(
     bookingId: string,
@@ -264,35 +266,15 @@ export default function AmenityDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => alert('Edit Amenity is coming soon. This feature is under development.')}
-          >
+          <Button variant="secondary" size="sm" onClick={() => setEditDialogOpen(true)}>
             <Edit2 className="h-4 w-4" />
             Edit Amenity
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() =>
-              alert(
-                'Set Rates is coming soon. Rate management will be available in a future update.',
-              )
-            }
-          >
+          <Button variant="secondary" size="sm" onClick={() => setEditDialogOpen(true)}>
             <DollarSign className="h-4 w-4" />
             Set Rates
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() =>
-              alert(
-                'Manage Rules is coming soon. Rule configuration will be available in a future update.',
-              )
-            }
-          >
+          <Button variant="secondary" size="sm" onClick={() => setEditDialogOpen(true)}>
             <FileText className="h-4 w-4" />
             Manage Rules
           </Button>
@@ -300,11 +282,23 @@ export default function AmenityDetailPage() {
             variant="ghost"
             size="sm"
             className="text-error-600"
-            onClick={() =>
-              alert(
-                'Disable Bookings is coming soon. Booking management will be available in a future update.',
-              )
-            }
+            onClick={async () => {
+              if (!confirm('Are you sure you want to disable bookings for this amenity?')) return;
+              try {
+                const resp = await apiRequest(`/api/v1/amenities/${id}`, {
+                  method: 'PATCH',
+                  body: { isActive: false },
+                });
+                if (resp.ok) {
+                  await refetch();
+                } else {
+                  const result = await resp.json().catch(() => ({}));
+                  alert((result as { message?: string }).message || 'Failed to disable bookings.');
+                }
+              } catch {
+                alert('Network error. Please try again.');
+              }
+            }}
           >
             <Ban className="h-4 w-4" />
             Disable Bookings
@@ -598,6 +592,15 @@ export default function AmenityDetailPage() {
           </Card>
         </div>
       </div>
+
+      {amenity && (
+        <EditAmenityDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          amenity={amenity}
+          onSuccess={() => refetch()}
+        />
+      )}
     </div>
   );
 }

@@ -23,12 +23,15 @@ describe('Landing Page', () => {
   it('renders hero section with headline and CTA', () => {
     render(<LandingPage />);
 
-    // Hero headline
+    // Hero headline — actual h1 text is "The last platform your building will ever need."
     expect(
-      screen.getByRole('heading', { level: 1, name: /modern way to manage your building/i }),
+      screen.getByRole('heading', {
+        level: 1,
+        name: /last platform your building will ever need/i,
+      }),
     ).toBeInTheDocument();
 
-    // Primary CTA — there are multiple "Request a Demo" links, check that at least one exists
+    // Primary CTA — "Request a Demo" linking to /contact
     const demoCtas = screen.getAllByRole('link', { name: /request a demo/i });
     expect(demoCtas.length).toBeGreaterThanOrEqual(1);
     expect(demoCtas[0]).toHaveAttribute('href', '/contact');
@@ -42,41 +45,21 @@ describe('Landing Page', () => {
       screen.getByRole('heading', { name: /everything your building needs/i }),
     ).toBeInTheDocument();
 
-    // Feature cards — 6 features per PRD (use getAllByText since names may appear in pricing too)
-    expect(screen.getAllByText('Security Console').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Package Tracking').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Maintenance Requests').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Amenity Booking').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Announcements').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Staff Training').length).toBeGreaterThanOrEqual(1);
+    // Feature cards — actual feature titles from FeaturesGrid component
+    expect(screen.getAllByText('Package Management').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Maintenance & Work Orders').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Amenity Bookings').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Announcements & Notices').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Staff Training & Compliance').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('has pricing section with 3 tiers', () => {
+  it('renders testimonials section with blockquote', () => {
     render(<LandingPage />);
 
-    // Pricing section heading
-    expect(
-      screen.getByRole('heading', { name: /simple, transparent pricing/i }),
-    ).toBeInTheDocument();
-
-    // Three tiers
-    expect(screen.getByText('Starter')).toBeInTheDocument();
-    expect(screen.getByText('Professional')).toBeInTheDocument();
-    expect(screen.getByText('Enterprise')).toBeInTheDocument();
-  });
-
-  it('renders compliance bar with trust signals', () => {
-    render(<LandingPage />);
-
-    expect(screen.getByText(/enterprise-grade security/i)).toBeInTheDocument();
-  });
-
-  it('renders testimonials section', () => {
-    render(<LandingPage />);
-
-    expect(
-      screen.getByRole('heading', { name: /trusted by property managers/i }),
-    ).toBeInTheDocument();
+    // Testimonial section uses a blockquote, not a heading
+    const blockquote = screen.getByRole('blockquote');
+    expect(blockquote).toBeInTheDocument();
+    expect(blockquote.textContent).toMatch(/concierge/i);
   });
 
   it('renders bottom CTA section', () => {

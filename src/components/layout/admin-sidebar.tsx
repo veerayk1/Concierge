@@ -26,6 +26,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowLeft,
+  Mail,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -50,6 +51,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Audit Log', href: '/settings/audit-log', icon: ScrollText },
   { label: 'User Management', href: '/users', icon: Users },
   { label: 'Properties', href: '/properties', icon: Building2 },
+  { label: 'Leads', href: '/leads', icon: Mail },
   { label: 'System Health', href: '/system-health', icon: Activity },
 ];
 

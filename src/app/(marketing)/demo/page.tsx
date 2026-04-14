@@ -63,12 +63,14 @@ export default function DemoPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [apiError, setApiError] = useState('');
 
   function handleChange(field: string, value: string) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
     const newErrors: Record<string, string> = {};
@@ -91,7 +93,33 @@ export default function DemoPage() {
     }
 
     setErrors({});
-    setSubmitted(true);
+    setApiError('');
+    setSubmitting(true);
+
+    try {
+      const res = await fetch('/api/v1/public/demo-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        const message =
+          data?.error ??
+          (res.status === 429
+            ? 'Too many requests. Please try again later.'
+            : 'Something went wrong. Please try again.');
+        setApiError(message);
+        setSubmitting(false);
+        return;
+      }
+
+      setSubmitted(true);
+    } catch {
+      setApiError('Unable to reach the server. Please check your connection and try again.');
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -267,12 +295,23 @@ export default function DemoPage() {
                 />
               </div>
 
+              {/* API error */}
+              {apiError && (
+                <p
+                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[14px] text-red-700"
+                  role="alert"
+                >
+                  {apiError}
+                </p>
+              )}
+
               {/* Submit */}
               <button
                 type="submit"
-                className="mt-2 inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800"
+                disabled={submitting}
+                className="mt-2 inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Request a Demo
+                {submitting ? 'Submitting...' : 'Request a Demo'}
               </button>
             </form>
           </div>

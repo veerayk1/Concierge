@@ -28,6 +28,33 @@ vi.mock('@/server/db', () => ({
       update: (...args: unknown[]) => mockEventUpdate(...args),
       count: (...args: unknown[]) => mockEventCount(...args),
     },
+    eventType: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'shift-log-type', name: 'Shift Log' }),
+      create: vi
+        .fn()
+        .mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'shift-log-type-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+    },
+    eventGroup: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'shift-log-group', name: 'Shift Log' }),
+      create: vi
+        .fn()
+        .mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'shift-log-group-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+    },
+    shiftLogEntry: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue({}),
+      delete: vi.fn().mockResolvedValue({}),
+    },
   },
 }));
 

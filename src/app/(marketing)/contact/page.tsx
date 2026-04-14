@@ -99,8 +99,10 @@ export default function ContactPage() {
   const [message, setMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [apiError, setApiError] = useState('');
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
     const newErrors: Record<string, string> = {};
@@ -126,7 +128,33 @@ export default function ContactPage() {
     }
 
     setErrors({});
-    setSubmitted(true);
+    setApiError('');
+    setSubmitting(true);
+
+    try {
+      const res = await fetch('/api/v1/public/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, subject, message }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        const msg =
+          data?.error ??
+          (res.status === 429
+            ? 'Too many requests. Please try again later.'
+            : 'Something went wrong. Please try again.');
+        setApiError(msg);
+        setSubmitting(false);
+        return;
+      }
+
+      setSubmitted(true);
+    } catch {
+      setApiError('Unable to reach the server. Please check your connection and try again.');
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -268,12 +296,23 @@ export default function ContactPage() {
                 )}
               </div>
 
+              {/* API error */}
+              {apiError && (
+                <p
+                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[14px] text-red-700"
+                  role="alert"
+                >
+                  {apiError}
+                </p>
+              )}
+
               {/* Submit */}
               <button
                 type="submit"
-                className="mt-2 inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800"
+                disabled={submitting}
+                className="mt-2 inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Send Message
+                {submitting ? 'Sending...' : 'Send Message'}
               </button>
             </form>
           </div>

@@ -9,6 +9,9 @@ import { prisma } from '@/server/db';
 import { batchCreatePackageSchema } from '@/schemas/package';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { sendEmail } from '@/server/email';
+import { getUnitResidentEmails } from '@/server/email';
+import { renderTemplate } from '@/server/email-templates';
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,8 +64,61 @@ export async function POST(request: NextRequest) {
       }),
     );
 
-    // TODO: Send batch notifications
-    // TODO: Log to PackageHistory for each
+    // Log to PackageHistory for each created package
+    try {
+      const actor = await prisma.user.findUnique({
+        where: { id: auth.user.userId },
+        select: { firstName: true, lastName: true },
+      });
+      const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : 'System';
+
+      await Promise.all(
+        created.map((pkg) =>
+          prisma.packageHistory.create({
+            data: {
+              packageId: pkg.id,
+              action: 'received',
+              details: `Package ${pkg.referenceNumber} logged (batch) for unit ${pkg.unit?.number ?? 'unknown'}`,
+              actorId: auth.user.userId,
+              actorName,
+            },
+          }),
+        ),
+      );
+    } catch {
+      // Non-critical
+    }
+
+    // Send batch notifications (fire-and-forget)
+    void (async () => {
+      try {
+        // Group packages by unit to send one email per unit
+        const byUnit = new Map<string, typeof created>();
+        for (const pkg of created) {
+          const existing = byUnit.get(pkg.unitId) ?? [];
+          existing.push(pkg);
+          byUnit.set(pkg.unitId, existing);
+        }
+
+        for (const [unitId, pkgs] of byUnit) {
+          const residents = await getUnitResidentEmails(unitId);
+          const refNumbers = pkgs.map((p) => p.referenceNumber).join(', ');
+          for (const resident of residents) {
+            void sendEmail({
+              to: resident.email,
+              subject: `${pkgs.length} package${pkgs.length > 1 ? 's' : ''} received`,
+              html: renderTemplate('package_received', {
+                residentName: resident.firstName,
+                packageRef: refNumbers,
+                unitNumber: pkgs[0]?.unit?.number ?? '',
+              }),
+            }).catch(() => {});
+          }
+        }
+      } catch {
+        // Non-critical
+      }
+    })();
 
     return NextResponse.json(
       {

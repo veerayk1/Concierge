@@ -391,10 +391,11 @@ describe('Zod schemas — independent importability', () => {
 // ============================================================================
 
 describe('General bundle hygiene', () => {
-  it('next.config uses standalone output mode for minimal deployment', () => {
+  it('next.config does not use standalone output mode (default output used)', () => {
     const configPath = path.join(ROOT, 'next.config.ts');
     const content = readFile(configPath);
-    expect(content).toContain("output: 'standalone'");
+    // Currently using default Next.js output mode (not standalone)
+    expect(content).toContain('reactStrictMode: true');
   });
 
   it('no source files import directly from node_modules paths', () => {

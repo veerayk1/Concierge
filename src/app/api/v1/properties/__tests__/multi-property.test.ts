@@ -106,8 +106,27 @@ vi.mock('@/server/db', () => ({
     role: {
       create: (...args: unknown[]) => mockRoleCreate(...args),
       findMany: (...args: unknown[]) => mockRoleFindMany(...args),
+      createMany: vi.fn().mockResolvedValue({ count: 6 }),
     },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
+    $transaction: (...args: unknown[]) => {
+      const first = args[0];
+      if (typeof first === 'function') {
+        return (first as (tx: unknown) => Promise<unknown>)({
+          property: {
+            create: (...a: unknown[]) => mockPropertyCreate(...a),
+            findUnique: (...a: unknown[]) => mockPropertyFindUnique(...a),
+            update: (...a: unknown[]) => mockPropertyUpdate(...a),
+          },
+          role: {
+            createMany: vi.fn().mockResolvedValue({ count: 6 }),
+          },
+        });
+      }
+      if (Array.isArray(first)) {
+        return Promise.all(first);
+      }
+      return mockTransaction(...args);
+    },
   },
 }));
 

@@ -125,6 +125,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
 
 vi.mock('@/server/email', () => ({
   sendEmail: vi.fn().mockResolvedValue(undefined),
+  getUnitResidentEmails: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/server/push', () => ({

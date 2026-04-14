@@ -83,6 +83,11 @@ vi.mock('@/server/db', () => ({
       create: (...args: unknown[]) => mockAttachmentCreate(...args),
       findMany: (...args: unknown[]) => mockAttachmentFindMany(...args),
     },
+    user: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
   },
 }));
 
@@ -92,6 +97,7 @@ vi.mock('nanoid', () => ({
 
 vi.mock('@/server/email', () => ({
   sendEmail: (...args: unknown[]) => mockSendEmail(...args),
+  getUnitResidentEmails: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/server/middleware/api-guard', () => ({

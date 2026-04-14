@@ -181,6 +181,35 @@ vi.mock('@/server/db', () => ({
       findMany: (...args: unknown[]) => mockSearchHistoryFindMany(...args),
       create: (...args: unknown[]) => mockSearchHistoryCreate(...args),
     },
+    maintenanceRequest: {
+      findMany: vi.fn().mockResolvedValue([]),
+      count: vi.fn().mockResolvedValue(0),
+    },
+    eventType: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'evt-type-1', name: 'Security Event' }),
+      create: vi
+        .fn()
+        .mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'evt-type-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+    },
+    eventGroup: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'evt-group-1', name: 'Security' }),
+      create: vi
+        .fn()
+        .mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'evt-group-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+    },
+    eventTypeEmailConfig: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
 }));
@@ -209,6 +238,7 @@ vi.mock('@/lib/sanitize', () => ({
 
 vi.mock('@/server/email', () => ({
   sendEmail: vi.fn().mockResolvedValue(undefined),
+  getUnitResidentEmails: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/server/logger', () => ({

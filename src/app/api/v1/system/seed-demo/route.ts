@@ -490,6 +490,11 @@ const VENDORS = [
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
+  // Production guard — block in production unless explicitly allowed
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_SYSTEM_ROUTES) {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
+
   // Auth: require super_admin or property_admin via demo header
   const demoRole = request.headers.get('x-demo-role');
   if (demoRole !== 'super_admin' && demoRole !== 'property_admin') {

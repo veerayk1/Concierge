@@ -59,6 +59,12 @@ vi.mock('@/server/db', () => ({
     },
     maintenanceComment: {
       create: (...args: unknown[]) => mockMaintenanceCommentCreate(...args),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    user: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
     },
     reservation: {
       create: (...args: unknown[]) => mockReservationCreate(...args),
@@ -151,6 +157,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
 
 vi.mock('@/server/email', () => ({
   sendEmail: vi.fn().mockResolvedValue({ success: true }),
+  getUnitResidentEmails: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/server/email-templates', () => ({

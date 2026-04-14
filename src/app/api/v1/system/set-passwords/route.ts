@@ -8,12 +8,9 @@ import { prisma } from '@/server/db';
 import { hashPassword } from '@/server/auth/password';
 
 export async function POST(request: NextRequest) {
-  // Only allow in development
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json(
-      { error: 'FORBIDDEN', message: 'Not available in production.' },
-      { status: 403 },
-    );
+  // Production guard — block in production unless explicitly allowed
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_SYSTEM_ROUTES) {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
   }
 
   const demoRole = request.headers.get('x-demo-role');

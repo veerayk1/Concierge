@@ -20,6 +20,33 @@ vi.mock('@/server/db', () => ({
     event: {
       create: (...args: unknown[]) => mockCreate(...args),
     },
+    eventType: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({ id: '00000000-0000-4000-d000-000000000001', name: 'Security Event' }),
+      create: vi
+        .fn()
+        .mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'evt-type-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+    },
+    eventGroup: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'evt-group-1', name: 'Security' }),
+      create: vi
+        .fn()
+        .mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'evt-group-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+    },
+    eventTypeEmailConfig: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
   },
 }));
 

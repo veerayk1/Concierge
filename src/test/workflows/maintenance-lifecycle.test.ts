@@ -56,6 +56,11 @@ vi.mock('@/server/db', () => ({
     attachment: {
       create: (...args: unknown[]) => mockAttachmentCreate(...args),
     },
+    user: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
 }));

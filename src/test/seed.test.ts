@@ -77,11 +77,22 @@ const MODEL_NAMES = [
   'passOnLog',
   'event',
   'building',
+  'vacationPeriod',
+  'fireLog',
+  'noiseComplaint',
 ] as const;
 
 for (const name of MODEL_NAMES) {
   mockModels[name] = makeModelMock(name);
 }
+
+// Unit.findMany must return mock units so seed.ts can access mhUnits[0]!.id
+// The seed script calls prisma.unit.findMany() after upserting units to get their IDs
+const mockUnitResults = Array.from({ length: 25 }, (_, i) => ({
+  id: `00000000-0000-4000-ae00-000000${(i + 1).toString().padStart(6, '0')}`,
+  number: `${Math.floor(i / 5 + 1)}${((i % 5) + 1).toString().padStart(2, '0')}`,
+}));
+mockModels['unit']!.findMany.mockImplementation(async () => mockUnitResults);
 
 const mockPrisma = {
   ...mockModels,
@@ -133,6 +144,9 @@ beforeEach(async () => {
     mockModels[name]!.findMany.mockClear();
   }
   mockPrisma.$disconnect.mockClear();
+
+  // Re-apply unit.findMany mock (returns mock units for seed's mhUnits lookup)
+  mockModels['unit']!.findMany.mockImplementation(async () => mockUnitResults);
 
   // Dynamic import to get the seed module fresh (but mocks persist)
   const seedModule = await import('../../prisma/seed');

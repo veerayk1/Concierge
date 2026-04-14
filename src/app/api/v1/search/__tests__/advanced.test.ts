@@ -32,6 +32,10 @@ const mockAnnouncementCount = vi.fn();
 const mockSearchHistoryCreate = vi.fn();
 const mockSearchHistoryFindMany = vi.fn();
 const mockSearchHistoryDeleteMany = vi.fn();
+const mockMaintenanceRequestFindMany = vi.fn();
+const mockMaintenanceRequestCount = vi.fn();
+const mockVisitorEntryFindMany = vi.fn();
+const mockVisitorEntryCount = vi.fn();
 
 vi.mock('@/server/db', () => ({
   prisma: {
@@ -54,6 +58,14 @@ vi.mock('@/server/db', () => ({
     announcement: {
       findMany: (...args: unknown[]) => mockAnnouncementFindMany(...args),
       count: (...args: unknown[]) => mockAnnouncementCount(...args),
+    },
+    maintenanceRequest: {
+      findMany: (...args: unknown[]) => mockMaintenanceRequestFindMany(...args),
+      count: (...args: unknown[]) => mockMaintenanceRequestCount(...args),
+    },
+    visitorEntry: {
+      findMany: (...args: unknown[]) => mockVisitorEntryFindMany(...args),
+      count: (...args: unknown[]) => mockVisitorEntryCount(...args),
     },
     searchHistory: {
       create: (...args: unknown[]) => mockSearchHistoryCreate(...args),
@@ -92,6 +104,10 @@ beforeEach(() => {
   mockEventCount.mockResolvedValue(0);
   mockAnnouncementFindMany.mockResolvedValue([]);
   mockAnnouncementCount.mockResolvedValue(0);
+  mockMaintenanceRequestFindMany.mockResolvedValue([]);
+  mockMaintenanceRequestCount.mockResolvedValue(0);
+  mockVisitorEntryFindMany.mockResolvedValue([]);
+  mockVisitorEntryCount.mockResolvedValue(0);
   mockSearchHistoryCreate.mockResolvedValue({ id: 'sh-1' });
   mockSearchHistoryFindMany.mockResolvedValue([]);
   mockSearchHistoryDeleteMany.mockResolvedValue({ count: 0 });

@@ -221,6 +221,8 @@ model User {
   lastLoginAt  DateTime?
   failedLoginAttempts Int @default(0)
   lockedUntil  DateTime?
+  activationToken  String?   @db.VarChar(255) // Token sent in welcome email for account activation
+  activationTokenExpiresAt DateTime? // Activation token expiry (72 hours from creation)
   temporaryPassword String? @db.VarChar(255) // DEV ONLY: stores plain-text temp password for testing. Remove before production.
 
   createdAt DateTime  @default(now())
@@ -4390,4 +4392,44 @@ model KyrLeaderboard {
   @@index([propertyId])
   @@index([propertyId, highScore])
   @@map("kyr_leaderboard")
+}
+
+// ============================================================================
+// SALES LEADS & CONTACT SUBMISSIONS
+// ============================================================================
+
+model SalesLead {
+  id           String   @id @default(uuid()) @db.Uuid
+  source       String   @db.VarChar(50)  // 'demo_request' | 'contact_form'
+  status       String   @default("new") @db.VarChar(50) // new, contacted, qualified, converted, lost
+
+  // Contact info
+  name         String   @db.VarChar(200)
+  email        String   @db.VarChar(320)
+  phone        String?  @db.VarChar(50)
+  company      String?  @db.VarChar(200)
+
+  // Demo-specific fields
+  units        String?  @db.VarChar(50)
+  propertyType String?  @db.VarChar(100) @map("property_type")
+
+  // Contact-specific fields
+  subject      String?  @db.VarChar(200)
+
+  // Shared
+  message      String?  @db.Text
+
+  // Internal tracking
+  notes        String?  @db.Text
+  assignedTo   String?  @db.Uuid @map("assigned_to")
+  convertedPropertyId String? @db.Uuid @map("converted_property_id")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([source])
+  @@index([createdAt])
+  @@index([email])
+  @@map("sales_leads")
 }

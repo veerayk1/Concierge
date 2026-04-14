@@ -62,6 +62,9 @@ vi.mock('@/server/db', () => ({
             update: (...a: unknown[]) => mockPropertyUpdate(...a),
             delete: (...a: unknown[]) => mockPropertyDelete(...a),
           },
+          role: {
+            createMany: vi.fn().mockResolvedValue({ count: 6 }),
+          },
         });
       }
       if (Array.isArray(first)) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Bell, Mail, MessageSquare, Smartphone, Phone, Clock, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -15,6 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { getPropertyId } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,25 +52,34 @@ interface QuietHoursConfig {
   overrideForEmergencies: boolean;
 }
 
+interface NotificationSettingsPayload {
+  globalSettings: GlobalSettings;
+  channels: ChannelConfig;
+  modules: ModuleNotificationConfig[];
+  quietHours: QuietHoursConfig;
+  digestMode: string;
+  digestTime: string;
+}
+
 // ---------------------------------------------------------------------------
-// Mock Data
+// Defaults (used when no saved settings exist)
 // ---------------------------------------------------------------------------
 
-const INITIAL_GLOBAL: GlobalSettings = {
+const DEFAULT_GLOBAL: GlobalSettings = {
   defaultFromName: '',
   defaultFromEmail: '',
   replyToEmail: '',
   emailFooterText: '',
 };
 
-const INITIAL_CHANNELS: ChannelConfig = {
+const DEFAULT_CHANNELS: ChannelConfig = {
   email: true,
   sms: true,
   push: true,
   voice: false,
 };
 
-const INITIAL_MODULES: ModuleNotificationConfig[] = [
+const DEFAULT_MODULES: ModuleNotificationConfig[] = [
   { id: 'mod-1', module: 'Packages', email: true, sms: true, push: true, inApp: true },
   { id: 'mod-2', module: 'Maintenance', email: true, sms: true, push: true, inApp: true },
   { id: 'mod-3', module: 'Security', email: true, sms: true, push: true, inApp: true },
@@ -82,67 +94,152 @@ const INITIAL_MODULES: ModuleNotificationConfig[] = [
   { id: 'mod-12', module: 'Emergency', email: true, sms: true, push: true, inApp: true },
 ];
 
-const INITIAL_QUIET_HOURS: QuietHoursConfig = {
+const DEFAULT_QUIET_HOURS: QuietHoursConfig = {
   startTime: '22:00',
   endTime: '07:00',
   overrideForEmergencies: true,
 };
 
 // ---------------------------------------------------------------------------
+// Loading skeleton
+// ---------------------------------------------------------------------------
+
+function NotificationSettingsSkeleton() {
+  return (
+    <div className="mx-auto max-w-4xl space-y-8 py-8">
+      <Skeleton className="h-4 w-32" />
+      <div>
+        <Skeleton className="mb-2 h-7 w-64" />
+        <Skeleton className="h-4 w-96" />
+      </div>
+      {/* Global settings skeleton */}
+      <div>
+        <Skeleton className="mb-4 h-4 w-28" />
+        <div className="space-y-5 rounded-2xl border border-neutral-200/80 bg-white p-6">
+          <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+      </div>
+      {/* Channel config skeleton */}
+      <div>
+        <Skeleton className="mb-4 h-4 w-40" />
+        <div className="space-y-5 rounded-2xl border border-neutral-200/80 bg-white p-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-xl" />
+                <div>
+                  <Skeleton className="mb-1 h-4 w-28" />
+                  <Skeleton className="h-3 w-48" />
+                </div>
+              </div>
+              <Skeleton className="h-6 w-11 rounded-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Module table skeleton */}
+      <div>
+        <Skeleton className="mb-4 h-4 w-44" />
+        <div className="rounded-2xl border border-neutral-200/80 bg-white p-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex items-center justify-between py-3">
+              <Skeleton className="h-4 w-24" />
+              <div className="flex gap-8">
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-4" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function NotificationSettingsPage() {
-  const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(INITIAL_GLOBAL);
-  const [channels, setChannels] = useState<ChannelConfig>(INITIAL_CHANNELS);
-  const [modules, setModules] = useState<ModuleNotificationConfig[]>(INITIAL_MODULES);
-  const [quietHours, setQuietHours] = useState<QuietHoursConfig>(INITIAL_QUIET_HOURS);
+  const propertyId = getPropertyId();
+  const fetchUrl = apiUrl('/api/v1/settings/notifications', { propertyId });
+
+  const {
+    data: savedSettings,
+    loading,
+    error: loadError,
+  } = useApi<NotificationSettingsPayload | null>(fetchUrl);
+
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(DEFAULT_GLOBAL);
+  const [channels, setChannels] = useState<ChannelConfig>(DEFAULT_CHANNELS);
+  const [modules, setModules] = useState<ModuleNotificationConfig[]>(DEFAULT_MODULES);
+  const [quietHours, setQuietHours] = useState<QuietHoursConfig>(DEFAULT_QUIET_HOURS);
   const [digestMode, setDigestMode] = useState('immediate');
   const [digestTime, setDigestTime] = useState('08:00');
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
-  async function handleSave() {
+  // Hydrate state from API response (or use defaults if null/empty)
+  useEffect(() => {
+    if (loading) return;
+    if (savedSettings) {
+      if (savedSettings.globalSettings) setGlobalSettings(savedSettings.globalSettings);
+      if (savedSettings.channels) setChannels(savedSettings.channels);
+      if (savedSettings.modules?.length) setModules(savedSettings.modules);
+      if (savedSettings.quietHours) setQuietHours(savedSettings.quietHours);
+      if (savedSettings.digestMode) setDigestMode(savedSettings.digestMode);
+      if (savedSettings.digestTime) setDigestTime(savedSettings.digestTime);
+    }
+    setInitialized(true);
+  }, [loading, savedSettings]);
+
+  const handleSave = useCallback(async () => {
     setSaving(true);
     setSaveMessage(null);
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (typeof window !== 'undefined') {
-        const demoRole = localStorage.getItem('demo_role');
-        if (demoRole) headers['x-demo-role'] = demoRole;
-        const token = localStorage.getItem('auth_token');
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-      }
-      const response = await fetch('/api/v1/settings/notifications', {
+      const response = await apiRequest('/api/v1/settings/notifications', {
         method: 'PUT',
-        headers,
-        body: JSON.stringify({
+        body: {
+          propertyId,
           globalSettings,
           channels,
           modules,
           quietHours,
           digestMode,
           digestTime,
-        }),
+        },
       });
+
       if (response.ok) {
         setSaveMessage('Changes saved successfully.');
       } else {
-        // API may not exist yet — treat as success for UI since state is local
-        setSaveMessage('Changes saved successfully.');
+        const result = await response.json().catch(() => ({}));
+        setSaveMessage(result.message || `Failed to save (${response.status}). Please try again.`);
       }
     } catch {
-      // API endpoint may not exist yet — show success for local state
-      setSaveMessage('Changes saved successfully.');
+      setSaveMessage('Network error. Please check your connection and try again.');
     } finally {
       setSaving(false);
     }
-  }
+  }, [propertyId, globalSettings, channels, modules, quietHours, digestMode, digestTime]);
 
   function toggleModuleChannel(moduleId: string, channel: 'email' | 'sms' | 'push' | 'inApp') {
     setModules((prev) =>
       prev.map((m) => (m.id === moduleId ? { ...m, [channel]: !m[channel] } : m)),
     );
+  }
+
+  // Show skeleton while loading from API
+  if (loading || !initialized) {
+    return <NotificationSettingsSkeleton />;
   }
 
   return (
@@ -165,6 +262,15 @@ export default function NotificationSettingsPage() {
           Configure email, SMS, and push notification settings for your property.
         </p>
       </div>
+
+      {/* Load error banner */}
+      {loadError && (
+        <div className="border-warning-200 bg-warning-50 rounded-xl border px-4 py-3">
+          <p className="text-warning-700 text-[14px]">
+            Could not load saved settings — showing defaults. {loadError}
+          </p>
+        </div>
+      )}
 
       {/* Global Settings */}
       <div>

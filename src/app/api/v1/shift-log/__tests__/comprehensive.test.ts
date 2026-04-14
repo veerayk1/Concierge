@@ -41,6 +41,13 @@ const mockEventCount = vi.fn();
 const mockEventCreate = vi.fn();
 const mockEventFindUnique = vi.fn();
 const mockEventUpdate = vi.fn();
+const mockEventTypeFindFirst = vi.fn();
+const mockEventTypeCreate = vi.fn();
+const mockEventGroupFindFirst = vi.fn();
+const mockEventGroupCreate = vi.fn();
+const mockShiftLogEntryFindUnique = vi.fn();
+const mockShiftLogEntryUpdate = vi.fn();
+const mockShiftLogEntryDelete = vi.fn();
 
 vi.mock('@/server/db', () => ({
   prisma: {
@@ -50,6 +57,19 @@ vi.mock('@/server/db', () => ({
       create: (...args: unknown[]) => mockEventCreate(...args),
       findUnique: (...args: unknown[]) => mockEventFindUnique(...args),
       update: (...args: unknown[]) => mockEventUpdate(...args),
+    },
+    eventType: {
+      findFirst: (...args: unknown[]) => mockEventTypeFindFirst(...args),
+      create: (...args: unknown[]) => mockEventTypeCreate(...args),
+    },
+    eventGroup: {
+      findFirst: (...args: unknown[]) => mockEventGroupFindFirst(...args),
+      create: (...args: unknown[]) => mockEventGroupCreate(...args),
+    },
+    shiftLogEntry: {
+      findUnique: (...args: unknown[]) => mockShiftLogEntryFindUnique(...args),
+      update: (...args: unknown[]) => mockShiftLogEntryUpdate(...args),
+      delete: (...args: unknown[]) => mockShiftLogEntryDelete(...args),
     },
   },
 }));
@@ -122,6 +142,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockEventFindMany.mockResolvedValue([]);
   mockEventCount.mockResolvedValue(0);
+  // The POST handler auto-creates eventType/eventGroup if not found
+  mockEventTypeFindFirst.mockResolvedValue({ id: 'shift-log-type', name: 'Shift Log' });
+  mockEventGroupFindFirst.mockResolvedValue({ id: 'shift-log-group', name: 'Shift Log' });
 });
 
 // ===========================================================================

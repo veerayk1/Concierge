@@ -40,7 +40,7 @@ describe('Super Admin navigation (Section 7.1)', () => {
     const labels = getLabelsForRole(role);
     expect(labels).toContain('Dashboard');
     // Super Admin no longer sees property-level items in OVERVIEW
-    expect(labels).not.toContain('Units & Residents');
+    expect(labels).not.toContain('Units');
     expect(labels).not.toContain('Amenities');
   });
 
@@ -95,7 +95,8 @@ describe('Property Admin navigation (Section 7.2)', () => {
   it('sees OVERVIEW items', () => {
     const labels = getLabelsForRole(role);
     expect(labels).toContain('Dashboard');
-    expect(labels).toContain('Units & Residents');
+    expect(labels).toContain('Units');
+    expect(labels).toContain('Residents');
     expect(labels).toContain('Amenities');
   });
 
@@ -175,7 +176,8 @@ describe('Property Manager navigation (Section 7.4)', () => {
   it('sees OVERVIEW items', () => {
     const labels = getLabelsForRole(role);
     expect(labels).toContain('Dashboard');
-    expect(labels).toContain('Units & Residents');
+    expect(labels).toContain('Units');
+    expect(labels).toContain('Residents');
     expect(labels).toContain('Amenities');
   });
 
@@ -259,7 +261,7 @@ describe('Security Guard navigation (Section 7.6)', () => {
   it('does NOT see Maintenance, Units, Reports, or Settings', () => {
     const labels = getLabelsForRole(role);
     expect(labels).not.toContain('Service Requests');
-    expect(labels).not.toContain('Units & Residents');
+    expect(labels).not.toContain('Units');
     expect(labels).not.toContain('Reports');
     expect(labels).not.toContain('Settings');
   });
