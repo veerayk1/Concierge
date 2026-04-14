@@ -465,7 +465,11 @@ export default function AssetDetailPage() {
                   variant="secondary"
                   size="sm"
                   fullWidth
-                  onClick={() => alert('QR Code generation is coming soon.')}
+                  onClick={() => {
+                    const assetUrl = `${window.location.origin}/assets/${asset.id}`;
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(assetUrl)}`;
+                    window.open(qrUrl, '_blank');
+                  }}
                 >
                   <QrCode className="h-4 w-4" />
                   Generate QR Code

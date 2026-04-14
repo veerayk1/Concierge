@@ -431,7 +431,7 @@ export default function ResidentCardsPage() {
           size="sm"
           disabled={selectedCards.size === 0}
           onClick={() => {
-            alert('Batch print is coming soon. Select cards first.');
+            window.print();
           }}
         >
           <Printer className="h-4 w-4" />

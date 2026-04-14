@@ -341,7 +341,26 @@ export default function DigitalSignagePage() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => alert('Preview Mode is coming soon.')}
+            onClick={() => {
+              const activeItems = allSignageItems.filter((s) => s.status === 'active');
+              const previewHtml = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Digital Signage Preview</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.container{width:100%;max-width:960px;padding:48px}
+.slide{background:#1a1a1a;border-radius:16px;padding:40px;margin-bottom:24px}
+.slide h2{font-size:28px;margin-bottom:12px}
+.slide p{font-size:18px;line-height:1.6;color:#ccc}
+.badge{display:inline-block;font-size:12px;padding:4px 10px;border-radius:20px;background:#333;color:#aaa;margin-bottom:16px}
+.empty{text-align:center;color:#666;font-size:20px;padding:80px 0}
+</style></head><body><div class="container">
+${activeItems.length === 0 ? '<div class="empty">No active signage content</div>' : activeItems.map((s) => `<div class="slide"><span class="badge">${s.screen.toUpperCase()} &middot; ${s.type.toUpperCase()}</span><h2>${s.name.replace(/</g, '&lt;')}</h2><p>${s.content.replace(/</g, '&lt;')}</p></div>`).join('')}
+</div></body></html>`;
+              const blob = new Blob([previewHtml], { type: 'text/html' });
+              const url = URL.createObjectURL(blob);
+              window.open(url, '_blank', 'width=1024,height=768');
+            }}
           >
             <Eye className="h-4 w-4" />
             Preview Mode

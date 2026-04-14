@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -184,6 +184,8 @@ function VendorDetailSkeleton() {
 export default function VendorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const certInputRef = useRef<HTMLInputElement>(null);
 
   const {
     data: vendor,
@@ -193,6 +195,34 @@ export default function VendorDetailPage() {
   } = useApi<VendorDetail>(apiUrl(`/api/v1/vendors/${id}`, { propertyId: getPropertyId() }));
 
   // -- Action Handlers --
+  const handleCertificateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', file.name);
+      formData.append('type', 'insurance_certificate');
+      const res = await fetch(
+        apiUrl(`/api/v1/vendors/${id}/documents`, { propertyId: getPropertyId() }),
+        { method: 'POST', body: formData },
+      );
+      if (!res.ok) {
+        const result = await res.json().catch(() => ({}));
+        alert(result.message || 'Failed to upload certificate.');
+      } else {
+        alert('Certificate uploaded successfully.');
+        refetch();
+      }
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setUploading(false);
+      if (certInputRef.current) certInputRef.current.value = '';
+    }
+  };
+
   const handleDeactivateVendor = async () => {
     const confirmed = window.confirm(
       'Are you sure you want to deactivate this vendor? They will no longer be assignable to new work orders.',
@@ -488,14 +518,24 @@ export default function VendorDetailPage() {
                 <InfoRow
                   label="Insurance Certificate"
                   value={
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => alert('Certificate upload is coming soon.')}
-                    >
-                      <Upload className="h-3.5 w-3.5" />
-                      Upload / View Certificate
-                    </Button>
+                    <>
+                      <input
+                        ref={certInputRef}
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        className="hidden"
+                        onChange={handleCertificateUpload}
+                      />
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={uploading}
+                        onClick={() => certInputRef.current?.click()}
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        {uploading ? 'Uploading...' : 'Upload / View Certificate'}
+                      </Button>
+                    </>
                   }
                 />
               </div>
@@ -623,7 +663,34 @@ export default function VendorDetailPage() {
                 <Button
                   variant="secondary"
                   fullWidth
-                  onClick={() => alert('Contract viewer is coming soon.')}
+                  onClick={async () => {
+                    const contractDoc =
+                      documents.find(
+                        (d) =>
+                          d.type.toLowerCase().includes('contract') ||
+                          d.name.toLowerCase().includes('contract'),
+                      ) || documents[0];
+                    if (!contractDoc) {
+                      alert('No documents available. Upload a contract first.');
+                      return;
+                    }
+                    try {
+                      const resp = await apiRequest(
+                        `/api/v1/vendors/${vendor.id}/documents/${contractDoc.id}/download`,
+                        { method: 'GET' },
+                      );
+                      const result = (await resp.json()) as {
+                        data?: { url: string; fileName: string };
+                      };
+                      if (result.data?.url) {
+                        window.open(result.data.url, '_blank');
+                      } else {
+                        alert('Download link not available.');
+                      }
+                    } catch {
+                      alert('Failed to load contract.');
+                    }
+                  }}
                 >
                   <FileText className="h-4 w-4" />
                   View Contract
