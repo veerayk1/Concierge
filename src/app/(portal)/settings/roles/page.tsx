@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EditRoleDialog } from '@/components/forms/edit-role-dialog';
 
 // ---------------------------------------------------------------------------
 // Types (aligned with API response)
@@ -78,6 +79,7 @@ const actionBadgeVariant: Record<
 export default function RolesPermissionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRoleId, setExpandedRoleId] = useState<string | null>(null);
+  const [editingRole, setEditingRole] = useState<RoleFromApi | null>(null);
 
   // Fetch roles from API
   const {
@@ -362,7 +364,7 @@ export default function RolesPermissionsPage() {
                             title="Edit role"
                             onClick={(e) => {
                               e.stopPropagation();
-                              alert('Edit role is coming soon.');
+                              setEditingRole(role);
                             }}
                           >
                             <Pencil className="h-4 w-4" />
@@ -489,6 +491,18 @@ export default function RolesPermissionsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Role Dialog */}
+      {editingRole && (
+        <EditRoleDialog
+          open={!!editingRole}
+          onOpenChange={(open) => {
+            if (!open) setEditingRole(null);
+          }}
+          role={editingRole}
+          onSuccess={refetch}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -22,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EditDirectoryEntryDialog } from '@/components/forms/edit-directory-entry-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -124,6 +126,7 @@ function DetailSkeleton() {
 export default function BuildingDirectoryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const {
     data: entry,
@@ -178,7 +181,7 @@ export default function BuildingDirectoryDetailPage() {
       description="Building Directory"
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => alert('Edit Entry is coming soon.')}>
+          <Button variant="secondary" size="sm" onClick={() => setEditDialogOpen(true)}>
             <Edit2 className="h-4 w-4" />
             Edit Entry
           </Button>
@@ -309,7 +312,7 @@ export default function BuildingDirectoryDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" onClick={() => alert('Edit Entry is coming soon.')}>
+                <Button variant="secondary" onClick={() => setEditDialogOpen(true)}>
                   <Edit2 className="h-4 w-4" />
                   Edit Entry
                 </Button>
@@ -403,6 +406,14 @@ export default function BuildingDirectoryDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Directory Entry Dialog */}
+      <EditDirectoryEntryDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        entry={entry}
+        onSuccess={refetch}
+      />
     </PageShell>
   );
 }

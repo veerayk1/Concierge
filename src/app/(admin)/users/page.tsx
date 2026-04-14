@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import {
   AlertCircle,
   Download,
@@ -163,7 +163,7 @@ export default function UsersPage() {
             {row.temporaryPassword && (
               <button
                 type="button"
-                className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 font-mono text-[11px] text-amber-700 hover:bg-amber-100 transition-colors border border-amber-200"
+                className="mt-0.5 inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 font-mono text-[11px] text-amber-700 transition-colors hover:bg-amber-100"
                 title="Click to copy password"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -171,7 +171,9 @@ export default function UsersPage() {
                   const btn = e.currentTarget;
                   const orig = btn.textContent;
                   btn.textContent = 'Copied!';
-                  setTimeout(() => { btn.textContent = orig; }, 1500);
+                  setTimeout(() => {
+                    btn.textContent = orig;
+                  }, 1500);
                 }}
               >
                 <KeyRound className="h-2.5 w-2.5" />
@@ -272,11 +274,25 @@ export default function UsersPage() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
-              onClick={() => {
-                setActionMessage({
-                  type: 'success',
-                  text: `Password reset for ${row.firstName} ${row.lastName} is coming soon.`,
-                });
+              onClick={async () => {
+                try {
+                  const resp = await apiRequest(`/api/v1/users/${row.id}/welcome-email`, {
+                    method: 'POST',
+                  });
+                  if (resp.ok) {
+                    setActionMessage({
+                      type: 'success',
+                      text: `Password reset email sent to ${row.firstName} ${row.lastName}.`,
+                    });
+                  } else {
+                    setActionMessage({
+                      type: 'error',
+                      text: 'Failed to send password reset email.',
+                    });
+                  }
+                } catch {
+                  setActionMessage({ type: 'error', text: 'Network error. Please try again.' });
+                }
                 setTimeout(() => setActionMessage(null), 4000);
               }}
             >
@@ -284,11 +300,26 @@ export default function UsersPage() {
               Reset Password
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => {
-                setActionMessage({
-                  type: 'success',
-                  text: `${row.status === 'active' ? 'Deactivate' : 'Activate'} for ${row.firstName} ${row.lastName} is coming soon.`,
-                });
+              onClick={async () => {
+                const action = row.status === 'active' ? 'deactivate' : 'activate';
+                const newStatus = row.status === 'active' ? false : true;
+                try {
+                  const resp = await apiRequest(`/api/v1/users/${row.id}`, {
+                    method: 'PATCH',
+                    body: { isActive: newStatus },
+                  });
+                  if (resp.ok) {
+                    setActionMessage({
+                      type: 'success',
+                      text: `${row.firstName} ${row.lastName} has been ${action}d.`,
+                    });
+                    refetch();
+                  } else {
+                    setActionMessage({ type: 'error', text: `Failed to ${action} user.` });
+                  }
+                } catch {
+                  setActionMessage({ type: 'error', text: 'Network error. Please try again.' });
+                }
                 setTimeout(() => setActionMessage(null), 4000);
               }}
             >
@@ -298,11 +329,27 @@ export default function UsersPage() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               destructive
-              onClick={() => {
-                setActionMessage({
-                  type: 'error',
-                  text: `Delete for ${row.firstName} ${row.lastName} is coming soon.`,
-                });
+              onClick={async () => {
+                if (
+                  !confirm(
+                    `Are you sure you want to delete ${row.firstName} ${row.lastName}? This cannot be undone.`,
+                  )
+                )
+                  return;
+                try {
+                  const resp = await apiRequest(`/api/v1/users/${row.id}`, { method: 'DELETE' });
+                  if (resp.ok) {
+                    setActionMessage({
+                      type: 'success',
+                      text: `${row.firstName} ${row.lastName} has been deleted.`,
+                    });
+                    refetch();
+                  } else {
+                    setActionMessage({ type: 'error', text: 'Failed to delete user.' });
+                  }
+                } catch {
+                  setActionMessage({ type: 'error', text: 'Network error. Please try again.' });
+                }
                 setTimeout(() => setActionMessage(null), 4000);
               }}
             >

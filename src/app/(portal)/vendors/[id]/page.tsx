@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -27,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { EditVendorDialog } from '@/components/forms/edit-vendor-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -181,6 +183,7 @@ function VendorDetailSkeleton() {
 
 export default function VendorDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const {
     data: vendor,
@@ -341,11 +344,7 @@ export default function VendorDetailPage() {
       description={`${vendor.category} vendor`}
       actions={
         <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => alert('Edit Vendor is coming soon.')}
-          >
+          <Button variant="secondary" size="sm" onClick={() => setEditDialogOpen(true)}>
             <Edit2 className="h-4 w-4" />
             Edit Vendor
           </Button>
@@ -609,7 +608,7 @@ export default function VendorDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button fullWidth onClick={() => alert('Edit Vendor is coming soon.')}>
+                <Button fullWidth onClick={() => setEditDialogOpen(true)}>
                   <Edit2 className="h-4 w-4" />
                   Edit Vendor
                 </Button>
@@ -669,7 +668,30 @@ export default function VendorDetailPage() {
                       <button
                         type="button"
                         className="text-neutral-400 transition-colors hover:text-neutral-600"
-                        onClick={() => alert('Document download is coming soon.')}
+                        onClick={async () => {
+                          try {
+                            const resp = await apiRequest(
+                              `/api/v1/vendors/${vendor.id}/documents/${doc.id}/download`,
+                              { method: 'GET' },
+                            );
+                            const result = (await resp.json()) as {
+                              data?: { url: string; fileName: string };
+                            };
+                            if (result.data?.url) {
+                              const link = document.createElement('a');
+                              link.href = result.data.url;
+                              link.download = result.data.fileName || doc.name;
+                              link.target = '_blank';
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            } else {
+                              alert('Download link not available.');
+                            }
+                          } catch {
+                            alert('Failed to download document.');
+                          }
+                        }}
                       >
                         <Download className="h-4 w-4" />
                       </button>
@@ -683,6 +705,14 @@ export default function VendorDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Edit Vendor Dialog */}
+      <EditVendorDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        vendor={vendor}
+        onSuccess={refetch}
+      />
     </PageShell>
   );
 }

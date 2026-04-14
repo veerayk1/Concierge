@@ -23,6 +23,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { EditCustomFieldDialog } from '@/components/forms/edit-custom-field-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -92,6 +93,7 @@ const ENTITY_LABELS: Record<TabEntityType, string> = {
 export default function CustomFieldsPage() {
   const [activeTab, setActiveTab] = useState<TabEntityType>('unit');
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingField, setEditingField] = useState<CustomFieldDefinition | null>(null);
 
   // Fetch all custom fields for this property
   const {
@@ -212,7 +214,7 @@ export default function CustomFieldsPage() {
             type="button"
             className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
             title="Edit field"
-            onClick={() => alert('Edit field is coming soon.')}
+            onClick={() => setEditingField(row)}
           >
             <Pencil className="h-4 w-4" />
           </button>
@@ -434,6 +436,18 @@ export default function CustomFieldsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Custom Field Dialog */}
+      {editingField && (
+        <EditCustomFieldDialog
+          open={!!editingField}
+          onOpenChange={(open) => {
+            if (!open) setEditingField(null);
+          }}
+          field={editingField}
+          onSuccess={refetch}
+        />
+      )}
     </div>
   );
 }

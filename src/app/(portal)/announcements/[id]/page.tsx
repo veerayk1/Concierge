@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -25,6 +26,7 @@ import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { EditAnnouncementDialog } from '@/components/forms/edit-announcement-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -111,6 +113,7 @@ function AnnouncementDetailSkeleton() {
 export default function AnnouncementDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const {
     data: announcement,
@@ -129,7 +132,7 @@ export default function AnnouncementDetailPage() {
   // -- Action Handlers --
 
   const handleEdit = () => {
-    alert('Edit Announcement is coming soon.');
+    setEditDialogOpen(true);
   };
 
   const handleResend = async () => {
@@ -576,6 +579,16 @@ export default function AnnouncementDetailPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Edit Announcement Dialog */}
+      {announcement && (
+        <EditAnnouncementDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          announcement={announcement}
+          onSuccess={refetch}
+        />
       )}
     </div>
   );

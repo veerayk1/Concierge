@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   AlertTriangle,
@@ -19,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EditAssetDialog } from '@/components/forms/edit-asset-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -161,6 +163,7 @@ export default function AssetDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const {
     data: asset,
@@ -444,7 +447,7 @@ export default function AssetDetailPage() {
                   variant="secondary"
                   size="sm"
                   fullWidth
-                  onClick={() => alert('Edit Asset is coming soon.')}
+                  onClick={() => setEditDialogOpen(true)}
                 >
                   <Edit className="h-4 w-4" />
                   Edit Asset
@@ -453,7 +456,7 @@ export default function AssetDetailPage() {
                   variant="secondary"
                   size="sm"
                   fullWidth
-                  onClick={() => alert('Schedule Maintenance is coming soon.')}
+                  onClick={() => router.push(`/maintenance?assetId=${asset.id}`)}
                 >
                   <Wrench className="h-4 w-4" />
                   Schedule Maintenance
@@ -588,6 +591,14 @@ export default function AssetDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Asset Dialog */}
+      <EditAssetDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        asset={asset}
+        onSuccess={refetch}
+      />
     </PageShell>
   );
 }
