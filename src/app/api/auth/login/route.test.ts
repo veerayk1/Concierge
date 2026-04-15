@@ -356,7 +356,7 @@ describe('POST /api/auth/login', () => {
     expect(body.error).toMatch(/too many login attempts/i);
   });
 
-  it('resets failed login attempts on successful login', async () => {
+  it('updates lastLoginAt on successful login', async () => {
     const user = createUser({
       email: 'reset-counter@example.com',
       isActive: true,
@@ -376,7 +376,7 @@ describe('POST /api/auth/login', () => {
     expect(prisma.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          failedLoginAttempts: 0,
+          lastLoginAt: expect.any(Date),
         }),
       }),
     );

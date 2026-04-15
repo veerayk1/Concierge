@@ -151,7 +151,7 @@ import {
 // Constants
 // ---------------------------------------------------------------------------
 
-const PROPERTY_ID = 'prop-001';
+const PROPERTY_ID = '00000000-0000-4000-b000-000000000001';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -162,7 +162,7 @@ function makeVendor(overrides: Record<string, unknown> = {}) {
     id: 'vendor-001',
     propertyId: PROPERTY_ID,
     companyName: 'ProPlumb Plumbing Services',
-    serviceCategoryId: 'cat-plumbing',
+    serviceCategoryId: '00000000-0000-4000-c000-000000000001',
     contactName: 'Mike Johnson',
     phone: '416-555-0100',
     email: 'mike@proplumb.ca',
@@ -221,7 +221,7 @@ describe('Scenario 1: Vendor Created with Insurance Documents', () => {
     const req = createPostRequest('/api/v1/vendors', {
       propertyId: PROPERTY_ID,
       companyName: 'ProPlumb Plumbing Services',
-      serviceCategoryId: 'cat-plumbing',
+      serviceCategoryId: '00000000-0000-4000-c000-000000000001',
       contactName: 'Mike Johnson',
       phone: '416-555-0100',
       email: 'mike@proplumb.ca',
@@ -625,7 +625,7 @@ describe('Full Workflow: Vendor from creation to compliance renewal', () => {
       createPostRequest('/api/v1/vendors', {
         propertyId: PROPERTY_ID,
         companyName: 'E2E Plumbing Co',
-        serviceCategoryId: 'cat-plumbing',
+        serviceCategoryId: '00000000-0000-4000-c000-000000000001',
         contactName: 'Test Contact',
       }),
     );
@@ -711,7 +711,7 @@ describe('Vendor Compliance: Validation & Edge Cases', () => {
   it('should reject vendor creation without companyName', async () => {
     const req = createPostRequest('/api/v1/vendors', {
       propertyId: PROPERTY_ID,
-      serviceCategoryId: 'cat-plumbing',
+      serviceCategoryId: '00000000-0000-4000-c000-000000000001',
     });
 
     const res = await createVendor(req);
@@ -721,7 +721,7 @@ describe('Vendor Compliance: Validation & Edge Cases', () => {
   it('should reject vendor creation without propertyId', async () => {
     const req = createPostRequest('/api/v1/vendors', {
       companyName: 'Test Co',
-      serviceCategoryId: 'cat-plumbing',
+      serviceCategoryId: '00000000-0000-4000-c000-000000000001',
     });
 
     const res = await createVendor(req);

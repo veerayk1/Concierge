@@ -683,7 +683,8 @@ describe('8. Special character escaping', () => {
     await GET(searchReq({ propertyId: PROPERTY_A, q: "O'Brien" }));
 
     const unitWhere = mockUnitFindMany.mock.calls[0]![0].where;
-    expect(unitWhere.number.contains).toBe("O'Brien");
+    // number filter is inside AND array: AND[0] = { number: { contains, mode } }
+    expect(unitWhere.AND[0].number.contains).toBe("O'Brien");
   });
 });
 

@@ -780,6 +780,9 @@ describe('Scenario 3: Batch Intake (create 4 packages at once)', () => {
         packageHistory: {
           create: vi.fn().mockResolvedValue({ id: 'h1' }),
         },
+        user: {
+          findUnique: vi.fn().mockResolvedValue({ firstName: 'Staff', lastName: 'User' }),
+        },
       });
     });
 
@@ -814,6 +817,9 @@ describe('Scenario 3: Batch Intake (create 4 packages at once)', () => {
         },
         packageHistory: {
           create: historyCreateMock,
+        },
+        user: {
+          findUnique: vi.fn().mockResolvedValue({ firstName: 'Staff', lastName: 'User' }),
         },
       });
     });

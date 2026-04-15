@@ -290,7 +290,7 @@ export async function POST(request: NextRequest) {
           lastName: user.lastName,
           status: 'pending',
           createdAt: user.createdAt,
-          tempPassword, // DEV: return temp password so admin can see it. Remove before production.
+          // tempPassword intentionally omitted — never expose credentials in API responses
         },
         message: `Account created for ${user.firstName} ${user.lastName}. Welcome email sent with login credentials.`,
       },

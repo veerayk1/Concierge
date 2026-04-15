@@ -114,6 +114,10 @@ vi.mock('@/server/email', () => ({
   sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/server/middleware/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockResolvedValue({ remaining: 10, limit: 10 }),
+}));
+
 // ---------------------------------------------------------------------------
 // Import route handlers AFTER mocks
 // ---------------------------------------------------------------------------
@@ -206,7 +210,7 @@ describe('Auth Comprehensive: Login with valid credentials returns tokens', () =
     expect(userData.role).toBe('front_desk');
   });
 
-  it('resets failed login attempts on successful login', async () => {
+  it('updates lastLoginAt on successful login', async () => {
     const user = mockActiveUser({ failedLoginAttempts: 3 });
     mockUserFindUnique.mockResolvedValue(user);
     vi.mocked(verifyPassword).mockResolvedValue({ valid: true, needsRehash: false });
@@ -217,8 +221,7 @@ describe('Auth Comprehensive: Login with valid credentials returns tokens', () =
     expect(mockUserUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          failedLoginAttempts: 0,
-          lockedUntil: null,
+          lastLoginAt: expect.any(Date),
         }),
       }),
     );
@@ -636,6 +639,7 @@ describe('Auth Comprehensive: Password reset request sends email', () => {
       expect.objectContaining({
         email: user.email,
         firstName: user.firstName,
+        token: expect.any(String),
       }),
     );
   });

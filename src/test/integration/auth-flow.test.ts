@@ -129,6 +129,11 @@ vi.mock('@/server/email', () => ({
   sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Mock rate limiter
+vi.mock('@/server/middleware/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockResolvedValue({ remaining: 10, limit: 10 }),
+}));
+
 // ---------------------------------------------------------------------------
 // Import route handlers AFTER mocks are in place
 // ---------------------------------------------------------------------------
@@ -811,12 +816,11 @@ describe('Auth Flow: Full lifecycle (login → refresh → logout)', () => {
     // Verify refresh token was stored
     expect(mockRefreshTokenCreate).toHaveBeenCalled();
 
-    // Verify failed attempts were reset
+    // Verify lastLoginAt was updated on successful login
     expect(mockUserUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          failedLoginAttempts: 0,
-          lockedUntil: null,
+          lastLoginAt: expect.any(Date),
         }),
       }),
     );

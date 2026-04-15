@@ -496,9 +496,8 @@ describe('Event creation schema', () => {
   });
 
   it('requires a valid eventTypeId', () => {
-    const error = expectZodError(() =>
-      createEventSchema.parse({ ...validEvent, eventTypeId: 'not-uuid' }),
-    );
+    // eventTypeId uses min(1) validation, not uuid() — rejects empty string
+    const error = expectZodError(() => createEventSchema.parse({ ...validEvent, eventTypeId: '' }));
     const msgs = getFieldErrors(error, 'eventTypeId');
     expect(msgs.length).toBeGreaterThan(0);
     expect(msgs[0]).toContain('event type');

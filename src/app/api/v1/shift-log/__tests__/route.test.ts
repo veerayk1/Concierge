@@ -517,7 +517,7 @@ describe('GET /api/v1/shift-log — Tenant Isolation', () => {
     await GET(req);
 
     const where = mockEventFindMany.mock.calls[0]![0].where;
-    expect(where.eventType).toEqual({ slug: 'shift_log' });
+    expect(where.eventType).toEqual({ slug: { in: ['shift_log', 'shift-log'] } });
   });
 
   it('does not expose entries from a different property', async () => {

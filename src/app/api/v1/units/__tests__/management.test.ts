@@ -143,6 +143,8 @@ function makeUnit(overrides: Record<string, unknown> = {}) {
     updatedAt: new Date('2025-01-01'),
     building: { id: BUILDING_1, name: 'Tower A' },
     unitInstructions: [],
+    occupancyRecords: [],
+    _count: { occupancyRecords: 0 },
     ...overrides,
   };
 }

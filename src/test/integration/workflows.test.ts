@@ -388,13 +388,14 @@ describe('Workflow: Package Lifecycle (Create → Remind → Release)', () => {
     });
     await updatePackage(releaseReq, { params: Promise.resolve({ id: packageId }) });
 
-    // Verify PackageHistory was called for both remind and release
+    // Verify PackageHistory was called for create, remind, and release
     const historyActions = mockPackageHistoryCreate.mock.calls.map(
       (call: unknown[]) => (call[0] as { data: { action: string } }).data.action,
     );
+    expect(historyActions).toContain('received');
     expect(historyActions).toContain('reminder_sent');
     expect(historyActions).toContain('released');
-    expect(mockPackageHistoryCreate).toHaveBeenCalledTimes(2);
+    expect(mockPackageHistoryCreate).toHaveBeenCalledTimes(3);
   });
 });
 

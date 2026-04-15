@@ -511,6 +511,8 @@ describe('8. Report access control', () => {
 
 describe('9. Tenant isolation', () => {
   it('requires propertyId parameter', async () => {
+    // When user has no propertyId on their auth token AND no query param, should 400
+    setAuth({ propertyId: null });
     const res = await GET(reportReq({}));
     expect(res.status).toBe(400);
 
@@ -540,6 +542,9 @@ describe('9. Tenant isolation', () => {
   });
 
   it('different propertyId scopes to different property', async () => {
+    // The route uses auth.user.propertyId first (IDOR prevention),
+    // so set the user's propertyId to PROPERTY_B
+    setAuth({ propertyId: PROPERTY_B });
     await GET(reportReq({ propertyId: PROPERTY_B, type: 'package_activity' }));
 
     const where = mockPackageFindMany.mock.calls[0]![0].where;

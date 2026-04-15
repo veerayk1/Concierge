@@ -851,7 +851,9 @@ describe('11. Tenant isolation and property scoping', () => {
       }),
     );
 
-    expect(mockEventFindMany.mock.calls[0]![0].where.eventType).toEqual({ slug: 'shift_log' });
+    expect(mockEventFindMany.mock.calls[0]![0].where.eventType).toEqual({
+      slug: { in: ['shift_log', 'shift-log'] },
+    });
   });
 
   it('property B search does not return property A results', async () => {

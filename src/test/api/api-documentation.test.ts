@@ -266,6 +266,18 @@ function categorizeRoute(routePath: string): string {
   if (path.startsWith('privacy')) return 'Privacy & Compliance';
   if (path.startsWith('settings')) return 'Settings';
   if (path.startsWith('purchase-orders')) return 'Purchase Orders';
+  if (path.startsWith('admin/')) return 'Admin';
+  if (path.startsWith('buzzer-codes')) return 'Residents';
+  if (path.startsWith('consent-documents')) return 'Privacy & Compliance';
+  if (path.startsWith('debug')) return 'Infrastructure';
+  if (path.startsWith('event-groups')) return 'Events & Security Console';
+  if (path.startsWith('import/') || path.startsWith('import-templates')) return 'Data Migration';
+  if (path.startsWith('occupancy')) return 'Units & Buildings';
+  if (path.startsWith('public/')) return 'Public';
+  if (path.startsWith('security/')) return 'Events & Security Console';
+  if (path.startsWith('staff/')) return 'User Management';
+  if (path.startsWith('system/')) return 'Infrastructure';
+  if (path.startsWith('vacations')) return 'Residents';
 
   return 'Other';
 }

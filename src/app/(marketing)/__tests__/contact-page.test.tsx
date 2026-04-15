@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import ContactPage from '../contact/page';
 
 vi.mock('next/link', () => ({
@@ -18,6 +18,13 @@ vi.mock('next/link', () => ({
     </a>
   ),
 }));
+
+// Mock fetch for the contact form POST
+const mockFetch = vi.fn();
+beforeEach(() => {
+  mockFetch.mockReset();
+  vi.stubGlobal('fetch', mockFetch);
+});
 
 describe('Contact Page', () => {
   it('renders contact form with required fields', () => {
@@ -60,11 +67,15 @@ describe('Contact Page', () => {
   });
 
   it('shows success message on valid submission', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+
     const user = userEvent.setup();
     render(<ContactPage />);
 
     await user.type(screen.getByLabelText(/name/i), 'John Doe');
     await user.type(screen.getByLabelText(/email/i), 'john@example.com');
+    // Subject is required by the form — select a valid option
+    await user.selectOptions(screen.getByLabelText(/subject/i), 'general');
     await user.type(screen.getByLabelText(/message/i), 'Hello, I have a question about Concierge.');
     await user.click(screen.getByRole('button', { name: /send message/i }));
 

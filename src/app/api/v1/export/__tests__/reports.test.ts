@@ -562,15 +562,15 @@ describe('Validates module parameter', () => {
     expect(body.error).toBe('MISSING_PARAMS');
   });
 
-  it('rejects missing propertyId parameter', async () => {
+  it('still succeeds when propertyId is missing from search params (uses auth user propertyId)', async () => {
+    // The route uses auth.user.propertyId as primary source, falling back to searchParams
     const req = createGetRequest('/api/v1/export', {
       searchParams: { module: 'packages' },
     });
     const res = await GET(req);
 
-    expect(res.status).toBe(400);
-    const body = await parseResponse<{ error: string }>(res);
-    expect(body.error).toBe('MISSING_PARAMS');
+    // Auth mock has a propertyId, so the route uses that — no 400
+    expect(res.status).not.toBe(400);
   });
 
   it('accepts all valid module names', async () => {

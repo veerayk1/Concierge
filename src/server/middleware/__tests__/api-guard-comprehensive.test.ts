@@ -183,7 +183,7 @@ describe('guardRoute — comprehensive', () => {
       const req = makeRequest({ 'x-demo-role': 'property_admin' });
       const result = await guardRoute(req, { allowDemo: true });
 
-      expect(result.user!.propertyId).toBe('00000000-0000-4000-b000-000000000001');
+      expect(result.user!.propertyId).toBe('94fd28bd-37ce-4fb1-952e-4c182634fc90');
     });
   });
 

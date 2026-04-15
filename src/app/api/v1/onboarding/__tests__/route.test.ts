@@ -37,6 +37,30 @@ vi.mock('@/server/db', () => ({
       update: (...args: unknown[]) => mockUpdate(...args),
       findUnique: (...args: unknown[]) => mockPropertyFindUnique(...args),
     },
+    $transaction: async (fn: (tx: unknown) => Promise<unknown>) => {
+      const tx = {
+        property: {
+          update: (...args: unknown[]) => mockUpdate(...args),
+        },
+        unit: {
+          create: vi.fn().mockResolvedValue({}),
+        },
+        amenityGroup: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue({ id: 'ag-1', name: 'General' }),
+        },
+        amenity: {
+          create: vi.fn().mockResolvedValue({}),
+        },
+        userProperty: {
+          findFirst: vi.fn().mockResolvedValue({ userId: 'test-admin' }),
+        },
+        eventType: {
+          create: vi.fn().mockResolvedValue({}),
+        },
+      };
+      return fn(tx);
+    },
   },
 }));
 

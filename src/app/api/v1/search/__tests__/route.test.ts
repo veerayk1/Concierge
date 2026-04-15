@@ -208,7 +208,8 @@ describe('GET /api/v1/search — Cross-Module Search', () => {
     const unitWhere = mockUnitFindMany.mock.calls[0]![0].where;
     expect(unitWhere.propertyId).toBe(propertyId);
     expect(unitWhere.deletedAt).toBeNull();
-    expect(unitWhere.number).toEqual({ contains: '1501', mode: 'insensitive' });
+    // number filter is inside AND array: AND[0] = { number: { contains, mode } }
+    expect(unitWhere.AND[0].number).toEqual({ contains: '1501', mode: 'insensitive' });
   });
 
   it('searches packages by referenceNumber AND trackingNumber', async () => {

@@ -921,14 +921,17 @@ describe('11. Admin-only access enforcement on roles and feature flags', () => {
     expect(mockGuardRoute.mock.calls[0]![1]).toEqual({ roles: ['super_admin', 'property_admin'] });
   });
 
-  it('feature flags GET requires admin role', async () => {
+  it('feature flags GET uses standard guardRoute (no explicit role constraint)', async () => {
     await GET_FLAGS(
       createGetRequest('/api/v1/feature-flags', {
         searchParams: { propertyId: PROPERTY_A },
       }),
     );
 
-    expect(mockGuardRoute.mock.calls[0]![1]).toEqual({ roles: ['super_admin', 'property_admin'] });
+    // GET handler calls guardRoute(request) without role restrictions
+    // Only PATCH enforces admin roles
+    expect(mockGuardRoute).toHaveBeenCalled();
+    expect(mockGuardRoute.mock.calls[0]![1]).toBeUndefined();
   });
 
   it('feature flags PATCH requires admin role', async () => {

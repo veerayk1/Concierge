@@ -208,7 +208,7 @@ describe('POST /api/v1/announcements — Authorization', () => {
     expect(mockGuardRoute).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        roles: ['super_admin', 'property_admin'],
+        roles: ['super_admin', 'property_admin', 'property_manager'],
       }),
     );
   });

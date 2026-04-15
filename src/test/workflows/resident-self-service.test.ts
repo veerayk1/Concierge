@@ -142,6 +142,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
     user: {
       userId: 'resident-001',
       propertyId: 'prop-001',
+      unitId: 'unit-101',
       role: 'resident',
       permissions: [
         'maintenance:create',

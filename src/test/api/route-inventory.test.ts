@@ -403,13 +403,19 @@ describe('Route file consistency', () => {
     const routeFiles = findRouteFiles(v1Dir);
     expect(routeFiles.length).toBeGreaterThan(50); // sanity check
 
+    // Public/utility routes that intentionally skip DB and auth guard
+    const EXCEPTIONS = ['v1/import-templates/route.ts'];
+
     const routesWithoutDbOrGuard: string[] = [];
     for (const file of routeFiles) {
       const content = fs.readFileSync(file, 'utf-8');
       const hasDb = content.includes('@/server/db') || content.includes('prisma');
       const hasGuard = content.includes('guardRoute');
       if (!hasDb && !hasGuard) {
-        routesWithoutDbOrGuard.push(path.relative(API_ROOT, file));
+        const relative = path.relative(API_ROOT, file);
+        if (!EXCEPTIONS.includes(relative)) {
+          routesWithoutDbOrGuard.push(relative);
+        }
       }
     }
 

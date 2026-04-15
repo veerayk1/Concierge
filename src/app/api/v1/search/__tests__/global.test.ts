@@ -365,7 +365,8 @@ describe('5. Case-insensitive search', () => {
     await GET(searchReq({ propertyId: PROPERTY_A, q: 'unit' }));
 
     const where = mockUnitFindMany.mock.calls[0]![0].where;
-    expect(where.number.mode).toBe('insensitive');
+    // number filter is inside AND array: AND[0] = { number: { contains, mode } }
+    expect(where.AND[0].number.mode).toBe('insensitive');
   });
 
   it('uses mode: insensitive for package search', async () => {
@@ -414,7 +415,8 @@ describe('6. Special character safety (SQL injection prevention)', () => {
     await GET(searchReq({ propertyId: PROPERTY_A, q: "'; DROP TABLE users;--" }));
 
     const where = mockUnitFindMany.mock.calls[0]![0].where;
-    expect(where.number.contains).toBe("'; DROP TABLE users;--");
+    // number filter is inside AND array: AND[0] = { number: { contains, mode } }
+    expect(where.AND[0].number.contains).toBe("'; DROP TABLE users;--");
   });
 });
 

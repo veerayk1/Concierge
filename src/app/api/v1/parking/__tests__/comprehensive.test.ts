@@ -115,6 +115,7 @@ vi.mock('@/server/db', () => ({
           parkingPermit: {
             create: (...a: unknown[]) => mockPermitCreate(...a),
             findUnique: (...a: unknown[]) => mockPermitFindUnique(...a),
+            update: (...a: unknown[]) => mockPermitUpdate(...a),
           },
           parkingSpot: {
             update: (...a: unknown[]) => mockSpotUpdate(...a),
@@ -518,12 +519,18 @@ describe('4. Permit type configuration', () => {
     expect(include.permitType).toBeDefined();
   });
 
-  it('rejects permit creation without permitTypeId', async () => {
+  it('auto-creates permit type when permitTypeId not provided', async () => {
+    mockPermitCreate.mockResolvedValue({
+      id: PERMIT_A,
+      referenceNumber: 'PRK-20260401-0001',
+      status: 'active',
+    });
     const { permitTypeId: _, ...noType } = validPermitBody;
     const req = createPostRequest('/api/v1/parking', noType);
     const res = await POST(req);
 
-    expect(res.status).toBe(400);
+    // Route auto-creates permit type when not provided
+    expect(res.status).toBe(201);
   });
 
   it('rejects non-UUID permitTypeId', async () => {

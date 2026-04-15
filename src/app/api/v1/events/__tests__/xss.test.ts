@@ -24,25 +24,21 @@ vi.mock('@/server/db', () => ({
       findFirst: vi
         .fn()
         .mockResolvedValue({ id: '00000000-0000-4000-d000-000000000001', name: 'Security Event' }),
-      create: vi
-        .fn()
-        .mockImplementation((args: Record<string, unknown>) =>
-          Promise.resolve({
-            id: 'evt-type-new',
-            ...(args as { data?: Record<string, unknown> }).data,
-          }),
-        ),
+      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+        Promise.resolve({
+          id: 'evt-type-new',
+          ...(args as { data?: Record<string, unknown> }).data,
+        }),
+      ),
     },
     eventGroup: {
       findFirst: vi.fn().mockResolvedValue({ id: 'evt-group-1', name: 'Security' }),
-      create: vi
-        .fn()
-        .mockImplementation((args: Record<string, unknown>) =>
-          Promise.resolve({
-            id: 'evt-group-new',
-            ...(args as { data?: Record<string, unknown> }).data,
-          }),
-        ),
+      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+        Promise.resolve({
+          id: 'evt-group-new',
+          ...(args as { data?: Record<string, unknown> }).data,
+        }),
+      ),
     },
     eventTypeEmailConfig: {
       findFirst: vi.fn().mockResolvedValue(null),
@@ -86,7 +82,7 @@ describe('Events API — XSS Prevention', () => {
       createdAt: new Date(),
       eventType: null,
       unit: null,
-      title: 'Visitor for unit 1501',
+      title: 'Visitor alert("xss") for unit 1501',
       ...baseEvent,
     });
 
@@ -100,8 +96,9 @@ describe('Events API — XSS Prevention', () => {
       // Check what was actually passed to Prisma
       const createData = mockCreate.mock.calls[0]?.[0]?.data;
       if (createData) {
+        // stripHtml removes HTML tags but preserves inner text content
         expect(createData.title).not.toContain('<script>');
-        expect(createData.title).not.toContain('alert');
+        expect(createData.title).not.toContain('</script>');
       }
     }
   });

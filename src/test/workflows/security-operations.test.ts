@@ -78,25 +78,21 @@ vi.mock('@/server/db', () => ({
     },
     eventType: {
       findFirst: vi.fn().mockResolvedValue({ id: 'evt-type-1', name: 'Security Event' }),
-      create: vi
-        .fn()
-        .mockImplementation((args: Record<string, unknown>) =>
-          Promise.resolve({
-            id: 'evt-type-new',
-            ...(args as { data?: Record<string, unknown> }).data,
-          }),
-        ),
+      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+        Promise.resolve({
+          id: 'evt-type-new',
+          ...(args as { data?: Record<string, unknown> }).data,
+        }),
+      ),
     },
     eventGroup: {
       findFirst: vi.fn().mockResolvedValue({ id: 'evt-group-1', name: 'Security' }),
-      create: vi
-        .fn()
-        .mockImplementation((args: Record<string, unknown>) =>
-          Promise.resolve({
-            id: 'evt-group-new',
-            ...(args as { data?: Record<string, unknown> }).data,
-          }),
-        ),
+      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+        Promise.resolve({
+          id: 'evt-group-new',
+          ...(args as { data?: Record<string, unknown> }).data,
+        }),
+      ),
     },
     eventTypeEmailConfig: {
       findFirst: vi.fn().mockResolvedValue(null),
@@ -289,6 +285,7 @@ describe('Scenario 1: Fire Alarm Event — Full Emergency Response', () => {
 
   it('Step 3: PATCH /api/v1/events/:id — fire department called timestamp recorded', async () => {
     const now = new Date();
+    mockEventFindUnique.mockResolvedValue(fireEvent);
     mockEventUpdate.mockResolvedValue({
       ...fireEvent,
       customFields: {
@@ -345,6 +342,7 @@ describe('Scenario 1: Fire Alarm Event — Full Emergency Response', () => {
 
   it('Step 5: PATCH /api/v1/events/:id — checklists completed one by one', async () => {
     // Complete first checklist
+    mockEventFindUnique.mockResolvedValue(fireEvent);
     const partiallyComplete = {
       ...fireEvent,
       customFields: {
@@ -365,6 +363,7 @@ describe('Scenario 1: Fire Alarm Event — Full Emergency Response', () => {
     expect(res1.status).toBe(200);
 
     // Complete second checklist
+    mockEventFindUnique.mockResolvedValue(partiallyComplete);
     const moreComplete = {
       ...partiallyComplete,
       customFields: {
@@ -385,6 +384,7 @@ describe('Scenario 1: Fire Alarm Event — Full Emergency Response', () => {
     expect(res2.status).toBe(200);
 
     // Complete third checklist
+    mockEventFindUnique.mockResolvedValue(moreComplete);
     const allComplete = {
       ...moreComplete,
       customFields: {
@@ -436,6 +436,7 @@ describe('Scenario 1: Fire Alarm Event — Full Emergency Response', () => {
 
   it('Step 7: PATCH /api/v1/events/:id — fire department departs', async () => {
     const now = new Date();
+    mockEventFindUnique.mockResolvedValue(fireEvent);
     mockEventUpdate.mockResolvedValue({
       ...fireEvent,
       customFields: {
@@ -454,6 +455,7 @@ describe('Scenario 1: Fire Alarm Event — Full Emergency Response', () => {
   });
 
   it('Step 8: PATCH /api/v1/events/:id — event closed with full timeline', async () => {
+    mockEventFindUnique.mockResolvedValue(fireEvent);
     mockEventUpdate.mockResolvedValue({
       ...fireEvent,
       status: 'closed',
@@ -540,6 +542,7 @@ describe('Scenario 1: Fire Alarm Event — Full Emergency Response', () => {
     expect(allClearRes.status).toBe(200);
 
     // Step 4: Close event
+    mockEventFindUnique.mockResolvedValue(fireEvent);
     mockEventUpdate.mockResolvedValue({
       ...fireEvent,
       status: 'closed',
@@ -612,6 +615,7 @@ describe('Scenario 2: Security Incident — Report to Resolution', () => {
   });
 
   it('Step 2: PATCH /api/v1/events/:id — photos attached count updated', async () => {
+    mockEventFindUnique.mockResolvedValue(incidentEvent);
     mockEventUpdate.mockResolvedValue({
       ...incidentEvent,
       customFields: { ...incidentEvent.customFields, photosAttached: 3 },
@@ -627,6 +631,7 @@ describe('Scenario 2: Security Incident — Report to Resolution', () => {
   });
 
   it('Step 3: PATCH /api/v1/events/:id — suspect description recorded', async () => {
+    mockEventFindUnique.mockResolvedValue(incidentEvent);
     mockEventUpdate.mockResolvedValue({
       ...incidentEvent,
       description:
@@ -644,6 +649,7 @@ describe('Scenario 2: Security Incident — Report to Resolution', () => {
   });
 
   it('Step 4: PATCH /api/v1/events/:id — escalated to security supervisor', async () => {
+    mockEventFindUnique.mockResolvedValue(incidentEvent);
     mockEventUpdate.mockResolvedValue({
       ...incidentEvent,
       priority: 'critical',
@@ -839,6 +845,7 @@ describe('Scenario 3: Noise Complaint — Receive, Investigate, Resolve', () => 
   });
 
   it('Step 2: PATCH /api/v1/events/:id — investigation details filled', async () => {
+    mockEventFindUnique.mockResolvedValue(noiseEvent);
     mockEventUpdate.mockResolvedValue({
       ...noiseEvent,
       description:

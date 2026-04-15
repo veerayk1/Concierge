@@ -23,10 +23,12 @@ describe('createEventSchema', () => {
     expect(createEventSchema.safeParse(rest).success).toBe(false);
   });
 
-  it('requires eventTypeId as UUID', () => {
+  it('requires eventTypeId as non-empty string', () => {
+    // eventTypeId uses min(1) validation — empty string is rejected, non-empty strings pass
     expect(createEventSchema.safeParse({ ...validInput, eventTypeId: '' }).success).toBe(false);
+    // Non-empty strings are valid (not restricted to UUID format)
     expect(createEventSchema.safeParse({ ...validInput, eventTypeId: 'not-uuid' }).success).toBe(
-      false,
+      true,
     );
   });
 

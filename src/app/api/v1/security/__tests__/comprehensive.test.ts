@@ -187,25 +187,21 @@ vi.mock('@/server/db', () => ({
     },
     eventType: {
       findFirst: vi.fn().mockResolvedValue({ id: 'evt-type-1', name: 'Security Event' }),
-      create: vi
-        .fn()
-        .mockImplementation((args: Record<string, unknown>) =>
-          Promise.resolve({
-            id: 'evt-type-new',
-            ...(args as { data?: Record<string, unknown> }).data,
-          }),
-        ),
+      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+        Promise.resolve({
+          id: 'evt-type-new',
+          ...(args as { data?: Record<string, unknown> }).data,
+        }),
+      ),
     },
     eventGroup: {
       findFirst: vi.fn().mockResolvedValue({ id: 'evt-group-1', name: 'Security' }),
-      create: vi
-        .fn()
-        .mockImplementation((args: Record<string, unknown>) =>
-          Promise.resolve({
-            id: 'evt-group-new',
-            ...(args as { data?: Record<string, unknown> }).data,
-          }),
-        ),
+      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+        Promise.resolve({
+          id: 'evt-group-new',
+          ...(args as { data?: Record<string, unknown> }).data,
+        }),
+      ),
     },
     eventTypeEmailConfig: {
       findFirst: vi.fn().mockResolvedValue(null),
@@ -724,19 +720,18 @@ describe('6. Event closure: sets closedBy and closedAt', () => {
     expect(updateData.closedAt).toBeInstanceOf(Date);
   });
 
-  it('returns error for closing a non-existent event — Prisma rejects missing record', async () => {
-    mockEventUpdate.mockRejectedValue(new Error('Record to update not found'));
+  it('returns error for closing a non-existent event — findUnique guard returns 404', async () => {
+    // findUnique returns null for non-existent event → route returns 404
+    mockEventFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/events/nonexistent', {
       status: 'closed',
     });
     const res = await PATCH_EVENT(req, { params: Promise.resolve({ id: 'nonexistent' }) });
 
-    // Route catches Prisma error and returns 500 (no findUnique guard)
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(404);
     const body = await parseResponse<{ error: string; message: string }>(res);
-    expect(body.error).toBe('INTERNAL_ERROR');
-    expect(body.message).not.toContain('Record to update');
+    expect(body.error).toBe('NOT_FOUND');
   });
 });
 
@@ -1007,6 +1002,7 @@ describe('12. Incident escalation', () => {
   };
 
   it('bumps priority to critical and sets status to in_progress', async () => {
+    mockEventFindUnique.mockResolvedValue({ id: 'i1', propertyId: PROP_A });
     mockEventUpdate.mockResolvedValue({
       id: 'i1',
       title: 'Water leak',
@@ -1024,6 +1020,7 @@ describe('12. Incident escalation', () => {
   });
 
   it('stores escalation metadata in customFields', async () => {
+    mockEventFindUnique.mockResolvedValue({ id: 'i1', propertyId: PROP_A });
     mockEventUpdate.mockResolvedValue({ id: 'i1', title: 'Test', propertyId: PROP_A });
     mockUserPropertyFindMany.mockResolvedValue([]);
 
@@ -1037,6 +1034,7 @@ describe('12. Incident escalation', () => {
   });
 
   it('defaults priority to high when not specified', async () => {
+    mockEventFindUnique.mockResolvedValue({ id: 'i1', propertyId: PROP_A });
     mockEventUpdate.mockResolvedValue({ id: 'i1', title: 'Test', propertyId: PROP_A });
     mockUserPropertyFindMany.mockResolvedValue([]);
 
@@ -1078,6 +1076,7 @@ describe('12. Incident escalation', () => {
   });
 
   it('strips HTML from escalateTo — XSS prevention', async () => {
+    mockEventFindUnique.mockResolvedValue({ id: 'i1', propertyId: PROP_A });
     mockEventUpdate.mockResolvedValue({ id: 'i1', title: 'Test', propertyId: PROP_A });
     mockUserPropertyFindMany.mockResolvedValue([]);
 
@@ -1092,6 +1091,7 @@ describe('12. Incident escalation', () => {
   });
 
   it('returns success message naming the escalation target', async () => {
+    mockEventFindUnique.mockResolvedValue({ id: 'i1', propertyId: PROP_A });
     mockEventUpdate.mockResolvedValue({ id: 'i1', title: 'Test', propertyId: PROP_A });
     mockUserPropertyFindMany.mockResolvedValue([]);
 

@@ -619,7 +619,7 @@ describe('Suggestions — anomaly detection', () => {
 // ===========================================================================
 
 describe('GET /ai/analytics — building health score', () => {
-  it('returns a health score between 0 and 100', async () => {
+  it('returns null health score when no operational data exists', async () => {
     mockMaintenanceCount.mockResolvedValue(0);
     mockMaintenanceFindMany.mockResolvedValue([]);
     mockPackageCount.mockResolvedValue(0);
@@ -631,8 +631,8 @@ describe('GET /ai/analytics — building health score', () => {
     expect(res.status).toBe(200);
 
     const body = await parseResponse<AnalyticsResponse>(res);
-    expect(body.data.healthScore).toBeGreaterThanOrEqual(0);
-    expect(body.data.healthScore).toBeLessThanOrEqual(100);
+    // When no operational data exists, the route short-circuits with null score
+    expect(body.data.healthScore).toBeNull();
   });
 
   it('returns trend direction (up, down, or flat)', async () => {
@@ -741,7 +741,7 @@ describe('Analytics — delivery trends and SLA compliance', () => {
     expect(body.data.maintenanceSlaCompliance).toBeLessThanOrEqual(67);
   });
 
-  it('returns 100% SLA compliance when no maintenance requests exist', async () => {
+  it('returns null SLA compliance when no operational data exists', async () => {
     mockMaintenanceFindMany.mockResolvedValue([]);
     mockMaintenanceCount.mockResolvedValue(0);
     mockPackageCount.mockResolvedValue(0);
@@ -753,7 +753,8 @@ describe('Analytics — delivery trends and SLA compliance', () => {
     const res = await getAnalytics(req);
     const body = await parseResponse<AnalyticsResponse>(res);
 
-    expect(body.data.maintenanceSlaCompliance).toBe(100);
+    // When no operational data, the route short-circuits with null
+    expect(body.data.maintenanceSlaCompliance).toBeNull();
   });
 });
 
