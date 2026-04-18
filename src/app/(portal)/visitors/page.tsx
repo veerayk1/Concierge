@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
+import { exportToCsv } from '@/lib/export-csv';
 import {
   AlertCircle,
   Users,
@@ -349,7 +350,34 @@ export default function VisitorsPage() {
       description="Track visitor sign-in and sign-out for building security."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              const rows = filteredVisitors.map((v) => ({
+                visitorName: v.visitorName,
+                visitorType: VISITOR_TYPE_LABELS[v.visitorType],
+                unit: v.unit?.number ?? '',
+                arrivalAt: v.arrivalAt,
+                departureAt: v.departureAt ?? '',
+                status: getStatus(v) === 'signed_in' ? 'Signed In' : 'Signed Out',
+                comments: v.comments ?? '',
+              }));
+              exportToCsv(
+                rows,
+                [
+                  { key: 'visitorName', header: 'Visitor Name' },
+                  { key: 'visitorType', header: 'Type' },
+                  { key: 'unit', header: 'Unit' },
+                  { key: 'arrivalAt', header: 'Arrived' },
+                  { key: 'departureAt', header: 'Departed' },
+                  { key: 'status', header: 'Status' },
+                  { key: 'comments', header: 'Comments' },
+                ],
+                'visitors',
+              );
+            }}
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>

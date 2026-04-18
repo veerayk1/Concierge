@@ -19,6 +19,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import type { Mesh } from 'three';
 
 export function HeroCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -204,8 +205,8 @@ export function HeroCanvas() {
         groundGeo.dispose();
         groundMat.dispose();
         buildingGroup.traverse((obj) => {
-          if ((obj as THREE.Mesh).geometry) {
-            (obj as THREE.Mesh).geometry.dispose();
+          if ((obj as Mesh).geometry) {
+            (obj as Mesh).geometry.dispose();
           }
         });
         renderer.dispose();

@@ -11,10 +11,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
-import type { Role } from '@/types';
-
-const RESIDENT_ROLES: Role[] = ['resident_owner', 'resident_tenant'];
-
 const preferenceItemSchema = z.object({
   module: z.string().min(1),
   channel: z.enum(['email', 'sms', 'push']),
@@ -28,7 +24,7 @@ const updatePreferencesSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request, { roles: RESIDENT_ROLES });
+    const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
     const { userId, propertyId } = auth.user;
@@ -50,7 +46,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const auth = await guardRoute(request, { roles: RESIDENT_ROLES });
+    const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
     const { userId, propertyId } = auth.user;
