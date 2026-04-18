@@ -61,3 +61,6 @@ next-env.d.ts
 *.seed
 .vercel
 .gstack/
+
+# Claude Code worktrees
+.claude/worktrees/
