@@ -8,6 +8,22 @@ import { prisma } from '@/server/db';
 import { hashPassword } from '@/server/auth/password';
 import { nanoid } from 'nanoid';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { z } from 'zod';
+
+const bulkImportUserSchema = z.object({
+  email: z.string().optional(),
+  firstName: z.string().optional(),
+  first_name: z.string().optional(),
+  lastName: z.string().optional(),
+  last_name: z.string().optional(),
+  phone: z.string().optional(),
+});
+
+const bulkImportSchema = z.object({
+  propertyId: z.string().uuid(),
+  roleId: z.string().uuid(),
+  users: z.array(bulkImportUserSchema).min(1).max(500),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,21 +31,15 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const { propertyId, roleId, users } = body;
 
-    if (!propertyId || !roleId || !Array.isArray(users) || users.length === 0) {
+    const parsed = bulkImportSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'VALIDATION_ERROR', message: 'propertyId, roleId, and users array are required' },
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
-
-    if (users.length > 500) {
-      return NextResponse.json(
-        { error: 'LIMIT_EXCEEDED', message: 'Maximum 500 users per import' },
-        { status: 400 },
-      );
-    }
+    const { propertyId, roleId, users } = parsed.data;
 
     const results = {
       created: 0,
@@ -39,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Process each user
     for (let i = 0; i < users.length; i++) {
-      const row = users[i];
+      const row = users[i]!;
       const email = (row.email || '').toLowerCase().trim();
       const firstName = (row.firstName || row.first_name || '').trim();
       const lastName = (row.lastName || row.last_name || '').trim();

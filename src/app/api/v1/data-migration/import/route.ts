@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { z } from 'zod';
 import {
   parseCsv,
   autoDetectMappings,
@@ -24,6 +25,24 @@ import type {
   DuplicateStrategy,
   ColumnMapping,
 } from '@/server/data-migration';
+
+const importSchema = z.object({
+  propertyId: z.string().uuid(),
+  entityType: z.string().min(1),
+  csvContent: z.string().min(1),
+  columnMappings: z
+    .array(
+      z.object({
+        sourceColumn: z.string(),
+        targetField: z.string(),
+      }),
+    )
+    .optional(),
+  dryRun: z.boolean().optional().default(false),
+  duplicateStrategy: z.string().optional().default('skip'),
+  competitorFormat: z.string().optional(),
+  fileName: z.string().max(500).optional().default('import.csv'),
+});
 
 const VALID_ENTITY_TYPES: EntityType[] = [
   'users',
@@ -47,36 +66,24 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
+
+    const parsed = importSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
     const {
       propertyId,
       entityType,
       csvContent,
       columnMappings,
-      dryRun = false,
-      duplicateStrategy = 'skip',
+      dryRun,
+      duplicateStrategy,
       competitorFormat,
-      fileName = 'import.csv',
-    } = body as {
-      propertyId?: string;
-      entityType?: string;
-      csvContent?: string;
-      columnMappings?: ColumnMapping[];
-      dryRun?: boolean;
-      duplicateStrategy?: string;
-      competitorFormat?: string;
-      fileName?: string;
-    };
-
-    // Validate required fields
-    if (!propertyId || !entityType || !csvContent) {
-      return NextResponse.json(
-        {
-          error: 'VALIDATION_ERROR',
-          message: 'propertyId, entityType, and csvContent are required',
-        },
-        { status: 400 },
-      );
-    }
+      fileName,
+    } = parsed.data;
 
     if (!VALID_ENTITY_TYPES.includes(entityType as EntityType)) {
       return NextResponse.json(

@@ -10,6 +10,49 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { z } from 'zod';
+
+const NOISE_NATURES_LIST = [
+  'Drop on Floor',
+  'Loud Music',
+  'Smoking Hallways',
+  'Smoking in Suite',
+  'Hallway Noise',
+  'Piano Playing',
+  'Dog Barking',
+  'Cooking Odors',
+  'Children Playing',
+  'Walking/Banging',
+  'Party',
+  'Talking',
+  'Construction',
+  'Other',
+] as const;
+
+const SUSPECT_CONTACT_LIST = [
+  'Home Phone',
+  'Work Phone',
+  'Other Phone',
+  'At the door',
+  'No one home',
+] as const;
+
+const createNoiseComplaintSchema = z.object({
+  propertyId: z.string().uuid(),
+  title: z.string().max(500).nullable().optional(),
+  complainantFloor: z.string().max(100).nullable().optional(),
+  suspectFloor: z.string().max(100).nullable().optional(),
+  natureOfComplaint: z.array(z.string()).min(1),
+  complainantFloorNoticeable: z.string().nullable().optional(),
+  suspectFloorNoticeable: z.string().nullable().optional(),
+  noiseDuration: z.string().max(200).nullable().optional(),
+  noiseDurationAssessment: z.string().nullable().optional(),
+  noiseDegreeAssessment: z.string().nullable().optional(),
+  suspectContactedBy: z.array(z.string()).optional(),
+  complainantAdvised: z.string().nullable().optional(),
+  noiseLogDetails: z.string().max(5000).nullable().optional(),
+  resolutionStatus: z.string().max(50).optional(),
+});
 
 const NOISE_NATURES = [
   'Drop on Floor',
@@ -100,6 +143,14 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
+
+    const parsed = createNoiseComplaintSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
     const {
       propertyId,
       title,
@@ -115,22 +166,7 @@ export async function POST(request: NextRequest) {
       complainantAdvised,
       noiseLogDetails,
       resolutionStatus,
-    } = body;
-
-    if (
-      !propertyId ||
-      !natureOfComplaint ||
-      !Array.isArray(natureOfComplaint) ||
-      natureOfComplaint.length === 0
-    ) {
-      return NextResponse.json(
-        {
-          error: 'VALIDATION_ERROR',
-          message: 'propertyId and natureOfComplaint (array) are required',
-        },
-        { status: 400 },
-      );
-    }
+    } = parsed.data;
 
     const validNatures = natureOfComplaint.filter((n: string) => NOISE_NATURES.includes(n));
     if (validNatures.length === 0) {

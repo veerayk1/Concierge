@@ -6,6 +6,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { z } from 'zod';
+
+const allClearSchema = z.object({
+  message: z.string().max(2000).optional().default(''),
+});
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -38,7 +43,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const body = await request.json();
-    const message = body.message || '';
+
+    const parsed = allClearSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+    const message = parsed.data.message;
 
     const updated = await prisma.emergencyBroadcast.update({
       where: { id },

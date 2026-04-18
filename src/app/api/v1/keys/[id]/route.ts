@@ -12,6 +12,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { z } from 'zod';
+
+const updateKeySchema = z.object({
+  action: z.enum(['decommission', 'lost']).optional(),
+  reason: z.string().max(1000).optional(),
+  reportedBy: z.string().max(200).optional(),
+  status: z.string().max(50).optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  keyOwner: z.string().max(200).nullable().optional(),
+});
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/keys/:id — Key detail with checkout history
@@ -85,12 +95,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const { id } = await params;
     const body = await request.json();
 
-    if (body.action === 'decommission') {
+    const parsed = updateKeySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+    const input = parsed.data;
+
+    if (input.action === 'decommission') {
       const key = await prisma.keyInventory.update({
         where: { id },
         data: {
           status: 'decommissioned',
-          decommissionReason: body.reason || null,
+          decommissionReason: input.reason || null,
           decommissionedAt: new Date(),
         },
       });
@@ -98,7 +117,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ data: key, message: `Key ${key.keyName} decommissioned.` });
     }
 
-    if (body.action === 'lost') {
+    if (input.action === 'lost') {
       const key = await prisma.keyInventory.update({
         where: { id },
         data: { status: 'lost' },
@@ -110,10 +129,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           propertyId: key.propertyId,
           incidentTypeId: '00000000-0000-4000-b000-000000000000', // system default "lost_key" type
           title: `Lost Key: ${key.keyName}`,
-          reportBody: `Key "${key.keyName}" (category: ${key.category}) has been reported as lost. ${body.reportedBy ? `Reported by: ${body.reportedBy}.` : ''} Immediate review recommended.`,
+          reportBody: `Key "${key.keyName}" (category: ${key.category}) has been reported as lost. ${input.reportedBy ? `Reported by: ${input.reportedBy}.` : ''} Immediate review recommended.`,
           timeOccurred: new Date(),
           urgency: true,
-          reportedBy: body.reportedBy || null,
+          reportedBy: input.reportedBy || null,
         },
       });
 
@@ -125,11 +144,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Generic update
     const updateData: Record<string, unknown> = {};
-    if (body.status) updateData.status = body.status;
-    if (body.notes !== undefined)
-      updateData.notes = body.notes ? stripControlChars(stripHtml(body.notes)) : null;
-    if (body.keyOwner !== undefined)
-      updateData.keyOwner = body.keyOwner ? stripControlChars(stripHtml(body.keyOwner)) : null;
+    if (input.status) updateData.status = input.status;
+    if (input.notes !== undefined)
+      updateData.notes = input.notes ? stripControlChars(stripHtml(input.notes)) : null;
+    if (input.keyOwner !== undefined)
+      updateData.keyOwner = input.keyOwner ? stripControlChars(stripHtml(input.keyOwner)) : null;
 
     const key = await prisma.keyInventory.update({
       where: { id },

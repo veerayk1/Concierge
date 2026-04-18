@@ -11,6 +11,27 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { z } from 'zod';
+
+const privacyErasureSchema = z.object({
+  action: z.literal('erasure'),
+  userId: z.string().uuid(),
+  propertyId: z.string().uuid(),
+});
+
+const privacyConsentSchema = z.object({
+  action: z.literal('consent'),
+  userId: z.string().uuid(),
+  propertyId: z.string().uuid(),
+  consentType: z.string().min(1).max(100),
+  granted: z.boolean(),
+});
+
+const privacyActionSchema = z.discriminatedUnion('action', [
+  privacyErasureSchema,
+  privacyConsentSchema,
+]);
+
 import {
   exportUserAuditData,
   getDataProcessingRecords,
@@ -118,20 +139,20 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const { action } = body as { action?: string };
 
-    switch (action) {
+    const parsed = privacyActionSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+    const input = parsed.data;
+
+    switch (input.action) {
       // --- Right to Erasure (Anonymization) ---
       case 'erasure': {
-        const { userId, propertyId } = body as { userId?: string; propertyId?: string };
-        if (!userId || !propertyId) {
-          return NextResponse.json(
-            { error: 'MISSING_FIELDS', message: 'userId and propertyId are required' },
-            { status: 400 },
-          );
-        }
-
-        const result = await anonymizeUserAuditTrail(userId, propertyId);
+        const result = await anonymizeUserAuditTrail(input.userId, input.propertyId);
         return NextResponse.json({
           data: result,
           message: `Anonymized ${result.anonymizedCount} audit entries`,
@@ -140,40 +161,21 @@ export async function POST(request: NextRequest) {
 
       // --- Consent Tracking ---
       case 'consent': {
-        const { userId, propertyId, consentType, granted } = body as {
-          userId?: string;
-          propertyId?: string;
-          consentType?: string;
-          granted?: boolean;
-        };
-
-        if (!userId || !propertyId || !consentType || granted === undefined) {
-          return NextResponse.json(
-            {
-              error: 'MISSING_FIELDS',
-              message: 'userId, propertyId, consentType, and granted are required',
-            },
-            { status: 400 },
-          );
-        }
-
         const ip = request.headers.get('x-forwarded-for') ?? undefined;
         const userAgent = request.headers.get('user-agent') ?? undefined;
 
-        await logConsent({ userId, propertyId, consentType, granted, ip, userAgent });
+        await logConsent({
+          userId: input.userId,
+          propertyId: input.propertyId,
+          consentType: input.consentType,
+          granted: input.granted,
+          ip,
+          userAgent,
+        });
         return NextResponse.json({
-          message: `Consent ${granted ? 'granted' : 'revoked'} for ${consentType}`,
+          message: `Consent ${input.granted ? 'granted' : 'revoked'} for ${input.consentType}`,
         });
       }
-
-      default:
-        return NextResponse.json(
-          {
-            error: 'INVALID_ACTION',
-            message: 'Body "action" must be one of: erasure, consent',
-          },
-          { status: 400 },
-        );
     }
   } catch (error) {
     console.error('POST /api/v1/privacy error:', error);

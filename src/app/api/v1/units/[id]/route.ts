@@ -5,6 +5,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { z } from 'zod';
+
+const updateUnitSchema = z.object({
+  number: z.string().min(1).max(50).optional(),
+  floor: z.number().int().nullable().optional(),
+  unitType: z.string().max(50).optional(),
+  status: z.string().max(50).optional(),
+  squareFootage: z.number().min(0).nullable().optional(),
+  enterPhoneCode: z.string().max(50).nullable().optional(),
+  parkingSpot: z.string().max(50).nullable().optional(),
+  locker: z.string().max(50).nullable().optional(),
+  keyTag: z.string().max(50).nullable().optional(),
+  packageEmailNotification: z.boolean().optional(),
+  comments: z.string().max(5000).optional(),
+  customFields: z.record(z.unknown()).optional(),
+});
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Skip demo handler — uses the real database for consistent GET/POST
@@ -73,22 +89,32 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const { id } = await params;
     const body = await request.json();
 
+    const parsed = updateUnitSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+    const input = parsed.data;
+
     const updateData: Record<string, unknown> = {};
-    if (body.number !== undefined) updateData.number = body.number;
-    if (body.floor !== undefined)
-      updateData.floor = body.floor !== null ? Number(body.floor) : null;
-    if (body.unitType !== undefined) updateData.unitType = body.unitType;
-    if (body.status !== undefined) updateData.status = body.status;
-    if (body.squareFootage !== undefined)
-      updateData.squareFootage = body.squareFootage !== null ? Number(body.squareFootage) : null;
-    if (body.enterPhoneCode !== undefined) updateData.enterPhoneCode = body.enterPhoneCode || null;
-    if (body.parkingSpot !== undefined) updateData.parkingSpot = body.parkingSpot || null;
-    if (body.locker !== undefined) updateData.locker = body.locker || null;
-    if (body.keyTag !== undefined) updateData.keyTag = body.keyTag || null;
-    if (body.packageEmailNotification !== undefined)
-      updateData.packageEmailNotification = body.packageEmailNotification;
-    if (body.comments !== undefined) updateData.comments = body.comments;
-    if (body.customFields !== undefined) updateData.customFields = body.customFields;
+    if (input.number !== undefined) updateData.number = input.number;
+    if (input.floor !== undefined)
+      updateData.floor = input.floor !== null ? Number(input.floor) : null;
+    if (input.unitType !== undefined) updateData.unitType = input.unitType;
+    if (input.status !== undefined) updateData.status = input.status;
+    if (input.squareFootage !== undefined)
+      updateData.squareFootage = input.squareFootage !== null ? Number(input.squareFootage) : null;
+    if (input.enterPhoneCode !== undefined)
+      updateData.enterPhoneCode = input.enterPhoneCode || null;
+    if (input.parkingSpot !== undefined) updateData.parkingSpot = input.parkingSpot || null;
+    if (input.locker !== undefined) updateData.locker = input.locker || null;
+    if (input.keyTag !== undefined) updateData.keyTag = input.keyTag || null;
+    if (input.packageEmailNotification !== undefined)
+      updateData.packageEmailNotification = input.packageEmailNotification;
+    if (input.comments !== undefined) updateData.comments = input.comments;
+    if (input.customFields !== undefined) updateData.customFields = input.customFields;
 
     const unit = await prisma.unit.update({
       where: { id },

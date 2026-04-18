@@ -10,11 +10,19 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { z } from 'zod';
 import { exportPropertyData, ENTITY_FIELDS } from '@/server/data-migration';
 import type { EntityType } from '@/server/data-migration';
 
 const VALID_ENTITY_TYPES = Object.keys(ENTITY_FIELDS) as EntityType[];
 const VALID_FORMATS = ['csv', 'json'] as const;
+
+const exportSchema = z.object({
+  propertyId: z.string().uuid(),
+  entityTypes: z.array(z.string()).optional(),
+  format: z.enum(['csv', 'json']).optional().default('json'),
+  dsarCompliant: z.boolean().optional().default(false),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,34 +30,15 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const {
-      propertyId,
-      entityTypes,
-      format = 'json',
-      dsarCompliant = false,
-    } = body as {
-      propertyId?: string;
-      entityTypes?: string[];
-      format?: string;
-      dsarCompliant?: boolean;
-    };
 
-    if (!propertyId) {
+    const parsed = exportSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'VALIDATION_ERROR', message: 'propertyId is required' },
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
-
-    if (!VALID_FORMATS.includes(format as (typeof VALID_FORMATS)[number])) {
-      return NextResponse.json(
-        {
-          error: 'VALIDATION_ERROR',
-          message: `Invalid format: ${format}. Must be one of: ${VALID_FORMATS.join(', ')}`,
-        },
-        { status: 400 },
-      );
-    }
+    const { propertyId, entityTypes, format, dsarCompliant } = parsed.data;
 
     // Validate entity types if provided
     if (entityTypes) {

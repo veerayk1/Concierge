@@ -6,6 +6,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { z } from 'zod';
+
+const updatePropertySettingsSchema = z.object({
+  brandingConfig: z.unknown().optional(),
+  welcomeMessage: z.string().max(5000).nullable().optional(),
+  operationalToggles: z.unknown().optional(),
+});
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -42,19 +49,28 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const { id: propertyId } = await params;
     const body = await request.json();
 
+    const parsed = updatePropertySettingsSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+    const input = parsed.data;
+
     const settings = await prisma.propertySettings.upsert({
       where: { propertyId },
       create: {
         propertyId,
-        brandingConfig: body.brandingConfig || null,
-        welcomeMessage: body.welcomeMessage || null,
-        operationalToggles: body.operationalToggles || null,
+        brandingConfig: (input.brandingConfig as any) || null,
+        welcomeMessage: input.welcomeMessage || null,
+        operationalToggles: (input.operationalToggles as any) || null,
       },
       update: {
-        ...(body.brandingConfig !== undefined && { brandingConfig: body.brandingConfig }),
-        ...(body.welcomeMessage !== undefined && { welcomeMessage: body.welcomeMessage }),
-        ...(body.operationalToggles !== undefined && {
-          operationalToggles: body.operationalToggles,
+        ...(input.brandingConfig !== undefined && { brandingConfig: input.brandingConfig as any }),
+        ...(input.welcomeMessage !== undefined && { welcomeMessage: input.welcomeMessage }),
+        ...(input.operationalToggles !== undefined && {
+          operationalToggles: input.operationalToggles as any,
         }),
       },
     });

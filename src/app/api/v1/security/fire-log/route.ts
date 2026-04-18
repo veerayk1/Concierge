@@ -10,6 +10,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { z } from 'zod';
+
+const createFireLogSchema = z.object({
+  propertyId: z.string().uuid(),
+  unitId: z.string().uuid().nullable().optional(),
+  title: z.string().min(1).max(500),
+  alarmTime: z.string().min(1),
+  alarmLocation: z.string().min(1).max(500),
+  alarmType: z.string().min(1).max(200),
+  fireDeptCallTime: z.string().nullable().optional(),
+  firstAnnouncementTime: z.string().nullable().optional(),
+  secondAnnouncementTime: z.string().nullable().optional(),
+  thirdAnnouncementTime: z.string().nullable().optional(),
+  fireDeptArrivalTime: z.string().nullable().optional(),
+  fireDeptAllClearTime: z.string().nullable().optional(),
+  fireDeptDepartureTime: z.string().nullable().optional(),
+  prepareForFdArrival: z.record(z.unknown()).nullable().optional(),
+  ensureElevatorsReset: z.record(z.unknown()).nullable().optional(),
+  resetDevices: z.record(z.unknown()).nullable().optional(),
+  fireLogDetails: z.string().max(5000).nullable().optional(),
+  sendCopyEmails: z.array(z.string().email()).optional(),
+  additionalNotes: z.string().max(5000).nullable().optional(),
+});
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/security/fire-log
@@ -107,6 +130,14 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
+
+    const parsed = createFireLogSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
     const {
       propertyId,
       unitId,
@@ -127,24 +158,7 @@ export async function POST(request: NextRequest) {
       fireLogDetails,
       sendCopyEmails,
       additionalNotes,
-    } = body;
-
-    if (!propertyId) {
-      return NextResponse.json(
-        { error: 'MISSING_PROPERTY', message: 'propertyId is required' },
-        { status: 400 },
-      );
-    }
-
-    if (!title || !alarmTime || !alarmLocation || !alarmType) {
-      return NextResponse.json(
-        {
-          error: 'VALIDATION_ERROR',
-          message: 'title, alarmTime, alarmLocation, and alarmType are required',
-        },
-        { status: 400 },
-      );
-    }
+    } = parsed.data;
 
     const sanitizedTitle = stripControlChars(stripHtml(title));
     const sanitizedLocation = stripControlChars(stripHtml(alarmLocation));

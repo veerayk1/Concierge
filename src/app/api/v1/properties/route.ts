@@ -8,6 +8,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
+import { z } from 'zod';
+
+const createPropertySchema = z.object({
+  name: z.string().min(1).max(200),
+  address: z.string().min(1).max(500),
+  city: z.string().min(1).max(100),
+  province: z.string().min(1).max(100),
+  postalCode: z.string().min(1).max(20),
+  country: z.string().max(100).optional(),
+  unitCount: z.number().int().min(0).optional(),
+  timezone: z.string().max(100).optional(),
+  logo: z.string().url().max(2048).nullable().optional(),
+  slug: z
+    .string()
+    .max(100)
+    .regex(/^[a-z0-9-]*$/)
+    .optional(),
+  branding: z.unknown().optional(),
+  propertyCode: z.string().max(7).optional(),
+});
 
 export async function GET(request: NextRequest) {
   const demoRes = await handleDemoRequest(request);
@@ -79,53 +99,49 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Validate required fields
-    const required = ['name', 'address', 'city', 'province', 'postalCode'];
-    const missing = required.filter((f) => !body[f]);
-    if (missing.length > 0) {
+    const parsed = createPropertySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          error: 'VALIDATION_ERROR',
-          message: `Missing required fields: ${missing.join(', ')}`,
-          fields: missing.map((f) => ({ field: f, message: `${f} is required` })),
-        },
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
+    const input = parsed.data;
 
     // Generate a unique slug from the name if not provided
     const baseSlug =
-      body.slug ||
-      body.name
+      input.slug ||
+      input.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
     const slug = `${baseSlug}-${Date.now().toString(36)}`;
 
     // Generate a unique property code (max 7 chars per schema)
-    const propertyCode = body.propertyCode || `P${Date.now().toString(36).slice(-6).toUpperCase()}`;
+    const propertyCode =
+      input.propertyCode || `P${Date.now().toString(36).slice(-6).toUpperCase()}`;
 
     // Create property and seed system roles in a transaction
     const property = await prisma.$transaction(async (tx) => {
       const prop = await tx.property.create({
         data: {
-          name: body.name,
-          address: body.address,
-          city: body.city,
-          province: body.province,
+          name: input.name,
+          address: input.address,
+          city: input.city,
+          province: input.province,
           country:
-            (body.country && body.country.length > 2
-              ? body.country.toLowerCase().startsWith('can')
+            (input.country && input.country.length > 2
+              ? input.country.toLowerCase().startsWith('can')
                 ? 'CA'
-                : body.country.substring(0, 2).toUpperCase()
-              : body.country) || 'CA',
-          postalCode: body.postalCode,
-          unitCount: body.unitCount || 0,
-          timezone: body.timezone || 'America/Toronto',
-          logo: body.logo || null,
+                : input.country.substring(0, 2).toUpperCase()
+              : input.country) || 'CA',
+          postalCode: input.postalCode,
+          unitCount: input.unitCount || 0,
+          timezone: input.timezone || 'America/Toronto',
+          logo: input.logo || null,
           type: 'PRODUCTION',
           slug,
-          branding: body.branding || {},
+          branding: (input.branding as any) || {},
           propertyCode,
         },
       });

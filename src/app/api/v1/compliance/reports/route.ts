@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { z } from 'zod';
 import {
   REPORT_CATALOG,
   COMPLIANCE_REPORT_TYPES,
@@ -13,6 +14,21 @@ import {
   type ComplianceReportType,
   type ScheduleConfig,
 } from '@/server/compliance';
+
+const generateReportSchema = z.object({
+  type: z.string().min(1),
+  propertyId: z.string().uuid(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  schedule: z
+    .object({
+      frequency: z.string(),
+      dayOfWeek: z.number().int().min(0).max(6).optional(),
+      dayOfMonth: z.number().int().min(1).max(31).optional(),
+      recipients: z.array(z.string().email()).optional(),
+    })
+    .optional(),
+});
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/compliance/reports — List available compliance report types
@@ -48,18 +64,18 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const { type, propertyId, from, to, schedule } = body;
 
-    // Validate propertyId
-    if (!propertyId) {
+    const parsed = generateReportSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'VALIDATION_ERROR', message: 'propertyId is required' },
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
+    const { type, propertyId, from, to, schedule } = parsed.data;
 
-    // Validate report type
-    if (!type || !COMPLIANCE_REPORT_TYPES.includes(type as ComplianceReportType)) {
+    // Validate report type against allowed list
+    if (!COMPLIANCE_REPORT_TYPES.includes(type as ComplianceReportType)) {
       return NextResponse.json(
         {
           error: 'VALIDATION_ERROR',
@@ -72,11 +88,11 @@ export async function POST(request: NextRequest) {
     // Handle schedule creation
     if (schedule) {
       const scheduleConfig: ScheduleConfig = {
-        reportType: type,
-        frequency: schedule.frequency,
+        reportType: type as ComplianceReportType,
+        frequency: schedule.frequency as 'daily' | 'weekly' | 'monthly',
         dayOfWeek: schedule.dayOfWeek,
         dayOfMonth: schedule.dayOfMonth,
-        recipients: schedule.recipients,
+        recipients: schedule.recipients ?? [],
         propertyId,
       };
 

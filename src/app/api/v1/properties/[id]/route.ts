@@ -8,6 +8,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
+import { z } from 'zod';
+
+const updatePropertySchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  address: z.string().min(1).max(500).optional(),
+  city: z.string().min(1).max(100).optional(),
+  province: z.string().min(1).max(100).optional(),
+  country: z.string().max(100).optional(),
+  postalCode: z.string().min(1).max(20).optional(),
+  unitCount: z.number().int().min(0).optional(),
+  timezone: z.string().max(100).optional(),
+  logo: z.string().max(2048).nullable().optional(),
+  slug: z.string().max(100).optional(),
+  branding: z.record(z.unknown()).optional(),
+  propertyCode: z.string().max(7).optional(),
+  type: z.enum(['PRODUCTION', 'DEMO', 'SANDBOX']).optional(),
+  parkingNotificationRoles: z.array(z.string()).optional(),
+});
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const demoRes = await handleDemoRequest(request);
@@ -65,6 +83,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const { id } = await params;
     const body = await request.json();
 
+    const parsed = updatePropertySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+    const input = parsed.data;
+
     // Verify property exists
     const existing = await prisma.property.findUnique({
       where: { id, deletedAt: null },
@@ -91,20 +118,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       'branding',
       'propertyCode',
       'type',
-    ];
+    ] as const;
 
     const updateData: Record<string, unknown> = {};
     for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updateData[field] = body[field];
+      if (input[field] !== undefined) {
+        updateData[field] = input[field];
       }
     }
 
     // Handle parkingNotificationRoles via raw SQL (column added post-schema-lock)
-    if (body.parkingNotificationRoles !== undefined) {
-      const roles = Array.isArray(body.parkingNotificationRoles)
-        ? body.parkingNotificationRoles.filter((r: unknown) => typeof r === 'string')
-        : [];
+    if (input.parkingNotificationRoles !== undefined) {
+      const roles = input.parkingNotificationRoles;
       await prisma.$executeRaw`
         UPDATE properties
         SET "parkingNotificationRoles" = ${JSON.stringify(roles)}::jsonb

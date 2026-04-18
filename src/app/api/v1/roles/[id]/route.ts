@@ -9,6 +9,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { z } from 'zod';
+
+const updateRoleSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional(),
+  permissions: z.union([z.array(z.string()), z.string()]).optional(),
+});
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -17,6 +24,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const { id } = await params;
     const body = await request.json();
+
+    const parsed = updateRoleSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+    const input = parsed.data;
 
     // Verify role exists and is not deleted
     const existing = await prisma.role.findFirst({
@@ -28,9 +44,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const updateData: Record<string, unknown> = {};
-    if (body.name !== undefined) updateData.name = body.name;
-    if (body.description !== undefined) updateData.description = body.description;
-    if (body.permissions !== undefined) updateData.permissions = body.permissions;
+    if (input.name !== undefined) updateData.name = input.name;
+    if (input.description !== undefined) updateData.description = input.description;
+    if (input.permissions !== undefined) updateData.permissions = input.permissions;
 
     const role = await prisma.role.update({
       where: { id },

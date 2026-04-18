@@ -7,6 +7,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { z } from 'zod';
+
+const assignStaffSchema = z.object({
+  userId: z.string().uuid(),
+  roleId: z.string().uuid(),
+});
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -15,14 +21,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { id: propertyId } = await params;
     const body = await request.json();
-    const { userId, roleId } = body;
 
-    if (!userId || !roleId) {
+    const parsed = assignStaffSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'VALIDATION_ERROR', message: 'userId and roleId are required' },
+        { error: 'VALIDATION_ERROR', fields: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
+    const { userId, roleId } = parsed.data;
 
     // Check for existing assignment
     const existing = await prisma.userProperty.findUnique({

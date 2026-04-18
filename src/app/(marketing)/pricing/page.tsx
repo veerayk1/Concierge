@@ -49,7 +49,7 @@ const TIERS: PricingTier[] = [
     unit: '/unit/month',
     description: 'For small buildings getting started with digital management.',
     cta: 'Start Free Trial',
-    ctaHref: '/contact',
+    ctaHref: '/demo',
     features: [
       'Package tracking',
       'Visitor logging',
@@ -65,7 +65,7 @@ const TIERS: PricingTier[] = [
     unit: '/unit/month',
     description: 'For managed properties that need the full suite.',
     cta: 'Start Free Trial',
-    ctaHref: '/contact',
+    ctaHref: '/demo',
     popular: true,
     features: [
       'Everything in Starter',
