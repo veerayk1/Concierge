@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
  * Used by entity creation routes (units, events, maintenance, etc.) to enforce
  * required custom fields and type checks before saving JSONB values.
  */
-async function validateCustomFieldValues(
+export async function validateCustomFieldValues(
   propertyId: string,
   module: string,
   values: Record<string, unknown>,

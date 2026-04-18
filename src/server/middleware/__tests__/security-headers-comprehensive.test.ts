@@ -269,11 +269,11 @@ describe('CORS headers on API routes', () => {
   const originalNodeEnv = process.env.NODE_ENV;
 
   beforeAll(() => {
-    process.env.NODE_ENV = 'production';
+    Object.assign(process.env, { NODE_ENV: 'production' });
   });
 
   afterAll(() => {
-    process.env.NODE_ENV = originalNodeEnv;
+    Object.assign(process.env, { NODE_ENV: originalNodeEnv });
   });
 
   it('allowed origin receives Access-Control-Allow-Origin header', () => {
