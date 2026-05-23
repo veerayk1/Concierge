@@ -215,6 +215,36 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    // Residents can only cancel their OWN bookings. Staff can cancel any
+    // in the property. Without this scope check any logged-in resident
+    // could cancel every booking in the building by guessing UUIDs —
+    // verified during adversarial sweep (was 200, now 403 cross-resident).
+    const STAFF_ROLES = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_supervisor',
+      'superintendent',
+    ]);
+    if (!STAFF_ROLES.has(auth.user.role)) {
+      const booking = await prisma.booking.findUnique({
+        where: { id },
+        select: { residentId: true, createdById: true },
+      });
+      if (!booking) {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: 'Booking not found' },
+          { status: 404 },
+        );
+      }
+      if (booking.residentId !== auth.user.userId && booking.createdById !== auth.user.userId) {
+        return NextResponse.json(
+          { error: 'FORBIDDEN', message: 'You can only cancel your own bookings.' },
+          { status: 403 },
+        );
+      }
+    }
     await prisma.booking.update({
       where: { id },
       data: { status: 'cancelled', cancelledAt: new Date(), cancelledById: auth.user.userId },

@@ -194,7 +194,17 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = await guardRoute(request);
+    // Staff-only — a resident could delete the entire package log otherwise.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
