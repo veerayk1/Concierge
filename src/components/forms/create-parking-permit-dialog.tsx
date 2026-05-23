@@ -4,7 +4,7 @@
  * Create Parking Permit Dialog — per PRD 13
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Car } from 'lucide-react';
@@ -29,12 +29,16 @@ const permitSchema = z.object({
 
 type PermitInput = z.infer<typeof permitSchema>;
 
-const PARKING_AREAS = [
-  { id: 'area-1', name: 'P1 Underground' },
-  { id: 'area-2', name: 'P2 Underground' },
-  { id: 'area-3', name: 'Visitor Lot' },
-  { id: 'area-4', name: 'Surface Lot' },
-];
+// Areas are fetched from /api/v1/parking/areas at dialog-open time. The
+// previous hardcoded fallback (area-1...area-4) shipped string ids that
+// were rejected by the API as invalid UUIDs, so every submission failed
+// validation with no on-screen feedback.
+interface ParkingAreaOption {
+  id: string;
+  name?: string;
+  areaName?: string;
+  areaCode?: string;
+}
 
 interface CreateParkingPermitDialogProps {
   open: boolean;
@@ -50,6 +54,26 @@ export function CreateParkingPermitDialog({
   onSuccess,
 }: CreateParkingPermitDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [areas, setAreas] = useState<ParkingAreaOption[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    const ctrl = new AbortController();
+    const demoRole = typeof window !== 'undefined' ? localStorage.getItem('demo_role') : null;
+    fetch(`/api/v1/parking/areas?propertyId=${propertyId}`, {
+      signal: ctrl.signal,
+      headers: demoRole ? { 'x-demo-role': demoRole } : undefined,
+    })
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((j) => {
+        const list: ParkingAreaOption[] = Array.isArray(j) ? j : (j.data ?? []);
+        setAreas(list);
+      })
+      .catch(() => {
+        // Network errors leave areas empty — dialog shows "No areas configured."
+      });
+    return () => ctrl.abort();
+  }, [open, propertyId]);
   const { units, loading: unitsLoading } = usePropertyUnits(propertyId);
 
   const {
@@ -178,10 +202,12 @@ export function CreateParkingPermitDialog({
                 {...register('areaId')}
                 className="focus:border-primary-500 focus:ring-primary-100 h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 transition-all duration-200 hover:border-neutral-300 focus:ring-4 focus:outline-none"
               >
-                <option value="">Select area...</option>
-                {PARKING_AREAS.map((a) => (
+                <option value="">
+                  {areas.length === 0 ? 'No areas configured for this property' : 'Select area...'}
+                </option>
+                {areas.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.name}
+                    {a.name || a.areaName || a.areaCode || 'Unnamed area'}
                   </option>
                 ))}
               </select>
