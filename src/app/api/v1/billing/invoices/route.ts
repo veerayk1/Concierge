@@ -12,14 +12,24 @@ import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-143: billing history is admin/board scope. A resident has no
+    // legitimate reason to enumerate every invoice the building has
+    // been charged (amount, status, PDF URL — direct download links to
+    // financial documents). Same role list as compliance + reports.
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin', 'property_manager', 'board_member'],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
     const status = searchParams.get('status'); // paid, pending, overdue, void
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    const _rawPage = parseInt(searchParams.get('page') || '1', 10);
+    const _rawPageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    const page = Number.isFinite(_rawPage) && _rawPage > 0 ? _rawPage : 1;
+    // Cap to 200 to prevent unbounded scans of the invoice table
+    const pageSize =
+      Number.isFinite(_rawPageSize) && _rawPageSize > 0 ? Math.min(_rawPageSize, 200) : 20;
     const invoiceId = searchParams.get('id'); // For single invoice download URL
 
     if (!propertyId) {
