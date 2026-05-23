@@ -95,8 +95,29 @@ function getDuration(arrival: string, departure: string): string {
 // Component
 // ---------------------------------------------------------------------------
 
+// Roles allowed to see the building-wide visitor log. Residents must NOT
+// see other residents' visitors (privacy). They have their own resident
+// portal scoped to their unit. Without this gate, a resident could open
+// /visitors and read every guest in the building with names + unit numbers.
+const VISITOR_PAGE_ROLES = new Set([
+  'super_admin',
+  'property_admin',
+  'property_manager',
+  'front_desk',
+  'security_guard',
+  'security_supervisor',
+  'superintendent',
+]);
+
 export default function VisitorsPage() {
   const router = useRouter();
+  // Role gate — bounce residents and anyone else to their dashboard.
+  if (typeof window !== 'undefined') {
+    const role = localStorage.getItem('demo_role');
+    if (role && !VISITOR_PAGE_ROLES.has(role)) {
+      window.location.replace('/dashboard');
+    }
+  }
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);

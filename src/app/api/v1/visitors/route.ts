@@ -62,7 +62,21 @@ const signInVisitorSchema = z.object({
 export async function GET(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request);
+    // Building-wide visitor log is staff-only. Residents have a separate
+    // resident-scoped endpoint; if they query this one they get the whole
+    // building's guests, which is a privacy leak. Lock it down at the API
+    // layer so the page-level role gate isn't the only line of defense.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_guard',
+        'security_supervisor',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const moduleCheck = await requireModule(request, 'visitor_management');
