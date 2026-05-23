@@ -159,18 +159,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 4. Check if account is active
-    if (!user.isActive) {
-      return NextResponse.json(
-        {
-          error: 'AUTH_ERROR',
-          message: INVALID_CREDENTIALS_MSG,
-          code: 'AUTH_ERROR',
-          requestId,
-        },
-        { status: 401 },
-      );
-    }
+    // 4. Account-active check is deferred until AFTER password verification
+    // below. Telling an unauthenticated caller "this account is suspended"
+    // would let attackers enumerate which emails belong to real users.
+    // Once the password matches, the caller has already proven they know
+    // the credentials, so it is safe to give the honest reason.
 
     // 5. Check if account is locked
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -237,7 +230,35 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 7. Get role and property info
+    // 7. Password verified — now safe to reveal account-status reason.
+    // Telling the caller "account suspended" only AFTER they prove they
+    // know the password preserves email-enumeration resistance.
+    if (!user.isActive) {
+      await bestEffort(() =>
+        prisma.loginAudit.create({
+          data: {
+            userId: user.id,
+            email: user.email,
+            success: false,
+            ipAddress: req.headers.get('x-forwarded-for') || '0.0.0.0',
+            userAgent: req.headers.get('user-agent') || 'unknown',
+            failReason: 'account_suspended',
+          },
+        }),
+      );
+      return NextResponse.json(
+        {
+          error: 'ACCOUNT_SUSPENDED',
+          message:
+            'Your account has been suspended. Please contact your building admin to restore access.',
+          code: 'ACCOUNT_SUSPENDED',
+          requestId,
+        },
+        { status: 403 },
+      );
+    }
+
+    // 8. Get role and property info
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userProp = (user as any).userProperties?.[0];
     const roleSlug = (userProp?.role?.slug || 'visitor') as Role;
