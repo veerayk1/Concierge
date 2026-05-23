@@ -26,6 +26,11 @@ const createAnnouncementSchema = z.object({
   status: z.enum(['draft', 'published', 'scheduled']).default('draft'),
   scheduledAt: z.string().optional().or(z.literal('')),
   categoryId: z.string().uuid().optional().or(z.literal('')),
+  // The UI Create Announcement dialog (and resident-facing flows) sends
+  // `publishImmediately: true` instead of `status: 'published'`. Accept both —
+  // when true, override status to 'published' so the announcement actually
+  // reaches residents instead of getting silently stuck in 'draft'.
+  publishImmediately: z.boolean().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -121,6 +126,11 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // publishImmediately is the UI's preferred boolean signal — translate to
+    // status. Without this, the manager dialog's "Publish Announcement" button
+    // silently created drafts that no resident ever saw.
+    const effectiveStatus = input.publishImmediately ? 'published' : input.status;
+
     const announcement = await prisma.announcement.create({
       data: {
         propertyId: input.propertyId,
@@ -128,18 +138,18 @@ export async function POST(request: NextRequest) {
         content: stripControlChars(stripHtml(input.content)),
         priority: input.priority,
         channels: input.channels,
-        status: input.status,
+        status: effectiveStatus,
         scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
         categoryId: input.categoryId || null,
         createdById: auth.user.userId,
-        publishedAt: input.status === 'published' ? new Date() : null,
+        publishedAt: effectiveStatus === 'published' ? new Date() : null,
       },
     });
 
     // Create delivery records for published announcements only.
     // Draft and scheduled announcements do NOT get delivery records at creation time.
     // Scheduled announcements will have records created by a cron job at publishedAt.
-    if (input.status === 'published') {
+    if (effectiveStatus === 'published') {
       await createDeliveryRecords(announcement.id, input.propertyId, input.channels).catch(
         (err: unknown) => {
           logger.error(
