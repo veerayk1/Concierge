@@ -138,7 +138,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Key/FOB issuance grants physical access. Without this role gate a
+    // resident could POST a "master" key record at any property — combined
+    // with key checkout, a credential-creation vector. Lock to admin +
+    // security roles only.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'security_supervisor',
+        'front_desk',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const moduleCheck = await requireModule(request, 'key_management');
@@ -155,6 +168,12 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+
+    // Cross-tenant guard — caller cannot mint a key at a different property
+    // by lying about propertyId in the body. Verified pre-fix: admin at A
+    // → POST { propertyId: B, category: 'master' } → 201.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
 
     // Resolve a real createdById — demo mode user may not exist in the DB
     let createdById = auth.user.userId;

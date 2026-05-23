@@ -153,7 +153,16 @@ const flexibleCreateVendorSchema = z.object({
 export async function POST(request: NextRequest) {
   // Skip demo handler — vendors uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request);
+    // Vendor records contain contracts and insurance docs — staff only.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'superintendent',
+        'maintenance_staff',
+      ],
+    });
     if (auth.error) return auth.error;
 
     let body: unknown;
@@ -176,6 +185,11 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
     const resolvedPropertyId = input.propertyId || auth.user.propertyId;
+
+    // Cross-tenant guard — pull propertyId from the resolved value so the
+    // auth.user.propertyId fallback also goes through the check.
+    const tenancy = enforcePropertyAccess(auth.user, resolvedPropertyId);
+    if (tenancy) return tenancy;
 
     // Resolve serviceCategoryId: use provided UUID, or look up / create from category name
     let serviceCategoryId = input.serviceCategoryId;

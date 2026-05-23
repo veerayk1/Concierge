@@ -93,7 +93,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Equipment register is staff-only. Without this role gate a resident
+    // could POST { propertyId, name } and silently create equipment
+    // records (verified pre-fix: resident → 201).
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'superintendent',
+        'maintenance_staff',
+      ],
+    });
     if (auth.error) return auth.error;
 
     let body: { bulk?: boolean; items?: unknown[]; [k: string]: unknown };
@@ -104,6 +115,15 @@ export async function POST(request: NextRequest) {
         { error: 'INVALID_BODY', message: 'Request body must be valid JSON.' },
         { status: 400 },
       );
+    }
+
+    // Cross-tenant guard — caller cannot create equipment at a different
+    // property by lying about propertyId in the body. Applies to both
+    // bulk and single-row paths (single-row check below pulls propertyId
+    // from input which Zod parses from the same body).
+    if (typeof body.propertyId === 'string') {
+      const t = enforcePropertyAccess(auth.user, body.propertyId);
+      if (t) return t;
     }
 
     // ------------------------------------------------------------------

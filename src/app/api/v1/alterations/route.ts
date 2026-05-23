@@ -103,10 +103,21 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Alteration projects (renovation requests) — residents legitimately
+    // file these for their own unit. Staff file on behalf of residents.
+    // The unit + tenancy validation below ensures residents can't file
+    // at a property they don't belong to.
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
     const body = await request.json();
+
+    // Cross-tenant guard on body.propertyId before any unit-lookup or
+    // dialog field mapping touches the DB.
+    if (typeof body?.propertyId === 'string') {
+      const t = enforcePropertyAccess(auth.user, body.propertyId);
+      if (t) return t;
+    }
 
     // Map dialog field names to schema field names
     // Dialog sends: unit (unit number), unitId (if UUID)
