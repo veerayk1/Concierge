@@ -106,6 +106,63 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const tenancy = enforcePropertyAccess(auth.user, amenity.propertyId);
     if (tenancy) return tenancy;
 
+    // Validate unit belongs to the amenity's property — otherwise a
+    // resident at A could book A's pool but tag the booking against
+    // a Property B unit (breaking unit-scoped booking history).
+    const bookingUnit = await prisma.unit.findUnique({
+      where: { id: input.unitId },
+      select: { propertyId: true },
+    });
+    if (!bookingUnit || bookingUnit.propertyId !== amenity.propertyId) {
+      return NextResponse.json(
+        { error: 'INVALID_UNIT', message: 'Unit does not belong to this property.' },
+        { status: 400 },
+      );
+    }
+
+    // Past-date guard — bookings must be in the future. Without this you
+    // can backdate a booking to 2020 to retroactively claim usage or
+    // tamper with audit trails.
+    const startsAt = new Date(input.startTime);
+    if (Number.isNaN(startsAt.getTime()) || startsAt.getTime() < Date.now() - 60_000) {
+      return NextResponse.json(
+        { error: 'INVALID_TIME', message: 'Start time must be in the future.' },
+        { status: 400 },
+      );
+    }
+    const endsAt = new Date(input.endTime);
+    if (endsAt.getTime() <= startsAt.getTime()) {
+      return NextResponse.json(
+        { error: 'INVALID_TIME', message: 'End time must be after start time.' },
+        { status: 400 },
+      );
+    }
+
+    // residentId spoofing guard. The previous implementation accepted
+    // any residentId from the body and used it verbatim, so Resident A
+    // could POST { residentId: B } and the booking would be charged to
+    // Resident B (who never authorized it). Staff have a legitimate need
+    // to book on behalf of residents (front desk taking a call); enforce
+    // a role check before allowing a non-self residentId.
+    const STAFF_ROLES = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_supervisor',
+      'superintendent',
+    ]);
+    const requestedResidentId = input.residentId ?? auth.user.userId;
+    if (requestedResidentId !== auth.user.userId && !STAFF_ROLES.has(auth.user.role)) {
+      return NextResponse.json(
+        {
+          error: 'FORBIDDEN',
+          message: 'Only staff can book on behalf of another resident.',
+        },
+        { status: 403 },
+      );
+    }
+
     // Create booking — approvalMode determines if booking needs approval
     const needsApproval = amenity.approvalMode !== 'auto';
     const booking = await prisma.booking.create({
@@ -113,13 +170,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         propertyId: amenity.propertyId,
         amenityId,
         unitId: input.unitId,
-        residentId: input.residentId || auth.user.userId,
+        residentId: requestedResidentId,
         createdById: auth.user.userId,
         referenceNumber: `AMN-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}`,
         startDate: new Date(input.startDate),
-        startTime: new Date(input.startTime),
+        startTime: startsAt,
         endDate: new Date(input.endDate),
-        endTime: new Date(input.endTime),
+        endTime: endsAt,
         guestCount: input.guestCount,
         requestorComments: input.requestorComments || null,
         status: needsApproval ? 'pending' : 'approved',

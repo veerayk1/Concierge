@@ -219,6 +219,29 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Tenancy: verify both propertyId and unitId belong to the caller's
+    // property, and that the unit lives in the same property. Without these
+    // checks staff at Property A could sign in a visitor with unitId
+    // pointing at a Property B unit — the record would be saved with
+    // propertyId=A but a foreign unitId, breaking notifications and audit
+    // trails for both properties.
+    const tenancyA = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancyA) return tenancyA;
+
+    const unit = await prisma.unit.findUnique({
+      where: { id: input.unitId },
+      select: { propertyId: true },
+    });
+    if (!unit || unit.propertyId !== input.propertyId) {
+      return NextResponse.json(
+        {
+          error: 'INVALID_UNIT',
+          message: 'Unit does not belong to this property.',
+        },
+        { status: 400 },
+      );
+    }
+
     // Resolve visitorType: prefer new field, fall back to legacy purpose mapping
     const resolvedVisitorType =
       input.visitorType !== 'visitor'
