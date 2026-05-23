@@ -22,7 +22,12 @@ import { createHash } from 'crypto';
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-151: webhook URLs reveal which 3rd-party systems are wired
+    // into the property's event stream. Residents have no business
+    // case for that. Staff-only.
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin'],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
@@ -68,7 +73,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-152 CRITICAL: webhook registration without a role gate AND
+    // without a tenancy check meant any resident could create a webhook
+    // for any property pointing to attacker-controlled infrastructure
+    // and silently exfiltrate the full event stream (packages,
+    // maintenance, incidents, payments). Same blast radius as SEC-140
+    // (webhook PATCH).
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin'],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();
@@ -82,6 +95,11 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+
+    // Cross-tenant: a property_admin at A must not register a webhook
+    // at Property B by setting body.propertyId.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
 
     // Generate a shared secret for HMAC signatures
     const secret = `whsec_${nanoid(32)}`;
@@ -216,7 +234,13 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-153 CRITICAL: webhook deletion without a role gate AND
+    // without a tenancy check meant any resident at any property could
+    // delete any webhook in the system — operational DoS against every
+    // property's integrations on demand.
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin'],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
@@ -237,6 +261,9 @@ export async function DELETE(request: NextRequest) {
         { status: 404 },
       );
     }
+    // Cross-tenant: a property_admin at A must not delete webhooks at B.
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     await prisma.webhook.delete({ where: { id } });
 
