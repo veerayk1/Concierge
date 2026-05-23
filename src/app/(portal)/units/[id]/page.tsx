@@ -214,11 +214,40 @@ export default function UnitDetailPage() {
   );
 
   const {
-    data: unit,
+    data: apiUnit,
     loading,
     error,
     refetch,
-  } = useApi<UnitDetail>(apiUrl(`/api/v1/units/${id}`, { propertyId: getPropertyId() }));
+  } = useApi<Record<string, unknown>>(
+    apiUrl(`/api/v1/units/${id}`, { propertyId: getPropertyId() }),
+  );
+
+  // Normalize Prisma field names → the page's expected shape. Without this,
+  // the Maintenance tab shows '0 requests' for units that have requests
+  // (API: maintenanceRequests, page: maintenance), Square Footage renders
+  // 'undefined sq ft' (API: squareFootage, page: sqft), and so on.
+  const unit: UnitDetail | null = apiUnit
+    ? ({
+        ...apiUnit,
+        type: (apiUnit.unitType ?? apiUnit.type) as string,
+        sqft: (apiUnit.squareFootage ?? apiUnit.sqft) as number,
+        building:
+          typeof apiUnit.building === 'object' && apiUnit.building !== null
+            ? ((apiUnit.building as { name?: string }).name ?? '')
+            : ((apiUnit.building as string) ?? ''),
+        instructions: (apiUnit.unitInstructions ?? apiUnit.instructions ?? []) as Instruction[],
+        maintenance: (apiUnit.maintenanceRequests ??
+          apiUnit.maintenance ??
+          []) as MaintenanceRequest[],
+        occupants: (apiUnit.occupants ?? []) as Occupant[],
+        packages: (apiUnit.packages ?? []) as UnitPackage[],
+        fobs: (apiUnit.fobs ?? []) as FOB[],
+        buzzerCodes: (apiUnit.buzzerCodes ?? []) as UnitDetail['buzzerCodes'],
+        garageClickers: (apiUnit.garageClickers ?? []) as UnitDetail['garageClickers'],
+        emergencyContacts: (apiUnit.emergencyContacts ?? []) as UnitDetail['emergencyContacts'],
+        vehicles: (apiUnit.vehicles ?? []) as Vehicle[],
+      } as UnitDetail)
+    : null;
 
   // Audit log (Gap 7.3) — admin/manager only
   const { data: auditData } = useApi<{ data: AuditEntry[]; total: number }>(
@@ -450,11 +479,18 @@ export default function UnitDetailPage() {
       header: 'Category',
       accessorKey: 'category',
       sortable: true,
-      cell: (row) => (
-        <Badge variant="default" size="sm">
-          {row.category}
-        </Badge>
-      ),
+      cell: (row) => {
+        // category arrives as either a string or { name } from the API
+        const name =
+          typeof row.category === 'string'
+            ? row.category
+            : ((row.category as { name?: string } | null | undefined)?.name ?? '—');
+        return (
+          <Badge variant="default" size="sm">
+            {name}
+          </Badge>
+        );
+      },
     },
     {
       id: 'status',
@@ -495,15 +531,20 @@ export default function UnitDetailPage() {
       header: 'Created',
       accessorKey: 'createdAt',
       sortable: true,
-      cell: (row) => (
-        <span className="text-[13px] text-neutral-500">
-          {new Date(row.createdAt).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })}
-        </span>
-      ),
+      cell: (row) => {
+        const d = row.createdAt ? new Date(row.createdAt) : null;
+        return (
+          <span className="text-[13px] text-neutral-500">
+            {d && !Number.isNaN(d.getTime())
+              ? d.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })
+              : '—'}
+          </span>
+        );
+      },
     },
   ];
 

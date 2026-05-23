@@ -56,12 +56,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         },
         maintenanceRequests: {
           where: { deletedAt: null, status: { in: ['open', 'in_progress', 'on_hold'] } },
+          orderBy: { createdAt: 'desc' },
           select: {
             id: true,
             referenceNumber: true,
             description: true,
             status: true,
             priority: true,
+            createdAt: true,
+            category: { select: { name: true } },
           },
         },
       },
