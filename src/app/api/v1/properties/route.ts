@@ -120,7 +120,10 @@ export async function POST(request: NextRequest) {
   if (demoRes) return demoRes;
 
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    // Creating a NEW property is a platform-level operation — only Super Admin.
+    // A property_admin is scoped to a single property they administer; allowing
+    // them to spawn new properties was a privilege-escalation hole.
+    const auth = await guardRoute(request, { roles: ['super_admin'] });
     if (auth.error) return auth.error;
 
     const body = await request.json();
