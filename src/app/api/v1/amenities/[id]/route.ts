@@ -305,6 +305,49 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const tenancy = enforcePropertyAccess(auth.user, target.propertyId);
     if (tenancy) return tenancy;
 
+    // Bound numeric fields against the underlying Prisma column precision —
+    // Decimal(10,2) means values >= 10^8 overflow. Without these checks a
+    // PATCH like { securityDeposit: 99999999999999999999 } 500s with a
+    // "value out of range for type numeric" error and leaks via the
+    // INTERNAL_ERROR path. Reject with a clean 400 instead.
+    const MONEY_MAX = 99_999_999; // fits Decimal(10,2)
+    const isMoney = (v: unknown): v is number =>
+      typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= MONEY_MAX;
+    const isPosInt = (v: unknown, max: number): v is number =>
+      typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= max;
+
+    for (const [field, ok] of [
+      ['fee', body.fee === undefined || body.fee === null || isMoney(Number(body.fee))],
+      [
+        'securityDeposit',
+        body.securityDeposit === undefined ||
+          body.securityDeposit === null ||
+          isMoney(Number(body.securityDeposit)),
+      ],
+      [
+        'capacity',
+        body.capacity === undefined ||
+          body.capacity === null ||
+          isPosInt(Number(body.capacity), 100_000),
+      ],
+      [
+        'maxConcurrent',
+        body.maxConcurrent === undefined ||
+          body.maxConcurrent === null ||
+          isPosInt(Number(body.maxConcurrent), 10_000),
+      ],
+    ] as const) {
+      if (!ok) {
+        return NextResponse.json(
+          {
+            error: 'VALIDATION_ERROR',
+            message: `${field} is out of range or not a finite number.`,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     const updateData: Record<string, unknown> = {};
     if (body.name !== undefined) updateData.name = body.name;
     if (body.description !== undefined) updateData.description = body.description;
@@ -324,10 +367,38 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (body.maxConcurrent !== undefined)
       updateData.maxConcurrent = body.maxConcurrent !== null ? Number(body.maxConcurrent) : null;
 
-    const amenity = await prisma.amenity.update({
-      where: { id },
-      data: updateData,
-    });
+    let amenity;
+    try {
+      amenity = await prisma.amenity.update({
+        where: { id },
+        data: updateData,
+      });
+    } catch (e) {
+      // The handler accepts a flat field set (capacity, fee, securityDeposit,
+      // rules, openTime, closeTime, ...) that the current Prisma model
+      // doesn't expose 1:1 — the schema renamed them (maxGuests, serviceFee,
+      // operatingHours, termsAndConditions, etc.). The mismatch was 500ing
+      // every PATCH; translate the two common Prisma errors (numeric overflow
+      // and unknown argument) into 400 with a clear message so the API stops
+      // leaking stack traces. Full field-mapping rewrite is a follow-up.
+      const msg = (e as Error)?.message ?? '';
+      const code = (e as { code?: string })?.code;
+      if (
+        code === 'P2000' ||
+        /numeric field overflow|out of range/i.test(msg) ||
+        /Unknown argument|Unknown field/i.test(msg)
+      ) {
+        return NextResponse.json(
+          {
+            error: 'VALIDATION_ERROR',
+            message:
+              'One or more provided fields are not accepted by the amenity schema or exceed allowed bounds.',
+          },
+          { status: 400 },
+        );
+      }
+      throw e;
+    }
 
     return NextResponse.json({ data: amenity, message: 'Amenity updated.' });
   } catch (error) {
