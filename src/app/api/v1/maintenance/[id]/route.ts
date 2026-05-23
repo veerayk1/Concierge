@@ -8,6 +8,14 @@ import { prisma } from '@/server/db';
 import { updateMaintenanceSchema } from '@/schemas/maintenance';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
+
+function badIdResponse() {
+  return NextResponse.json(
+    { error: 'VALIDATION_ERROR', message: 'Request id must be a UUID.' },
+    { status: 400 },
+  );
+}
 import { sendEmail } from '@/server/email';
 import { renderTemplate } from '@/server/email-templates';
 import {
@@ -34,6 +42,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) return badIdResponse();
 
     const req = await prisma.maintenanceRequest.findUnique({
       where: { id, deletedAt: null },
@@ -117,6 +126,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) return badIdResponse();
     const body = await request.json();
 
     const parsed = updateMaintenanceSchema.safeParse(body);
@@ -388,6 +398,7 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) return badIdResponse();
     await prisma.maintenanceRequest.update({
       where: { id },
       data: { deletedAt: new Date() },

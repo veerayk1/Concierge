@@ -11,6 +11,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { updateUserSchema, changeStatusSchema } from '@/schemas/user';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
+
+function badIdResponse() {
+  return NextResponse.json(
+    { error: 'VALIDATION_ERROR', message: 'User id must be a UUID.' },
+    { status: 400 },
+  );
+}
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/users/:id
@@ -22,6 +30,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) return badIdResponse();
 
     const user = await prisma.user.findUnique({
       where: { id, deletedAt: null },
@@ -125,6 +134,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) return badIdResponse();
     const body = await request.json();
 
     // Check if this is a status change
@@ -313,6 +323,7 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) return badIdResponse();
 
     await prisma.$transaction(async (tx) => {
       // Soft delete user
