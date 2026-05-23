@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -26,6 +26,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 404 },
       );
     }
+
+    // Cancelling another property's emergency broadcast would suppress
+    // their fire/medical/lockdown alert — block cross-tenant cancels.
+    const tenancy = enforcePropertyAccess(auth.user, broadcast.propertyId);
+    if (tenancy) return tenancy;
 
     if (broadcast.status === 'cancelled') {
       return NextResponse.json(

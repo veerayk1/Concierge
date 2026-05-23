@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
 import { z } from 'zod';
 
@@ -36,6 +36,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+
+    // The path id IS the propertyId — a property_admin at A must not read
+    // Property B's settings (logo, branding, addressing) by guessing its
+    // id. super_admin still sees all.
+    const tenancy = enforcePropertyAccess(auth.user, id);
+    if (tenancy) return tenancy;
 
     const property = await prisma.property.findUnique({
       where: { id, deletedAt: null },
@@ -81,6 +87,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+
+    const tenancy = enforcePropertyAccess(auth.user, id);
+    if (tenancy) return tenancy;
+
     const body = await request.json();
 
     const parsed = updatePropertySchema.safeParse(body);

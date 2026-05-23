@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { updateSupportTicketSchema } from '@/schemas/help';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import type { Role } from '@/types';
 
 const ADMIN_ROLES: Role[] = ['super_admin', 'property_admin', 'property_manager'];
@@ -38,6 +38,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
         { status: 404 },
       );
     }
+
+    // Cross-property tenancy first — a property_admin at A must not see
+    // B's tickets even though they're an "admin" by role.
+    const tenancy = enforcePropertyAccess(auth.user, ticket.propertyId);
+    if (tenancy) return tenancy;
 
     // Non-admins can only view their own tickets
     if (!isAdmin && ticket.userId !== auth.user.userId) {
@@ -88,6 +93,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     // Build update data with timestamp tracking
     const updateData: Record<string, unknown> = { ...parsed.data };

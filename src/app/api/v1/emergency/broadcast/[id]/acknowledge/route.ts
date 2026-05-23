@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -26,6 +26,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 404 },
       );
     }
+
+    // A resident at Property A should not be able to acknowledge — and
+    // thereby inflate the acknowledgedCount of — Property B's broadcast.
+    const tenancy = enforcePropertyAccess(auth.user, broadcast.propertyId);
+    if (tenancy) return tenancy;
 
     // Check if already acknowledged by this user
     const existing = await prisma.emergencyBroadcastAcknowledgment.findUnique({

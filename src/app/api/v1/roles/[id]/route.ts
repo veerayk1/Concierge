@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { z } from 'zod';
 
 const updateRoleSchema = z.object({
@@ -42,6 +42,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!existing) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Role not found' }, { status: 404 });
     }
+
+    // Roles are per-property. A property_admin at A must not edit B's
+    // roles — pairs with SEC-001 which fixed the same gap on the
+    // membership side of role assignment.
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     const updateData: Record<string, unknown> = {};
     if (input.name !== undefined) updateData.name = input.name;
@@ -80,6 +86,9 @@ export async function DELETE(
     if (!existing) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Role not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     if (existing.isSystem) {
       return NextResponse.json(

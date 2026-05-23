@@ -90,6 +90,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'NOT_FOUND', message: 'User not found' }, { status: 404 });
     }
 
+    // Cross-tenant guard. A property_admin at A may only view users who
+    // have at least one active userProperty at A. super_admin sees all.
+    // Without this, a property_admin could enumerate every user (login
+    // history, audits, IP addresses) of every property by guessing UUIDs.
+    if (auth.user.role !== 'super_admin') {
+      const sharesProperty = user.userProperties.some(
+        (up) => up.propertyId === auth.user.propertyId,
+      );
+      if (!sharesProperty) {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: 'User not found' },
+          { status: 404 },
+        );
+      }
+    }
+
     const status = !user.activatedAt ? 'pending' : user.isActive ? 'active' : 'suspended';
 
     return NextResponse.json({
@@ -136,6 +152,34 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const { id } = await params;
     if (!isUuid(id)) return badIdResponse();
     const body = await request.json();
+
+    // Cross-tenant guard hoisted to top of PATCH. A property_admin at A
+    // must not be able to mutate (suspend, edit profile, reassign role)
+    // a user who has no membership at A. Without this, status changes
+    // are globally destructive — A could deactivate every user at B.
+    if (auth.user.role !== 'super_admin') {
+      const target = await prisma.user.findUnique({
+        where: { id, deletedAt: null },
+        select: {
+          userProperties: { where: { deletedAt: null }, select: { propertyId: true } },
+        },
+      });
+      if (!target) {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: 'User not found' },
+          { status: 404 },
+        );
+      }
+      const sharesProperty = target.userProperties.some(
+        (up) => up.propertyId === auth.user.propertyId,
+      );
+      if (!sharesProperty) {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: 'User not found' },
+          { status: 404 },
+        );
+      }
+    }
 
     // Check if this is a status change
     if (body.status) {
@@ -346,6 +390,32 @@ export async function DELETE(
 
     const { id } = await params;
     if (!isUuid(id)) return badIdResponse();
+
+    // Same tenant guard as PATCH — never let a property_admin at A delete
+    // a user who only has memberships at B.
+    if (auth.user.role !== 'super_admin') {
+      const target = await prisma.user.findUnique({
+        where: { id, deletedAt: null },
+        select: {
+          userProperties: { where: { deletedAt: null }, select: { propertyId: true } },
+        },
+      });
+      if (!target) {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: 'User not found' },
+          { status: 404 },
+        );
+      }
+      const sharesProperty = target.userProperties.some(
+        (up) => up.propertyId === auth.user.propertyId,
+      );
+      if (!sharesProperty) {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: 'User not found' },
+          { status: 404 },
+        );
+      }
+    }
 
     await prisma.$transaction(async (tx) => {
       // Soft delete user
