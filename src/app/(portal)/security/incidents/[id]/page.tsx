@@ -157,9 +157,17 @@ export default function IncidentDetailPage() {
       try {
         setLoading(true);
         const token = getAccessToken();
+        // In demo mode we have no Bearer token but DO have a demo_role; the
+        // API requires either. Send both when present so the page works in
+        // every auth state.
+        const demoRole = typeof window !== 'undefined' ? localStorage.getItem('demo_role') : null;
+        const demoPropertyId =
+          typeof window !== 'undefined' ? localStorage.getItem('demo_propertyId') : null;
         const res = await fetch(`/api/v1/events/${id}`, {
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(demoRole ? { 'x-demo-role': demoRole } : {}),
+            ...(demoPropertyId ? { 'x-demo-propertyId': demoPropertyId } : {}),
           },
         });
         if (res.status === 404) {
@@ -316,7 +324,9 @@ export default function IncidentDetailPage() {
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
                     <MapPin className="h-3.5 w-3.5 text-neutral-400" />
-                    {incident.location || String((incident.customFields as Record<string, unknown>)?.location || '') || '\u2014'}
+                    {incident.location ||
+                      String((incident.customFields as Record<string, unknown>)?.location || '') ||
+                      '\u2014'}
                   </p>
                 </div>
                 {incident.unit && (
