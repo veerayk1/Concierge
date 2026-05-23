@@ -146,6 +146,11 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — a resident at A could otherwise POST
+    // { propertyId: B } and seed B's idea board with arbitrary entries.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const idea = await (prisma.idea.create as any)({
       data: {

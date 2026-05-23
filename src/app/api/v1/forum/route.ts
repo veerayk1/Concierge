@@ -142,6 +142,12 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — a resident at A could otherwise POST
+    // { propertyId: B } and seed B's forum with arbitrary topics.
+    // Verified pre-fix: resident at A → propertyId=B → 201.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const topic = await (prisma.forumTopic.create as any)({
       data: {

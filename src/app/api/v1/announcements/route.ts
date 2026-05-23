@@ -137,6 +137,13 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — a property_admin at A could otherwise POST
+    // { propertyId: B, status: 'published' } and blast a building-wide
+    // announcement (incl. email/SMS/push) to all of B's residents,
+    // including fake emergency notifications.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // publishImmediately is the UI's preferred boolean signal — translate to
     // status. Without this, the manager dialog's "Publish Announcement" button
     // silently created drafts that no resident ever saw.

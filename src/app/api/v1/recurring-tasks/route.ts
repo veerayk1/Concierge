@@ -179,6 +179,11 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — preventive-maintenance scheduler should not
+    // be plantable across properties.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // Calculate initial next occurrence
     const scheduleConfig: ScheduleConfig = {
       intervalType: input.intervalType,

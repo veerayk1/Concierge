@@ -130,6 +130,14 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+
+    // Cross-tenant guard — a property_admin at A could otherwise POST
+    // { propertyId: B } and silently create an MR at Property B,
+    // polluting B's queue and triggering notifications in B.
+    // Verified pre-fix: admin at A → propertyId=B → 201.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     const referenceNumber = `MR-${nanoid(4).toUpperCase()}`;
 
     // Resolve categoryId — fall back to first active category if not provided.

@@ -145,6 +145,11 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — security staff at A could otherwise inject
+    // shift-log entries into B's security audit feed.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // Find or create the "Shift Log" event type for this property
     let eventType = await prisma.eventType.findFirst({
       where: { propertyId: input.propertyId, slug: 'shift-log', deletedAt: null },

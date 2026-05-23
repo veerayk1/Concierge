@@ -141,6 +141,11 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — an inspector at A could otherwise schedule
+    // an inspection at Property B, polluting B's compliance audit trail.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // Resolve checklist items: from template or inline
     let checklistItems: Array<{ name: string; required: boolean; type: string }> = [];
 
