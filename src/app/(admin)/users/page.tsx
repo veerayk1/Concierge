@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import {
   AlertCircle,
   Download,
+  Edit2,
+  Eye,
   KeyRound,
   MoreHorizontal,
   Plus,
@@ -67,6 +70,7 @@ const ROLE_COLORS: Record<string, string> = {
 import { getPropertyId } from '@/lib/demo-config';
 
 export default function UsersPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -267,12 +271,32 @@ export default function UsersPage() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
+              onClick={(e) => e.stopPropagation()}
               className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation?.();
+                router.push(`/users/${row.id}`);
+              }}
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              View Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation?.();
+                router.push(`/users/${row.id}?edit=1`);
+              }}
+            >
+              <Edit2 className="mr-2 h-4 w-4" />
+              Edit Details
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={async () => {
                 try {
@@ -528,6 +552,7 @@ export default function UsersPage() {
               data={filteredUsers}
               emptyMessage="No users found."
               emptyIcon={<Users className="h-6 w-6" />}
+              onRowClick={(row) => router.push(`/users/${row.id}`)}
             />
           )}
         </>
