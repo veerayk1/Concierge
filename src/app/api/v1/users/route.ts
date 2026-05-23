@@ -309,20 +309,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send welcome email (fire-and-forget)
+    // Send welcome email (fire-and-forget). The link must take the recipient
+    // to an actual route — `/auth/login` is a 404; the live login page is at
+    // `/login`. Generate an activation token (matching the resend endpoint)
+    // so the email lands on `/activate?token=…`, which is the proper
+    // first-time flow (set password, accept terms, etc).
+    const activationToken = `${crypto.randomUUID()}-${crypto.randomUUID()}`;
+    const activationTokenExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { activationToken, activationTokenExpiresAt },
+    });
+
     void (async () => {
       const property = await prisma.property.findUnique({
         where: { id: input.propertyId },
         select: { name: true },
       });
       const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+      const activateUrl = `${appUrl}/activate?token=${encodeURIComponent(activationToken)}`;
       await sendEmail({
         to: user.email,
         subject: `Welcome to ${property?.name ?? 'Concierge'}`,
         html: renderTemplate('welcome', {
           firstName: user.firstName,
           propertyName: property?.name ?? 'your property',
-          loginUrl: `${appUrl}/auth/login`,
+          loginUrl: activateUrl,
         }),
       });
     })().catch((err) => console.error('Failed to send welcome email:', err));
