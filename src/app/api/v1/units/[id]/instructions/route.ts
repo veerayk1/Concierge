@@ -20,7 +20,25 @@ const createInstructionSchema = z.object({
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-131: unit instructions ("Unit 815 has a dog that bites",
+    // "Unit 302 is deaf, use the doorbell twice", "Unit 1204 wife in
+    // hospice — minimize disturbance") are concierge handoff notes
+    // about residents, written for staff. Residents must not read
+    // notes about themselves OR their neighbors. Verified leak: a
+    // resident_owner call returned 200 (empty today, would leak the
+    // moment instructions exist).
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+        'maintenance_staff',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id: unitId } = await params;
@@ -31,9 +49,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
-    // Unit instructions can contain sensitive resident detail ("Unit 815
-    // has a dog that bites; Unit 302 is deaf, use the doorbell twice").
-    // Inherit tenancy from the parent unit.
     const unit = await prisma.unit.findUnique({
       where: { id: unitId },
       select: { propertyId: true },
