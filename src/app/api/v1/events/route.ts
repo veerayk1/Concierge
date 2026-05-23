@@ -21,7 +21,22 @@ import { sendBulkEmail } from '@/server/email';
 export async function GET(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request);
+    // Events feed the Security Console — includes incidents, noise complaints,
+    // visitor logs etc. Residents must not see this list (privacy: other units'
+    // complaints). Restricted to staff + board.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_guard',
+        'security_supervisor',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

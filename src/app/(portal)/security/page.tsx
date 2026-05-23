@@ -98,8 +98,29 @@ function mapEventType(rawType: string): SecurityEvent['type'] {
 // Component
 // ---------------------------------------------------------------------------
 
+// Roles allowed to see the Security Console. Residents must NOT see other
+// residents' incidents (privacy) and must NOT have access to log security
+// events. This is enforced both in the API (events route) and here at the
+// page level so the UI never even flashes.
+const SECURITY_CONSOLE_ROLES = new Set([
+  'super_admin',
+  'property_admin',
+  'property_manager',
+  'front_desk',
+  'security_guard',
+  'security_supervisor',
+  'superintendent',
+]);
+
 export default function SecurityPage() {
   const router = useRouter();
+  // Role gate — bounce residents (and any other non-staff) to their dashboard.
+  if (typeof window !== 'undefined') {
+    const role = localStorage.getItem('demo_role');
+    if (role && !SECURITY_CONSOLE_ROLES.has(role)) {
+      window.location.replace('/dashboard');
+    }
+  }
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);

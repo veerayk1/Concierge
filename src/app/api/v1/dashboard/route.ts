@@ -82,8 +82,14 @@ export async function GET(request: NextRequest) {
       now.getTime() - RESOLUTION_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
     );
 
-    // Build unit scope for resident queries
-    const unitScope = unitId ? { unitId } : {};
+    // Build unit scope for resident queries.
+    // SECURITY: if a resident has no occupancy record (data gap, or invalid
+    // demo user), DO NOT silently fall back to {} — that would expose the
+    // entire building's events / packages / requests to that resident.
+    // Instead, scope to an impossible id so all queries return empty.
+    const unitScope = isResident
+      ? { unitId: unitId || '00000000-0000-0000-0000-000000000000' }
+      : {};
 
     // Fetch all KPIs in parallel
     const [
@@ -192,9 +198,16 @@ export async function GET(request: NextRequest) {
         },
       }),
 
-      // Recent activity feed
+      // Recent activity feed — for residents, scope to their own unit only.
+      // Without this, every resident's dashboard listed incidents, patrol
+      // logs, package events for OTHER units — a building-wide privacy leak.
+      // Staff see the full property feed.
       prisma.event.findMany({
-        where: { propertyId, deletedAt: null },
+        where: {
+          propertyId,
+          deletedAt: null,
+          ...(isResident ? unitScope : {}),
+        },
         include: {
           eventType: { select: { name: true, icon: true, color: true } },
           unit: { select: { number: true } },
