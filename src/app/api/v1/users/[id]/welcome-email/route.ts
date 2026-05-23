@@ -21,11 +21,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const user = await prisma.user.findUnique({
       where: { id, deletedAt: null },
-      select: { id: true, email: true, firstName: true, lastName: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        userProperties: { where: { deletedAt: null }, select: { propertyId: true } },
+      },
     });
 
     if (!user) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'User not found' }, { status: 404 });
+    }
+
+    // Cross-tenant guard — a property_admin at A must not be able to
+    // generate an activation token + send a welcome email to a user at B.
+    if (auth.user.role !== 'super_admin') {
+      const sharesProperty = user.userProperties.some(
+        (up) => up.propertyId === auth.user.propertyId,
+      );
+      if (!sharesProperty) {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: 'User not found' },
+          { status: 404 },
+        );
+      }
     }
 
     // Generate a secure activation token (72-hour expiry)

@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { createTicketCommentSchema } from '@/schemas/help';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import type { Role } from '@/types';
 
 const ADMIN_ROLES: Role[] = ['super_admin', 'property_admin', 'property_manager'];
@@ -39,6 +39,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, ticket.propertyId);
+    if (tenancy) return tenancy;
 
     if (!isAdmin && ticket.userId !== auth.user.userId) {
       return NextResponse.json(
@@ -85,6 +88,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, ticket.propertyId);
+    if (tenancy) return tenancy;
 
     // Non-admins can only comment on their own tickets
     if (!isAdmin && ticket.userId !== auth.user.userId) {

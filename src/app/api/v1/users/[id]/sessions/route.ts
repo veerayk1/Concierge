@@ -15,9 +15,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
 
     // Users can view their own sessions; admins can view anyone's
+    // (within their tenant). Without the tenancy check a property_admin
+    // at A could read every active session — IP, device, last activity
+    // — of every user at B.
     const isAdmin = ['super_admin', 'property_admin'].includes(auth.user.role);
     if (!isAdmin && auth.user.userId !== id) {
       return NextResponse.json({ error: 'FORBIDDEN', message: 'Access denied' }, { status: 403 });
+    }
+    if (isAdmin && auth.user.role !== 'super_admin' && auth.user.userId !== id) {
+      const target = await prisma.user.findUnique({
+        where: { id, deletedAt: null },
+        select: {
+          userProperties: { where: { deletedAt: null }, select: { propertyId: true } },
+        },
+      });
+      const sharesProperty =
+        target?.userProperties.some((up) => up.propertyId === auth.user.propertyId) ?? false;
+      if (!sharesProperty) {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: 'User not found' },
+          { status: 404 },
+        );
+      }
     }
 
     const sessions = await prisma.session.findMany({
@@ -67,9 +86,27 @@ export async function DELETE(
     const { id: userId } = await params;
 
     // Users can revoke their own sessions; admins can revoke anyone's
+    // within their tenant. Cross-tenant revocation would let an admin at
+    // A force-logout every active user at B.
     const isAdmin = ['super_admin', 'property_admin'].includes(auth.user.role);
     if (!isAdmin && auth.user.userId !== userId) {
       return NextResponse.json({ error: 'FORBIDDEN', message: 'Access denied' }, { status: 403 });
+    }
+    if (isAdmin && auth.user.role !== 'super_admin' && auth.user.userId !== userId) {
+      const target = await prisma.user.findUnique({
+        where: { id: userId, deletedAt: null },
+        select: {
+          userProperties: { where: { deletedAt: null }, select: { propertyId: true } },
+        },
+      });
+      const sharesProperty =
+        target?.userProperties.some((up) => up.propertyId === auth.user.propertyId) ?? false;
+      if (!sharesProperty) {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: 'User not found' },
+          { status: 404 },
+        );
+      }
     }
 
     const { searchParams } = new URL(request.url);

@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { generateQrSvgDataUrl } from '@/server/assets/qr-generator';
 
 // ---------------------------------------------------------------------------
@@ -27,6 +27,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!asset) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Asset not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, asset.propertyId);
+    if (tenancy) return tenancy;
 
     const qrContent = JSON.stringify({
       type: 'asset',

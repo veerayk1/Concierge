@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -16,8 +16,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const body = await request.json();
 
     if (body.action === 'return') {
-      // Find the checkout
-      const checkout = await prisma.keyCheckout.findUnique({ where: { id } });
+      // Find the checkout with parent key (for tenancy)
+      const checkout = await prisma.keyCheckout.findUnique({
+        where: { id },
+        include: { key: { select: { propertyId: true } } },
+      });
 
       if (!checkout) {
         return NextResponse.json(
@@ -25,6 +28,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           { status: 404 },
         );
       }
+
+      const tenancy = enforcePropertyAccess(auth.user, checkout.key.propertyId);
+      if (tenancy) return tenancy;
 
       // Prevent double-return
       if (checkout.returnTime) {
