@@ -64,12 +64,51 @@ export async function GET(request: NextRequest) {
     if (unitId) where.unitId = unitId;
     if (perishable === 'true') where.isPerishable = true;
 
+    // Build AND-combinable filter clauses so search + per-resident
+    // scoping don't clobber each other on the .OR key.
+    const andClauses: Array<Record<string, unknown>> = [];
     if (search) {
-      where.OR = [
-        { referenceNumber: { contains: search, mode: 'insensitive' } },
-        { trackingNumber: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
+      andClauses.push({
+        OR: [
+          { referenceNumber: { contains: search, mode: 'insensitive' } },
+          { trackingNumber: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    // SEC-133: per-resident scoping. Without this, a resident at the
+    // property could enumerate every neighbor's incoming packages —
+    // recipient names, courier patterns, delivery timing. That data
+    // reveals who's home (Amazon Fresh = home for groceries), shopping
+    // habits, and high-value deliveries (designer brand return labels).
+    // It's also a stalking signal. Staff (front desk intake) sees all;
+    // non-staff sees only packages where they are the recipient
+    // (residentId) OR packages addressed to units they occupy.
+    const STAFF_ROLES = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_supervisor',
+      'security_guard',
+      'superintendent',
+      'maintenance_staff',
+      'board_member',
+    ]);
+    if (!STAFF_ROLES.has(auth.user.role)) {
+      const myUnits = await prisma.occupancyRecord.findMany({
+        where: { userId: auth.user.userId, moveOutDate: null },
+        select: { unitId: true },
+      });
+      const myUnitIds = myUnits.map((u) => u.unitId);
+      andClauses.push({
+        OR: [{ residentId: auth.user.userId }, { unitId: { in: myUnitIds } }],
+      });
+    }
+
+    if (andClauses.length > 0) {
+      where.AND = andClauses;
     }
 
     const [packages, total] = await Promise.all([

@@ -45,6 +45,45 @@ export async function GET(request: NextRequest) {
       if (to) (where.startTime as Record<string, unknown>).lte = new Date(to);
     }
 
+    // SEC-135: per-resident scoping. Without this, a resident at the
+    // property could enumerate every neighbor's amenity bookings —
+    // which reveals exactly when neighbors are AWAY from their unit
+    // (gym at 6am, pool at 3pm, party room Saturday night). That's an
+    // empty-home signal a burglary scout would pay for. Staff (front
+    // desk approval, security) sees all; non-staff sees only bookings
+    // they own (residentId), bookings they created (createdById, for
+    // family members booking on the unit's behalf), or bookings for
+    // units they currently occupy.
+    const STAFF_ROLES = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_supervisor',
+      'security_guard',
+      'superintendent',
+      'maintenance_staff',
+      'board_member',
+    ]);
+    const andClauses: Array<Record<string, unknown>> = [];
+    if (!STAFF_ROLES.has(auth.user.role)) {
+      const myUnits = await prisma.occupancyRecord.findMany({
+        where: { userId: auth.user.userId, moveOutDate: null },
+        select: { unitId: true },
+      });
+      const myUnitIds = myUnits.map((u) => u.unitId);
+      andClauses.push({
+        OR: [
+          { residentId: auth.user.userId },
+          { unitId: { in: myUnitIds } },
+          { createdById: auth.user.userId },
+        ],
+      });
+    }
+    if (andClauses.length > 0) {
+      where.AND = andClauses;
+    }
+
     const [bookings, total] = await Promise.all([
       prisma.booking.findMany({
         where,

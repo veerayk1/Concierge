@@ -46,31 +46,54 @@ export async function GET(request: NextRequest) {
     if (status) where.status = status;
     if (priority) where.priority = priority;
     if (unitId) where.unitId = unitId;
+
+    // Build AND-combinable filter clauses so search + per-resident
+    // scoping don't clobber each other on the .OR key.
+    const andClauses: Array<Record<string, unknown>> = [];
     if (search) {
-      where.OR = [
-        { referenceNumber: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
+      andClauses.push({
+        OR: [
+          { referenceNumber: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      });
     }
 
-    // PIPEDA compliance: Residents only see their own unit's requests
-    const userRole = auth.user.role;
-    const isResident = [
-      'resident',
-      'resident_owner',
-      'resident_tenant',
-      'family_member',
-      'offsite_owner',
-    ].includes(userRole);
-    if (isResident) {
+    // SEC-134: per-resident scoping. Without this, a resident at the
+    // property could enumerate every neighbor's maintenance request —
+    // what's broken inside their unit (broken lock, faulty smoke alarm,
+    // medical-equipment plumbing issue). That's reconnaissance for
+    // burglary and exposes sensitive household conditions. The legacy
+    // `auth.user.unitId` check below covered only the single-unit case
+    // and wholly missed the multi-occupancy case (residents with 2+
+    // units saw nothing of their own). Staff sees all; non-staff sees
+    // only requests where they are the resident (residentId) OR
+    // requests for units they currently occupy.
+    const STAFF_ROLES = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_supervisor',
+      'security_guard',
+      'superintendent',
+      'maintenance_staff',
+      'board_member',
+    ]);
+    if (!STAFF_ROLES.has(auth.user.role)) {
       where.hideFromResident = false;
-      // Restrict to resident's own unit only — prevents cross-unit data access
-      if (auth.user.unitId) {
-        where.unitId = auth.user.unitId;
-      } else {
-        // No unit assigned — return empty (don't show all requests)
-        where.unitId = '00000000-0000-0000-0000-000000000000';
-      }
+      const myUnits = await prisma.occupancyRecord.findMany({
+        where: { userId: auth.user.userId, moveOutDate: null },
+        select: { unitId: true },
+      });
+      const myUnitIds = myUnits.map((u) => u.unitId);
+      andClauses.push({
+        OR: [{ residentId: auth.user.userId }, { unitId: { in: myUnitIds } }],
+      });
+    }
+
+    if (andClauses.length > 0) {
+      where.AND = andClauses;
     }
 
     const [requests, total] = await Promise.all([
