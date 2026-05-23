@@ -5,7 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // DELETE /api/v1/developer/api-keys/:id — Revoke API key
@@ -16,10 +17,21 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = await guardRoute(request);
+    // API key revocation is a property_admin operation. Without this gate
+    // any logged-in resident could revoke any API key on the platform by
+    // guessing the UUID, DoSing every customer's integrations.
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin'],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid API key id.' },
+        { status: 400 },
+      );
+    }
 
     const apiKey = await prisma.apiKey.findUnique({
       where: { id },
@@ -31,6 +43,11 @@ export async function DELETE(
         { status: 404 },
       );
     }
+
+    // Cross-tenant: even with the role gate, a property_admin at A must
+    // not revoke Property B's keys.
+    const tenancy = enforcePropertyAccess(auth.user, apiKey.propertyId);
+    if (tenancy) return tenancy;
 
     if (apiKey.revokedAt) {
       return NextResponse.json(

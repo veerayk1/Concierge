@@ -6,7 +6,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { updateWebhookSchema } from '@/schemas/developer';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
+
+const WEBHOOK_ROLES = ['super_admin', 'property_admin'] as const;
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/developer/webhooks/:id — Webhook detail
@@ -14,15 +17,22 @@ import { guardRoute } from '@/server/middleware/api-guard';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, { roles: [...WEBHOOK_ROLES] });
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid webhook id.' },
+        { status: 400 },
+      );
+    }
 
     const webhook = await prisma.webhook.findUnique({
       where: { id },
       select: {
         id: true,
+        propertyId: true,
         url: true,
         events: true,
         status: true,
@@ -40,6 +50,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    const tenancy = enforcePropertyAccess(auth.user, webhook.propertyId);
+    if (tenancy) return tenancy;
+
     return NextResponse.json({ data: webhook });
   } catch (error) {
     console.error('GET /api/v1/developer/webhooks/:id error:', error);
@@ -56,10 +69,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // Webhook config edits (URL, events, status) belong to property_admin.
+    // Without this gate any resident could repoint a webhook at attacker.com
+    // and steal every future webhook payload (packages, maintenance, etc).
+    const auth = await guardRoute(request, { roles: [...WEBHOOK_ROLES] });
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid webhook id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     const parsed = updateWebhookSchema.safeParse(body);
@@ -77,6 +99,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     const input = parsed.data;
     const updateData: Record<string, unknown> = {};
@@ -122,10 +147,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, { roles: [...WEBHOOK_ROLES] });
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid webhook id.' },
+        { status: 400 },
+      );
+    }
 
     const existing = await prisma.webhook.findUnique({ where: { id } });
     if (!existing) {
@@ -134,6 +165,9 @@ export async function DELETE(
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     await prisma.webhook.delete({ where: { id } });
 

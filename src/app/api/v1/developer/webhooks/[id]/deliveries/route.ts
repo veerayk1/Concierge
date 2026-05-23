@@ -5,7 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/developer/webhooks/:id/deliveries — Delivery log
@@ -13,10 +14,18 @@ import { guardRoute } from '@/server/middleware/api-guard';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // Delivery logs reveal what event types are firing + outbound URLs.
+    // Lock to property_admin and tenant-scope.
+    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid webhook id.' },
+        { status: 400 },
+      );
+    }
 
     // Verify webhook exists
     const webhook = await prisma.webhook.findUnique({ where: { id } });
@@ -26,6 +35,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, webhook.propertyId);
+    if (tenancy) return tenancy;
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
