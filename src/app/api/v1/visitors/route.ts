@@ -126,11 +126,30 @@ export async function GET(request: NextRequest) {
       where.unitId = unitId;
     }
 
-    // Date range filter on arrivalAt
+    // Date range filter on arrivalAt — validate so `dateFrom=not-a-date`
+    // returns a clean 400 instead of crashing Prisma with an Invalid Date.
     if (dateFrom || dateTo) {
       const arrivalFilter: Record<string, Date> = {};
-      if (dateFrom) arrivalFilter.gte = new Date(dateFrom);
-      if (dateTo) arrivalFilter.lte = new Date(dateTo);
+      if (dateFrom) {
+        const d = new Date(dateFrom);
+        if (Number.isNaN(d.getTime())) {
+          return NextResponse.json(
+            { error: 'VALIDATION_ERROR', message: 'dateFrom must be a valid date.' },
+            { status: 400 },
+          );
+        }
+        arrivalFilter.gte = d;
+      }
+      if (dateTo) {
+        const d = new Date(dateTo);
+        if (Number.isNaN(d.getTime())) {
+          return NextResponse.json(
+            { error: 'VALIDATION_ERROR', message: 'dateTo must be a valid date.' },
+            { status: 400 },
+          );
+        }
+        arrivalFilter.lte = d;
+      }
       where.arrivalAt = arrivalFilter;
     }
 
