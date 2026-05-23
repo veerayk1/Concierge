@@ -163,26 +163,83 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    // Create booking — approvalMode determines if booking needs approval
+    // Conflict detection inside a SERIALIZABLE transaction. Without this two
+    // residents can POST identical slots concurrently and BOTH succeed —
+    // verified pre-fix: 7/8 concurrent POSTs on the same maxConcurrent=1
+    // amenity slot all returned 201. The sibling /api/v1/bookings POST
+    // already does this; this route was a parallel write path that bypassed
+    // it. Compose date+time so a 14:00–16:00 booking on Aug 13 does not
+    // collide with 14:00–16:00 on a different day (Postgres TIME column
+    // ignores the date side of the comparison if you filter on time alone).
     const needsApproval = amenity.approvalMode !== 'auto';
-    const booking = await prisma.booking.create({
-      data: {
-        propertyId: amenity.propertyId,
-        amenityId,
-        unitId: input.unitId,
-        residentId: requestedResidentId,
-        createdById: auth.user.userId,
-        referenceNumber: `AMN-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}`,
-        startDate: new Date(input.startDate),
-        startTime: startsAt,
-        endDate: new Date(input.endDate),
-        endTime: endsAt,
-        guestCount: input.guestCount,
-        requestorComments: input.requestorComments || null,
-        status: needsApproval ? 'pending' : 'approved',
-        approvalStatus: needsApproval ? 'pending' : 'approved',
-      },
-    });
+    const referenceNumber = `AMN-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`;
+
+    let booking;
+    try {
+      booking = await prisma.$transaction(
+        async (tx) => {
+          const startIso = startsAt.toISOString();
+          const endIso = endsAt.toISOString();
+          const overlapRows = await tx.$queryRaw<{ count: bigint }[]>`
+            SELECT COUNT(*)::bigint AS count
+            FROM bookings
+            WHERE "amenityId" = ${amenityId}::uuid
+              AND status IN ('confirmed', 'pending', 'approved')
+              AND ("startDate"::timestamp + "startTime"::time) < ${endIso}::timestamp
+              AND ("endDate"::timestamp + "endTime"::time) > ${startIso}::timestamp
+          `;
+          const overlapping = Number(overlapRows[0]?.count ?? 0n);
+          if (overlapping >= (amenity.maxConcurrent || 1)) {
+            throw Object.assign(
+              new Error('This amenity is already booked for the requested time.'),
+              { _status: 409 },
+            );
+          }
+
+          return tx.booking.create({
+            data: {
+              propertyId: amenity.propertyId,
+              amenityId,
+              unitId: input.unitId,
+              residentId: requestedResidentId,
+              createdById: auth.user.userId,
+              referenceNumber,
+              startDate: new Date(input.startDate),
+              startTime: startsAt,
+              endDate: new Date(input.endDate),
+              endTime: endsAt,
+              guestCount: input.guestCount,
+              requestorComments: input.requestorComments || null,
+              status: needsApproval ? 'pending' : 'approved',
+              approvalStatus: needsApproval ? 'pending' : 'approved',
+            },
+          });
+        },
+        { isolationLevel: 'Serializable' },
+      );
+    } catch (e) {
+      const status = (e as { _status?: number })?._status;
+      if (status === 409) {
+        return NextResponse.json(
+          {
+            error: 'CONFLICT',
+            message: 'This amenity is already booked for the requested time.',
+          },
+          { status: 409 },
+        );
+      }
+      const code = (e as { code?: string })?.code;
+      if (code === 'P2034' || /write conflict|deadlock/i.test((e as Error)?.message ?? '')) {
+        return NextResponse.json(
+          {
+            error: 'CONFLICT',
+            message: 'This amenity is already booked for the requested time.',
+          },
+          { status: 409 },
+        );
+      }
+      throw e;
+    }
 
     return NextResponse.json(
       {
