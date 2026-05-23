@@ -11,12 +11,17 @@ export const createUserSchema = z.object({
     .string()
     .min(1, 'First name is required')
     .max(50, 'First name cannot exceed 50 characters')
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, 'First name contains invalid characters'),
+    // Unicode-aware: allow letters from any script (\p{L}), marks, spaces,
+    // hyphens, apostrophes, and periods (initials). Rejects control chars,
+    // angle brackets, digits, and most punctuation that has no place in
+    // a real name. Without \p{L}, names like "José", "محمد", "山田" were
+    // rejected — broken for any non-English resident.
+    .regex(/^[\p{L}\p{M}\s'.-]+$/u, 'First name contains invalid characters'),
   lastName: z
     .string()
     .min(1, 'Last name is required')
     .max(50, 'Last name cannot exceed 50 characters')
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, 'Last name contains invalid characters'),
+    .regex(/^[\p{L}\p{M}\s'.-]+$/u, 'Last name contains invalid characters'),
   email: z.string().min(1, 'Email is required').max(254).email('Valid email address is required'),
   phone: z
     .string()
@@ -55,13 +60,13 @@ export const updateUserSchema = z.object({
     .string()
     .min(1)
     .max(50)
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/)
+    .regex(/^[\p{L}\p{M}\s'.-]+$/u)
     .optional(),
   lastName: z
     .string()
     .min(1)
     .max(50)
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/)
+    .regex(/^[\p{L}\p{M}\s'.-]+$/u)
     .optional(),
   phone: z.string().max(20).optional().or(z.literal('')),
   roleId: z.string().uuid().optional(),
