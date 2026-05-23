@@ -51,6 +51,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
+    // Physical access control — the card must belong to the SAME property
+    // that the scanning guard is stationed at. Without this check a card
+    // from Property B presented at Property A's gate would return
+    // verified: true and the guard's UI would tell them to grant entry —
+    // turning every resident's card from any building into a master key
+    // for every other building in the platform. super_admin bypasses for
+    // ops debugging.
+    if (auth.user.role !== 'super_admin' && card.propertyId !== auth.user.propertyId) {
+      return NextResponse.json(
+        {
+          data: {
+            verified: false,
+            reason: 'WRONG_PROPERTY',
+          },
+        },
+        { status: 401 },
+      );
+    }
+
     // Check card is active
     if (card.status !== 'active') {
       return NextResponse.json(
