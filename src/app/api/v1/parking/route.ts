@@ -161,11 +161,50 @@ export async function GET(request: NextRequest) {
     if (status) where.status = status;
     if (unitId) where.unitId = unitId;
     if (vehicleId) where.vehicleId = vehicleId;
+
+    // Build AND-combinable filter clauses so search + per-resident
+    // scoping don't clobber each other on the .OR key.
+    const andClauses: Array<Record<string, unknown>> = [];
     if (search) {
-      where.OR = [
-        { referenceNumber: { contains: search, mode: 'insensitive' } },
-        { licensePlate: { contains: search, mode: 'insensitive' } },
-      ];
+      andClauses.push({
+        OR: [
+          { referenceNumber: { contains: search, mode: 'insensitive' } },
+          { licensePlate: { contains: search, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    // SEC-132: per-resident scoping. Without this, a resident at the
+    // property could enumerate every neighbor's parking permits (license
+    // plate, vehicle make/model/color, unit number, validity window).
+    // That's a stalking signal — when neighbor's car is or isn't on-site
+    // is exactly what burglary scouts care about. Staff sees all; non-
+    // staff sees only permits where residentId matches them, OR permits
+    // for units they occupy.
+    const STAFF_ROLES = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_supervisor',
+      'security_guard',
+      'superintendent',
+      'maintenance_staff',
+      'board_member',
+    ]);
+    if (!STAFF_ROLES.has(auth.user.role)) {
+      const myUnits = await prisma.occupancyRecord.findMany({
+        where: { userId: auth.user.userId, moveOutDate: null },
+        select: { unitId: true },
+      });
+      const myUnitIds = myUnits.map((u) => u.unitId);
+      andClauses.push({
+        OR: [{ residentId: auth.user.userId }, { unitId: { in: myUnitIds } }],
+      });
+    }
+
+    if (andClauses.length > 0) {
+      where.AND = andClauses;
     }
 
     const permits = await prisma.parkingPermit.findMany({
