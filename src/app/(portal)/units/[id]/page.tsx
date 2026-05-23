@@ -528,8 +528,14 @@ export default function UnitDetailPage() {
             </Badge>
           </div>
           <p className="text-[14px] text-neutral-500">
-            {unit.building} &middot; Floor {unit.floor} &middot; {unit.type} &middot; {unit.sqft} sq
-            ft
+            {[
+              unit.building,
+              unit.floor != null ? `Floor ${unit.floor}` : null,
+              unit.type,
+              unit.sqft != null ? `${unit.sqft} sq ft` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </p>
         </div>
         <Button variant="secondary" size="sm" onClick={() => setEditDialogOpen(true)}>
@@ -602,13 +608,16 @@ export default function UnitDetailPage() {
                   <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
                     {[
                       { label: 'Number', value: unit.number },
-                      { label: 'Floor', value: String(unit.floor) },
+                      { label: 'Floor', value: unit.floor != null ? String(unit.floor) : null },
                       { label: 'Type', value: unit.type },
                       {
                         label: 'Status',
                         value: unit.status.charAt(0).toUpperCase() + unit.status.slice(1),
                       },
-                      { label: 'Square Footage', value: `${unit.sqft} sq ft` },
+                      {
+                        label: 'Square Footage',
+                        value: unit.sqft != null ? `${unit.sqft} sq ft` : null,
+                      },
                       { label: 'Enter Phone Code', value: unit.enterPhoneCode },
                       { label: 'Parking Spot', value: unit.parkingSpot },
                       { label: 'Locker', value: unit.locker },
