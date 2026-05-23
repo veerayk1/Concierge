@@ -126,6 +126,28 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         );
       }
 
+      // Atomic compare-and-swap on status. Without this, N concurrent
+      // PATCHes (e.g., two staff clicking Approve simultaneously, or a
+      // double-clicked Cancel button) would all see status=pending and
+      // all proceed past validation, sending N approval emails to the
+      // booker and (on cancellation) marking the next waitlisted user
+      // 'offered' N times and emailing them N copies of the offer.
+      // Postgres serializes this single UPDATE statement at the row-
+      // lock level; only the first writer wins. Losers get 409.
+      const casCount = await prisma.$executeRaw`
+        UPDATE bookings SET status = ${body.status}
+        WHERE id = ${id}::uuid AND status = ${booking.status}
+      `;
+      if (casCount === 0) {
+        return NextResponse.json(
+          {
+            error: 'STATE_CONFLICT',
+            message: `Booking is no longer in '${booking.status}' status — another change won the race.`,
+          },
+          { status: 409 },
+        );
+      }
+
       updateData.status = body.status;
       if (body.status === 'approved') {
         updateData.approvedById = auth.user.userId;

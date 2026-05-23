@@ -279,11 +279,32 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     updateData.lastActivityDate = new Date();
 
     // ------------------------------------------------------------------
-    // Persist update
+    // Persist update — atomic CAS on status when transitioning, to
+    // prevent N concurrent PATCHes from all writing N audit records
+    // and sending N status-change emails to the resident. Same pattern
+    // as maintenance/[id] REL-006 fix.
     // ------------------------------------------------------------------
+    if (isStatusChange) {
+      const casCount = await prisma.$executeRaw`
+        UPDATE alteration_projects SET status = ${newStatus}
+        WHERE id = ${id}::uuid AND status = ${oldStatus}
+      `;
+      if (casCount === 0) {
+        return NextResponse.json(
+          {
+            error: 'STATE_CONFLICT',
+            message: `Alteration is no longer in '${oldStatus}' status — another change won the race.`,
+          },
+          { status: 409 },
+        );
+      }
+    }
     const updated = await prisma.alterationProject.update({
       where: { id },
-      data: updateData,
+      data: isStatusChange
+        ? // status was already written atomically above; strip it from rest
+          Object.fromEntries(Object.entries(updateData).filter(([k]) => k !== 'status'))
+        : updateData,
       include: {
         unit: { select: { id: true, number: true } },
       },

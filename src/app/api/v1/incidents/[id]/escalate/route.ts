@@ -64,12 +64,30 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    // Update the event priority and status
+    // Atomic compare-and-swap: only the first concurrent escalate POST
+    // wins. Without this, N rapid clicks of the Escalate button would
+    // each fire a full email + SMS cascade to every property manager —
+    // turning one logical escalation into N URGENT pages per manager.
+    // The CAS rejects re-escalation; to re-prioritize an already-
+    // escalated incident, callers must explicitly downgrade first.
+    const casCount = await prisma.$executeRaw`
+      UPDATE events SET priority = ${input.priority}, status = 'in_progress'
+      WHERE id = ${id}::uuid AND status != 'in_progress'
+    `;
+    if (casCount === 0) {
+      return NextResponse.json(
+        {
+          error: 'ALREADY_ESCALATED',
+          message: 'Incident has already been escalated — no new alert sent.',
+        },
+        { status: 409 },
+      );
+    }
+    // Now apply the customFields metadata; this write is safe because the
+    // CAS above gated us as the single winning escalator.
     const event = await prisma.event.update({
       where: { id },
       data: {
-        priority: input.priority,
-        status: 'in_progress',
         customFields: {
           escalatedTo: stripControlChars(stripHtml(input.escalateTo)),
           escalationReason: stripControlChars(stripHtml(input.reason)),

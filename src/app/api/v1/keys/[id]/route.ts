@@ -150,12 +150,30 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (input.action === 'lost') {
-      const key = await prisma.keyInventory.update({
-        where: { id },
-        data: { status: 'lost' },
-      });
+      // Atomic compare-and-swap: only the first concurrent caller wins.
+      // Without this, N concurrent "lost" PATCHes (e.g., a double-clicked
+      // "Mark Lost" button) would auto-spawn N incident reports for the
+      // same key, paging Security N times for one logical event.
+      const casCount = await prisma.$executeRaw`
+        UPDATE key_inventory SET status = 'lost'
+        WHERE id = ${id}::uuid AND status != 'lost'
+      `;
+      if (casCount === 0) {
+        return NextResponse.json(
+          {
+            error: 'STATE_CONFLICT',
+            message: 'Key is already marked as lost — no new alert created.',
+          },
+          { status: 409 },
+        );
+      }
+      const key = await prisma.keyInventory.findUnique({ where: { id } });
+      if (!key) {
+        return NextResponse.json({ error: 'NOT_FOUND', message: 'Key not found' }, { status: 404 });
+      }
 
-      // Auto-create incident report (security alert) for lost keys
+      // Auto-create incident report (security alert) for lost keys —
+      // guaranteed to fire exactly once because the CAS above won the race.
       await prisma.incidentReport.create({
         data: {
           propertyId: key.propertyId,
