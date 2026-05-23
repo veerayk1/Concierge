@@ -394,7 +394,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = await guardRoute(request);
+    // Soft-deleting a maintenance request is a staff action. Without this
+    // role gate a resident could DELETE any MR in the property (verified —
+    // the previous handler only required authentication, not authorization).
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'superintendent',
+        'maintenance_staff',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
