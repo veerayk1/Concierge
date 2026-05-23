@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import type { AuthenticatedUser } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
@@ -146,7 +147,10 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Dispatch based on action field
+    // Dispatch based on action field. Pass the full AuthenticatedUser so
+    // the handlers can enforce tenancy on body.propertyId / album lookup
+    // (SEC-101: prior code only forwarded userId, leaving the handlers
+    // unable to call enforcePropertyAccess).
     if (body.action === 'add_photo') {
       return handleAddPhoto(body, auth.user);
     }
@@ -244,7 +248,7 @@ export async function DELETE(request: NextRequest) {
 // Handler: Create Album
 // ---------------------------------------------------------------------------
 
-async function handleCreateAlbum(body: unknown, user: { userId: string }): Promise<NextResponse> {
+async function handleCreateAlbum(body: unknown, user: AuthenticatedUser): Promise<NextResponse> {
   const parsed = createAlbumSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -255,6 +259,12 @@ async function handleCreateAlbum(body: unknown, user: { userId: string }): Promi
   }
 
   const input = parsed.data;
+
+  // Cross-tenant guard — SEC-101. Pre-fix: admin at Property A POSTed
+  // { propertyId: B, title } and an album was created in B's gallery
+  // (status 201, storedPropertyId=B). Now blocked.
+  const tenancy = enforcePropertyAccess(user, input.propertyId);
+  if (tenancy) return tenancy;
 
   const album = await prisma.photoAlbum.create({
     data: {
@@ -277,7 +287,7 @@ async function handleCreateAlbum(body: unknown, user: { userId: string }): Promi
 // Handler: Add Photo to Album
 // ---------------------------------------------------------------------------
 
-async function handleAddPhoto(body: unknown, user: { userId: string }): Promise<NextResponse> {
+async function handleAddPhoto(body: unknown, user: AuthenticatedUser): Promise<NextResponse> {
   const parsed = addPhotoSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -297,6 +307,11 @@ async function handleAddPhoto(body: unknown, user: { userId: string }): Promise<
   if (!album) {
     return NextResponse.json({ error: 'NOT_FOUND', message: 'Album not found' }, { status: 404 });
   }
+
+  // Cross-tenant guard — without this a caller could add photos to any
+  // property's album by guessing the album id.
+  const tenancy = enforcePropertyAccess(user, album.propertyId);
+  if (tenancy) return tenancy;
 
   const photo = await prisma.albumPhoto.create({
     data: {

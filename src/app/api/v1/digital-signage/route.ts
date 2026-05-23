@@ -169,6 +169,11 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — signage content is displayed on lobby screens;
+    // never let A push content into B's display rotation.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // Resolve field names (new aliases take precedence over legacy)
     const resolvedTitle = input.name || input.title || '';
     const resolvedType = input.type || input.contentType || '';

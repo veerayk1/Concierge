@@ -210,6 +210,12 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+
+    // Cross-tenant guard — without this a caller could plant an asset
+    // register entry at another property.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     const assetTag = generateAssetTag();
 
     // Build notes with structured metadata (condition, warranty)

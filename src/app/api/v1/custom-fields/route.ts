@@ -138,6 +138,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { propertyId: __cfPropertyId_for_tenancy } = parsed.data;
+
+    // Cross-tenant guard on body.propertyId before any DB write.
+    const __cfTenancy = enforcePropertyAccess(auth.user, __cfPropertyId_for_tenancy);
+    if (__cfTenancy) return __cfTenancy;
+
     const {
       propertyId,
       module: entityType,

@@ -92,6 +92,11 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — event types drive the configurable event log;
+    // never let A inject custom event types into B's catalog.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // Check for duplicate slug
     const existing = await prisma.eventType.findFirst({
       where: { propertyId: input.propertyId, slug: input.slug, deletedAt: null },

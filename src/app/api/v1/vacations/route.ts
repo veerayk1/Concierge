@@ -120,6 +120,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Cross-tenant guard — without this a resident at A could POST a
+    // vacation period for any propertyId/userId, polluting B's mail-hold
+    // queue and visitor-block list.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
+
     const start = new Date(startDate);
     const end = new Date(endDate);
 

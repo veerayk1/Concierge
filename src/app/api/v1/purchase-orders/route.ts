@@ -145,6 +145,12 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+
+    // Cross-tenant guard — POs are financial records; never let A draft
+    // a PO that posts against B's budget.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     const referenceNumber = `PO-${nanoid(6).toUpperCase()}`;
 
     // Calculate totals
