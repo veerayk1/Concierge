@@ -234,6 +234,8 @@ model User {
   sessions                 Session[]
   refreshTokens            RefreshToken[]
   loginAudits              LoginAudit[]
+  userAuditsAsTarget       UserAudit[]   @relation("UserAuditTarget")
+  userAuditsAsActor        UserAudit[]   @relation("UserAuditActor")
   passwordHistory          PasswordHistory[]
   devicePushTokens         DevicePushToken[]
   occupancyRecords         OccupancyRecord[]
@@ -357,6 +359,25 @@ model LoginAudit {
   @@index([email])
   @@index([ipAddress])
   @@map("login_audits")
+}
+
+// Per-user audit trail for compliance — separate from LoginAudit because
+// login attempts come from anonymous users and have IP-level granularity,
+// whereas user_audits captures admin actions like role change, status
+// change, profile update. Surfaced in the user detail Activity tab.
+model UserAudit {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  actorId   String?  @db.Uuid
+  action    String   @db.VarChar(40) // role_changed | status_changed | profile_updated | created | deleted
+  detail    Json?    @db.JsonB
+  createdAt DateTime @default(now())
+
+  user  User @relation("UserAuditTarget", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("UserAuditActor", fields: [actorId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("user_audits")
 }
 
 model AuditEntry {

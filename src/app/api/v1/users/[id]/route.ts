@@ -63,6 +63,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             createdAt: true,
           },
         },
+        userAuditsAsTarget: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+          select: {
+            id: true,
+            action: true,
+            detail: true,
+            createdAt: true,
+            actor: { select: { firstName: true, lastName: true, email: true } },
+          },
+        },
       },
     });
 
@@ -82,6 +93,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           role: up.role,
         })),
         recentLogins: user.loginAudits,
+        // Per-user audit events (role / status / profile changes) surfaced
+        // alongside login audits in the Activity tab.
+        recentAudits: user.userAuditsAsTarget.map((a) => ({
+          id: a.id,
+          action: a.action,
+          detail: a.detail,
+          createdAt: a.createdAt,
+          actorName: a.actor
+            ? `${a.actor.firstName ?? ''} ${a.actor.lastName ?? ''}`.trim() || a.actor.email
+            : null,
+        })),
       },
     });
   } catch (error) {
@@ -118,6 +140,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const { status } = parsed.data;
       const isActive = status === 'active';
 
+      // Read prior state for audit detail
+      const prior = await prisma.user.findUnique({
+        where: { id },
+        select: { isActive: true },
+      });
+
       const user = await prisma.user.update({
         where: { id },
         data: {
@@ -134,6 +162,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           data: { revokedAt: new Date() },
         });
       }
+
+      // Record the status change in user_audits so the admin Activity
+      // tab can surface it for compliance / forensics.
+      await prisma.userAudit
+        .create({
+          data: {
+            userId: id,
+            actorId: auth.user.userId,
+            action: 'status_changed',
+            detail: {
+              from: prior?.isActive === false ? 'suspended' : 'active',
+              to: status,
+            },
+          },
+        })
+        .catch((err) => console.error('user_audit insert (status) failed:', err));
 
       return NextResponse.json({
         data: user,
@@ -165,6 +209,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // GAP 8.1: Email signature editor
     if (input.emailSignature !== undefined) updateData.emailSignature = input.emailSignature;
 
+    // Snapshot prior values for audit detail
+    const priorProfile = await prisma.user.findUnique({
+      where: { id },
+      select: { firstName: true, lastName: true, phone: true },
+    });
+
     const user = await prisma.user.update({
       where: { id },
       data: updateData,
@@ -179,14 +229,62 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     });
 
     // Update role if provided
+    let priorRoleSlug: string | null = null;
+    let newRoleSlug: string | null = null;
     if (input.roleId) {
       const propertyId = new URL(request.url).searchParams.get('propertyId');
       if (propertyId) {
+        const priorMembership = await prisma.userProperty.findFirst({
+          where: { userId: id, propertyId },
+          select: { role: { select: { slug: true } } },
+        });
+        priorRoleSlug = priorMembership?.role?.slug ?? null;
         await prisma.userProperty.updateMany({
           where: { userId: id, propertyId },
           data: { roleId: input.roleId },
         });
+        const newRole = await prisma.role.findUnique({
+          where: { id: input.roleId },
+          select: { slug: true },
+        });
+        newRoleSlug = newRole?.slug ?? null;
       }
+    }
+
+    // Record profile fields that actually changed.
+    const changedFields: Record<string, { from: unknown; to: unknown }> = {};
+    if (priorProfile) {
+      if (input.firstName && priorProfile.firstName !== input.firstName)
+        changedFields.firstName = { from: priorProfile.firstName, to: input.firstName };
+      if (input.lastName && priorProfile.lastName !== input.lastName)
+        changedFields.lastName = { from: priorProfile.lastName, to: input.lastName };
+      if (input.phone !== undefined && priorProfile.phone !== input.phone)
+        changedFields.phone = { from: priorProfile.phone, to: input.phone };
+    }
+    if (Object.keys(changedFields).length > 0) {
+      await prisma.userAudit
+        .create({
+          data: {
+            userId: id,
+            actorId: auth.user.userId,
+            action: 'profile_updated',
+            detail: changedFields,
+          },
+        })
+        .catch((err) => console.error('user_audit insert (profile) failed:', err));
+    }
+
+    if (priorRoleSlug !== null && newRoleSlug !== null && priorRoleSlug !== newRoleSlug) {
+      await prisma.userAudit
+        .create({
+          data: {
+            userId: id,
+            actorId: auth.user.userId,
+            action: 'role_changed',
+            detail: { from: priorRoleSlug, to: newRoleSlug },
+          },
+        })
+        .catch((err) => console.error('user_audit insert (role) failed:', err));
     }
 
     return NextResponse.json({

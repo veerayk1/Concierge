@@ -54,6 +54,14 @@ interface LoginAudit {
   createdAt: string;
 }
 
+interface UserAuditEntry {
+  id: string;
+  action: string;
+  detail: Record<string, unknown> | null;
+  createdAt: string;
+  actorName: string | null;
+}
+
 interface UserDetail {
   id: string;
   email: string;
@@ -70,6 +78,7 @@ interface UserDetail {
   status: 'active' | 'pending' | 'suspended';
   properties: PropertyAssignment[];
   recentLogins: LoginAudit[];
+  recentAudits?: UserAuditEntry[];
 }
 
 interface RoleOption {
@@ -527,7 +536,67 @@ export default function UserDetailPage() {
         </TabsContent>
 
         {/* Activity tab */}
-        <TabsContent value="activity" className="mt-4">
+        <TabsContent value="activity" className="mt-4 space-y-4">
+          {/* Account changes — role/status/profile edits by admins, sourced
+              from the user_audits table. Compliance auditors and other
+              admins can reconstruct who changed what and when. */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Changes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!data.recentAudits || data.recentAudits.length === 0 ? (
+                <p className="text-[13px] text-neutral-500">No account changes recorded yet.</p>
+              ) : (
+                <ul className="divide-y divide-neutral-100">
+                  {data.recentAudits.map((row) => {
+                    const labels: Record<string, string> = {
+                      role_changed: 'Role changed',
+                      status_changed: 'Status changed',
+                      profile_updated: 'Profile updated',
+                      created: 'Account created',
+                      deleted: 'Account deleted',
+                    };
+                    const label = labels[row.action] ?? row.action;
+                    const detail = row.detail as Record<string, unknown> | null;
+                    const summary = (() => {
+                      if (!detail) return null;
+                      if (row.action === 'role_changed' || row.action === 'status_changed') {
+                        return `${String(detail.from ?? '')} → ${String(detail.to ?? '')}`;
+                      }
+                      if (row.action === 'profile_updated') {
+                        return Object.keys(detail).join(', ');
+                      }
+                      return null;
+                    })();
+                    return (
+                      <li
+                        key={row.id}
+                        className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                      >
+                        <div className="flex-1">
+                          <p className="text-[13px] font-medium text-neutral-900">{label}</p>
+                          {summary && <p className="text-[12px] text-neutral-500">{summary}</p>}
+                          {row.actorName && (
+                            <p className="text-[12px] text-neutral-400">by {row.actorName}</p>
+                          )}
+                        </div>
+                        <span className="text-[12px] whitespace-nowrap text-neutral-500">
+                          {new Date(row.createdAt).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Recent Login Activity</CardTitle>
