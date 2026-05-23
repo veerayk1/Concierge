@@ -274,6 +274,7 @@ function HelpCenterSkeleton() {
 export default function HelpCenterPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showTicketDialog, setShowTicketDialog] = useState(false);
+  const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
 
   // Fetch articles from API (featured first)
   const {
@@ -420,31 +421,56 @@ export default function HelpCenterPage() {
             {searchQuery ? 'Search Results' : 'Featured Articles'}
           </h2>
           <div className="flex flex-col gap-3">
-            {filteredArticles.map((article) => (
-              <Card key={article.id} hoverable padding="md" className="group cursor-pointer">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="group-hover:text-primary-600 text-[15px] font-semibold text-neutral-900 transition-colors">
-                        {article.title}
-                      </h3>
-                      <Badge variant="info" size="sm">
-                        {article.category}
-                      </Badge>
+            {filteredArticles.map((article) => {
+              const isExpanded = expandedArticleId === article.id;
+              const apiArticle = (apiArticles ?? []).find((a) => a.id === article.id);
+              const fullBody = apiArticle?.body ?? article.excerpt;
+              return (
+                <button
+                  key={article.id}
+                  type="button"
+                  onClick={() => setExpandedArticleId(isExpanded ? null : article.id)}
+                  className="focus-visible:ring-primary-500 rounded-2xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                >
+                  <Card hoverable padding="md" className="group cursor-pointer">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="group-hover:text-primary-600 text-[15px] font-semibold text-neutral-900 transition-colors">
+                            {article.title}
+                          </h3>
+                          <Badge variant="info" size="sm">
+                            {article.category}
+                          </Badge>
+                        </div>
+                        {isExpanded ? (
+                          <p className="mt-1.5 text-[13px] leading-relaxed whitespace-pre-wrap text-neutral-700">
+                            {fullBody}
+                          </p>
+                        ) : (
+                          <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-neutral-500">
+                            {article.excerpt}
+                          </p>
+                        )}
+                        <div className="mt-3 flex items-center gap-3 text-[12px] text-neutral-400">
+                          <span>{article.readTime} read</span>
+                          <span aria-hidden="true">&middot;</span>
+                          <span>Updated {article.updatedAt}</span>
+                          {isExpanded && (
+                            <span className="text-primary-600 font-medium">Click to collapse</span>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight
+                        className={`group-hover:text-primary-500 mt-1 h-4 w-4 shrink-0 text-neutral-300 transition-all ${
+                          isExpanded ? 'rotate-90' : ''
+                        }`}
+                      />
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-neutral-500">
-                      {article.excerpt}
-                    </p>
-                    <div className="mt-3 flex items-center gap-3 text-[12px] text-neutral-400">
-                      <span>{article.readTime} read</span>
-                      <span aria-hidden="true">&middot;</span>
-                      <span>Updated {article.updatedAt}</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="group-hover:text-primary-500 mt-1 h-4 w-4 shrink-0 text-neutral-300 transition-colors" />
-                </div>
-              </Card>
-            ))}
+                  </Card>
+                </button>
+              );
+            })}
           </div>
         </section>
       )}
