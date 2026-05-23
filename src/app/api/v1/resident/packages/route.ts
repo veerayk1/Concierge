@@ -50,16 +50,44 @@ export async function GET(request: NextRequest) {
       `;
       total = Number(countResult[0]?.count || 0);
 
-      packages = await prisma.$queryRaw`
-        SELECT p.*, u.number as "unitNumber"
+      const rows = await prisma.$queryRaw<Record<string, unknown>[]>`
+        SELECT
+          p.*,
+          u.number AS "unitNumber",
+          c.id AS "courier__id",
+          c.name AS "courier__name",
+          c.slug AS "courier__slug",
+          c.color AS "courier__color",
+          c."iconUrl" AS "courier__iconUrl"
         FROM packages p
         LEFT JOIN units u ON u.id = p."unitId"
+        LEFT JOIN courier_types c ON c.id = p."courierId"
         WHERE p."propertyId" = ${propertyId}::uuid
           AND p."unitId" = ${unitId}::uuid
           AND p."deletedAt" IS NULL
         ORDER BY p."createdAt" DESC
         LIMIT ${pageSize} OFFSET ${offset}
       `;
+      // Promote the flattened courier__* columns into a nested object so the
+      // resident page can render row.courier.name like the staff page does.
+      packages = rows.map((row) => {
+        const courier = row.courier__id
+          ? {
+              id: row.courier__id,
+              name: row.courier__name,
+              slug: row.courier__slug,
+              color: row.courier__color,
+              iconUrl: row.courier__iconUrl,
+            }
+          : null;
+        const out: Record<string, unknown> = { ...row, courier };
+        delete out.courier__id;
+        delete out.courier__name;
+        delete out.courier__slug;
+        delete out.courier__color;
+        delete out.courier__iconUrl;
+        return out;
+      });
     } catch {
       // packages table may not exist — return empty
       packages = [];
