@@ -90,26 +90,76 @@ export async function POST(request: NextRequest) {
     const endDt = new Date(input.endTime);
     const referenceNumber = `AMN-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`;
 
-    const booking = await prisma.booking.create({
-      data: {
-        referenceNumber,
-        propertyId: input.propertyId,
-        amenityId: input.amenityId,
-        unitId: input.unitId || auth.user.userId,
-        residentId: auth.user.userId,
-        createdById: auth.user.userId,
-        startDate: startDt,
-        startTime: startDt,
-        endDate: endDt,
-        endTime: endDt,
-        requestorComments: input.notes || null,
-        status: 'confirmed',
-      },
-      include: {
-        amenity: { select: { id: true, name: true } },
-        unit: { select: { id: true, number: true } },
-      },
-    });
+    // Conflict detection inside a serializable transaction. Without this, two
+    // residents could POST identical slots in parallel and both succeed
+    // (verified race condition). amenity.maxConcurrent governs how many
+    // overlapping bookings are allowed (default 1 = exclusive).
+    let booking;
+    try {
+      booking = await prisma.$transaction(
+        async (tx) => {
+          const amenity = await tx.amenity.findUnique({
+            where: { id: input.amenityId },
+            select: { maxConcurrent: true, propertyId: true },
+          });
+          if (!amenity) {
+            throw Object.assign(new Error('Amenity not found.'), { _status: 404 });
+          }
+          if (amenity.propertyId !== input.propertyId) {
+            throw Object.assign(new Error('Amenity does not belong to this property.'), {
+              _status: 400,
+            });
+          }
+
+          const overlapping = await tx.booking.count({
+            where: {
+              amenityId: input.amenityId,
+              status: { in: ['confirmed', 'pending', 'approved'] },
+              // Two ranges overlap iff start < other.end AND end > other.start.
+              startTime: { lt: endDt },
+              endTime: { gt: startDt },
+            },
+          });
+          if (overlapping >= (amenity.maxConcurrent || 1)) {
+            throw Object.assign(
+              new Error('This amenity is already booked for the requested time.'),
+              { _status: 409 },
+            );
+          }
+
+          return tx.booking.create({
+            data: {
+              referenceNumber,
+              propertyId: input.propertyId,
+              amenityId: input.amenityId,
+              unitId: input.unitId || auth.user.userId,
+              residentId: auth.user.userId,
+              createdById: auth.user.userId,
+              startDate: startDt,
+              startTime: startDt,
+              endDate: endDt,
+              endTime: endDt,
+              requestorComments: input.notes || null,
+              status: 'confirmed',
+            },
+            include: {
+              amenity: { select: { id: true, name: true } },
+              unit: { select: { id: true, number: true } },
+            },
+          });
+        },
+        { isolationLevel: 'Serializable' },
+      );
+    } catch (e) {
+      const status = (e as { _status?: number })?._status;
+      if (status) {
+        return NextResponse.json(
+          { error: status === 409 ? 'CONFLICT' : 'NOT_FOUND', message: (e as Error).message },
+          { status },
+        );
+      }
+      throw e;
+    }
 
     return NextResponse.json({ data: booking, message: 'Reservation created.' }, { status: 201 });
   } catch (error) {
