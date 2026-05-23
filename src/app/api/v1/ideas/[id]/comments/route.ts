@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createCommentSchema = z.object({
@@ -25,6 +25,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!idea) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Idea not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, (idea as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const comments = await (prisma as any).ideaComment.findMany({
@@ -54,6 +57,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!idea) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Idea not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, (idea as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     const body = await request.json();
     const parsed = createCommentSchema.safeParse(body);

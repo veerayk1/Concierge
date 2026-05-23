@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { createMaintenanceCommentSchema } from '@/schemas/maintenance';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
@@ -31,6 +31,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, maintenanceRequest.propertyId);
+    if (tenancy) return tenancy;
 
     const comments = await prisma.maintenanceComment.findMany({
       where: { requestId: id },
@@ -93,6 +96,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, maintenanceRequest.propertyId);
+    if (tenancy) return tenancy;
 
     const input = parsed.data;
 

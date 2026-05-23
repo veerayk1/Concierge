@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createReplySchema = z.object({
@@ -29,6 +29,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!topic) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Topic not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, (topic as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const replies = await (prisma.forumReply.findMany as any)({
@@ -58,6 +61,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!topic) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Topic not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, (topic as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     // Check topic is not locked
     if ((topic as { isLocked: boolean }).isLocked) {

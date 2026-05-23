@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createInstructionSchema = z.object({
@@ -23,6 +23,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id: unitId } = await params;
+
+    // Unit instructions can contain sensitive resident detail ("Unit 815
+    // has a dog that bites; Unit 302 is deaf, use the doorbell twice").
+    // Inherit tenancy from the parent unit.
+    const unit = await prisma.unit.findUnique({
+      where: { id: unitId },
+      select: { propertyId: true },
+    });
+    if (!unit) {
+      return NextResponse.json({ error: 'NOT_FOUND', message: 'Unit not found' }, { status: 404 });
+    }
+    const tenancy = enforcePropertyAccess(auth.user, unit.propertyId);
+    if (tenancy) return tenancy;
 
     const instructions = await prisma.unitInstruction.findMany({
       where: { unitId, isActive: true },
@@ -45,6 +58,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id: unitId } = await params;
+
+    const unit = await prisma.unit.findUnique({
+      where: { id: unitId },
+      select: { propertyId: true },
+    });
+    if (!unit) {
+      return NextResponse.json({ error: 'NOT_FOUND', message: 'Unit not found' }, { status: 404 });
+    }
+    const tenancy = enforcePropertyAccess(auth.user, unit.propertyId);
+    if (tenancy) return tenancy;
+
     const body = await request.json();
 
     const parsed = createInstructionSchema.safeParse(body);
@@ -57,10 +81,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const input = parsed.data;
 
+    // Trust the unit's actual propertyId, not body.propertyId — body is
+    // user-controlled and could otherwise plant an instruction at the
+    // wrong property via mass assignment.
     const instruction = await prisma.unitInstruction.create({
       data: {
         unitId,
-        propertyId: input.propertyId,
+        propertyId: unit.propertyId,
         instructionText: stripControlChars(stripHtml(input.instructionText)),
         priority: input.priority,
         visibleToRoles: input.visibleToRoles || [],

@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { uploadAlterationDocumentSchema } from '@/schemas/alteration';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/alterations/:id/documents
@@ -32,6 +32,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    // Alteration docs include permits and insurance — never leak cross-tenant.
+    const tenancy = enforcePropertyAccess(auth.user, project.propertyId);
+    if (tenancy) return tenancy;
 
     const documents = await prisma.alterationDocument.findMany({
       where: { alterationProjectId: id },
@@ -79,6 +83,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, project.propertyId);
+    if (tenancy) return tenancy;
 
     const input = parsed.data;
 

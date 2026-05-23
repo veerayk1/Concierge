@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,6 +22,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!unit) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Unit not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, unit.propertyId);
+    if (tenancy) return tenancy;
 
     // Find users linked to this unit via UserProperty or unit assignments
     // For now, return users at the same property with resident roles

@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { completeInspectionItemSchema } from '@/schemas/inspection';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // Prisma models not yet generated — use type-safe casts so this compiles now
@@ -35,6 +35,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, inspection.propertyId);
+    if (tenancy) return tenancy;
 
     const items = await db.inspectionItem.findMany({
       where: { inspectionId: id },
@@ -83,6 +86,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, inspection.propertyId);
+    if (tenancy) return tenancy;
 
     if (inspection.status !== 'in_progress') {
       return NextResponse.json(

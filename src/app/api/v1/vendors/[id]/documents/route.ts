@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { createVendorDocumentSchema } from '@/schemas/vendor';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { calculateComplianceStatus } from '@/server/vendors/compliance';
 
 // ---------------------------------------------------------------------------
@@ -28,6 +28,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    // Vendor docs are insurance certificates, contracts, WSIB letters.
+    // Never let another property's admin read them.
+    const tenancy = enforcePropertyAccess(auth.user, vendor.propertyId);
+    if (tenancy) return tenancy;
 
     const documents = await prisma.vendorDocument.findMany({
       where: { vendorId: id },
@@ -72,6 +77,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, vendor.propertyId);
+    if (tenancy) return tenancy;
 
     const input = parsed.data;
 
