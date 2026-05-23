@@ -75,45 +75,75 @@ async function handleDemoMode(
   // wipes. Pick a user whose role at this property matches the requested
   // demoRole so that greetings, profile widgets, and /api/v1/users/me show the
   // right persona (otherwise we'd always greet "Super Admin").
+  //
+  // QA EXTENSION: honor `x-demo-user-id` when provided AND it points at a
+  // real user at this property, so adversarial probes can simulate
+  // distinct users of the same role (e.g., resident A vs resident B in
+  // different units) and verify per-user scoping fixes. Without this,
+  // every resident_owner call resolves to the same first-matching user,
+  // masking real per-resident scope bugs during testing.
   let resolvedUserId = isResident
     ? '00000000-0000-4000-d000-000000010101'
     : '00000000-0000-4000-a000-000000000001';
+  const headerUserId = request.headers.get('x-demo-user-id');
+  const isValidUuid =
+    headerUserId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(headerUserId);
+  let resolvedFromHeader = false;
+  if (isValidUuid) {
+    try {
+      const headerUser = await prisma.user.findFirst({
+        where: { id: headerUserId!, userProperties: { some: { propertyId } } },
+        select: { id: true },
+      });
+      if (headerUser) {
+        resolvedUserId = headerUser.id;
+        resolvedFromHeader = true;
+      }
+    } catch {
+      // Fall through to role-name resolver
+    }
+  }
   try {
-    const roleNameByDemo: Record<string, string> = {
-      super_admin: 'Super Admin',
-      property_admin: 'Property Admin',
-      property_manager: 'Property Manager',
-      front_desk: 'Front Desk / Concierge',
-      security_guard: 'Security Guard',
-      security_supervisor: 'Security Supervisor',
-      board_member: 'Board Member',
-      resident_owner: 'Resident (Owner)',
-      resident_tenant: 'Resident (Tenant)',
-      maintenance_staff: 'Maintenance Staff',
-      superintendent: 'Superintendent',
-    };
-    const expectedRoleName = roleNameByDemo[demoRole];
-    const matchUser = expectedRoleName
-      ? await prisma.user.findFirst({
-          where: {
-            userProperties: {
-              some: { propertyId, role: { name: expectedRoleName } },
+    if (resolvedFromHeader) {
+      // Skip role-name fallback — header gave us a usable real user
+    } else {
+      const roleNameByDemo: Record<string, string> = {
+        super_admin: 'Super Admin',
+        property_admin: 'Property Admin',
+        property_manager: 'Property Manager',
+        front_desk: 'Front Desk / Concierge',
+        security_guard: 'Security Guard',
+        security_supervisor: 'Security Supervisor',
+        board_member: 'Board Member',
+        resident_owner: 'Resident (Owner)',
+        resident_tenant: 'Resident (Tenant)',
+        maintenance_staff: 'Maintenance Staff',
+        superintendent: 'Superintendent',
+      };
+      const expectedRoleName = roleNameByDemo[demoRole];
+      const matchUser = expectedRoleName
+        ? await prisma.user.findFirst({
+            where: {
+              userProperties: {
+                some: { propertyId, role: { name: expectedRoleName } },
+              },
             },
-          },
+            select: { id: true },
+            orderBy: { createdAt: 'asc' },
+          })
+        : null;
+      if (matchUser) {
+        resolvedUserId = matchUser.id;
+      } else {
+        const realUser = await prisma.user.findFirst({
+          where: { userProperties: { some: { propertyId } } },
           select: { id: true },
           orderBy: { createdAt: 'asc' },
-        })
-      : null;
-    if (matchUser) {
-      resolvedUserId = matchUser.id;
-    } else {
-      const realUser = await prisma.user.findFirst({
-        where: { userProperties: { some: { propertyId } } },
-        select: { id: true },
-        orderBy: { createdAt: 'asc' },
-      });
-      if (realUser) resolvedUserId = realUser.id;
-    }
+        });
+        if (realUser) resolvedUserId = realUser.id;
+      }
+    } // end !resolvedFromHeader
   } catch {
     // User lookup failed — proceed with demo UUID
   }
