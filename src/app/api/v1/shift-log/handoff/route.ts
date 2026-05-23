@@ -10,6 +10,75 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
+/**
+ * POST /api/v1/shift-log/handoff — Create or upsert a shift handoff record.
+ *
+ * Used by an outgoing guard at end-of-shift to leave structured notes for the
+ * next shift. Without this endpoint the handoff UI / chain test H2 gets
+ * 405 Method Not Allowed because the route only handled GET.
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'security_guard',
+        'security_supervisor',
+        'superintendent',
+        'front_desk',
+      ],
+    });
+    if (auth.error) return auth.error;
+
+    const body = await request.json().catch(() => ({}));
+    const propertyId = body.propertyId as string | undefined;
+    if (!propertyId) {
+      return NextResponse.json(
+        { error: 'MISSING_PROPERTY', message: 'propertyId is required' },
+        { status: 400 },
+      );
+    }
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
+
+    const shiftDate = body.shiftDate ? new Date(body.shiftDate) : new Date();
+    shiftDate.setUTCHours(0, 0, 0, 0);
+    const shiftType: string = body.shiftType ?? 'morning';
+    const notes: string | null = body.notes ?? null;
+    const flaggedItems = body.flaggedItems ?? [];
+
+    const handoff = await prisma.shiftHandoff.upsert({
+      where: {
+        propertyId_shiftDate_shiftType: { propertyId, shiftDate, shiftType },
+      },
+      update: {
+        notes,
+        flaggedItems,
+        eventCount: Array.isArray(flaggedItems) ? flaggedItems.length : 0,
+      },
+      create: {
+        propertyId,
+        shiftDate,
+        shiftType,
+        outgoingUserId: auth.user.userId,
+        notes,
+        flaggedItems,
+        eventCount: Array.isArray(flaggedItems) ? flaggedItems.length : 0,
+      },
+    });
+
+    return NextResponse.json({ data: handoff, message: 'Shift handoff saved.' }, { status: 201 });
+  } catch (error) {
+    console.error('POST /api/v1/shift-log/handoff error:', error);
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', message: 'Failed to save shift handoff' },
+      { status: 500 },
+    );
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await guardRoute(request);
