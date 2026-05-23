@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { z } from 'zod';
+import { isUuid } from '@/lib/uuid';
 
 const updateRoleSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -23,6 +24,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid role id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     const parsed = updateRoleSchema.safeParse(body);
@@ -78,6 +85,12 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid role id.' },
+        { status: 400 },
+      );
+    }
 
     const existing = await prisma.role.findFirst({
       where: { id, deletedAt: null },

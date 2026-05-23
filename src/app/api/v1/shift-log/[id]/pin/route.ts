@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
 
 const pinSchema = z.object({
   pinned: z.boolean(),
@@ -30,6 +31,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid shift log entry id.' },
+        { status: 400 },
+      );
+    }
     const entry = await prisma.event.findUnique({ where: { id } });
 
     if (!entry) {

@@ -14,6 +14,7 @@ import {
 } from '@/schemas/purchase-order';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 const PO_ALLOWED_ROLES = ['property_admin', 'board_member', 'property_manager', 'super_admin'];
 const APPROVAL_ROLES = ['property_admin', 'board_member', 'super_admin'];
@@ -28,6 +29,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid purchase order id.' },
+        { status: 400 },
+      );
+    }
 
     const po = await prisma.purchaseOrder.findUnique({
       where: { id, deletedAt: null },
@@ -75,6 +82,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid purchase order id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
     const parsed = updatePurchaseOrderStatusSchema.safeParse(body);
 

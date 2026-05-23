@@ -9,6 +9,7 @@ import { updateEquipmentSchema, EQUIPMENT_STATUS_TRANSITIONS } from '@/schemas/e
 import type { EquipmentStatus } from '@/schemas/equipment';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -45,6 +46,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid equipment id.' },
+        { status: 400 },
+      );
+    }
 
     const equipment = await prisma.equipment.findUnique({
       where: { id, deletedAt: null },
@@ -108,6 +115,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid equipment id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     const parsed = updateEquipmentSchema.safeParse(body);

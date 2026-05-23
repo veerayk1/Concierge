@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -13,6 +14,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id: ideaId } = await params;
+    if (!isUuid(ideaId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid idea id.' },
+        { status: 400 },
+      );
+    }
 
     // Check idea exists
     const idea = await prisma.idea.findUnique({ where: { id: ideaId } });
@@ -77,6 +84,12 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id: ideaId } = await params;
+    if (!isUuid(ideaId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid idea id.' },
+        { status: 400 },
+      );
+    }
 
     // Check idea exists
     const idea = await prisma.idea.findUnique({ where: { id: ideaId } });

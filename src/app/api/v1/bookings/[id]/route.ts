@@ -8,6 +8,7 @@ import { prisma } from '@/server/db';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { sendEmail } from '@/server/email';
 import { renderTemplate } from '@/server/email-templates';
+import { isUuid } from '@/lib/uuid';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -15,6 +16,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid booking id.' },
+        { status: 400 },
+      );
+    }
     const booking = await prisma.booking.findUnique({
       where: { id },
       include: {
@@ -52,6 +59,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid booking id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     // Hoisted tenancy guard — covers every code path in PATCH (status,
@@ -245,6 +258,12 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid booking id.' },
+        { status: 400 },
+      );
+    }
     // Residents can only cancel their OWN bookings. Staff can cancel any
     // in the property. Without this scope check any logged-in resident
     // could cancel every booking in the building by guessing UUIDs —

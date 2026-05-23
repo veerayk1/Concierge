@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
 
 export async function POST(
   request: NextRequest,
@@ -20,6 +21,18 @@ export async function POST(
     if (auth.error) return auth.error;
 
     const { id: courseId, moduleId } = await params;
+    if (!isUuid(courseId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid course id.' },
+        { status: 400 },
+      );
+    }
+    if (!isUuid(moduleId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid module id.' },
+        { status: 400 },
+      );
+    }
 
     // Find the user's enrollment for this course
     const enrollment = await prisma.enrollment.findUnique({

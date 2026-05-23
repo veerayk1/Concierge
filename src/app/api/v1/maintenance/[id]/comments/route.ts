@@ -8,6 +8,7 @@ import { prisma } from '@/server/db';
 import { createMaintenanceCommentSchema } from '@/schemas/maintenance';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/maintenance/:id/comments
@@ -19,6 +20,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid request id.' },
+        { status: 400 },
+      );
+    }
 
     // Verify the maintenance request exists
     const maintenanceRequest = await prisma.maintenanceRequest.findUnique({
@@ -75,6 +82,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid request id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     const parsed = createMaintenanceCommentSchema.safeParse(body);

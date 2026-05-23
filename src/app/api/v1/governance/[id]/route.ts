@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import type { AuthenticatedUser } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -75,6 +76,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid governance item id.' },
+        { status: 400 },
+      );
+    }
 
     // Try to find as meeting first
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -179,6 +186,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid governance item id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
     const parsed = updateSchema.safeParse(body);
 

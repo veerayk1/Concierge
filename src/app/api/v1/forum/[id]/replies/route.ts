@@ -11,6 +11,7 @@ import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 const createReplySchema = z.object({
   body: z.string().min(1).max(10000),
@@ -23,6 +24,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id: topicId } = await params;
+    if (!isUuid(topicId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid forum topic id.' },
+        { status: 400 },
+      );
+    }
 
     // Check topic exists
     const topic = await prisma.forumTopic.findUnique({ where: { id: topicId } });
@@ -55,6 +62,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id: topicId } = await params;
+    if (!isUuid(topicId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid forum topic id.' },
+        { status: 400 },
+      );
+    }
 
     // Check topic exists
     const topic = await prisma.forumTopic.findUnique({ where: { id: topicId } });

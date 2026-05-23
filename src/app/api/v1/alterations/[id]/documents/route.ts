@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { uploadAlterationDocumentSchema } from '@/schemas/alteration';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/alterations/:id/documents
@@ -20,6 +21,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid alteration id.' },
+        { status: 400 },
+      );
+    }
 
     // Verify project exists
     const project = await prisma.alterationProject.findUnique({
@@ -62,6 +69,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid alteration id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     const parsed = uploadAlterationDocumentSchema.safeParse(body);

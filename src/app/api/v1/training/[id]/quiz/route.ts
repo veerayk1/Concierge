@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
 
 interface SubmittedAnswer {
   questionId: string;
@@ -31,6 +32,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id: courseId } = await params;
+    if (!isUuid(courseId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid course id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     // Validate answers array

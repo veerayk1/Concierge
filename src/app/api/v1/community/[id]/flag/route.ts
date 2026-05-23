@@ -8,6 +8,7 @@ import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 const flagSchema = z.object({
   reason: z.enum(['spam', 'inappropriate', 'scam', 'prohibited_item', 'other']),
@@ -20,6 +21,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id: adId } = await params;
+    if (!isUuid(adId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid classified id.' },
+        { status: 400 },
+      );
+    }
 
     // Check ad exists
     const ad = await prisma.classifiedAd.findUnique({ where: { id: adId } });

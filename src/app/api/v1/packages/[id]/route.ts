@@ -12,6 +12,7 @@ import { prisma } from '@/server/db';
 import { releasePackageSchema } from '@/schemas/package';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 /** Resolve actor name from userId — returns 'System' on failure */
 async function resolveActorName(userId: string): Promise<string> {
@@ -36,6 +37,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid package id.' },
+        { status: 400 },
+      );
+    }
 
     const pkg = await prisma.package.findUnique({
       where: { id, deletedAt: null },
@@ -99,6 +106,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid package id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     // Tenancy: load the package first and verify it belongs to the caller's
@@ -208,6 +221,12 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid package id.' },
+        { status: 400 },
+      );
+    }
 
     await prisma.package.update({
       where: { id },

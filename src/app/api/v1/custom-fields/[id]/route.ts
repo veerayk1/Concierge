@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/server/db';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // Update schema — all fields optional
@@ -42,6 +43,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid custom field id.' },
+        { status: 400 },
+      );
+    }
 
     const field = await prisma.customFieldDefinition.findUnique({ where: { id } });
 
@@ -75,6 +82,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid custom field id.' },
+        { status: 400 },
+      );
+    }
 
     const existing = await prisma.customFieldDefinition.findUnique({ where: { id } });
     if (!existing) {
@@ -140,6 +153,12 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid custom field id.' },
+        { status: 400 },
+      );
+    }
 
     const existing = await prisma.customFieldDefinition.findUnique({ where: { id } });
     if (!existing) {

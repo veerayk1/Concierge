@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
 
 const verifySchema = z.object({
   qrCode: z.string().min(1, 'QR code is required'),
@@ -25,6 +26,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid resident card id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
     const parsed = verifySchema.safeParse(body);
 

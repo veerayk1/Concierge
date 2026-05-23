@@ -9,6 +9,7 @@ import { prisma } from '@/server/db';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
 import { z } from 'zod';
+import { isUuid } from '@/lib/uuid';
 
 const updatePropertySchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -36,6 +37,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid property id.' },
+        { status: 400 },
+      );
+    }
 
     // The path id IS the propertyId — a property_admin at A must not read
     // Property B's settings (logo, branding, addressing) by guessing its
@@ -87,6 +94,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid property id.' },
+        { status: 400 },
+      );
+    }
 
     const tenancy = enforcePropertyAccess(auth.user, id);
     if (tenancy) return tenancy;
@@ -199,6 +212,12 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid property id.' },
+        { status: 400 },
+      );
+    }
 
     await prisma.property.update({
       where: { id },

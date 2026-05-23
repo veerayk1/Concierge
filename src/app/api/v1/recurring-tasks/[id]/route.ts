@@ -10,6 +10,7 @@ import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { calculateNextOccurrence } from '@/server/scheduling';
 import type { ScheduleConfig } from '@/server/scheduling';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // Helper: calculate current period boundaries for a task
@@ -67,6 +68,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid recurring task id.' },
+        { status: 400 },
+      );
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const task = await (prisma.recurringTask.findUnique as any)({
@@ -117,6 +124,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid recurring task id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     const parsed = updateRecurringTaskSchema.safeParse(body);
@@ -232,6 +245,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid recurring task id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     const parsed = completeRecurringTaskSchema.safeParse(body);
@@ -353,6 +372,12 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid recurring task id.' },
+        { status: 400 },
+      );
+    }
 
     const existing = await prisma.recurringTask.findUnique({ where: { id } });
     if (!existing) {

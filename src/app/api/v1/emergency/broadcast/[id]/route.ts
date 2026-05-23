@@ -8,6 +8,7 @@ import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -15,6 +16,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid broadcast id.' },
+        { status: 400 },
+      );
+    }
 
     const broadcast = await prisma.emergencyBroadcast.findUnique({
       where: { id },
@@ -90,6 +97,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid broadcast id.' },
+        { status: 400 },
+      );
+    }
     const rawBody = await request.json();
     const parsed = patchSchema.safeParse(rawBody);
 
@@ -199,6 +212,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid broadcast id.' },
+        { status: 400 },
+      );
+    }
     const rawBody = await request.json();
     const parsed = acknowledgeSchema.safeParse(rawBody);
 

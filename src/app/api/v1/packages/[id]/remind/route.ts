@@ -11,6 +11,7 @@ import { renderTemplate } from '@/server/email-templates';
 import { sendPushToUser } from '@/server/push';
 import { sendSms, formatPhoneNumber } from '@/server/sms';
 import { createLogger } from '@/server/logger';
+import { isUuid } from '@/lib/uuid';
 
 const logger = createLogger('package-remind');
 
@@ -20,6 +21,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid package id.' },
+        { status: 400 },
+      );
+    }
 
     const pkg = await prisma.package.findUnique({
       where: { id, deletedAt: null },

@@ -8,6 +8,7 @@ import { prisma } from '@/server/db';
 import { createVendorDocumentSchema } from '@/schemas/vendor';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { calculateComplianceStatus } from '@/server/vendors/compliance';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/vendors/:id/documents — List vendor documents
@@ -19,6 +20,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid vendor id.' },
+        { status: 400 },
+      );
+    }
 
     // Verify vendor exists
     const vendor = await prisma.vendor.findUnique({ where: { id } });
@@ -59,6 +66,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid vendor id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     const parsed = createVendorDocumentSchema.safeParse(body);

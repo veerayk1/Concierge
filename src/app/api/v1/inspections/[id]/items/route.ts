@@ -8,6 +8,7 @@ import { prisma } from '@/server/db';
 import { completeInspectionItemSchema } from '@/schemas/inspection';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 // Prisma models not yet generated — use type-safe casts so this compiles now
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,6 +24,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid inspection id.' },
+        { status: 400 },
+      );
+    }
 
     // Verify inspection exists
     const inspection = await db.inspection.findUnique({
@@ -64,6 +71,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid inspection id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     const { itemId, ...itemData } = body;

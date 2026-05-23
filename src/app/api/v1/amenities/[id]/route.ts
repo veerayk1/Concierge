@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
 
 const createBookingSchema = z.object({
   unitId: z.string().uuid(),
@@ -25,6 +26,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid amenity id.' },
+        { status: 400 },
+      );
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const amenity = await (prisma.amenity.findUnique as any)({
@@ -79,6 +86,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id: amenityId } = await params;
+    if (!isUuid(amenityId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid amenity id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     const parsed = createBookingSchema.safeParse(body);
@@ -269,6 +282,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid amenity id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     // Tenancy guard — even with the role gate, a property_admin at A must

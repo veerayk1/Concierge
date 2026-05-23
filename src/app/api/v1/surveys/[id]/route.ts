@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import type { Role } from '@/types';
+import { isUuid } from '@/lib/uuid';
 
 const ADMIN_ROLES: Role[] = ['super_admin', 'property_admin', 'property_manager'];
 
@@ -71,6 +72,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid survey id.' },
+        { status: 400 },
+      );
+    }
 
     const survey = await prisma.survey.findUnique({
       where: { id },
@@ -114,6 +121,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid survey id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
     const parsed = updateSurveySchema.safeParse(body);
 
@@ -233,6 +246,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid survey id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
     const parsed = submitResponseSchema.safeParse(body);
 

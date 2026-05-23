@@ -9,6 +9,7 @@ import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 const createInstructionSchema = z.object({
   instructionText: z.string().min(1, 'Instruction is required').max(1000),
@@ -23,6 +24,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id: unitId } = await params;
+    if (!isUuid(unitId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid unit id.' },
+        { status: 400 },
+      );
+    }
 
     // Unit instructions can contain sensitive resident detail ("Unit 815
     // has a dog that bites; Unit 302 is deaf, use the doorbell twice").
@@ -58,6 +65,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id: unitId } = await params;
+    if (!isUuid(unitId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid unit id.' },
+        { status: 400 },
+      );
+    }
 
     const unit = await prisma.unit.findUnique({
       where: { id: unitId },

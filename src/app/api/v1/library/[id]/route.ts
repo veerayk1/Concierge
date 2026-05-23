@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import type { Role } from '@/types';
+import { isUuid } from '@/lib/uuid';
 
 const ADMIN_ROLES: Role[] = ['super_admin', 'property_admin', 'property_manager'];
 
@@ -28,6 +29,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid library item id.' },
+        { status: 400 },
+      );
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const file = await (prisma.libraryFile.findUnique as any)({
@@ -97,6 +104,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid library item id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
     const parsed = updateDocumentSchema.safeParse(body);
 
@@ -184,6 +197,12 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid library item id.' },
+        { status: 400 },
+      );
+    }
 
     const file = await prisma.libraryFile.findUnique({ where: { id } });
     if (!file) {

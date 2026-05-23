@@ -11,6 +11,7 @@ import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { nanoid } from 'nanoid';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -46,6 +47,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid resident card id.' },
+        { status: 400 },
+      );
+    }
     const { searchParams } = new URL(request.url);
     const isPassport = searchParams.get('passport') === 'true';
 
@@ -102,6 +109,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid resident card id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
     const parsed = patchCardSchema.safeParse(body);
 
@@ -262,6 +275,12 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid resident card id.' },
+        { status: 400 },
+      );
+    }
 
     const card = await prisma.residentCard.findUnique({ where: { id } });
     if (!card || card.deletedAt) {

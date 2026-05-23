@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // PATCH /api/v1/vacations/:id — Update vacation period
@@ -21,6 +22,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid vacation id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
     const { propertyId, startDate, endDate, notes, holdMail } = body;
 
@@ -124,6 +131,12 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid vacation id.' },
+        { status: 400 },
+      );
+    }
 
     // Fetch existing vacation period
     const existing = await prisma.vacationPeriod.findUnique({

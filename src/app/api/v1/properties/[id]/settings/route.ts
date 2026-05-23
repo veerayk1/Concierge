@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { z } from 'zod';
+import { isUuid } from '@/lib/uuid';
 
 const updatePropertySettingsSchema = z.object({
   brandingConfig: z.unknown().optional(),
@@ -20,6 +21,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id: propertyId } = await params;
+    if (!isUuid(propertyId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid property id.' },
+        { status: 400 },
+      );
+    }
 
     const tenancy = enforcePropertyAccess(auth.user, propertyId);
     if (tenancy) return tenancy;
@@ -50,6 +57,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id: propertyId } = await params;
+    if (!isUuid(propertyId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid property id.' },
+        { status: 400 },
+      );
+    }
 
     const tenancy = enforcePropertyAccess(auth.user, propertyId);
     if (tenancy) return tenancy;

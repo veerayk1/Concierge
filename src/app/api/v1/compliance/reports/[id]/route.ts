@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { prisma } from '@/server/db';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/compliance/reports/:id — Retrieve an archived report
@@ -17,6 +18,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid compliance report id.' },
+        { status: 400 },
+      );
+    }
 
     const reportRun = await prisma.reportRun.findUnique({
       where: { id },

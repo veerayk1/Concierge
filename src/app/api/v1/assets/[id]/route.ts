@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { calculateDepreciation } from '@/schemas/asset';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -76,6 +77,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid asset id.' },
+        { status: 400 },
+      );
+    }
 
     const asset = await (prisma as any).asset.findUnique({
       where: { id },
@@ -153,6 +160,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid asset id.' },
+        { status: 400 },
+      );
+    }
 
     const existing = await (prisma as any).asset.findUnique({ where: { id } });
     if (!existing || existing.deletedAt) {

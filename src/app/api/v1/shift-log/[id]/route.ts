@@ -12,6 +12,7 @@ import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import { isUuid } from '@/lib/uuid';
 
 const updateShiftEntrySchema = z.object({
   content: z.string().min(1).max(4000).optional(),
@@ -31,6 +32,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid shift log entry id.' },
+        { status: 400 },
+      );
+    }
 
     const entry = await prisma.shiftLogEntry.findUnique({
       where: { id },
@@ -70,6 +77,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid shift log entry id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
 
     const parsed = updateShiftEntrySchema.safeParse(body);
@@ -129,6 +142,12 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid shift log entry id.' },
+        { status: 400 },
+      );
+    }
 
     const existing = await prisma.shiftLogEntry.findUnique({
       where: { id },

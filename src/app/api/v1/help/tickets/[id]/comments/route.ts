@@ -11,6 +11,7 @@ import { prisma } from '@/server/db';
 import { createTicketCommentSchema } from '@/schemas/help';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import type { Role } from '@/types';
+import { isUuid } from '@/lib/uuid';
 
 const ADMIN_ROLES: Role[] = ['super_admin', 'property_admin', 'property_manager'];
 
@@ -26,6 +27,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (auth.error) return auth.error;
 
     const { id: ticketId } = await context.params;
+    if (!isUuid(ticketId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid ticket id.' },
+        { status: 400 },
+      );
+    }
     const isAdmin = ADMIN_ROLES.includes(auth.user.role);
 
     // Verify ticket exists and user has access
@@ -75,6 +82,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (auth.error) return auth.error;
 
     const { id: ticketId } = await context.params;
+    if (!isUuid(ticketId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid ticket id.' },
+        { status: 400 },
+      );
+    }
     const isAdmin = ADMIN_ROLES.includes(auth.user.role);
 
     // Verify ticket exists

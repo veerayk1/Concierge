@@ -11,6 +11,7 @@ import { prisma } from '@/server/db';
 import { updateSupportTicketSchema } from '@/schemas/help';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import type { Role } from '@/types';
+import { isUuid } from '@/lib/uuid';
 
 const ADMIN_ROLES: Role[] = ['super_admin', 'property_admin', 'property_manager'];
 
@@ -26,6 +27,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (auth.error) return auth.error;
 
     const { id } = await context.params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid ticket id.' },
+        { status: 400 },
+      );
+    }
     const isAdmin = ADMIN_ROLES.includes(auth.user.role);
 
     const ticket = await prisma.supportTicket.findUnique({
@@ -72,6 +79,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (auth.error) return auth.error;
 
     const { id } = await context.params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid ticket id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
     const parsed = updateSupportTicketSchema.safeParse(body);
 

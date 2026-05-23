@@ -11,6 +11,7 @@ import { prisma } from '@/server/db';
 import { updateHelpArticleSchema } from '@/schemas/help';
 import { guardRoute } from '@/server/middleware/api-guard';
 import type { Role } from '@/types';
+import { isUuid } from '@/lib/uuid';
 
 const ADMIN_ROLES: Role[] = ['super_admin', 'property_admin', 'property_manager'];
 
@@ -26,6 +27,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (auth.error) return auth.error;
 
     const { id } = await context.params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid article id.' },
+        { status: 400 },
+      );
+    }
 
     const article = await prisma.helpArticle.findUnique({
       where: { id },
@@ -67,6 +74,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (auth.error) return auth.error;
 
     const { id } = await context.params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid article id.' },
+        { status: 400 },
+      );
+    }
     const body = await request.json();
     const parsed = updateHelpArticleSchema.safeParse(body);
 
