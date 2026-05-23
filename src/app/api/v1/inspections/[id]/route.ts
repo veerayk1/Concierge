@@ -199,15 +199,43 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.completedAt = new Date();
     }
 
-    const updated = await db.inspection.update({
-      where: { id },
-      data: updateData,
-    });
+    // Atomic CAS on status when completing — guarantees the
+    // auto-create-MR fan-out below fires exactly once per inspection.
+    // Without this, N concurrent "complete inspection" PATCHes would
+    // each spawn a full set of N×failedItems maintenance requests,
+    // flooding the work queue with duplicates for one logical event.
+    if (input.status === 'completed' && existing.status !== 'completed') {
+      const casCount = await prisma.$executeRaw`
+        UPDATE inspections SET status = 'completed', "completedAt" = NOW()
+        WHERE id = ${id}::uuid AND status != 'completed'
+      `;
+      if (casCount === 0) {
+        return NextResponse.json(
+          {
+            error: 'STATE_CONFLICT',
+            message: 'Inspection has already been completed by another caller.',
+          },
+          { status: 409 },
+        );
+      }
+      // Apply the rest of the update payload (everything except status
+      // and completedAt, which the CAS already wrote).
+      const restData = Object.fromEntries(
+        Object.entries(updateData).filter(([k]) => k !== 'status' && k !== 'completedAt'),
+      );
+      if (Object.keys(restData).length > 0) {
+        await db.inspection.update({ where: { id }, data: restData });
+      }
+    } else {
+      await db.inspection.update({ where: { id }, data: updateData });
+    }
+    const updated = await db.inspection.findUnique({ where: { id } });
 
     // ------------------------------------------------------------------
-    // Auto-create maintenance requests for failed items
+    // Auto-create maintenance requests for failed items — gated by the
+    // CAS above so this fires exactly once per inspection completion.
     // ------------------------------------------------------------------
-    if (input.status === 'completed') {
+    if (input.status === 'completed' && existing.status !== 'completed') {
       const failedItems = (existing.items as InspectionItemResult[]).filter(
         (item: InspectionItemResult) => item.passed === false,
       );

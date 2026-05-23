@@ -316,31 +316,52 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const now = new Date();
     const nextOccurrence = calculateNextOccurrence(scheduleConfig, now);
 
-    // Create completion record and advance nextDue in a transaction
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [completion, updatedTask] = await (prisma as any).$transaction([
-      (prisma as any).recurringTaskCompletion.create({
-        data: {
-          recurringTaskId: id,
-          completedById: auth.user.userId,
-          completedAt: now,
-          notes: input.notes ? stripControlChars(stripHtml(input.notes)) : null,
-          periodStart,
-          periodEnd,
+    // Race-safe completion insert. Previously the duplicate check ran
+    // outside the transaction, so N concurrent "mark complete" clicks
+    // all observed existingCompletion=null and all entered the
+    // transaction, each writing its own completion row. Without a
+    // unique index on (recurringTaskId, periodStart) Postgres has no
+    // way to reject the duplicates; the table was polluted.
+    //
+    // Fix: INSERT ... SELECT ... WHERE NOT EXISTS is a single atomic
+    // statement at the database. Only the first concurrent writer
+    // inserts; subsequent writers see the EXISTS predicate fail and
+    // produce zero rows, which we translate to 409 ALREADY_COMPLETED.
+    const notesSanitized = input.notes ? stripControlChars(stripHtml(input.notes)) : null;
+    const insertedRows = await prisma.$queryRaw<{ id: string; completedAt: Date }[]>`
+      INSERT INTO recurring_task_completions
+        (id, "recurringTaskId", "completedById", "completedAt", notes, "periodStart", "periodEnd")
+      SELECT gen_random_uuid(), ${id}::uuid, ${auth.user.userId}::uuid, ${now}, ${notesSanitized}, ${periodStart}::date, ${periodEnd}::date
+      WHERE NOT EXISTS (
+        SELECT 1 FROM recurring_task_completions
+        WHERE "recurringTaskId" = ${id}::uuid
+          AND "periodStart" >= ${periodStart}::date
+          AND "periodEnd" <= ${periodEnd}::date
+      )
+      RETURNING id, "completedAt"
+    `;
+    if (insertedRows.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'ALREADY_COMPLETED',
+          message: 'This task has already been completed for the current period.',
         },
-      }),
-      prisma.recurringTask.update({
-        where: { id },
-        data: {
-          lastGeneratedAt: now,
-          nextOccurrence,
-        },
-        include: {
-          category: { select: { id: true, name: true } },
-          equipment: { select: { id: true, name: true } },
-        },
-      }),
-    ]);
+        { status: 409 },
+      );
+    }
+    const completion = insertedRows[0];
+
+    const updatedTask = await prisma.recurringTask.update({
+      where: { id },
+      data: {
+        lastGeneratedAt: now,
+        nextOccurrence,
+      },
+      include: {
+        category: { select: { id: true, name: true } },
+        equipment: { select: { id: true, name: true } },
+      },
+    });
 
     return NextResponse.json({
       data: {
