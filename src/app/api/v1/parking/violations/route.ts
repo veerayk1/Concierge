@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createViolationSchema = z.object({
@@ -21,7 +21,24 @@ const createViolationSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-156 CRITICAL: parking violations are quasi-legal documents
+    // (notices, warnings, tickets, ban, vehicle_towed). Previously
+    // this had no role gate AND no tenancy check, so any resident
+    // could file violations against any neighbor at any property —
+    // harassment / fraud vector, and the seed notifyUnitOwner flag
+    // would trigger an email cascade to the falsely-cited unit.
+    // Issuing violations is a staff/security workflow.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();
@@ -35,6 +52,10 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+
+    // Cross-tenant: staff at A must not file violations at B.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
 
     // Generate a reference number
     const refNum = `PV-${Date.now().toString(36).toUpperCase()}`;

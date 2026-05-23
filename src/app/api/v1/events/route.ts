@@ -119,7 +119,25 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request);
+    // SEC-155 CRITICAL: events feed the Security Console + audit
+    // trail. Previously this had no role gate AND no tenancy check on
+    // input.propertyId. A resident at Property A could POST events
+    // into Property B's Security Console (e.g., inject a fake "Fire
+    // alarm — evacuated 2pm" event to falsify B's audit history; or
+    // spam events to drown out real signals). Same blast-radius shape
+    // as SEC-152 webhooks. Staff-only.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+        'maintenance_staff',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();
@@ -137,6 +155,11 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+
+    // Cross-tenant: staff at A must not inject events into B's
+    // Security Console.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
 
     // Resolve eventTypeId: accept either UUID or slug
     let resolvedEventTypeId = input.eventTypeId;

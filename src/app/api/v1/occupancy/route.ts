@@ -110,6 +110,17 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // SEC-157: cross-tenant occupancy assignment. The admin role gate
+    // above only confirms the caller is admin SOMEWHERE — without
+    // enforcePropertyAccess on body.propertyId, a property_admin at A
+    // could assign a user to a unit at Property B (mass-creating
+    // bogus occupancy records that grant SEC-126-scoped read access
+    // to neighbor's unit detail at B). The unit lookup below filters
+    // by both id+propertyId so an invalid combo 404s, but the policy
+    // gate should be explicit + first.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // Verify unit and user exist
     const [unit, user] = await Promise.all([
       prisma.unit.findFirst({
