@@ -42,8 +42,12 @@ export async function GET(request: NextRequest) {
     const buildingId = searchParams.get('buildingId');
     const floor = searchParams.get('floor');
     const status = searchParams.get('status');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '100', 10);
+    // Clamp pagination — without these, page=0 → negative skip → Prisma 500.
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+    const pageSize = Math.max(
+      1,
+      Math.min(500, parseInt(searchParams.get('pageSize') || '100', 10) || 100),
+    );
 
     if (!propertyId) {
       return NextResponse.json(
