@@ -1044,7 +1044,13 @@ export default function ResidentOnboardingPage() {
   const isCompleteStep = currentStep === STEP_KEYS.length - 1;
 
   return (
-    <div className="min-h-screen bg-neutral-50 px-4 py-8 sm:py-12">
+    // Render as a full-screen fixed overlay so the portal's sidebar and
+    // top nav are hidden until activation is complete. The portal layout
+    // can't be bypassed cleanly without moving the route, but a z-50
+    // overlay achieves the same focused experience without the file
+    // shuffle. Once the user finishes onboarding they're redirected to
+    // /dashboard which re-uses the normal AppShell.
+    <div className="fixed inset-0 z-50 overflow-auto bg-neutral-50 px-4 py-8 sm:py-12">
       <div className="mx-auto max-w-2xl">
         {/* Step indicator */}
         <StepIndicator steps={STEPS} currentIndex={currentStep} completedSteps={completedSteps} />
