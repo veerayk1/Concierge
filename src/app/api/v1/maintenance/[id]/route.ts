@@ -50,6 +50,44 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    // Per-tenant scoping. Staff (front desk, security, super, manager,
+    // admin) can read any MR in their property. Residents may only read
+    // MRs they filed themselves or that belong to their unit. Without
+    // this check a logged-in resident could fetch any MR by guessing
+    // the UUID and read another unit's full ticket detail.
+    const STAFF_ROLES = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_guard',
+      'security_supervisor',
+      'superintendent',
+      'maintenance_staff',
+      'board_member',
+    ]);
+    if (!STAFF_ROLES.has(auth.user.role)) {
+      const isOwnRequest = req.residentId === auth.user.userId;
+      let isOwnUnit = false;
+      if (!isOwnRequest && req.unitId) {
+        const occupancy = await prisma.occupancyRecord.findFirst({
+          where: {
+            userId: auth.user.userId,
+            unitId: req.unitId,
+            moveOutDate: null,
+          },
+          select: { id: true },
+        });
+        isOwnUnit = !!occupancy;
+      }
+      if (!isOwnRequest && !isOwnUnit) {
+        return NextResponse.json(
+          { error: 'FORBIDDEN', message: 'You do not have access to this request.' },
+          { status: 403 },
+        );
+      }
+    }
+
     // Fetch resident separately to avoid crash if residentId references a deleted/missing user
     let resident: { id: string; firstName: string; lastName: string; email: string } | null = null;
     if (req.residentId) {
