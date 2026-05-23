@@ -595,8 +595,25 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
   const unitNumber = req.unit?.number || '';
   const categoryName = req.category?.name || 'General';
 
+  // Quick action visibility — status transitions that make sense for this row.
+  // Open / Assigned → can start work. In Progress → can resolve.
+  const canStart = req.status === 'open' || req.status === 'assigned';
+  const canResolve = req.status === 'in_progress' || req.status === 'assigned';
+
   return (
     <div className="flex flex-col gap-6">
+      {/* Edit-mode banner — UI-007: silent mode change was confusing. */}
+      {editing && (
+        <div className="border-warning-200 bg-warning-50 text-warning-800 flex items-center gap-3 rounded-xl border px-4 py-3 text-[13px]">
+          <Edit2 className="text-warning-600 h-4 w-4 shrink-0" />
+          <div className="flex-1">
+            <strong className="font-semibold">Editing request.</strong> Update the description and
+            priority below, then press <span className="font-semibold">Save Changes</span>. Press{' '}
+            <span className="font-semibold">Cancel</span> to discard your edits.
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-3">
@@ -619,7 +636,7 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
             </Badge>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {editing ? (
             <>
               <Button variant="secondary" size="sm" onClick={cancelEditing} disabled={savingEdit}>
@@ -637,6 +654,28 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
             </>
           ) : (
             <>
+              {/* UI-006: status quick actions — context-aware. */}
+              {canStart && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleStatusChange('in_progress')}
+                  disabled={updatingStatus}
+                >
+                  <Wrench className="h-4 w-4" />
+                  Mark In Progress
+                </Button>
+              )}
+              {canResolve && (
+                <Button
+                  size="sm"
+                  onClick={() => handleStatusChange('resolved')}
+                  disabled={updatingStatus}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Mark Resolved
+                </Button>
+              )}
               <Button variant="secondary" size="sm" onClick={startEditing}>
                 <Edit2 className="h-4 w-4" />
                 Edit
