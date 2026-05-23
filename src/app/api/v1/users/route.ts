@@ -46,8 +46,15 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get('role');
     const status = searchParams.get('status');
     const assistanceRequired = searchParams.get('assistanceRequired');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    // Clamp pagination to safe bounds. Without the clamp, page=abc parsed
+    // to NaN and OFFSET NaN crashed the query with 500; page=-1 / page=0
+    // hit Postgres "OFFSET must not be negative". pageSize is capped at
+    // 200 to keep a single response bounded.
+    const rawPage = parseInt(searchParams.get('page') || '1', 10);
+    const rawPageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const pageSize =
+      Number.isFinite(rawPageSize) && rawPageSize > 0 ? Math.min(rawPageSize, 200) : 20;
 
     if (!propertyId) {
       return NextResponse.json(
