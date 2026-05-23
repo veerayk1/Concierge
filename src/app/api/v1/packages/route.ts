@@ -38,8 +38,11 @@ export async function GET(request: NextRequest) {
     const courierId = searchParams.get('courierId');
     const unitId = searchParams.get('unitId');
     const perishable = searchParams.get('perishable');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '50', 10);
+    const _rawPage = parseInt(searchParams.get('page') || '1', 10);
+    const _rawPageSize = parseInt(searchParams.get('pageSize') || '50', 10);
+    const page = Number.isFinite(_rawPage) && _rawPage > 0 ? _rawPage : 1;
+    const pageSize =
+      Number.isFinite(_rawPageSize) && _rawPageSize > 0 ? Math.min(_rawPageSize, 200) : 50;
 
     if (!propertyId) {
       return NextResponse.json(
