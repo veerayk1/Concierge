@@ -26,7 +26,13 @@ export async function GET(request: NextRequest) {
   if (demoRes) return demoRes;
 
   try {
-    const auth = await guardRoute(request);
+    // SEC-144: subscription detail exposes stripeCustomerId,
+    // stripeSubscriptionId, billing period, pricing, and usage limits.
+    // Residents have no business case for this — billing is admin/board
+    // scope. Same role list as invoices (SEC-143).
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin', 'property_manager', 'board_member'],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
@@ -160,6 +166,16 @@ export async function POST(request: NextRequest) {
 
     const { propertyId, tier, billingPeriod, successUrl, cancelUrl, customerEmail } = parsed.data;
 
+    // SEC-145 CRITICAL: cross-tenant subscription mutation. The role
+    // gate above only confirms the caller is an admin SOMEWHERE — it
+    // does not confirm the caller is admin at THIS property. Without
+    // enforcePropertyAccess, a property_admin at A could create a
+    // checkout charging A's card on file to upgrade Property B's
+    // subscription, or use B's existing Stripe customer to spawn
+    // duplicates.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
+
     // Check if property already has an active subscription
     const existing = await prisma.subscription.findFirst({
       where: { propertyId, status: { in: ['ACTIVE', 'TRIAL'] } },
@@ -253,6 +269,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { propertyId, action, targetTier } = parsed.data;
+
+    // SEC-146 CRITICAL: same cross-tenant gap as POST. Without this,
+    // a property_admin at A could cancel B's subscription, downgrade
+    // B from enterprise to starter (locking them out of paid features
+    // mid-cycle), or reactivate a canceled subscription at B (charging
+    // B's card-on-file).
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     const subscription = await prisma.subscription.findFirst({
       where: { propertyId },
