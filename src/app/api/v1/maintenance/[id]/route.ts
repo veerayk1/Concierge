@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { updateMaintenanceSchema } from '@/schemas/maintenance';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { isUuid } from '@/lib/uuid';
 
@@ -58,6 +58,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    // Cross-property tenancy: a property_admin at A must not read MRs at B.
+    // The resident vs staff ownership check below assumes the caller is at
+    // least at the right property; this guards that assumption.
+    const tenancy = enforcePropertyAccess(auth.user, req.propertyId);
+    if (tenancy) return tenancy;
 
     // Per-tenant scoping. Staff (front desk, security, super, manager,
     // admin) can read any MR in their property. Residents may only read
@@ -176,6 +182,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     // ------------------------------------------------------------------
     // Status transition validation
@@ -410,6 +419,18 @@ export async function DELETE(
 
     const { id } = await params;
     if (!isUuid(id)) return badIdResponse();
+    const target = await prisma.maintenanceRequest.findUnique({
+      where: { id },
+      select: { propertyId: true },
+    });
+    if (!target) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Request not found' },
+        { status: 404 },
+      );
+    }
+    const tenancy = enforcePropertyAccess(auth.user, target.propertyId);
+    if (tenancy) return tenancy;
     await prisma.maintenanceRequest.update({
       where: { id },
       data: { deletedAt: new Date() },

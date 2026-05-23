@@ -14,7 +14,7 @@ import {
   REQUIRED_DOCUMENT_TYPES,
   type AlterationStatus,
 } from '@/schemas/alteration';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { sendEmail } from '@/server/email';
 
@@ -47,6 +47,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(
+      auth.user,
+      (project as { propertyId: string }).propertyId,
+    );
+    if (tenancy) return tenancy;
 
     // Build required documents checklist
     const docs = (project as Record<string, unknown>).documents as
@@ -149,6 +155,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     // ------------------------------------------------------------------
     // Status transition validation

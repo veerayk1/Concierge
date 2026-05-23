@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { updateRecurringTaskSchema, completeRecurringTaskSchema } from '@/schemas/recurring-task';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { calculateNextOccurrence } from '@/server/scheduling';
 import type { ScheduleConfig } from '@/server/scheduling';
@@ -88,6 +88,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    const tenancy = enforcePropertyAccess(auth.user, task.propertyId);
+    if (tenancy) return tenancy;
+
     const now = new Date();
     const isOverdue =
       task.isActive && task.nextOccurrence !== null && new Date(task.nextOccurrence) < now;
@@ -134,6 +137,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     const updateData: Record<string, unknown> = {};
 
@@ -247,6 +253,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
+
     if (!existing.isActive) {
       return NextResponse.json(
         { error: 'TASK_PAUSED', message: 'Cannot complete a paused task. Resume it first.' },
@@ -352,6 +361,9 @@ export async function DELETE(
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     // Deactivate rather than hard delete to preserve history
     await prisma.recurringTask.update({

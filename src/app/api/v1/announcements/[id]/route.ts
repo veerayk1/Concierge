@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -28,6 +28,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    const tenancy = enforcePropertyAccess(auth.user, announcement.propertyId);
+    if (tenancy) return tenancy;
+
     return NextResponse.json({ data: announcement });
   } catch (error) {
     console.error('GET /api/v1/announcements/:id error:', error);
@@ -45,6 +48,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const { id } = await params;
     const body = await request.json();
+
+    const target = await prisma.announcement.findUnique({
+      where: { id, deletedAt: null },
+      select: { propertyId: true },
+    });
+    if (!target) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Announcement not found' },
+        { status: 404 },
+      );
+    }
+    const tenancy = enforcePropertyAccess(auth.user, target.propertyId);
+    if (tenancy) return tenancy;
 
     const updateData: Record<string, unknown> = {};
     if (body.title) updateData.title = stripControlChars(stripHtml(body.title));
@@ -82,6 +98,18 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    const target = await prisma.announcement.findUnique({
+      where: { id, deletedAt: null },
+      select: { propertyId: true },
+    });
+    if (!target) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Announcement not found' },
+        { status: 404 },
+      );
+    }
+    const tenancy = enforcePropertyAccess(auth.user, target.propertyId);
+    if (tenancy) return tenancy;
     await prisma.announcement.update({
       where: { id },
       data: { deletedAt: new Date() },

@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import type { Role } from '@/types';
 
@@ -86,6 +86,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    const tenancy = enforcePropertyAccess(auth.user, survey.propertyId);
+    if (tenancy) return tenancy;
+
     return NextResponse.json({
       data: {
         ...survey,
@@ -132,6 +135,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, survey.propertyId);
+    if (tenancy) return tenancy;
 
     // Only admins or the creator can update surveys
     const isAdmin = ADMIN_ROLES.includes(auth.user.role);
@@ -249,6 +255,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, survey.propertyId);
+    if (tenancy) return tenancy;
 
     // Only active surveys accept responses
     if (survey.status !== 'active') {

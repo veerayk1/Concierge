@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import type { Role } from '@/types';
 
@@ -55,6 +55,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, (file as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     // Increment downloadCount asynchronously (fire-and-forget)
     void prisma.libraryFile
@@ -111,6 +114,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, (file as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     const input = parsed.data;
 
@@ -186,6 +192,9 @@ export async function DELETE(
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, (file as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     // Soft delete: remove from DB but keep the actual file in storage
     // In production, a background job would clean up orphaned files

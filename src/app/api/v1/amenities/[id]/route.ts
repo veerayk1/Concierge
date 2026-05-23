@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 const createBookingSchema = z.object({
   unitId: z.string().uuid(),
@@ -58,6 +58,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    // Amenity detail includes the upcoming bookings list (unit + resident
+    // hints). Block cross-tenant reads.
+    const tenancy = enforcePropertyAccess(auth.user, amenity.propertyId);
+    if (tenancy) return tenancy;
+
     return NextResponse.json({ data: amenity });
   } catch (error) {
     console.error('GET /api/v1/amenities/:id error:', error);
@@ -94,6 +99,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 404 },
       );
     }
+
+    // Tenancy: a resident at Property A must not book amenities at Property B.
+    // Without this guard a resident could enumerate amenity ids across the
+    // platform and flood other buildings with bookings.
+    const tenancy = enforcePropertyAccess(auth.user, amenity.propertyId);
+    if (tenancy) return tenancy;
 
     // Create booking — approvalMode determines if booking needs approval
     const needsApproval = amenity.approvalMode !== 'auto';
@@ -134,11 +145,32 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // Amenity config (name, fee, rules, hours, approval mode) is staff-only.
+    // The previous version had no role gate at all — any logged-in resident
+    // could change the booking fee on their own building's pool or rewrite
+    // the rules. Lock to admins.
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin', 'property_manager'],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
     const body = await request.json();
+
+    // Tenancy guard — even with the role gate, a property_admin at A must
+    // not edit amenities at B.
+    const target = await prisma.amenity.findUnique({
+      where: { id, deletedAt: null },
+      select: { propertyId: true },
+    });
+    if (!target) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Amenity not found' },
+        { status: 404 },
+      );
+    }
+    const tenancy = enforcePropertyAccess(auth.user, target.propertyId);
+    if (tenancy) return tenancy;
 
     const updateData: Record<string, unknown> = {};
     if (body.name !== undefined) updateData.name = body.name;

@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { calculateDepreciation } from '@/schemas/asset';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
@@ -85,6 +85,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Asset not found' }, { status: 404 });
     }
 
+    const tenancy = enforcePropertyAccess(auth.user, asset.propertyId);
+    if (tenancy) return tenancy;
+
     // Calculate depreciation if purchase data is available
     let depreciation = null;
     if (asset.purchaseDate && asset.purchaseValue && asset.usefulLifeYears) {
@@ -155,6 +158,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!existing || existing.deletedAt) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Asset not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     const body = await request.json();
     const parsed = updateAssetSchema.safeParse(body);

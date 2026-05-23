@@ -8,7 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import type { AuthenticatedUser } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
@@ -93,6 +94,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (meeting && !meeting.deletedAt) {
+      const tenancyM = enforcePropertyAccess(auth.user, meeting.propertyId);
+      if (tenancyM) return tenancyM;
+
       // Compute vote tallies per agenda item
       const agendaWithTallies = meeting.agendaItems.map(
         (item: { id: string; title: string; description: string | null; sortOrder: number }) => {
@@ -131,6 +135,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (resolution && !resolution.deletedAt) {
+      const tenancyR = enforcePropertyAccess(auth.user, resolution.propertyId);
+      if (tenancyR) return tenancyR;
+
       return NextResponse.json({
         data: {
           ...resolution,
@@ -185,10 +192,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const input = parsed.data;
 
     if (input.entityType === 'meeting') {
-      return handleUpdateMeeting(id, input, auth.user.userId);
+      return handleUpdateMeeting(id, input, auth.user);
     }
 
-    return handleUpdateResolution(id, input, auth.user.userId);
+    return handleUpdateResolution(id, input, auth.user);
   } catch (error) {
     console.error('PATCH /api/v1/governance/:id error:', error);
     return NextResponse.json(
@@ -205,8 +212,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 async function handleUpdateMeeting(
   id: string,
   input: z.infer<typeof updateMeetingSchema>,
-  userId: string,
+  authUser: AuthenticatedUser,
 ): Promise<NextResponse> {
+  const userId = authUser.userId;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const meeting = await (prisma.boardMeeting.findUnique as any)({
     where: { id },
@@ -215,6 +223,9 @@ async function handleUpdateMeeting(
   if (!meeting || meeting.deletedAt) {
     return NextResponse.json({ error: 'NOT_FOUND', message: 'Meeting not found' }, { status: 404 });
   }
+
+  const tenancy = enforcePropertyAccess(authUser, meeting.propertyId);
+  if (tenancy) return tenancy;
 
   // Build update data
   const data: Record<string, unknown> = {};
@@ -259,8 +270,9 @@ async function handleUpdateMeeting(
 async function handleUpdateResolution(
   id: string,
   input: z.infer<typeof updateResolutionSchema>,
-  userId: string,
+  authUser: AuthenticatedUser,
 ): Promise<NextResponse> {
+  const userId = authUser.userId;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const resolution = await (prisma.boardResolution.findUnique as any)({
     where: { id },
@@ -272,6 +284,9 @@ async function handleUpdateResolution(
       { status: 404 },
     );
   }
+
+  const tenancy = enforcePropertyAccess(authUser, resolution.propertyId);
+  if (tenancy) return tenancy;
 
   // Build update data
   const data: Record<string, unknown> = {};

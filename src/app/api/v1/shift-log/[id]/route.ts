@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const updateShiftEntrySchema = z.object({
@@ -34,6 +34,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const entry = await prisma.shiftLogEntry.findUnique({
       where: { id },
+      include: { shift: { select: { propertyId: true } } },
     });
 
     if (!entry) {
@@ -42,6 +43,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    // Tenancy via parent SecurityShift — shift handoff notes can include
+    // operational detail (which units called for help, contractor visits).
+    // Lock to the owning property.
+    const tenancy = enforcePropertyAccess(auth.user, entry.shift.propertyId);
+    if (tenancy) return tenancy;
 
     return NextResponse.json({ data: entry });
   } catch (error) {
@@ -73,13 +80,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       );
     }
 
-    const existing = await prisma.shiftLogEntry.findUnique({ where: { id } });
+    const existing = await prisma.shiftLogEntry.findUnique({
+      where: { id },
+      include: { shift: { select: { propertyId: true } } },
+    });
     if (!existing) {
       return NextResponse.json(
         { error: 'NOT_FOUND', message: 'Shift log entry not found' },
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.shift.propertyId);
+    if (tenancy) return tenancy;
 
     const input = parsed.data;
     const updateData: Record<string, unknown> = {};
@@ -117,13 +130,19 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const existing = await prisma.shiftLogEntry.findUnique({ where: { id } });
+    const existing = await prisma.shiftLogEntry.findUnique({
+      where: { id },
+      include: { shift: { select: { propertyId: true } } },
+    });
     if (!existing) {
       return NextResponse.json(
         { error: 'NOT_FOUND', message: 'Shift log entry not found' },
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.shift.propertyId);
+    if (tenancy) return tenancy;
 
     await prisma.shiftLogEntry.delete({
       where: { id },

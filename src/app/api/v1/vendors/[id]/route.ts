@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { updateVendorSchema } from '@/schemas/vendor';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { calculateComplianceStatus } from '@/server/vendors/compliance';
 
@@ -37,6 +37,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    // Vendor detail includes insurance/contract documents — never leak
+    // across properties.
+    const tenancy = enforcePropertyAccess(auth.user, vendor.propertyId);
+    if (tenancy) return tenancy;
 
     // Compute live compliance status
     const complianceStatus = calculateComplianceStatus(vendor.documents);
@@ -83,6 +88,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     const updateData: Record<string, unknown> = {};
 

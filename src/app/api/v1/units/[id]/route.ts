@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { z } from 'zod';
 
 const updateUnitSchema = z.object({
@@ -74,6 +74,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Unit not found' }, { status: 404 });
     }
 
+    // Unit detail includes packages, events, MR, and key codes. Cross-tenant
+    // reads would leak the entire ops surface of another property.
+    const tenancy = enforcePropertyAccess(auth.user, unit.propertyId);
+    if (tenancy) return tenancy;
+
     return NextResponse.json({ data: unit });
   } catch (error) {
     console.error('GET /api/v1/units/:id error:', error);
@@ -86,11 +91,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // Unit edit is a staff operation — residents must not rewrite their own
+    // unit's parking spot, key tag, or buzzer code (and certainly not
+    // anyone else's). Lock to admins.
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin', 'property_manager', 'superintendent'],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
     const body = await request.json();
+
+    const target = await prisma.unit.findUnique({
+      where: { id, deletedAt: null },
+      select: { propertyId: true },
+    });
+    if (!target) {
+      return NextResponse.json({ error: 'NOT_FOUND', message: 'Unit not found' }, { status: 404 });
+    }
+    const tenancy = enforcePropertyAccess(auth.user, target.propertyId);
+    if (tenancy) return tenancy;
 
     const parsed = updateUnitSchema.safeParse(body);
     if (!parsed.success) {

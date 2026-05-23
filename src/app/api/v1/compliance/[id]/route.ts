@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { REPORT_CATALOG } from '@/server/compliance';
 
@@ -480,6 +480,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         );
       }
 
+      const tenancy = enforcePropertyAccess(auth.user, report.propertyId);
+      if (tenancy) return tenancy;
+
       return NextResponse.json({ data: report });
     }
 
@@ -501,6 +504,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Fetch related reports if propertyId provided
     let relatedReports: unknown[] = [];
     if (propertyId) {
+      const tenancy = enforcePropertyAccess(auth.user, propertyId);
+      if (tenancy) return tenancy;
       const relevantTypes = REPORT_CATALOG.filter((r) => {
         // Match report types to framework categories
         const frameworkCategory = controls[0]?.category || '';
@@ -650,6 +655,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const input = parsed.data;
+
+    // Tenancy — POST takes input.propertyId; bind the audit to a property
+    // the caller actually owns.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
 
     // Validate scheduled date is in the future
     const scheduledDate = new Date(input.scheduledDate);
