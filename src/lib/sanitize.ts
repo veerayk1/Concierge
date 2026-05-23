@@ -183,7 +183,14 @@ export function normalizeWhitespace(input: string): string {
  * Removes null bytes and other control characters (except newline, tab, CR).
  */
 export function stripControlChars(input: string): string {
-  return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  // Strip ALL C0 control chars except plain tab (\t = \x09). This includes
+  // CR (\x0D) and LF (\x0A) which were previously allowed — they're not
+  // useful inside a name / single-line text field and they're the seed of
+  // every header-injection attack (e.g. user-controlled value injected
+  // into an email Subject splits the headers). For multi-line free text
+  // (notes, descriptions) callers should use normalizeWhitespace or a
+  // different helper that preserves newlines intentionally.
+  return input.replace(/[\x00-\x08\x0A-\x1F\x7F]/g, '');
 }
 
 // ---------------------------------------------------------------------------
