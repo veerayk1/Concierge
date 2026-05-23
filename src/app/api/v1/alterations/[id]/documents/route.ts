@@ -17,7 +17,22 @@ import { isUuid } from '@/lib/uuid';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-128: alteration documents (permits, contractor COI, drawings)
+    // inherit the parent alteration list's staff+board gate. Residents
+    // must not enumerate neighbors' permits or contractor contact info
+    // even when the parent project is at the same property.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
