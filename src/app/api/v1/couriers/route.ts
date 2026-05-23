@@ -34,11 +34,27 @@ export async function GET(request: NextRequest) {
         color: true,
         isSystem: true,
         sortOrder: true,
+        propertyId: true,
       },
       orderBy: [{ isSystem: 'desc' }, { sortOrder: 'asc' }, { name: 'asc' }],
     });
 
-    return NextResponse.json({ data: couriers });
+    // Dedupe by slug — the seed can leave both a system row (propertyId NULL)
+    // AND a per-property override with the same slug, which would otherwise
+    // render duplicate courier pills in the Log Package dialog. Prefer the
+    // property-scoped row when one exists.
+    const bySlug = new Map<string, (typeof couriers)[number]>();
+    for (const c of couriers) {
+      const existing = bySlug.get(c.slug);
+      if (!existing || (existing.propertyId === null && c.propertyId !== null)) {
+        bySlug.set(c.slug, c);
+      }
+    }
+    const deduped = [...bySlug.values()]
+      .map(({ propertyId: _pid, ...rest }) => rest)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+
+    return NextResponse.json({ data: deduped });
   } catch (error) {
     console.error('GET /api/v1/couriers error:', error);
     return NextResponse.json(
