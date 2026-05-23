@@ -86,6 +86,12 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — emergency broadcast hits push + SMS + voice
+    // cascade. Without this a property_admin at A could trigger a fake
+    // "evacuate now" critical-severity alert to every resident at B.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // Validate target-specific fields
     if (
       input.targetAudience === 'specific_floors' &&

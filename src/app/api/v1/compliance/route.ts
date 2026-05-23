@@ -228,6 +228,12 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — compliance reports compile regulatory evidence
+    // (PIPEDA, GDPR, SOC2) from raw events. Never let A request a report
+    // against B's data.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // Determine date range
     const from = input.dateRange?.from || input.from;
     const to = input.dateRange?.to || input.to;

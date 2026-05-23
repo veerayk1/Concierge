@@ -133,6 +133,12 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — board governance items (meetings, resolutions,
+    // votes) are confidential to the property. Never let A schedule a
+    // meeting or post a resolution that lands on B's governance feed.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     if (input.type === 'meeting') {
       return handleCreateMeeting(input, auth.user.userId);
     }
