@@ -194,13 +194,21 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
     return Array.isArray(commentsData) ? commentsData : [];
   }, [commentsData]);
 
-  // Fetch staff users for assignment dropdown
+  // Fetch staff users for assignment dropdown.
+  // useApi already unwraps the {data: ...} envelope, so the hook's generic
+  // is the array itself — not { data: array }. The old code accessed
+  // staffData?.data which was always undefined → dropdown always empty.
   const propertyId = getPropertyId();
-  const { data: staffData } = useApi<{
-    data: Array<{ id: string; firstName: string; lastName: string; role: { name: string } | null }>;
-  }>(`/api/v1/users?propertyId=${propertyId}&pageSize=100`);
+  const { data: staffData } = useApi<
+    Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      role: { name: string; slug?: string } | null;
+    }>
+  >(`/api/v1/users?propertyId=${propertyId}&pageSize=100`);
   const staffUsers = useMemo(() => {
-    if (!staffData?.data) return [];
+    if (!staffData || !Array.isArray(staffData)) return [];
     const STAFF_ROLES = [
       'property_manager',
       'property_admin',
@@ -209,7 +217,7 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
       'security_supervisor',
       'front_desk',
     ];
-    return staffData.data.filter((u) => {
+    return staffData.filter((u) => {
       const roleSlug = (u.role as { slug?: string } | null)?.slug ?? '';
       const roleName =
         (u.role as { name?: string } | null)?.name?.toLowerCase().replace(/[^a-z]/g, '_') ?? '';
@@ -217,10 +225,10 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
     });
   }, [staffData]);
 
-  // Fetch vendors for assignment dropdown
-  const { data: vendorData } = useApi<{
-    data: Array<{ id: string; companyName: string }>;
-  }>(`/api/v1/vendors?propertyId=${propertyId}&pageSize=100`);
+  // Fetch vendors for assignment dropdown — same wrapper fix as above.
+  const { data: vendorData } = useApi<Array<{ id: string; companyName: string }>>(
+    `/api/v1/vendors?propertyId=${propertyId}&pageSize=100`,
+  );
 
   // -----------------------------------------------------------------------
   // Status update handler
@@ -971,7 +979,7 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                     className="focus:ring-primary-500 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-[14px] text-neutral-700 focus:ring-2 focus:outline-none disabled:opacity-50"
                   >
                     <option value="">Select vendor...</option>
-                    {vendorData?.data?.map((v) => (
+                    {(vendorData ?? []).map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.companyName}
                       </option>

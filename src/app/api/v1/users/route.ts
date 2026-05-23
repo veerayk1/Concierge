@@ -24,9 +24,19 @@ export async function GET(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
 
   try {
-    // Auth: Only admins and managers can list users
+    // Auth: admins, managers, supervisors, and superintendents need to list
+    // users — assignment dropdowns on maintenance / inspection / shift forms
+    // all need to pick a staff member. Without superintendent + supervisor
+    // here, the 'Assign Staff' dropdown was always empty for the people who
+    // actually do the assigning.
     const auth = await guardRoute(request, {
-      roles: ['property_admin', 'property_manager', 'super_admin'],
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'security_supervisor',
+        'superintendent',
+      ],
     });
     if (auth.error) return auth.error;
 
