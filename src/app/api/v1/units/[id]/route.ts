@@ -86,6 +86,40 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const tenancy = enforcePropertyAccess(auth.user, unit.propertyId);
     if (tenancy) return tenancy;
 
+    // SEC-126: per-resident scoping. Without this, any logged-in resident
+    // could fetch ANY neighbor's unit detail by guessing UUIDs — which
+    // includes their concierge instructions ("beware of dog"), their
+    // pending package list (when they're not home), and their open
+    // maintenance requests (what's broken in their apartment). Staff can
+    // see any unit in the property; residents see only units they occupy.
+    const STAFF_ROLES = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_guard',
+      'security_supervisor',
+      'superintendent',
+      'maintenance_staff',
+      'board_member',
+    ]);
+    if (!STAFF_ROLES.has(auth.user.role)) {
+      const occupancy = await prisma.occupancyRecord.findFirst({
+        where: {
+          userId: auth.user.userId,
+          unitId: id,
+          moveOutDate: null,
+        },
+        select: { id: true },
+      });
+      if (!occupancy) {
+        return NextResponse.json(
+          { error: 'FORBIDDEN', message: 'You can only view units you occupy.' },
+          { status: 403 },
+        );
+      }
+    }
+
     return NextResponse.json({ data: unit });
   } catch (error) {
     console.error('GET /api/v1/units/:id error:', error);
