@@ -66,17 +66,49 @@ async function handleDemoMode(
   const queryPropertyId = url.searchParams.get('propertyId');
   const propertyId = headerPropertyId || queryPropertyId || DEFAULT_DEMO_PROPERTY_ID;
 
-  // Resolve a real userId from the database — demo UUIDs don't exist after DB wipes
+  // Resolve a real userId from the database — demo UUIDs don't exist after DB
+  // wipes. Pick a user whose role at this property matches the requested
+  // demoRole so that greetings, profile widgets, and /api/v1/users/me show the
+  // right persona (otherwise we'd always greet "Super Admin").
   let resolvedUserId = isResident
     ? '00000000-0000-4000-d000-000000010101'
     : '00000000-0000-4000-a000-000000000001';
   try {
-    const realUser = await prisma.user.findFirst({
-      where: { userProperties: { some: { propertyId } } },
-      select: { id: true },
-      orderBy: { createdAt: 'asc' },
-    });
-    if (realUser) resolvedUserId = realUser.id;
+    const roleNameByDemo: Record<string, string> = {
+      super_admin: 'Super Admin',
+      property_admin: 'Property Admin',
+      property_manager: 'Property Manager',
+      front_desk: 'Front Desk / Concierge',
+      security_guard: 'Security Guard',
+      security_supervisor: 'Security Supervisor',
+      board_member: 'Board Member',
+      resident_owner: 'Resident (Owner)',
+      resident_tenant: 'Resident (Tenant)',
+      maintenance_staff: 'Maintenance Staff',
+      superintendent: 'Superintendent',
+    };
+    const expectedRoleName = roleNameByDemo[demoRole];
+    const matchUser = expectedRoleName
+      ? await prisma.user.findFirst({
+          where: {
+            userProperties: {
+              some: { propertyId, role: { name: expectedRoleName } },
+            },
+          },
+          select: { id: true },
+          orderBy: { createdAt: 'asc' },
+        })
+      : null;
+    if (matchUser) {
+      resolvedUserId = matchUser.id;
+    } else {
+      const realUser = await prisma.user.findFirst({
+        where: { userProperties: { some: { propertyId } } },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (realUser) resolvedUserId = realUser.id;
+    }
   } catch {
     // User lookup failed — proceed with demo UUID
   }
