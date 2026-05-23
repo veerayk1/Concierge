@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { DEFAULT_DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { prisma } from '@/server/db';
 import type { ModuleKey } from '@/lib/module-config';
 
@@ -47,7 +48,7 @@ export async function requireModule(
     const propertyId =
       url.searchParams.get('propertyId') ||
       request.headers.get('x-demo-propertyId') ||
-      '94fd28bd-37ce-4fb1-952e-4c182634fc90'; // Demo fallback property
+      DEFAULT_DEMO_PROPERTY_ID;
 
     // Check the DB for this flag
     const flag = await prisma.featureFlag.findUnique({

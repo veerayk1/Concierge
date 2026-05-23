@@ -159,13 +159,18 @@ export function DebugSessionProvider({ children }: DebugSessionProviderProps) {
   const sessionIdRef = useRef<string>(
     typeof window !== 'undefined'
       ? (() => {
-          const SESSION_KEY = 'concierge_debug_session';
-          let sid = sessionStorage.getItem(SESSION_KEY);
-          if (!sid) {
-            sid = crypto.randomUUID();
-            sessionStorage.setItem(SESSION_KEY, sid);
+          try {
+            const SESSION_KEY = 'concierge_debug_session';
+            let sid = sessionStorage.getItem(SESSION_KEY);
+            if (!sid) {
+              sid = crypto.randomUUID();
+              sessionStorage.setItem(SESSION_KEY, sid);
+            }
+            return sid;
+          } catch {
+            // Private mode / blocked storage — still render the app
+            return crypto.randomUUID();
           }
-          return sid;
         })()
       : '',
   );

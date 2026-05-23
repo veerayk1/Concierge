@@ -15,6 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import type { Role, TokenPayload } from '@/types';
+import { DEFAULT_DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { requireAuth } from '@/server/middleware/auth';
 import { AuthError } from '@/server/errors';
 import { prisma } from '@/server/db';
@@ -63,8 +64,7 @@ async function handleDemoMode(
   const headerPropertyId = request.headers.get('x-demo-propertyId');
   const url = new URL(request.url);
   const queryPropertyId = url.searchParams.get('propertyId');
-  const DEFAULT_PROPERTY_ID = '94fd28bd-37ce-4fb1-952e-4c182634fc90'; // Demo fallback property
-  const propertyId = headerPropertyId || queryPropertyId || DEFAULT_PROPERTY_ID;
+  const propertyId = headerPropertyId || queryPropertyId || DEFAULT_DEMO_PROPERTY_ID;
 
   // Resolve a real userId from the database — demo UUIDs don't exist after DB wipes
   let resolvedUserId = isResident
@@ -140,11 +140,17 @@ export async function guardRoute(
       }
     }
 
-    // Check if there's actually a token before calling requireAuth
+    // requireAuth() applies a dev-only mock user when no Bearer token is sent
+    // (see auth.ts). That bypass only runs if we actually call requireAuth.
+    // Previously we returned 401 when Authorization was missing, which made the
+    // bypass unreachable and broke client pages (e.g. /system/properties) any
+    // time the browser had no token header yet.
+    //
+    // Only skip straight to 401 in production (and test/CI). next dev sets
+    // NODE_ENV === 'development', where we delegate to requireAuth.
     const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      // In dev mode without demo header AND without token = unauthorized
-      // This prevents the requireAuth dev bypass from silently succeeding
+    const isNextDev = process.env.NODE_ENV === 'development';
+    if (!authHeader && !isNextDev) {
       return {
         user: null,
         error: NextResponse.json(
@@ -157,7 +163,6 @@ export async function guardRoute(
       };
     }
 
-    // Real authentication
     const payload: TokenPayload = await requireAuth(request);
 
     const user: AuthenticatedUser = {

@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { DEFAULT_DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { prisma } from '@/server/db';
 
 const COURIERS = [
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const propertyId = body.propertyId || '94fd28bd-37ce-4fb1-952e-4c182634fc90'; // Demo fallback property
+    const propertyId = body.propertyId || DEFAULT_DEMO_PROPERTY_ID;
     const results: Record<string, unknown> = {};
     const errors: string[] = [];
 

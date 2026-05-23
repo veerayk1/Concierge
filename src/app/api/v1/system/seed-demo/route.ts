@@ -7,13 +7,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { DEFAULT_DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { prisma } from '@/server/db';
 
 // ---------------------------------------------------------------------------
-// Constants
+// Constants — aligned with prisma/seed Maple Heights
 // ---------------------------------------------------------------------------
 
-const PROPERTY_ID = '94fd28bd-37ce-4fb1-952e-4c182634fc90';
+const PROPERTY_ID = DEFAULT_DEMO_PROPERTY_ID;
 
 async function hashPassword(password: string): Promise<string> {
   const argon2 = await import('argon2');

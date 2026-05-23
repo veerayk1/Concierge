@@ -5,10 +5,24 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
 import { z } from 'zod';
+
+function isDatabaseUnreachable(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return error.code === 'P1001' || error.code === 'P1017';
+  }
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return true;
+  }
+  if (error instanceof Error) {
+    return /Can't reach database|connection refused|ECONNREFUSED/i.test(error.message);
+  }
+  return false;
+}
 
 const createPropertySchema = z.object({
   name: z.string().min(1).max(200),
@@ -82,6 +96,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ data: properties });
   } catch (error) {
     console.error('GET /api/v1/properties error:', error);
+    if (isDatabaseUnreachable(error)) {
+      return NextResponse.json(
+        {
+          error: 'DATABASE_UNAVAILABLE',
+          message:
+            'Cannot connect to PostgreSQL. The database server is not running or DATABASE_URL is wrong.',
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       { error: 'INTERNAL_ERROR', message: 'Failed to fetch properties' },
       { status: 500 },
