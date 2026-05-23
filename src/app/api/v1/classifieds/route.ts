@@ -130,6 +130,13 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — /api/v1/classifieds and /api/v1/community
+    // are parallel write paths into the same ClassifiedAd model. The
+    // sibling /community POST was confirmed cross-tenant-exploitable
+    // (SEC-099). This route gets the same protection preemptively.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // Auto-set expiration to 30 days from now
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);

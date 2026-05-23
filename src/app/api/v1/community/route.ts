@@ -121,6 +121,13 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Cross-tenant guard — a resident at A could otherwise POST
+    // { propertyId: B } and plant a classified ad in B's community.
+    // Verified pre-fix: resident at A → propertyId=B → 201, with ad
+    // visible to all of B's residents. Verified post-fix: 403.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // GAP 12.2 — Auto-set expiration to 30 days from now
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
