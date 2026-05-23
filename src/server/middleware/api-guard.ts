@@ -105,7 +105,12 @@ async function handleDemoMode(
     }
   }
 
-  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(demoUser.role)) {
+  if (
+    allowedRoles &&
+    allowedRoles.length > 0 &&
+    demoUser.role !== 'super_admin' &&
+    !allowedRoles.includes(demoUser.role)
+  ) {
     return {
       user: null,
       error: NextResponse.json(
@@ -203,8 +208,9 @@ export async function guardRoute(
       }
     }
 
-    // Role-based authorization
-    if (roles && roles.length > 0 && !roles.includes(user.role)) {
+    // Role-based authorization. Super Admin implicitly satisfies any roles list
+    // — gating super admins out of feature routes is never the intent.
+    if (roles && roles.length > 0 && user.role !== 'super_admin' && !roles.includes(user.role)) {
       return {
         user: null,
         error: NextResponse.json(
