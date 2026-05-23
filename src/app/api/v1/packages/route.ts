@@ -133,6 +133,27 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Tenancy enforcement on the body's propertyId
+    const bodyTenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (bodyTenancy) return bodyTenancy;
+
+    // Verify the unitId actually belongs to the declared propertyId — otherwise
+    // a logged-in user could POST with their own propertyId but a unitId from
+    // another property and silently write into that tenant's data.
+    const unit = await prisma.unit.findUnique({
+      where: { id: input.unitId },
+      select: { propertyId: true },
+    });
+    if (!unit || unit.propertyId !== input.propertyId) {
+      return NextResponse.json(
+        {
+          error: 'UNIT_NOT_FOUND',
+          message: 'Unit does not exist in this property.',
+        },
+        { status: 400 },
+      );
+    }
+
     // Generate reference number per PRD 04: PKG-XXXXXX
     const referenceNumber = `PKG-${nanoid(6).toUpperCase()}`;
 
