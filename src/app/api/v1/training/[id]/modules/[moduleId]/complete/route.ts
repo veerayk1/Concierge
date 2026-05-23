@@ -78,48 +78,65 @@ export async function POST(
       );
     }
 
-    // Update enrollment progress
-    const newModulesCompleted = enrollment.modulesCompleted + 1;
     const totalModules = course.modules.length;
-    const progress = Math.round((newModulesCompleted / totalModules) * 100);
-    const isComplete = newModulesCompleted >= totalModules;
 
-    const updateData: Record<string, unknown> = {
-      modulesCompleted: newModulesCompleted,
-      totalModules,
-      currentModuleId: moduleId,
-      status: isComplete ? 'passed' : 'in_progress',
-    };
-
-    if (isComplete) {
-      updateData.completedAt = new Date();
-    }
-
-    if (enrollment.status === 'not_started') {
-      updateData.startedAt = new Date();
-    }
-
-    // Generate certificate on 100% completion
-    let certificate = null;
-    if (isComplete) {
-      certificate = await prisma.certificate.create({
-        data: {
-          enrollmentId: enrollment.id,
-          learnerName: 'Test User', // In production: look up user name
-          courseTitle: course.title,
-          propertyName: course.property?.name ?? 'Property',
-          completionDate: new Date(),
-          score: Number(enrollment.bestQuizScore ?? 0),
-          verificationUrl: `https://app.concierge.com/verify/${enrollment.id}`,
-        },
-      });
-      updateData.certificateId = certificate.id;
-    }
-
-    const updated = await prisma.enrollment.update({
+    // Atomic increment of modulesCompleted — Prisma compiles this to a
+    // single SQL UPDATE which Postgres serializes via row-level lock, so
+    // N concurrent module-complete POSTs each see their own pre-increment
+    // value (not stale reads). Without this, N concurrent clicks at 99%
+    // would all read modulesCompleted=N-1, all set =N, and the increment
+    // would be lost.
+    const afterIncrement = await prisma.enrollment.update({
       where: { id: enrollment.id },
-      data: updateData,
+      data: {
+        modulesCompleted: { increment: 1 },
+        totalModules,
+        currentModuleId: moduleId,
+        ...(enrollment.status === 'not_started'
+          ? { startedAt: new Date(), status: 'in_progress' as const }
+          : {}),
+      },
     });
+
+    const newModulesCompleted = afterIncrement.modulesCompleted;
+    const progress = Math.min(100, Math.round((newModulesCompleted / totalModules) * 100));
+    const crossedCompletion = newModulesCompleted >= totalModules;
+
+    // Generate certificate on 100% completion — race-guarded via atomic
+    // CAS on completedAt IS NULL. Only the first transaction that
+    // crosses the threshold gets to write the completedAt timestamp and
+    // mint the credential; concurrent late callers see completedAt is
+    // already set and skip cert creation. Certificate.enrollmentId has
+    // a UNIQUE constraint as a belt-and-suspenders backup.
+    let certificate = null;
+    let updated = afterIncrement;
+    if (crossedCompletion) {
+      const claim = await prisma.$executeRaw`
+        UPDATE enrollments
+        SET "completedAt" = NOW(), status = 'passed'
+        WHERE id = ${enrollment.id}::uuid AND "completedAt" IS NULL
+      `;
+      if (claim === 1) {
+        certificate = await prisma.certificate.create({
+          data: {
+            enrollmentId: enrollment.id,
+            learnerName: 'Test User',
+            courseTitle: course.title,
+            propertyName: course.property?.name ?? 'Property',
+            completionDate: new Date(),
+            score: Number(enrollment.bestQuizScore ?? 0),
+            verificationUrl: `https://app.concierge.com/verify/${enrollment.id}`,
+          },
+        });
+        updated = await prisma.enrollment.update({
+          where: { id: enrollment.id },
+          data: { certificateId: certificate.id },
+        });
+      } else {
+        updated =
+          (await prisma.enrollment.findUnique({ where: { id: enrollment.id } })) ?? afterIncrement;
+      }
+    }
 
     return NextResponse.json({
       data: {

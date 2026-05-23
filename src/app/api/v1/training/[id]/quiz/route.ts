@@ -187,18 +187,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       },
     });
 
-    // Update enrollment with quiz stats
-    const newQuizAttempts = enrollment.quizAttempts + 1;
-    const currentBest = Number(enrollment.bestQuizScore ?? 0);
-    const bestScore = Math.max(currentBest, score);
-
+    // Update enrollment quiz stats — atomic to survive concurrent
+    // submissions. Previously the handler read enrollment.quizAttempts,
+    // added 1, and wrote back; N concurrent quiz submissions would all
+    // read the same value and the counter would lose N-1 increments.
+    // Same with bestQuizScore — Math.max on stale reads loses higher
+    // scores written between read and write.
+    //
+    // Fix: server-side INCREMENT (single SQL UPDATE, Postgres-serialized)
+    // for quizAttempts, and a conditional UPDATE for bestQuizScore that
+    // only writes if the new score beats the current row value. Both
+    // statements execute atomically at the database, so N concurrent
+    // submissions yield exactly N attempts counted and the true max
+    // score persisted.
     await prisma.enrollment.update({
       where: { id: enrollment.id },
       data: {
-        quizAttempts: newQuizAttempts,
-        bestQuizScore: bestScore,
+        quizAttempts: { increment: 1 },
       },
     });
+    await prisma.$executeRaw`
+      UPDATE enrollments
+      SET "bestQuizScore" = ${score}
+      WHERE id = ${enrollment.id}::uuid
+        AND ("bestQuizScore" IS NULL OR "bestQuizScore" < ${score})
+    `;
 
     return NextResponse.json({
       data: {
