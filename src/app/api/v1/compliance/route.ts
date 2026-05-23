@@ -110,7 +110,13 @@ const generateReportSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-118: compliance framework status (SOC2, PIPEDA, HIPAA, etc.)
+    // is admin/auditor scope only. Residents should not see compliance
+    // gaps, audit findings, or remediation deadlines — those belong
+    // between the property and its auditors.
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin', 'property_manager', 'board_member'],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

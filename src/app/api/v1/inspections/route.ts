@@ -20,7 +20,24 @@ const db = prisma as any;
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-117: inspections expose mechanical-room locations, fire-system
+    // schedules, and failed-item details. Resident visibility would map
+    // the building's physical-security gaps. Verified leak: a resident_
+    // owner call returned a Q3 Fire Inspection scheduled at Mechanical
+    // Room with inspector name.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

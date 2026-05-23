@@ -47,7 +47,22 @@ const createShiftEntrySchema = z.object({
 export async function GET(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request);
+    // SEC-116: shift log is internal staff handoff. Entries reference
+    // residents by name and unit ("3B refused package delivery again"),
+    // include patrol routes, and routinely contain security observations
+    // that must not leak to residents. Verified leak: a resident_owner
+    // call returned 4 patrol-log rows.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

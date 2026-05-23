@@ -45,7 +45,22 @@ const createKeySchema = z.object({
 export async function GET(request: NextRequest) {
   // Skip demo handler — keys uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request);
+    // SEC-115: master key inventory is staff-only. Residents must not
+    // enumerate master keys, serials, or current key owner — the
+    // building's weakest physical-security surface. Verified leak: a
+    // resident_owner call returned "SWEEP Master Key A / MK-001".
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+        'maintenance_staff',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const moduleCheck = await requireModule(request, 'key_management');
