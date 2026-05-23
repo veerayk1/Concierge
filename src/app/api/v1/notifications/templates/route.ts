@@ -73,6 +73,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SEC-158: cross-tenant template injection. Notification templates
+    // drive email/SMS for billing events, security alerts, incident
+    // escalations. The GET tenancy-checked the URL propertyId param,
+    // but POST didn't re-check body.propertyId. A property_admin at A
+    // could create templates at B that redirect notifications to an
+    // attacker address, suppress critical security alerts, or poison
+    // audit fan-out at B.
+    const tenancy = enforcePropertyAccess(auth.user, parsed.data.propertyId);
+    if (tenancy) return tenancy;
+
     const template = await prisma.notificationTemplate.create({
       data: {
         propertyId: parsed.data.propertyId,

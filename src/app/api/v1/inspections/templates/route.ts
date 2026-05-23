@@ -70,7 +70,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-159: inspection templates drive critical compliance checklists
+    // (fire safety, structural, electrical, accessibility). Previously
+    // this had no role gate AND no tenancy check on body.propertyId.
+    // Any authenticated user could inject templates into any property,
+    // causing non-compliance certifications or safety violations.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'superintendent',
+        'maintenance_staff',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();
@@ -84,6 +97,10 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+
+    // Cross-tenant: staff at A must not inject templates at B.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
 
     const template = await db.inspectionTemplate.create({
       data: {
