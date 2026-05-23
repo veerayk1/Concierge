@@ -238,12 +238,38 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       },
     });
 
-    // Update role if provided
+    // Update role if provided.
+    //
+    // CRITICAL: validate that the role belongs to the property whose
+    // membership we're updating. Without this, an admin at property A
+    // could PATCH ?propertyId=A&roleId=<role-from-property-B> and that
+    // user's userProperty row for property A would point at a role
+    // owned by property B — bypassing tenancy entirely and potentially
+    // granting them admin or super_admin permissions on B's data.
     let priorRoleSlug: string | null = null;
     let newRoleSlug: string | null = null;
     if (input.roleId) {
       const propertyId = new URL(request.url).searchParams.get('propertyId');
       if (propertyId) {
+        const newRole = await prisma.role.findUnique({
+          where: { id: input.roleId },
+          select: { slug: true, propertyId: true },
+        });
+        if (!newRole) {
+          return NextResponse.json(
+            { error: 'INVALID_ROLE', message: 'Role does not exist.' },
+            { status: 400 },
+          );
+        }
+        if (newRole.propertyId !== propertyId) {
+          return NextResponse.json(
+            {
+              error: 'INVALID_ROLE',
+              message: 'Role does not belong to this property.',
+            },
+            { status: 400 },
+          );
+        }
         const priorMembership = await prisma.userProperty.findFirst({
           where: { userId: id, propertyId },
           select: { role: { select: { slug: true } } },
@@ -253,11 +279,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           where: { userId: id, propertyId },
           data: { roleId: input.roleId },
         });
-        const newRole = await prisma.role.findUnique({
-          where: { id: input.roleId },
-          select: { slug: true },
-        });
-        newRoleSlug = newRole?.slug ?? null;
+        newRoleSlug = newRole.slug;
       }
     }
 
