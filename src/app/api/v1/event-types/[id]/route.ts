@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -12,6 +12,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id } = await params;
+
+    const target = await prisma.eventType.findUnique({
+      where: { id },
+      select: { propertyId: true },
+    });
+    if (!target) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Event type not found' },
+        { status: 404 },
+      );
+    }
+    const tenancy = enforcePropertyAccess(auth.user, target.propertyId);
+    if (tenancy) return tenancy;
+
     const body = await request.json();
 
     const updateData: Record<string, unknown> = {};
@@ -46,6 +60,19 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id } = await params;
+
+    const target = await prisma.eventType.findUnique({
+      where: { id },
+      select: { propertyId: true },
+    });
+    if (!target) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Event type not found' },
+        { status: 404 },
+      );
+    }
+    const tenancy = enforcePropertyAccess(auth.user, target.propertyId);
+    if (tenancy) return tenancy;
 
     // Check if event type has events
     const eventCount = await prisma.event.count({

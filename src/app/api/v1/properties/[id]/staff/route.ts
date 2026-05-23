@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { z } from 'zod';
 
 const assignStaffSchema = z.object({
@@ -20,6 +20,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id: propertyId } = await params;
+
+    // Without this guard, a property_admin at A could POST
+    // {userId, roleId} to /properties/B/staff and grant any user a role
+    // at B — same exploit pattern as SEC-001 on the user-side. Tenancy
+    // first, then verify the chosen role belongs to this property.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
+
     const body = await request.json();
 
     const parsed = assignStaffSchema.safeParse(body);
@@ -30,6 +38,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
     const { userId, roleId } = parsed.data;
+
+    const role = await prisma.role.findUnique({
+      where: { id: roleId },
+      select: { propertyId: true },
+    });
+    if (!role || role.propertyId !== propertyId) {
+      return NextResponse.json(
+        { error: 'INVALID_ROLE', message: 'Role does not belong to this property.' },
+        { status: 400 },
+      );
+    }
 
     // Check for existing assignment
     const existing = await prisma.userProperty.findUnique({
@@ -63,6 +82,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id: propertyId } = await params;
+
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     const assignments = await prisma.userProperty.findMany({
       where: { propertyId, deletedAt: null },

@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
 import { z } from 'zod';
 
@@ -58,6 +58,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    // Cross-tenant: move-out triggers unit status updates; never let
+    // a property_admin at A force-vacate B's units.
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     const input = parsed.data;
     const updateData: Record<string, unknown> = {};

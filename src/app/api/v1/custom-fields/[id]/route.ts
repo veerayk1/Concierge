@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 // ---------------------------------------------------------------------------
 // Update schema — all fields optional
@@ -52,6 +52,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    const tenancy = enforcePropertyAccess(auth.user, field.propertyId);
+    if (tenancy) return tenancy;
+
     return NextResponse.json({ data: field });
   } catch (error) {
     console.error('GET /api/v1/custom-fields/:id error:', error);
@@ -80,6 +83,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     const body = await request.json();
     const parsed = updateFieldSchema.safeParse(body);
@@ -142,6 +148,9 @@ export async function DELETE(
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     const deactivated = await prisma.customFieldDefinition.update({
       where: { id },

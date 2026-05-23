@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { z } from 'zod';
 
 const updatePropertySettingsSchema = z.object({
@@ -20,6 +20,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id: propertyId } = await params;
+
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     const [settings, eventTypes] = await Promise.all([
       prisma.propertySettings.findUnique({ where: { propertyId } }),
@@ -47,6 +50,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (auth.error) return auth.error;
 
     const { id: propertyId } = await params;
+
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
+
     const body = await request.json();
 
     const parsed = updatePropertySettingsSchema.safeParse(body);

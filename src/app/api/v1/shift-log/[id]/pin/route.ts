@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 const pinSchema = z.object({
   pinned: z.boolean(),
@@ -38,6 +38,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, entry.propertyId);
+    if (tenancy) return tenancy;
 
     const existingCustomFields = (entry.customFields as Record<string, unknown> | null) ?? {};
 

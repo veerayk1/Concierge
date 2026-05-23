@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { sendEmail } from '@/server/email';
 import { renderTemplate } from '@/server/email-templates';
 import { sendPushToUser } from '@/server/push';
@@ -34,6 +34,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 404 },
       );
     }
+
+    // Cross-tenant: a staffer at A could otherwise spam reminder
+    // notifications to B's residents by guessing package UUIDs.
+    const tenancy = enforcePropertyAccess(auth.user, pkg.propertyId);
+    if (tenancy) return tenancy;
 
     if (pkg.status !== 'unreleased') {
       return NextResponse.json(

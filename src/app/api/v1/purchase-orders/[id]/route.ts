@@ -12,7 +12,7 @@ import {
   PO_STATUS_TRANSITIONS,
   type POStatus,
 } from '@/schemas/purchase-order';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const PO_ALLOWED_ROLES = ['property_admin', 'board_member', 'property_manager', 'super_admin'];
@@ -44,6 +44,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, po.propertyId);
+    if (tenancy) return tenancy;
 
     return NextResponse.json({ data: po });
   } catch (error) {
@@ -95,6 +98,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, po.propertyId);
+    if (tenancy) return tenancy;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: Record<string, any> = {

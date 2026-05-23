@@ -8,17 +8,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
 // PATCH /api/v1/vacations/:id — Update vacation period
 // ---------------------------------------------------------------------------
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
@@ -46,6 +43,11 @@ export async function PATCH(
         { status: 404 },
       );
     }
+
+    // Tenancy first — without this an admin at A could edit B's residents'
+    // vacation periods by guessing UUIDs.
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     // Check ownership: user can only update their own, admins can update any
     const isAdmin = ['property_admin', 'property_manager', 'super_admin'].includes(auth.user.role);
@@ -126,7 +128,7 @@ export async function DELETE(
     // Fetch existing vacation period
     const existing = await prisma.vacationPeriod.findUnique({
       where: { id },
-      select: { userId: true },
+      select: { userId: true, propertyId: true },
     });
 
     if (!existing) {
@@ -135,6 +137,9 @@ export async function DELETE(
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     // Check ownership: user can only delete their own, admins can delete any
     const isAdmin = ['property_admin', 'property_manager', 'super_admin'].includes(auth.user.role);

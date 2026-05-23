@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -37,6 +37,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, broadcast.propertyId);
+    if (tenancy) return tenancy;
 
     return NextResponse.json({
       data: {
@@ -110,6 +113,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, broadcast.propertyId);
+    if (tenancy) return tenancy;
 
     if (broadcast.status === 'cancelled') {
       return NextResponse.json(
@@ -214,6 +220,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, broadcast.propertyId);
+    if (tenancy) return tenancy;
 
     // Check if already acknowledged by this user
     const existing = await prisma.emergencyBroadcastAcknowledgment.findUnique({

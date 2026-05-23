@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -13,6 +13,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id } = await params;
+
+    // Without this guard a property_admin at A could deactivate Property B
+    // and lock its residents/staff out of the system.
+    const tenancy = enforcePropertyAccess(auth.user, id);
+    if (tenancy) return tenancy;
 
     const existing = await prisma.property.findUnique({
       where: { id, deletedAt: null },
