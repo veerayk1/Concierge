@@ -18,7 +18,28 @@ import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-119: alteration projects expose neighbor renovation timelines,
+    // contractor contact info, and the windows during which units are
+    // disrupted (a useful reconnaissance signal for theft). Verified
+    // leak: family_member, offsite_owner, tenant, security_guard, and
+    // board_member all returned 4 project rows.
+    //
+    // Staff + board members see the full project list (board has
+    // approval authority). Residents see only their own projects via
+    // a separate /api/v1/my/alterations endpoint; do not let them
+    // enumerate the building-wide register here.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
