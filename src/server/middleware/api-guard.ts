@@ -60,11 +60,16 @@ async function handleDemoMode(
 ): Promise<GuardResponse> {
   const isResident = demoRole === 'resident_owner' || demoRole === 'resident_tenant';
 
-  // Read propertyId from header or query string, fall back to default seeded property
+  // Resolve the propertyId the DEMO USER is scoped to. ONLY trust the
+  // explicit demo header — falling back to the URL's ?propertyId means
+  // any demo caller could spoof access to any tenant by appending a
+  // different propertyId in the query string. enforcePropertyAccess
+  // would then see user.propertyId === requestedPropertyId and let the
+  // request through. With the URL fallback removed, a demo caller's
+  // user is pinned to either the header or the default seeded property,
+  // and enforcePropertyAccess will correctly reject cross-tenant reads.
   const headerPropertyId = request.headers.get('x-demo-propertyId');
-  const url = new URL(request.url);
-  const queryPropertyId = url.searchParams.get('propertyId');
-  const propertyId = headerPropertyId || queryPropertyId || DEFAULT_DEMO_PROPERTY_ID;
+  const propertyId = headerPropertyId || DEFAULT_DEMO_PROPERTY_ID;
 
   // Resolve a real userId from the database — demo UUIDs don't exist after DB
   // wipes. Pick a user whose role at this property matches the requested
