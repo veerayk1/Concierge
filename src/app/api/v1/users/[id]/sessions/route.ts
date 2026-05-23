@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -13,6 +14,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid user id.' },
+        { status: 400 },
+      );
+    }
 
     // Users can view their own sessions; admins can view anyone's
     // (within their tenant). Without the tenancy check a property_admin
@@ -84,6 +91,12 @@ export async function DELETE(
     if (auth.error) return auth.error;
 
     const { id: userId } = await params;
+    if (!isUuid(userId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid user id.' },
+        { status: 400 },
+      );
+    }
 
     // Users can revoke their own sessions; admins can revoke anyone's
     // within their tenant. Cross-tenant revocation would let an admin at

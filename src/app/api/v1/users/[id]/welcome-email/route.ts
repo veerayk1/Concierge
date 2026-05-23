@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import { isUuid } from '@/lib/uuid';
 import { sendEmail } from '@/server/email';
 import { renderTemplate } from '@/server/email-templates';
 import { createLogger } from '@/server/logger';
@@ -18,6 +19,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (auth.error) return auth.error;
 
     const { id } = await params;
+    if (!isUuid(id)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'Invalid user id.' },
+        { status: 400 },
+      );
+    }
 
     const user = await prisma.user.findUnique({
       where: { id, deletedAt: null },
