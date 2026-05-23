@@ -210,6 +210,50 @@ export async function POST(request: NextRequest) {
       RETURNING *
     `;
 
+    // Fan-out to residents as an emergency broadcast. A fire alarm is
+    // the single highest-stakes signal in this product — if we only
+    // saved it to a log table and waited for someone to refresh the
+    // Security Console, we'd be hiding life-safety information from
+    // the people who need it most. Wire it into the existing
+    // emergency_broadcasts pipeline so push + SMS + email fan out via
+    // the same path operators already use for evacuations.
+    //
+    // Best-effort: a broadcast failure must NOT roll back the fire
+    // record itself. We log and continue.
+    try {
+      const broadcastBody = [
+        sanitizedTitle,
+        alarmLocation ? `Location: ${alarmLocation}` : null,
+        alarmType ? `Alarm type: ${alarmType}` : null,
+        sanitizedDetails ? sanitizedDetails.slice(0, 1500) : null,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+      await prisma.emergencyBroadcast.create({
+        data: {
+          propertyId,
+          title: (sanitizedTitle || 'Fire alarm').slice(0, 200),
+          body: broadcastBody || 'A fire event has been logged at the property.',
+          severity: 'critical',
+          initiatedById: auth.user.userId,
+          cascadeConfig: {
+            // Triggered automatically by the fire-log POST so the operator
+            // doesn't have to remember to manually broadcast. Channels +
+            // audience are wired here so the worker that drains
+            // emergency_broadcasts knows what to fan out.
+            channels: ['push', 'sms', 'email'],
+            targetAudience: 'all_residents',
+            source: 'fire-log:auto',
+          },
+        },
+      });
+    } catch (broadcastErr) {
+      console.error(
+        '[fire-log] emergency broadcast fan-out failed (fire record saved):',
+        broadcastErr,
+      );
+    }
+
     return NextResponse.json(
       {
         data: result[0],
