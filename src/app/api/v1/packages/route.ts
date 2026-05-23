@@ -165,6 +165,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // residentId spoofing guard. Same pattern as bookings (SEC-075). Without
+    // this, Resident A could POST a fake "Amazon" package naming Resident B
+    // as the recipient. Staff (front desk intake) legitimately log packages
+    // on behalf of any resident; residents may only self-attribute.
+    const STAFF_ROLES = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_supervisor',
+      'security_guard',
+      'superintendent',
+    ]);
+    const requestedResidentId = input.residentId ?? null;
+    if (
+      requestedResidentId &&
+      requestedResidentId !== auth.user.userId &&
+      !STAFF_ROLES.has(auth.user.role)
+    ) {
+      return NextResponse.json(
+        {
+          error: 'FORBIDDEN',
+          message: 'Only staff can log packages on behalf of another resident.',
+        },
+        { status: 403 },
+      );
+    }
+
     // Generate reference number per PRD 04: PKG-XXXXXX
     const referenceNumber = `PKG-${nanoid(6).toUpperCase()}`;
 
@@ -172,7 +200,7 @@ export async function POST(request: NextRequest) {
       data: {
         propertyId: input.propertyId,
         unitId: input.unitId,
-        residentId: input.residentId || null,
+        residentId: requestedResidentId,
         direction: input.direction,
         referenceNumber,
         courierId: input.courierId || null,

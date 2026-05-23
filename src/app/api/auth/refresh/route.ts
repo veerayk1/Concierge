@@ -64,10 +64,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 2. Look up refresh token in DB
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const storedToken = await (prisma.refreshToken.findUnique as any)({
-      where: { token: body.refreshToken },
+    // 2. Look up refresh token in DB. The token is stored as a SHA-256 hash
+    //    (see login route step 10) under the `tokenHash` column; the previous
+    //    implementation queried `where: { token: body.refreshToken }` which
+    //    doesn't exist in the schema and 500'd on every call. Hash the
+    //    incoming plaintext, then look up by the hash.
+    const tokenHashBytes = await crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(body.refreshToken),
+    );
+    const tokenHash = Array.from(new Uint8Array(tokenHashBytes))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    const storedToken = await prisma.refreshToken.findUnique({
+      where: { tokenHash },
     });
 
     if (!storedToken) {
@@ -82,8 +93,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 3. Check if token is revoked (replay detection)
-    if (storedToken.revokedAt) {
+    // 3. Check if token is revoked or already rotated (replay detection).
+    //    Either condition means the token has been used or invalidated and
+    //    can't be exchanged again.
+    if (storedToken.revokedAt || storedToken.rotatedAt) {
       return NextResponse.json(
         {
           error: 'AUTH_ERROR',
@@ -132,14 +145,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 6. Rotate: revoke old token
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (prisma.refreshToken.update as any)({
+    // 6. Rotate: mark the old token as rotated so future replay returns 401.
+    //    The previous implementation also set a `replacedByToken` field that
+    //    doesn't exist in the schema, which 500'd the whole endpoint.
+    await prisma.refreshToken.update({
       where: { id: storedToken.id },
-      data: {
-        revokedAt: new Date(),
-        replacedByToken: 'new-refresh-token', // Will be updated
-      },
+      data: { rotatedAt: new Date() },
     });
 
     // 7. Generate new tokens
@@ -162,12 +173,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const accessToken = await signAccessToken(tokenPayload);
     const newRefreshToken = generateRefreshToken();
 
-    // 8. Store new refresh token
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (prisma.refreshToken.create as any)({
+    // 8. Hash the new token and store it. Mirror the login flow: tokenHash
+    //    + deviceFingerprint + ipAddress are required NOT NULL columns.
+    const newHashBytes = await crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(newRefreshToken),
+    );
+    const newTokenHash = Array.from(new Uint8Array(newHashBytes))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    await prisma.refreshToken.create({
       data: {
-        token: newRefreshToken,
+        tokenHash: newTokenHash,
         userId: user.id,
+        deviceFingerprint: storedToken.deviceFingerprint,
+        ipAddress:
+          req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || storedToken.ipAddress,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
     });
@@ -183,7 +205,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
       { status: 200 },
     );
-  } catch {
+  } catch (e) {
+    // Log the real error before returning generic 500 — the previous empty
+    // catch{} hid the underlying Prisma "Unknown arg `token`" error so the
+    // dead endpoint was invisible during normal log review.
+    console.error('[refresh] unexpected error:', (e as Error)?.message);
     return NextResponse.json(
       {
         error: 'INTERNAL_ERROR',
