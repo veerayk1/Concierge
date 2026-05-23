@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import type { Role } from '@/types';
 
@@ -49,6 +49,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!idea) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Idea not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, (idea as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     // Fetch comments separately (IdeaComment may not have direct relation)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,6 +96,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!idea) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Idea not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, (idea as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     const input = parsed.data;
     const isAdmin = ADMIN_ROLES.includes(auth.user.role);

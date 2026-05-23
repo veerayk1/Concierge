@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import type { Role } from '@/types';
 
@@ -52,6 +52,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Ad not found' }, { status: 404 });
     }
 
+    const tenancy = enforcePropertyAccess(auth.user, (ad as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
+
     return NextResponse.json({ data: ad });
   } catch (error) {
     console.error('GET /api/v1/community/:id error:', error);
@@ -82,6 +85,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!ad) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Ad not found' }, { status: 404 });
     }
+
+    // Tenancy first — without this, isAdmin lets a property_admin at any
+    // property edit ads at any other property.
+    const tenancy = enforcePropertyAccess(auth.user, (ad as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     // Ownership check: only owner or admin can edit
     const isAdmin = ADMIN_ROLES.includes(auth.user.role);
@@ -151,6 +159,9 @@ export async function DELETE(
     if (!ad) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Ad not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, (ad as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     // Ownership check: only owner or admin can delete
     const isAdmin = ADMIN_ROLES.includes(auth.user.role);

@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import type { Role } from '@/types';
 
@@ -59,6 +59,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Topic not found' }, { status: 404 });
     }
 
+    const tenancy = enforcePropertyAccess(auth.user, (topic as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
+
     // Increment viewCount asynchronously (fire-and-forget to avoid blocking response)
     void prisma.forumTopic
       .update({
@@ -99,6 +102,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!topic) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Topic not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, (topic as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     const input = parsed.data;
     const isAdmin = ADMIN_ROLES.includes(auth.user.role);
@@ -179,6 +185,9 @@ export async function DELETE(
     if (!topic) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Topic not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, (topic as { propertyId: string }).propertyId);
+    if (tenancy) return tenancy;
 
     const isAdmin = ADMIN_ROLES.includes(auth.user.role);
     const isAuthor = (topic as { userId: string }).userId === auth.user.userId;

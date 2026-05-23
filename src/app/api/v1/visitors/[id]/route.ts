@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
@@ -35,6 +35,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    // Tenancy — visitor records are a privacy leak (guest names, arrival
+    // patterns, vehicle plates). Lock to caller's property.
+    const tenancy = enforcePropertyAccess(auth.user, visitor.propertyId);
+    if (tenancy) return tenancy;
 
     // Compute duration if signed out
     const duration =
@@ -77,6 +82,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, visitor.propertyId);
+    if (tenancy) return tenancy;
 
     if (visitor.departureAt) {
       return NextResponse.json(

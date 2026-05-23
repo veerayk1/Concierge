@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { z } from 'zod';
 
@@ -60,6 +60,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Key not found' }, { status: 404 });
     }
 
+    // Tenancy — key inventory reveals master-key locations and checkout
+    // history; do not let a different property's admin enumerate them.
+    const tenancy = enforcePropertyAccess(auth.user, key.propertyId);
+    if (tenancy) return tenancy;
+
     // Compute active checkout and overdue status
     const activeCheckout = key.checkouts.find((c) => !c.returnTime) || null;
     const isOverdue = activeCheckout?.expectedReturn
@@ -103,6 +108,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       );
     }
     const input = parsed.data;
+
+    // Load target to verify tenancy before any write — without this a
+    // property_admin at Property A could decommission or mark "lost" any
+    // key in Property B (and the lost branch even auto-creates an incident
+    // report at the wrong property).
+    const target = await prisma.keyInventory.findUnique({
+      where: { id },
+      select: { propertyId: true },
+    });
+    if (!target) {
+      return NextResponse.json({ error: 'NOT_FOUND', message: 'Key not found' }, { status: 404 });
+    }
+    const tenancy = enforcePropertyAccess(auth.user, target.propertyId);
+    if (tenancy) return tenancy;
 
     if (input.action === 'decommission') {
       const key = await prisma.keyInventory.update({

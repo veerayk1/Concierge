@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
@@ -80,6 +80,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Album not found' }, { status: 404 });
     }
 
+    const tenancy = enforcePropertyAccess(auth.user, album.propertyId);
+    if (tenancy) return tenancy;
+
     // Increment view count (fire-and-forget)
     prisma.photoAlbum
       .update({
@@ -133,6 +136,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!album) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Album not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, album.propertyId);
+    if (tenancy) return tenancy;
 
     const input = parsed.data;
     const data: Record<string, unknown> = {};
@@ -204,6 +210,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Album not found' }, { status: 404 });
     }
 
+    const tenancy = enforcePropertyAccess(auth.user, album.propertyId);
+    if (tenancy) return tenancy;
+
     const input = parsed.data;
 
     const photo = await prisma.albumPhoto.create({
@@ -256,6 +265,9 @@ export async function DELETE(
     if (!album) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Album not found' }, { status: 404 });
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, album.propertyId);
+    if (tenancy) return tenancy;
 
     await prisma.photoAlbum.update({
       where: { id },

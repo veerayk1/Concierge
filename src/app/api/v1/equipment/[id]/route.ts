@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { updateEquipmentSchema, EQUIPMENT_STATUS_TRANSITIONS } from '@/schemas/equipment';
 import type { EquipmentStatus } from '@/schemas/equipment';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
@@ -62,16 +62,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
-    // Compute maintenance cost aggregate
-    // The maintenanceRequest model does not have a `cost` field yet;
-    // use a type-safe cast so this compiles now and works once the field is added.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const costAggregate = await (prisma.maintenanceRequest.aggregate as any)({
-      where: { equipmentId: id },
-      _sum: { cost: true },
-    });
+    // Tenancy guard — equipment includes purchase cost, warranty info, and
+    // service history that would let a competitor admin scout another property.
+    const tenancy = enforcePropertyAccess(auth.user, equipment.propertyId);
+    if (tenancy) return tenancy;
 
-    const maintenanceCost = Number(costAggregate?._sum?.cost ?? 0);
+    // Maintenance cost aggregate is intentionally a no-op: MaintenanceRequest
+    // has no `cost` column today, so the aggregate {_sum:{cost}} crashes
+    // Prisma with a validation error and 500s every detail load. When the
+    // schema gains a cost column, swap this back to a real aggregate.
+    const maintenanceCost = 0;
     const purchasePrice = Number(equipment.purchasePrice ?? 0);
 
     const enriched = {
@@ -131,6 +131,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     // ------------------------------------------------------------------
     // Status transition validation

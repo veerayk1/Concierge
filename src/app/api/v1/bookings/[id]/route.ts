@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { sendEmail } from '@/server/email';
 import { renderTemplate } from '@/server/email-templates';
 
@@ -30,6 +30,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    // Tenancy: prevent a property_admin at Property A from reading a booking
+    // at Property B by guessing its id. enforcePropertyAccess is a no-op for
+    // super_admin and for the booking's own property.
+    const tenancy = enforcePropertyAccess(auth.user, booking.propertyId);
+    if (tenancy) return tenancy;
+
     return NextResponse.json({ data: booking });
   } catch (error) {
     console.error('GET /api/v1/bookings/:id error:', error);
@@ -47,6 +53,25 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const { id } = await params;
     const body = await request.json();
+
+    // Hoisted tenancy guard — covers every code path in PATCH (status,
+    // approverComments, etc.). Previously the check was nested inside the
+    // status branch, so a cross-tenant PATCH that only set approverComments
+    // slipped through and a property_admin at A could edit B's bookings.
+    {
+      const target = await prisma.booking.findUnique({
+        where: { id },
+        select: { propertyId: true },
+      });
+      if (!target) {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: 'Booking not found' },
+          { status: 404 },
+        );
+      }
+      const tenancyTop = enforcePropertyAccess(auth.user, target.propertyId);
+      if (tenancyTop) return tenancyTop;
+    }
 
     const updateData: Record<string, unknown> = {};
 
@@ -71,6 +96,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           { status: 404 },
         );
       }
+
+      // Tenancy check before mutation — staff at Property A must not be able
+      // to approve/decline/cancel bookings at Property B.
+      const tenancy = enforcePropertyAccess(auth.user, booking.propertyId);
+      if (tenancy) return tenancy;
 
       const allowed = validTransitions[booking.status] || [];
       if (!allowed.includes(body.status)) {
@@ -227,17 +257,21 @@ export async function DELETE(
       'security_supervisor',
       'superintendent',
     ]);
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      select: { residentId: true, createdById: true, propertyId: true },
+    });
+    if (!booking) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Booking not found' },
+        { status: 404 },
+      );
+    }
+    // Tenancy first — staff at Property A cannot cancel Property B's bookings
+    // even though the role gate alone would let them through.
+    const tenancy = enforcePropertyAccess(auth.user, booking.propertyId);
+    if (tenancy) return tenancy;
     if (!STAFF_ROLES.has(auth.user.role)) {
-      const booking = await prisma.booking.findUnique({
-        where: { id },
-        select: { residentId: true, createdById: true },
-      });
-      if (!booking) {
-        return NextResponse.json(
-          { error: 'NOT_FOUND', message: 'Booking not found' },
-          { status: 404 },
-        );
-      }
       if (booking.residentId !== auth.user.userId && booking.createdById !== auth.user.userId) {
         return NextResponse.json(
           { error: 'FORBIDDEN', message: 'You can only cancel your own bookings.' },

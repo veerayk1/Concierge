@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { updateInspectionSchema } from '@/schemas/inspection';
 import { nanoid } from 'nanoid';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // Prisma models not yet generated — use type-safe casts so this compiles now
@@ -74,6 +74,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    const tenancy = enforcePropertyAccess(auth.user, inspection.propertyId);
+    if (tenancy) return tenancy;
+
     const report = generateReport(inspection.items as InspectionItemResult[]);
 
     return NextResponse.json({
@@ -122,6 +125,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     // ------------------------------------------------------------------
     // Status transition validation
