@@ -85,7 +85,13 @@ export default function UsersPage() {
     loading,
     error,
     refetch,
-  } = useApi<UserAccount[]>(apiUrl('/api/v1/users', { propertyId: getPropertyId() }));
+  } = useApi<UserAccount[]>(
+    // pageSize=200 so the stat tiles count every user in the property, not
+    // just the first page. The previous default of 20 made tiles like
+    // "14 Active" mean "14 of the first 20 visible" — misleading the
+    // moment a property crossed 20 users.
+    apiUrl('/api/v1/users', { propertyId: getPropertyId(), pageSize: 200 }),
+  );
 
   const handleUserCreated = useCallback(() => {
     // Don't close dialog here — the dialog manages its own closing
@@ -117,13 +123,28 @@ export default function UsersPage() {
     }));
   }, [apiUsers]);
 
+  // Roles considered "resident" for the Residents filter chip — covers
+  // owners, tenants, family members and offsite owners (anyone living in
+  // a unit, not on staff or board).
+  const RESIDENT_ROLES = new Set([
+    'resident_owner',
+    'resident_tenant',
+    'family_member',
+    'offsite_owner',
+  ]);
+
   const filteredUsers = useMemo(
     () =>
       allUsers.filter((u) => {
         if (roleFilter !== 'all') {
-          // Security filter should include both guard and supervisor
           if (roleFilter === 'security_guard') {
+            // Security filter should include both guard and supervisor
             if (u.role !== 'security_guard' && u.role !== 'security_supervisor') return false;
+          } else if (roleFilter === 'resident') {
+            if (!RESIDENT_ROLES.has(u.role)) return false;
+          } else if (roleFilter === 'pending') {
+            // Pending is a status, not a role.
+            if (u.status !== 'pending') return false;
           } else if (u.role !== roleFilter) {
             return false;
           }
@@ -513,13 +534,21 @@ export default function UsersPage() {
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {[
                 { key: 'all', label: 'All' },
                 { key: 'property_admin', label: 'Admins' },
                 { key: 'front_desk', label: 'Front Desk' },
                 { key: 'security_guard', label: 'Security' },
                 { key: 'maintenance_staff', label: 'Maintenance' },
+                // Residents are the majority of users — they need their own
+                // filter chip. Without one, admins searched for residents
+                // by name every time.
+                { key: 'resident', label: 'Residents' },
+                // "Pending" is a status, not a role — admins need a quick
+                // way to find users who haven't completed activation so
+                // they can resend welcome emails.
+                { key: 'pending', label: 'Pending' },
               ].map((r) => (
                 <button
                   key={r.key}
