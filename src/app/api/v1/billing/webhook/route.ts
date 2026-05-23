@@ -116,11 +116,31 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
     professional: 'PROFESSIONAL',
     enterprise: 'ENTERPRISE',
   };
+  const resolvedTier = tierMap[tier] || 'STARTER';
+
+  // REL-017 IDEMPOTENCY: Stripe webhooks are AT-LEAST-ONCE delivery.
+  // A duplicate `checkout.session.completed` (network retry, replay
+  // attack with a captured-then-replayed signed payload, Stripe's own
+  // retry on 5xx) previously created a second Subscription row for
+  // the same stripeSubscriptionId — leaving the property with two
+  // active subscriptions in DB, double-counted in MRR reports, and
+  // ambiguous in lookups. Now: short-circuit if a subscription with
+  // this stripeSubscriptionId already exists.
+  const existing = await prisma.subscription.findFirst({
+    where: { stripeSubscriptionId },
+    select: { id: true },
+  });
+  if (existing) {
+    console.log(
+      `checkout.session.completed: subscription ${stripeSubscriptionId} already activated, skipping (idempotent)`,
+    );
+    return;
+  }
 
   await prisma.subscription.create({
     data: {
       propertyId,
-      tier: tierMap[tier] || 'STARTER',
+      tier: resolvedTier,
       status: 'ACTIVE',
       stripeCustomerId,
       stripeSubscriptionId,
@@ -133,7 +153,7 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
   // Update property subscription tier
   await prisma.property.update({
     where: { id: propertyId },
-    data: { subscriptionTier: tierMap[tier] || 'STARTER' },
+    data: { subscriptionTier: resolvedTier },
   });
 }
 
