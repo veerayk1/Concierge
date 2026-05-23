@@ -156,6 +156,25 @@ export default function SecurityPage() {
     apiUrl('/api/v1/visitors', { propertyId: getPropertyId(), status: 'all' }),
   );
 
+  // Fire logs are stored in their own table (fire_logs) — same pattern as
+  // visitor entries. The Security Console must surface fire alarms with
+  // critical priority styling: this is the highest-stakes signal a guard
+  // can see, and burying it behind a separate page is a safety risk.
+  interface ApiFireLog {
+    id: string;
+    title: string;
+    fireLogDetails?: string | null;
+    alarmTime?: string | null;
+    alarmLocation?: string | null;
+    alarmType?: string | null;
+    allClearTime?: string | null;
+    createdAt: string;
+    unitNumber?: string | null;
+  }
+  const { data: apiFireLogs } = useApi<ApiFireLog[]>(
+    apiUrl('/api/v1/security/fire-log', { propertyId: getPropertyId() }),
+  );
+
   const activeVisitorCount = useMemo(() => {
     if (!apiVisitors || !Array.isArray(apiVisitors)) return 0;
     return apiVisitors.filter((v) => !v.departureAt).length;
@@ -211,12 +230,34 @@ export default function SecurityPage() {
             };
           });
 
-    return [...visitorRows, ...eventRows].sort((a, b) => {
+    const fireRows: SecurityEvent[] =
+      !apiFireLogs || !Array.isArray(apiFireLogs)
+        ? []
+        : apiFireLogs.map((f) => ({
+            id: f.id,
+            // Fire logs are incidents at the highest severity. Render as
+            // incident type so the existing incident icon + red styling
+            // applies, and mark priority urgent so the priority column
+            // shows the red badge.
+            type: 'incident' as SecurityEvent['type'],
+            title: f.title || 'Fire alarm',
+            description:
+              f.fireLogDetails ||
+              [f.alarmType, f.alarmLocation].filter(Boolean).join(' — ') ||
+              'Fire event logged',
+            unit: f.unitNumber ?? undefined,
+            status: (f.allClearTime ? 'resolved' : 'open') as SecurityEvent['status'],
+            priority: 'urgent' as SecurityEvent['priority'],
+            createdBy: 'Fire Log',
+            createdAt: f.alarmTime || f.createdAt || new Date().toISOString(),
+          }));
+
+    return [...fireRows, ...visitorRows, ...eventRows].sort((a, b) => {
       const aTime = new Date(a.createdAt).getTime();
       const bTime = new Date(b.createdAt).getTime();
       return bTime - aTime;
     });
-  }, [apiEvents, apiVisitors]);
+  }, [apiEvents, apiVisitors, apiFireLogs]);
 
   const filteredEvents = allEvents.filter((e) => {
     if (typeFilter !== 'all' && e.type !== typeFilter) return false;
