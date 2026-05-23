@@ -249,6 +249,7 @@ export default function ResidentOnboardingPage() {
 
   const [currentStep, setCurrentStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [fadeClass, setFadeClass] = useState('opacity-100');
 
   // Step 1: Welcome
@@ -304,78 +305,97 @@ export default function ResidentOnboardingPage() {
         method: 'POST',
         body: { step, data },
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // Surface the validation reason — without this the user clicked
+        // Next, watched the wizard advance, and never knew their data
+        // had been dropped on the server. Throw so handleNext shows the
+        // toast and keeps the user on the same step.
+        const message =
+          json?.message ||
+          json?.error ||
+          `Could not save this step (HTTP ${res.status}). Please try again.`;
+        throw new Error(message);
+      }
       return json.data;
-    } catch {
-      // Silently fail — the user can retry
-      return null;
     } finally {
       setSaving(false);
     }
   }, []);
 
-  // Handle "Next" button for each step
+  // Handle "Next" button for each step. saveStep throws on non-OK so the
+  // user sees the actual validation reason instead of advancing past a
+  // step whose data the server silently rejected.
   const handleNext = useCallback(async () => {
     const stepKey = STEP_KEYS[currentStep];
 
-    switch (stepKey) {
-      case 'welcome':
-        // Save language preference
-        await saveStep('profile', { language });
-        break;
+    try {
+      switch (stepKey) {
+        case 'welcome':
+          // Save language preference
+          await saveStep('profile', { language });
+          break;
 
-      case 'profile':
-        await saveStep('profile', {
-          phone,
-          language,
-          accessibilityNeeds,
-          accessibilityNotes: accessibilityNeeds ? accessibilityNotes : undefined,
-        });
-        break;
+        case 'profile':
+          await saveStep('profile', {
+            phone,
+            language,
+            accessibilityNeeds,
+            accessibilityNotes: accessibilityNeeds ? accessibilityNotes : undefined,
+          });
+          break;
 
-      case 'emergencyContacts': {
-        const validContacts = contacts.filter((c) => c.name && c.phone);
-        if (validContacts.length > 0) {
-          const result = await saveStep('emergencyContacts', { contacts: validContacts });
-          if (result)
-            setSummary((prev) => ({ ...prev, contacts: result.count || validContacts.length }));
-        }
-        break;
-      }
-
-      case 'vehicles': {
-        if (noVehicle) {
-          await saveStep('vehicles', { skipped: true });
-        } else {
-          const validVehicles = vehicles.filter((v) => v.make && v.model && v.licensePlate);
-          if (validVehicles.length > 0) {
-            const result = await saveStep('vehicles', { vehicles: validVehicles });
+        case 'emergencyContacts': {
+          const validContacts = contacts.filter((c) => c.name && c.phone);
+          if (validContacts.length > 0) {
+            const result = await saveStep('emergencyContacts', { contacts: validContacts });
             if (result)
-              setSummary((prev) => ({ ...prev, vehicles: result.count || validVehicles.length }));
+              setSummary((prev) => ({ ...prev, contacts: result.count || validContacts.length }));
           }
+          break;
         }
-        break;
-      }
 
-      case 'pets': {
-        if (noPets) {
-          await saveStep('pets', { skipped: true });
-        } else {
-          const validPets = pets.filter((p) => p.name && p.species);
-          if (validPets.length > 0) {
-            const result = await saveStep('pets', { pets: validPets });
-            if (result) setSummary((prev) => ({ ...prev, pets: result.count || validPets.length }));
+        case 'vehicles': {
+          if (noVehicle) {
+            await saveStep('vehicles', { skipped: true });
+          } else {
+            const validVehicles = vehicles.filter((v) => v.make && v.model && v.licensePlate);
+            if (validVehicles.length > 0) {
+              const result = await saveStep('vehicles', { vehicles: validVehicles });
+              if (result)
+                setSummary((prev) => ({ ...prev, vehicles: result.count || validVehicles.length }));
+            }
           }
+          break;
         }
-        // Mark complete
-        await saveStep('complete', {});
-        break;
-      }
 
-      default:
-        break;
+        case 'pets': {
+          if (noPets) {
+            await saveStep('pets', { skipped: true });
+          } else {
+            const validPets = pets.filter((p) => p.name && p.species);
+            if (validPets.length > 0) {
+              const result = await saveStep('pets', { pets: validPets });
+              if (result)
+                setSummary((prev) => ({ ...prev, pets: result.count || validPets.length }));
+            }
+          }
+          // Mark complete
+          await saveStep('complete', {});
+          break;
+        }
+
+        default:
+          break;
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Could not save this step. Please try again.';
+      setSaveError(message);
+      return;
     }
 
+    setSaveError(null);
     goToStep(currentStep + 1);
   }, [
     currentStep,
@@ -438,14 +458,20 @@ export default function ResidentOnboardingPage() {
   const unitNumber = onboarding?.unitNumber || '';
   const propertyName = onboarding?.propertyName || 'your building';
   const residentType = onboarding?.residentType || 'Resident';
-  const completedSteps = onboarding?.steps ?? {
-    welcome: false,
-    profile: false,
-    emergencyContacts: false,
-    vehicles: false,
-    pets: false,
-    complete: false,
-  };
+  // Mark every step the user has already advanced past as complete in the
+  // stepper UI, even if the server hasn't echoed back yet. Without this
+  // the indicator only lit up the first two steps (the only ones whose
+  // server save round-trip finished before the wizard re-rendered), so
+  // users saw "Welcome ✓ Profile ✓" with Emergency/Vehicles/Pets still
+  // greyed out after completing the whole flow.
+  const serverSteps = onboarding?.steps ?? {};
+  const completedSteps: Record<string, boolean> = STEP_KEYS.reduce(
+    (acc, key, idx) => {
+      acc[key] = Boolean(serverSteps[key as keyof typeof serverSteps]) || idx < currentStep;
+      return acc;
+    },
+    {} as Record<string, boolean>,
+  );
 
   // ---------------------------------------------------------------------------
   // Step content renderers
@@ -477,17 +503,43 @@ export default function ResidentOnboardingPage() {
         </span>
       </div>
 
-      {/* Consent checkboxes */}
+      {/* Consent checkboxes — labels include inline links so the user can
+          actually read what they're agreeing to. Without the links the
+          form was asking for consent to documents the user could not view. */}
       <div className="mx-auto max-w-sm space-y-4 text-left">
         <Checkbox
           checked={consentTerms}
           onCheckedChange={(checked) => setConsentTerms(checked === true)}
-          label="I agree to the Terms of Service"
+          label={
+            <>
+              I agree to the{' '}
+              <a
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary-600 hover:text-primary-700 underline"
+              >
+                Terms of Service
+              </a>
+            </>
+          }
         />
         <Checkbox
           checked={consentPrivacy}
           onCheckedChange={(checked) => setConsentPrivacy(checked === true)}
-          label="I agree to the Privacy Policy"
+          label={
+            <>
+              I agree to the{' '}
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary-600 hover:text-primary-700 underline"
+              >
+                Privacy Policy
+              </a>
+            </>
+          }
         />
       </div>
 
@@ -1005,6 +1057,15 @@ export default function ResidentOnboardingPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Save error banner — surfaces validation failures so the wizard
+            doesn't silently swallow a 400 and let the user think the data
+            was accepted. */}
+        {saveError && !isCompleteStep && (
+          <div className="border-error-200 bg-error-50 text-error-700 mt-4 rounded-xl border px-4 py-3 text-[13px]">
+            <strong className="font-semibold">Couldn't save this step.</strong> {saveError}
+          </div>
+        )}
 
         {/* Navigation buttons */}
         {!isCompleteStep && (

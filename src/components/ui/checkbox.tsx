@@ -2,18 +2,23 @@
 
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import { Check, Minus } from 'lucide-react';
-import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'react';
+import { forwardRef, type ComponentPropsWithoutRef, type ElementRef, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface CheckboxProps extends ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root> {
-  label?: string;
+  // Accepts a string OR a ReactNode so callers can embed links (e.g.
+  // "I agree to the <a>Terms of Service</a>"). Without this, consent
+  // labels are unlinked plain text and users have no way to read what
+  // they're agreeing to.
+  label?: ReactNode;
   description?: string;
   error?: string;
 }
 
 export const Checkbox = forwardRef<ElementRef<typeof CheckboxPrimitive.Root>, CheckboxProps>(
   ({ className, label, description, error, id, ...props }, ref) => {
-    const checkboxId = id || label?.toLowerCase().replace(/\s+/g, '-');
+    const checkboxId =
+      id || (typeof label === 'string' ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
     return (
       <div className="flex items-start gap-3">
