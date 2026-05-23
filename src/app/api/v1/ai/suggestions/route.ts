@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 /** Threshold for bulk package reminder suggestion. */
 const BULK_PACKAGE_THRESHOLD = 3;
@@ -50,6 +50,8 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     const suggestions: Suggestion[] = [];
     const now = new Date();

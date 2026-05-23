@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 /** Cache duration in milliseconds (15 minutes). */
 const CACHE_TTL_MS = 15 * 60 * 1000;
@@ -162,6 +162,8 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     const { userId, role } = auth.user;
     const now = new Date();
@@ -265,6 +267,8 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     const { userId, role } = auth.user;
     const now = new Date();

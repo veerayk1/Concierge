@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import {
   COMPLIANCE_REPORT_TYPES,
   REPORT_CATALOG,
@@ -123,6 +123,8 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     // If type filter provided, return compliance reports of that type
     if (type) {

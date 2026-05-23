@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 // Default flag definitions used when no DB records exist yet
 const DEFAULT_FLAGS: Record<
@@ -125,6 +125,8 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     // Fetch all feature flags from the database
     const dbFlags = await prisma.featureFlag.findMany();

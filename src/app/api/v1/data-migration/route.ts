@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { createMigrationJobUnionSchema, MIGRATION_JOB_STATUSES } from '@/schemas/data-migration';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { nanoid } from 'nanoid';
 import type { Role } from '@/types';
@@ -38,6 +38,8 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     // Query both ImportJob and DataExportRequest tables based on type filter
     if (type === 'import' || type === 'migration') {

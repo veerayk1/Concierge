@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { createInspectionSchema } from '@/schemas/inspection';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // Prisma models not yet generated — use type-safe casts so this compiles now
@@ -37,6 +37,8 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: Record<string, any> = { propertyId, deletedAt: null };
@@ -97,12 +99,19 @@ export async function POST(request: NextRequest) {
     // Schema expects: category, inspectorId (uuid), templateId (uuid), priority with 'normal'
 
     // Map priority: dialog uses 'medium' but schema expects 'normal'
-    const priorityMap: Record<string, string> = { medium: 'normal', low: 'low', high: 'high', critical: 'urgent', urgent: 'urgent' };
+    const priorityMap: Record<string, string> = {
+      medium: 'normal',
+      low: 'low',
+      high: 'high',
+      critical: 'urgent',
+      urgent: 'urgent',
+    };
     const rawPriority = body.priority || 'normal';
 
     // Store inspector name for the record, but don't pass non-UUID to schema
     const inspectorName = body.assignedTo || body.inspectorId;
-    const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+    const isUuid = (s: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
     // Store template name for checklist lookup
     const templateName = body.checklistTemplate || body.templateId;

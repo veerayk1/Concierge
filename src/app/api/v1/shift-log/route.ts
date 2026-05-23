@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 // ---------------------------------------------------------------------------
@@ -65,6 +65,8 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     // Build where clause
     const where: Record<string, unknown> = {
@@ -132,7 +134,11 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'VALIDATION_ERROR', message: 'Invalid input', fields: parsed.error.flatten().fieldErrors },
+        {
+          error: 'VALIDATION_ERROR',
+          message: 'Invalid input',
+          fields: parsed.error.flatten().fieldErrors,
+        },
         { status: 400 },
       );
     }

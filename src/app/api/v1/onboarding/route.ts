@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { hashPassword } from '@/server/auth/password';
 import { nanoid } from 'nanoid';
 
@@ -99,6 +99,8 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     const progress = await prisma.onboardingProgress.findFirst({
       where: { propertyId },
@@ -160,6 +162,8 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     if (step === undefined || step === null) {
       return NextResponse.json(

@@ -11,7 +11,7 @@ import { prisma } from '@/server/db';
 import { hashPassword } from '@/server/auth/password';
 import { createUserSchema } from '@/schemas/user';
 import { nanoid } from 'nanoid';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { sendEmail } from '@/server/email';
 import { renderTemplate } from '@/server/email-templates';
@@ -45,6 +45,8 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     // Build where clause
     const where: Record<string, unknown> = {

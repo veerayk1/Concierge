@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { queryAuditEntries, exportUserAuditData } from '@/server/audit';
 import { handleDemoRequest } from '@/server/demo';
 
@@ -42,6 +42,8 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     // --- DSAR Export ---
     if (exportType === 'dsar') {

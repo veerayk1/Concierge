@@ -270,3 +270,34 @@ export async function guardRoute(
     };
   }
 }
+
+/**
+ * Multi-tenancy guard. Pass after guardRoute() — verifies that the propertyId
+ * the request is asking about matches the user's assigned propertyId.
+ *
+ * Super Admins bypass this check; everyone else must match.
+ *
+ * Returns null on pass, a 403 NextResponse on fail. Use as:
+ *
+ *   const auth = await guardRoute(request);
+ *   if (auth.error) return auth.error;
+ *   const propertyId = new URL(request.url).searchParams.get('propertyId');
+ *   const tenancy = enforcePropertyAccess(auth.user, propertyId);
+ *   if (tenancy) return tenancy;
+ */
+export function enforcePropertyAccess(
+  user: AuthenticatedUser,
+  requestedPropertyId: string | null | undefined,
+): NextResponse | null {
+  if (!requestedPropertyId) return null;
+  if (user.role === 'super_admin') return null;
+  if (user.propertyId === requestedPropertyId) return null;
+  return NextResponse.json(
+    {
+      error: 'FORBIDDEN',
+      message: 'You do not have access to this property.',
+      code: 'CROSS_TENANT_BLOCKED',
+    },
+    { status: 403 },
+  );
+}

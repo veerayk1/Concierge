@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/equipment/:id/history
@@ -29,6 +29,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 400 },
       );
     }
+    const _tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (_tenancy) return _tenancy;
 
     // Verify equipment exists
     const equipment = await prisma.equipment.findUnique({
