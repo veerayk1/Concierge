@@ -167,10 +167,30 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Card issuance is a staff/admin operation — issuing a card grants
+    // physical access. Without this gate any resident could POST and
+    // either (a) try to mint cards for other residents, or (b) hit the
+    // nanoid fallback path and 500. Lock to admin roles.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();
+
+    // Tenancy guard — body carries propertyId; reject cross-tenant
+    // issuance attempts up-front so the bulk path doesn't even start.
+    if (typeof body?.propertyId === 'string') {
+      const t = enforcePropertyAccess(auth.user, body.propertyId);
+      if (t) return t;
+    }
 
     // Bulk generation
     if (body.bulk === true) {
@@ -228,11 +248,44 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
     const cardNumber = generateCardNumber();
 
+    // residentId and unitId must be valid UUIDs (they FK to user/unit).
+    // The legacy nanoid() fallback produced invalid UUIDs and 500'd at
+    // Prisma create with P2023.
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!input.residentId || !UUID.test(input.residentId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'residentId must be a valid UUID.' },
+        { status: 400 },
+      );
+    }
+    if (!input.unitId || !UUID.test(input.unitId)) {
+      return NextResponse.json(
+        { error: 'VALIDATION_ERROR', message: 'unitId must be a valid UUID.' },
+        { status: 400 },
+      );
+    }
+
+    // Ensure the unit belongs to the same property the card is being
+    // issued for — otherwise a property_admin at A could mint a card
+    // tagged to A's property but pointing at a Property B unit, which
+    // would break the cross-tenant guard on /verify and unit-scoped
+    // reports.
+    const unitForCard = await prisma.unit.findUnique({
+      where: { id: input.unitId },
+      select: { propertyId: true },
+    });
+    if (!unitForCard || unitForCard.propertyId !== input.propertyId) {
+      return NextResponse.json(
+        { error: 'INVALID_UNIT', message: 'Unit does not belong to this property.' },
+        { status: 400 },
+      );
+    }
+
     const card = await prisma.residentCard.create({
       data: {
         propertyId: input.propertyId,
-        residentId: input.residentId || nanoid(12),
-        unitId: input.unitId || input.unit || nanoid(12),
+        residentId: input.residentId,
+        unitId: input.unitId,
         residentName: stripControlChars(stripHtml(input.residentName)),
         photoUrl: input.photoUrl || null,
         accessLevel: input.accessLevel,
