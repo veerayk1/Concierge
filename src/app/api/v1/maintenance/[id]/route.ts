@@ -290,11 +290,55 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // ------------------------------------------------------------------
-    // Persist update
+    // Persist update. Status transitions race-guard via a single raw SQL
+    // compare-and-swap. Postgres serializes concurrent UPDATEs to the
+    // same row at the row-lock level: only the first writer sees
+    // status=oldStatus; subsequent writers re-evaluate the WHERE clause
+    // against the post-commit tuple version (EvalPlanQual) and update
+    // zero rows. We check pg_affected_rows and reject the losers with
+    // 409 STATE_CONFLICT before they double-fire audit records, emails,
+    // or SLA escalations. Prisma's updateMany() empirically did NOT
+    // serialize this correctly under the dev connection pool — likely
+    // due to multi-statement planning — so we use $executeRaw to force
+    // a single atomic UPDATE statement.
     // ------------------------------------------------------------------
-    const req = await prisma.maintenanceRequest.update({
+    if (isStatusChange) {
+      const casCount = await prisma.$executeRaw`
+        UPDATE maintenance_requests
+        SET status = ${newStatus}
+        WHERE id = ${id}::uuid AND status = ${oldStatus}
+      `;
+      if (casCount === 0) {
+        return NextResponse.json(
+          {
+            error: 'STATE_CONFLICT',
+            message: `Request is no longer in '${oldStatus}' status — another change won the race.`,
+          },
+          { status: 409 },
+        );
+      }
+      // CAS won — apply the rest of the update payload (everything except
+      // status, which we already wrote atomically above). Safe to use the
+      // regular update path here because no other writer can race us on
+      // the same transition: any concurrent attempt has already returned
+      // 409 by this point.
+      const { status: _status, ...rest } = updateData;
+      void _status;
+      if (Object.keys(rest).length > 0) {
+        await prisma.maintenanceRequest.update({
+          where: { id },
+          data: rest,
+        });
+      }
+    } else {
+      await prisma.maintenanceRequest.update({
+        where: { id },
+        data: updateData,
+      });
+    }
+
+    const req = await prisma.maintenanceRequest.findUnique({
       where: { id },
-      data: updateData,
       include: {
         unit: { select: { id: true, number: true } },
       },

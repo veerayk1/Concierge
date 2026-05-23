@@ -142,13 +142,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
       const input = parsed.data;
 
-      const pkg = await prisma.package.update({
-        where: { id },
+      // Atomic conditional update — only the first concurrent caller wins.
+      // Without this, 5 concurrent release PATCHes all succeed and pollute
+      // history with 5 release records for the same package.
+      const result = await prisma.package.updateMany({
+        where: { id, status: 'unreleased' },
         data: {
           status: 'released',
           releasedToName: input.releasedToName,
           releasedAt: new Date(),
-          releasedById: auth.user.userId, // From authenticated user
+          releasedById: auth.user.userId,
           idVerified: input.idVerified,
           isAuthorizedDelegate: input.isAuthorizedDelegate,
           releaseComments: input.releaseComments
@@ -157,7 +160,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         },
       });
 
-      // Log to history
+      if (result.count === 0) {
+        return NextResponse.json(
+          {
+            error: 'ALREADY_RELEASED',
+            message: 'Package has already been released or is not in a releasable state.',
+          },
+          { status: 409 },
+        );
+      }
+
+      const pkg = await prisma.package.findUnique({ where: { id } });
+
+      // Log to history — only the winning writer reaches this point
       const releaseActorName = await resolveActorName(auth.user.userId);
       await prisma.packageHistory.create({
         data: {
