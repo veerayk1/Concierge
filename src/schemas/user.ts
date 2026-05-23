@@ -110,13 +110,13 @@ export const updateMyProfileSchema = z.object({
     .string()
     .min(1, 'First name is required')
     .max(50, 'First name cannot exceed 50 characters')
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, 'First name contains invalid characters')
+    .regex(/^[\p{L}\p{M}\s'.-]+$/u, 'First name contains invalid characters')
     .optional(),
   lastName: z
     .string()
     .min(1, 'Last name is required')
     .max(50, 'Last name cannot exceed 50 characters')
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, 'Last name contains invalid characters')
+    .regex(/^[\p{L}\p{M}\s'.-]+$/u, 'Last name contains invalid characters')
     .optional(),
   phone: z
     .string()
