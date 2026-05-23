@@ -140,15 +140,27 @@ export async function POST(request: NextRequest) {
             );
           }
 
-          const overlapping = await tx.booking.count({
-            where: {
-              amenityId: input.amenityId,
-              status: { in: ['confirmed', 'pending', 'approved'] },
-              // Two ranges overlap iff start < other.end AND end > other.start.
-              startTime: { lt: endDt },
-              endTime: { gt: startDt },
-            },
-          });
+          // Booking.startTime is a Postgres TIME column (time-of-day only)
+          // and Booking.startDate is a DATE column. A Prisma filter like
+          // `startTime: { lt: endDt }` only compares the time portion and
+          // ignores the date, so a 14:00–16:00 booking on Aug 13 falsely
+          // collides with an existing 14:00–16:00 on a totally different
+          // day. Build a single timestamp by combining the date + time
+          // columns and compare against the requested window. Convert
+          // the JS Date bounds to ISO strings and cast both sides to
+          // `timestamp` so no implicit session-timezone conversion
+          // shifts the comparison.
+          const startIso = startDt.toISOString();
+          const endIso = endDt.toISOString();
+          const overlapRows = await tx.$queryRaw<{ count: bigint }[]>`
+            SELECT COUNT(*)::bigint AS count
+            FROM bookings
+            WHERE "amenityId" = ${input.amenityId}::uuid
+              AND status IN ('confirmed', 'pending', 'approved')
+              AND ("startDate"::timestamp + "startTime"::time) < ${endIso}::timestamp
+              AND ("endDate"::timestamp + "endTime"::time) > ${startIso}::timestamp
+          `;
+          const overlapping = Number(overlapRows[0]?.count ?? 0n);
           if (overlapping >= (amenity.maxConcurrent || 1)) {
             throw Object.assign(
               new Error('This amenity is already booked for the requested time.'),
