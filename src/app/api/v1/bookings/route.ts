@@ -199,6 +199,19 @@ export async function POST(request: NextRequest) {
           { status },
         );
       }
+      // Postgres serialization failure under concurrent same-slot bookings.
+      // The first writer wins, the rest hit P2034. The user wants the same
+      // 409 they'd get from a sequential conflict, not a generic 500.
+      const code = (e as { code?: string })?.code;
+      if (code === 'P2034' || /write conflict|deadlock/i.test((e as Error)?.message ?? '')) {
+        return NextResponse.json(
+          {
+            error: 'CONFLICT',
+            message: 'This amenity is already booked for the requested time.',
+          },
+          { status: 409 },
+        );
+      }
       throw e;
     }
 
