@@ -461,6 +461,11 @@ export default function ForumPage() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         propertyId={getPropertyId()}
+        onSuccess={() => {
+          // Refetch so the newly created thread appears in the list. Without
+          // this, the dialog closed and the user saw the same empty state.
+          refetch();
+        }}
       />
     </PageShell>
   );
