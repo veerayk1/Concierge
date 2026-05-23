@@ -94,6 +94,13 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // SEC-149: cross-tenant key minting. Same gap shape as SEC-148. A
+    // property_admin at Property A must not mint an API key for
+    // Property B by setting body.propertyId. Role gate above only
+    // confirms the caller is admin SOMEWHERE.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     // Sanitize the key name
     const sanitizedName = stripControlChars(stripHtml(input.name));
 
@@ -171,6 +178,12 @@ export async function DELETE(request: NextRequest) {
         { status: 404 },
       );
     }
+
+    // SEC-150: cross-tenant revocation. A property_admin at A must not
+    // revoke keys at Property B by guessing the key id. Without this
+    // check, the role gate only confirms admin SOMEWHERE.
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     if (existing.revokedAt) {
       return NextResponse.json(
