@@ -707,54 +707,121 @@ export default function DashboardPage() {
                   . Here is your daily summary:
                 </p>
                 <ul className="ml-4 list-disc space-y-1 text-[13px] text-neutral-600">
-                  {apiData.kpis.openMaintenanceRequests > 0 && (
-                    <li>
-                      <strong>
-                        {apiData.kpis.openMaintenanceRequests} maintenance request
-                        {apiData.kpis.openMaintenanceRequests !== 1 ? 's' : ''}
-                      </strong>{' '}
-                      currently open
-                      {apiData.kpis.overdueMaintenanceRequests > 0
-                        ? `, ${apiData.kpis.overdueMaintenanceRequests} overdue`
-                        : ''}
-                      .
-                    </li>
-                  )}
-                  {apiData.kpis.unreleasedPackages > 0 && (
-                    <li>
-                      <strong>
-                        {apiData.kpis.unreleasedPackages} package
-                        {apiData.kpis.unreleasedPackages !== 1 ? 's' : ''}
-                      </strong>{' '}
-                      awaiting pickup.
-                    </li>
-                  )}
-                  {apiData.kpis.activeVisitors > 0 && (
-                    <li>
-                      <strong>
-                        {apiData.kpis.activeVisitors} active visitor
-                        {apiData.kpis.activeVisitors !== 1 ? 's' : ''}
-                      </strong>{' '}
-                      currently on-site.
-                    </li>
-                  )}
-                  {apiData.kpis.pendingBookingApprovals > 0 && (
-                    <li>
-                      <strong>
-                        {apiData.kpis.pendingBookingApprovals} booking approval
-                        {apiData.kpis.pendingBookingApprovals !== 1 ? 's' : ''}
-                      </strong>{' '}
-                      pending review.
-                    </li>
-                  )}
-                  {apiData.kpis.todayEvents > 0 && (
-                    <li>
-                      <strong>
-                        {apiData.kpis.todayEvents} event{apiData.kpis.todayEvents !== 1 ? 's' : ''}
-                      </strong>{' '}
-                      logged today.
-                    </li>
-                  )}
+                  {/* Role-aware copy. Without this, residents saw manager-style
+                      lines like "8 booking approvals pending review" — confusing
+                      because residents don't approve bookings (managers do). */}
+                  {(() => {
+                    const isResident =
+                      effectiveRole === 'resident_owner' ||
+                      effectiveRole === 'resident_tenant' ||
+                      effectiveRole === 'family_member' ||
+                      effectiveRole === 'offsite_owner';
+                    const lines: React.ReactNode[] = [];
+                    if (isResident) {
+                      if (apiData.kpis.unreleasedPackages > 0) {
+                        lines.push(
+                          <li key="pkg">
+                            You have{' '}
+                            <strong>
+                              {apiData.kpis.unreleasedPackages} package
+                              {apiData.kpis.unreleasedPackages !== 1 ? 's' : ''}
+                            </strong>{' '}
+                            waiting for pickup at the front desk.
+                          </li>,
+                        );
+                      }
+                      if (apiData.kpis.openMaintenanceRequests > 0) {
+                        lines.push(
+                          <li key="mr">
+                            <strong>
+                              {apiData.kpis.openMaintenanceRequests} of your service request
+                              {apiData.kpis.openMaintenanceRequests !== 1 ? 's' : ''}
+                            </strong>{' '}
+                            {apiData.kpis.openMaintenanceRequests !== 1 ? 'are' : 'is'} still open.
+                          </li>,
+                        );
+                      }
+                      if (apiData.kpis.pendingBookingApprovals > 0) {
+                        lines.push(
+                          <li key="bk">
+                            <strong>
+                              {apiData.kpis.pendingBookingApprovals} of your booking request
+                              {apiData.kpis.pendingBookingApprovals !== 1 ? 's' : ''}
+                            </strong>{' '}
+                            {apiData.kpis.pendingBookingApprovals !== 1 ? 'are' : 'is'} awaiting
+                            management approval.
+                          </li>,
+                        );
+                      }
+                      if (lines.length === 0) {
+                        lines.push(
+                          <li key="ok">All caught up — no packages or open requests today.</li>,
+                        );
+                      }
+                      return lines;
+                    }
+                    // Staff & manager view (original copy)
+                    if (apiData.kpis.openMaintenanceRequests > 0) {
+                      lines.push(
+                        <li key="mr">
+                          <strong>
+                            {apiData.kpis.openMaintenanceRequests} maintenance request
+                            {apiData.kpis.openMaintenanceRequests !== 1 ? 's' : ''}
+                          </strong>{' '}
+                          currently open
+                          {apiData.kpis.overdueMaintenanceRequests > 0
+                            ? `, ${apiData.kpis.overdueMaintenanceRequests} overdue`
+                            : ''}
+                          .
+                        </li>,
+                      );
+                    }
+                    if (apiData.kpis.unreleasedPackages > 0) {
+                      lines.push(
+                        <li key="pkg">
+                          <strong>
+                            {apiData.kpis.unreleasedPackages} package
+                            {apiData.kpis.unreleasedPackages !== 1 ? 's' : ''}
+                          </strong>{' '}
+                          awaiting pickup.
+                        </li>,
+                      );
+                    }
+                    if (apiData.kpis.activeVisitors > 0) {
+                      lines.push(
+                        <li key="vis">
+                          <strong>
+                            {apiData.kpis.activeVisitors} active visitor
+                            {apiData.kpis.activeVisitors !== 1 ? 's' : ''}
+                          </strong>{' '}
+                          currently on-site.
+                        </li>,
+                      );
+                    }
+                    if (apiData.kpis.pendingBookingApprovals > 0) {
+                      lines.push(
+                        <li key="bk">
+                          <strong>
+                            {apiData.kpis.pendingBookingApprovals} booking approval
+                            {apiData.kpis.pendingBookingApprovals !== 1 ? 's' : ''}
+                          </strong>{' '}
+                          pending review.
+                        </li>,
+                      );
+                    }
+                    if (apiData.kpis.todayEvents > 0) {
+                      lines.push(
+                        <li key="ev">
+                          <strong>
+                            {apiData.kpis.todayEvents} event
+                            {apiData.kpis.todayEvents !== 1 ? 's' : ''}
+                          </strong>{' '}
+                          logged today.
+                        </li>,
+                      );
+                    }
+                    return lines;
+                  })()}
                 </ul>
               </div>
             ) : (

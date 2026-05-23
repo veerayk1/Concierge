@@ -39,6 +39,45 @@ interface BriefingContent {
 function generateSummary(role: string, sections: BriefingSections): string {
   const { packages, visitors, maintenance, approvals, alerts, handoff } = sections;
 
+  // Residents see ONLY their own unit's stats — no building-wide ops numbers.
+  // Without this branch they fell through to the front-desk default and the
+  // briefing leaked things like "8 booking approvals pending review" which is
+  // not their concern and exposes building-wide activity.
+  if (
+    role === 'resident_owner' ||
+    role === 'resident_tenant' ||
+    role === 'family_member' ||
+    role === 'offsite_owner'
+  ) {
+    const parts: string[] = [];
+    if (packages.unreleasedCount > 0) {
+      parts.push(
+        `You have ${packages.unreleasedCount} package${packages.unreleasedCount !== 1 ? 's' : ''} waiting for pickup`,
+      );
+    }
+    if (maintenance.openCount > 0) {
+      parts.push(
+        `${maintenance.openCount} of your service request${maintenance.openCount !== 1 ? 's' : ''} ${maintenance.openCount !== 1 ? 'are' : 'is'} still open`,
+      );
+    }
+    if (parts.length === 0) {
+      return 'All caught up — no packages or open requests for your unit today.';
+    }
+    return parts.join('. ') + '.';
+  }
+
+  // Board members: governance-level summary
+  if (role === 'board_member') {
+    const parts: string[] = [];
+    parts.push(
+      `${maintenance.openCount} open maintenance request${maintenance.openCount !== 1 ? 's' : ''} across the building`,
+    );
+    if (alerts.count > 0) {
+      parts.push(`${alerts.count} security alert${alerts.count !== 1 ? 's' : ''} today`);
+    }
+    return parts.join('. ') + '.';
+  }
+
   // Security roles: emphasize alerts and incidents
   if (role === 'security_guard' || role === 'security_supervisor') {
     const parts: string[] = [];
@@ -87,10 +126,36 @@ function generateSummary(role: string, sections: BriefingSections): string {
   return parts.join('. ') + '.';
 }
 
-async function generateBriefingData(propertyId: string, role: string): Promise<BriefingContent> {
+async function generateBriefingData(
+  propertyId: string,
+  role: string,
+  userId?: string,
+): Promise<BriefingContent> {
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
+
+  // For residents, look up their unit so the counts are scoped to just them.
+  // Without this, a resident sees "13 active visitors" / "8 pending approvals"
+  // building-wide — a privacy leak and confusing UX.
+  const isResident =
+    role === 'resident_owner' ||
+    role === 'resident_tenant' ||
+    role === 'family_member' ||
+    role === 'offsite_owner';
+  let residentUnitId: string | undefined;
+  if (isResident && userId) {
+    const occupancy = await prisma.occupancyRecord.findFirst({
+      where: { userId, propertyId, moveOutDate: null },
+      select: { unitId: true },
+    });
+    residentUnitId = occupancy?.unitId;
+  }
+  // SECURITY: if resident has no occupancy record, scope to impossible id so
+  // counts come back zero rather than leaking the building-wide totals.
+  const residentScope = isResident
+    ? { unitId: residentUnitId || '00000000-0000-0000-0000-000000000000' }
+    : {};
 
   const [
     unreleasedCount,
@@ -101,29 +166,46 @@ async function generateBriefingData(propertyId: string, role: string): Promise<B
     handoff,
   ] = await Promise.all([
     prisma.package.count({
-      where: { propertyId, status: 'unreleased', deletedAt: null },
+      where: { propertyId, status: 'unreleased', deletedAt: null, ...residentScope },
     }),
-    prisma.visitorEntry.count({
-      where: { propertyId, departureAt: null },
-    }),
+    // Residents don't have a "visitors building-wide" widget — they care about
+    // their own incoming visitors. For now, hide entirely (count = 0).
+    isResident
+      ? Promise.resolve(0)
+      : prisma.visitorEntry.count({
+          where: { propertyId, departureAt: null },
+        }),
     prisma.maintenanceRequest.count({
-      where: { propertyId, status: { in: ['open', 'in_progress'] }, deletedAt: null },
-    }),
-    prisma.booking.count({
-      where: { propertyId, approvalStatus: 'pending' },
-    }),
-    prisma.event.count({
       where: {
         propertyId,
         status: { in: ['open', 'in_progress'] },
-        createdAt: { gte: todayStart },
         deletedAt: null,
+        ...residentScope,
       },
     }),
-    prisma.shiftHandoff.findFirst({
-      where: { propertyId },
-      orderBy: { createdAt: 'desc' },
-    }),
+    // Booking approvals are a manager concern; hide from residents.
+    isResident
+      ? Promise.resolve(0)
+      : prisma.booking.count({
+          where: { propertyId, approvalStatus: 'pending' },
+        }),
+    // Alerts (today's open events) — hide from residents (they're not on-call).
+    isResident
+      ? Promise.resolve(0)
+      : prisma.event.count({
+          where: {
+            propertyId,
+            status: { in: ['open', 'in_progress'] },
+            createdAt: { gte: todayStart },
+            deletedAt: null,
+          },
+        }),
+    isResident
+      ? Promise.resolve(null)
+      : prisma.shiftHandoff.findFirst({
+          where: { propertyId },
+          orderBy: { createdAt: 'desc' },
+        }),
   ]);
 
   const sections: BriefingSections = {
@@ -192,7 +274,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Generate fresh briefing
-    const content = await generateBriefingData(propertyId, role);
+    const content = await generateBriefingData(propertyId, role, userId);
 
     // roleId is a UUID FK; look up the role assignment for this user+property
     const membership = await prisma.userProperty.findFirst({
@@ -273,7 +355,7 @@ export async function POST(request: NextRequest) {
     const { userId, role } = auth.user;
     const now = new Date();
 
-    const content = await generateBriefingData(propertyId, role);
+    const content = await generateBriefingData(propertyId, role, userId);
 
     const membership = await prisma.userProperty.findFirst({
       where: { userId, propertyId },
