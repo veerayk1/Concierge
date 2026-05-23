@@ -77,6 +77,16 @@ export function CreateEquipmentDialog({
   async function onSubmit(data: EquipmentInput) {
     setServerError(null);
     try {
+      // Strip empty-string optional fields before POST. The server schema
+      // is `optional().or(z.string().date())` — an empty string passes
+      // through neither branch and triggers "Invalid datetime". Sending
+      // the field as missing rather than empty lets the optional take.
+      const payload: Record<string, unknown> = { ...data, propertyId };
+      for (const k of Object.keys(payload)) {
+        if (payload[k] === '' || payload[k] === null || payload[k] === undefined) {
+          delete payload[k];
+        }
+      }
       const response = await fetch('/api/v1/equipment', {
         method: 'POST',
         headers: {
@@ -88,7 +98,7 @@ export function CreateEquipmentDialog({
             ? { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
             : {}),
         },
-        body: JSON.stringify({ ...data, propertyId }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
