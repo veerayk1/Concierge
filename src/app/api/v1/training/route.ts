@@ -157,6 +157,15 @@ export async function POST(request: NextRequest) {
 
     const resolvedPropertyId = body.propertyId || auth.user.propertyId;
 
+    // SEC-154: cross-tenant course creation. The admin role check above
+    // confirms the caller is admin SOMEWHERE, but not at the property
+    // they're posting to. Without this, a property_admin at A could
+    // create a course owned by Property B — polluting B's training
+    // catalog and (via the SEC-148 path) potentially issuing
+    // certificates against B's residents.
+    const tenancy = enforcePropertyAccess(auth.user, resolvedPropertyId);
+    if (tenancy) return tenancy;
+
     // Resolve a real createdById — demo mode user may not exist in the DB
     let createdById = auth.user.userId;
     try {
