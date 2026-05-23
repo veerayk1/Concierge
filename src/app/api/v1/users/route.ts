@@ -289,30 +289,52 @@ export async function POST(request: NextRequest) {
     const tempPassword = nanoid(16);
     const passwordHash = await hashPassword(tempPassword);
 
-    // Create user + property assignment in a transaction
-    const user = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          email: input.email.toLowerCase(),
-          passwordHash,
-          firstName: stripControlChars(stripHtml(input.firstName)),
-          lastName: stripControlChars(stripHtml(input.lastName)),
-          phone: input.phone || null,
-          isActive: true,
-          // activatedAt is null until user completes onboarding
-        },
-      });
+    // Create user + property assignment in a transaction. The email column
+    // is globally unique regardless of soft-delete state, so trying to
+    // re-use an email that belongs to ANY existing record (active at a
+    // different property, or soft-deleted anywhere) crashes with P2002.
+    // Catch and translate to the same 409 EMAIL_EXISTS the pre-check
+    // uses, so the admin sees a clean error instead of a 500.
+    let user: { id: string; firstName: string; lastName: string; email: string; createdAt: Date };
+    try {
+      user = await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            email: input.email.toLowerCase(),
+            passwordHash,
+            firstName: stripControlChars(stripHtml(input.firstName)),
+            lastName: stripControlChars(stripHtml(input.lastName)),
+            phone: input.phone || null,
+            isActive: true,
+            // activatedAt is null until user completes onboarding
+          },
+        });
 
-      await tx.userProperty.create({
-        data: {
-          userId: newUser.id,
-          propertyId: input.propertyId,
-          roleId: input.roleId,
-        },
-      });
+        await tx.userProperty.create({
+          data: {
+            userId: newUser.id,
+            propertyId: input.propertyId,
+            roleId: input.roleId,
+          },
+        });
 
-      return newUser;
-    });
+        return newUser;
+      });
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code === 'P2002') {
+        return NextResponse.json(
+          {
+            error: 'EMAIL_EXISTS',
+            message:
+              'This email is already associated with an account (possibly suspended or at another property). Use a different email or restore the existing account.',
+            fields: { email: ['Email already in use'] },
+          },
+          { status: 409 },
+        );
+      }
+      throw err;
+    }
 
     // DEV: Store temp password in plain text for testing. Remove before production.
     if (process.env.NODE_ENV !== 'production') {
