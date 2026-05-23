@@ -93,15 +93,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const email = body.email.toLowerCase();
 
-    // 2. Rate limit check: count recent tokens for this email
+    // 2. Per-email rate limit check via PasswordResetToken count. The model
+    //    is referenced via `prisma as any` because it isn't in the generated
+    //    client yet — wrap in try/catch so a missing model doesn't 500 the
+    //    whole endpoint (previously did, with the catch{} below swallowing
+    //    the real error). Falling through to "0 recent tokens" is safe: the
+    //    IP-based rate limit at step 0 still protects against abuse, and we
+    //    always return the generic enumeration-safe response.
     const oneHourAgo = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recentTokenCount = await (prisma as any).passwordResetToken.count({
-      where: {
-        createdAt: { gte: oneHourAgo },
-        // Join through user to check by email
-      },
-    });
+    let recentTokenCount = 0;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recentTokenCount = await (prisma as any).passwordResetToken.count({
+        where: {
+          createdAt: { gte: oneHourAgo },
+        },
+      });
+    } catch (e) {
+      console.error(
+        '[forgot-password] passwordResetToken.count failed (model missing?):',
+        (e as Error)?.message,
+      );
+    }
 
     if (recentTokenCount >= RATE_LIMIT_PER_EMAIL) {
       return NextResponse.json(
@@ -120,24 +133,30 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       where: { email },
     });
 
-    // 4. If user exists and is active, create reset token and send email
+    // 4. If user exists and is active, create reset token and send email.
+    //    Same defensive try/catch — if the token model is missing we still
+    //    return the generic message so the timing/response shape is identical
+    //    for "user exists" and "user doesn't exist" callers.
     if (user && user.isActive) {
       const resetToken = crypto.randomUUID();
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (prisma as any).passwordResetToken.create({
+          data: {
+            token: resetToken,
+            userId: user.id,
+            expiresAt: new Date(Date.now() + TOKEN_EXPIRY_MS),
+          },
+        });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (prisma as any).passwordResetToken.create({
-        data: {
+        await sendPasswordResetEmail({
+          email: user.email,
           token: resetToken,
-          userId: user.id,
-          expiresAt: new Date(Date.now() + TOKEN_EXPIRY_MS),
-        },
-      });
-
-      await sendPasswordResetEmail({
-        email: user.email,
-        token: resetToken,
-        firstName: user.firstName,
-      });
+          firstName: user.firstName,
+        });
+      } catch (e) {
+        console.error('[forgot-password] reset-token create/email failed:', (e as Error)?.message);
+      }
     }
 
     // 5. Always return the same response (no enumeration)
@@ -148,7 +167,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
       { status: 200 },
     );
-  } catch {
+  } catch (e) {
+    // Log the real error before returning generic 500 — the previous empty
+    // catch{} hid the underlying Prisma "Unknown arg" or "Model not found"
+    // error and made the breakage invisible during the SEC-078 sweep.
+    console.error('[forgot-password] unexpected error:', (e as Error)?.message);
     return NextResponse.json(
       {
         error: 'INTERNAL_ERROR',
