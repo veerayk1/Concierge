@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   if (demoRes) return demoRes;
 
   try {
+    // Board members are the primary consumers of reports (governance/financials).
     const auth = await guardRoute(request, {
       roles: [
         'super_admin',
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
         'property_manager',
         'superintendent',
         'security_supervisor',
+        'board_member',
       ],
     });
     if (auth.error) return auth.error;
