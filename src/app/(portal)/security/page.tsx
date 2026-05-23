@@ -136,8 +136,23 @@ export default function SecurityPage() {
     refetch,
   } = useApi<SecurityEvent[]>(apiUrl('/api/v1/events', { propertyId: getPropertyId() }));
 
-  // Fetch active visitors from VisitorEntry table (separate from events)
-  const { data: apiVisitors } = useApi<{ departureAt: string | null }[]>(
+  // Fetch active visitors from VisitorEntry table.
+  // Visitor sign-ins live in their own table (visitor_entries), not in the
+  // unified events table. We pull them separately and merge them into the
+  // security event list so the "Visitors" filter pill actually surfaces the
+  // visitors that the Active Visitors widget is counting. Without this,
+  // the widget said "1 active visitor" but the table below was empty.
+  interface ApiVisitor {
+    id: string;
+    visitorName?: string;
+    visitorType?: string;
+    departureAt: string | null;
+    arrivedAt?: string;
+    createdAt?: string;
+    comments?: string | null;
+    unit?: { number?: string } | string | null;
+  }
+  const { data: apiVisitors } = useApi<ApiVisitor[]>(
     apiUrl('/api/v1/visitors', { propertyId: getPropertyId(), status: 'all' }),
   );
 
@@ -148,31 +163,60 @@ export default function SecurityPage() {
 
   // Map API data to SecurityEvent shape
   const allEvents = useMemo(() => {
-    if (!apiEvents || !Array.isArray(apiEvents)) return [];
-    return apiEvents.map((e: SecurityEvent) => {
-      const raw = e as unknown as Record<string, unknown>;
-      const rawStatus = (e.status as string) || 'open';
-      const validStatuses = ['open', 'in_progress', 'resolved', 'closed'];
-      return {
-        id: (e.id as string) || '',
-        type: mapEventType(
-          (raw.eventType as Record<string, string>)?.slug ||
-            (raw.eventType as Record<string, string>)?.name ||
-            'note',
-        ),
-        title: (e.title as string) || 'Untitled Event',
-        description: (e.description as string) || '',
-        unit:
-          typeof raw.unit === 'string'
-            ? raw.unit
-            : ((raw.unit as Record<string, string>)?.number ?? undefined),
-        status: (validStatuses.includes(rawStatus) ? rawStatus : 'open') as SecurityEvent['status'],
-        priority: e.priority as SecurityEvent['priority'],
-        createdBy: 'Staff',
-        createdAt: (e.createdAt as string) || new Date().toISOString(),
-      };
+    const eventRows: SecurityEvent[] =
+      !apiEvents || !Array.isArray(apiEvents)
+        ? []
+        : apiEvents.map((e: SecurityEvent) => {
+            const raw = e as unknown as Record<string, unknown>;
+            const rawStatus = (e.status as string) || 'open';
+            const validStatuses = ['open', 'in_progress', 'resolved', 'closed'];
+            return {
+              id: (e.id as string) || '',
+              type: mapEventType(
+                (raw.eventType as Record<string, string>)?.slug ||
+                  (raw.eventType as Record<string, string>)?.name ||
+                  'note',
+              ),
+              title: (e.title as string) || 'Untitled Event',
+              description: (e.description as string) || '',
+              unit:
+                typeof raw.unit === 'string'
+                  ? raw.unit
+                  : ((raw.unit as Record<string, string>)?.number ?? undefined),
+              status: (validStatuses.includes(rawStatus)
+                ? rawStatus
+                : 'open') as SecurityEvent['status'],
+              priority: e.priority as SecurityEvent['priority'],
+              createdBy: 'Staff',
+              createdAt: (e.createdAt as string) || new Date().toISOString(),
+            };
+          });
+
+    const visitorRows: SecurityEvent[] =
+      !apiVisitors || !Array.isArray(apiVisitors)
+        ? []
+        : apiVisitors.map((v) => {
+            const onSite = !v.departureAt;
+            const unitNumber = typeof v.unit === 'string' ? v.unit : (v.unit?.number ?? undefined);
+            return {
+              id: v.id,
+              type: 'visitor' as SecurityEvent['type'],
+              title: v.visitorName || 'Visitor',
+              description: v.comments || (onSite ? 'Currently on-site' : 'Signed out'),
+              unit: unitNumber,
+              status: (onSite ? 'open' : 'closed') as SecurityEvent['status'],
+              priority: undefined,
+              createdBy: 'Front Desk',
+              createdAt: v.arrivedAt || v.createdAt || new Date().toISOString(),
+            };
+          });
+
+    return [...visitorRows, ...eventRows].sort((a, b) => {
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      return bTime - aTime;
     });
-  }, [apiEvents]);
+  }, [apiEvents, apiVisitors]);
 
   const filteredEvents = allEvents.filter((e) => {
     if (typeFilter !== 'all' && e.type !== typeFilter) return false;
