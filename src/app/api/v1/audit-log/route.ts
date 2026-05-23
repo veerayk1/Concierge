@@ -18,7 +18,11 @@ export async function GET(request: NextRequest) {
   if (demoRes) return demoRes;
 
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    // Audit log is readable by anyone who can manage the property —
+    // property managers and supervisors regularly review it.
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin', 'property_manager', 'security_supervisor'],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

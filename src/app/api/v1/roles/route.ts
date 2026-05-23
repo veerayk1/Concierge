@@ -13,7 +13,11 @@ export async function GET(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
 
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    // GET roles is open to anyone who manages users/permissions UIs;
+    // property managers, supervisors, and admins all need this list.
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin', 'property_manager', 'security_supervisor'],
+    });
     if (auth.error) return auth.error;
 
     const propertyId = new URL(request.url).searchParams.get('propertyId');

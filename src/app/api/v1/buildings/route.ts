@@ -17,7 +17,9 @@ const createBuildingSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    // GET is open to any authenticated user — every persona needs building info
+    // (which building/floor they're in). Mutations remain restricted.
+    const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
     const propertyId = new URL(request.url).searchParams.get('propertyId');

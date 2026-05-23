@@ -32,7 +32,9 @@ export async function GET(request: NextRequest) {
   if (demoRes) return demoRes;
 
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    // GET is open to any authenticated user — front desk and security log events,
+    // residents see event-driven announcements. Mutations stay restricted below.
+    const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
     const propertyId = new URL(request.url).searchParams.get('propertyId');

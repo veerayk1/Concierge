@@ -48,7 +48,9 @@ export async function GET(request: NextRequest) {
   if (demoRes) return demoRes;
 
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    // GET is open to any authenticated user — every persona needs to read the
+    // property they're assigned to. POST below remains restricted.
+    const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
