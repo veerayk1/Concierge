@@ -192,12 +192,24 @@ export async function GET(request: NextRequest) {
     // Generate fresh briefing
     const content = await generateBriefingData(propertyId, role);
 
+    // roleId is a UUID FK; look up the role assignment for this user+property
+    const membership = await prisma.userProperty.findFirst({
+      where: { userId, propertyId },
+      select: { roleId: true },
+    });
+    if (!membership) {
+      return NextResponse.json(
+        { error: 'FORBIDDEN', message: 'No role assignment for this user at this property' },
+        { status: 403 },
+      );
+    }
+
     // Store for caching
     await prisma.aIBriefing.create({
       data: {
         propertyId,
         userId,
-        roleId: role,
+        roleId: membership.roleId,
         briefingType: 'shift',
         content: JSON.stringify(content),
         dataSnapshot: content.sections as unknown as Prisma.InputJsonValue,
@@ -259,11 +271,22 @@ export async function POST(request: NextRequest) {
 
     const content = await generateBriefingData(propertyId, role);
 
+    const membership = await prisma.userProperty.findFirst({
+      where: { userId, propertyId },
+      select: { roleId: true },
+    });
+    if (!membership) {
+      return NextResponse.json(
+        { error: 'FORBIDDEN', message: 'No role assignment for this user at this property' },
+        { status: 403 },
+      );
+    }
+
     await prisma.aIBriefing.create({
       data: {
         propertyId,
         userId,
-        roleId: role,
+        roleId: membership.roleId,
         briefingType: 'shift',
         content: JSON.stringify(content),
         dataSnapshot: content.sections as unknown as Prisma.InputJsonValue,

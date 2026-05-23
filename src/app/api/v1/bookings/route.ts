@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const where: Record<string, unknown> = { propertyId, deletedAt: null };
+    const where: Record<string, unknown> = { propertyId };
     if (amenityId) where.amenityId = amenityId;
     if (unitId) where.unitId = unitId;
     if (status) where.status = status;
