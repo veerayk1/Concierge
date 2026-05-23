@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import {
   AlertTriangle,
@@ -268,11 +268,39 @@ export default function LibraryPage() {
       description="Building documents, policies, and shared files."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              const name = window.prompt('Folder name');
+              if (!name?.trim()) return;
+              const r = await apiRequest('/api/v1/library/folders', {
+                method: 'POST',
+                body: {
+                  propertyId: getPropertyId(),
+                  name: name.trim(),
+                  parentFolderId: currentFolderId || undefined,
+                },
+              });
+              if (r.ok) {
+                refetch();
+              } else {
+                const j = await r.json().catch(() => ({}));
+                window.alert(j?.message || 'Failed to create folder.');
+              }
+            }}
+          >
             <Folder className="h-4 w-4" />
             New Folder
           </Button>
-          <Button size="sm">
+          <Button
+            size="sm"
+            onClick={() =>
+              window.alert(
+                'Document upload is coming in the next release. For now use the API or your admin file share.',
+              )
+            }
+          >
             <Plus className="h-4 w-4" />
             Upload Document
           </Button>
