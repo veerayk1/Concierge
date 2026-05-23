@@ -128,6 +128,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // SEC-138 CRITICAL: previously this PATCH had no role gate beyond
+    // authenticated + tenant. Any logged-in resident at the property
+    // could PATCH any maintenance request — verified leak: an unrelated
+    // resident (unit 301) closed an open MR for a different unit,
+    // downgraded its priority to 'low', and rewrote the description to
+    // a slander string. That breaks the work-order audit trail and
+    // could mask real-world emergencies (fire alarm marked "completed"
+    // by a hostile actor).
+    //
+    // Staff sees all PATCH operations. Residents may only PATCH MRs
+    // they filed (residentId match), and only the description /
+    // attachments — they cannot change status, priority, assignment,
+    // or resolution notes (those are staff-side workflow fields).
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
@@ -185,6 +198,57 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
     if (tenancy) return tenancy;
+
+    // SEC-138 CRITICAL: per-resident authorization gate. Staff can do
+    // anything; residents can only edit MRs where they are the
+    // residentId, AND only the description / attachments — they must
+    // NOT be allowed to flip status, change priority, alter assignment,
+    // or stamp resolution notes. Without this guard, any resident at
+    // the property could close any open MR by guessing its UUID
+    // (verified: r3 in unit 301 closed an r1/unit102 MR with a slander
+    // string).
+    const STAFF_ROLES = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_supervisor',
+      'security_guard',
+      'superintendent',
+      'maintenance_staff',
+      'board_member',
+    ]);
+    if (!STAFF_ROLES.has(auth.user.role)) {
+      // Must be the residentId of record
+      if ((existing as { residentId?: string | null }).residentId !== auth.user.userId) {
+        return NextResponse.json(
+          { error: 'FORBIDDEN', message: 'You can only edit your own maintenance requests.' },
+          { status: 403 },
+        );
+      }
+      // Whitelist of fields residents may change on their own MR. Any
+      // other field in the request body is silently ignored (or 403'd
+      // explicitly — chose silent ignore to keep responses uniform).
+      const allowedResidentFields = new Set([
+        'description',
+        'attachments',
+        'hideFromResident', // residents toggling visibility of their own ticket from co-occupants is fine
+      ]);
+      const submittedFields = Object.keys(input as Record<string, unknown>);
+      const disallowed = submittedFields.filter(
+        (k) => !allowedResidentFields.has(k) && (input as Record<string, unknown>)[k] !== undefined,
+      );
+      if (disallowed.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'FORBIDDEN_FIELDS',
+            message: `Residents cannot change: ${disallowed.join(', ')}. Contact the property office.`,
+            disallowed,
+          },
+          { status: 403 },
+        );
+      }
+    }
 
     // ------------------------------------------------------------------
     // Status transition validation
