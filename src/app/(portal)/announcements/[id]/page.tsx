@@ -347,6 +347,10 @@ export default function AnnouncementDetailPage() {
             <CardContent>
               <div className="prose prose-neutral max-w-none">
                 {announcement.body
+                  // Convert block-level HTML to newlines so paragraphs and lists
+                  // break correctly, then strip remaining tags.
+                  .replace(/<\/(p|div|li|h[1-6]|br)>/gi, '\n')
+                  .replace(/<br\s*\/?>/gi, '\n')
                   .replace(/<[^>]*>/g, '')
                   .split('\n')
                   .map((p, i) =>

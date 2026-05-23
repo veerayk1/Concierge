@@ -314,7 +314,10 @@ export default function AnnouncementsPage() {
                       )}
                     </div>
                     <p className="mt-1.5 line-clamp-2 text-[14px] leading-relaxed text-neutral-600">
-                      {announcement.body.replace(/<[^>]*>/g, '')}
+                      {announcement.body
+                        .replace(/<[^>]*>/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim()}
                     </p>
                     <div className="mt-3 flex items-center gap-4 text-[12px] text-neutral-400">
                       {announcement.category && (
