@@ -127,7 +127,16 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-140 CRITICAL: webhooks are infrastructure config — they
+    // forward every package, maintenance event, incident, and resident
+    // signal to a chosen URL. Without a role gate AND a tenancy check,
+    // any logged-in resident at any property could PATCH any webhook,
+    // repoint it to attacker-controlled infrastructure, and exfiltrate
+    // the targeted property's full event stream silently. This is the
+    // worst kind of leak because nothing on screen would change.
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin'],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();
@@ -158,6 +167,8 @@ export async function PATCH(request: NextRequest) {
         { status: 404 },
       );
     }
+    const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
+    if (tenancy) return tenancy;
 
     // Sanitize URL if provided
     if (input.url) {

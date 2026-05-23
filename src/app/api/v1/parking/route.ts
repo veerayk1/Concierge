@@ -470,7 +470,23 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request);
+    // SEC-141 CRITICAL: parking permit lifecycle (activate, suspend,
+    // expire, renew, cancel) is a staff workflow — residents request,
+    // staff decide. Without a role gate + tenancy check, any logged-in
+    // resident could suspend a neighbor's permit, force-expire it, or
+    // cancel an active permit out from under them. That weaponizes the
+    // permit system as a denial-of-parking attack against any neighbor.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const moduleCheck = await requireModule(request, 'parking');
@@ -496,6 +512,9 @@ export async function PATCH(request: NextRequest) {
         { status: 404 },
       );
     }
+    // Cross-tenant: staff at Property A must not act on Property B permits
+    const tenancy = enforcePropertyAccess(auth.user, permit.propertyId);
+    if (tenancy) return tenancy;
 
     // Check terminal states
     if (TERMINAL_STATES.has(permit.status)) {
