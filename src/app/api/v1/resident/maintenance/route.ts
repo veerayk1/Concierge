@@ -21,6 +21,11 @@ const RESIDENT_ROLES: Role[] = ['resident_owner', 'resident_tenant'];
 const residentMaintenanceSchema = z.object({
   description: z.string().min(10, 'Description must be at least 10 characters').max(4000),
   categoryId: z.string().uuid().optional().or(z.literal('')),
+  // The resident UI dialog sends a category slug (plumbing/electrical/...)
+  // because that's what the user picks from the dropdown — we resolve it
+  // to a UUID server-side so the client never has to fetch the categories
+  // list just to file a maintenance ticket.
+  category: z.enum(['plumbing', 'electrical', 'hvac', 'appliance', 'general']).optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
   permissionToEnter: z.boolean().default(false),
   entryInstructions: z.string().max(1000).optional().or(z.literal('')),
@@ -117,8 +122,35 @@ export async function POST(request: NextRequest) {
     const input = parsed.data;
     const referenceNumber = `MR-${nanoid(4).toUpperCase()}`;
 
-    // Resolve categoryId — required field, so fall back to first active category
+    // Resolve categoryId. Three layers:
+    // 1. Caller passed a UUID directly.
+    // 2. Caller passed a category slug (plumbing/electrical/…) from the
+    //    resident dialog — look up the matching category by name.
+    // 3. Fall back to the property's first active category so the request
+    //    is never dropped just for missing this field.
     let categoryId = input.categoryId && input.categoryId !== '' ? input.categoryId : null;
+    if (!categoryId && input.category) {
+      try {
+        const slugToName: Record<string, string> = {
+          plumbing: 'Plumbing',
+          electrical: 'Electrical',
+          hvac: 'HVAC',
+          appliance: 'Appliance',
+          general: 'General',
+        };
+        const matchedCat = await prisma.maintenanceCategory.findFirst({
+          where: {
+            propertyId,
+            isActive: true,
+            name: { equals: slugToName[input.category], mode: 'insensitive' },
+          },
+          select: { id: true },
+        });
+        categoryId = matchedCat?.id ?? null;
+      } catch {
+        // Continue to fallback
+      }
+    }
     if (!categoryId) {
       try {
         const defaultCat = await prisma.maintenanceCategory.findFirst({

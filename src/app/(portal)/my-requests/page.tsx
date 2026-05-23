@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
   AlertTriangle,
@@ -69,6 +70,7 @@ interface MaintenanceResponse {
 // ---------------------------------------------------------------------------
 
 export default function MyRequestsPage() {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -78,6 +80,7 @@ export default function MyRequestsPage() {
 
   // New request form state
   const [newDescription, setNewDescription] = useState('');
+  const [newCategory, setNewCategory] = useState<string>('general');
   const [newPriority, setNewPriority] = useState<string>('medium');
   const [newPermissionToEnter, setNewPermissionToEnter] = useState(false);
   const [newEntryInstructions, setNewEntryInstructions] = useState('');
@@ -174,6 +177,7 @@ export default function MyRequestsPage() {
           method: 'POST',
           body: {
             description: newDescription,
+            category: newCategory,
             priority: newPriority,
             permissionToEnter: newPermissionToEnter,
             entryInstructions: newEntryInstructions || undefined,
@@ -198,6 +202,7 @@ export default function MyRequestsPage() {
 
         // Reset form
         setNewDescription('');
+        setNewCategory('general');
         setNewPriority('medium');
         setNewPermissionToEnter(false);
         setNewEntryInstructions('');
@@ -218,6 +223,7 @@ export default function MyRequestsPage() {
     },
     [
       newDescription,
+      newCategory,
       newPriority,
       newPermissionToEnter,
       newEntryInstructions,
@@ -449,6 +455,7 @@ export default function MyRequestsPage() {
           data={requests}
           emptyMessage="You have no maintenance requests."
           emptyIcon={<Wrench className="h-6 w-6" />}
+          onRowClick={(row) => router.push(`/maintenance/${row.id}` as never)}
         />
       ) : (
         <EmptyState
@@ -580,6 +587,24 @@ export default function MyRequestsPage() {
                   Uploading files...
                 </div>
               )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[14px] font-medium text-neutral-700">
+                Category
+              </label>
+              <select
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                disabled={submitting}
+                className="focus:border-primary-300 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white px-3 text-[14px] text-neutral-700 focus:ring-4 focus:outline-none disabled:opacity-50"
+              >
+                <option value="plumbing">Plumbing</option>
+                <option value="electrical">Electrical</option>
+                <option value="hvac">HVAC / Heating / Cooling</option>
+                <option value="appliance">Appliance</option>
+                <option value="general">General / Other</option>
+              </select>
             </div>
 
             <div>
