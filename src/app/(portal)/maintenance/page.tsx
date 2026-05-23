@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { CreateMaintenanceDialog } from '@/components/forms/create-maintenance-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
@@ -144,9 +145,12 @@ export default function MaintenancePage() {
       accessorKey: 'referenceNumber',
       sortable: true,
       cell: (row) => (
-        <span className="text-primary-600 font-mono text-[13px] font-semibold">
+        <Link
+          href={`/maintenance/${row.id}`}
+          className="text-primary-600 font-mono text-[13px] font-semibold hover:underline"
+        >
           {row.referenceNumber}
-        </span>
+        </Link>
       ),
     },
     {
