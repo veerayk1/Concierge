@@ -43,6 +43,47 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const tenancy = enforcePropertyAccess(auth.user, booking.propertyId);
     if (tenancy) return tenancy;
 
+    // SEC-137: per-resident scoping on detail GET. The list endpoint was
+    // scoped in SEC-135 but the detail handler wasn't — so a resident
+    // could read any neighbor's booking detail (who, when, which amenity)
+    // by guessing UUIDs. That maps when each apartment is empty (at the
+    // gym/pool/party room) — useful intel for break-ins. Staff sees all;
+    // non-staff sees only bookings they created, are the resident on, or
+    // that belong to a unit they occupy.
+    const STAFF_ROLES = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_supervisor',
+      'security_guard',
+      'superintendent',
+      'maintenance_staff',
+      'board_member',
+    ]);
+    if (!STAFF_ROLES.has(auth.user.role)) {
+      const b = booking as {
+        residentId?: string | null;
+        createdById?: string | null;
+        unitId?: string | null;
+      };
+      const isOwn = b.residentId === auth.user.userId || b.createdById === auth.user.userId;
+      let ownsUnit = false;
+      if (!isOwn && b.unitId) {
+        const occ = await prisma.occupancyRecord.findFirst({
+          where: { userId: auth.user.userId, unitId: b.unitId, moveOutDate: null },
+          select: { id: true },
+        });
+        ownsUnit = !!occ;
+      }
+      if (!isOwn && !ownsUnit) {
+        return NextResponse.json(
+          { error: 'FORBIDDEN', message: 'You can only view your own bookings.' },
+          { status: 403 },
+        );
+      }
+    }
+
     return NextResponse.json({ data: booking });
   } catch (error) {
     console.error('GET /api/v1/bookings/:id error:', error);

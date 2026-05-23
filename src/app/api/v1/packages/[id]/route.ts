@@ -74,6 +74,42 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    // SEC-136: per-occupancy + per-resident scoping on detail GET.
+    // The list endpoint was scoped in SEC-133, but the detail handler
+    // wasn't — so a resident could read any neighbor's package detail
+    // (courier, sender, recipient name, contents description, storage
+    // location, photo) by guessing UUIDs. Staff sees all in property;
+    // non-staff sees only packages addressed to them (residentId) OR
+    // routed to a unit they occupy.
+    const STAFF_ROLES = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_supervisor',
+      'security_guard',
+      'superintendent',
+      'maintenance_staff',
+      'board_member',
+    ]);
+    if (!STAFF_ROLES.has(auth.user.role)) {
+      const isOwnPackage = (pkg as { residentId?: string | null }).residentId === auth.user.userId;
+      let ownsUnit = false;
+      if (!isOwnPackage && pkg.unitId) {
+        const occ = await prisma.occupancyRecord.findFirst({
+          where: { userId: auth.user.userId, unitId: pkg.unitId, moveOutDate: null },
+          select: { id: true },
+        });
+        ownsUnit = !!occ;
+      }
+      if (!isOwnPackage && !ownsUnit) {
+        return NextResponse.json(
+          { error: 'FORBIDDEN', message: 'You can only view packages addressed to you.' },
+          { status: 403 },
+        );
+      }
+    }
+
     return NextResponse.json({ data: pkg });
   } catch (error) {
     console.error('GET /api/v1/packages/:id error:', error);
