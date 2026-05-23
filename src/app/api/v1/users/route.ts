@@ -199,6 +199,42 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Tenancy: a property_admin can only create users IN their own property.
+    const bodyTenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (bodyTenancy) return bodyTenancy;
+
+    // Privilege-escalation guard: the role being assigned must not exceed the
+    // caller's own role. Specifically, only super_admin may create another
+    // super_admin or property_admin. Without this, a property_admin can
+    // POST roleId={super_admin role at their property} and bootstrap an
+    // attacker to platform-wide control.
+    const targetRole = await prisma.role.findUnique({
+      where: { id: input.roleId },
+      select: { slug: true, propertyId: true },
+    });
+    if (!targetRole) {
+      return NextResponse.json(
+        { error: 'INVALID_ROLE', message: 'Role does not exist.' },
+        { status: 400 },
+      );
+    }
+    if (targetRole.propertyId !== input.propertyId) {
+      return NextResponse.json(
+        { error: 'INVALID_ROLE', message: 'Role does not belong to this property.' },
+        { status: 400 },
+      );
+    }
+    const ELEVATED = new Set(['super_admin', 'property_admin']);
+    if (ELEVATED.has(targetRole.slug) && auth.user.role !== 'super_admin') {
+      return NextResponse.json(
+        {
+          error: 'FORBIDDEN',
+          message: `Only super_admin can create users with role '${targetRole.slug}'.`,
+        },
+        { status: 403 },
+      );
+    }
+
     // Check email uniqueness at this property
     const existingUser = await prisma.user.findFirst({
       where: {

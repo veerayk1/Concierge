@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { releasePackageSchema } from '@/schemas/package';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 /** Resolve actor name from userId — returns 'System' on failure */
@@ -83,11 +83,39 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // Only staff can modify packages. Residents can VIEW their packages via
+    // /api/v1/resident/packages but cannot mark them released, change unit,
+    // re-route them, etc. — that's a front-desk operation.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
     const body = await request.json();
+
+    // Tenancy: load the package first and verify it belongs to the caller's
+    // property. Without this, a property_admin at Property A could PATCH a
+    // package at Property B just by knowing its id.
+    const target = await prisma.package.findUnique({
+      where: { id },
+      select: { propertyId: true },
+    });
+    if (!target) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Package not found.' },
+        { status: 404 },
+      );
+    }
+    const tenancy = enforcePropertyAccess(auth.user, target.propertyId);
+    if (tenancy) return tenancy;
 
     // Check if this is a release action
     if (body.action === 'release') {
