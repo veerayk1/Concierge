@@ -8,8 +8,14 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, helperText, error, id, type, ...props }, ref) => {
-    const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  ({ className, label, helperText, error, id, type, name, ...props }, ref) => {
+    const slug = label?.toLowerCase().replace(/\s+/g, '-');
+    const inputId = id || slug;
+    // Default the name attribute to the label slug so password managers,
+    // autofill, screen readers (aria-labelledby) and form libraries that
+    // key off `name` have something stable to bind to. Callers can still
+    // override by passing an explicit `name` prop.
+    const inputName = name || slug;
 
     return (
       <div className="flex flex-col gap-2">
@@ -29,6 +35,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={inputId}
+          name={inputName}
           type={type}
           className={cn(
             'h-[44px] w-full rounded-xl border bg-white px-4 text-[15px] text-neutral-900',
