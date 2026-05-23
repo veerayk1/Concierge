@@ -111,6 +111,35 @@ export async function POST(request: NextRequest) {
             });
           }
 
+          // Resolve the unit for this booking. The schema makes unitId optional
+          // because residents shouldn't have to type it — but the old fallback
+          // `input.unitId || auth.user.userId` passed a USER id into the unit
+          // foreign key, blowing up every booking with a P2003 constraint
+          // violation. Instead, look up the caller's active occupancy and use
+          // that. If the caller has no occupancy (staff making a booking on
+          // behalf of someone else without specifying the unit), error out
+          // clearly instead of corrupting the row.
+          let resolvedUnitId = input.unitId;
+          if (!resolvedUnitId) {
+            const occupancy = await tx.occupancyRecord.findFirst({
+              where: {
+                userId: auth.user.userId,
+                propertyId: input.propertyId,
+                moveOutDate: null,
+              },
+              select: { unitId: true },
+            });
+            resolvedUnitId = occupancy?.unitId;
+          }
+          if (!resolvedUnitId) {
+            throw Object.assign(
+              new Error(
+                'unitId is required for this booking — caller has no active occupancy at this property.',
+              ),
+              { _status: 400 },
+            );
+          }
+
           const overlapping = await tx.booking.count({
             where: {
               amenityId: input.amenityId,
@@ -132,7 +161,7 @@ export async function POST(request: NextRequest) {
               referenceNumber,
               propertyId: input.propertyId,
               amenityId: input.amenityId,
-              unitId: input.unitId || auth.user.userId,
+              unitId: resolvedUnitId,
               residentId: auth.user.userId,
               createdById: auth.user.userId,
               startDate: startDt,
