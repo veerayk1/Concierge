@@ -94,9 +94,23 @@ function getEntryShift(createdAt: string): string {
 // Component
 // ---------------------------------------------------------------------------
 
+interface ActiveShift {
+  id: string;
+  propertyId: string;
+  guardId: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+}
+
 export default function ShiftLogPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [entryTypeFilter, setEntryTypeFilter] = useState<EntryTypeFilter>('all');
+  const [clockBusy, setClockBusy] = useState(false);
+  const [clockMessage, setClockMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   const {
     data: apiEntries,
@@ -110,7 +124,72 @@ export default function ShiftLogPage() {
     }),
   );
 
+  const { data: activeShiftRaw, refetch: refetchShift } = useApi<ActiveShift | null>(
+    apiUrl('/api/v1/shift-log/clock', { propertyId: getPropertyId() }),
+  );
+  // useApi falls back to the entire response envelope when the API
+  // returns { data: null } (because `result.data ?? result` short-circuits
+  // on the nullish data). Guard with an id check so we only treat this
+  // as an active shift when there actually is one.
+  const activeShift =
+    activeShiftRaw && typeof activeShiftRaw === 'object' && 'id' in activeShiftRaw
+      ? (activeShiftRaw as ActiveShift)
+      : null;
+
   const allEntries = useMemo<ShiftEntry[]>(() => apiEntries ?? [], [apiEntries]);
+
+  async function handleClockIn() {
+    setClockBusy(true);
+    try {
+      const r = await fetch('/api/v1/shift-log/clock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
+            ? { 'x-demo-role': String(localStorage.getItem('demo_role')) }
+            : {}),
+        },
+        body: JSON.stringify({ propertyId: getPropertyId() }),
+      });
+      if (r.ok) {
+        setClockMessage({ type: 'success', text: 'Clocked in. Have a good shift.' });
+        refetchShift();
+      } else {
+        const j = await r.json().catch(() => ({}));
+        setClockMessage({ type: 'error', text: j.message || 'Failed to clock in.' });
+      }
+    } catch {
+      setClockMessage({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setClockBusy(false);
+      setTimeout(() => setClockMessage(null), 4000);
+    }
+  }
+
+  async function handleClockOut() {
+    setClockBusy(true);
+    try {
+      const r = await fetch(`/api/v1/shift-log/clock?propertyId=${getPropertyId()}`, {
+        method: 'DELETE',
+        headers:
+          typeof window !== 'undefined' && localStorage.getItem('demo_role')
+            ? { 'x-demo-role': String(localStorage.getItem('demo_role')) }
+            : {},
+      });
+      if (r.ok) {
+        setClockMessage({ type: 'success', text: 'Clocked out. Shift closed.' });
+        refetchShift();
+      } else {
+        const j = await r.json().catch(() => ({}));
+        setClockMessage({ type: 'error', text: j.message || 'Failed to clock out.' });
+      }
+    } catch {
+      setClockMessage({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setClockBusy(false);
+      setTimeout(() => setClockMessage(null), 4000);
+    }
+  }
 
   // Separate pinned bulletins from regular entries
   const bulletins = useMemo(() => allEntries.filter((e) => e.customFields?.pinned), [allEntries]);
@@ -148,6 +227,29 @@ export default function ShiftLogPage() {
       description="Staff handoff notes and shift-to-shift communication."
       actions={
         <div className="flex items-center gap-2">
+          {/* Clock controls: shows "Clock In" when no active shift, or a
+              status pill + "Clock Out" when shift is open. This is the
+              entry point Chain H (shift handoff) expects — without it
+              the page had no way to even start a shift record. */}
+          {activeShift ? (
+            <>
+              <span className="bg-success-50 text-success-700 border-success-200 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12px] font-semibold">
+                <span className="bg-success-500 h-2 w-2 animate-pulse rounded-full" />
+                On shift since{' '}
+                {new Date(activeShift.startTime).toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })}
+              </span>
+              <Button variant="secondary" size="sm" onClick={handleClockOut} disabled={clockBusy}>
+                {clockBusy ? 'Working…' : 'Clock Out'}
+              </Button>
+            </>
+          ) : (
+            <Button variant="secondary" size="sm" onClick={handleClockIn} disabled={clockBusy}>
+              {clockBusy ? 'Working…' : 'Clock In'}
+            </Button>
+          )}
           <Button variant="secondary" size="sm" onClick={() => setShowCreateDialog(true)}>
             <MessageSquare className="h-4 w-4" />
             Add Pass-On Note
@@ -159,6 +261,18 @@ export default function ShiftLogPage() {
         </div>
       }
     >
+      {clockMessage && (
+        <div
+          className={`mb-4 rounded-xl border px-4 py-3 text-[14px] ${
+            clockMessage.type === 'success'
+              ? 'border-success-200 bg-success-50 text-success-700'
+              : 'border-error-200 bg-error-50 text-error-700'
+          }`}
+        >
+          {clockMessage.text}
+        </div>
+      )}
+
       {/* Loading State */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-24">
