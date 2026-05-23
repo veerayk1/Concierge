@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -26,6 +26,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, announcement.propertyId);
+    if (tenancy) return tenancy;
 
     // Get per-status counts
     const statusCounts = await prisma.announcementDelivery.groupBy({

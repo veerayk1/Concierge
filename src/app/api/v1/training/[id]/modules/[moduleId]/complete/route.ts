@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 export async function POST(
   request: NextRequest,
@@ -53,6 +53,9 @@ export async function POST(
         { status: 404 },
       );
     }
+
+    const tenancy = enforcePropertyAccess(auth.user, course.propertyId);
+    if (tenancy) return tenancy;
 
     const moduleExists = course.modules.some((m) => m.id === moduleId);
     if (!moduleExists) {

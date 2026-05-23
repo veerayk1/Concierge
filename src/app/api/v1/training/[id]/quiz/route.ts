@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 interface SubmittedAnswer {
   questionId: string;
@@ -40,6 +40,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 400 },
       );
     }
+
+    // Tenancy first — load the course and check caller belongs to it.
+    const courseTenancy = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: { propertyId: true },
+    });
+    if (!courseTenancy) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Course not found' },
+        { status: 404 },
+      );
+    }
+    const tenancy = enforcePropertyAccess(auth.user, courseTenancy.propertyId);
+    if (tenancy) return tenancy;
 
     // Verify enrollment exists
     const enrollment = await prisma.enrollment.findUnique({

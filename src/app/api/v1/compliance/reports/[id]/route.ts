@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { prisma } from '@/server/db';
 
 // ---------------------------------------------------------------------------
@@ -38,6 +38,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    // Compliance reports contain regulatory evidence (PIPEDA, GDPR, SOC2).
+    // Never expose another property's reports cross-tenant.
+    const tenancy = enforcePropertyAccess(auth.user, reportRun.propertyId);
+    if (tenancy) return tenancy;
 
     return NextResponse.json({
       data: reportRun,
