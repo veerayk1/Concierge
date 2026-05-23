@@ -77,7 +77,15 @@ export async function POST(request: NextRequest) {
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'INVALID_BODY', message: 'Request body must be valid JSON.' },
+        { status: 400 },
+      );
+    }
     const parsed = createReservationSchema.safeParse(body);
 
     if (!parsed.success) {

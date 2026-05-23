@@ -111,7 +111,15 @@ export async function POST(request: NextRequest) {
     const moduleCheck = await requireModule(request, 'maintenance');
     if (moduleCheck) return moduleCheck;
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'INVALID_BODY', message: 'Request body must be valid JSON.' },
+        { status: 400 },
+      );
+    }
     const parsed = createMaintenanceSchema.safeParse(body);
 
     if (!parsed.success) {

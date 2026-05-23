@@ -200,7 +200,18 @@ export async function POST(request: NextRequest) {
     });
     if (auth.error) return auth.error;
 
-    const body = await request.json();
+    // Guard JSON.parse — malformed or empty bodies used to throw
+    // SyntaxError out of await request.json() and surface as 500.
+    // Translate to 400 INVALID_BODY for a clean client experience.
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'INVALID_BODY', message: 'Request body must be valid JSON.' },
+        { status: 400 },
+      );
+    }
     const parsed = createUserSchema.safeParse(body);
 
     if (!parsed.success) {
