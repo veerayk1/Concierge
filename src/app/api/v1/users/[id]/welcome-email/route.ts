@@ -57,12 +57,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       logger.error({ err, userId: user.id, email: user.email }, 'Failed to send welcome email');
     });
 
+    // Return the activation URL so the admin UI can offer a
+    // "Copy Activation Link" button — useful when the welcome email
+    // bounces or the user can't find it. The token is only meaningful
+    // for first-time activation and is single-use, so leaking it to an
+    // already-authenticated admin is no worse than the email itself.
     return NextResponse.json({
       message: `Welcome email sent to ${user.email}.`,
       data: {
         userId: user.id,
         email: user.email,
         sentAt: new Date().toISOString(),
+        activationUrl: activateUrl,
       },
     });
   } catch (error) {

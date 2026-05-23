@@ -153,9 +153,37 @@ export default function UserDetailPage() {
     try {
       const resp = await apiRequest(`/api/v1/users/${data.id}/welcome-email`, { method: 'POST' });
       if (resp.ok) {
-        showMessage('success', `Password reset email sent to ${data.firstName} ${data.lastName}.`);
+        const label = data.status === 'pending' ? 'Welcome email' : 'Password reset email';
+        showMessage('success', `${label} sent to ${data.firstName} ${data.lastName}.`);
       } else {
-        showMessage('error', 'Failed to send password reset email.');
+        showMessage('error', 'Failed to send email.');
+      }
+    } catch {
+      showMessage('error', 'Network error. Please try again.');
+    }
+  }
+
+  async function handleCopyActivationLink() {
+    if (!data) return;
+    try {
+      const resp = await apiRequest(`/api/v1/users/${data.id}/welcome-email`, { method: 'POST' });
+      if (!resp.ok) {
+        showMessage('error', 'Failed to generate activation link.');
+        return;
+      }
+      const j = await resp.json();
+      const url: string | undefined = j?.data?.activationUrl;
+      if (!url) {
+        showMessage('error', 'Activation link missing from response.');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        showMessage('success', 'Activation link copied to clipboard.');
+      } catch {
+        // Some browsers block clipboard API without user gesture in iframe
+        // — surface the link in the toast so the admin can copy manually.
+        showMessage('success', `Activation link: ${url}`);
       }
     } catch {
       showMessage('error', 'Network error. Please try again.');
@@ -309,10 +337,20 @@ export default function UserDetailPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {/* For Pending users, the same endpoint that resets a password
+                also re-issues the activation token + welcome email. Show
+                the label that matches the user's actual state so the
+                admin knows what's about to happen. */}
             <Button variant="secondary" size="sm" onClick={handleResetPassword}>
               <KeyRound className="h-4 w-4" />
-              Reset Password
+              {data.status === 'pending' ? 'Resend Welcome Email' : 'Reset Password'}
             </Button>
+            {data.status === 'pending' && (
+              <Button variant="secondary" size="sm" onClick={handleCopyActivationLink}>
+                <Mail className="h-4 w-4" />
+                Copy Activation Link
+              </Button>
+            )}
             <Button variant="secondary" size="sm" onClick={handleToggleStatus}>
               {data.isActive ? (
                 <>
