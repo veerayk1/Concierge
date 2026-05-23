@@ -321,6 +321,34 @@ const ROLE_DEFINITIONS: RoleDef[] = [
       'community:create',
     ],
   },
+  {
+    name: 'Family Member',
+    slug: 'family_member',
+    description: 'Lives with an owner or tenant — limited self-service access to their unit',
+    permissions: [
+      'self:read',
+      'self:update',
+      'package:self:read',
+      'maintenance:self:read',
+      'amenity:booking:create',
+      'amenity:booking:self:read',
+      'announcement:read',
+    ],
+  },
+  {
+    name: 'Offsite Owner',
+    slug: 'offsite_owner',
+    description: 'Owns a unit but does not live there — read-only visibility into their unit',
+    permissions: [
+      'self:read',
+      'self:update',
+      'package:self:read',
+      'maintenance:self:read',
+      'announcement:read',
+      'unit:read',
+      'financial:read',
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------
