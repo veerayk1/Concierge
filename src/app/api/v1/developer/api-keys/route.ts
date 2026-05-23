@@ -34,7 +34,14 @@ function maskApiKey(prefix: string): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-147: API keys are infrastructure config. The list exposes
+    // key names, prefixes, scopes, rate limits, and last-used
+    // timestamps — enough to map out the property's integration
+    // topology (which 3rd-party tools are wired up, when they last
+    // ran, what permissions they hold). Staff-only.
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin'],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
@@ -85,7 +92,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-148 CRITICAL: API-key minting is a property-admin action.
+    // Previously this had no role gate AND no tenancy check on
+    // body.propertyId. Combined impact: any resident could create
+    // an API key with arbitrary scopes for ANY property, then use it
+    // via the API to bypass every per-resident scoping fix shipped
+    // in SEC-115..146. The response returns the raw key in
+    // plaintext (one-time view), so a single successful call =
+    // permanent backdoor until the key is manually revoked.
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin'],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();
@@ -99,6 +116,10 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+
+    // Cross-tenant: a property_admin at A must not mint a key for B.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
 
     // Generate the full API key
     const rawKey = `conc_live_${nanoid(32)}`;
