@@ -30,7 +30,19 @@ const updateKeySchema = z.object({
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-120: master-key inventory must not leak to residents. Verified leak: resident_owner returned full key record + checkout history.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+        'maintenance_staff',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;

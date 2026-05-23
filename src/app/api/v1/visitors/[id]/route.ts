@@ -18,7 +18,18 @@ import { isUuid } from '@/lib/uuid';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-125: visitor record exposes guest names, vehicle plates, arrival patterns. Verified leak: resident_owner returned any neighbor's visitor entry. Handler has no per-resident ownership filter, so staff-only gate is the fix; a /my/visitors endpoint can come later.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;

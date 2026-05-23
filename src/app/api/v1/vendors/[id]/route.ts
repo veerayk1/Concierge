@@ -17,7 +17,19 @@ import { isUuid } from '@/lib/uuid';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-123: vendor record leaks insurance docs, contact info, contracts. Verified leak: resident_owner returned full vendor + documents + compliance.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;

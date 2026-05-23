@@ -56,7 +56,20 @@ function generateReport(items: InspectionItemResult[]) {
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-121: inspection schedule reveals building security/maintenance posture. Verified leak: resident_owner returned full inspection record + items.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;

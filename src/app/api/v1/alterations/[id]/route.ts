@@ -25,7 +25,19 @@ import { isUuid } from '@/lib/uuid';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-122: renovation register exposes neighbors' contractors, permits, schedules. Verified leak: resident_owner returned full project + documents + timeline.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;

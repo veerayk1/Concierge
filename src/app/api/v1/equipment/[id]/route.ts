@@ -42,7 +42,19 @@ function computeReplacementForecast(
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // SEC-124: equipment register exposes serials, purchase price, warranty, service history. Verified leak: resident_owner returned full equipment record + cost summary.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
