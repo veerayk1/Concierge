@@ -184,6 +184,57 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const tenancy = enforcePropertyAccess(auth.user, existing.propertyId);
     if (tenancy) return tenancy;
 
+    // SEC-139 CRITICAL: per-resident PATCH gate. Same shape as SEC-138.
+    // Without this, any resident at the property could PATCH any
+    // alteration project — overwrite contractor name, flip status,
+    // reject, decline, or rewrite review notes on a neighbor's
+    // renovation. Verified leak: r3 (unit 301) successfully PATCHed an
+    // unrelated unit's alteration project with a vandalism string.
+    //
+    // Staff + board members: full PATCH (board approves alterations).
+    // Residents may only PATCH their own (createdById match) and only
+    // edit description / contractor contact fields — status, review,
+    // permit, inspection, and approval fields are staff/board-only.
+    const STAFF_OR_BOARD = new Set<string>([
+      'super_admin',
+      'property_admin',
+      'property_manager',
+      'front_desk',
+      'security_supervisor',
+      'superintendent',
+      'maintenance_staff',
+      'board_member',
+    ]);
+    if (!STAFF_OR_BOARD.has(auth.user.role)) {
+      if (existing.createdById !== auth.user.userId) {
+        return NextResponse.json(
+          { error: 'FORBIDDEN', message: 'You can only edit alterations you submitted.' },
+          { status: 403 },
+        );
+      }
+      const allowedResidentFields = new Set([
+        'description',
+        'contractorName',
+        'contractorPhone',
+        'contractorEmail',
+        'expectedEndDate',
+      ]);
+      const submitted = Object.keys(input as Record<string, unknown>).filter(
+        (k) => (input as Record<string, unknown>)[k] !== undefined,
+      );
+      const disallowed = submitted.filter((k) => !allowedResidentFields.has(k));
+      if (disallowed.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'FORBIDDEN_FIELDS',
+            message: `Residents cannot change: ${disallowed.join(', ')}. Contact the board.`,
+            disallowed,
+          },
+          { status: 403 },
+        );
+      }
+    }
+
     // ------------------------------------------------------------------
     // Status transition validation
     // ------------------------------------------------------------------
