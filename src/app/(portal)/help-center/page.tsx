@@ -368,29 +368,44 @@ export default function HelpCenterPage() {
           )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredCategories.map((cat) => (
-              <Card key={cat.id} hoverable padding="md" className="group cursor-pointer">
-                <div className="flex items-start gap-4">
-                  <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${cat.color}`}
-                  >
-                    <BookOpen className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="group-hover:text-primary-600 text-[15px] font-semibold text-neutral-900 transition-colors">
-                        {cat.name}
-                      </h3>
-                      <ChevronRight className="group-hover:text-primary-500 h-4 w-4 shrink-0 text-neutral-300 transition-colors" />
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => {
+                  // Drive the existing search filter to act as a category filter.
+                  // Avoids needing a separate category-detail route while still
+                  // making the card meaningfully clickable.
+                  setSearchQuery(cat.name);
+                  if (typeof window !== 'undefined') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                className="focus-visible:ring-primary-500 rounded-2xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              >
+                <Card hoverable padding="md" className="group h-full cursor-pointer">
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${cat.color}`}
+                    >
+                      <BookOpen className="h-5 w-5" />
                     </div>
-                    <p className="mt-1 text-[13px] leading-relaxed text-neutral-500">
-                      {cat.description}
-                    </p>
-                    <Badge variant="default" size="sm" className="mt-3">
-                      {cat.articleCount} articles
-                    </Badge>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="group-hover:text-primary-600 text-[15px] font-semibold text-neutral-900 transition-colors">
+                          {cat.name}
+                        </h3>
+                        <ChevronRight className="group-hover:text-primary-500 h-4 w-4 shrink-0 text-neutral-300 transition-colors" />
+                      </div>
+                      <p className="mt-1 text-[13px] leading-relaxed text-neutral-500">
+                        {cat.description}
+                      </p>
+                      <Badge variant="default" size="sm" className="mt-3">
+                        {cat.articleCount} articles
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </button>
             ))}
           </div>
         </section>
