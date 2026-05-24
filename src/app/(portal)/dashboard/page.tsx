@@ -543,7 +543,13 @@ interface ResidentDashboardProps {
   greeting: string;
   kpiCards: string[];
   kpiValues: Record<string, string>;
+  buildingHealthScore: number | null;
   apiData: {
+    kpis?: {
+      unreleasedPackages?: number;
+      openMaintenanceRequests?: number;
+      pendingBookingApprovals?: number;
+    };
     recentActivity?: Array<{
       id: string;
       type: string;
@@ -560,6 +566,7 @@ function ResidentDashboard({
   greeting,
   kpiCards,
   kpiValues,
+  buildingHealthScore,
   apiData,
 }: ResidentDashboardProps) {
   const today = new Date().toLocaleDateString('en-US', {
@@ -617,27 +624,186 @@ function ResidentDashboard({
     },
   ];
 
+  // AI briefing lines, scoped from resident-relevant signals returned
+  // by the dashboard API.
+  const briefingLines: { strong: string; rest: string }[] = [];
+  const pkg = apiData?.kpis?.unreleasedPackages ?? 0;
+  const req = apiData?.kpis?.openMaintenanceRequests ?? 0;
+  const bk = apiData?.kpis?.pendingBookingApprovals ?? 0;
+  if (pkg > 0) {
+    briefingLines.push({
+      strong: `${pkg} package${pkg !== 1 ? 's' : ''} waiting`,
+      rest: ' for pickup at the front desk.',
+    });
+  }
+  if (req > 0) {
+    briefingLines.push({
+      strong: `${req} open request${req !== 1 ? 's' : ''}`,
+      rest: ` ${req !== 1 ? 'are' : 'is'} being worked on by the team.`,
+    });
+  }
+  if (bk > 0) {
+    briefingLines.push({
+      strong: `${bk} booking${bk !== 1 ? 's' : ''} pending`,
+      rest: ' management approval.',
+    });
+  }
+  const briefingHasSignal = briefingLines.length > 0;
+  const firstName = name.split(' ')[0] || name;
+
   return (
-    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-5">
       {/* Greeting */}
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
             {greeting}, {name}
           </h1>
-          <p className="mt-0.5 text-[14px] text-neutral-500">{today}</p>
+          <p className="mt-0.5 text-[14px] text-neutral-500">My dashboard · {today}</p>
         </div>
       </div>
 
-      {/* KPI tiles — only the three that matter to a resident */}
+      {/* Row 1 — AI briefing (large, left) + Building health + Quick actions
+          (stacked, right). items-stretch + h-full on cards keeps both columns
+          the same height, killing the empty white space the old layout had. */}
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+        <Card className="flex h-full flex-col lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="text-primary-500 h-4 w-4" strokeWidth={1.8} />
+              <CardTitle>Your daily briefing</CardTitle>
+            </div>
+            <Badge variant="info" size="sm">
+              AI-generated
+            </Badge>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col">
+            <p className="text-[14px] leading-relaxed text-neutral-700">
+              {greeting}, {firstName}. Here is what is happening today:
+            </p>
+            <ul className="mt-3 space-y-2.5 text-[13.5px] leading-relaxed text-neutral-600">
+              {briefingHasSignal ? (
+                briefingLines.map((line, i) => (
+                  <li key={i} className="flex items-start gap-2.5">
+                    <span
+                      aria-hidden="true"
+                      className="bg-primary-400 mt-[7px] inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                    />
+                    <span>
+                      <strong className="font-semibold text-neutral-900">{line.strong}</strong>
+                      {line.rest}
+                    </span>
+                  </li>
+                ))
+              ) : (
+                <li className="flex items-start gap-2.5">
+                  <span
+                    aria-hidden="true"
+                    className="mt-[7px] inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400"
+                  />
+                  <span>All caught up — no packages, requests, or pending bookings on file.</span>
+                </li>
+              )}
+              <li className="flex items-start gap-2.5">
+                <span
+                  aria-hidden="true"
+                  className="mt-[7px] inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-neutral-300"
+                />
+                <span>
+                  Lobby is open until midnight. Quiet hours start at{' '}
+                  <strong className="font-semibold text-neutral-900">10pm</strong>.
+                </span>
+              </li>
+            </ul>
+            {/* Spacer pushes the next-step CTA to the bottom of the card so
+                the briefing fills its full height instead of leaving white space. */}
+            <div className="mt-auto flex flex-wrap items-center gap-3 pt-5">
+              <a
+                href="/my-requests"
+                className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1.5 text-[13px] font-medium"
+              >
+                Open my requests
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </a>
+              <span className="text-neutral-300">·</span>
+              <a
+                href="/my-packages"
+                className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1.5 text-[13px] font-medium"
+              >
+                Go to packages
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Right column — Building health on top, Quick actions below.
+            flex-1 on the lower card pushes it to fill remaining space so the
+            column height matches the AI briefing card to the left. */}
+        <div className="flex h-full flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Building health</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {buildingHealthScore !== null ? (
+                <BuildingHealthRing score={buildingHealthScore} />
+              ) : (
+                <div className="flex items-center gap-3 py-1">
+                  <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-neutral-100">
+                    <span className="text-[22px] font-light text-neutral-300">&mdash;</span>
+                  </div>
+                  <p className="text-[12px] leading-snug text-neutral-500">
+                    Score appears once operations data starts flowing.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="flex flex-1 flex-col">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-primary-500 h-4 w-4" strokeWidth={1.8} />
+                <CardTitle>Quick actions</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-1 flex-col justify-center">
+              <div className="-mx-2 flex flex-col">
+                {quickActions.map((action) => (
+                  <a
+                    key={action.label}
+                    href={action.href}
+                    className="group flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-[13px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <action.icon
+                        className="text-primary-500 h-3.5 w-3.5 flex-shrink-0"
+                        strokeWidth={1.8}
+                      />
+                      {action.label}
+                    </span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-neutral-300 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-neutral-600" />
+                  </a>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Row 2 — KPI tiles. Grid template adapts to the exact number of
+          tiles we render so we never leave a phantom empty column. */}
       {residentKpis.length > 0 && (
         <div
           className={`grid gap-3 ${
             residentKpis.length === 1
-              ? 'grid-cols-1 sm:grid-cols-1'
+              ? 'grid-cols-1'
               : residentKpis.length === 2
                 ? 'grid-cols-1 sm:grid-cols-2'
-                : 'grid-cols-1 sm:grid-cols-3'
+                : residentKpis.length === 3
+                  ? 'grid-cols-1 sm:grid-cols-3'
+                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
           }`}
         >
           {residentKpis.map((kpi) => {
@@ -661,81 +827,42 @@ function ResidentDashboard({
         </div>
       )}
 
-      {/* Two columns: Quick actions (left, wider) + Recent activity (right) */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        {/* Quick actions — big, friendly, the primary way a resident
-            interacts with the platform from this page. */}
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Sparkles className="text-primary-500 h-4 w-4" strokeWidth={1.8} />
-              <CardTitle>Quick actions</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="-mx-2 grid grid-cols-1 gap-1">
-              {quickActions.map((action) => (
-                <a
-                  key={action.label}
-                  href={action.href}
-                  className="group grid grid-cols-[28px_1fr_auto] items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-neutral-50"
-                >
-                  <action.icon
-                    className="text-primary-500 h-4 w-4 flex-shrink-0"
-                    strokeWidth={1.8}
-                  />
-                  <div className="min-w-0">
-                    <div className="text-[14px] font-medium tracking-[-0.005em] text-neutral-900">
-                      {action.label}
-                    </div>
-                    <div className="mt-0.5 text-[12.5px] text-neutral-500">{action.sub}</div>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-neutral-300 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-neutral-600" />
-                </a>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent activity — what's happened on this resident's account */}
-        <Card className="lg:col-span-2" padding="none">
-          <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
-            <CardTitle>Recent activity</CardTitle>
-          </CardHeader>
-          <div className="divide-y divide-neutral-100">
-            {residentActivity.length > 0 ? (
-              residentActivity.map((a, i) => (
-                <div key={i} className="flex items-start gap-3 px-5 py-3">
-                  <Activity
-                    className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-300"
-                    strokeWidth={1.8}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13.5px] font-medium text-neutral-900">{a.title}</p>
-                    {a.description ? (
-                      <p className="mt-0.5 truncate text-[12px] text-neutral-500">
-                        {a.description}
-                      </p>
-                    ) : null}
-                  </div>
-                  {a.timestamp ? (
-                    <span className="text-[11.5px] whitespace-nowrap text-neutral-400">
-                      {formatRelativeTimestamp(a.timestamp)}
-                    </span>
+      {/* Row 3 — Recent activity, full width. */}
+      <Card padding="none">
+        <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
+          <CardTitle>Recent activity</CardTitle>
+        </CardHeader>
+        <div className="divide-y divide-neutral-100">
+          {residentActivity.length > 0 ? (
+            residentActivity.map((a, i) => (
+              <div key={i} className="grid grid-cols-[20px_1fr_auto] items-start gap-3 px-5 py-3.5">
+                <Activity
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-300"
+                  strokeWidth={1.8}
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-[13.5px] font-medium text-neutral-900">{a.title}</p>
+                  {a.description ? (
+                    <p className="mt-0.5 truncate text-[12px] text-neutral-500">{a.description}</p>
                   ) : null}
                 </div>
-              ))
-            ) : (
-              <div className="px-5 py-10 text-center">
-                <p className="text-[13px] font-medium text-neutral-600">All quiet</p>
-                <p className="mt-1 text-[12px] text-neutral-400">
-                  Nothing has happened on your account recently.
-                </p>
+                {a.timestamp ? (
+                  <span className="text-[11.5px] whitespace-nowrap text-neutral-400">
+                    {formatRelativeTimestamp(a.timestamp)}
+                  </span>
+                ) : null}
               </div>
-            )}
-          </div>
-        </Card>
-      </div>
+            ))
+          ) : (
+            <div className="px-5 py-8 text-center">
+              <p className="text-[13px] font-medium text-neutral-600">All quiet</p>
+              <p className="mt-1 text-[12px] text-neutral-400">
+                Nothing has happened on your account recently.
+              </p>
+            </div>
+          )}
+        </div>
+      </Card>
     </div>
   );
 }
@@ -1101,6 +1228,7 @@ export default function DashboardPage() {
         greeting={greeting}
         kpiCards={config.kpiCards}
         kpiValues={kpiValues}
+        buildingHealthScore={buildingHealthScore}
         apiData={apiData}
       />
     );
