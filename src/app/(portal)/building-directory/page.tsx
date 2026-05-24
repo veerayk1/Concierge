@@ -360,11 +360,23 @@ export default function BuildingDirectoryPage() {
               emptyMessage="No directory entries found."
               emptyIcon={<Building className="h-6 w-6" />}
             />
+          ) : allEntries.length === 0 ? (
+            <EmptyState
+              icon={<Building className="h-6 w-6" />}
+              title="No directory entries yet"
+              description="Add the building's emergency contacts, vendors, and shared services so residents can find them."
+              action={
+                <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+                  <Plus className="h-4 w-4" />
+                  Add Entry
+                </Button>
+              }
+            />
           ) : (
             <EmptyState
               icon={<Building className="h-6 w-6" />}
-              title="No entries found"
-              description="Try adjusting your search or filters to find what you are looking for."
+              title="No entries match your filters"
+              description="Try clearing your search or switching the category."
               action={
                 <Button
                   variant="secondary"
