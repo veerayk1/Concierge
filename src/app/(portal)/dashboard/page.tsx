@@ -532,6 +532,230 @@ function BuildingHealthRing({ score }: { score: number }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// ResidentDashboard — purpose-built layout for residents. Tight, focused on
+// "what's mine right now," no fake building-wide AI briefing, no duplicate
+// quick action rows.
+// ---------------------------------------------------------------------------
+
+interface ResidentDashboardProps {
+  name: string;
+  greeting: string;
+  kpiCards: string[];
+  kpiValues: Record<string, string>;
+  apiData: {
+    recentActivity?: Array<{
+      id: string;
+      type: string;
+      title: string;
+      description?: string;
+      timestamp?: string;
+      status?: string;
+    }>;
+  } | null;
+}
+
+function ResidentDashboard({
+  name,
+  greeting,
+  kpiCards,
+  kpiValues,
+  apiData,
+}: ResidentDashboardProps) {
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  // Only show resident-relevant KPIs. Filter out anything that leaked in
+  // from a shared config.
+  const RESIDENT_KPI_WHITELIST = new Set([
+    'My Packages',
+    'Open Requests',
+    'Upcoming Bookings',
+    'Announcements',
+    'Upcoming Events',
+  ]);
+  const residentKpis = kpiCards.filter((k) => RESIDENT_KPI_WHITELIST.has(k));
+
+  // Pull the four most recent activity entries that are actually relevant
+  // for a resident (their requests, their bookings, their packages, building
+  // announcements). Anything that looks like a staff/security log is dropped.
+  const residentActivity =
+    apiData?.recentActivity
+      ?.filter((a) => {
+        const t = (a.type || '').toLowerCase();
+        return (
+          t.includes('package') ||
+          t.includes('booking') ||
+          t.includes('request') ||
+          t.includes('announcement') ||
+          t.includes('visitor')
+        );
+      })
+      .slice(0, 5) ?? [];
+
+  const quickActions = [
+    {
+      label: 'Submit a request',
+      sub: 'For maintenance or building issues.',
+      href: '/my-requests?action=new',
+      icon: Wrench,
+    },
+    {
+      label: 'Book an amenity',
+      sub: 'Party room, gym, pool, guest suite.',
+      href: '/amenity-booking',
+      icon: Calendar,
+    },
+    {
+      label: 'View announcements',
+      sub: 'Latest building news and notices.',
+      href: '/announcements',
+      icon: Megaphone,
+    },
+  ];
+
+  return (
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
+      {/* Greeting */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+            {greeting}, {name}
+          </h1>
+          <p className="mt-0.5 text-[14px] text-neutral-500">{today}</p>
+        </div>
+      </div>
+
+      {/* KPI tiles — only the three that matter to a resident */}
+      {residentKpis.length > 0 && (
+        <div
+          className={`grid gap-3 ${
+            residentKpis.length === 1
+              ? 'grid-cols-1 sm:grid-cols-1'
+              : residentKpis.length === 2
+                ? 'grid-cols-1 sm:grid-cols-2'
+                : 'grid-cols-1 sm:grid-cols-3'
+          }`}
+        >
+          {residentKpis.map((kpi) => {
+            const kpiConfig = KPI_ICONS[kpi] || {
+              label: kpi,
+              icon: FileText,
+              color: 'text-neutral-600',
+              bgColor: 'bg-neutral-50',
+            };
+            return (
+              <KpiTile
+                key={kpi}
+                label={kpiConfig.label}
+                value={kpiValues[kpi] ?? '—'}
+                icon={kpiConfig.icon}
+                accent={KPI_ACCENTS[kpi] ?? 'neutral'}
+                href={KPI_DRILL_HREFS[kpi]}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Two columns: Quick actions (left, wider) + Recent activity (right) */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {/* Quick actions — big, friendly, the primary way a resident
+            interacts with the platform from this page. */}
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="text-primary-500 h-4 w-4" strokeWidth={1.8} />
+              <CardTitle>Quick actions</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="-mx-2 grid grid-cols-1 gap-1">
+              {quickActions.map((action) => (
+                <a
+                  key={action.label}
+                  href={action.href}
+                  className="group grid grid-cols-[28px_1fr_auto] items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-neutral-50"
+                >
+                  <action.icon
+                    className="text-primary-500 h-4 w-4 flex-shrink-0"
+                    strokeWidth={1.8}
+                  />
+                  <div className="min-w-0">
+                    <div className="text-[14px] font-medium tracking-[-0.005em] text-neutral-900">
+                      {action.label}
+                    </div>
+                    <div className="mt-0.5 text-[12.5px] text-neutral-500">{action.sub}</div>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-neutral-300 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-neutral-600" />
+                </a>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent activity — what's happened on this resident's account */}
+        <Card className="lg:col-span-2" padding="none">
+          <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
+            <CardTitle>Recent activity</CardTitle>
+          </CardHeader>
+          <div className="divide-y divide-neutral-100">
+            {residentActivity.length > 0 ? (
+              residentActivity.map((a, i) => (
+                <div key={i} className="flex items-start gap-3 px-5 py-3">
+                  <Activity
+                    className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-300"
+                    strokeWidth={1.8}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13.5px] font-medium text-neutral-900">{a.title}</p>
+                    {a.description ? (
+                      <p className="mt-0.5 truncate text-[12px] text-neutral-500">
+                        {a.description}
+                      </p>
+                    ) : null}
+                  </div>
+                  {a.timestamp ? (
+                    <span className="text-[11.5px] whitespace-nowrap text-neutral-400">
+                      {formatRelativeTimestamp(a.timestamp)}
+                    </span>
+                  ) : null}
+                </div>
+              ))
+            ) : (
+              <div className="px-5 py-10 text-center">
+                <p className="text-[13px] font-medium text-neutral-600">All quiet</p>
+                <p className="mt-1 text-[12px] text-neutral-400">
+                  Nothing has happened on your account recently.
+                </p>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// Small helper — turn an ISO timestamp into "5m / 2h / Yesterday / May 21"
+// without dragging in a date library.
+function formatRelativeTimestamp(iso: string): string {
+  const date = new Date(iso);
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'now';
+  if (diffMin < 60) return `${diffMin}m`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay === 1) return 'Yesterday';
+  if (diffDay < 7) return `${diffDay}d`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export default function DashboardPage() {
   const { user, loading } = useAuth();
 
@@ -857,7 +1081,33 @@ export default function DashboardPage() {
   }
 
   // -------------------------------------------------------------------------
-  // Property-level dashboard (all other roles)
+  // Resident dashboard (resident_owner, resident_tenant, family_member,
+  // offsite_owner) — purpose-built layout. Residents should NEVER see the
+  // operations-style "AI Daily Briefing" that quotes building-wide counts
+  // (15 packages waiting, 26 service requests open) — those numbers are
+  // for the whole property and read as alarming when a resident sees
+  // "you have 15 packages."
+  // -------------------------------------------------------------------------
+  const isResidentRoleDash =
+    effectiveRole === 'resident_owner' ||
+    effectiveRole === 'resident_tenant' ||
+    effectiveRole === 'family_member' ||
+    effectiveRole === 'offsite_owner';
+
+  if (isResidentRoleDash) {
+    return (
+      <ResidentDashboard
+        name={effectiveName}
+        greeting={greeting}
+        kpiCards={config.kpiCards}
+        kpiValues={kpiValues}
+        apiData={apiData}
+      />
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Property-level dashboard (staff, manager, board)
   // -------------------------------------------------------------------------
 
   return (
