@@ -147,6 +147,27 @@ export function CreatePackageDialog({
             </div>
           )}
 
+          {/* Empty-state guard: this property has no units yet, so we can't
+              route any package. Show an actionable message instead of a
+              broken-looking dropdown. */}
+          {!unitsLoading && units.length === 0 ? (
+            <div
+              role="alert"
+              className="border-warning-200 bg-warning-50 rounded-xl border px-4 py-3 text-[14px]"
+            >
+              <p className="text-warning-700 font-medium">No units exist yet for this property.</p>
+              <p className="text-warning-600 mt-1">
+                Add at least one unit before logging packages.{' '}
+                <a
+                  href="/units"
+                  className="text-warning-700 underline underline-offset-2 hover:no-underline"
+                >
+                  Go to Units →
+                </a>
+              </p>
+            </div>
+          ) : null}
+
           {/* Direction Segmented Control */}
           <div className="flex rounded-xl bg-neutral-100 p-1">
             {(['incoming', 'outgoing'] as const).map((d) => (
@@ -289,7 +310,16 @@ export function CreatePackageDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
+            <Button
+              type="submit"
+              loading={isSubmitting}
+              disabled={isSubmitting || (!unitsLoading && units.length === 0)}
+              title={
+                !unitsLoading && units.length === 0
+                  ? 'Add a unit to this property before logging packages'
+                  : undefined
+              }
+            >
               {isSubmitting
                 ? 'Logging...'
                 : direction === 'outgoing'
