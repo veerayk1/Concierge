@@ -2,12 +2,26 @@
 
 /**
  * Create Property Dialog — Admin panel property creation form
- * Fields: name, address, city, province, postalCode, country, unitCount, timezone
+ *
+ * Per docs/QUALITY-BAR.md: built on react-hook-form + zodResolver + the
+ * typed form primitives. The user sees:
+ *  - Inline validation on blur (not just on submit)
+ *  - Address autocomplete (if NEXT_PUBLIC_GOOGLE_PLACES_KEY is set)
+ *  - Auto-formatted postal code (M5V 2T6 / 90210-1234)
+ *  - Auto-formatted phone ((416) 555-0123)
+ *  - Auto-validated email (RFC 5321)
+ *  - Auto-fill of city/province/postalCode/country when an address
+ *    suggestion is picked
+ *  - Submit button disabled until form is valid
+ *  - "Discard changes?" confirmation when closing with dirty fields
+ *
  * Auto-switches property context after creation so admin can immediately manage it.
  */
 
 import { useState } from 'react';
-import { Building2 } from 'lucide-react';
+import { Building2, Loader2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -19,36 +33,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AddressField,
+  EmailField,
+  PhoneField,
+  PostalCodeField,
+} from '@/components/forms/primitives';
+import {
+  createPropertySchema,
+  type CreatePropertyInput,
+  CANADIAN_TIMEZONES,
+  PROPERTIES_TIMEZONE_LABELS,
+  PROPERTY_TYPES,
+  PROVINCES_AND_STATES,
+} from '@/schemas/property';
 import { apiRequest } from '@/lib/hooks/use-api';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const PROVINCES = [
-  'Alberta',
-  'British Columbia',
-  'Manitoba',
-  'New Brunswick',
-  'Newfoundland and Labrador',
-  'Nova Scotia',
-  'Ontario',
-  'Prince Edward Island',
-  'Quebec',
-  'Saskatchewan',
-  'Northwest Territories',
-  'Nunavut',
-  'Yukon',
-];
+const DEFAULT_VALUES: CreatePropertyInput = {
+  name: '',
+  slug: '',
+  address: '',
+  city: '',
+  province: 'Ontario',
+  postalCode: '',
+  country: 'CA',
+  type: 'PRODUCTION',
+  unitCount: 0,
+  timezone: 'America/Toronto',
+  phone: '',
+  email: '',
+};
 
-const TIMEZONES = [
-  { value: 'America/Toronto', label: 'Toronto (Eastern)' },
-  { value: 'America/Vancouver', label: 'Vancouver (Pacific)' },
-  { value: 'America/Edmonton', label: 'Edmonton (Mountain)' },
-  { value: 'America/Winnipeg', label: 'Winnipeg (Central)' },
-  { value: 'America/Halifax', label: 'Halifax (Atlantic)' },
-  { value: 'America/St_Johns', label: "St. John's (Newfoundland)" },
-];
+const TYPE_LABELS: Record<string, string> = {
+  PRODUCTION: 'Production',
+  DEMO: 'Demo',
+  SANDBOX: 'Sandbox',
+};
 
 // ---------------------------------------------------------------------------
 // Component
@@ -62,228 +86,368 @@ interface CreatePropertyDialogProps {
 
 export function CreatePropertyDialog({ open, onOpenChange, onSuccess }: CreatePropertyDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    city: '',
-    province: 'Ontario',
-    postalCode: '',
-    country: 'CA',
-    unitCount: 0,
-    timezone: 'America/Toronto',
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    register,
+    reset,
+    formState: { errors, isSubmitting, isDirty, isValid },
+  } = useForm<CreatePropertyInput>({
+    resolver: zodResolver(createPropertySchema),
+    defaultValues: DEFAULT_VALUES,
+    mode: 'onBlur',
   });
 
-  function updateField(field: string, value: string | number) {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  }
+  const country = watch('country');
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const onSubmit = handleSubmit(async (data) => {
     setServerError(null);
-    setIsSubmitting(true);
+    setSuccessMsg(null);
+
+    // Strip empty optional strings so the server doesn't see them as ""
+    const payload = {
+      ...data,
+      slug: data.slug || undefined,
+      phone: data.phone || undefined,
+      email: data.email || undefined,
+    };
 
     try {
-      const response = await apiRequest('/api/v1/properties', {
-        method: 'POST',
-        body: formData,
-      });
+      const res = await apiRequest('/api/v1/properties', { method: 'POST', body: payload });
+      const result = await res.json();
 
-      if (!response.ok) {
-        const result = await response.json().catch(() => ({}));
-        setServerError(result.message || `Failed to create property (${response.status})`);
+      if (!res.ok) {
+        setServerError(result.message || `Failed to create property (${res.status})`);
         return;
       }
 
-      const result = await response.json();
       const newPropertyId = result.data?.id;
-
-      // Auto-switch property context so the admin can immediately manage this property
       if (newPropertyId && typeof window !== 'undefined') {
         localStorage.setItem('demo_propertyId', newPropertyId);
       }
 
-      // Reset and close
-      setFormData({
-        name: '',
-        address: '',
-        city: '',
-        province: 'Ontario',
-        postalCode: '',
-        country: 'CA',
-        unitCount: 0,
-        timezone: 'America/Toronto',
-      });
-      onOpenChange(false);
-      onSuccess?.(newPropertyId);
+      setSuccessMsg(`Property "${result.data?.name || data.name}" created successfully.`);
+      setTimeout(() => {
+        reset(DEFAULT_VALUES);
+        setSuccessMsg(null);
+        onOpenChange(false);
+        onSuccess?.(newPropertyId);
+      }, 1000);
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : 'Failed to create property');
-    } finally {
-      setIsSubmitting(false);
+      setServerError(err instanceof Error ? err.message : 'Network error. Please try again.');
     }
-  }
+  });
+
+  const requestClose = (next: boolean) => {
+    if (!next && isDirty && !isSubmitting && !successMsg) {
+      setConfirmDiscard(true);
+      return;
+    }
+    onOpenChange(next);
+  };
+
+  const discardAndClose = () => {
+    reset(DEFAULT_VALUES);
+    setServerError(null);
+    setConfirmDiscard(false);
+    onOpenChange(false);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <div className="flex items-center gap-3 pb-2">
-          <div className="bg-primary-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Building2 className="text-primary-600 h-5 w-5" />
-          </div>
-          <div>
-            <DialogTitle className="text-lg font-semibold">Add Property</DialogTitle>
-            <DialogDescription className="text-sm text-neutral-500">
-              Create a new building or property. System roles will be auto-created.
-            </DialogDescription>
-          </div>
-        </div>
+    <>
+      <Dialog open={open} onOpenChange={requestClose}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
+            <Building2 className="text-primary-500 h-5 w-5" />
+            Add Property
+          </DialogTitle>
+          <DialogDescription className="text-[14px] text-neutral-500">
+            Create a new property. Required fields are marked with an asterisk.
+          </DialogDescription>
 
-        {serverError && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {serverError}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Property Name */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Property Name <span className="text-red-500">*</span>
-            </label>
-            <Input
-              value={formData.name}
-              onChange={(e) => updateField('name', e.target.value)}
-              placeholder="e.g. Harbourfront Residences"
-              required
-            />
-          </div>
-
-          {/* Address */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Address <span className="text-red-500">*</span>
-            </label>
-            <Input
-              value={formData.address}
-              onChange={(e) => updateField('address', e.target.value)}
-              placeholder="e.g. 100 Queens Quay West"
-              required
-            />
-          </div>
-
-          {/* City + Province */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                City <span className="text-red-500">*</span>
-              </label>
-              <Input
-                value={formData.city}
-                onChange={(e) => updateField('city', e.target.value)}
-                placeholder="e.g. Toronto"
-                required
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                Province <span className="text-red-500">*</span>
-              </label>
-              <Select
-                value={formData.province}
-                onValueChange={(val) => updateField('province', val)}
+          <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-5" noValidate>
+            {serverError ? (
+              <div
+                role="alert"
+                className="border-error-200 bg-error-50 text-error-700 rounded-xl border px-4 py-3 text-[14px]"
               >
-                <SelectTrigger size="md" className="rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROVINCES.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+                {serverError}
+              </div>
+            ) : null}
+            {successMsg ? (
+              <div
+                role="status"
+                className="border-success-200 bg-success-50 text-success-700 rounded-xl border px-4 py-3 text-[14px]"
+              >
+                {successMsg}
+              </div>
+            ) : null}
 
-          {/* Postal Code + Country */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                Postal Code <span className="text-red-500">*</span>
-              </label>
+            <p className="text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
+              Property Information
+            </p>
+
+            {/* Name + Slug */}
+            <div className="grid grid-cols-2 gap-4">
               <Input
-                value={formData.postalCode}
-                onChange={(e) => updateField('postalCode', e.target.value)}
-                placeholder="e.g. M5J 2Y5"
+                {...register('name')}
+                label="Property Name"
                 required
+                placeholder="e.g. Your Property Name"
+                autoComplete="organization"
+                maxLength={150}
+                error={errors.name?.message}
+              />
+              <Input
+                {...register('slug')}
+                label="Slug (optional)"
+                placeholder="e.g. your-property-name"
+                autoComplete="off"
+                maxLength={80}
+                error={errors.slug?.message}
+                helperText="URL-safe identifier. Auto-generated if empty."
               />
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">Country</label>
-              <Select value={formData.country} onValueChange={(val) => updateField('country', val)}>
-                <SelectTrigger size="md" className="rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CA">Canada</SelectItem>
-                  <SelectItem value="US">United States</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
-          {/* Unit Count + Timezone */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                Number of Units
-              </label>
+            {/* Address with autocomplete + sibling auto-fill */}
+            <AddressField
+              name="address"
+              control={control}
+              label="Street Address"
+              required
+              placeholder="e.g. 123 Main Street"
+              setValue={setValue}
+              siblingFieldNames={{
+                city: 'city',
+                province: 'province',
+                postalCode: 'postalCode',
+                country: 'country',
+              }}
+            />
+
+            {/* City + Province + Postal */}
+            <div className="grid grid-cols-3 gap-4">
               <Input
+                {...register('city')}
+                label="City"
+                required
+                placeholder="e.g. Toronto"
+                autoComplete="address-level2"
+                maxLength={100}
+                error={errors.city?.message}
+              />
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="cpd-province"
+                  className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700"
+                >
+                  Province / State
+                  <span className="text-error-500 ml-0.5" aria-hidden="true">
+                    *
+                  </span>
+                </label>
+                <Select
+                  value={watch('province')}
+                  onValueChange={(val) =>
+                    setValue('province', val as CreatePropertyInput['province'], {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                >
+                  <SelectTrigger id="cpd-province" size="md" className="rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROVINCES_AND_STATES.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.province?.message ? (
+                  <p className="text-error-600 text-[13px] font-medium" role="alert">
+                    {errors.province.message}
+                  </p>
+                ) : null}
+              </div>
+              <PostalCodeField
+                name="postalCode"
+                control={control}
+                label="Postal Code"
+                required
+                country={country === 'US' ? 'US' : 'CA'}
+              />
+            </div>
+
+            {/* Country + Total Units */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="cpd-country"
+                  className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700"
+                >
+                  Country
+                </label>
+                <Select
+                  value={watch('country')}
+                  onValueChange={(val) =>
+                    setValue('country', val as 'CA' | 'US', {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                >
+                  <SelectTrigger id="cpd-country" size="md" className="rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CA">Canada</SelectItem>
+                    <SelectItem value="US">United States</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Input
+                {...register('unitCount', { valueAsNumber: true })}
                 type="number"
                 min={0}
-                value={formData.unitCount}
-                onChange={(e) => updateField('unitCount', parseInt(e.target.value) || 0)}
+                max={10000}
+                label="Total Units"
                 placeholder="0"
+                error={errors.unitCount?.message}
               />
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-neutral-700">Timezone</label>
-              <Select
-                value={formData.timezone}
-                onValueChange={(val) => updateField('timezone', val)}
-              >
-                <SelectTrigger size="md" className="rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIMEZONES.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-2">
+            {/* Type + Timezone */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="cpd-type"
+                  className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700"
+                >
+                  Type
+                  <span className="text-error-500 ml-0.5" aria-hidden="true">
+                    *
+                  </span>
+                </label>
+                <Select
+                  value={watch('type')}
+                  onValueChange={(val) =>
+                    setValue('type', val as CreatePropertyInput['type'], {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                >
+                  <SelectTrigger id="cpd-type" size="md" className="rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROPERTY_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {TYPE_LABELS[t] ?? t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="cpd-tz"
+                  className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700"
+                >
+                  Timezone
+                </label>
+                <Select
+                  value={watch('timezone')}
+                  onValueChange={(val) =>
+                    setValue('timezone', val, { shouldValidate: true, shouldDirty: true })
+                  }
+                >
+                  <SelectTrigger id="cpd-tz" size="md" className="rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CANADIAN_TIMEZONES.map((tz) => (
+                      <SelectItem key={tz} value={tz}>
+                        {PROPERTIES_TIMEZONE_LABELS[tz] ?? tz}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <p className="mt-2 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
+              Contact (Optional)
+            </p>
+
+            {/* Phone + Email */}
+            <div className="grid grid-cols-2 gap-4">
+              <PhoneField
+                name="phone"
+                control={control}
+                label="Phone"
+                defaultCountry={country === 'US' ? 'US' : 'CA'}
+              />
+              <EmailField name="email" control={control} label="Email" />
+            </div>
+
+            <div className="mt-2 flex items-center justify-end gap-3 border-t border-neutral-100 pt-5">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => requestClose(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting || !isValid}
+                title={!isValid ? 'Fill in all required fields correctly' : undefined}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating…
+                  </>
+                ) : (
+                  'Create Property'
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogTitle className="text-base font-semibold">Discard changes?</DialogTitle>
+          <DialogDescription className="text-sm text-neutral-500">
+            You have unsaved changes. Closing now will lose them.
+          </DialogDescription>
+          <div className="flex justify-end gap-3 pt-3">
             <Button
               type="button"
               variant="secondary"
               size="sm"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
+              onClick={() => setConfirmDiscard(false)}
             >
-              Cancel
+              Keep editing
             </Button>
-            <Button type="submit" size="sm" loading={isSubmitting} disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Create Property'}
+            <Button type="button" variant="danger" size="sm" onClick={discardAndClose}>
+              Discard
             </Button>
           </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
