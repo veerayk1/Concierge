@@ -489,6 +489,49 @@ function getBuildingHealthLabel(score: number): string {
   return 'Needs Attention';
 }
 
+// Building health visualization: a thin conic ring + label + context line.
+// The previous version was a solid coloured square with the number inside,
+// which read as a flat warning chip instead of a metric.
+function BuildingHealthRing({ score }: { score: number }) {
+  const color = score >= 80 ? '#16a34a' : score >= 60 ? '#d97706' : '#dc2626';
+  const label = getBuildingHealthLabel(score);
+  const pct = Math.max(0, Math.min(100, score));
+
+  return (
+    <div className="flex items-center gap-4 py-1">
+      <div
+        aria-hidden="true"
+        className="relative flex h-[72px] w-[72px] flex-shrink-0 items-center justify-center rounded-full"
+        style={{
+          background: `conic-gradient(${color} 0% ${pct}%, rgba(15,23,42,0.06) ${pct}% 100%)`,
+        }}
+      >
+        <div className="absolute inset-[6px] flex items-center justify-center rounded-full bg-white">
+          <span
+            className="text-[22px] font-semibold tracking-tight text-neutral-900"
+            style={{ fontFeatureSettings: '"tnum"' }}
+          >
+            {score}
+          </span>
+        </div>
+      </div>
+      <div className="min-w-0">
+        <div className="text-[12.5px] font-semibold tracking-[-0.005em]" style={{ color }}>
+          <span
+            aria-hidden="true"
+            className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle"
+            style={{ background: color }}
+          />
+          {label}
+        </div>
+        <p className="mt-1.5 text-[12px] leading-snug text-neutral-500">
+          Rolling 30-day score across maintenance, safety, and operations.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user, loading } = useAuth();
 
@@ -1002,55 +1045,30 @@ export default function DashboardPage() {
 
         {/* Building Health + Weather */}
         <div className="flex flex-col gap-4">
-          {/* Building Health Score */}
+          {/* Building Health Score — conic ring + signal copy */}
           <Card>
             <CardHeader>
-              <CardTitle>Building Health</CardTitle>
+              <CardTitle>Building health</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center gap-2 text-center">
-                {buildingHealthScore !== null ? (
-                  <>
-                    <div
-                      className={`flex h-16 w-16 items-center justify-center rounded-2xl ${getBuildingHealthBg(buildingHealthScore)}`}
-                    >
-                      <span
-                        className={`text-[28px] font-bold ${getBuildingHealthColor(buildingHealthScore)}`}
-                      >
-                        {buildingHealthScore}
-                      </span>
-                    </div>
-                    <Badge
-                      variant={
-                        buildingHealthScore >= 80
-                          ? 'success'
-                          : buildingHealthScore >= 60
-                            ? 'warning'
-                            : 'error'
-                      }
-                      size="lg"
-                      dot
-                    >
-                      {getBuildingHealthLabel(buildingHealthScore)}
-                    </Badge>
-                    <p className="text-[12px] text-neutral-500">
-                      Based on maintenance, safety, and operations metrics
+              {buildingHealthScore !== null ? (
+                <BuildingHealthRing score={buildingHealthScore} />
+              ) : (
+                <div className="flex items-center gap-4 py-2">
+                  <div
+                    aria-hidden="true"
+                    className="flex h-[68px] w-[68px] flex-shrink-0 items-center justify-center rounded-full bg-neutral-100"
+                  >
+                    <span className="text-[22px] font-light text-neutral-300">&mdash;</span>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[12.5px] font-medium text-neutral-500">No data yet</div>
+                    <p className="mt-1 text-[12px] leading-relaxed text-neutral-500">
+                      Score appears once operations data starts flowing.
                     </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-neutral-100">
-                      <span className="text-[28px] font-bold text-neutral-300">&mdash;</span>
-                    </div>
-                    <Badge variant="default" size="lg">
-                      No data
-                    </Badge>
-                    <p className="text-[12px] text-neutral-500">
-                      Health score requires operations data
-                    </p>
-                  </>
-                )}
-              </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
