@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { CreateKeyCheckoutDialog } from '@/components/forms/create-key-checkout-dialog';
 import { AddKeyDialog } from '@/components/forms/add-key-dialog';
 import { exportToCsv } from '@/lib/export-csv';
@@ -319,42 +320,28 @@ export default function KeysPage() {
       {!loading && !error && (
         <>
           {/* Summary Cards */}
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {[
-              {
-                label: 'Total Inventory',
-                value: totalCount,
-                icon: Key,
-                color: 'text-primary-600',
-                bg: 'bg-primary-50',
-              },
-              {
-                label: 'Checked Out',
-                value: checkedOutCount,
-                icon: CheckCircle2,
-                color: 'text-info-600',
-                bg: 'bg-info-50',
-              },
-              {
-                label: 'Lost',
-                value: lostCount,
-                icon: AlertTriangle,
-                color: 'text-error-600',
-                bg: 'bg-error-50',
-              },
-            ].map((stat) => (
-              <Card key={stat.label} padding="sm" className="flex items-center gap-4">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.bg}`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </div>
-                <div>
-                  <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                    {stat.value}
-                  </p>
-                  <p className="text-[13px] text-neutral-500">{stat.label}</p>
-                </div>
-              </Card>
-            ))}
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <KpiTile
+              label="Total Inventory"
+              value={totalCount}
+              icon={Key}
+              accent="primary"
+              caption="All keys, FOBs, and clickers tracked"
+            />
+            <KpiTile
+              label="Checked Out"
+              value={checkedOutCount}
+              icon={CheckCircle2}
+              accent="info"
+              caption="Currently issued to staff or residents"
+            />
+            <KpiTile
+              label="Lost"
+              value={lostCount}
+              icon={AlertTriangle}
+              accent="error"
+              caption="Reported missing — needs replacement"
+            />
           </div>
 
           {/* Search + Filters */}

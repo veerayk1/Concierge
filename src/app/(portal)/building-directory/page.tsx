@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateDirectoryEntryDialog } from '@/components/forms/create-directory-entry-dialog';
 
@@ -264,42 +265,28 @@ export default function BuildingDirectoryPage() {
       {!loading && !error && (
         <>
           {/* Summary Cards */}
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {[
-              {
-                label: 'Total Entries',
-                value: totalEntries,
-                icon: Building,
-                color: 'text-primary-600',
-                bg: 'bg-primary-50',
-              },
-              {
-                label: 'Active Services',
-                value: activeCount,
-                icon: Building,
-                color: 'text-success-600',
-                bg: 'bg-success-50',
-              },
-              {
-                label: 'Emergency Contacts',
-                value: emergencyCount,
-                icon: Phone,
-                color: 'text-error-600',
-                bg: 'bg-error-50',
-              },
-            ].map((stat) => (
-              <Card key={stat.label} padding="sm" className="flex items-center gap-4">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.bg}`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </div>
-                <div>
-                  <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                    {stat.value}
-                  </p>
-                  <p className="text-[13px] text-neutral-500">{stat.label}</p>
-                </div>
-              </Card>
-            ))}
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <KpiTile
+              label="Total Entries"
+              value={totalEntries}
+              icon={Building}
+              accent="primary"
+              caption="Services, staff, and shared areas listed"
+            />
+            <KpiTile
+              label="Active Services"
+              value={activeCount}
+              icon={Building}
+              accent="success"
+              caption="Currently reachable contacts"
+            />
+            <KpiTile
+              label="Emergency Contacts"
+              value={emergencyCount}
+              icon={Phone}
+              accent="error"
+              caption="24/7 numbers for urgent issues"
+            />
           </div>
 
           {/* Search + Category Filter */}

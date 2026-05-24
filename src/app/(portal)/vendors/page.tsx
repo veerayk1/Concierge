@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
@@ -255,42 +256,28 @@ export default function VendorsPage() {
       {!loading && !error && (
         <>
           {/* Summary Cards */}
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {[
-              {
-                label: 'Total Vendors',
-                value: totalVendors,
-                icon: Truck,
-                color: 'text-primary-600',
-                bg: 'bg-primary-50',
-              },
-              {
-                label: 'Compliant',
-                value: compliantCount,
-                icon: CheckCircle2,
-                color: 'text-success-600',
-                bg: 'bg-success-50',
-              },
-              {
-                label: 'Expiring Soon',
-                value: expiringCount,
-                icon: AlertTriangle,
-                color: 'text-warning-600',
-                bg: 'bg-warning-50',
-              },
-            ].map((stat) => (
-              <Card key={stat.label} padding="sm" className="flex items-center gap-4">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.bg}`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </div>
-                <div>
-                  <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                    {stat.value}
-                  </p>
-                  <p className="text-[13px] text-neutral-500">{stat.label}</p>
-                </div>
-              </Card>
-            ))}
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <KpiTile
+              label="Total Vendors"
+              value={totalVendors}
+              icon={Truck}
+              accent="primary"
+              caption="Active contractor relationships"
+            />
+            <KpiTile
+              label="Compliant"
+              value={compliantCount}
+              icon={CheckCircle2}
+              accent="success"
+              caption="Insurance and credentials current"
+            />
+            <KpiTile
+              label="Expiring Soon"
+              value={expiringCount}
+              icon={AlertTriangle}
+              accent="warning"
+              caption="Documents expiring within 30 days"
+            />
           </div>
 
           {/* Search + Filter Toggle */}
