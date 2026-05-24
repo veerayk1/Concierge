@@ -26,6 +26,7 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { exportToCsv } from '@/lib/export-csv';
@@ -486,41 +487,34 @@ export default function PackagesPage() {
         </div>
       }
     >
-      {/* Summary Cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-warning-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Clock className="text-warning-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {unreleasedPackages.length}
-            </p>
-            <p className="text-[13px] text-neutral-500">Unreleased</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <CheckCircle2 className="text-success-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {releasedPackages.length}
-            </p>
-            <p className="text-[13px] text-neutral-500">Released today</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-error-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <AlertTriangle className="text-error-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {allPackages.filter((p) => p.isPerishable && p.status === 'unreleased').length}
-            </p>
-            <p className="text-[13px] text-neutral-500">Perishable</p>
-          </div>
-        </Card>
+      {/* Summary tiles — use the shared KpiTile so every list page reads the
+          same. Left accent rail + monoline icon + tabular value. */}
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile
+          label="Unreleased"
+          value={unreleasedPackages.length}
+          icon={Clock}
+          accent="warning"
+          caption={
+            unreleasedPackages.length === 0
+              ? 'All caught up.'
+              : `${unreleasedPackages.length === 1 ? '1 package' : `${unreleasedPackages.length} packages`} awaiting pickup.`
+          }
+        />
+        <KpiTile
+          label="Released today"
+          value={releasedPackages.length}
+          icon={CheckCircle2}
+          accent="success"
+          caption="Handed off to residents."
+        />
+        <KpiTile
+          label="Perishable"
+          value={allPackages.filter((p) => p.isPerishable && p.status === 'unreleased').length}
+          icon={AlertTriangle}
+          accent="error"
+          caption="Move these first."
+        />
       </div>
 
       {/* Direction Tabs */}
