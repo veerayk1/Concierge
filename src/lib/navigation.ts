@@ -854,6 +854,84 @@ export function getAllNavGroups(): NavGroup[] {
 }
 
 /**
+ * Breadcrumb item shape (mirrored from top-bar to avoid a circular import).
+ */
+export interface DerivedCrumb {
+  label: string;
+  href?: string;
+}
+
+/**
+ * Map a path segment we don't recognize (e.g. `[id]`, a UUID, or an unmapped
+ * sub-route) to a humanized label. Anything that looks like an opaque ID gets
+ * collapsed to "Details" instead of pasting raw UUIDs into the breadcrumb.
+ */
+function humanizeSegment(segment: string): string {
+  // UUIDv4 or cuid-ish opaque IDs → "Details"
+  if (/^[0-9a-f-]{20,}$/i.test(segment) || /^c[a-z0-9]{20,}$/i.test(segment)) {
+    return 'Details';
+  }
+  return segment.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Derives breadcrumbs from a pathname against the navigation tree.
+ * Always returns at least one crumb. The last crumb has no href.
+ *
+ * Examples:
+ *   /dashboard                  -> [Dashboard]
+ *   /amenities                  -> [Dashboard, Amenities]
+ *   /system/properties          -> [Dashboard, Multi-Property Dashboard]
+ *   /system/properties/abc-123  -> [Dashboard, Multi-Property Dashboard, Details]
+ *   /unknown/page               -> [Dashboard, Unknown, Page]
+ */
+export function deriveBreadcrumbs(pathname: string): DerivedCrumb[] {
+  if (!pathname || pathname === '/' || pathname === '/dashboard') {
+    return [{ label: 'Dashboard' }];
+  }
+
+  // Find the longest nav-item href that prefixes this pathname.
+  let matched: NavItem | null = null;
+  for (const group of ALL_NAV_GROUPS) {
+    for (const item of group.items) {
+      if (
+        (pathname === item.href || pathname.startsWith(item.href + '/')) &&
+        (!matched || item.href.length > matched.href.length)
+      ) {
+        matched = item;
+      }
+    }
+  }
+
+  const crumbs: DerivedCrumb[] = [{ label: 'Dashboard', href: '/dashboard' }];
+
+  if (matched) {
+    const remainder = pathname.slice(matched.href.length).replace(/^\/+/, '');
+    const isAtItem = remainder.length === 0;
+    crumbs.push({
+      label: matched.label,
+      href: isAtItem ? undefined : matched.href,
+    });
+    if (!isAtItem) {
+      const tail = remainder.split('/').filter(Boolean);
+      tail.forEach((seg, i) => {
+        const isLast = i === tail.length - 1;
+        crumbs.push({ label: humanizeSegment(seg), href: isLast ? undefined : undefined });
+      });
+    }
+    return crumbs;
+  }
+
+  // No nav match — fall back to humanized segments.
+  const segments = pathname.split('/').filter(Boolean);
+  segments.forEach((seg, i) => {
+    const isLast = i === segments.length - 1;
+    crumbs.push({ label: humanizeSegment(seg), href: isLast ? undefined : undefined });
+  });
+  return crumbs;
+}
+
+/**
  * Role display names for UI rendering.
  */
 export const ROLE_DISPLAY_NAMES: Record<Role, string> = {

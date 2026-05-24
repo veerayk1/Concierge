@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CommandPalette } from '@/components/layout/command-palette';
 import { DemoShowcaseBanner } from '@/components/layout/demo-showcase-banner';
 import { ModuleConfigProvider } from '@/lib/hooks/use-module-config';
+import { deriveBreadcrumbs } from '@/lib/navigation';
 import type { Role } from '@/types';
 
 import { getPropertyId, DEMO_PROPERTY } from '@/lib/demo-config';
@@ -26,10 +27,13 @@ const currentProperty = {
 export default function PortalLayout({ children }: { children: ReactNode }) {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [demoRole, setDemoRole] = useState<Role | null>(null);
   const [demoMode, setDemoMode] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  const breadcrumbs = useMemo(() => deriveBreadcrumbs(pathname ?? ''), [pathname]);
 
   const handleSearchOpen = useCallback(() => {
     setCommandPaletteOpen(true);
@@ -90,6 +94,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
           }}
           currentProperty={currentProperty}
           properties={[currentProperty]}
+          breadcrumbs={breadcrumbs}
           notificationCount={isShowcase ? 3 : 0}
           badgeCounts={isShowcase ? { unreleased_packages: 4 } : {}}
           onLogout={() => {
@@ -125,6 +130,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
         }}
         currentProperty={currentProperty}
         properties={[currentProperty]}
+        breadcrumbs={breadcrumbs}
         notificationCount={0}
         onLogout={logout}
         onSearchOpen={handleSearchOpen}
