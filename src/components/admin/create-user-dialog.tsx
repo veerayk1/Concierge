@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { EmailField, PhoneField } from '@/components/forms/primitives';
 import {
   Select,
   SelectContent,
@@ -153,6 +154,7 @@ export function CreateUserDialog({
     watch,
     setValue,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CreateUserInput>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -309,6 +311,8 @@ export function CreateUserDialog({
               {...register('firstName')}
               label="First Name"
               placeholder="e.g. Janet"
+              autoComplete="given-name"
+              maxLength={100}
               required
               error={errors.firstName?.message}
             />
@@ -316,26 +320,16 @@ export function CreateUserDialog({
               {...register('lastName')}
               label="Last Name"
               placeholder="e.g. Smith"
+              autoComplete="family-name"
+              maxLength={100}
               required
               error={errors.lastName?.message}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              {...register('email')}
-              type="email"
-              label="Email Address"
-              placeholder="name@building.com"
-              required
-              error={errors.email?.message}
-            />
-            <Input
-              {...register('phone')}
-              label="Phone Number"
-              placeholder="+1 416-555-0123"
-              error={errors.phone?.message}
-            />
+            <EmailField name="email" control={control} label="Email Address" required />
+            <PhoneField name="phone" control={control} label="Phone Number" />
           </div>
 
           {/* Section: Role & Assignment */}
