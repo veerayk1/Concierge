@@ -438,24 +438,33 @@ export default function GovernancePage() {
       description="Board meetings, resolutions, votes, and governance documents."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled
+            title="Governance export is coming in the next release."
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>
           {activeTab === 'meetings' && (
-            <Button size="sm">
+            <Button size="sm" disabled title="Meeting scheduling is coming in the next release.">
               <Plus className="h-4 w-4" />
               New Meeting
             </Button>
           )}
           {activeTab === 'resolutions' && (
-            <Button size="sm">
+            <Button size="sm" disabled title="Resolution drafting is coming in the next release.">
               <Plus className="h-4 w-4" />
               New Resolution
             </Button>
           )}
           {activeTab === 'documents' && (
-            <Button size="sm">
+            <Button
+              size="sm"
+              disabled
+              title="Governance document upload is coming in the next release."
+            >
               <Plus className="h-4 w-4" />
               Upload Document
             </Button>
