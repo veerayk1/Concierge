@@ -468,6 +468,16 @@ export default function DashboardPage() {
     { id: string; isActive: boolean; unitCount: number }[]
   >(isSuperAdmin ? '/api/v1/properties' : null);
 
+  // Fetch aggregated platform KPIs (active users, subscriptions, health)
+  // so the hero tiles show real numbers instead of em-dashes.
+  const { data: platformKpis } = useApi<{
+    totalProperties: number;
+    activeUsers: number;
+    activeSubscriptions: number;
+    platformHealth: number;
+    openCriticalIncidents: number;
+  }>(isSuperAdmin ? '/api/v1/system/platform-kpis' : null);
+
   // Fetch upcoming tasks from the recurring-tasks API (next 7 days) — skip for super_admin
   const { data: upcomingTasksData, loading: tasksLoading } = useApi<UpcomingTaskItem[]>(
     isSuperAdmin
@@ -485,13 +495,17 @@ export default function DashboardPage() {
       const props = Array.isArray(platformProperties) ? platformProperties : [];
       const activeProps = props.filter((p) => p.isActive);
       const totalUnits = props.reduce((sum, p) => sum + (p.unitCount || 0), 0);
+      // Prefer the live platform-kpis endpoint (active users +
+      // subscriptions + health), fall back to "\u2014" only when that fetch
+      // hasn't returned yet. Total Properties / Total Units come from
+      // the existing properties fetch so they show instantly.
       return {
-        'Total Properties': String(activeProps.length),
-        'Total Users': '\u2014',
-        'Platform Health': '\u2014',
-        'Active Subscriptions': '\u2014',
+        'Total Properties': String(platformKpis?.totalProperties ?? activeProps.length),
+        'Total Users': platformKpis ? String(platformKpis.activeUsers) : '\u2014',
+        'Active Users': platformKpis ? String(platformKpis.activeUsers) : '\u2014',
+        'Platform Health': platformKpis ? `${platformKpis.platformHealth}%` : '\u2014',
+        'Active Subscriptions': platformKpis ? String(platformKpis.activeSubscriptions) : '\u2014',
         'AI Spend': '\u2014',
-        'Active Users': '\u2014',
         'Total Units': String(totalUnits),
       };
     }
@@ -516,7 +530,7 @@ export default function DashboardPage() {
       'Equipment Alerts': String(k.overdueMaintenanceRequests),
     };
     return map;
-  }, [apiData, upcomingTasksData, isSuperAdmin, platformProperties]);
+  }, [apiData, upcomingTasksData, isSuperAdmin, platformProperties, platformKpis]);
 
   // Fetch real AI analytics for building health score (skip for super_admin)
   // NOTE: This hook MUST be called before any early returns to satisfy Rules of Hooks
