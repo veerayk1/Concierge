@@ -123,25 +123,29 @@ const REPORT_STATUS_CONFIG: Record<
 // ---------------------------------------------------------------------------
 
 function ScoreRing({ score, size = 48 }: { score: number; size?: number }) {
+  // Guard against missing/invalid scores so we don't paint a NaN
+  // strokeDashoffset onto the SVG (React logs a warning and the ring
+  // visually collapses).
+  const safeScore = Number.isFinite(Number(score)) ? Math.max(0, Math.min(100, Number(score))) : 0;
   const radius = (size - 6) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
+  const offset = circumference - (safeScore / 100) * circumference;
 
   const color =
-    score >= 90
+    safeScore >= 90
       ? 'text-success-500'
-      : score >= 70
+      : safeScore >= 70
         ? 'text-warning-500'
-        : score > 0
+        : safeScore > 0
           ? 'text-error-500'
           : 'text-neutral-300';
 
   const strokeColor =
-    score >= 90
+    safeScore >= 90
       ? 'stroke-success-500'
-      : score >= 70
+      : safeScore >= 70
         ? 'stroke-warning-500'
-        : score > 0
+        : safeScore > 0
           ? 'stroke-error-500'
           : 'stroke-neutral-300';
 
@@ -173,7 +177,7 @@ function ScoreRing({ score, size = 48 }: { score: number; size?: number }) {
         />
       </svg>
       <span className={`absolute text-[11px] font-bold ${color}`}>
-        {score > 0 ? `${score}%` : 'N/A'}
+        {safeScore > 0 ? `${safeScore}%` : 'N/A'}
       </span>
     </div>
   );
