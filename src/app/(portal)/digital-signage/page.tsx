@@ -355,7 +355,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;backgroun
 .badge{display:inline-block;font-size:12px;padding:4px 10px;border-radius:20px;background:#333;color:#aaa;margin-bottom:16px}
 .empty{text-align:center;color:#666;font-size:20px;padding:80px 0}
 </style></head><body><div class="container">
-${activeItems.length === 0 ? '<div class="empty">No active signage content</div>' : activeItems.map((s) => `<div class="slide"><span class="badge">${s.screen.toUpperCase()} &middot; ${s.type.toUpperCase()}</span><h2>${s.name.replace(/</g, '&lt;')}</h2><p>${s.content.replace(/</g, '&lt;')}</p></div>`).join('')}
+${activeItems.length === 0 ? '<div class="empty">No active signage content</div>' : activeItems.map((s) => `<div class="slide"><span class="badge">${(s.screen ?? '').toUpperCase()} &middot; ${(s.type ?? '').toUpperCase()}</span><h2>${(s.name ?? '').replace(/</g, '&lt;')}</h2><p>${(s.content ?? '').replace(/</g, '&lt;')}</p></div>`).join('')}
 </div></body></html>`;
               const blob = new Blob([previewHtml], { type: 'text/html' });
               const url = URL.createObjectURL(blob);

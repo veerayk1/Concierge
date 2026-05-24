@@ -624,7 +624,7 @@ export default function EventDetailPage() {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `rsvp-export-${event.title.replace(/\s+/g, '-').toLowerCase()}.csv`;
+                    a.download = `rsvp-export-${(event.title ?? 'event').replace(/\s+/g, '-').toLowerCase()}.csv`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
