@@ -26,6 +26,26 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Input } from '@/components/ui/input';
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Formats an audit date string for the framework cards. Falls back to "—"
+ * when the source is missing or unparseable, instead of rendering the
+ * literal string "Invalid Date" from `new Date(undefined).toLocaleDateString()`.
+ */
+function formatAuditDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -340,14 +360,18 @@ export default function CompliancePage() {
     };
   }, [apiData]);
 
-  // Summary stats
+  // Summary stats. Guard the math — when the API hasn't yet recorded
+  // controlsTotal / controlsPassing on a freshly seeded property, raw
+  // arithmetic produces NaN and gets rendered straight to the user.
   const stats = useMemo(() => {
     const monitored = frameworks.filter((f) => f.status !== 'not_applicable').length;
     const fullyCompliant = frameworks.filter((f) => f.status === 'compliant').length;
-    const actionItems = frameworks.reduce(
-      (sum, f) => sum + (f.controlsTotal - f.controlsPassing),
-      0,
-    );
+    const actionItems = frameworks.reduce((sum, f) => {
+      const total = Number(f.controlsTotal) || 0;
+      const passing = Number(f.controlsPassing) || 0;
+      const open = Math.max(0, total - passing);
+      return sum + open;
+    }, 0);
     return { monitored, fullyCompliant, actionItems };
   }, [frameworks]);
 
@@ -397,15 +421,7 @@ export default function CompliancePage() {
       header: 'Generated',
       accessorKey: 'generatedAt',
       sortable: true,
-      cell: (row) => (
-        <span className="text-neutral-600">
-          {new Date(row.generatedAt).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })}
-        </span>
-      ),
+      cell: (row) => <span className="text-neutral-600">{formatAuditDate(row.generatedAt)}</span>,
     },
     {
       id: 'status',
@@ -571,7 +587,9 @@ export default function CompliancePage() {
                               <div className="flex items-center justify-between text-[11px]">
                                 <span className="text-neutral-500">Controls</span>
                                 <span className="font-medium text-neutral-700">
-                                  {framework.controlsPassing}/{framework.controlsTotal}
+                                  {Number(framework.controlsTotal) > 0
+                                    ? `${Number(framework.controlsPassing) || 0}/${Number(framework.controlsTotal)}`
+                                    : '—'}
                                 </span>
                               </div>
                               <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
@@ -605,21 +623,13 @@ export default function CompliancePage() {
                             <div className="flex items-center justify-between text-[11px]">
                               <span className="text-neutral-500">Last Audit</span>
                               <span className="text-neutral-600">
-                                {new Date(framework.lastAudit).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric',
-                                })}
+                                {formatAuditDate(framework.lastAudit)}
                               </span>
                             </div>
                             <div className="flex items-center justify-between text-[11px]">
                               <span className="text-neutral-500">Next Audit</span>
                               <span className="text-neutral-600">
-                                {new Date(framework.nextAudit).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric',
-                                })}
+                                {formatAuditDate(framework.nextAudit)}
                               </span>
                             </div>
                           </div>
