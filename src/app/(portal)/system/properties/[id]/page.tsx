@@ -194,11 +194,10 @@ export default function PropertyDetailPage() {
         <Card>
           <h3 className="mb-4 text-[16px] font-semibold text-neutral-900">Property Information</h3>
           <div className="flex flex-col gap-3">
-            <InfoRow
-              icon={MapPin}
-              label="Address"
-              value={`${property.address}, ${property.city}, ${property.province} ${property.postalCode}`}
-            />
+            <InfoRow icon={MapPin} label="Street Address" value={property.address} />
+            <InfoRow icon={MapPin} label="City" value={property.city} />
+            <InfoRow icon={MapPin} label="Province / State" value={property.province} />
+            <InfoRow icon={MapPin} label="Postal Code" value={property.postalCode} />
             <InfoRow icon={Globe} label="Country" value={property.country} />
             <InfoRow icon={Clock} label="Timezone" value={property.timezone} />
             <InfoRow icon={Calendar} label="Created" value={createdDate} />
