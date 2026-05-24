@@ -1,9 +1,7 @@
 'use client';
 
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-
-const HeroCanvas = lazy(() => import('./HeroCanvas').then((mod) => ({ default: mod.HeroCanvas })));
 
 const STAT_ROW = [
   { from: '5', to: '1', label: 'tools' },
@@ -54,19 +52,49 @@ export function HeroSection() {
         paddingTop: 72,
       }}
     >
-      {/* Background radial glow */}
+      {/* Primary brass aurora — soft, off-center, anchors the headline */}
       <div
         aria-hidden="true"
+        className="mkt-hero-aurora-a"
         style={{
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(ellipse 720px 480px at 50% 40%, rgba(201, 169, 110, 0.10), transparent 70%)',
+            'radial-gradient(ellipse 900px 600px at 50% 30%, rgba(201, 169, 110, 0.18), transparent 65%)',
           pointerEvents: 'none',
+          mixBlendMode: 'screen',
         }}
       />
 
-      {/* Subtle grid texture */}
+      {/* Secondary deep amber glow — adds depth, falls off into the page below */}
+      <div
+        aria-hidden="true"
+        className="mkt-hero-aurora-b"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(ellipse 700px 400px at 80% 90%, rgba(212, 186, 133, 0.12), transparent 60%)',
+          pointerEvents: 'none',
+          mixBlendMode: 'screen',
+        }}
+      />
+
+      {/* Cool counter-glow — tiny hint of blue, keeps the palette from going too warm */}
+      <div
+        aria-hidden="true"
+        className="mkt-hero-aurora-c"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(ellipse 600px 500px at 12% 75%, rgba(91, 130, 212, 0.08), transparent 60%)',
+          pointerEvents: 'none',
+          mixBlendMode: 'screen',
+        }}
+      />
+
+      {/* Subtle grid texture — gives the dark surface architectural structure */}
       <div
         aria-hidden="true"
         style={{
@@ -75,28 +103,54 @@ export function HeroSection() {
           backgroundImage:
             'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
           backgroundSize: '64px 64px',
-          maskImage: 'radial-gradient(ellipse 80% 60% at 50% 50%, #000 30%, transparent 80%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 50%, #000 30%, transparent 80%)',
+          maskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 85%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 85%)',
           pointerEvents: 'none',
         }}
       />
 
-      <Suspense fallback={null}>
-        <HeroCanvas />
-      </Suspense>
-
-      {/* Mobile fallback gradient */}
+      {/* Top vignette — pulls focus inward so the headline reads first */}
       <div
         aria-hidden="true"
-        className="block md:hidden"
         style={{
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(ellipse 400px 300px at 50% 50%, rgba(201, 169, 110, 0.06), transparent)',
+            'linear-gradient(180deg, rgba(10,10,10,0.6) 0%, transparent 25%, transparent 75%, rgba(10,10,10,0.85) 100%)',
           pointerEvents: 'none',
         }}
       />
+
+      <style jsx global>{`
+        @keyframes mktHeroAuroraDrift {
+          0%,
+          100% {
+            transform: translate3d(0, 0, 0);
+          }
+          50% {
+            transform: translate3d(2%, -1.5%, 0);
+          }
+        }
+        @keyframes mktHeroAuroraDriftB {
+          0%,
+          100% {
+            transform: translate3d(0, 0, 0);
+          }
+          50% {
+            transform: translate3d(-1.5%, 1%, 0);
+          }
+        }
+        @media (prefers-reduced-motion: no-preference) {
+          .mkt-hero-aurora-a {
+            animation: mktHeroAuroraDrift 18s ease-in-out infinite;
+            will-change: transform;
+          }
+          .mkt-hero-aurora-b {
+            animation: mktHeroAuroraDriftB 22s ease-in-out infinite;
+            will-change: transform;
+          }
+        }
+      `}</style>
 
       <div
         style={{
