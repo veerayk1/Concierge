@@ -23,6 +23,7 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CreateVisitorDialog } from '@/components/forms/create-visitor-dialog';
@@ -62,13 +63,16 @@ const VISITOR_TYPE_LABELS: Record<VisitorItem['visitorType'], string> = {
   other: 'Other',
 };
 
+// Visitor type chip colours. Soft, calmer palette — these chips appear on
+// every row of the table and need to read as taxonomy, not status. Emergency
+// stays red (real signal). Everything else is a low-saturation neutral.
 const VISITOR_TYPE_COLORS: Record<VisitorItem['visitorType'], string> = {
-  visitor: 'bg-blue-100 text-blue-700',
-  contractor: 'bg-orange-100 text-orange-700',
-  delivery_person: 'bg-purple-100 text-purple-700',
-  real_estate_agent: 'bg-teal-100 text-teal-700',
-  emergency_service: 'bg-red-100 text-red-700',
-  other: 'bg-neutral-100 text-neutral-700',
+  visitor: 'bg-neutral-100 text-neutral-700',
+  contractor: 'bg-amber-50 text-amber-700',
+  delivery_person: 'bg-neutral-100 text-neutral-700',
+  real_estate_agent: 'bg-neutral-100 text-neutral-700',
+  emergency_service: 'bg-red-50 text-red-700',
+  other: 'bg-neutral-100 text-neutral-600',
 };
 
 // ---------------------------------------------------------------------------
@@ -435,41 +439,29 @@ export default function VisitorsPage() {
 
       {!loading && !error && (
         <>
-          {/* Summary Cards */}
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card padding="sm" className="flex items-center gap-4">
-              <div className="bg-warning-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                <LogIn className="text-warning-600 h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {totalCurrentlyIn}
-                </p>
-                <p className="text-[13px] text-neutral-500">Currently In Building</p>
-              </div>
-            </Card>
-            <Card padding="sm" className="flex items-center gap-4">
-              <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                <Users className="text-info-600 h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {totalSignedInToday}
-                </p>
-                <p className="text-[13px] text-neutral-500">Total Today</p>
-              </div>
-            </Card>
-            <Card padding="sm" className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
-                <Clock className="h-5 w-5 text-neutral-600" />
-              </div>
-              <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {totalExpected}
-                </p>
-                <p className="text-[13px] text-neutral-500">Expected</p>
-              </div>
-            </Card>
+          {/* Summary tiles */}
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <KpiTile
+              label="Currently in building"
+              value={totalCurrentlyIn}
+              icon={LogIn}
+              accent="warning"
+              caption={totalCurrentlyIn === 0 ? 'Lobby is empty.' : 'On site right now.'}
+            />
+            <KpiTile
+              label="Signed in today"
+              value={totalSignedInToday}
+              icon={Users}
+              accent="info"
+              caption="Visitor traffic since midnight."
+            />
+            <KpiTile
+              label="Expected"
+              value={totalExpected}
+              icon={Clock}
+              accent="neutral"
+              caption="Pre-authorized for later today."
+            />
           </div>
 
           {/* Search + Filters */}
