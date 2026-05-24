@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from 'react';
 import {
   AlertTriangle,
   Calendar,
+  CheckCircle2,
   Clock,
   DollarSign,
   Dumbbell,
@@ -139,6 +140,9 @@ export default function AmenityBookingPage() {
     null,
   );
   const [cancelling, setCancelling] = useState<string | null>(null);
+  // Page-level toast for events that outlive the modal (e.g., booking submit
+  // closes the dialog and the resident loses the in-dialog confirmation).
+  const [pageBanner, setPageBanner] = useState<{ type: 'success'; message: string } | null>(null);
 
   // Booking form state
   const [startDate, setStartDate] = useState('');
@@ -227,15 +231,23 @@ export default function AmenityBookingPage() {
         }
 
         const result = await resp.json();
-        setFeedback({
-          type: 'success',
-          message: result.message || 'Booking submitted successfully.',
-        });
+        const successMessage =
+          result.message || `Booking submitted for ${selectedAmenity?.name ?? 'this amenity'}.`;
+        setFeedback({ type: 'success', message: successMessage });
 
         setTimeout(() => {
           setBookingDialogOpen(false);
           setFeedback(null);
           refetchBookings();
+          // Surface the success on the page itself so it survives the dialog
+          // close, then scroll the resident down to the My Bookings table so
+          // they can see the new entry. Auto-dismiss after 5s.
+          setPageBanner({ type: 'success', message: successMessage });
+          if (typeof window !== 'undefined') {
+            const target = document.getElementById('my-bookings');
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          setTimeout(() => setPageBanner(null), 5000);
         }, 1200);
       } catch {
         setFeedback({ type: 'error', message: 'An unexpected error occurred.' });
@@ -399,6 +411,30 @@ export default function AmenityBookingPage() {
 
   return (
     <PageShell title="Book an Amenity" description="Reserve building amenities for your use.">
+      {pageBanner && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="border-success-200 bg-success-50 text-success-700 mb-6 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3 text-[14px]"
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span className="font-medium">{pageBanner.message}</span>
+            <a href="#my-bookings" className="ml-2 underline-offset-2 hover:underline">
+              View my bookings →
+            </a>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPageBanner(null)}
+            className="text-success-700/70 hover:text-success-700 shrink-0"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Amenity Cards Grid */}
       <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {amenities
@@ -453,7 +489,7 @@ export default function AmenityBookingPage() {
       </div>
 
       {/* My Upcoming Bookings */}
-      <div>
+      <div id="my-bookings">
         <div className="mb-3 flex items-center gap-2">
           <h2 className="text-[14px] font-semibold text-neutral-900">My Bookings</h2>
           <Badge variant="primary" size="sm">
