@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   MessageSquare,
   Plus,
@@ -122,6 +123,7 @@ function formatRelativeTime(dateStr: string): string {
 // ---------------------------------------------------------------------------
 
 export default function ForumPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ThreadCategory | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<ThreadStatus | 'all'>('all');
@@ -453,6 +455,7 @@ export default function ForumPage() {
       <DataTable
         columns={columns}
         data={filteredThreads}
+        onRowClick={(row) => router.push(`/forum/${row.id}` as never)}
         emptyMessage="No threads found."
         emptyIcon={<MessageSquare className="h-6 w-6" />}
       />
