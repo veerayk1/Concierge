@@ -363,6 +363,7 @@ export default function IdeasPage() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         propertyId={getPropertyId()}
+        onSuccess={() => refetch()}
       />
     </PageShell>
   );

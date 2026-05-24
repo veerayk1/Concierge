@@ -493,6 +493,7 @@ export default function EquipmentPage() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         propertyId={getPropertyId()}
+        onSuccess={() => refetch()}
       />
     </PageShell>
   );
