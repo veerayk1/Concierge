@@ -375,11 +375,29 @@ export default function ReportsPage() {
                           {report.meta.description}
                         </p>
                         <div className="mt-3 flex items-center gap-2">
-                          {report.meta.formats.map((fmt) => (
-                            <Badge key={fmt} variant="default" size="sm">
-                              {fmt}
-                            </Badge>
-                          ))}
+                          {report.meta.formats.map((fmt) => {
+                            const supported = fmt.toLowerCase() === 'csv';
+                            return (
+                              <Badge
+                                key={fmt}
+                                variant="default"
+                                size="sm"
+                                className={supported ? '' : 'opacity-40'}
+                                title={
+                                  supported
+                                    ? `${fmt} export available`
+                                    : `${fmt} export coming soon`
+                                }
+                              >
+                                {fmt}
+                                {!supported && (
+                                  <span className="ml-1 text-[10px] tracking-wide uppercase">
+                                    soon
+                                  </span>
+                                )}
+                              </Badge>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
@@ -390,10 +408,9 @@ export default function ReportsPage() {
                         fullWidth
                         disabled={isGenerating}
                         onClick={() => handleGenerate(report.type)}
-                        className="opacity-0 transition-opacity group-hover:opacity-100"
                       >
                         <Download className="h-3.5 w-3.5" />
-                        {isGenerating ? 'Generating...' : 'Generate'}
+                        {isGenerating ? 'Generating...' : 'Download CSV'}
                       </Button>
                     </div>
                   </Card>
