@@ -18,7 +18,7 @@
  * Auto-switches property context after creation so admin can immediately manage it.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Building2, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -82,12 +82,24 @@ interface CreatePropertyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: (propertyId?: string) => void;
+  /**
+   * If provided, the dialog opens in EDIT mode: pre-fills with this property's
+   * current values, changes the title to "Edit Property", and PATCHes instead
+   * of POSTing. Pass any object matching CreatePropertyInput plus { id }.
+   */
+  editingProperty?: (Partial<CreatePropertyInput> & { id: string }) | null;
 }
 
-export function CreatePropertyDialog({ open, onOpenChange, onSuccess }: CreatePropertyDialogProps) {
+export function CreatePropertyDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+  editingProperty,
+}: CreatePropertyDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const isEditMode = Boolean(editingProperty);
 
   const {
     control,
@@ -102,6 +114,19 @@ export function CreatePropertyDialog({ open, onOpenChange, onSuccess }: CreatePr
     defaultValues: DEFAULT_VALUES,
     mode: 'onBlur',
   });
+
+  // Pre-fill the form when entering edit mode — runs whenever the
+  // editingProperty changes (e.g., a different property is selected).
+  useEffect(() => {
+    if (editingProperty) {
+      reset({
+        ...DEFAULT_VALUES,
+        ...editingProperty,
+      } as CreatePropertyInput);
+    } else {
+      reset(DEFAULT_VALUES);
+    }
+  }, [editingProperty, reset]);
 
   const country = watch('country');
 
@@ -118,20 +143,28 @@ export function CreatePropertyDialog({ open, onOpenChange, onSuccess }: CreatePr
     };
 
     try {
-      const res = await apiRequest('/api/v1/properties', { method: 'POST', body: payload });
+      const url = isEditMode ? `/api/v1/properties/${editingProperty!.id}` : '/api/v1/properties';
+      const method = isEditMode ? 'PATCH' : 'POST';
+      const res = await apiRequest(url, { method, body: payload });
       const result = await res.json();
 
       if (!res.ok) {
-        setServerError(result.message || `Failed to create property (${res.status})`);
+        const verb = isEditMode ? 'update' : 'create';
+        setServerError(result.message || `Failed to ${verb} property (${res.status})`);
         return;
       }
 
-      const newPropertyId = result.data?.id;
-      if (newPropertyId && typeof window !== 'undefined') {
+      const newPropertyId = result.data?.id ?? editingProperty?.id;
+      if (newPropertyId && typeof window !== 'undefined' && !isEditMode) {
+        // Only switch context on CREATE — when editing, stay where you are.
         localStorage.setItem('demo_propertyId', newPropertyId);
       }
 
-      setSuccessMsg(`Property "${result.data?.name || data.name}" created successfully.`);
+      setSuccessMsg(
+        isEditMode
+          ? `Saved changes to "${data.name}".`
+          : `Property "${result.data?.name || data.name}" created successfully.`,
+      );
       setTimeout(() => {
         reset(DEFAULT_VALUES);
         setSuccessMsg(null);
@@ -164,10 +197,12 @@ export function CreatePropertyDialog({ open, onOpenChange, onSuccess }: CreatePr
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
           <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
             <Building2 className="text-primary-500 h-5 w-5" />
-            Add Property
+            {isEditMode ? 'Edit Property' : 'Add Property'}
           </DialogTitle>
           <DialogDescription className="text-[14px] text-neutral-500">
-            Create a new property. Required fields are marked with an asterisk.
+            {isEditMode
+              ? 'Update this property’s details. Changes apply immediately.'
+              : 'Create a new property. Required fields are marked with an asterisk.'}
           </DialogDescription>
 
           <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-5" noValidate>
@@ -416,8 +451,10 @@ export function CreatePropertyDialog({ open, onOpenChange, onSuccess }: CreatePr
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Creating…
+                    {isEditMode ? 'Saving…' : 'Creating…'}
                   </>
+                ) : isEditMode ? (
+                  'Save Changes'
                 ) : (
                   'Create Property'
                 )}

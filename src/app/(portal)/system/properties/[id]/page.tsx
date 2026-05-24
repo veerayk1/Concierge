@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Building2,
@@ -9,7 +10,7 @@ import {
   Globe,
   Clock,
   ArrowLeft,
-  Settings,
+  Pencil,
   Activity,
   Package,
   Wrench,
@@ -22,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useApi } from '@/lib/hooks/use-api';
+import { CreatePropertyDialog } from '@/components/admin/create-property-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -55,8 +57,14 @@ export default function PropertyDetailPage() {
   const params = useParams();
   const router = useRouter();
   const propertyId = params.id as string;
+  const [editOpen, setEditOpen] = useState(false);
 
-  const { data: property, loading, error } = useApi<Property>(`/api/v1/properties/${propertyId}`);
+  const {
+    data: property,
+    loading,
+    error,
+    refetch,
+  } = useApi<Property>(`/api/v1/properties/${propertyId}`);
 
   if (loading) {
     return (
@@ -125,9 +133,9 @@ export default function PropertyDetailPage() {
             <ExternalLink className="h-4 w-4" />
             Open Portal
           </Button>
-          <Button onClick={() => router.push('/settings')}>
-            <Settings className="h-4 w-4" />
-            Settings
+          <Button onClick={() => setEditOpen(true)}>
+            <Pencil className="h-4 w-4" />
+            Edit
           </Button>
         </div>
       </div>
@@ -249,6 +257,31 @@ export default function PropertyDetailPage() {
           </div>
         </Card>
       </div>
+
+      <CreatePropertyDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        editingProperty={
+          property
+            ? {
+                id: property.id,
+                name: property.name,
+                slug: property.slug ?? '',
+                address: property.address,
+                city: property.city,
+                province: property.province as never,
+                postalCode: property.postalCode,
+                country: (property.country === 'US' ? 'US' : 'CA') as 'CA' | 'US',
+                type: (property.type as 'PRODUCTION' | 'DEMO' | 'SANDBOX') ?? 'PRODUCTION',
+                unitCount: property.unitCount,
+                timezone: property.timezone,
+              }
+            : null
+        }
+        onSuccess={() => {
+          refetch();
+        }}
+      />
     </div>
   );
 }
