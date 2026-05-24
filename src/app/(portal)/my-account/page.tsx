@@ -491,6 +491,8 @@ export default function MyAccountPage() {
               onChange={(e) => setFirstName(e.target.value)}
               error={fieldErrors.firstName?.[0]}
               disabled={saving}
+              autoComplete="given-name"
+              maxLength={100}
             />
             <Input
               label="Last Name"
@@ -499,6 +501,8 @@ export default function MyAccountPage() {
               onChange={(e) => setLastName(e.target.value)}
               error={fieldErrors.lastName?.[0]}
               disabled={saving}
+              autoComplete="family-name"
+              maxLength={100}
             />
             <Input
               label="Phone"
@@ -508,11 +512,15 @@ export default function MyAccountPage() {
               error={fieldErrors.phone?.[0]}
               helperText="Optional. Format: +1 (555) 123-4567"
               disabled={saving}
+              autoComplete="tel"
+              maxLength={30}
             />
             <Input
               label="Email"
+              type="email"
               value={user.email}
               disabled
+              autoComplete="email"
               helperText="Email changes require a verification process. Contact your administrator."
             />
 
