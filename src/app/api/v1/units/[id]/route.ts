@@ -139,19 +139,33 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Flatten OccupancyRecord → Occupant for the page consumer. The page
-    // (src/app/(portal)/units/[id]/page.tsx) reads apiUnit.occupants as a
-    // user-shaped array, so map { id, residentType, isPrimary, user } down
-    // to { id, firstName, lastName, email, phone, residentType, isPrimary }.
+    // (src/app/(portal)/units/[id]/page.tsx) renders {name, type, email,
+    // phone, moveInDate, status} columns, so map the joined shape directly
+    // to that interface.
     type OccupancyWithUser = (typeof unit.occupancyRecords)[number];
+    const residentTypeLabel = (raw: string): string => {
+      switch (raw) {
+        case 'owner':
+          return 'Owner';
+        case 'tenant':
+          return 'Tenant';
+        case 'family_member':
+          return 'Family';
+        case 'offsite_owner':
+          return 'Offsite Owner';
+        default:
+          return raw;
+      }
+    };
     const occupants = (unit.occupancyRecords as OccupancyWithUser[]).map((occ) => ({
       id: occ.user.id,
-      firstName: occ.user.firstName,
-      lastName: occ.user.lastName,
+      name: `${occ.user.firstName ?? ''} ${occ.user.lastName ?? ''}`.trim() || occ.user.email,
+      type: residentTypeLabel(occ.residentType),
       email: occ.user.email,
-      phone: occ.user.phone,
-      residentType: occ.residentType,
-      isPrimary: occ.isPrimary,
+      phone: occ.user.phone ?? '',
       moveInDate: occ.moveInDate,
+      status: 'active' as const,
+      isPrimary: occ.isPrimary,
     }));
 
     return NextResponse.json({ data: { ...unit, occupants } });
