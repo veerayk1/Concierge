@@ -41,6 +41,24 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       where: { id, deletedAt: null },
       include: {
         building: { select: { id: true, name: true } },
+        // UX-058: detail page header reads `occupants.length` to render the
+        // "Occupants" stat tile. Previously this came back undefined, so
+        // every unit reported "0 Occupants" even when the list view showed
+        // the resident's name. Fetch active occupancy records (moveOutDate
+        // is null) joined with the user.
+        occupancyRecords: {
+          where: { moveOutDate: null },
+          orderBy: [{ isPrimary: 'desc' }, { moveInDate: 'asc' }],
+          select: {
+            id: true,
+            residentType: true,
+            isPrimary: true,
+            moveInDate: true,
+            user: {
+              select: { id: true, firstName: true, lastName: true, email: true, phone: true },
+            },
+          },
+        },
         unitInstructions: {
           where: { isActive: true },
           select: { id: true, instructionText: true, priority: true, createdAt: true },
@@ -120,7 +138,23 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    return NextResponse.json({ data: unit });
+    // Flatten OccupancyRecord → Occupant for the page consumer. The page
+    // (src/app/(portal)/units/[id]/page.tsx) reads apiUnit.occupants as a
+    // user-shaped array, so map { id, residentType, isPrimary, user } down
+    // to { id, firstName, lastName, email, phone, residentType, isPrimary }.
+    type OccupancyWithUser = (typeof unit.occupancyRecords)[number];
+    const occupants = (unit.occupancyRecords as OccupancyWithUser[]).map((occ) => ({
+      id: occ.user.id,
+      firstName: occ.user.firstName,
+      lastName: occ.user.lastName,
+      email: occ.user.email,
+      phone: occ.user.phone,
+      residentType: occ.residentType,
+      isPrimary: occ.isPrimary,
+      moveInDate: occ.moveInDate,
+    }));
+
+    return NextResponse.json({ data: { ...unit, occupants } });
   } catch (error) {
     console.error('GET /api/v1/units/:id error:', error);
     return NextResponse.json(
