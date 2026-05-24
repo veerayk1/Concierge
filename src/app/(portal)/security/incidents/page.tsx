@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Download, Plus, Search, ShieldAlert, X, Loader2 } from 'lucide-react';
 import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
@@ -69,6 +70,7 @@ interface Incident {
 
 export default function IncidentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const router = useRouter();
   const [showReportDialog, setShowReportDialog] = useState(false);
 
   // Fetch security events from the unified event model
@@ -301,6 +303,7 @@ export default function IncidentsPage() {
           data={incidents}
           emptyMessage="No incidents match your search."
           emptyIcon={<ShieldAlert className="h-6 w-6" />}
+          onRowClick={(row) => router.push(`/events/${row.id}`)}
         />
       )}
 
