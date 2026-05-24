@@ -17,9 +17,7 @@ function BrowserMockup({ isVisible }: { isVisible: boolean }) {
     >
       <div
         style={{
-          transform: isVisible
-            ? 'rotateY(0deg) rotateX(0deg)'
-            : 'rotateY(-2deg) rotateX(2deg)',
+          transform: isVisible ? 'rotateY(0deg) rotateX(0deg)' : 'rotateY(-2deg) rotateX(2deg)',
           transition: 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
           borderRadius: 16,
           overflow: 'hidden',
@@ -128,9 +126,7 @@ function BrowserMockup({ isVisible }: { isVisible: boolean }) {
                   height: 32,
                   borderRadius: 6,
                   background:
-                    i === 0
-                      ? 'rgba(201, 169, 110, 0.12)'
-                      : `rgba(255,255,255,${opacity})`,
+                    i === 0 ? 'rgba(201, 169, 110, 0.12)' : `rgba(255,255,255,${opacity})`,
                   display: 'flex',
                   alignItems: 'center',
                   paddingInline: 10,
@@ -143,9 +139,7 @@ function BrowserMockup({ isVisible }: { isVisible: boolean }) {
                     height: 14,
                     borderRadius: 3,
                     background:
-                      i === 0
-                        ? 'rgba(201, 169, 110, 0.4)'
-                        : `rgba(255,255,255,${opacity + 0.04})`,
+                      i === 0 ? 'rgba(201, 169, 110, 0.4)' : `rgba(255,255,255,${opacity + 0.04})`,
                   }}
                 />
                 <div
@@ -154,9 +148,7 @@ function BrowserMockup({ isVisible }: { isVisible: boolean }) {
                     width: `${50 + i * 8}%`,
                     borderRadius: 4,
                     background:
-                      i === 0
-                        ? 'rgba(201, 169, 110, 0.3)'
-                        : `rgba(255,255,255,${opacity + 0.02})`,
+                      i === 0 ? 'rgba(201, 169, 110, 0.3)' : `rgba(255,255,255,${opacity + 0.02})`,
                   }}
                 />
               </div>
@@ -298,9 +290,7 @@ export function SolutionSection() {
     const el = sectionRef.current;
     if (!el) return;
 
-    const prefersReducedMotion = window.matchMedia(
-      '(prefers-reduced-motion: reduce)'
-    ).matches;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) {
       setIsVisible(true);
       return;
@@ -313,7 +303,7 @@ export function SolutionSection() {
           observer.unobserve(el);
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     observer.observe(el);
@@ -363,10 +353,7 @@ export function SolutionSection() {
           </ScrollReveal>
 
           <ScrollReveal delay={100}>
-            <h2
-              className="mkt-section-headline"
-              style={{ marginTop: '1.25rem', color: '#fff' }}
-            >
+            <h2 className="mkt-section-headline" style={{ marginTop: '1.25rem', color: '#fff' }}>
               One platform. Every building. No compromises.
             </h2>
           </ScrollReveal>
@@ -382,10 +369,9 @@ export function SolutionSection() {
                 marginInline: 'auto',
               }}
             >
-              Concierge is a unified building management platform that replaces your entire stack —
-              packages, maintenance, security logs, visitor management, amenity bookings, parking,
-              resident communications, and more. One login. One design language. One system that
-              actually works together.
+              One login replaces the dozen your team juggles today. Packages, maintenance, security
+              logs, visitors, amenities, parking, resident comms. Same data, same design, same
+              product. Everything finally talks.
             </p>
           </ScrollReveal>
         </div>
