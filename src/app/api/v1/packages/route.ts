@@ -115,7 +115,23 @@ export async function GET(request: NextRequest) {
       prisma.package.findMany({
         where,
         include: {
-          unit: { select: { id: true, number: true } },
+          unit: {
+            select: {
+              id: true,
+              number: true,
+              // Primary occupant first so the client can show a Recipient name
+              // even when releasedToName is empty (i.e. unreleased packages).
+              occupancyRecords: {
+                where: { moveOutDate: null },
+                select: {
+                  isPrimary: true,
+                  user: { select: { firstName: true, lastName: true } },
+                },
+                orderBy: [{ isPrimary: 'desc' }, { moveInDate: 'asc' }],
+                take: 1,
+              },
+            },
+          },
           courier: { select: { id: true, name: true, iconUrl: true, color: true } },
           storageSpot: { select: { id: true, name: true, code: true } },
           parcelCategory: { select: { id: true, name: true } },

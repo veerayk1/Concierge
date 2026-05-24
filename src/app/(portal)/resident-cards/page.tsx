@@ -224,8 +224,8 @@ export default function ResidentCardsPage() {
       accessorKey: 'type',
       sortable: true,
       cell: (row) => (
-        <Badge variant={TYPE_BADGE_VARIANT[row.type]} size="sm">
-          {TYPE_LABELS[row.type]}
+        <Badge variant={TYPE_BADGE_VARIANT[row.type] ?? 'default'} size="sm">
+          {TYPE_LABELS[row.type] ?? row.type}
         </Badge>
       ),
     },

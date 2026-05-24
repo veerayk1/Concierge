@@ -179,8 +179,8 @@ export default function SurveysPage() {
       accessorKey: 'type',
       sortable: true,
       cell: (row) => (
-        <Badge variant={TYPE_COLORS[row.type]} size="sm">
-          {TYPE_LABELS[row.type]}
+        <Badge variant={TYPE_COLORS[row.type] ?? 'default'} size="sm">
+          {TYPE_LABELS[row.type] ?? row.type}
         </Badge>
       ),
     },
@@ -190,8 +190,8 @@ export default function SurveysPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => (
-        <Badge variant={STATUS_COLORS[row.status]} size="sm" dot>
-          {STATUS_LABELS[row.status]}
+        <Badge variant={STATUS_COLORS[row.status] ?? 'default'} size="sm" dot>
+          {STATUS_LABELS[row.status] ?? row.status}
         </Badge>
       ),
     },

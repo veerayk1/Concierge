@@ -217,12 +217,13 @@ export default function VisitorsPage() {
       accessorKey: 'visitorType',
       sortable: true,
       cell: (row) => {
-        const colorClass = VISITOR_TYPE_COLORS[row.visitorType];
+        const colorClass =
+          VISITOR_TYPE_COLORS[row.visitorType] ?? 'bg-neutral-100 text-neutral-700';
         return (
           <span
             className={`inline-flex items-center rounded-lg px-2 py-0.5 text-[12px] font-semibold ${colorClass}`}
           >
-            {VISITOR_TYPE_LABELS[row.visitorType]}
+            {VISITOR_TYPE_LABELS[row.visitorType] ?? row.visitorType}
           </span>
         );
       },
@@ -308,12 +309,13 @@ export default function VisitorsPage() {
       accessorKey: 'visitorType',
       sortable: true,
       cell: (row) => {
-        const colorClass = VISITOR_TYPE_COLORS[row.visitorType];
+        const colorClass =
+          VISITOR_TYPE_COLORS[row.visitorType] ?? 'bg-neutral-100 text-neutral-700';
         return (
           <span
             className={`inline-flex items-center rounded-lg px-2 py-0.5 text-[12px] font-semibold ${colorClass}`}
           >
-            {VISITOR_TYPE_LABELS[row.visitorType]}
+            {VISITOR_TYPE_LABELS[row.visitorType] ?? row.visitorType}
           </span>
         );
       },

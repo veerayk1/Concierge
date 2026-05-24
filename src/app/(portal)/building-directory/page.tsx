@@ -128,7 +128,10 @@ export default function BuildingDirectoryPage() {
       accessorKey: 'category',
       sortable: true,
       cell: (row) => {
-        const cfg = CATEGORY_CONFIG[row.category];
+        const cfg = CATEGORY_CONFIG[row.category] ?? {
+          variant: 'default' as const,
+          label: row.category,
+        };
         return (
           <Badge variant={cfg.variant} size="sm">
             {cfg.label}

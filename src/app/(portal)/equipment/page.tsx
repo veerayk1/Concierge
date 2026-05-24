@@ -181,8 +181,8 @@ export default function EquipmentPage() {
       accessorKey: 'category',
       sortable: true,
       cell: (row) => (
-        <Badge variant={CATEGORY_COLORS[row.category]} size="sm">
-          {CATEGORY_LABELS[row.category]}
+        <Badge variant={CATEGORY_COLORS[row.category] ?? 'default'} size="sm">
+          {CATEGORY_LABELS[row.category] ?? row.category}
         </Badge>
       ),
     },
@@ -210,8 +210,8 @@ export default function EquipmentPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => (
-        <Badge variant={STATUS_COLORS[row.status]} size="sm" dot>
-          {STATUS_LABELS[row.status]}
+        <Badge variant={STATUS_COLORS[row.status] ?? 'default'} size="sm" dot>
+          {STATUS_LABELS[row.status] ?? row.status}
         </Badge>
       ),
     },

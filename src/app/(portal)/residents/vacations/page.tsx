@@ -222,8 +222,11 @@ export default function VacationsPage() {
           upcoming: { label: 'Upcoming', variant: 'info' },
           completed: { label: 'Completed', variant: 'default' },
         };
-        const config = statusConfig[row.status];
-        return <Badge variant={config?.variant}>{config?.label}</Badge>;
+        const config = statusConfig[row.status] ?? {
+          label: row.status,
+          variant: 'default' as const,
+        };
+        return <Badge variant={config.variant}>{config.label}</Badge>;
       },
     },
     {

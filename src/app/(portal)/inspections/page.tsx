@@ -253,8 +253,8 @@ export default function InspectionsPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => (
-        <Badge variant={STATUS_BADGE_VARIANT[row.status]} size="sm" dot>
-          {STATUS_LABELS[row.status]}
+        <Badge variant={STATUS_BADGE_VARIANT[row.status] ?? 'default'} size="sm" dot>
+          {STATUS_LABELS[row.status] ?? row.status}
         </Badge>
       ),
     },
@@ -272,7 +272,7 @@ export default function InspectionsPage() {
       accessorKey: 'priority',
       sortable: true,
       cell: (row) => (
-        <Badge variant={PRIORITY_BADGE_VARIANT[row.priority]} size="sm" dot>
+        <Badge variant={PRIORITY_BADGE_VARIANT[row.priority] ?? 'default'} size="sm" dot>
           {row.priority}
         </Badge>
       ),

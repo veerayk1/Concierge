@@ -332,7 +332,10 @@ export default function VendorDetailPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
-        const cfg = WO_STATUS_CONFIG[row.status];
+        const cfg = WO_STATUS_CONFIG[row.status] ?? {
+          variant: 'default' as const,
+          label: row.status,
+        };
         return (
           <Badge variant={cfg.variant} size="sm" dot>
             {cfg.label}

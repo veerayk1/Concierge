@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
           const assetTag = `EQ-${nanoid(4).toUpperCase()}`;
           return prisma.equipment.create({
             data: {
-              propertyId: body.propertyId,
+              propertyId: body.propertyId as string,
               name: stripControlChars(stripHtml(row.name)),
               category: row.category || 'other',
               serialNumber: row.serialNumber || null,

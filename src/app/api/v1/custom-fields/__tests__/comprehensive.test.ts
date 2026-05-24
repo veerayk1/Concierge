@@ -499,7 +499,7 @@ describe('Validation of custom field values', () => {
       },
     });
 
-    const { validateCustomFieldValues } = await import('../route');
+    const { validateCustomFieldValues } = await import('@/server/custom-fields-validation');
     // The validate function is exported from the route for reuse
     if (typeof validateCustomFieldValues === 'function') {
       const errors = await validateCustomFieldValues(PROPERTY_A, 'unit', {});
@@ -520,7 +520,7 @@ describe('Validation of custom field values', () => {
       module: 'unit',
     });
 
-    const { validateCustomFieldValues } = await import('../route');
+    const { validateCustomFieldValues } = await import('@/server/custom-fields-validation');
     if (typeof validateCustomFieldValues === 'function') {
       const errors = await validateCustomFieldValues(PROPERTY_A, 'unit', {
         floor_area: 'not_a_number',
@@ -539,7 +539,7 @@ describe('Validation of custom field values', () => {
       module: 'unit',
     });
 
-    const { validateCustomFieldValues } = await import('../route');
+    const { validateCustomFieldValues } = await import('@/server/custom-fields-validation');
     if (typeof validateCustomFieldValues === 'function') {
       const errors = await validateCustomFieldValues(PROPERTY_A, 'unit', {
         status: 'invalid_option',
@@ -558,7 +558,7 @@ describe('Validation of custom field values', () => {
       module: 'unit',
     });
 
-    const { validateCustomFieldValues } = await import('../route');
+    const { validateCustomFieldValues } = await import('@/server/custom-fields-validation');
     if (typeof validateCustomFieldValues === 'function') {
       const errors = await validateCustomFieldValues(PROPERTY_A, 'unit', {
         nickname: 'The Penthouse',

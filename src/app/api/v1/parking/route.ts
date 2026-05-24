@@ -216,7 +216,52 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ data: permits });
+    // Stitch in resident + vehicle. The schema doesn't declare these as
+    // relations on ParkingPermit (only the ID columns exist), so we resolve
+    // them with separate batched lookups instead of a Prisma include.
+    const residentIds = Array.from(
+      new Set(permits.map((p) => p.residentId).filter((id): id is string => Boolean(id))),
+    );
+    const vehicleIds = Array.from(
+      new Set(permits.map((p) => p.vehicleId).filter((id): id is string => Boolean(id))),
+    );
+
+    const [residents, vehicles] = await Promise.all([
+      residentIds.length
+        ? prisma.user.findMany({
+            where: { id: { in: residentIds } },
+            select: { id: true, firstName: true, lastName: true },
+          })
+        : Promise.resolve([]),
+      vehicleIds.length
+        ? prisma.vehicle.findMany({
+            where: { id: { in: vehicleIds } },
+            select: { id: true, make: true, model: true, year: true, color: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const residentById = new Map(residents.map((r) => [r.id, r]));
+    const vehicleById = new Map(vehicles.map((v) => [v.id, v]));
+
+    const enriched = permits.map((p) => ({
+      ...p,
+      resident: residentById.get(p.residentId) ?? null,
+      // Prefer the live vehicle record; fall back to the denormalized
+      // make/model/year/color stored on the permit itself.
+      vehicle:
+        (p.vehicleId && vehicleById.get(p.vehicleId)) ||
+        (p.vehicleMake || p.vehicleModel
+          ? {
+              make: p.vehicleMake,
+              model: p.vehicleModel,
+              year: p.vehicleYear,
+              color: p.vehicleColor,
+            }
+          : null),
+    }));
+
+    return NextResponse.json({ data: enriched });
   } catch (error) {
     console.error('GET /api/v1/parking error:', error);
     return NextResponse.json(

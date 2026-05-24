@@ -3,6 +3,7 @@
  */
 
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
 import { ActivateForm } from './activate-form';
 
@@ -21,7 +22,13 @@ export default function ActivatePage() {
           Set up your password to activate your Concierge account.
         </p>
       </div>
-      <ActivateForm />
+      <Suspense
+        fallback={
+          <div className="h-32 animate-pulse rounded-xl bg-neutral-100" aria-hidden="true" />
+        }
+      >
+        <ActivateForm />
+      </Suspense>
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/server/db';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import type { Role } from '@/types';
 
 const STAFF_ROLES = [
   'super_admin',
@@ -31,7 +32,7 @@ const createFolderSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request, { roles: STAFF_ROLES as unknown as string[] });
+    const auth = await guardRoute(request, { roles: STAFF_ROLES as unknown as Role[] });
     if (auth.error) return auth.error;
 
     const body = await request.json().catch(() => ({}));

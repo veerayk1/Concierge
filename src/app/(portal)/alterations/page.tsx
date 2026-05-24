@@ -231,8 +231,8 @@ export default function AlterationsPage() {
       accessorKey: 'type',
       sortable: true,
       cell: (row) => (
-        <Badge variant={TYPE_COLORS[row.type]} size="sm">
-          {TYPE_LABELS[row.type]}
+        <Badge variant={TYPE_COLORS[row.type] ?? 'default'} size="sm">
+          {TYPE_LABELS[row.type] ?? row.type}
         </Badge>
       ),
     },
@@ -242,8 +242,8 @@ export default function AlterationsPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => (
-        <Badge variant={STATUS_COLORS[row.status]} size="sm" dot>
-          {STATUS_LABELS[row.status]}
+        <Badge variant={STATUS_COLORS[row.status] ?? 'default'} size="sm" dot>
+          {STATUS_LABELS[row.status] ?? row.status}
         </Badge>
       ),
     },
@@ -254,11 +254,11 @@ export default function AlterationsPage() {
       sortable: true,
       cell: (row) => (
         <Badge
-          variant={MOMENTUM_COLORS[row.momentum]}
+          variant={MOMENTUM_COLORS[row.momentum] ?? 'default'}
           size="sm"
           dot={row.momentum === 'stalled' || row.momentum === 'stopped'}
         >
-          {MOMENTUM_LABELS[row.momentum]}
+          {MOMENTUM_LABELS[row.momentum] ?? row.momentum}
         </Badge>
       ),
     },

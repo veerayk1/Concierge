@@ -90,7 +90,7 @@ export default function UsersPage() {
     // just the first page. The previous default of 20 made tiles like
     // "14 Active" mean "14 of the first 20 visible" — misleading the
     // moment a property crossed 20 users.
-    apiUrl('/api/v1/users', { propertyId: getPropertyId(), pageSize: 200 }),
+    apiUrl('/api/v1/users', { propertyId: getPropertyId(), pageSize: '200' }),
   );
 
   const handleUserCreated = useCallback(() => {
@@ -144,7 +144,7 @@ export default function UsersPage() {
             if (!RESIDENT_ROLES.has(u.role)) return false;
           } else if (roleFilter === 'pending') {
             // Pending is a status, not a role.
-            if (u.status !== 'pending') return false;
+            if ((u.status as string) !== 'pending') return false;
           } else if (u.role !== roleFilter) {
             return false;
           }

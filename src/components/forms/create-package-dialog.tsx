@@ -5,6 +5,7 @@
  * Single package intake with 13 fields including courier icon selector
  */
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -158,12 +159,12 @@ export function CreatePackageDialog({
               <p className="text-warning-700 font-medium">No units exist yet for this property.</p>
               <p className="text-warning-600 mt-1">
                 Add at least one unit before logging packages.{' '}
-                <a
+                <Link
                   href="/units"
                   className="text-warning-700 underline underline-offset-2 hover:no-underline"
                 >
                   Go to Units →
-                </a>
+                </Link>
               </p>
             </div>
           ) : null}

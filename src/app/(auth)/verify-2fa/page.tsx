@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
 import { Verify2faForm } from './verify-2fa-form';
@@ -27,7 +28,13 @@ export default function Verify2faPage() {
           Enter the 6-digit code from your authenticator app to verify your identity.
         </p>
       </div>
-      <Verify2faForm />
+      <Suspense
+        fallback={
+          <div className="h-32 animate-pulse rounded-xl bg-neutral-100" aria-hidden="true" />
+        }
+      >
+        <Verify2faForm />
+      </Suspense>
     </div>
   );
 }

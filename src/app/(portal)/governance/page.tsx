@@ -231,8 +231,8 @@ export default function GovernancePage() {
       accessorKey: 'type',
       sortable: true,
       cell: (row) => (
-        <Badge variant={MEETING_TYPE_COLORS[row.type]} size="sm">
-          {MEETING_TYPE_LABELS[row.type]}
+        <Badge variant={MEETING_TYPE_COLORS[row.type] ?? 'default'} size="sm">
+          {MEETING_TYPE_LABELS[row.type] ?? row.type}
         </Badge>
       ),
     },
@@ -269,8 +269,8 @@ export default function GovernancePage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => (
-        <Badge variant={MEETING_STATUS_COLORS[row.status]} size="sm" dot>
-          {MEETING_STATUS_LABELS[row.status]}
+        <Badge variant={MEETING_STATUS_COLORS[row.status] ?? 'default'} size="sm" dot>
+          {MEETING_STATUS_LABELS[row.status] ?? row.status}
         </Badge>
       ),
     },
@@ -331,8 +331,8 @@ export default function GovernancePage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => (
-        <Badge variant={RESOLUTION_STATUS_COLORS[row.status]} size="sm" dot>
-          {RESOLUTION_STATUS_LABELS[row.status]}
+        <Badge variant={RESOLUTION_STATUS_COLORS[row.status] ?? 'default'} size="sm" dot>
+          {RESOLUTION_STATUS_LABELS[row.status] ?? row.status}
         </Badge>
       ),
     },

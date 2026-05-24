@@ -274,8 +274,8 @@ export default function ForumPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => (
-        <Badge variant={STATUS_COLORS[row.status]} size="sm" dot>
-          {STATUS_LABELS[row.status]}
+        <Badge variant={STATUS_COLORS[row.status] ?? 'default'} size="sm" dot>
+          {STATUS_LABELS[row.status] ?? row.status}
         </Badge>
       ),
     },

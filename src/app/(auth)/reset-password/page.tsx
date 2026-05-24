@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
@@ -27,7 +28,13 @@ export default function ResetPasswordPage() {
           Choose a strong, unique password for your account.
         </p>
       </div>
-      <ResetPasswordForm />
+      <Suspense
+        fallback={
+          <div className="h-32 animate-pulse rounded-xl bg-neutral-100" aria-hidden="true" />
+        }
+      >
+        <ResetPasswordForm />
+      </Suspense>
     </div>
   );
 }

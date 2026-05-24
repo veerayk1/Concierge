@@ -421,12 +421,12 @@ export default function UnitDetailPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
-        const m = {
-          unreleased: { v: 'warning' as const, l: 'Unreleased' },
-          released: { v: 'success' as const, l: 'Released' },
-          returned: { v: 'default' as const, l: 'Returned' },
+        const m: Record<string, { v: 'warning' | 'success' | 'default'; l: string }> = {
+          unreleased: { v: 'warning', l: 'Unreleased' },
+          released: { v: 'success', l: 'Released' },
+          returned: { v: 'default', l: 'Returned' },
         };
-        const s = m[row.status];
+        const s = m[row.status] ?? { v: 'default' as const, l: row.status ?? 'unknown' };
         return (
           <Badge variant={s.v} size="sm" dot>
             {s.l}
@@ -498,13 +498,13 @@ export default function UnitDetailPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
-        const m = {
-          open: { v: 'warning' as const, l: 'Open' },
-          in_progress: { v: 'info' as const, l: 'In Progress' },
-          resolved: { v: 'success' as const, l: 'Resolved' },
-          closed: { v: 'default' as const, l: 'Closed' },
+        const m: Record<string, { v: 'warning' | 'info' | 'success' | 'default'; l: string }> = {
+          open: { v: 'warning', l: 'Open' },
+          in_progress: { v: 'info', l: 'In Progress' },
+          resolved: { v: 'success', l: 'Resolved' },
+          closed: { v: 'default', l: 'Closed' },
         };
-        const s = m[row.status];
+        const s = m[row.status] ?? { v: 'default' as const, l: row.status ?? 'unknown' };
         return (
           <Badge variant={s.v} size="sm" dot>
             {s.l}
@@ -518,10 +518,14 @@ export default function UnitDetailPage() {
       accessorKey: 'priority',
       sortable: true,
       cell: (row) => {
-        const m = { low: 'default' as const, medium: 'warning' as const, high: 'error' as const };
+        const m: Record<string, 'default' | 'warning' | 'error'> = {
+          low: 'default',
+          medium: 'warning',
+          high: 'error',
+        };
         return (
-          <Badge variant={m[row.priority]} size="sm" dot>
-            {row.priority}
+          <Badge variant={m[row.priority] ?? 'default'} size="sm" dot>
+            {row.priority ?? '—'}
           </Badge>
         );
       },

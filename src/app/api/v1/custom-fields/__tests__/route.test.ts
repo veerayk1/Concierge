@@ -731,7 +731,7 @@ describe('Field validation on data entry', () => {
       module: 'unit',
     });
 
-    const { validateCustomFieldValues } = await import('../route');
+    const { validateCustomFieldValues } = await import('@/server/custom-fields-validation');
     if (typeof validateCustomFieldValues === 'function') {
       const errors = await validateCustomFieldValues(PROPERTY_A, 'unit', {});
       expect(errors).toHaveLength(1);
@@ -751,7 +751,7 @@ describe('Field validation on data entry', () => {
       module: 'unit',
     });
 
-    const { validateCustomFieldValues } = await import('../route');
+    const { validateCustomFieldValues } = await import('@/server/custom-fields-validation');
     if (typeof validateCustomFieldValues === 'function') {
       const errors = await validateCustomFieldValues(PROPERTY_A, 'unit', {
         floor_area: 'not_a_number',
@@ -770,7 +770,7 @@ describe('Field validation on data entry', () => {
       module: 'unit',
     });
 
-    const { validateCustomFieldValues } = await import('../route');
+    const { validateCustomFieldValues } = await import('@/server/custom-fields-validation');
     if (typeof validateCustomFieldValues === 'function') {
       const errors = await validateCustomFieldValues(PROPERTY_A, 'unit', {
         status: 'invalid_option',
@@ -789,7 +789,7 @@ describe('Field validation on data entry', () => {
       module: 'unit',
     });
 
-    const { validateCustomFieldValues } = await import('../route');
+    const { validateCustomFieldValues } = await import('@/server/custom-fields-validation');
     if (typeof validateCustomFieldValues === 'function') {
       const errors = await validateCustomFieldValues(PROPERTY_A, 'unit', {
         nickname: 'The Penthouse',
@@ -807,7 +807,7 @@ describe('Field validation on data entry', () => {
       module: 'unit',
     });
 
-    const { validateCustomFieldValues } = await import('../route');
+    const { validateCustomFieldValues } = await import('@/server/custom-fields-validation');
     if (typeof validateCustomFieldValues === 'function') {
       const errors = await validateCustomFieldValues(PROPERTY_A, 'unit', {
         is_furnished: 'yes',
@@ -826,7 +826,7 @@ describe('Field validation on data entry', () => {
       module: 'unit',
     });
 
-    const { validateCustomFieldValues } = await import('../route');
+    const { validateCustomFieldValues } = await import('@/server/custom-fields-validation');
     if (typeof validateCustomFieldValues === 'function') {
       const errors = await validateCustomFieldValues(PROPERTY_A, 'unit', {
         features: ['gym', 'invalid'],

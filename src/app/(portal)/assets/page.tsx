@@ -192,7 +192,9 @@ export default function AssetsPage() {
       header: 'Category',
       accessorKey: 'category',
       sortable: true,
-      cell: (row) => <Badge variant="default">{categoryLabels[row.category]}</Badge>,
+      cell: (row) => (
+        <Badge variant="default">{categoryLabels[row.category] ?? row.category}</Badge>
+      ),
     },
     {
       id: 'location',
@@ -206,7 +208,10 @@ export default function AssetsPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
-        const config = statusConfig[row.status];
+        const config = statusConfig[row.status] ?? {
+          variant: 'default' as const,
+          label: row.status,
+        };
         return <Badge variant={config.variant}>{config.label}</Badge>;
       },
     },
@@ -236,7 +241,10 @@ export default function AssetsPage() {
       accessorKey: 'condition',
       sortable: true,
       cell: (row) => {
-        const config = conditionConfig[row.condition];
+        const config = conditionConfig[row.condition] ?? {
+          variant: 'default' as const,
+          label: row.condition,
+        };
         return <Badge variant={config.variant}>{config.label}</Badge>;
       },
     },

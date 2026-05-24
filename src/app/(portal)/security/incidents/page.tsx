@@ -152,15 +152,15 @@ export default function IncidentsPage() {
       accessorKey: 'priority',
       sortable: true,
       cell: (row) => {
-        const m = {
-          low: 'default' as const,
-          medium: 'warning' as const,
-          high: 'error' as const,
-          critical: 'error' as const,
+        const m: Record<string, 'default' | 'warning' | 'error'> = {
+          low: 'default',
+          medium: 'warning',
+          high: 'error',
+          critical: 'error',
         };
         return (
-          <Badge variant={m[row.priority]} size="sm" dot>
-            {row.priority}
+          <Badge variant={m[row.priority] ?? 'default'} size="sm" dot>
+            {row.priority ?? '—'}
           </Badge>
         );
       },
@@ -171,13 +171,13 @@ export default function IncidentsPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
-        const m = {
-          open: { v: 'warning' as const, l: 'Open' },
-          investigating: { v: 'info' as const, l: 'Investigating' },
-          resolved: { v: 'success' as const, l: 'Resolved' },
-          closed: { v: 'default' as const, l: 'Closed' },
+        const m: Record<string, { v: 'warning' | 'info' | 'success' | 'default'; l: string }> = {
+          open: { v: 'warning', l: 'Open' },
+          investigating: { v: 'info', l: 'Investigating' },
+          resolved: { v: 'success', l: 'Resolved' },
+          closed: { v: 'default', l: 'Closed' },
         };
-        const s = m[row.status];
+        const s = m[row.status] ?? { v: 'default' as const, l: row.status ?? 'unknown' };
         return (
           <Badge variant={s.v} size="sm" dot>
             {s.l}

@@ -344,7 +344,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             userId: id,
             actorId: auth.user.userId,
             action: 'profile_updated',
-            detail: changedFields,
+            detail: changedFields as unknown as object,
           },
         })
         .catch((err) => console.error('user_audit insert (profile) failed:', err));

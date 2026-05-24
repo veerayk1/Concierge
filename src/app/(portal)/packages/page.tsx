@@ -69,7 +69,14 @@ interface ApiPackage {
   releasedAt: string | null;
   releasedToName: string | null;
   releasedById: string | null;
-  unit: { id: string; number: string } | null;
+  unit: {
+    id: string;
+    number: string;
+    occupancyRecords?: Array<{
+      isPrimary: boolean;
+      user: { firstName: string | null; lastName: string | null } | null;
+    }>;
+  } | null;
   courier: { id: string; name: string; iconUrl?: string; color?: string } | null;
   storageSpot: { id: string; name: string; code?: string } | null;
   parcelCategory: { id: string; name: string } | null;
@@ -84,13 +91,21 @@ function normalizePackage(raw: ApiPackage): PackageItem {
   const ageHours =
     raw.status === 'unreleased' ? Math.max(0, Math.floor(ageMs / (1000 * 60 * 60))) : 0;
 
+  // Recipient = whoever received it if released; otherwise the unit's primary
+  // occupant so the column is meaningful for unreleased packages too.
+  const primaryOccupant = raw.unit?.occupancyRecords?.[0]?.user ?? null;
+  const occupantName = primaryOccupant
+    ? `${primaryOccupant.firstName ?? ''} ${primaryOccupant.lastName ?? ''}`.trim()
+    : '';
+  const recipient = raw.releasedToName ?? occupantName;
+
   return {
     id: raw.id,
     referenceNumber: raw.referenceNumber,
     direction: (raw.direction === 'outgoing' ? 'outgoing' : 'incoming') as 'incoming' | 'outgoing',
     trackingNumber: raw.trackingNumber ?? '',
     unit: raw.unit?.number ?? 'N/A',
-    recipient: raw.releasedToName ?? '',
+    recipient,
     courier: raw.courier?.name ?? 'Other',
     description: raw.parcelCategory?.name ?? raw.description ?? '',
     receivedAt: raw.createdAt,

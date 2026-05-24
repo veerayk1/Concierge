@@ -249,8 +249,8 @@ export default function DigitalSignagePage() {
       accessorKey: 'type',
       sortable: true,
       cell: (row) => (
-        <Badge variant={TYPE_COLORS[row.type]} size="sm">
-          {TYPE_LABELS[row.type]}
+        <Badge variant={TYPE_COLORS[row.type] ?? 'default'} size="sm">
+          {TYPE_LABELS[row.type] ?? row.type}
         </Badge>
       ),
     },
@@ -260,8 +260,8 @@ export default function DigitalSignagePage() {
       accessorKey: 'screen',
       sortable: true,
       cell: (row) => (
-        <Badge variant={SCREEN_COLORS[row.screen]} size="sm">
-          {SCREEN_LABELS[row.screen]}
+        <Badge variant={SCREEN_COLORS[row.screen] ?? 'default'} size="sm">
+          {SCREEN_LABELS[row.screen] ?? row.screen}
         </Badge>
       ),
     },
@@ -274,8 +274,8 @@ export default function DigitalSignagePage() {
         <div className="flex items-center gap-1.5">
           {row.status === 'active' && <Play className="text-success-600 h-3 w-3" />}
           {row.status === 'paused' && <Pause className="text-warning-600 h-3 w-3" />}
-          <Badge variant={STATUS_COLORS[row.status]} size="sm" dot>
-            {STATUS_LABELS[row.status]}
+          <Badge variant={STATUS_COLORS[row.status] ?? 'default'} size="sm" dot>
+            {STATUS_LABELS[row.status] ?? row.status}
           </Badge>
         </div>
       ),
@@ -303,8 +303,8 @@ export default function DigitalSignagePage() {
       accessorKey: 'priority',
       sortable: true,
       cell: (row) => (
-        <Badge variant={PRIORITY_COLORS[row.priority]} size="sm">
-          {PRIORITY_LABELS[row.priority]}
+        <Badge variant={PRIORITY_COLORS[row.priority] ?? 'default'} size="sm">
+          {PRIORITY_LABELS[row.priority] ?? row.priority}
         </Badge>
       ),
     },

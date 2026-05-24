@@ -205,8 +205,8 @@ export default function RecurringTasksPage() {
       accessorKey: 'intervalType',
       sortable: true,
       cell: (row) => (
-        <Badge variant={FREQUENCY_COLORS[row.intervalType]} size="sm">
-          {FREQUENCY_LABELS[row.intervalType]}
+        <Badge variant={FREQUENCY_COLORS[row.intervalType] ?? 'default'} size="sm">
+          {FREQUENCY_LABELS[row.intervalType] ?? row.intervalType}
         </Badge>
       ),
     },

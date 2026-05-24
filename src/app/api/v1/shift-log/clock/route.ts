@@ -15,8 +15,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
+import type { Role } from '@/types';
 
-const GUARD_ROLES: string[] = [
+const GUARD_ROLES: Role[] = [
   'security_guard',
   'security_supervisor',
   'front_desk',

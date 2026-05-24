@@ -105,12 +105,19 @@ export default function ParkingPage() {
         typeof p.permitType === 'object' && p.permitType !== null
           ? (p.permitType as Record<string, string>).name || ''
           : '';
+      let vehicle = '';
+      if (typeof p.vehicle === 'object' && p.vehicle !== null) {
+        const v = p.vehicle as Record<string, string | number | null>;
+        vehicle = [v.year, v.make, v.model].filter(Boolean).join(' ').trim();
+      } else if (typeof p.vehicle === 'string') {
+        vehicle = p.vehicle;
+      }
       return {
         id: (p.id as string) || '',
         permitNumber: (p.referenceNumber as string) || (p.permitNumber as string) || '',
         unit,
         resident,
-        vehicle: (p.vehicle as string) || '',
+        vehicle,
         licensePlate: (p.licensePlate as string) || '',
         spotNumber: (p.spotNumber as string) || '',
         area: (p.area as string) || '',
@@ -286,7 +293,11 @@ export default function ParkingPage() {
       title="Parking Management"
       description={
         !loading && !error
-          ? `${allPermits.length} active permits \u00B7 ${allViolations.filter((v) => v.status === 'open').length} open violations`
+          ? (() => {
+              const activePermits = allPermits.length;
+              const openViolations = allViolations.filter((v) => v.status === 'open').length;
+              return `${activePermits} active permit${activePermits === 1 ? '' : 's'} \u00B7 ${openViolations} open violation${openViolations === 1 ? '' : 's'}`;
+            })()
           : 'Manage parking permits and violations.'
       }
       actions={
