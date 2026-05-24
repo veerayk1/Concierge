@@ -341,9 +341,9 @@ export default function ParkingPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button size="sm" variant="danger" onClick={() => setShowViolationDialog(true)}>
+          <Button size="sm" variant="secondary" onClick={() => setShowViolationDialog(true)}>
             <AlertTriangle className="h-4 w-4" />
-            Report Violation
+            Report violation
           </Button>
           <Button size="sm" onClick={() => setShowPermitDialog(true)}>
             <Plus className="h-4 w-4" />
