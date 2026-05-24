@@ -324,10 +324,14 @@ export default function AmenityDetailPage() {
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Location
                   </p>
-                  <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
-                    <MapPin className="h-4 w-4 text-neutral-400" />
-                    {amenity.location}
-                  </p>
+                  {amenity.location ? (
+                    <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
+                      <MapPin className="h-4 w-4 text-neutral-400" />
+                      {amenity.location}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[15px] text-neutral-400 italic">Not set</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
@@ -342,10 +346,14 @@ export default function AmenityDetailPage() {
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Hours
                   </p>
-                  <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
-                    <Clock className="h-4 w-4 text-neutral-400" />
-                    {amenity.hours}
-                  </p>
+                  {amenity.hours ? (
+                    <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
+                      <Clock className="h-4 w-4 text-neutral-400" />
+                      {amenity.hours}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[15px] text-neutral-400 italic">Not set</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
@@ -367,9 +375,13 @@ export default function AmenityDetailPage() {
                   <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
                     Description
                   </p>
-                  <p className="mt-1 text-[15px] leading-relaxed text-neutral-700">
-                    {amenity.description}
-                  </p>
+                  {amenity.description ? (
+                    <p className="mt-1 text-[15px] leading-relaxed text-neutral-700">
+                      {amenity.description}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[15px] text-neutral-400 italic">Not set</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -553,7 +565,16 @@ export default function AmenityDetailPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-[14px] text-neutral-400">No rules configured.</p>
+                <div className="flex flex-col items-start gap-2">
+                  <p className="text-[14px] text-neutral-400">No rules configured.</p>
+                  <button
+                    type="button"
+                    onClick={() => setEditDialogOpen(true)}
+                    className="text-primary-600 hover:text-primary-700 text-[13px] font-medium underline-offset-2 hover:underline"
+                  >
+                    Add rules →
+                  </button>
+                </div>
               )}
             </CardContent>
           </Card>
