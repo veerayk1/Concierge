@@ -237,7 +237,7 @@ const DASHBOARD_CONFIGS: Record<Role, DashboardConfig> = {
   },
   board_member: {
     title: 'Governance Overview',
-    kpiCards: ['Financial Summary', 'Compliance %', 'Pending Approvals', 'Satisfaction Score'],
+    kpiCards: ['Resident Count', 'Open Requests', 'Pending Approvals', 'Announcements'],
     quickActions: ['View Reports', 'Upcoming Meetings'],
   },
   property_manager: {
@@ -446,6 +446,7 @@ interface DashboardApiData {
     monthlyPackageVolume: number;
     avgResolutionTimeHours: number;
     residentCount: number;
+    keysOut: number;
   };
   recentActivity: {
     id: string;
@@ -585,12 +586,14 @@ export default function DashboardPage() {
       'My Packages': String(k.unreleasedPackages),
       'Assigned Requests': String(k.openMaintenanceRequests),
       'Pending Items': String(k.pendingBookingApprovals),
+      'Pending Approvals': String(k.pendingBookingApprovals),
       'Expected Visitors': String(k.activeVisitors),
       Bookings: String(k.pendingBookingApprovals),
       Announcements: String(k.unreadAnnouncements),
       'Incident Count': String(k.todayEvents),
       'Scheduled Tasks': upcomingTasksData ? String(upcomingTasksData.length) : '\u2014',
       'Equipment Alerts': String(k.overdueMaintenanceRequests),
+      'Keys Out': String(k.keysOut ?? 0),
     };
     return map;
   }, [apiData, upcomingTasksData, isSuperAdmin, platformProperties, platformKpis]);

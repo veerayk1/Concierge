@@ -103,6 +103,7 @@ export async function GET(request: NextRequest) {
       monthlyPackageVolume,
       recentlyClosedMaintenance,
       residentCount,
+      keysOut,
       recentActivity,
     ] = await Promise.all([
       // 1. Unreleased packages
@@ -208,6 +209,14 @@ export async function GET(request: NextRequest) {
             where: { propertyId, moveOutDate: null },
           }),
 
+      // Keys currently checked out — security/front-desk metric. Counts
+      // KeyCheckout rows that have not been returned yet. Residents see 0.
+      isResident
+        ? Promise.resolve(0)
+        : prisma.keyCheckout.count({
+            where: { propertyId, returnTime: null },
+          }),
+
       // Recent activity feed — for residents, scope to their own unit only.
       // Without this, every resident's dashboard listed incidents, patrol
       // logs, package events for OTHER units — a building-wide privacy leak.
@@ -251,6 +260,7 @@ export async function GET(request: NextRequest) {
           monthlyPackageVolume,
           avgResolutionTimeHours,
           residentCount,
+          keysOut,
         },
         recentActivity: recentActivity.map((e) => ({
           id: e.id,
