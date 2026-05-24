@@ -336,6 +336,67 @@ const QUICK_ACTION_LINKS: Record<string, { href: string; icon: LucideIcon }> = {
   'Add Shift Note': { href: '/shift-log', icon: StickyNote },
 };
 
+/** Maps a KPI label to the page that lets the user act on it. */
+const KPI_DRILL_HREFS: Record<string, string> = {
+  'Open Requests': '/maintenance',
+  'Unreleased Packages': '/packages',
+  'Active Visitors': '/visitors',
+  'Expected Visitors': '/visitors',
+  Bookings: '/amenities',
+  'Resident Count': '/residents',
+  'My Packages': '/packages',
+  'Upcoming Bookings': '/amenities',
+  'Incident Count': '/security',
+  'Guard Coverage': '/security',
+  'Open Escalations': '/security',
+  'Patrol Status': '/security',
+  'Keys Out': '/keys',
+  'Pending Items': '/shift-log',
+  'Assigned Requests': '/maintenance',
+  'Equipment Alerts': '/equipment',
+  'Scheduled Tasks': '/recurring-tasks',
+  'Building Systems': '/equipment',
+  "Today's Schedule": '/my-schedule',
+  Announcements: '/announcements',
+  'Upcoming Events': '/events',
+  'Financial Summary': '/reports',
+  'Compliance %': '/compliance',
+  'Pending Approvals': '/amenities',
+  'Satisfaction Score': '/reports',
+};
+
+/** Maps a KPI label to a KpiTile accent color */
+const KPI_ACCENTS: Record<
+  string,
+  'primary' | 'success' | 'warning' | 'error' | 'info' | 'neutral'
+> = {
+  'Open Requests': 'warning',
+  'Unreleased Packages': 'primary',
+  'Active Visitors': 'success',
+  'Expected Visitors': 'info',
+  Bookings: 'info',
+  'Resident Count': 'primary',
+  'My Packages': 'primary',
+  'Upcoming Bookings': 'info',
+  'Incident Count': 'error',
+  'Guard Coverage': 'primary',
+  'Open Escalations': 'warning',
+  'Patrol Status': 'success',
+  'Keys Out': 'warning',
+  'Pending Items': 'warning',
+  'Assigned Requests': 'primary',
+  'Equipment Alerts': 'error',
+  'Scheduled Tasks': 'info',
+  'Building Systems': 'primary',
+  "Today's Schedule": 'info',
+  Announcements: 'primary',
+  'Upcoming Events': 'info',
+  'Financial Summary': 'success',
+  'Compliance %': 'success',
+  'Pending Approvals': 'warning',
+  'Satisfaction Score': 'primary',
+};
+
 /** Maps role-specific quick action labels to navigation routes */
 const QUICK_ACTION_ROUTES: Record<string, string> = {
   'Switch Property': '/system/properties',
@@ -384,6 +445,7 @@ interface DashboardApiData {
     overdueMaintenanceRequests: number;
     monthlyPackageVolume: number;
     avgResolutionTimeHours: number;
+    residentCount: number;
   };
   recentActivity: {
     id: string;
@@ -517,7 +579,7 @@ export default function DashboardPage() {
       'Unreleased Packages': String(k.unreleasedPackages),
       'Open Requests': String(k.openMaintenanceRequests),
       'Active Visitors': String(k.activeVisitors),
-      'Resident Count': '\u2014',
+      'Resident Count': String(k.residentCount ?? 0),
       'Active Users': '\u2014',
       'Total Properties': '1',
       'My Packages': String(k.unreleasedPackages),
@@ -751,14 +813,14 @@ export default function DashboardPage() {
   // -------------------------------------------------------------------------
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
       {/* Greeting */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
+          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
             {greeting}, {effectiveName}
           </h1>
-          <p className="mt-1 text-[15px] text-neutral-500">
+          <p className="mt-0.5 text-[14px] text-neutral-500">
             {config.title} &middot; {ROLE_DISPLAY_NAMES[effectiveRole]}
           </p>
         </div>
@@ -1008,9 +1070,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — compact, clickable, drill into the source list */}
       {config.kpiCards.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
           {config.kpiCards.map((kpi) => {
             const kpiConfig = KPI_ICONS[kpi] || {
               label: kpi,
@@ -1018,25 +1080,15 @@ export default function DashboardPage() {
               color: 'text-neutral-600',
               bgColor: 'bg-neutral-50',
             };
-            const Icon = kpiConfig.icon;
-
             return (
-              <Card key={kpi} hoverable className="group cursor-pointer">
-                <div className="flex items-start justify-between">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpiConfig.bgColor}`}
-                  >
-                    <Icon className={`h-5 w-5 ${kpiConfig.color}`} />
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-neutral-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-neutral-500" />
-                </div>
-                <div className="mt-4">
-                  <p className="text-[13px] font-medium text-neutral-500">{kpiConfig.label}</p>
-                  <p className="mt-1 text-[24px] font-bold tracking-tight text-neutral-900">
-                    {kpiValues[kpi] ?? '\u2014'}
-                  </p>
-                </div>
-              </Card>
+              <KpiTile
+                key={kpi}
+                label={kpiConfig.label}
+                value={kpiValues[kpi] ?? '\u2014'}
+                icon={kpiConfig.icon}
+                accent={KPI_ACCENTS[kpi] ?? 'neutral'}
+                href={KPI_DRILL_HREFS[kpi]}
+              />
             );
           })}
         </div>

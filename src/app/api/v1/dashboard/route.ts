@@ -102,6 +102,7 @@ export async function GET(request: NextRequest) {
       overdueMaintenanceRequests,
       monthlyPackageVolume,
       recentlyClosedMaintenance,
+      residentCount,
       recentActivity,
     ] = await Promise.all([
       // 1. Unreleased packages
@@ -198,6 +199,15 @@ export async function GET(request: NextRequest) {
         },
       }),
 
+      // Resident headcount — staff only. Counts active occupants (no
+      // move-out date) at this property. For residents we still issue the
+      // promise but resolve to 0 to keep the destructure positional.
+      isResident
+        ? Promise.resolve(0)
+        : prisma.occupancyRecord.count({
+            where: { propertyId, moveOutDate: null },
+          }),
+
       // Recent activity feed — for residents, scope to their own unit only.
       // Without this, every resident's dashboard listed incidents, patrol
       // logs, package events for OTHER units — a building-wide privacy leak.
@@ -240,6 +250,7 @@ export async function GET(request: NextRequest) {
           overdueMaintenanceRequests,
           monthlyPackageVolume,
           avgResolutionTimeHours,
+          residentCount,
         },
         recentActivity: recentActivity.map((e) => ({
           id: e.id,
