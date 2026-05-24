@@ -328,11 +328,39 @@ export default function MarketplacePage() {
 
       {/* Card Grid */}
       {filteredListings.length === 0 ? (
-        <EmptyState
-          icon={<Store className="h-6 w-6" />}
-          title="No listings found"
-          description="Try adjusting your search or filters."
-        />
+        allListings.length === 0 ? (
+          <EmptyState
+            icon={<Store className="h-6 w-6" />}
+            title="The marketplace is empty"
+            description="Be the first neighbour to list something."
+            action={
+              <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+                <Plus className="h-4 w-4" />
+                Post Listing
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={<Store className="h-6 w-6" />}
+            title="No listings match your filters"
+            description="Try clearing your search or switching filters."
+            action={
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('');
+                  setCategoryFilter('all');
+                  setConditionFilter('all');
+                  setFreeOnly(false);
+                }}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        )
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredListings.map((item) => (
