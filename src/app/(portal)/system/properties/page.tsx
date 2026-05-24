@@ -310,58 +310,40 @@ export default function PropertiesPage() {
         </>
       }
     >
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-primary-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Building2 className="text-primary-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {totalProperties}
-            </p>
-            <p className="text-[13px] text-neutral-500">Total Properties</p>
-          </div>
-        </Card>
-
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Activity className="text-success-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {activeProperties}
-            </p>
-            <p className="text-[13px] text-neutral-500">Active</p>
-          </div>
-        </Card>
-
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <BarChart3 className="text-info-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {demoProperties}
-            </p>
-            <p className="text-[13px] text-neutral-500">Demo / Sandbox</p>
-          </div>
-        </Card>
-
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-warning-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Building2 className="text-warning-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalUnits}</p>
-            <p className="text-[13px] text-neutral-500">Total Units</p>
-          </div>
-        </Card>
+      {/* Summary KPIs */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiTile
+          label="Total Properties"
+          value={totalProperties}
+          icon={Building2}
+          accent="primary"
+        />
+        <KpiTile
+          label="Active"
+          value={activeProperties}
+          icon={Activity}
+          accent="success"
+          href="/system/properties?status=active"
+        />
+        <KpiTile
+          label="Demo / Sandbox"
+          value={demoProperties}
+          icon={BarChart3}
+          accent="info"
+          href="/system/properties?type=demo"
+        />
+        <KpiTile
+          label="Total Units"
+          value={totalUnits}
+          icon={Layers}
+          accent="warning"
+          caption={`across ${totalProperties} ${totalProperties === 1 ? 'property' : 'properties'}`}
+        />
       </div>
 
-      {/* Search */}
-      <div className="mt-6 mb-4">
-        <div className="relative max-w-sm">
+      {/* Search + active filter chip */}
+      <div className="mt-6 mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1">
           <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-neutral-400" />
           <input
             type="text"
@@ -371,20 +353,34 @@ export default function PropertiesPage() {
             className="focus:border-primary-500 focus:ring-primary-100 h-10 w-full rounded-xl border border-neutral-200 bg-white pr-4 pl-10 text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
           />
         </div>
+        {activeFilterLabel ? (
+          <div className="flex items-center gap-2">
+            <Badge variant="primary" size="sm">
+              {activeFilterLabel}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/system/properties' as never)}
+            >
+              Clear filter
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       {/* Properties Table */}
-      {properties.length === 0 ? (
+      {filteredProperties.length === 0 ? (
         <EmptyState
           icon={<Building2 className="h-6 w-6" />}
           title="No properties found"
           description={
-            searchQuery
-              ? 'No properties match your search. Try a different query.'
+            searchQuery || activeFilterLabel
+              ? 'No properties match the current filters. Try adjusting search or clearing the filter.'
               : 'Add your first property to get started.'
           }
           action={
-            !searchQuery ? (
+            !searchQuery && !activeFilterLabel ? (
               <Button onClick={() => setShowCreateDialog(true)}>
                 <Plus className="h-4 w-4" />
                 Add Property
@@ -395,7 +391,7 @@ export default function PropertiesPage() {
       ) : (
         <DataTable<PropertyFromApi>
           columns={columns}
-          data={properties}
+          data={filteredProperties}
           emptyMessage="No properties found."
           emptyIcon={<Building2 className="h-6 w-6" />}
           onRowClick={(row) => {

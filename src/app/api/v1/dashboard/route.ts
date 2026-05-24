@@ -218,6 +218,20 @@ export async function GET(request: NextRequest) {
             where: { propertyId, returnTime: null },
           }),
 
+      // Upcoming bookings — resident-only metric. Counts approved bookings
+      // the caller is the booker for, with a start date today or later.
+      // Staff see 0 (this tile is hidden from staff dashboards).
+      isResident
+        ? prisma.booking.count({
+            where: {
+              propertyId,
+              residentId: userId,
+              approvalStatus: 'approved',
+              startDate: { gte: todayStart },
+            },
+          })
+        : Promise.resolve(0),
+
       // Recent activity feed — for residents, scope to their own unit only.
       // Without this, every resident's dashboard listed incidents, patrol
       // logs, package events for OTHER units — a building-wide privacy leak.
@@ -262,6 +276,7 @@ export async function GET(request: NextRequest) {
           avgResolutionTimeHours,
           residentCount,
           keysOut,
+          upcomingBookings,
         },
         recentActivity: recentActivity.map((e) => ({
           id: e.id,

@@ -199,15 +199,15 @@ export default function MaintenancePage() {
       accessorKey: 'priority',
       sortable: true,
       cell: (row) => {
-        const map = {
-          low: 'default' as const,
-          medium: 'warning' as const,
-          high: 'error' as const,
-          urgent: 'error' as const,
+        const map: Record<string, 'default' | 'warning' | 'error'> = {
+          low: 'default',
+          medium: 'warning',
+          high: 'error',
+          urgent: 'error',
         };
         return (
-          <Badge variant={map[row.priority]} size="sm" dot>
-            {row.priority}
+          <Badge variant={map[row.priority] ?? 'default'} size="sm" dot>
+            {row.priority ?? '-'}
           </Badge>
         );
       },
@@ -218,15 +218,24 @@ export default function MaintenancePage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
-        const map = {
-          open: { variant: 'warning' as const, label: 'Open' },
-          assigned: { variant: 'info' as const, label: 'Assigned' },
-          in_progress: { variant: 'primary' as const, label: 'In Progress' },
-          on_hold: { variant: 'default' as const, label: 'On Hold' },
-          resolved: { variant: 'success' as const, label: 'Resolved' },
-          closed: { variant: 'default' as const, label: 'Closed' },
+        const map: Record<
+          string,
+          { variant: 'warning' | 'info' | 'primary' | 'default' | 'success'; label: string }
+        > = {
+          open: { variant: 'warning', label: 'Open' },
+          assigned: { variant: 'info', label: 'Assigned' },
+          in_progress: { variant: 'primary', label: 'In Progress' },
+          on_hold: { variant: 'default', label: 'On Hold' },
+          resolved: { variant: 'success', label: 'Resolved' },
+          closed: { variant: 'default', label: 'Closed' },
         };
-        const s = map[row.status];
+        // Defensive fallback: status strings can drift (e.g. 'completed',
+        // 'cancelled') as enums evolve. Render the raw value rather than
+        // crash the whole table on a missing map entry.
+        const s = map[row.status] ?? {
+          variant: 'default' as const,
+          label: row.status ?? 'unknown',
+        };
         return (
           <Badge variant={s.variant} size="sm" dot>
             {s.label}

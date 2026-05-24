@@ -447,6 +447,7 @@ interface DashboardApiData {
     avgResolutionTimeHours: number;
     residentCount: number;
     keysOut: number;
+    upcomingBookings: number;
   };
   recentActivity: {
     id: string;
@@ -594,6 +595,7 @@ export default function DashboardPage() {
       'Scheduled Tasks': upcomingTasksData ? String(upcomingTasksData.length) : '\u2014',
       'Equipment Alerts': String(k.overdueMaintenanceRequests),
       'Keys Out': String(k.keysOut ?? 0),
+      'Upcoming Bookings': String(k.upcomingBookings ?? 0),
     };
     return map;
   }, [apiData, upcomingTasksData, isSuperAdmin, platformProperties, platformKpis]);
