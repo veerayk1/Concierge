@@ -163,6 +163,8 @@ export function CreateVisitorDialog({
               label="Visitor Name"
               placeholder="Full name"
               required
+              autoComplete="name"
+              maxLength={200}
               error={errors.visitorName?.message}
             />
 
@@ -213,6 +215,8 @@ export function CreateVisitorDialog({
               {...register('residentName')}
               label="Resident Name"
               placeholder="Name of resident being visited"
+              autoComplete="off"
+              maxLength={200}
               error={errors.residentName?.message}
             />
           </div>

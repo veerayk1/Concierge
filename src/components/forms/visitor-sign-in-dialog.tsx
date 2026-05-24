@@ -135,6 +135,8 @@ export function VisitorSignInDialog({
             label="Visitor Name"
             placeholder="Full name of the visitor"
             required
+            autoComplete="name"
+            maxLength={200}
             error={errors.visitorName?.message}
           />
 
@@ -180,6 +182,8 @@ export function VisitorSignInDialog({
             {...register('vehiclePlate')}
             label="Vehicle Plate"
             placeholder="Optional — if visitor has a vehicle"
+            autoComplete="off"
+            maxLength={20}
             error={errors.vehiclePlate?.message}
           />
 
