@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CreateAnnouncementDialog } from '@/components/forms/create-announcement-dialog';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
@@ -97,6 +97,16 @@ export default function AnnouncementsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  // /announcements/new redirects here with ?create=1 so older links don't dead-end.
+  // Strip the param after opening so a refresh doesn't relaunch the dialog.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams?.get('create') === '1') {
+      setShowCreateDialog(true);
+      router.replace('/announcements');
+    }
+  }, [searchParams, router]);
 
   // Residents can view announcements but not create them.
   // In demo mode useAuth() returns null — fall back to localStorage demo_role.

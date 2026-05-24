@@ -104,6 +104,7 @@ export async function GET(request: NextRequest) {
       recentlyClosedMaintenance,
       residentCount,
       keysOut,
+      upcomingBookings,
       recentActivity,
     ] = await Promise.all([
       // 1. Unreleased packages

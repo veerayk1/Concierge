@@ -1,17 +1,25 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { Building2, Plus, Upload, Search, Activity, BarChart3, AlertTriangle } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  Building2,
+  Plus,
+  Upload,
+  Search,
+  Activity,
+  BarChart3,
+  AlertTriangle,
+  Layers,
+} from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Input } from '@/components/ui/input';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { CreatePropertyDialog } from '@/components/admin/create-property-dialog';
 // Import wizard now lives at /system/import-property as a full page
 
@@ -169,9 +177,13 @@ const columns: Column<PropertyFromApi>[] = [
 
 export default function PropertiesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   // showImportWizard removed — now navigates to /system/import-property
+
+  const statusFilter = searchParams?.get('status')?.toLowerCase() ?? null;
+  const typeFilter = searchParams?.get('type')?.toLowerCase() ?? null;
 
   // Fetch properties from API with search param
   const {
@@ -190,6 +202,16 @@ export default function PropertiesPage() {
     return Array.isArray(apiProperties) ? apiProperties : [];
   }, [apiProperties]);
 
+  const filteredProperties = useMemo(() => {
+    return properties.filter((p) => {
+      if (statusFilter === 'active' && !p.isActive) return false;
+      if (statusFilter === 'inactive' && p.isActive) return false;
+      if (typeFilter === 'demo' && p.type !== 'DEMO' && p.type !== 'SANDBOX') return false;
+      if (typeFilter === 'production' && p.type !== 'PRODUCTION') return false;
+      return true;
+    });
+  }, [properties, statusFilter, typeFilter]);
+
   const handlePropertyCreated = useCallback(() => {
     refetch();
   }, [refetch]);
@@ -198,6 +220,17 @@ export default function PropertiesPage() {
   const activeProperties = properties.filter((p) => p.isActive).length;
   const demoProperties = properties.filter((p) => p.type === 'DEMO' || p.type === 'SANDBOX').length;
   const totalUnits = properties.reduce((sum, p) => sum + p.unitCount, 0);
+
+  const activeFilterLabel =
+    statusFilter === 'active'
+      ? 'Active'
+      : statusFilter === 'inactive'
+        ? 'Inactive'
+        : typeFilter === 'demo'
+          ? 'Demo / Sandbox'
+          : typeFilter === 'production'
+            ? 'Production'
+            : null;
 
   // Loading skeleton
   if (loading) {
