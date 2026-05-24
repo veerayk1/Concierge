@@ -77,6 +77,19 @@ export async function GET(request: NextRequest) {
               role: { select: { name: true, slug: true } },
             },
           },
+          // UX-059: list view rendered Unit column as "—" for every row
+          // because we never returned the active OccupancyRecord. Include
+          // the current occupancy (moveOutDate IS NULL) for this property
+          // joined with the unit number so the table can show "Unit 101".
+          occupancyRecords: {
+            where: { propertyId, moveOutDate: null },
+            orderBy: { isPrimary: 'desc' },
+            take: 1,
+            select: {
+              residentType: true,
+              unit: { select: { id: true, number: true } },
+            },
+          },
         },
         orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
         skip: (page - 1) * pageSize,
@@ -85,18 +98,23 @@ export async function GET(request: NextRequest) {
       prisma.user.count({ where }),
     ]);
 
-    const data = residents.map((r) => ({
-      id: r.id,
-      firstName: r.firstName,
-      lastName: r.lastName,
-      email: r.email,
-      phone: r.phone,
-      avatarUrl: r.avatarUrl,
-      role: r.userProperties[0]?.role ?? null,
-      lastLoginAt: r.lastLoginAt,
-      createdAt: r.createdAt,
-      assistanceRequired: r.assistanceRequired, // GAP 8.2
-    }));
+    const data = residents.map((r) => {
+      const occ = r.occupancyRecords[0];
+      return {
+        id: r.id,
+        firstName: r.firstName,
+        lastName: r.lastName,
+        email: r.email,
+        phone: r.phone,
+        avatarUrl: r.avatarUrl,
+        role: r.userProperties[0]?.role ?? null,
+        lastLoginAt: r.lastLoginAt,
+        createdAt: r.createdAt,
+        assistanceRequired: r.assistanceRequired, // GAP 8.2
+        unit: occ?.unit ?? null,
+        residentType: occ?.residentType ?? null,
+      };
+    });
 
     return NextResponse.json({
       data,
