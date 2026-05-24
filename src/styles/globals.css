@@ -335,3 +335,113 @@ body {
     padding-bottom: 10px;
   }
 }
+
+/* ============================================================================
+   Concierge Portal Polish — UX-077
+
+   Subtle motion, tighter hover states, and consistent focus rings across
+   the operational app. Goal: the platform should feel like butter while
+   you click through it. Scoped to the in-app shell, not marketing.
+   ============================================================================ */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Page transition — opt-in via data attribute on the page root.
+     Using both an animation and the data attribute means content never
+     gets stuck invisible if the selector doesn't match. */
+  [data-portal-page] {
+    animation: concPageEnter 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes concPageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth, calm focus rings across the portal */
+.marketing *:focus-visible,
+.marketing button:focus-visible,
+[role='button']:focus-visible,
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+/* Table rows — subtle hover tint and pointer cue for clickable rows.
+   Scoped to tbody so headers don't pick this up. */
+tbody tr {
+  transition:
+    background-color 140ms ease,
+    transform 140ms ease;
+}
+
+/* Card lift on hover — only when the card is actually interactive */
+[data-card][data-interactive='true']:hover,
+a > [data-card]:hover,
+button > [data-card]:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+/* Buttons — slightly snappier press feedback */
+button:not(:disabled):active {
+  transform: scale(0.985);
+  transition: transform 80ms ease;
+}
+
+/* Inputs — softer focus ring instead of harsh blue */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+/* Tabs — smooth ink underline. Apps that have role="tab" get this for free. */
+[role='tab'] {
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+/* Smooth scrollbars on the portal main content for desktop Chromium */
+main {
+  scroll-behavior: smooth;
+}
+main::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+main::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+main::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.22);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* Sidebar nav item — smooth hover lift even for icon-only collapsed state */
+aside nav a {
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+aside nav a:hover {
+  transform: translateX(1px);
+}
