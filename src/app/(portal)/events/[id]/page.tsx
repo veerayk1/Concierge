@@ -28,6 +28,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EditEventDialog } from '@/components/forms/edit-event-dialog';
 
+/**
+ * Formats an event date. Falls back to "—" when the source value is
+ * missing or unparseable, rather than rendering the literal string
+ * "Invalid Date" from `new Date(undefined).toLocaleDateString()`.
+ */
+function formatEventDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -341,12 +358,7 @@ export default function EventDetailPage() {
                   value={
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="h-3.5 w-3.5 text-neutral-400" />
-                      {new Date(event.date).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
+                      {formatEventDate(event.date)}
                     </span>
                   }
                 />
@@ -501,13 +513,7 @@ export default function EventDetailPage() {
                 <Badge variant={statusCfg.variant} size="lg" dot>
                   {statusCfg.label}
                 </Badge>
-                <p className="text-[13px] text-neutral-500">
-                  {new Date(event.date).toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </p>
+                <p className="text-[13px] text-neutral-500">{formatEventDate(event.date)}</p>
               </div>
             </CardContent>
           </Card>
