@@ -229,6 +229,12 @@ export default function LogsPage() {
         <Button
           variant="secondary"
           size="sm"
+          disabled={filteredLogs.length === 0}
+          title={
+            filteredLogs.length === 0
+              ? 'No audit log entries to export.'
+              : `Export ${filteredLogs.length} entries to CSV.`
+          }
           onClick={() => {
             const headers = [
               'Timestamp',
