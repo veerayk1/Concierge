@@ -23,6 +23,7 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { exportToCsv } from '@/lib/export-csv';
 
@@ -303,50 +304,36 @@ export default function MaintenancePage() {
         </div>
       }
     >
-      {/* Status Cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
-        {[
-          {
-            label: 'Open',
-            value: statusCounts.open,
-            icon: AlertCircle,
-            color: 'text-warning-600',
-            bg: 'bg-warning-50',
-          },
-          {
-            label: 'Assigned',
-            value: statusCounts.assigned,
-            icon: Wrench,
-            color: 'text-info-600',
-            bg: 'bg-info-50',
-          },
-          {
-            label: 'In Progress',
-            value: statusCounts.in_progress,
-            icon: Clock,
-            color: 'text-primary-600',
-            bg: 'bg-primary-50',
-          },
-          {
-            label: 'On Hold',
-            value: statusCounts.on_hold,
-            icon: Pause,
-            color: 'text-neutral-600',
-            bg: 'bg-neutral-100',
-          },
-        ].map((stat) => (
-          <Card key={stat.label} padding="sm" className="flex items-center gap-4">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.bg}`}>
-              <stat.icon className={`h-5 w-5 ${stat.color}`} />
-            </div>
-            <div>
-              <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                {loading ? '-' : stat.value}
-              </p>
-              <p className="text-[13px] text-neutral-500">{stat.label}</p>
-            </div>
-          </Card>
-        ))}
+      {/* Status tiles */}
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-4">
+        <KpiTile
+          label="Open"
+          value={loading ? '—' : statusCounts.open}
+          icon={AlertCircle}
+          accent="warning"
+          caption="Waiting on assignment."
+        />
+        <KpiTile
+          label="Assigned"
+          value={loading ? '—' : statusCounts.assigned}
+          icon={Wrench}
+          accent="info"
+          caption="Routed to a tech or vendor."
+        />
+        <KpiTile
+          label="In progress"
+          value={loading ? '—' : statusCounts.in_progress}
+          icon={Clock}
+          accent="primary"
+          caption="Work happening now."
+        />
+        <KpiTile
+          label="On hold"
+          value={loading ? '—' : statusCounts.on_hold}
+          icon={Pause}
+          accent="neutral"
+          caption="Blocked, parts, or scheduling."
+        />
       </div>
 
       {/* Search + Filter */}
