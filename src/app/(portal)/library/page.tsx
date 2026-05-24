@@ -295,11 +295,8 @@ export default function LibraryPage() {
           </Button>
           <Button
             size="sm"
-            onClick={() =>
-              window.alert(
-                'Document upload is coming in the next release. For now use the API or your admin file share.',
-              )
-            }
+            disabled
+            title="Document upload is coming in the next release. For now use the API or your admin file share."
           >
             <Plus className="h-4 w-4" />
             Upload Document
