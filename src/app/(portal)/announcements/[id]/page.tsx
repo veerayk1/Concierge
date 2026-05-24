@@ -346,22 +346,26 @@ export default function AnnouncementDetailPage() {
           <Card>
             <CardContent>
               <div className="prose prose-neutral max-w-none">
-                {announcement.body
-                  // Convert block-level HTML to newlines so paragraphs and lists
-                  // break correctly, then strip remaining tags.
-                  .replace(/<\/(p|div|li|h[1-6]|br)>/gi, '\n')
-                  .replace(/<br\s*\/?>/gi, '\n')
-                  .replace(/<[^>]*>/g, '')
-                  .split('\n')
-                  .map((p, i) =>
-                    p ? (
-                      <p key={i} className="text-[15px] leading-relaxed text-neutral-700">
-                        {p}
-                      </p>
-                    ) : (
-                      <br key={i} />
-                    ),
-                  )}
+                {announcement.body ? (
+                  // Convert block-level HTML to newlines so paragraphs and
+                  // lists break correctly, then strip remaining tags.
+                  (announcement.body as string)
+                    .replace(/<\/(p|div|li|h[1-6]|br)>/gi, '\n')
+                    .replace(/<br\s*\/?>/gi, '\n')
+                    .replace(/<[^>]*>/g, '')
+                    .split('\n')
+                    .map((p, i) =>
+                      p ? (
+                        <p key={i} className="text-[15px] leading-relaxed text-neutral-700">
+                          {p}
+                        </p>
+                      ) : (
+                        <br key={i} />
+                      ),
+                    )
+                ) : (
+                  <p className="text-[14px] text-neutral-400 italic">No content.</p>
+                )}
               </div>
             </CardContent>
           </Card>
