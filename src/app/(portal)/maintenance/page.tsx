@@ -412,16 +412,18 @@ export default function MaintenancePage() {
           columns={columns}
           data={filteredRequests}
           emptyMessage={
-            statusFilter ? 'No requests match this filter' : 'No maintenance requests yet'
+            statusFilter && statusFilter !== 'all'
+              ? 'No requests match this filter'
+              : 'No maintenance requests yet'
           }
           emptyDescription={
-            statusFilter
+            statusFilter && statusFilter !== 'all'
               ? 'Try selecting a different status tab.'
               : 'Create your first service request to track maintenance across the building.'
           }
           emptyIcon={<Wrench className="h-6 w-6" />}
           emptyAction={
-            !statusFilter ? (
+            !statusFilter || statusFilter === 'all' ? (
               <button
                 type="button"
                 onClick={() => setShowCreateDialog(true)}
