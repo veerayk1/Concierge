@@ -1120,15 +1120,16 @@ export default function DashboardPage() {
                       <a
                         key={action.label}
                         href={action.href}
-                        className="group flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-[13px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
+                        className="group flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-[13px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
                       >
                         <span className="flex items-center gap-2.5">
-                          <span className="bg-primary-50 text-primary-600 flex h-7 w-7 items-center justify-center rounded-md">
-                            <action.icon className="h-3.5 w-3.5" />
-                          </span>
+                          <action.icon
+                            className="text-primary-500 h-3.5 w-3.5 flex-shrink-0"
+                            strokeWidth={1.8}
+                          />
                           {action.label}
                         </span>
-                        <ArrowUpRight className="h-3.5 w-3.5 text-neutral-300 transition-colors group-hover:text-neutral-600" />
+                        <ArrowUpRight className="h-3.5 w-3.5 text-neutral-300 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-neutral-600" />
                       </a>
                     ))}
                   </div>
