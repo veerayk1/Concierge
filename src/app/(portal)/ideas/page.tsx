@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateIdeaDialog } from '@/components/forms/create-idea-dialog';
 
@@ -203,36 +204,22 @@ export default function IdeasPage() {
       }
     >
       {/* Summary Cards */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
-            <Lightbulb className="h-5 w-5 text-neutral-600" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalCount}</p>
-            <p className="text-[13px] text-neutral-500">Total Ideas</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Lightbulb className="text-info-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {underReviewCount}
-            </p>
-            <p className="text-[13px] text-neutral-500">Under Review</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Lightbulb className="text-success-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{plannedCount}</p>
-            <p className="text-[13px] text-neutral-500">Planned</p>
-          </div>
-        </Card>
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile label="Total Ideas" value={totalCount} icon={Lightbulb} accent="neutral" />
+        <KpiTile
+          label="Under Review"
+          value={underReviewCount}
+          icon={Lightbulb}
+          accent="info"
+          caption="Board is evaluating."
+        />
+        <KpiTile
+          label="Planned"
+          value={plannedCount}
+          icon={Lightbulb}
+          accent="success"
+          caption="Approved for the roadmap."
+        />
       </div>
 
       {/* Search & Filters */}

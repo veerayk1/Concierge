@@ -24,6 +24,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { KpiTile } from '@/components/ui/kpi-tile';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -512,48 +513,27 @@ export default function CompliancePage() {
           ) : (
             <>
               {/* Summary Cards */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <Card>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                      <Shield className="text-primary-600 h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-[12px] font-medium tracking-wide text-neutral-500 uppercase">
-                        Frameworks Monitored
-                      </p>
-                      <p className="text-[22px] font-bold text-neutral-900">{stats.monitored}</p>
-                    </div>
-                  </div>
-                </Card>
-                <Card>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                      <CheckCircle2 className="text-success-600 h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-[12px] font-medium tracking-wide text-neutral-500 uppercase">
-                        Fully Compliant
-                      </p>
-                      <p className="text-success-600 text-[22px] font-bold">
-                        {stats.fullyCompliant}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-                <Card>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-warning-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                      <AlertTriangle className="text-warning-600 h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-[12px] font-medium tracking-wide text-neutral-500 uppercase">
-                        Action Items
-                      </p>
-                      <p className="text-warning-600 text-[22px] font-bold">{stats.actionItems}</p>
-                    </div>
-                  </div>
-                </Card>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <KpiTile
+                  label="Frameworks Monitored"
+                  value={stats.monitored}
+                  icon={Shield}
+                  accent="primary"
+                />
+                <KpiTile
+                  label="Fully Compliant"
+                  value={stats.fullyCompliant}
+                  icon={CheckCircle2}
+                  accent="success"
+                  caption="All controls passing."
+                />
+                <KpiTile
+                  label="Action Items"
+                  value={stats.actionItems}
+                  icon={AlertTriangle}
+                  accent="warning"
+                  caption="Need follow-up."
+                />
               </div>
 
               {/* Framework Compliance Cards */}

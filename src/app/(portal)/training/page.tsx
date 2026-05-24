@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 
 // ---------------------------------------------------------------------------
 // Types matching what the API actually returns (Prisma Course + modules)
@@ -244,51 +245,34 @@ export default function TrainingPage() {
           ) : (
             <>
               {/* Summary Cards */}
-              <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-4">
-                <Card padding="sm" className="flex items-center gap-4">
-                  <div className="bg-primary-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                    <BookOpen className="text-primary-600 h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                      {totalCount}
-                    </p>
-                    <p className="text-[13px] text-neutral-500">Total Courses</p>
-                  </div>
-                </Card>
-                <Card padding="sm" className="flex items-center gap-4">
-                  <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                    <CheckCircle2 className="text-success-600 h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                      {publishedCount}
-                    </p>
-                    <p className="text-[13px] text-neutral-500">Published</p>
-                  </div>
-                </Card>
-                <Card padding="sm" className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
-                    <Clock className="h-5 w-5 text-neutral-600" />
-                  </div>
-                  <div>
-                    <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                      {draftCount}
-                    </p>
-                    <p className="text-[13px] text-neutral-500">Drafts</p>
-                  </div>
-                </Card>
-                <Card padding="sm" className="flex items-center gap-4">
-                  <div className="bg-warning-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                    <Award className="text-warning-600 h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                      {mandatoryCount}
-                    </p>
-                    <p className="text-[13px] text-neutral-500">Mandatory</p>
-                  </div>
-                </Card>
+              <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-4">
+                <KpiTile
+                  label="Total Courses"
+                  value={totalCount}
+                  icon={BookOpen}
+                  accent="primary"
+                />
+                <KpiTile
+                  label="Published"
+                  value={publishedCount}
+                  icon={CheckCircle2}
+                  accent="success"
+                  caption="Live for learners."
+                />
+                <KpiTile
+                  label="Drafts"
+                  value={draftCount}
+                  icon={Clock}
+                  accent="neutral"
+                  caption="Not yet published."
+                />
+                <KpiTile
+                  label="Mandatory"
+                  value={mandatoryCount}
+                  icon={Award}
+                  accent="warning"
+                  caption="Required for staff."
+                />
               </div>
 
               {/* Course List */}

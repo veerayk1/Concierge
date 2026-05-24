@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreatePurchaseOrderDialog } from '@/components/forms/create-purchase-order-dialog';
 
@@ -333,50 +334,27 @@ export default function PurchaseOrdersPage() {
       }
     >
       {/* Summary Cards */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
-            <ShoppingCart className="h-5 w-5 text-neutral-600" />
-          </div>
-          <div>
-            {loading ? (
-              <Skeleton className="h-7 w-12" />
-            ) : (
-              <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalCount}</p>
-            )}
-            <p className="text-[13px] text-neutral-500">Total POs</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-warning-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Clock className="text-warning-600 h-5 w-5" />
-          </div>
-          <div>
-            {loading ? (
-              <Skeleton className="h-7 w-12" />
-            ) : (
-              <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                {pendingCount}
-              </p>
-            )}
-            <p className="text-[13px] text-neutral-500">Pending Approval</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <DollarSign className="text-success-600 h-5 w-5" />
-          </div>
-          <div>
-            {loading ? (
-              <Skeleton className="h-7 w-12" />
-            ) : (
-              <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                {formatCurrency(totalSpend)}
-              </p>
-            )}
-            <p className="text-[13px] text-neutral-500">Total Spend</p>
-          </div>
-        </Card>
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile
+          label="Total POs"
+          value={loading ? '—' : totalCount}
+          icon={ShoppingCart}
+          accent="neutral"
+        />
+        <KpiTile
+          label="Pending Approval"
+          value={loading ? '—' : pendingCount}
+          icon={Clock}
+          accent="warning"
+          caption="Waiting on a sign-off."
+        />
+        <KpiTile
+          label="Total Spend"
+          value={loading ? '—' : formatCurrency(totalSpend)}
+          icon={DollarSign}
+          accent="success"
+          caption="Across all POs."
+        />
       </div>
 
       {/* Search & Filters */}

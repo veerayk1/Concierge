@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
@@ -473,40 +474,28 @@ export default function GovernancePage() {
       }
     >
       {/* Summary Cards */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Calendar className="text-info-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {upcomingMeetings}
-            </p>
-            <p className="text-[13px] text-neutral-500">Upcoming Meetings</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-warning-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Scale className="text-warning-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {activeResolutions}
-            </p>
-            <p className="text-[13px] text-neutral-500">Active Resolutions</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <CheckCircle2 className="text-success-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {passedThisYear}
-            </p>
-            <p className="text-[13px] text-neutral-500">Passed This Year</p>
-          </div>
-        </Card>
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile
+          label="Upcoming Meetings"
+          value={upcomingMeetings}
+          icon={Calendar}
+          accent="info"
+          caption="Coming up next 30 days."
+        />
+        <KpiTile
+          label="Active Resolutions"
+          value={activeResolutions}
+          icon={Scale}
+          accent="warning"
+          caption="Awaiting board vote."
+        />
+        <KpiTile
+          label="Passed This Year"
+          value={passedThisYear}
+          icon={CheckCircle2}
+          accent="success"
+          caption="Adopted resolutions."
+        />
       </div>
 
       {/* Tabs */}

@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateSignageDialog } from '@/components/forms/create-signage-dialog';
 
@@ -373,50 +374,28 @@ ${activeItems.length === 0 ? '<div class="empty">No active signage content</div>
       }
     >
       {/* Summary Cards */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <CheckCircle2 className="text-success-600 h-5 w-5" />
-          </div>
-          <div>
-            {loading ? (
-              <Skeleton className="h-7 w-12" />
-            ) : (
-              <p className="text-[24px] font-bold tracking-tight text-neutral-900">{activeCount}</p>
-            )}
-            <p className="text-[13px] text-neutral-500">Active Displays</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Monitor className="text-info-600 h-5 w-5" />
-          </div>
-          <div>
-            {loading ? (
-              <Skeleton className="h-7 w-12" />
-            ) : (
-              <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                {screensOnline}
-              </p>
-            )}
-            <p className="text-[13px] text-neutral-500">Screens Online</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-error-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <AlertTriangle className="text-error-600 h-5 w-5" />
-          </div>
-          <div>
-            {loading ? (
-              <Skeleton className="h-7 w-12" />
-            ) : (
-              <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                {emergencyCount}
-              </p>
-            )}
-            <p className="text-[13px] text-neutral-500">Emergency Alerts</p>
-          </div>
-        </Card>
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile
+          label="Active Displays"
+          value={loading ? '—' : activeCount}
+          icon={CheckCircle2}
+          accent="success"
+          caption="Currently playing."
+        />
+        <KpiTile
+          label="Screens Online"
+          value={loading ? '—' : screensOnline}
+          icon={Monitor}
+          accent="info"
+          caption="Reachable on the network."
+        />
+        <KpiTile
+          label="Emergency Alerts"
+          value={loading ? '—' : emergencyCount}
+          icon={AlertTriangle}
+          accent="error"
+          caption="Active broadcasts."
+        />
       </div>
 
       {/* Search & Filters */}

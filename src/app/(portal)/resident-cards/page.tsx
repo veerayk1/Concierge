@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateResidentCardDialog } from '@/components/forms/create-resident-card-dialog';
 
@@ -322,52 +323,27 @@ export default function ResidentCardsPage() {
       }
     >
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card padding="md">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
-              <IdCard className="h-5 w-5 text-neutral-600" />
-            </div>
-            <div>
-              <p className="text-[13px] font-medium text-neutral-500">Total Cards</p>
-              {loading ? (
-                <Skeleton className="h-7 w-12" />
-              ) : (
-                <p className="text-[22px] font-bold text-neutral-900">{totalCards}</p>
-              )}
-            </div>
-          </div>
-        </Card>
-        <Card padding="md">
-          <div className="flex items-center gap-3">
-            <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-              <CheckCircle2 className="text-success-600 h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[13px] font-medium text-neutral-500">Active</p>
-              {loading ? (
-                <Skeleton className="h-7 w-12" />
-              ) : (
-                <p className="text-success-700 text-[22px] font-bold">{activeCards}</p>
-              )}
-            </div>
-          </div>
-        </Card>
-        <Card padding="md">
-          <div className="flex items-center gap-3">
-            <div className="bg-error-50 flex h-10 w-10 items-center justify-center rounded-xl">
-              <AlertTriangle className="text-error-600 h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[13px] font-medium text-neutral-500">Expired / Lost</p>
-              {loading ? (
-                <Skeleton className="h-7 w-12" />
-              ) : (
-                <p className="text-error-700 text-[22px] font-bold">{expiredLostCards}</p>
-              )}
-            </div>
-          </div>
-        </Card>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile
+          label="Total Cards"
+          value={loading ? '—' : totalCards}
+          icon={IdCard}
+          accent="neutral"
+        />
+        <KpiTile
+          label="Active"
+          value={loading ? '—' : activeCards}
+          icon={CheckCircle2}
+          accent="success"
+          caption="In good standing."
+        />
+        <KpiTile
+          label="Expired / Lost"
+          value={loading ? '—' : expiredLostCards}
+          icon={AlertTriangle}
+          accent="error"
+          caption="Need replacement."
+        />
       </div>
 
       {/* Filters & Actions */}

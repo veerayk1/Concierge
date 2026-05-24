@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 
 // ---------------------------------------------------------------------------
 // Types (aligned with API response from /api/v1/resident/packages)
@@ -281,25 +282,21 @@ export default function MyPackagesPage() {
   return (
     <PageShell title="My Packages" description="Track your deliveries and pickups.">
       {/* Summary Cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-warning-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Clock className="text-warning-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{waitingCount}</p>
-            <p className="text-[13px] text-neutral-500">Waiting for Pickup</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <CheckCircle2 className="text-success-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{pickedUpCount}</p>
-            <p className="text-[13px] text-neutral-500">Picked Up</p>
-          </div>
-        </Card>
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <KpiTile
+          label="Waiting for Pickup"
+          value={waitingCount}
+          icon={Clock}
+          accent="warning"
+          caption="Stop by the front desk."
+        />
+        <KpiTile
+          label="Picked Up"
+          value={pickedUpCount}
+          icon={CheckCircle2}
+          accent="success"
+          caption="Delivered to you."
+        />
       </div>
 
       {/* Status Filter */}

@@ -27,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Search } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -741,38 +742,22 @@ export default function DeveloperPortalPage() {
       {activeTab === 'api-keys' && (
         <div className="flex flex-col gap-6">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card padding="sm" className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
-                <Key className="h-5 w-5 text-neutral-600" />
-              </div>
-              <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalKeys}</p>
-                <p className="text-[13px] text-neutral-500">Total Keys</p>
-              </div>
-            </Card>
-            <Card padding="sm" className="flex items-center gap-4">
-              <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                <CheckCircle2 className="text-success-600 h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {activeKeys}
-                </p>
-                <p className="text-[13px] text-neutral-500">Active</p>
-              </div>
-            </Card>
-            <Card padding="sm" className="flex items-center gap-4">
-              <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                <Clock className="text-info-600 h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {totalRequests.toLocaleString()}
-                </p>
-                <p className="text-[13px] text-neutral-500">Total Requests</p>
-              </div>
-            </Card>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <KpiTile label="Total Keys" value={totalKeys} icon={Key} accent="neutral" />
+            <KpiTile
+              label="Active"
+              value={activeKeys}
+              icon={CheckCircle2}
+              accent="success"
+              caption="Currently authorized."
+            />
+            <KpiTile
+              label="Total Requests"
+              value={totalRequests.toLocaleString()}
+              icon={Clock}
+              accent="info"
+              caption="Across all keys."
+            />
           </div>
 
           {/* API Keys Table */}

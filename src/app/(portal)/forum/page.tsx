@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateForumThreadDialog } from '@/components/forms/create-forum-thread-dialog';
 
@@ -329,36 +330,22 @@ export default function ForumPage() {
       }
     >
       {/* Summary Cards */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
-            <MessageSquare className="h-5 w-5 text-neutral-600" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalCount}</p>
-            <p className="text-[13px] text-neutral-500">Total Threads</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <MessageCircle className="text-success-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {activeTodayCount}
-            </p>
-            <p className="text-[13px] text-neutral-500">Active Today</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Pin className="text-info-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{pinnedCount}</p>
-            <p className="text-[13px] text-neutral-500">Pinned</p>
-          </div>
-        </Card>
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile label="Total Threads" value={totalCount} icon={MessageSquare} accent="neutral" />
+        <KpiTile
+          label="Active Today"
+          value={activeTodayCount}
+          icon={MessageCircle}
+          accent="success"
+          caption="Replied to in the last 24h."
+        />
+        <KpiTile
+          label="Pinned"
+          value={pinnedCount}
+          icon={Pin}
+          accent="info"
+          caption="Staff highlights."
+        />
       </div>
 
       {/* Search & Filters */}

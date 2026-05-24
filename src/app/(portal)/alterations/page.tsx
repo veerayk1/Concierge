@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
@@ -344,40 +345,22 @@ export default function AlterationsPage() {
       {!loading && !error && (
         <>
           {/* Summary Cards */}
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card padding="sm" className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
-                <Hammer className="h-5 w-5 text-neutral-600" />
-              </div>
-              <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {totalCount}
-                </p>
-                <p className="text-[13px] text-neutral-500">Total Projects</p>
-              </div>
-            </Card>
-            <Card padding="sm" className="flex items-center gap-4">
-              <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                <TrendingUp className="text-info-600 h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {inProgressCount}
-                </p>
-                <p className="text-[13px] text-neutral-500">In Progress</p>
-              </div>
-            </Card>
-            <Card padding="sm" className="flex items-center gap-4">
-              <div className="bg-error-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                <AlertTriangle className="text-error-600 h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {stalledStoppedCount}
-                </p>
-                <p className="text-[13px] text-neutral-500">Stalled / Stopped</p>
-              </div>
-            </Card>
+          <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <KpiTile label="Total Projects" value={totalCount} icon={Hammer} accent="neutral" />
+            <KpiTile
+              label="In Progress"
+              value={inProgressCount}
+              icon={TrendingUp}
+              accent="info"
+              caption="Work happening now."
+            />
+            <KpiTile
+              label="Stalled / Stopped"
+              value={stalledStoppedCount}
+              icon={AlertTriangle}
+              accent="error"
+              caption="Need follow-up."
+            />
           </div>
 
           {/* Search & Filters */}

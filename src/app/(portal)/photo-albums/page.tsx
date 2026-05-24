@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateAlbumDialog } from '@/components/forms/create-album-dialog';
 
@@ -172,52 +173,26 @@ export default function PhotoAlbumsPage() {
       }
     >
       {/* Summary Cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="flex items-center gap-4">
-          <div className="bg-primary-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Image className="text-primary-500 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-              Total Albums
-            </p>
-            {loading ? (
-              <Skeleton className="h-7 w-12" />
-            ) : (
-              <p className="text-[22px] font-bold text-neutral-900">{totalAlbums}</p>
-            )}
-          </div>
-        </Card>
-        <Card className="flex items-center gap-4">
-          <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Camera className="text-info-500 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-              Total Photos
-            </p>
-            {loading ? (
-              <Skeleton className="h-7 w-12" />
-            ) : (
-              <p className="text-[22px] font-bold text-neutral-900">{totalPhotos}</p>
-            )}
-          </div>
-        </Card>
-        <Card className="flex items-center gap-4">
-          <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Eye className="text-success-500 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-              Public Albums
-            </p>
-            {loading ? (
-              <Skeleton className="h-7 w-12" />
-            ) : (
-              <p className="text-[22px] font-bold text-neutral-900">{publicAlbums}</p>
-            )}
-          </div>
-        </Card>
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile
+          label="Total Albums"
+          value={loading ? '—' : totalAlbums}
+          icon={Image}
+          accent="primary"
+        />
+        <KpiTile
+          label="Total Photos"
+          value={loading ? '—' : totalPhotos}
+          icon={Camera}
+          accent="info"
+        />
+        <KpiTile
+          label="Public Albums"
+          value={loading ? '—' : publicAlbums}
+          icon={Eye}
+          accent="success"
+          caption="Visible to all residents."
+        />
       </div>
 
       {/* Filters */}

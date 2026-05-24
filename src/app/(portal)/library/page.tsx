@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
@@ -305,38 +306,16 @@ export default function LibraryPage() {
       }
     >
       {/* Summary Cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-primary-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <BookOpen className="text-primary-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {totalDocuments}
-            </p>
-            <p className="text-[13px] text-neutral-500">Documents</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Folder className="text-info-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalFolders}</p>
-            <p className="text-[13px] text-neutral-500">Folders</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Download className="text-success-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {files.reduce((sum, f) => sum + f.downloadCount, 0)}
-            </p>
-            <p className="text-[13px] text-neutral-500">Total Downloads</p>
-          </div>
-        </Card>
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile label="Documents" value={totalDocuments} icon={BookOpen} accent="primary" />
+        <KpiTile label="Folders" value={totalFolders} icon={Folder} accent="info" />
+        <KpiTile
+          label="Total Downloads"
+          value={files.reduce((sum, f) => sum + f.downloadCount, 0)}
+          icon={Download}
+          accent="success"
+          caption="Across all documents."
+        />
       </div>
 
       {/* Folder Navigation */}

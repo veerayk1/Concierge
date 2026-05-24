@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateEquipmentDialog } from '@/components/forms/create-equipment-dialog';
 import { exportToCsv } from '@/lib/export-csv';
@@ -355,38 +356,22 @@ export default function EquipmentPage() {
       }
     >
       {/* Summary Cards */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
-            <Cog className="h-5 w-5 text-neutral-600" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">{totalCount}</p>
-            <p className="text-[13px] text-neutral-500">Total Equipment</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <CheckCircle2 className="text-success-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {operationalCount}
-            </p>
-            <p className="text-[13px] text-neutral-500">Operational</p>
-          </div>
-        </Card>
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-warning-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <AlertTriangle className="text-warning-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {needsMaintenanceCount}
-            </p>
-            <p className="text-[13px] text-neutral-500">Needs Maintenance</p>
-          </div>
-        </Card>
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile label="Total Equipment" value={totalCount} icon={Cog} accent="neutral" />
+        <KpiTile
+          label="Operational"
+          value={operationalCount}
+          icon={CheckCircle2}
+          accent="success"
+          caption="Running normally."
+        />
+        <KpiTile
+          label="Needs Maintenance"
+          value={needsMaintenanceCount}
+          icon={AlertTriangle}
+          accent="warning"
+          caption="Schedule a service."
+        />
       </div>
 
       {/* Search & Filters */}
