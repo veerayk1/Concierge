@@ -1252,9 +1252,10 @@ export default function DashboardPage() {
                   const EventIcon = typeConfig.icon;
 
                   return (
-                    <div
+                    <a
                       key={event.id}
-                      className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-neutral-50"
+                      href={`/events/${event.id}`}
+                      className="focus-visible:outline-primary-500 flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-neutral-50 focus-visible:outline-2"
                     >
                       <div className="flex items-center gap-3">
                         <div
@@ -1289,7 +1290,7 @@ export default function DashboardPage() {
                           {formatRelativeTime(event.createdAt)}
                         </span>
                       </div>
-                    </div>
+                    </a>
                   );
                 })}
               </div>
