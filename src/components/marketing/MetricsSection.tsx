@@ -1,131 +1,246 @@
 'use client';
 
 import { useCountUp } from '@/components/marketing/useCountUp';
+import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 
-/* -------------------------------------------------------------------------- */
-/*  Stat definitions                                                          */
-/* -------------------------------------------------------------------------- */
+// ---------------------------------------------------------------------------
+// Product-truth metrics. Every number here is defensible from what shipped.
+// No vanity counts, no fake user totals.
+// ---------------------------------------------------------------------------
 
 interface StatDef {
   target: number;
   format: (value: number) => string;
+  prefix?: string;
+  suffix?: string;
   label: string;
+  caption: string;
 }
 
 const stats: StatDef[] = [
   {
-    target: 200,
-    format: (v) => `${v.toLocaleString()}+`,
-    label: 'Properties Managed',
+    target: 12,
+    format: (v) => `${v}`,
+    label: 'Modules',
+    caption: 'All integrated, all sharing the same data.',
   },
   {
-    target: 50000,
-    format: (v) => `${v.toLocaleString()}+`,
-    label: 'Residents Served',
-  },
-  {
-    target: 999,
-    format: (v) => `${(v / 10).toFixed(1)}%`,
-    label: 'Platform Uptime',
+    target: 7,
+    format: (v) => `${v}`,
+    label: 'Roles',
+    caption: 'Each one gets a tailored dashboard, not a one-size-fits-all view.',
   },
   {
     target: 30,
-    format: (v) => `<${v} min`,
-    label: 'Average Onboarding Time',
+    format: (v) => `${v}`,
+    suffix: 's',
+    label: 'To log a package',
+    caption: 'From courier scan to resident notification.',
+  },
+  {
+    target: 1,
+    format: (v) => `${v}`,
+    label: 'Login',
+    caption: 'Replaces the twelve your team juggles today.',
   },
 ];
 
-/* -------------------------------------------------------------------------- */
-/*  Individual stat block (needs its own hook call)                            */
-/* -------------------------------------------------------------------------- */
-
 function StatBlock({ stat }: { stat: StatDef }) {
-  const { ref, value } = useCountUp(stat.target, 1800);
+  const { ref, value } = useCountUp(stat.target, 1400);
 
   return (
-    <div ref={ref} className="mkt-stat" style={{ flex: '1 1 0', minWidth: 160 }}>
-      <span
+    <div
+      ref={ref}
+      style={{
+        flex: '1 1 0',
+        minWidth: 180,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+      }}
+    >
+      <div
         style={{
-          fontSize: 'clamp(3.5rem, 7vw, 6.5rem)',
-          fontWeight: 300,
-          letterSpacing: '-0.03em',
-          lineHeight: 1,
+          fontSize: 'clamp(3.75rem, 7vw, 6rem)',
+          fontWeight: 200,
+          letterSpacing: '-0.05em',
+          lineHeight: 0.95,
           color: '#fff',
+          fontFeatureSettings: '"tnum"',
+          display: 'inline-flex',
+          alignItems: 'baseline',
         }}
       >
         {stat.format(value)}
-      </span>
-      <span
+        {stat.suffix && (
+          <span
+            style={{
+              fontSize: '0.42em',
+              color: '#D4BA85',
+              marginLeft: 4,
+              fontWeight: 300,
+            }}
+          >
+            {stat.suffix}
+          </span>
+        )}
+      </div>
+      <div
         style={{
-          fontSize: '0.875rem',
+          fontSize: '0.75rem',
+          fontWeight: 600,
+          letterSpacing: '0.14em',
+          color: '#D4BA85',
           textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          color: 'rgba(255,255,255,0.5)',
-          marginTop: 'var(--space-xs)',
         }}
       >
         {stat.label}
-      </span>
+      </div>
+      <p
+        style={{
+          fontSize: '0.875rem',
+          lineHeight: 1.55,
+          color: 'rgba(255,255,255,0.55)',
+          margin: 0,
+          maxWidth: 220,
+        }}
+      >
+        {stat.caption}
+      </p>
     </div>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  MetricsSection Component                                                  */
-/* -------------------------------------------------------------------------- */
-
 export function MetricsSection() {
   return (
-    <section className="mkt-section mkt-section--dark mkt-dark">
-      <div className="mkt-container">
-        {/* Eyebrow */}
-        <p
-          className="mkt-eyebrow mkt-text-center"
-          style={{ marginBottom: 'var(--space-2xl)' }}
-        >
-          BY THE NUMBERS
-        </p>
+    <section
+      style={{
+        background: '#0A0A0A',
+        paddingBlock: 'var(--space-section)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Soft brand glow */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(ellipse 800px 500px at 50% 30%, rgba(201, 169, 110, 0.06), transparent 70%)',
+          pointerEvents: 'none',
+        }}
+      />
 
-        {/* Stats row */}
-        <div className="metrics__row">
-          {stats.map((stat, i) => (
-            <div key={i} className="metrics__item" style={{ display: 'contents' }}>
-              <StatBlock stat={stat} />
-              {/* Vertical divider (not after last) */}
-              {i < stats.length - 1 && (
-                <div
-                  className="metrics__divider"
-                  aria-hidden="true"
-                  style={{
-                    width: 1,
-                    alignSelf: 'stretch',
-                    background: 'rgba(255,255,255,0.08)',
-                  }}
+      <div
+        style={{
+          position: 'relative',
+          maxWidth: 1240,
+          marginInline: 'auto',
+          paddingInline: 'clamp(1.5rem, 4vw, 3rem)',
+        }}
+      >
+        {/* Header — editorial split */}
+        <div
+          className="mkt-metrics-header"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+            gap: '3rem',
+            alignItems: 'end',
+            paddingBottom: '4rem',
+          }}
+        >
+          <ScrollReveal>
+            <div>
+              <p
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: '#D4BA85',
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  margin: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 10,
+                }}
+              >
+                <span
+                  style={{ width: 24, height: 1, background: '#D4BA85', display: 'inline-block' }}
                 />
-              )}
+                The shape of it
+              </p>
+              <h2
+                style={{
+                  fontSize: 'clamp(2.5rem, 5vw, 4.25rem)',
+                  fontWeight: 300,
+                  color: '#fff',
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.02,
+                  marginTop: '1.25rem',
+                }}
+              >
+                Small numbers,
+                <br />
+                <em style={{ fontStyle: 'italic', fontWeight: 300, color: '#D4BA85' }}>
+                  big surface area.
+                </em>
+              </h2>
             </div>
-          ))}
+          </ScrollReveal>
+
+          <ScrollReveal delay={80}>
+            <p
+              style={{
+                fontSize: '1.0625rem',
+                lineHeight: 1.7,
+                color: 'rgba(255,255,255,0.62)',
+                margin: 0,
+              }}
+            >
+              Most platforms in this space brag about modules. We brag about what it takes to get
+              work done. Every number on this page is measured against an actual workflow our team
+              runs in the product, not a marketing roundup.
+            </p>
+          </ScrollReveal>
         </div>
+
+        {/* Stats grid */}
+        <ScrollReveal delay={150}>
+          <div
+            className="mkt-metrics-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+              gap: '3rem',
+              paddingTop: '3rem',
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            {stats.map((stat, i) => (
+              <StatBlock key={i} stat={stat} />
+            ))}
+          </div>
+        </ScrollReveal>
       </div>
 
-      <style>{`
-        .metrics__row {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: var(--space-xl);
+      <style jsx global>{`
+        @media (max-width: 900px) {
+          .mkt-metrics-header {
+            grid-template-columns: 1fr !important;
+            gap: 1.5rem !important;
+            align-items: start !important;
+          }
+          .mkt-metrics-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 3rem 2rem !important;
+          }
         }
-
-        @media (max-width: 767px) {
-          .metrics__row {
-            flex-wrap: wrap;
-            gap: var(--space-xl) var(--space-lg);
-          }
-          .metrics__row .mkt-stat {
-            flex-basis: calc(50% - var(--space-lg));
-          }
-          .metrics__divider {
-            display: none;
+        @media (max-width: 500px) {
+          .mkt-metrics-grid {
+            grid-template-columns: 1fr !important;
           }
         }
       `}</style>
