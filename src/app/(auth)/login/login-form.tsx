@@ -176,151 +176,107 @@ export function LoginForm() {
         Sign in
       </Button>
 
-      {/* Demo Access — quick login for testing */}
+      {/* Demo Access — quick login for testing & investor walkthroughs.
+          Monochrome list grouped by audience; clicking a row jumps straight
+          into the dashboard for that role. */}
       <div className="relative flex items-center justify-center">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-neutral-200" />
         </div>
-        <span className="relative bg-white px-3 text-[12px] text-neutral-400">
-          or quick demo access
+        <span className="relative bg-white px-3 text-[11px] tracking-[0.1em] text-neutral-400 uppercase">
+          Try a demo role
         </span>
       </div>
 
-      {/* Super Admin & Admin */}
-      <div className="grid grid-cols-2 gap-2">
-        {[
-          {
-            role: 'super_admin',
-            label: 'Super Admin',
-            desc: 'Full platform control',
-            color: 'border-red-200 bg-red-50 text-red-700',
-          },
-          {
-            role: 'property_admin',
-            label: 'Demo: Admin',
-            desc: 'Property owner / buyer',
-            color: 'border-purple-200 bg-purple-50 text-purple-700',
-          },
-        ].map((demo) => (
-          <button
-            key={demo.role}
-            type="button"
-            onClick={() => {
-              localStorage.setItem('demo_role', demo.role);
-              localStorage.setItem('demo_propertyId', DEFAULT_DEMO_PROPERTY_ID);
-              localStorage.removeItem('demo_mode');
-              localStorage.removeItem('demo_return_role');
-              window.location.href = '/dashboard';
-            }}
-            className={`rounded-xl border px-3 py-2.5 text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] ${demo.color}`}
-          >
-            <span className="block text-[13px] font-semibold">{demo.label}</span>
-            <span className="block text-[11px] opacity-70">{demo.desc}</span>
-          </button>
-        ))}
-      </div>
+      <DemoRoleSection
+        title="Admin"
+        roles={[
+          { role: 'super_admin', label: 'Super Admin', desc: 'Cross-property control' },
+          { role: 'property_admin', label: 'Property Admin', desc: 'Owner / buyer view' },
+          { role: 'property_manager', label: 'Property Manager', desc: 'Day-to-day operations' },
+          { role: 'board_member', label: 'Board Member', desc: 'Governance and reports' },
+        ]}
+      />
 
-      {/* Staff Roles */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          {
-            role: 'property_manager',
-            label: 'Property Manager',
-            desc: 'Day-to-day operations',
-            color: 'border-blue-200 bg-blue-50 text-blue-700',
-          },
-          {
-            role: 'front_desk',
-            label: 'Demo: Front Desk',
-            desc: 'Concierge / reception',
-            color: 'border-teal-200 bg-teal-50 text-teal-700',
-          },
-          {
-            role: 'security_guard',
-            label: 'Demo: Security',
-            desc: 'Security console',
-            color: 'border-amber-200 bg-amber-50 text-amber-700',
-          },
-          {
-            role: 'security_supervisor',
-            label: 'Security Supervisor',
-            desc: 'Security management',
-            color: 'border-orange-200 bg-orange-50 text-orange-700',
-          },
-          {
-            role: 'maintenance_staff',
-            label: 'Maintenance',
-            desc: 'Work orders & repairs',
-            color: 'border-green-200 bg-green-50 text-green-700',
-          },
-          {
-            role: 'superintendent',
-            label: 'Superintendent',
-            desc: 'Building operations',
-            color: 'border-cyan-200 bg-cyan-50 text-cyan-700',
-          },
-        ].map((demo) => (
-          <button
-            key={demo.role}
-            type="button"
-            onClick={() => {
-              localStorage.setItem('demo_role', demo.role);
-              localStorage.setItem('demo_propertyId', DEFAULT_DEMO_PROPERTY_ID);
-              localStorage.removeItem('demo_mode');
-              localStorage.removeItem('demo_return_role');
-              window.location.href = '/dashboard';
-            }}
-            className={`rounded-xl border px-3 py-2 text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] ${demo.color}`}
-          >
-            <span className="block text-[12px] font-semibold">{demo.label}</span>
-            <span className="block text-[10px] opacity-70">{demo.desc}</span>
-          </button>
-        ))}
-      </div>
+      <DemoRoleSection
+        title="On-site staff"
+        roles={[
+          { role: 'front_desk', label: 'Front Desk', desc: 'Concierge / reception' },
+          { role: 'security_guard', label: 'Security Guard', desc: 'Security console' },
+          { role: 'security_supervisor', label: 'Security Supervisor', desc: 'Security oversight' },
+          { role: 'maintenance_staff', label: 'Maintenance', desc: 'Work orders' },
+          { role: 'superintendent', label: 'Superintendent', desc: 'Building operations' },
+        ]}
+      />
 
-      {/* Resident & Board Roles */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          {
-            role: 'resident_owner',
-            label: 'Demo: Resident',
-            desc: 'Unit owner portal',
-            color: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-          },
-          {
-            role: 'resident_tenant',
-            label: 'Resident (Tenant)',
-            desc: 'Tenant portal',
-            color: 'border-violet-200 bg-violet-50 text-violet-700',
-          },
-          {
-            role: 'board_member',
-            label: 'Board Member',
-            desc: 'Governance & reports',
-            color: 'border-slate-200 bg-slate-50 text-slate-700',
-          },
-        ].map((demo) => (
-          <button
-            key={demo.role}
-            type="button"
-            onClick={() => {
-              localStorage.setItem('demo_role', demo.role);
-              localStorage.setItem('demo_propertyId', DEFAULT_DEMO_PROPERTY_ID);
-              localStorage.removeItem('demo_mode');
-              localStorage.removeItem('demo_return_role');
-              window.location.href = '/dashboard';
-            }}
-            className={`rounded-xl border px-3 py-2 text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] ${demo.color}`}
-          >
-            <span className="block text-[12px] font-semibold">{demo.label}</span>
-            <span className="block text-[10px] opacity-70">{demo.desc}</span>
-          </button>
-        ))}
-      </div>
-
-      <p className="text-center text-[11px] text-neutral-400">
-        Quick access buttons for testing. Each role sees a different dashboard and navigation.
-      </p>
+      <DemoRoleSection
+        title="Residents"
+        roles={[
+          { role: 'resident_owner', label: 'Resident (Owner)', desc: 'Unit owner portal' },
+          { role: 'resident_tenant', label: 'Resident (Tenant)', desc: 'Tenant portal' },
+        ]}
+      />
     </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DemoRoleSection — small grouped list, monochrome, fast to scan
+// ---------------------------------------------------------------------------
+
+interface DemoRole {
+  role: string;
+  label: string;
+  desc: string;
+}
+
+function DemoRoleSection({ title, roles }: { title: string; roles: DemoRole[] }) {
+  const go = (role: string) => {
+    localStorage.setItem('demo_role', role);
+    localStorage.setItem('demo_propertyId', DEFAULT_DEMO_PROPERTY_ID);
+    localStorage.removeItem('demo_mode');
+    localStorage.removeItem('demo_return_role');
+    window.location.href = '/dashboard';
+  };
+
+  return (
+    <div>
+      <p className="mb-1.5 text-[11px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
+        {title}
+      </p>
+      <div className="overflow-hidden rounded-xl border border-neutral-200">
+        {roles.map((demo, idx) => (
+          <button
+            key={demo.role}
+            type="button"
+            onClick={() => go(demo.role)}
+            className={`group flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left transition-colors duration-150 hover:bg-neutral-50 active:bg-neutral-100 ${
+              idx === 0 ? '' : 'border-t border-neutral-100'
+            }`}
+          >
+            <div className="min-w-0">
+              <span className="block truncate text-[13px] font-medium text-neutral-800">
+                {demo.label}
+              </span>
+              <span className="block truncate text-[11px] text-neutral-500">{demo.desc}</span>
+            </div>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="shrink-0 text-neutral-300 transition-colors group-hover:text-neutral-600"
+              aria-hidden="true"
+            >
+              <path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" />
+            </svg>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
