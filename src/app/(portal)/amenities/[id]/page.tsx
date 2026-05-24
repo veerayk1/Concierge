@@ -453,22 +453,26 @@ export default function AmenityDetailPage() {
                           </td>
                           <td className="py-3 text-right">
                             {b.status === 'pending' && (
-                              <div className="flex items-center justify-end gap-1">
+                              <div className="flex items-center justify-end gap-2">
                                 <Button
-                                  variant="ghost"
+                                  variant="secondary"
                                   size="sm"
                                   disabled={actionLoading === b.id}
                                   onClick={() => handleBookingAction(b.id, 'confirmed')}
+                                  className="text-success-700 hover:bg-success-50 border-success-200"
                                 >
-                                  <Check className="text-success-600 h-3.5 w-3.5" />
+                                  <Check className="h-3.5 w-3.5" />
+                                  Approve
                                 </Button>
                                 <Button
-                                  variant="ghost"
+                                  variant="secondary"
                                   size="sm"
                                   disabled={actionLoading === b.id}
                                   onClick={() => handleBookingAction(b.id, 'rejected')}
+                                  className="text-error-700 hover:bg-error-50 border-error-200"
                                 >
-                                  <X className="text-error-600 h-3.5 w-3.5" />
+                                  <X className="h-3.5 w-3.5" />
+                                  Reject
                                 </Button>
                               </div>
                             )}
