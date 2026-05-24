@@ -9,6 +9,7 @@ import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import type { Role } from '@/types';
 import {
   Activity,
@@ -506,7 +507,7 @@ export default function DashboardPage() {
         'Platform Health': platformKpis ? `${platformKpis.platformHealth}%` : '\u2014',
         'Active Subscriptions': platformKpis ? String(platformKpis.activeSubscriptions) : '\u2014',
         'AI Spend': '\u2014',
-        'Total Units': String(totalUnits),
+        'Total Units': totalUnits.toLocaleString('en-US'),
       };
     }
 
@@ -553,37 +554,50 @@ export default function DashboardPage() {
   // Super Admin — Platform-level dashboard
   // -------------------------------------------------------------------------
   if (isSuperAdmin) {
-    const platformKpis = [
-      {
-        label: 'Total Properties',
-        icon: Building2,
-        color: 'text-primary-600',
-        bgColor: 'bg-primary-50',
-      },
-      { label: 'Active Users', icon: Users, color: 'text-success-600', bgColor: 'bg-success-50' },
-      {
-        label: 'Platform Health',
-        icon: Activity,
-        color: 'text-success-600',
-        bgColor: 'bg-success-50',
-      },
-      {
-        label: 'Active Subscriptions',
-        icon: CreditCard,
-        color: 'text-info-600',
-        bgColor: 'bg-info-50',
-      },
-    ];
+    const props = Array.isArray(platformProperties) ? platformProperties : [];
+    const inactiveProps = props.filter((p) => !p.isActive);
+    const noUnitProps = props.filter((p) => (p.unitCount || 0) === 0);
+    const criticalIncidents = platformKpis?.openCriticalIncidents ?? 0;
+    const needsAttention: {
+      id: string;
+      label: string;
+      href: string;
+      tone: 'error' | 'warning' | 'info';
+    }[] = [];
+    if (criticalIncidents > 0) {
+      needsAttention.push({
+        id: 'crit',
+        label: `${criticalIncidents} open critical incident${criticalIncidents === 1 ? '' : 's'}`,
+        href: '/system/health',
+        tone: 'error',
+      });
+    }
+    if (inactiveProps.length > 0) {
+      needsAttention.push({
+        id: 'inactive',
+        label: `${inactiveProps.length} inactive propert${inactiveProps.length === 1 ? 'y' : 'ies'}`,
+        href: '/system/properties',
+        tone: 'warning',
+      });
+    }
+    if (noUnitProps.length > 0) {
+      needsAttention.push({
+        id: 'no-units',
+        label: `${noUnitProps.length} propert${noUnitProps.length === 1 ? 'y has' : 'ies have'} no units configured`,
+        href: '/system/properties',
+        tone: 'warning',
+      });
+    }
 
     return (
-      <div className="flex flex-col gap-8">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
         {/* Greeting */}
         <div className="flex items-end justify-between">
           <div>
-            <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
+            <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
               {greeting}, {effectiveName}
             </h1>
-            <p className="mt-1 text-[15px] text-neutral-500">
+            <p className="mt-0.5 text-[14px] text-neutral-500">
               Platform Overview &middot; {ROLE_DISPLAY_NAMES[effectiveRole]}
             </p>
           </div>
@@ -597,70 +611,135 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Platform KPI Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {platformKpis.map((kpi) => {
-            const Icon = kpi.icon;
-            return (
-              <Card key={kpi.label} hoverable className="group cursor-pointer">
-                <div className="flex items-start justify-between">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpi.bgColor}`}
-                  >
-                    <Icon className={`h-5 w-5 ${kpi.color}`} />
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-neutral-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-neutral-500" />
-                </div>
-                <div className="mt-4">
-                  <p className="text-[13px] font-medium text-neutral-500">{kpi.label}</p>
-                  <p className="mt-1 text-[24px] font-bold tracking-tight text-neutral-900">
-                    {kpiValues[kpi.label] ?? '\u2014'}
+        {/* Platform KPI tiles — compact, clickable, drill into the source list */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiTile
+            label="Total Properties"
+            value={kpiValues['Total Properties'] ?? '\u2014'}
+            icon={Building2}
+            accent="primary"
+            href="/system/properties"
+            caption={`${kpiValues['Total Units'] ?? '\u2014'} units across portfolio`}
+          />
+          <KpiTile
+            label="Active Users"
+            value={kpiValues['Active Users'] ?? '\u2014'}
+            icon={Users}
+            accent="success"
+            href="/users"
+          />
+          <KpiTile
+            label="Platform Health"
+            value={kpiValues['Platform Health'] ?? '\u2014'}
+            icon={Activity}
+            accent={
+              platformKpis && platformKpis.platformHealth >= 80
+                ? 'success'
+                : platformKpis && platformKpis.platformHealth >= 60
+                  ? 'warning'
+                  : 'error'
+            }
+            href="/system/health"
+            caption={
+              criticalIncidents > 0
+                ? `${criticalIncidents} critical incident${criticalIncidents === 1 ? '' : 's'} open`
+                : 'All systems nominal'
+            }
+          />
+          <KpiTile
+            label="Active Subscriptions"
+            value={kpiValues['Active Subscriptions'] ?? '\u2014'}
+            icon={CreditCard}
+            accent="info"
+            href="/system/billing"
+          />
+        </div>
+
+        {/* Needs Attention + Quick navigation — two-column work surface */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="text-warning-500 h-4 w-4" />
+                <CardTitle>Needs your attention</CardTitle>
+              </div>
+              {needsAttention.length > 0 ? (
+                <Badge variant="warning" size="sm">
+                  {needsAttention.length}
+                </Badge>
+              ) : null}
+            </CardHeader>
+            <CardContent>
+              {needsAttention.length === 0 ? (
+                <div className="border-success-100 bg-success-50/40 flex items-center gap-3 rounded-xl border px-4 py-3">
+                  <CheckCircle2 className="text-success-500 h-5 w-5 flex-none" />
+                  <p className="text-success-700 text-[14px] font-medium">
+                    Nothing requires action right now.
                   </p>
                 </div>
-              </Card>
-            );
-          })}
-        </div>
+              ) : (
+                <ul className="flex flex-col divide-y divide-neutral-100">
+                  {needsAttention.map((item) => (
+                    <li key={item.id}>
+                      <a
+                        href={item.href}
+                        className="group flex items-center justify-between gap-3 py-3 transition-colors hover:text-neutral-900"
+                      >
+                        <span className="flex items-center gap-3">
+                          <span
+                            className={
+                              item.tone === 'error'
+                                ? 'bg-error-500 h-2 w-2 rounded-full'
+                                : item.tone === 'warning'
+                                  ? 'bg-warning-500 h-2 w-2 rounded-full'
+                                  : 'bg-info-500 h-2 w-2 rounded-full'
+                            }
+                            aria-hidden="true"
+                          />
+                          <span className="text-[14px] font-medium text-neutral-700 group-hover:text-neutral-900">
+                            {item.label}
+                          </span>
+                        </span>
+                        <ArrowUpRight className="h-4 w-4 text-neutral-300 transition-all duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-neutral-600" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Quick Actions */}
-        <div>
-          <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
-            Quick Actions
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: 'View Properties', href: '/system/properties' },
-              { label: 'Platform Health', href: '/system/health' },
-              { label: 'AI Dashboard', href: '/system/ai' },
-              { label: 'Billing Overview', href: '/system/billing' },
-              { label: 'User Management', href: '/users' },
-              { label: 'Compliance', href: '/compliance' },
-            ].map((action) => (
-              <button
-                key={action.label}
-                type="button"
-                onClick={() => {
-                  window.location.href = action.href;
-                }}
-                className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 cursor-pointer rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent System Events — populated from real event log API */}
-        <div>
-          <h2 className="mb-3 text-[12px] font-semibold tracking-[0.08em] text-neutral-400 uppercase">
-            Recent System Events
-          </h2>
-          <Card padding="none">
-            <div className="flex flex-col items-center justify-center px-5 py-10 text-center">
-              <CheckCircle2 className="text-primary-200 mb-2 h-8 w-8" />
-              <p className="text-[14px] font-medium text-neutral-500">No recent system events</p>
-              <p className="text-[12px] text-neutral-400">Events will appear here as they occur</p>
-            </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick navigation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-1">
+                {[
+                  { label: 'Properties', href: '/system/properties', icon: Building2 },
+                  { label: 'Platform health', href: '/system/health', icon: Activity },
+                  { label: 'AI dashboard', href: '/system/ai', icon: Sparkles },
+                  { label: 'Billing', href: '/system/billing', icon: CreditCard },
+                  { label: 'User management', href: '/users', icon: Users },
+                  { label: 'Compliance', href: '/compliance', icon: Shield },
+                ].map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <a
+                      key={action.label}
+                      href={action.href}
+                      className="group flex items-center justify-between rounded-lg px-2.5 py-2 text-[14px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-neutral-900"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Icon className="h-4 w-4 text-neutral-400 group-hover:text-neutral-600" />
+                        {action.label}
+                      </span>
+                      <ArrowUpRight className="h-3.5 w-3.5 text-neutral-300 group-hover:text-neutral-500" />
+                    </a>
+                  );
+                })}
+              </div>
+            </CardContent>
           </Card>
         </div>
       </div>
