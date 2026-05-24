@@ -1128,21 +1128,32 @@ export default function DashboardPage() {
             );
           })}
 
-          {/* Dedicated quick action buttons */}
-          <div className="mx-1 h-auto w-px bg-neutral-200" />
-          {Object.entries(QUICK_ACTION_LINKS).map(([label, { href, icon: QAIcon }]) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => {
-                window.location.href = href;
-              }}
-              className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
-            >
-              <QAIcon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
+          {/* Dedicated staff quick action buttons — hidden for residents,
+              board members, visitors, and other non-operational roles. */}
+          {(effectiveRole === 'front_desk' ||
+            effectiveRole === 'security_guard' ||
+            effectiveRole === 'security_supervisor' ||
+            effectiveRole === 'property_admin' ||
+            effectiveRole === 'property_manager' ||
+            effectiveRole === 'maintenance_staff' ||
+            effectiveRole === 'superintendent') && (
+            <>
+              <div className="mx-1 h-auto w-px bg-neutral-200" />
+              {Object.entries(QUICK_ACTION_LINKS).map(([label, { href, icon: QAIcon }]) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => {
+                    window.location.href = href;
+                  }}
+                  className="hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[14px] font-medium text-neutral-700 shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
+                >
+                  <QAIcon className="h-4 w-4" />
+                  {label}
+                </button>
+              ))}
+            </>
+          )}
         </div>
       </div>
 
