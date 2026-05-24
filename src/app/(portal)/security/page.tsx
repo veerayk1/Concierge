@@ -28,6 +28,7 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -111,6 +112,39 @@ const SECURITY_CONSOLE_ROLES = new Set([
   'security_supervisor',
   'superintendent',
 ]);
+
+// Small secondary-action chip used in the security console row. Reads as a
+// utility shortcut, not a primary CTA — the only primary action on the page
+// is "Log event" in the page header.
+function SecurityShortcut({
+  icon: Icon,
+  label,
+  onClick,
+  disabled,
+  title,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="group inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[13px] font-medium text-neutral-700 transition-all duration-150 hover:-translate-y-px hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.04)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+    >
+      <Icon
+        className="h-3.5 w-3.5 flex-shrink-0 text-neutral-400 transition-colors group-hover:text-neutral-700 group-disabled:text-neutral-300"
+        strokeWidth={1.8}
+      />
+      {label}
+    </button>
+  );
+}
 
 export default function SecurityPage() {
   const router = useRouter();
@@ -403,30 +437,36 @@ export default function SecurityPage() {
       title="Security Console"
       description="Unified security dashboard with real-time event logging."
       actions={
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" disabled title="Camera integration — coming soon">
-            <Eye className="h-4 w-4" />
-            View Cameras
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => setShowAuthorizedEntryDialog(true)}>
-            <KeyRound className="h-4 w-4" />
-            Authorized Entry
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => setShowFireLogDialog(true)}>
-            <AlertTriangle className="h-4 w-4" />
-            Fire Log
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => setShowNoiseComplaintDialog(true)}>
-            <AlertTriangle className="h-4 w-4" />
-            Noise Complaint
-          </Button>
-          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4" />
-            Log Event
-          </Button>
-        </div>
+        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+          <Plus className="h-4 w-4" />
+          Log event
+        </Button>
       }
     >
+      {/* Secondary action row — log-once shortcuts a guard reaches for first */}
+      <div className="-mt-2 mb-6 flex flex-wrap items-center gap-2">
+        <SecurityShortcut
+          icon={KeyRound}
+          label="Authorized entry"
+          onClick={() => setShowAuthorizedEntryDialog(true)}
+        />
+        <SecurityShortcut
+          icon={AlertTriangle}
+          label="Fire log"
+          onClick={() => setShowFireLogDialog(true)}
+        />
+        <SecurityShortcut
+          icon={AlertTriangle}
+          label="Noise complaint"
+          onClick={() => setShowNoiseComplaintDialog(true)}
+        />
+        <SecurityShortcut
+          icon={Eye}
+          label="View cameras"
+          disabled
+          title="Camera integration — coming soon"
+        />
+      </div>
       {/* Loading State */}
       {loading && (
         <div className="flex flex-col gap-6">
@@ -463,49 +503,35 @@ export default function SecurityPage() {
       {!loading && !error && (
         <>
           {/* Quick Stats */}
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
-            {[
-              {
-                label: 'Open Events',
-                value: openCount,
-                icon: Clock,
-                color: 'text-warning-600',
-                bg: 'bg-warning-50',
-              },
-              {
-                label: 'Incidents',
-                value: incidentCount,
-                icon: ShieldAlert,
-                color: 'text-error-600',
-                bg: 'bg-error-50',
-              },
-              {
-                label: 'Active Visitors',
-                value: activeVisitorCount,
-                icon: Users,
-                color: 'text-success-600',
-                bg: 'bg-success-50',
-              },
-              {
-                label: 'Keys Out',
-                value: allEvents.filter((e) => e.type === 'key' && e.status === 'open').length,
-                icon: Key,
-                color: 'text-purple-600',
-                bg: 'bg-purple-50',
-              },
-            ].map((stat) => (
-              <Card key={stat.label} padding="sm" className="flex items-center gap-4">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.bg}`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </div>
-                <div>
-                  <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                    {stat.value}
-                  </p>
-                  <p className="text-[13px] text-neutral-500">{stat.label}</p>
-                </div>
-              </Card>
-            ))}
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-4">
+            <KpiTile
+              label="Open events"
+              value={openCount}
+              icon={Clock}
+              accent="warning"
+              caption="Need follow-up or close-out."
+            />
+            <KpiTile
+              label="Incidents"
+              value={incidentCount}
+              icon={ShieldAlert}
+              accent="error"
+              caption="Logged in the last 24 hours."
+            />
+            <KpiTile
+              label="Active visitors"
+              value={activeVisitorCount}
+              icon={Users}
+              accent="success"
+              caption="Currently signed in to the building."
+            />
+            <KpiTile
+              label="Keys out"
+              value={allEvents.filter((e) => e.type === 'key' && e.status === 'open').length}
+              icon={Key}
+              accent="primary"
+              caption="Not yet returned."
+            />
           </div>
 
           {/* Search + Type Filter */}
