@@ -9,6 +9,7 @@ import { ADMIN_ROLES } from '@/types';
 import type { Role } from '@/types';
 import { getPropertyId, DEMO_PROPERTY } from '@/lib/demo-config';
 import { DemoShowcaseBanner } from '@/components/layout/demo-showcase-banner';
+import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
 
 // Property info derived from centralized config
 const currentProperty = {
@@ -51,9 +52,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <AppShell
           user={{
             id: 'demo-user',
-            firstName: 'Admin',
+            // UX-025: derive display name from the actual demo role so the
+            // topbar shows "Super Admin" / "Property Manager" / etc. instead
+            // of always reading "Admin User" regardless of who's logged in.
+            firstName: ROLE_DISPLAY_NAMES[demoRole] ?? 'Admin',
             lastName: 'User',
-            email: 'admin@concierge.com',
+            email: `${demoRole}@concierge.com`,
             role: demoRole,
             avatarUrl: undefined,
           }}
