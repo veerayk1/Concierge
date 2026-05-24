@@ -1054,21 +1054,37 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Weather Widget — GAP 14.1 placeholder (no real API yet) */}
-          <Card data-testid="weather-widget">
+          {/* Quick Actions — replaces v1 weather placeholder with something
+              that actually saves the user a click. Top three tasks for this
+              role; tap to jump straight into the relevant flow. */}
+          <Card data-testid="quick-actions-card">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <CloudSun className="text-info-500 h-4 w-4" />
-                <CardTitle>Weather</CardTitle>
+                <Sparkles className="text-primary-500 h-4 w-4" />
+                <CardTitle>Quick Actions</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center py-2 text-center">
-                <CloudSun className="mb-2 h-8 w-8 text-neutral-300" />
-                <p className="text-[13px] font-medium text-neutral-500">Coming soon</p>
-                <p className="mt-0.5 text-[12px] text-neutral-400">
-                  Local weather integration planned for v2
-                </p>
+              <div className="-mx-2 flex flex-col">
+                {[
+                  { label: 'Log a package', href: '/packages?action=new', icon: Package },
+                  { label: 'Check in a visitor', href: '/visitors?action=new', icon: Users },
+                  { label: 'Open shift log', href: '/shift-log', icon: StickyNote },
+                ].map((action) => (
+                  <a
+                    key={action.label}
+                    href={action.href}
+                    className="group flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-[13px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <span className="bg-primary-50 text-primary-600 flex h-7 w-7 items-center justify-center rounded-md">
+                        <action.icon className="h-3.5 w-3.5" />
+                      </span>
+                      {action.label}
+                    </span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-neutral-300 transition-colors group-hover:text-neutral-600" />
+                  </a>
+                ))}
               </div>
             </CardContent>
           </Card>

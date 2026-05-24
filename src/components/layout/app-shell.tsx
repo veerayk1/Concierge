@@ -54,8 +54,13 @@ export function AppShell({
       if (mobile) {
         setMobileOpen(false);
       }
-      if (window.innerWidth < BREAKPOINTS.xl) {
+      // Only auto-collapse on narrow laptops / tablets. On any reasonable
+      // desktop monitor the labels stay visible so non-technical users can
+      // read where each nav item goes without hovering for a tooltip.
+      if (window.innerWidth < BREAKPOINTS.lg) {
         setCollapsed(true);
+      } else {
+        setCollapsed(false);
       }
     }
     handleResize();
