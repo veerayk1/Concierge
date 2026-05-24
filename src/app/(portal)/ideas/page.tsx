@@ -303,11 +303,38 @@ export default function IdeasPage() {
 
       {/* Card Grid */}
       {filteredIdeas.length === 0 ? (
-        <EmptyState
-          icon={<Lightbulb className="h-6 w-6" />}
-          title="No ideas found"
-          description="Try adjusting your search or filters."
-        />
+        allIdeas.length === 0 ? (
+          <EmptyState
+            icon={<Lightbulb className="h-6 w-6" />}
+            title="No ideas yet"
+            description="Be the first neighbour to share an idea for the community."
+            action={
+              <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+                <Plus className="h-4 w-4" />
+                Post Idea
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={<Lightbulb className="h-6 w-6" />}
+            title="No ideas match your filters"
+            description="Try clearing your search or switching filters."
+            action={
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('');
+                  setCategoryFilter('all');
+                  setStatusFilter('all');
+                }}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        )
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {filteredIdeas.map((idea) => (
