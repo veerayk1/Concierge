@@ -421,6 +421,7 @@ export default function MarketplacePage() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         propertyId={getPropertyId()}
+        onSuccess={() => refetch()}
       />
     </PageShell>
   );
