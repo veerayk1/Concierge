@@ -142,7 +142,10 @@ export default function AmenityBookingPage() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   // Page-level toast for events that outlive the modal (e.g., booking submit
   // closes the dialog and the resident loses the in-dialog confirmation).
-  const [pageBanner, setPageBanner] = useState<{ type: 'success'; message: string } | null>(null);
+  const [pageBanner, setPageBanner] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   // Booking form state
   const [startDate, setStartDate] = useState('');
@@ -269,19 +272,40 @@ export default function AmenityBookingPage() {
 
   const handleCancelBooking = useCallback(
     async (bookingId: string) => {
+      // Destructive action — confirm before firing.
+      if (
+        typeof window !== 'undefined' &&
+        !window.confirm('Cancel this booking? This cannot be undone.')
+      ) {
+        return;
+      }
       setCancelling(bookingId);
       try {
         const resp = await apiRequest(`/api/v1/resident/bookings/${bookingId}`, {
           method: 'DELETE',
         });
-
+        const body = (await resp.json().catch(() => ({}))) as {
+          message?: string;
+        };
         if (!resp.ok) {
-          // Silently fail for now — user will see the booking unchanged
+          setPageBanner({
+            type: 'error',
+            message: body.message ?? 'Failed to cancel booking.',
+          });
+        } else {
+          setPageBanner({
+            type: 'success',
+            message: body.message ?? 'Booking cancelled.',
+          });
         }
-
         refetchBookings();
+        setTimeout(() => setPageBanner(null), 5000);
       } catch {
-        // Silent failure
+        setPageBanner({
+          type: 'error',
+          message: 'An unexpected error occurred while cancelling.',
+        });
+        setTimeout(() => setPageBanner(null), 5000);
       } finally {
         setCancelling(null);
       }
@@ -413,21 +437,31 @@ export default function AmenityBookingPage() {
     <PageShell title="Book an Amenity" description="Reserve building amenities for your use.">
       {pageBanner && (
         <div
-          role="status"
+          role={pageBanner.type === 'error' ? 'alert' : 'status'}
           aria-live="polite"
-          className="border-success-200 bg-success-50 text-success-700 mb-6 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3 text-[14px]"
+          className={`mb-6 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3 text-[14px] ${
+            pageBanner.type === 'error'
+              ? 'border-error-200 bg-error-50 text-error-700'
+              : 'border-success-200 bg-success-50 text-success-700'
+          }`}
         >
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            {pageBanner.type === 'error' ? (
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+            )}
             <span className="font-medium">{pageBanner.message}</span>
-            <a href="#my-bookings" className="ml-2 underline-offset-2 hover:underline">
-              View my bookings →
-            </a>
+            {pageBanner.type === 'success' && (
+              <a href="#my-bookings" className="ml-2 underline-offset-2 hover:underline">
+                View my bookings →
+              </a>
+            )}
           </div>
           <button
             type="button"
             onClick={() => setPageBanner(null)}
-            className="text-success-700/70 hover:text-success-700 shrink-0"
+            className="shrink-0 opacity-70 hover:opacity-100"
             aria-label="Dismiss"
           >
             ✕
