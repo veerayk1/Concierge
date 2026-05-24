@@ -21,6 +21,7 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -329,41 +330,29 @@ export default function InspectionsPage() {
       {/* Summary Cards */}
       {!loading && !error && (
         <>
-          {/* Summary Cards */}
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card padding="sm" className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
-                <ClipboardCheck className="h-5 w-5 text-neutral-600" />
-              </div>
-              <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {totalCount}
-                </p>
-                <p className="text-[13px] text-neutral-500">Total Inspections</p>
-              </div>
-            </Card>
-            <Card padding="sm" className="flex items-center gap-4">
-              <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                <Calendar className="text-info-600 h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {upcomingCount}
-                </p>
-                <p className="text-[13px] text-neutral-500">Upcoming</p>
-              </div>
-            </Card>
-            <Card padding="sm" className="flex items-center gap-4">
-              <div className="bg-error-50 flex h-10 w-10 items-center justify-center rounded-xl">
-                <AlertTriangle className="text-error-600 h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                  {overdueCount}
-                </p>
-                <p className="text-[13px] text-neutral-500">Overdue</p>
-              </div>
-            </Card>
+          {/* Summary tiles */}
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <KpiTile
+              label="Total inspections"
+              value={totalCount}
+              icon={ClipboardCheck}
+              accent="neutral"
+              caption="Scheduled and completed combined."
+            />
+            <KpiTile
+              label="Upcoming"
+              value={upcomingCount}
+              icon={Calendar}
+              accent="info"
+              caption="Coming up in the next 30 days."
+            />
+            <KpiTile
+              label="Overdue"
+              value={overdueCount}
+              icon={AlertTriangle}
+              accent="error"
+              caption="Past due. Reschedule today."
+            />
           </div>
 
           {/* Search + Filters */}
