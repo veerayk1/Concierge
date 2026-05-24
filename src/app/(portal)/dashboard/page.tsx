@@ -1054,40 +1054,70 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions — replaces v1 weather placeholder with something
-              that actually saves the user a click. Top three tasks for this
-              role; tap to jump straight into the relevant flow. */}
-          <Card data-testid="quick-actions-card">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Sparkles className="text-primary-500 h-4 w-4" />
-                <CardTitle>Quick Actions</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="-mx-2 flex flex-col">
-                {[
-                  { label: 'Log a package', href: '/packages?action=new', icon: Package },
-                  { label: 'Check in a visitor', href: '/visitors?action=new', icon: Users },
-                  { label: 'Open shift log', href: '/shift-log', icon: StickyNote },
-                ].map((action) => (
-                  <a
-                    key={action.label}
-                    href={action.href}
-                    className="group flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-[13px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <span className="bg-primary-50 text-primary-600 flex h-7 w-7 items-center justify-center rounded-md">
-                        <action.icon className="h-3.5 w-3.5" />
-                      </span>
-                      {action.label}
-                    </span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-neutral-300 transition-colors group-hover:text-neutral-600" />
-                  </a>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Quick Actions — role-aware top tasks. Front desk and security
+              get the operational shortcuts. Property admin / manager get
+              management shortcuts. Residents get resident-portal flows. */}
+          {(() => {
+            const isResidentRole =
+              effectiveRole === 'resident_owner' || effectiveRole === 'resident_tenant';
+            const isAdminRole =
+              effectiveRole === 'property_admin' ||
+              effectiveRole === 'property_manager' ||
+              effectiveRole === 'super_admin' ||
+              effectiveRole === 'board_member';
+
+            const actions = isResidentRole
+              ? [
+                  { label: 'Submit a request', href: '/my-requests?action=new', icon: Wrench },
+                  { label: 'Book an amenity', href: '/amenity-booking', icon: Calendar },
+                  { label: 'View announcements', href: '/announcements', icon: Megaphone },
+                ]
+              : isAdminRole
+                ? [
+                    {
+                      label: 'Post an announcement',
+                      href: '/announcements?action=new',
+                      icon: Megaphone,
+                    },
+                    { label: 'Add a resident', href: '/residents?action=new', icon: Users },
+                    { label: 'Review reports', href: '/reports', icon: BarChart3 },
+                  ]
+                : [
+                    { label: 'Log a package', href: '/packages?action=new', icon: Package },
+                    { label: 'Check in a visitor', href: '/visitors?action=new', icon: Users },
+                    { label: 'Open shift log', href: '/shift-log', icon: StickyNote },
+                  ];
+
+            return (
+              <Card data-testid="quick-actions-card">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="text-primary-500 h-4 w-4" />
+                    <CardTitle>Quick Actions</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="-mx-2 flex flex-col">
+                    {actions.map((action) => (
+                      <a
+                        key={action.label}
+                        href={action.href}
+                        className="group flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-[13px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span className="bg-primary-50 text-primary-600 flex h-7 w-7 items-center justify-center rounded-md">
+                            <action.icon className="h-3.5 w-3.5" />
+                          </span>
+                          {action.label}
+                        </span>
+                        <ArrowUpRight className="h-3.5 w-3.5 text-neutral-300 transition-colors group-hover:text-neutral-600" />
+                      </a>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
         </div>
       </div>
 
