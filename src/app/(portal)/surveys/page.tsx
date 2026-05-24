@@ -276,11 +276,16 @@ export default function SurveysPage() {
       description="Create and manage resident surveys and polls."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled
+            title="Survey result export is coming in the next release."
+          >
             <Download className="h-4 w-4" />
             Export Results
           </Button>
-          <Button size="sm">
+          <Button size="sm" disabled title="Survey authoring is coming in the next release.">
             <Plus className="h-4 w-4" />
             Create Survey
           </Button>
@@ -418,7 +423,7 @@ export default function SurveysPage() {
           title="No surveys yet"
           description="Create your first survey to start gathering resident feedback."
           action={
-            <Button size="sm">
+            <Button size="sm" disabled title="Survey authoring is coming in the next release.">
               <Plus className="h-4 w-4" />
               Create Survey
             </Button>
