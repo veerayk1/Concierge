@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Moon,
   Plus,
+  Sparkles,
   Sun,
   Sunrise,
   User,
@@ -25,6 +26,110 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+
+// ---------------------------------------------------------------------------
+// Test-seed filter — same regex as /my-packages, /my-requests, /dashboard.
+// Demo property is heavily polluted with "CHAIN-H 2WC9QT routine patrol"
+// entries that would otherwise drown the shift log.
+// ---------------------------------------------------------------------------
+const TEST_TITLE_PATTERN =
+  /^(EXH[-_]?[A-Z]+|UI[-_]?CHAIN|UI[-_]?TASK|CHAIN[-_]?[A-Z]|QA[-_ ]?(TEST|[A-Z]+:|TOWER)|QA TEST|UX[-_]?\d+|WRITE[-_]?MATRIX|SEC[-_]?\d+|TEST[-_ ]?|FBSNCK|VERIFY[-_ ]?|TC[-_]?\d+|E2E[-_ ]?)/i;
+const TEST_SUBSTRING_PATTERN = /\btest (event|notice|announcement|item|run|data|patrol|note)\b/i;
+function isTestSeedTitle(s: string | undefined | null): boolean {
+  if (!s) return false;
+  const t = s.trim();
+  return TEST_TITLE_PATTERN.test(t) || TEST_SUBSTRING_PATTERN.test(t);
+}
+
+// ---------------------------------------------------------------------------
+// buildPriorShiftSummary
+//
+// Derives a "what happened on the last completed shift" mini-briefing
+// from the entries list. It's deterministic (no LLM call) but the
+// presentation feels AI-generated: three bullets, counts of patrol /
+// incident / pass-on entries, a callout of any URGENT items that
+// haven't been resolved yet.
+//
+// Returned shape is null when the prior shift is empty so the caller
+// can simply not render the card.
+// ---------------------------------------------------------------------------
+type ShiftKey = 'morning' | 'afternoon' | 'night';
+
+function priorShiftKey(now: Date): { key: ShiftKey; label: string } {
+  const h = now.getHours();
+  // Current shift -> prior shift mapping. Morning sees the prior
+  // night, afternoon sees morning, night sees afternoon.
+  if (h >= 6 && h < 14) return { key: 'night', label: 'overnight shift' };
+  if (h >= 14 && h < 22) return { key: 'morning', label: 'morning shift' };
+  return { key: 'afternoon', label: 'afternoon shift' };
+}
+
+function entryShiftKey(createdAt: string): ShiftKey {
+  const h = new Date(createdAt).getHours();
+  if (h >= 6 && h < 14) return 'morning';
+  if (h >= 14 && h < 22) return 'afternoon';
+  return 'night';
+}
+
+interface ShiftEntryForSummary {
+  title: string;
+  description: string | null;
+  priority: string;
+  createdAt: string;
+  customFields: { category?: string; pinned?: boolean } | null;
+  eventType: { name: string } | null;
+}
+
+function buildPriorShiftSummary(entries: ShiftEntryForSummary[]): {
+  label: string;
+  bullets: string[];
+  important: { title: string; description: string | null }[];
+} | null {
+  if (!entries.length) return null;
+  const now = new Date();
+  const { key, label } = priorShiftKey(now);
+
+  // Look back ~24h max (so "afternoon shift" doesn't grab last
+  // week's afternoon entries when it's quiet). Trade-off: a shift
+  // with truly nothing logged shows no summary, which is honest.
+  const yesterday = now.getTime() - 24 * 60 * 60 * 1000;
+  const priorEntries = entries.filter((e) => {
+    const ts = new Date(e.createdAt).getTime();
+    if (ts < yesterday) return false;
+    return entryShiftKey(e.createdAt) === key;
+  });
+  if (!priorEntries.length) return null;
+
+  let patrols = 0;
+  let passOns = 0;
+  let urgent = 0;
+  const important: { title: string; description: string | null }[] = [];
+
+  for (const e of priorEntries) {
+    const title = (e.title || '').toLowerCase();
+    const evt = (e.eventType?.name || '').toLowerCase();
+    if (title.includes('patrol') || evt.includes('patrol')) patrols += 1;
+    if (evt.includes('pass') || (e.customFields?.category || '').toLowerCase().includes('pass'))
+      passOns += 1;
+    if (e.priority === 'urgent') {
+      urgent += 1;
+      important.push({ title: e.title, description: e.description });
+    } else if (e.priority === 'important' && important.length < 3) {
+      important.push({ title: e.title, description: e.description });
+    }
+  }
+
+  const bullets: string[] = [];
+  bullets.push(
+    `${priorEntries.length} entr${priorEntries.length === 1 ? 'y' : 'ies'} logged on the ${label}.`,
+  );
+  if (patrols > 0) bullets.push(`${patrols} patrol${patrols === 1 ? '' : 's'} completed.`);
+  if (passOns > 0)
+    bullets.push(`${passOns} pass-on note${passOns === 1 ? '' : 's'} waiting for follow-up.`);
+  if (urgent > 0) bullets.push(`${urgent} urgent item${urgent === 1 ? '' : 's'} — see below.`);
+
+  return { label, bullets, important: important.slice(0, 3) };
+}
 
 // ---------------------------------------------------------------------------
 // Types — mapped from API response
@@ -136,7 +241,19 @@ export default function ShiftLogPage() {
       ? (activeShiftRaw as ActiveShift)
       : null;
 
-  const allEntries = useMemo<ShiftEntry[]>(() => apiEntries ?? [], [apiEntries]);
+  // Same seed regex as the rest of the portal — keeps "CHAIN-H 2WC9QT
+  // routine patrol" demo pollution off the shift log so real guards
+  // see a clean feed.
+  const allEntries = useMemo<ShiftEntry[]>(() => {
+    const raw = apiEntries ?? [];
+    return raw.filter((e) => !isTestSeedTitle(e.title) && !isTestSeedTitle(e.description));
+  }, [apiEntries]);
+
+  // Last shift's summary — derived from the entries with createdAt
+  // belonging to the shift that just ended. We render it as an
+  // AI-style auto-briefing card up top so the on-shift guard knows
+  // "what mattered before I started" in one glance.
+  const lastShiftSummary = useMemo(() => buildPriorShiftSummary(allEntries), [allEntries]);
 
   async function handleClockIn() {
     setClockBusy(true);
@@ -223,6 +340,7 @@ export default function ShiftLogPage() {
 
   return (
     <PageShell
+      hero="emerald"
       title="Shift Log"
       description="Staff handoff notes and shift-to-shift communication."
       actions={
@@ -344,6 +462,68 @@ export default function ShiftLogPage() {
               </div>
             </div>
           </Card>
+
+          {/* AI-style summary of the prior shift. Deterministically
+              derived from entries (no LLM call), but the presentation
+              feels like an intelligent briefing — three glanceable
+              bullets and any urgent items lifted to the top. The on-
+              shift guard sees this BEFORE they scroll through 50
+              individual entries. */}
+          {lastShiftSummary && (
+            <div className="conc-rise relative overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-rose-50 px-5 py-4 shadow-sm">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute top-0 right-0 -mt-12 -mr-12 h-40 w-40 rounded-full bg-gradient-to-br from-amber-200/40 via-orange-200/30 to-rose-200/20 blur-2xl"
+              />
+              <div className="relative">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/80 shadow-sm ring-1 ring-amber-200/60">
+                    <Sparkles
+                      className="h-3.5 w-3.5 text-amber-600"
+                      strokeWidth={1.8}
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span className="text-[10.5px] font-semibold tracking-[0.1em] text-amber-700 uppercase">
+                    Briefing
+                  </span>
+                  <span className="text-[11.5px] text-amber-700/70">
+                    · from the {lastShiftSummary.label}
+                  </span>
+                </div>
+                <ul className="mt-2.5 flex flex-col gap-1">
+                  {lastShiftSummary.bullets.map((b, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-[13.5px] leading-relaxed text-neutral-800"
+                    >
+                      <span className="mt-2 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-amber-500" />
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+                {lastShiftSummary.important.length > 0 && (
+                  <div className="mt-3 flex flex-col gap-1.5 rounded-xl bg-white/70 px-3 py-2.5 ring-1 ring-amber-200/60">
+                    <p className="text-[10.5px] font-semibold tracking-[0.08em] text-amber-700 uppercase">
+                      Worth your attention
+                    </p>
+                    {lastShiftSummary.important.map((item, i) => (
+                      <div key={i} className="text-[13px]">
+                        <span className="font-medium text-neutral-900">{item.title}</span>
+                        {item.description && (
+                          <span className="text-neutral-600">
+                            {' '}
+                            — {item.description.slice(0, 140)}
+                            {item.description.length > 140 ? '…' : ''}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Pass-On Notes (urgent entries) */}
           {passOnEntries.length > 0 && (
