@@ -368,10 +368,12 @@ export default function VacationsPage() {
         <DialogContent className="max-w-xl">
           <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
             <Plane className="text-primary-500 h-5 w-5" />
-            Add Vacation
+            {isResident ? 'Mark vacation' : 'Add Vacation'}
           </DialogTitle>
           <DialogDescription className="text-[14px] text-neutral-500">
-            Record a resident vacation period with package and notification settings.
+            {isResident
+              ? 'Tell the desk when you will be away so we can hold packages and pause notifications.'
+              : 'Record a resident vacation period with package and notification settings.'}
           </DialogDescription>
 
           <form onSubmit={handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-5" noValidate>
@@ -475,6 +477,8 @@ export default function VacationsPage() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Adding...
                   </>
+                ) : isResident ? (
+                  'Mark vacation'
                 ) : (
                   'Add Vacation'
                 )}

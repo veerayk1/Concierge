@@ -669,11 +669,24 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
   const reqCount = residentMaint.length;
 
   const residentBookingsAll = extractList(residentBookingsData);
-  const nowForBookings = Date.now();
+  // Compare against midnight at the start of today (local time). The
+  // amenity bookings API stores start-of-day timestamps in startDate,
+  // so a booking scheduled for "today" should still count as upcoming.
+  const nowForBookings = (() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  })();
   const residentBookings = residentBookingsAll.filter((b) => {
     const status = String(b.status ?? '').toLowerCase();
     if (status === 'cancelled' || status === 'rejected') return false;
-    const start = b.startTime ?? b.startDate ?? b.startDatetime;
+    // The API exposes both `startDate` (yyyy-mm-ddT00:00:00Z, the actual
+    // calendar day) and `startTime` (Unix epoch with just the
+    // time-of-day component — 1970-01-01THH:MM:00Z). Prior code read
+    // startTime first, which always evaluated to Jan 1 1970 and made
+    // every upcoming reservation look like it was in the past.
+    // Prefer startDate.
+    const start = b.startDate ?? b.startDatetime ?? b.startTime;
     if (!start) return false;
     return new Date(String(start)).getTime() >= nowForBookings;
   });
@@ -732,18 +745,23 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
       {/* From management — what the desk needs you to know, first          */}
       {/* ----------------------------------------------------------------- */}
       <section className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
+        {/* On narrow viewports the heading, count, and link were all
+            competing for one row, forcing "From management" to wrap onto
+            two lines. Wrap the right-side link on small screens. */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <div className="flex items-baseline gap-2">
-            <h2 className="text-[15px] font-semibold text-neutral-900">From management</h2>
+            <h2 className="text-[15px] font-semibold whitespace-nowrap text-neutral-900">
+              From management
+            </h2>
             {announcements.length > 0 && (
-              <span className="text-[12px] text-neutral-400">
+              <span className="text-[12px] whitespace-nowrap text-neutral-400">
                 {announcements.length} active notice{announcements.length === 1 ? '' : 's'}
               </span>
             )}
           </div>
           <a
             href="/announcements"
-            className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1 text-[12.5px] font-medium"
+            className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1 text-[12.5px] font-medium whitespace-nowrap"
           >
             All announcements
             <ArrowRight className="h-3.5 w-3.5" />
@@ -994,11 +1012,16 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
 // Test/seed-data prefixes and substrings that show up in the demo
 // database. A real resident should never see "EXH-C: Work Order test
 // event" or "QA Test: Elevator Maintenance Notice" on their dashboard.
+// Kept in sync with the same patterns in /my-packages, /my-requests, and
+// /announcements list pages. If you add a prefix here, add it there too —
+// otherwise the dashboard KPI count diverges from the actual page (e.g.
+// "My Requests 2" on the dashboard while /my-requests shows 1 because
+// UX-NNN was filtered there but not here).
 const TEST_TITLE_PATTERN =
-  /^(EXH[-_]?[A-Z]+|UI[-_]?CHAIN|CHAIN[-_]?[A-Z]|QA[-_ ]?(TEST|[A-Z]+:|TOWER)|QA TEST|WRITE[-_]?MATRIX|SEC[-_]?\d+|TEST[-_ ]?|FBSNCK|VERIFY[-_ ]?|TC[-_]?\d+|E2E[-_ ]?)/i;
+  /^(EXH[-_]?[A-Z]+|UI[-_]?CHAIN|UI[-_]?TASK|CHAIN[-_]?[A-Z]|QA[-_ ]?(TEST|[A-Z]+:|TOWER)|QA TEST|UX[-_]?\d+|WRITE[-_]?MATRIX|SEC[-_]?\d+|TEST[-_ ]?|FBSNCK|VERIFY[-_ ]?|TC[-_]?\d+|E2E[-_ ]?)/i;
 
 // Common test-data marker substrings that can appear anywhere in a title.
-const TEST_SUBSTRING_PATTERN = /\btest (event|notice|announcement|item|run|data)\b/i;
+const TEST_SUBSTRING_PATTERN = /\btest (event|notice|announcement|item|run|data|xyz)\b/i;
 
 function isTestSeedTitle(title: string | undefined | null): boolean {
   if (!title) return false;
