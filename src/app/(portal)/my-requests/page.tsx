@@ -352,7 +352,11 @@ export default function MyRequestsPage() {
   // Loading skeleton
   if (loading) {
     return (
-      <PageShell title="My Requests" description="Track your maintenance and service requests.">
+      <PageShell
+        hero="emerald"
+        title="My Requests"
+        description="Track your maintenance and service requests."
+      >
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Skeleton className="h-20 rounded-2xl" />
           <Skeleton className="h-20 rounded-2xl" />
@@ -366,7 +370,11 @@ export default function MyRequestsPage() {
   // Error state
   if (error) {
     return (
-      <PageShell title="My Requests" description="Track your maintenance and service requests.">
+      <PageShell
+        hero="emerald"
+        title="My Requests"
+        description="Track your maintenance and service requests."
+      >
         <EmptyState
           icon={<AlertTriangle className="h-6 w-6" />}
           title="Failed to load requests"
@@ -383,6 +391,7 @@ export default function MyRequestsPage() {
 
   return (
     <PageShell
+      hero="emerald"
       title="My Requests"
       description="Track your maintenance and service requests."
       actions={
@@ -464,6 +473,7 @@ export default function MyRequestsPage() {
         />
       ) : (
         <EmptyState
+          tone="emerald"
           icon={<Wrench className="h-6 w-6" />}
           title={
             statusFilter === 'active' || statusFilter === 'open' || statusFilter === 'in_progress'

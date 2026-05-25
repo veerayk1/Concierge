@@ -272,6 +272,7 @@ export default function VacationsPage() {
 
   return (
     <PageShell
+      hero={isResident ? 'violet' : 'none'}
       title={isResident ? 'My Vacations' : 'Vacation Tracking'}
       description={
         isResident

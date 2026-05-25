@@ -317,6 +317,7 @@ export default function MyAccountPage() {
 
   return (
     <PageShell
+      hero="sky"
       title="My Account"
       description="Manage your profile, preferences, and security settings."
     >

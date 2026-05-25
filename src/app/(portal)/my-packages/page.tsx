@@ -252,7 +252,7 @@ export default function MyPackagesPage() {
   // Loading skeleton
   if (loading) {
     return (
-      <PageShell title="My Packages" description="Track your deliveries and pickups.">
+      <PageShell hero="amber" title="My Packages" description="Track your deliveries and pickups.">
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Skeleton className="h-20 rounded-2xl" />
           <Skeleton className="h-20 rounded-2xl" />
@@ -265,7 +265,7 @@ export default function MyPackagesPage() {
   // Error state
   if (error) {
     return (
-      <PageShell title="My Packages" description="Track your deliveries and pickups.">
+      <PageShell hero="amber" title="My Packages" description="Track your deliveries and pickups.">
         <EmptyState
           icon={<AlertTriangle className="h-6 w-6" />}
           title="Failed to load packages"
@@ -281,7 +281,7 @@ export default function MyPackagesPage() {
   }
 
   return (
-    <PageShell title="My Packages" description="Track your deliveries and pickups.">
+    <PageShell hero="amber" title="My Packages" description="Track your deliveries and pickups.">
       {/* Summary Cards */}
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <KpiTile
@@ -334,6 +334,7 @@ export default function MyPackagesPage() {
         />
       ) : (
         <EmptyState
+          tone="amber"
           icon={<Package className="h-6 w-6" />}
           title={
             statusFilter === 'unreleased'

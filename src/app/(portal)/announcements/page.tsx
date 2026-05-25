@@ -217,6 +217,7 @@ export default function AnnouncementsPage() {
 
   return (
     <PageShell
+      hero={isResident ? 'rose' : 'none'}
       title="Announcements"
       description={
         isResident

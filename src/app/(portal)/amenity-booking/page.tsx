@@ -396,7 +396,11 @@ export default function AmenityBookingPage() {
   // Loading skeleton
   if (amenitiesLoading) {
     return (
-      <PageShell title="Book an Amenity" description="Reserve building amenities for your use.">
+      <PageShell
+        hero="sky"
+        title="Book an Amenity"
+        description="Reserve building amenities for your use."
+      >
         <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-48 rounded-2xl" />
@@ -410,7 +414,11 @@ export default function AmenityBookingPage() {
   // Error state
   if (amenitiesError) {
     return (
-      <PageShell title="Book an Amenity" description="Reserve building amenities for your use.">
+      <PageShell
+        hero="sky"
+        title="Book an Amenity"
+        description="Reserve building amenities for your use."
+      >
         <EmptyState
           icon={<AlertTriangle className="h-6 w-6" />}
           title="Failed to load amenities"
@@ -421,7 +429,11 @@ export default function AmenityBookingPage() {
   }
 
   return (
-    <PageShell title="Book an Amenity" description="Reserve building amenities for your use.">
+    <PageShell
+      hero="sky"
+      title="Book an Amenity"
+      description="Reserve building amenities for your use."
+    >
       {pageBanner && (
         <div
           role={pageBanner.type === 'error' ? 'alert' : 'status'}

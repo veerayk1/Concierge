@@ -38,6 +38,18 @@ const ACCENT_ICON: Record<NonNullable<KpiTileProps['accent']>, string> = {
   neutral: 'text-neutral-500',
 };
 
+// Tone-coloured halo that bleeds out of the top-right corner on hover.
+// Subtle (very low alpha + heavy blur) so it never overpowers the number,
+// but it gives the tile a sense of "alive" when the resident scrubs over it.
+const ACCENT_HALO: Record<NonNullable<KpiTileProps['accent']>, string> = {
+  primary: 'group-hover:from-primary-100/70',
+  success: 'group-hover:from-emerald-100/70',
+  warning: 'group-hover:from-amber-100/70',
+  error: 'group-hover:from-rose-100/70',
+  info: 'group-hover:from-sky-100/70',
+  neutral: 'group-hover:from-neutral-100/80',
+};
+
 export const KpiTile = forwardRef<HTMLElement, KpiTileProps>(function KpiTile(
   { label, value, icon: Icon, href, accent = 'neutral', delta, caption, className },
   ref,
@@ -113,6 +125,16 @@ export const KpiTile = forwardRef<HTMLElement, KpiTileProps>(function KpiTile(
     />
   );
 
+  const haloEl = (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-transparent to-transparent blur-2xl transition-all duration-300',
+        ACCENT_HALO[accent],
+      )}
+    />
+  );
+
   if (isLink) {
     return (
       <a
@@ -122,7 +144,8 @@ export const KpiTile = forwardRef<HTMLElement, KpiTileProps>(function KpiTile(
         data-component="kpi-tile"
       >
         {railEl}
-        {inner}
+        {haloEl}
+        <span className="relative">{inner}</span>
       </a>
     );
   }
@@ -130,7 +153,8 @@ export const KpiTile = forwardRef<HTMLElement, KpiTileProps>(function KpiTile(
   return (
     <div ref={ref as React.Ref<HTMLDivElement>} className={wrapperClass} data-component="kpi-tile">
       {railEl}
-      {inner}
+      {haloEl}
+      <span className="relative">{inner}</span>
     </div>
   );
 });
