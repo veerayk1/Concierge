@@ -701,30 +701,54 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
 
   // Quick actions are the verbs a resident actually does today. We only
   // surface actions that route to features we have actually built.
-  const quickActions: { label: string; sub: string; href: string; icon: LucideIcon }[] = [
+  // Each quick action carries its own colour palette so the card grid
+  // feels like four distinct affordances instead of four identical white
+  // twins. Palette pairs (bg, ring, icon) are soft so the page still
+  // reads as restrained — these are warm accents, not loud chips.
+  const quickActions: {
+    label: string;
+    sub: string;
+    href: string;
+    icon: LucideIcon;
+    bg: string;
+    iconBg: string;
+    iconColor: string;
+  }[] = [
     {
       label: 'Book an amenity',
       sub: 'Pool, sauna, party room.',
       href: '/amenity-booking',
       icon: Calendar,
+      bg: 'from-sky-50 via-white to-white',
+      iconBg: 'bg-sky-100',
+      iconColor: 'text-sky-600',
     },
     {
       label: 'Submit a request',
       sub: 'Maintenance, plumbing, more.',
       href: '/my-requests',
       icon: Wrench,
+      bg: 'from-emerald-50 via-white to-white',
+      iconBg: 'bg-emerald-100',
+      iconColor: 'text-emerald-600',
     },
     {
       label: 'View packages',
       sub: 'See what is waiting for you.',
       href: '/my-packages',
       icon: Package,
+      bg: 'from-amber-50 via-white to-white',
+      iconBg: 'bg-amber-100',
+      iconColor: 'text-amber-700',
     },
     {
       label: 'Set vacation dates',
       sub: 'Let staff know you are away.',
       href: '/residents/vacations',
       icon: Plane,
+      bg: 'from-violet-50 via-white to-white',
+      iconBg: 'bg-violet-100',
+      iconColor: 'text-violet-600',
     },
   ];
 
@@ -921,17 +945,27 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
             <a
               key={action.href}
               href={action.href}
-              className="group flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white px-5 py-4 transition-all hover:border-neutral-300 hover:shadow-sm"
+              className={`group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br px-5 py-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md ${action.bg}`}
             >
-              <action.icon
-                className="text-primary-500 h-5 w-5"
-                strokeWidth={1.8}
-                aria-hidden="true"
-              />
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-6deg] ${action.iconBg}`}
+              >
+                <action.icon
+                  className={`h-5 w-5 ${action.iconColor}`}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              </div>
               <div>
                 <p className="text-[14.5px] font-semibold text-neutral-900">{action.label}</p>
                 <p className="mt-0.5 text-[12px] leading-relaxed text-neutral-500">{action.sub}</p>
               </div>
+              {/* Hover arrow — fades in from the right edge. Subtle
+                  affordance that this card is interactive. */}
+              <ArrowRight
+                className="absolute top-5 right-5 h-4 w-4 -translate-x-2 text-neutral-400 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100"
+                aria-hidden="true"
+              />
             </a>
           ))}
         </div>
@@ -1324,16 +1358,41 @@ function ResidentKpi({
     </>
   );
 
+  // Relative + group so we can layer a soft tone-coloured halo behind the
+  // KPI value on hover without breaking the icon/label layout. The halo is
+  // a low-opacity radial that bleeds out of the top-right corner.
+  const haloTone: Record<ResidentKpiTone, string> = {
+    primary: 'group-hover:from-primary-100/60',
+    info: 'group-hover:from-info-100/60',
+    warning: 'group-hover:from-amber-100/70',
+    success: 'group-hover:from-emerald-100/60',
+    neutral: 'group-hover:from-neutral-100/70',
+  };
   const base =
-    'group block rounded-2xl border border-neutral-200 bg-white px-5 py-5 transition-all';
+    'group relative block overflow-hidden rounded-2xl border border-neutral-200 bg-white px-5 py-5 transition-all duration-200';
+  const halo = (
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-transparent to-transparent blur-2xl transition-all duration-300 ${haloTone[tone]}`}
+    />
+  );
   if (href) {
     return (
-      <a href={href} className={`${base} hover:border-neutral-300 hover:shadow-sm`}>
-        {inner}
+      <a
+        href={href}
+        className={`${base} hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md`}
+      >
+        {halo}
+        <span className="relative">{inner}</span>
       </a>
     );
   }
-  return <div className={base}>{inner}</div>;
+  return (
+    <div className={base}>
+      {halo}
+      <span className="relative">{inner}</span>
+    </div>
+  );
 }
 
 // Map an announcement to a category icon. Falls back to a megaphone so
