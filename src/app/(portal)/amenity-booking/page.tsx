@@ -469,84 +469,98 @@ export default function AmenityBookingPage() {
         </div>
       )}
 
-      {/* Amenity Cards Grid */}
-      <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {amenities
-          .filter((a) => a.isActive)
-          .map((amenity) => (
-            <Card key={amenity.id} hoverable className="flex flex-col justify-between">
-              <div>
-                <div className="flex items-start justify-between">
+      {/* My Bookings — render first so a resident with a reservation
+          coming up sees it before the "browse" surface. Empty state is
+          intentionally calm; the browse grid below carries the CTA. */}
+      {(bookingsLoading || bookings.length > 0) && (
+        <section id="my-bookings" className="mb-10">
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="text-[15px] font-semibold text-neutral-900">My upcoming bookings</h2>
+            {bookings.length > 0 && (
+              <span className="text-[12px] text-neutral-400">
+                {bookings.length} reservation{bookings.length === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+          {bookingsLoading ? (
+            <Skeleton className="h-32 rounded-2xl" />
+          ) : bookingsError ? (
+            <EmptyState
+              icon={<AlertTriangle className="h-6 w-6" />}
+              title="Failed to load bookings"
+              description={bookingsError}
+            />
+          ) : (
+            <DataTable
+              columns={bookingColumns}
+              data={bookings}
+              emptyMessage="You have no bookings yet."
+              emptyIcon={<Calendar className="h-6 w-6" />}
+            />
+          )}
+        </section>
+      )}
+
+      {/* Browse Amenities */}
+      <section>
+        <div className="mb-3 flex items-baseline gap-2">
+          <h2 className="text-[15px] font-semibold text-neutral-900">Browse amenities</h2>
+          <span className="text-[12px] text-neutral-400">
+            {amenities.filter((a) => a.isActive).length} available
+          </span>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {amenities
+            .filter((a) => a.isActive)
+            .map((amenity) => (
+              <Card key={amenity.id} hoverable className="flex flex-col justify-between">
+                <div>
+                  {/* The Card header used to carry an "Available" success
+                      badge next to the icon. It rendered on every card —
+                      pure noise, since the page only lists active
+                      amenities. Dropped in favour of a cleaner icon
+                      row. */}
                   <div className="bg-primary-50 text-primary-600 flex h-10 w-10 items-center justify-center rounded-xl">
                     {getAmenityIcon(amenity.icon)}
                   </div>
-                  <Badge variant="success" size="sm" dot>
-                    Available
-                  </Badge>
+                  <div className="mt-4">
+                    <h3 className="text-[16px] font-semibold text-neutral-900">{amenity.name}</h3>
+                    {amenity.description && (
+                      <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-neutral-500">
+                        {amenity.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-3 flex flex-col gap-1.5 text-[13px] text-neutral-500">
+                    {amenity.maxGuests > 0 && (
+                      <span className="flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-neutral-400" />
+                        Up to {amenity.maxGuests} guest{amenity.maxGuests === 1 ? '' : 's'}
+                      </span>
+                    )}
+                    {Number(amenity.fee) > 0 ? (
+                      <span className="flex items-center gap-1.5">
+                        <DollarSign className="h-3.5 w-3.5 text-neutral-400" />$
+                        {Number(amenity.fee)} per booking
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5">
+                        <DollarSign className="h-3.5 w-3.5 text-neutral-400" />
+                        Free
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="mt-4">
-                  <h3 className="text-[16px] font-semibold text-neutral-900">{amenity.name}</h3>
-                  {amenity.description && (
-                    <p className="mt-1 line-clamp-2 text-[13px] text-neutral-500">
-                      {amenity.description}
-                    </p>
-                  )}
+                <div className="mt-5">
+                  <Button size="sm" fullWidth onClick={() => openBookingDialog(amenity)}>
+                    <Plus className="h-4 w-4" />
+                    Book
+                  </Button>
                 </div>
-                <div className="mt-3 flex flex-col gap-1.5 text-[13px] text-neutral-500">
-                  {amenity.maxGuests > 0 && (
-                    <span className="flex items-center gap-1.5">
-                      <Users className="h-3.5 w-3.5 text-neutral-400" />
-                      Max guests: {amenity.maxGuests}
-                    </span>
-                  )}
-                  {Number(amenity.fee) > 0 ? (
-                    <span className="flex items-center gap-1.5">
-                      <DollarSign className="h-3.5 w-3.5 text-neutral-400" />${Number(amenity.fee)}{' '}
-                      per booking
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1.5">
-                      <DollarSign className="h-3.5 w-3.5 text-neutral-400" />
-                      Free
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="mt-5">
-                <Button size="sm" fullWidth onClick={() => openBookingDialog(amenity)}>
-                  <Plus className="h-4 w-4" />
-                  Book Now
-                </Button>
-              </div>
-            </Card>
-          ))}
-      </div>
-
-      {/* My Upcoming Bookings */}
-      <div id="my-bookings">
-        <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-[14px] font-semibold text-neutral-900">My Bookings</h2>
-          <Badge variant="primary" size="sm">
-            {bookings.length}
-          </Badge>
+              </Card>
+            ))}
         </div>
-        {bookingsLoading ? (
-          <Skeleton className="h-32 rounded-2xl" />
-        ) : bookingsError ? (
-          <EmptyState
-            icon={<AlertTriangle className="h-6 w-6" />}
-            title="Failed to load bookings"
-            description={bookingsError}
-          />
-        ) : (
-          <DataTable
-            columns={bookingColumns}
-            data={bookings}
-            emptyMessage="You have no bookings yet."
-            emptyIcon={<Calendar className="h-6 w-6" />}
-          />
-        )}
-      </div>
+      </section>
 
       {/* Booking Dialog */}
       <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
