@@ -10,6 +10,8 @@ import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog';
 import { CreateShiftEntryDialog } from '@/components/forms/create-shift-entry-dialog';
+import { CreatePackageDialog } from '@/components/forms/create-package-dialog';
+import { CreateVisitorDialog } from '@/components/forms/create-visitor-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -628,6 +630,12 @@ interface FrontDeskDashboardProps {
 function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps) {
   const firstName = name.split(' ')[0] || name;
   const router = useRouter();
+  // Inline dialog state — open package, visitor, and shift-entry forms
+  // straight from the quick-action tiles so the concierge never leaves
+  // the dashboard.
+  const [showPackageDialog, setShowPackageDialog] = useState(false);
+  const [showVisitorDialog, setShowVisitorDialog] = useState(false);
+  const [showShiftEntryDialog, setShowShiftEntryDialog] = useState(false);
   const timeOfDay = getTimeOfDay();
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -677,6 +685,7 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
     bg: string;
     iconBg: string;
     iconColor: string;
+    onClick?: () => void;
   }[] = [
     {
       label: 'Log a package',
@@ -686,6 +695,7 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
       bg: 'from-amber-50 via-white to-orange-50',
       iconBg: 'bg-amber-100',
       iconColor: 'text-amber-700',
+      onClick: () => setShowPackageDialog(true),
     },
     {
       label: 'Sign in a visitor',
@@ -695,6 +705,7 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
       bg: 'from-sky-50 via-white to-indigo-50',
       iconBg: 'bg-sky-100',
       iconColor: 'text-sky-700',
+      onClick: () => setShowVisitorDialog(true),
     },
     {
       label: 'Issue a key or FOB',
@@ -713,6 +724,7 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
       bg: 'from-emerald-50 via-white to-teal-50',
       iconBg: 'bg-emerald-100',
       iconColor: 'text-emerald-700',
+      onClick: () => setShowShiftEntryDialog(true),
     },
   ];
 
@@ -965,6 +977,25 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
           )}
         </Card>
       </section>
+
+      {/* Inline dialogs — opened from quick-action tiles so the concierge
+          never has to leave the dashboard to log a package, sign in a
+          visitor, or drop a shift note. */}
+      <CreatePackageDialog
+        open={showPackageDialog}
+        onOpenChange={setShowPackageDialog}
+        propertyId={getPropertyId()}
+      />
+      <CreateVisitorDialog
+        open={showVisitorDialog}
+        onOpenChange={setShowVisitorDialog}
+        propertyId={getPropertyId()}
+      />
+      <CreateShiftEntryDialog
+        open={showShiftEntryDialog}
+        onOpenChange={setShowShiftEntryDialog}
+        propertyId={getPropertyId()}
+      />
     </div>
   );
 }
