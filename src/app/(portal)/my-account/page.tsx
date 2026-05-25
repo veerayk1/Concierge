@@ -1,17 +1,6 @@
 'use client';
 
-import {
-  Bell,
-  Globe,
-  Key,
-  Lock,
-  Mail,
-  Phone,
-  Shield,
-  Smartphone,
-  User,
-  AlertTriangle,
-} from 'lucide-react';
+import { Bell, Globe, Key, Lock, Mail, Phone, Smartphone, User, AlertTriangle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
@@ -122,17 +111,44 @@ type AuthUser = {
 export default function MyAccountPage() {
   const { user: authUser, loading: authLoading, setUser } = useAuth();
 
-  // In demo mode, useAuth returns null — use a demo user fallback
+  // In demo mode, useAuth returns null. We fall back to:
+  //   1. /api/v1/users/me — returns the real Alice Johnson profile when
+  //      the demo session is `resident_owner`. This is the preferred path
+  //      since it gives us name, email, phone, and preferences for free.
+  //   2. A role-derived synthetic user — last-resort so the page still
+  //      renders if /users/me fails for some reason.
+  const { data: meResponse } = useApi<{ data?: ProfileResponse } | ProfileResponse>(
+    !authUser ? '/api/v1/users/me' : null,
+  );
+  const apiUser = useMemo<AuthUser | null>(() => {
+    if (!meResponse) return null;
+    const raw = (meResponse as { data?: ProfileResponse }).data ?? (meResponse as ProfileResponse);
+    if (!raw || typeof raw !== 'object' || !('id' in raw)) return null;
+    const demoRole = typeof window !== 'undefined' ? localStorage.getItem('demo_role') : null;
+    return {
+      id: raw.id,
+      email: raw.email,
+      firstName: raw.firstName,
+      lastName: raw.lastName,
+      phone: raw.phone ?? null,
+      role: (demoRole as Role) ?? ('resident_owner' as Role),
+      requiresAssistance: raw.requiresAssistance,
+      assistanceNotes: raw.assistanceNotes ?? null,
+      languagePreference: raw.languagePreference,
+      emailSignature: raw.emailSignature,
+    };
+  }, [meResponse]);
+
   const [demoUser, setDemoUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    if (!authUser && !authLoading) {
+    if (!authUser && !authLoading && !apiUser) {
       setDemoUser(getDemoUser());
     }
-  }, [authUser, authLoading]);
+  }, [authUser, authLoading, apiUser]);
 
-  const user = authUser ?? demoUser;
-  const loading = authLoading && !demoUser;
+  const user = authUser ?? apiUser ?? demoUser;
+  const loading = authLoading && !apiUser && !demoUser;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
@@ -327,10 +343,9 @@ export default function MyAccountPage() {
                   <span className="text-neutral-700">{user.phone}</span>
                 </div>
               )}
-              <div className="flex items-center gap-3 text-[14px]">
-                <Shield className="h-4 w-4 text-neutral-400" />
-                <span className="text-neutral-700">{user.role.replace(/_/g, ' ')}</span>
-              </div>
+              {/* Removed the lowercase role line ("resident owner") that
+                  duplicated the ROLE_DISPLAY_NAMES line above the avatar.
+                  Two role displays on the same card is noise. */}
             </div>
           </div>
           <Button variant="secondary" fullWidth className="mt-6" onClick={openDialog}>
