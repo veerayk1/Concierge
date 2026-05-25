@@ -459,14 +459,13 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         // 7.10, 7.11, 7.12, 7.13
         roles: ['resident_owner', 'resident_tenant', 'offsite_owner', 'family_member'],
       },
-      {
-        id: 'events',
-        label: 'Events',
-        href: '/events',
-        icon: CalendarClock,
-        // 7.10, 7.11, 7.12 (view), 7.13
-        roles: ['resident_owner', 'resident_tenant', 'offsite_owner', 'family_member'],
-      },
+      // Events removed from resident sidebar: /events is the staff
+      // Security Console feed (incidents, noise complaints, visitor
+      // logs) and is intentionally gated to staff/board. Clicking
+      // it from the resident sidebar surfaced
+      //   "Role 'resident_owner' does not have access to this resource."
+      // Bring this back when a resident-scoped community-events page
+      // exists at a different route.
       {
         id: 'resident-marketplace',
         label: 'Marketplace',
