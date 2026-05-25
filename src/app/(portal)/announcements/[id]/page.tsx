@@ -35,26 +35,35 @@ import { EditAnnouncementDialog } from '@/components/forms/edit-announcement-dia
 interface AnnouncementDetail {
   id: string;
   title: string;
-  body: string;
+  // The API returns `content` (HTML string). Older code in this file
+  // referenced `body`; renamed to match the wire shape so residents
+  // actually see the announcement text.
+  content: string | null;
+  contentPlaintext: string | null;
   status: string;
   priority: string;
-  category: string;
+  // Category is a related record on the wire (`{id, name}` or null), not
+  // a flat string. Older code treated it as a string and rendered an
+  // empty pill for every announcement.
+  category: { id: string; name: string } | null;
   channels: string[];
-  author: string;
+  // The API doesn't denormalise the author name yet — only `createdById`
+  // is exposed. Until we add an author join, we hide the Author row.
+  createdById: string | null;
   publishedAt: string;
   createdAt: string;
   audience: {
     type: string;
     label: string;
     count: number;
-  };
-  deliveryStats: {
+  } | null;
+  deliveryStats?: {
     totalSent: number;
     delivered: number;
     opened: number;
     clickRate: number;
   };
-  viewCount: number;
+  viewCount?: number;
 }
 
 interface DeliveryRecord {
@@ -309,9 +318,15 @@ export default function AnnouncementDetailPage() {
             <h1 className="text-[24px] font-bold tracking-tight text-neutral-900">
               {announcement.title}
             </h1>
-            <Badge variant={statusVariant} size="lg" dot>
-              {announcement.status.charAt(0).toUpperCase() + announcement.status.slice(1)}
-            </Badge>
+            {/* Workflow status (Published / Draft / Archived) is admin
+                metadata. Residents only ever see published notices, so
+                showing them a "PUBLISHED" pill adds noise without
+                signal. */}
+            {!isResidentRole && (
+              <Badge variant={statusVariant} size="lg" dot>
+                {announcement.status.charAt(0).toUpperCase() + announcement.status.slice(1)}
+              </Badge>
+            )}
             {announcement.priority && announcement.priority !== 'normal' && (
               <Badge variant={priorityVariant} size="lg" dot>
                 {announcement.priority.charAt(0).toUpperCase() + announcement.priority.slice(1)}
@@ -319,7 +334,6 @@ export default function AnnouncementDetailPage() {
             )}
           </div>
           <p className="text-[14px] text-neutral-500">
-            By {announcement.author} &middot;{' '}
             {announcement.publishedAt
               ? new Date(announcement.publishedAt).toLocaleString('en-US', {
                   month: 'long',
@@ -370,16 +384,16 @@ export default function AnnouncementDetailPage() {
           <Card>
             <CardContent>
               <div className="prose prose-neutral max-w-none">
-                {announcement.body ? (
+                {announcement.content || announcement.contentPlaintext ? (
                   // Convert block-level HTML to newlines so paragraphs and
                   // lists break correctly, then strip remaining tags.
-                  (announcement.body as string)
+                  (announcement.content ?? announcement.contentPlaintext ?? '')
                     .replace(/<\/(p|div|li|h[1-6]|br)>/gi, '\n')
                     .replace(/<br\s*\/?>/gi, '\n')
                     .replace(/<[^>]*>/g, '')
                     .split('\n')
                     .map((p, i) =>
-                      p ? (
+                      p.trim() ? (
                         <p key={i} className="text-[15px] leading-relaxed text-neutral-700">
                           {p}
                         </p>
@@ -418,51 +432,55 @@ export default function AnnouncementDetailPage() {
                       : 'Not yet published'}
                   </p>
                 </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Author
-                  </p>
-                  <p className="mt-1 text-[14px] text-neutral-900">{announcement.author}</p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Category
-                  </p>
-                  <p className="mt-1">
-                    <Badge variant="primary" size="md">
-                      {announcement.category}
-                    </Badge>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Priority
-                  </p>
-                  <p className="mt-1">
-                    <Badge variant={priorityVariant} size="md" dot>
-                      {announcement.priority}
-                    </Badge>
-                  </p>
-                </div>
-                <div>
-                  <p className="mb-2 text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
-                    Distribution Channels
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {channels.map((ch) => {
-                      const Icon = channelIcons[ch] || Send;
-                      return (
-                        <Badge key={ch} variant="info" size="md">
-                          <Icon className="h-3 w-3" />
-                          {ch}
-                        </Badge>
-                      );
-                    })}
-                    {channels.length === 0 && (
-                      <span className="text-[13px] text-neutral-400">No channels configured</span>
-                    )}
+                {announcement.category?.name && (
+                  <div>
+                    <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                      Category
+                    </p>
+                    <p className="mt-1">
+                      <Badge variant="primary" size="md">
+                        {announcement.category.name}
+                      </Badge>
+                    </p>
                   </div>
-                </div>
+                )}
+                {announcement.priority && announcement.priority !== 'normal' && (
+                  <div>
+                    <p className="text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                      Priority
+                    </p>
+                    <p className="mt-1">
+                      <Badge variant={priorityVariant} size="md" dot>
+                        {announcement.priority}
+                      </Badge>
+                    </p>
+                  </div>
+                )}
+                {/* Distribution Channels (web/email/sms/push) describes
+                    HOW the message went out — operational concern. For
+                    residents, the message is in front of them; the
+                    delivery path is noise. */}
+                {!isResidentRole && (
+                  <div>
+                    <p className="mb-2 text-[12px] font-medium tracking-wide text-neutral-400 uppercase">
+                      Distribution Channels
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {channels.map((ch) => {
+                        const Icon = channelIcons[ch] || Send;
+                        return (
+                          <Badge key={ch} variant="info" size="md">
+                            <Icon className="h-3 w-3" />
+                            {ch}
+                          </Badge>
+                        );
+                      })}
+                      {channels.length === 0 && (
+                        <span className="text-[13px] text-neutral-400">No channels configured</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
