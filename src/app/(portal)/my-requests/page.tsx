@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
   AlertTriangle,
@@ -20,13 +19,25 @@ import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { KpiTile } from '@/components/ui/kpi-tile';
+
+// Test-seed regex shared with /my-packages and /dashboard. A real resident
+// should never see "UX-015 verify-...", "UI-CHAIN-B:...", "CHAIN-B...",
+// or "test xyz123" in their list of maintenance requests.
+const TEST_TITLE_PATTERN =
+  /^(EXH[-_]?[A-Z]+|UI[-_]?CHAIN|UI[-_]?TASK|CHAIN[-_]?[A-Z]|QA[-_ ]?(TEST|[A-Z]+:|TOWER)|QA TEST|UX[-_]?\d+|WRITE[-_]?MATRIX|SEC[-_]?\d+|TEST[-_ ]?|FBSNCK|VERIFY[-_ ]?|TC[-_]?\d+|E2E[-_ ]?)/i;
+const TEST_SUBSTRING_PATTERN = /\btest (event|notice|announcement|item|run|data|request|xyz)\b/i;
+
+function isTestSeedTitle(title: string | undefined | null): boolean {
+  if (!title) return false;
+  const t = title.trim();
+  return TEST_TITLE_PATTERN.test(t) || TEST_SUBSTRING_PATTERN.test(t);
+}
 
 // ---------------------------------------------------------------------------
 // Types (aligned with API response from /api/v1/resident/maintenance)
@@ -70,9 +81,13 @@ interface MaintenanceResponse {
 // Component
 // ---------------------------------------------------------------------------
 
+// "Active" merges open + in_progress. Residents want one tab that says
+// "what is still going on" without forcing them to mentally OR two statuses.
+type ResidentFilter = 'active' | 'open' | 'in_progress' | 'resolved' | '';
+
 export default function MyRequestsPage() {
-  const router = useRouter();
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  // Default to Active so the page opens on the things still being worked on.
+  const [statusFilter, setStatusFilter] = useState<ResidentFilter>('active');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
@@ -90,6 +105,9 @@ export default function MyRequestsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const MAX_FILE_SIZE = 4 * 1024 * 1024;
 
+  // Fetch all the resident's requests once; counts and the filtered table
+  // both work from the same client-side list. Keeps the KPI tiles honest
+  // as the user tabs through filters.
   const {
     data: response,
     loading,
@@ -98,25 +116,38 @@ export default function MyRequestsPage() {
   } = useApi<MaintenanceResponse>(
     apiUrl('/api/v1/resident/maintenance', {
       propertyId: getPropertyId(),
-      status: statusFilter || null,
     }),
   );
 
-  const requests = useMemo<MyRequest[]>(() => {
+  const allRequests = useMemo<MyRequest[]>(() => {
     if (!response) return [];
     const raw =
       (response as unknown as { data?: MyRequest[] }).data ?? (response as unknown as MyRequest[]);
-    return Array.isArray(raw) ? raw : [];
+    const list = Array.isArray(raw) ? raw : [];
+    // Drop test seed requests ("UX-015 verify-...", "UI-CHAIN-B: ...",
+    // "CHAIN-B ...", "test xyz123 ...") — never a real resident's data.
+    return list.filter((r) => !isTestSeedTitle(r.title || r.description));
   }, [response]);
 
   const statusCounts = useMemo(
     () => ({
-      open: requests.filter((r) => r.status === 'open').length,
-      in_progress: requests.filter((r) => r.status === 'in_progress').length,
-      resolved: requests.filter((r) => r.status === 'resolved' || r.status === 'closed').length,
+      open: allRequests.filter((r) => r.status === 'open').length,
+      in_progress: allRequests.filter((r) => r.status === 'in_progress').length,
+      resolved: allRequests.filter((r) => r.status === 'resolved' || r.status === 'closed').length,
     }),
-    [requests],
+    [allRequests],
   );
+
+  const requests = useMemo<MyRequest[]>(() => {
+    if (!statusFilter) return allRequests;
+    if (statusFilter === 'active') {
+      return allRequests.filter((r) => r.status === 'open' || r.status === 'in_progress');
+    }
+    if (statusFilter === 'resolved') {
+      return allRequests.filter((r) => r.status === 'resolved' || r.status === 'closed');
+    }
+    return allRequests.filter((r) => r.status === statusFilter);
+  }, [allRequests, statusFilter]);
 
   const handleNewRequest = useCallback(
     async (e: React.FormEvent) => {
@@ -235,57 +266,18 @@ export default function MyRequestsPage() {
 
   const columns: Column<MyRequest>[] = [
     {
-      id: 'referenceNumber',
-      header: 'Ref #',
-      accessorKey: 'referenceNumber',
-      sortable: true,
-      cell: (row) => (
-        <span className="text-primary-600 font-mono text-[13px] font-semibold">
-          {row.referenceNumber}
-        </span>
-      ),
-    },
-    {
-      id: 'category',
-      header: 'Category',
-      accessorKey: 'category',
-      sortable: true,
-      cell: (row) => (
-        <Badge variant="default" size="sm">
-          {row.category?.name || 'General'}
-        </Badge>
-      ),
-    },
-    {
       id: 'description',
-      header: 'Description',
+      header: 'Request',
       accessorKey: 'description',
-      cell: (row) => (
-        <span className="line-clamp-1 max-w-[350px] text-[13px] text-neutral-600">
-          {row.title || row.description}
-        </span>
-      ),
-    },
-    {
-      id: 'status',
-      header: 'Status',
-      accessorKey: 'status',
-      sortable: true,
       cell: (row) => {
-        const map: Record<
-          string,
-          { variant: 'warning' | 'primary' | 'success' | 'default'; label: string }
-        > = {
-          open: { variant: 'warning', label: 'Open' },
-          in_progress: { variant: 'primary', label: 'In Progress' },
-          resolved: { variant: 'success', label: 'Resolved' },
-          closed: { variant: 'success', label: 'Closed' },
-        };
-        const s = map[row.status] || { variant: 'default' as const, label: row.status };
+        const categoryName = row.category?.name;
         return (
-          <Badge variant={s.variant} size="sm" dot>
-            {s.label}
-          </Badge>
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="line-clamp-1 text-[14px] font-medium text-neutral-900">
+              {row.title || row.description}
+            </span>
+            {categoryName && <span className="text-[11.5px] text-neutral-500">{categoryName}</span>}
+          </div>
         );
       },
     },
@@ -295,15 +287,21 @@ export default function MyRequestsPage() {
       accessorKey: 'priority',
       sortable: true,
       cell: (row) => {
+        // Once a request is resolved or closed, its priority is history —
+        // a red HIGH dot on a closed ticket is just noise.
+        if (row.status === 'resolved' || row.status === 'closed') {
+          return <span className="text-[13px] text-neutral-300">—</span>;
+        }
         const map: Record<string, 'default' | 'warning' | 'error'> = {
           low: 'default',
           medium: 'warning',
           high: 'error',
           urgent: 'error',
         };
+        const label = row.priority.charAt(0).toUpperCase() + row.priority.slice(1);
         return (
           <Badge variant={map[row.priority] || 'default'} size="sm" dot>
-            {row.priority}
+            {label}
           </Badge>
         );
       },
@@ -324,19 +322,30 @@ export default function MyRequestsPage() {
       ),
     },
     {
-      id: 'updatedAt',
-      header: 'Last Updated',
-      accessorKey: 'updatedAt',
+      id: 'status',
+      header: 'Status',
+      accessorKey: 'status',
       sortable: true,
-      cell: (row) => (
-        <span className="text-[13px] text-neutral-500">
-          {new Date(row.updatedAt).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })}
-        </span>
-      ),
+      className: 'text-right',
+      cell: (row) => {
+        // Treat resolved and closed as the same outcome — residents don't
+        // need to learn the workflow distinction between them.
+        const map: Record<
+          string,
+          { variant: 'warning' | 'primary' | 'success' | 'default'; label: string }
+        > = {
+          open: { variant: 'warning', label: 'Open' },
+          in_progress: { variant: 'primary', label: 'In progress' },
+          resolved: { variant: 'success', label: 'Resolved' },
+          closed: { variant: 'success', label: 'Resolved' },
+        };
+        const s = map[row.status] || { variant: 'default' as const, label: row.status };
+        return (
+          <Badge variant={s.variant} size="sm" dot>
+            {s.label}
+          </Badge>
+        );
+      },
     },
   ];
 
@@ -416,14 +425,17 @@ export default function MyRequestsPage() {
 
       {/* Status Filter */}
       <div className="mb-4 flex items-center gap-1.5">
-        {[
-          { value: '', label: 'All' },
-          { value: 'open', label: 'Open' },
-          { value: 'in_progress', label: 'In Progress' },
-          { value: 'resolved', label: 'Resolved' },
-        ].map((filter) => (
+        {(
+          [
+            { value: 'active', label: 'Active' },
+            { value: 'open', label: 'Open' },
+            { value: 'in_progress', label: 'In progress' },
+            { value: 'resolved', label: 'Resolved' },
+            { value: '', label: 'All' },
+          ] as { value: ResidentFilter; label: string }[]
+        ).map((filter) => (
           <button
-            key={filter.value}
+            key={filter.value || 'all'}
             type="button"
             onClick={() => setStatusFilter(filter.value)}
             className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 ${
@@ -437,26 +449,38 @@ export default function MyRequestsPage() {
         ))}
       </div>
 
-      {/* Requests Table */}
+      {/* Requests Table.
+          NOTE: the row-click previously routed residents into the
+          staff-side /maintenance/[id] detail page, which surfaces
+          assignment, vendor, and SLA admin surfaces. Until we ship a
+          resident-scoped detail route, the description is rendered in
+          full inline and the click is intentionally a no-op. */}
       {requests.length > 0 ? (
         <DataTable
           columns={columns}
           data={requests}
           emptyMessage="You have no maintenance requests."
           emptyIcon={<Wrench className="h-6 w-6" />}
-          onRowClick={(row) => router.push(`/maintenance/${row.id}` as never)}
         />
       ) : (
         <EmptyState
           icon={<Wrench className="h-6 w-6" />}
-          title="No maintenance requests"
+          title={
+            statusFilter === 'active' || statusFilter === 'open' || statusFilter === 'in_progress'
+              ? 'Nothing active.'
+              : statusFilter === 'resolved'
+                ? 'Nothing resolved yet.'
+                : 'No requests yet.'
+          }
           description={
-            statusFilter
-              ? 'No requests match the selected filter.'
-              : 'You have no maintenance requests. Submit one if you need help.'
+            statusFilter === 'active' || statusFilter === 'open' || statusFilter === 'in_progress'
+              ? 'Everything is taken care of. Submit a new request if something needs attention.'
+              : statusFilter === 'resolved'
+                ? 'Once a request is closed out it will appear here.'
+                : 'Submit a request if something in your unit needs attention.'
           }
           action={
-            !statusFilter ? (
+            statusFilter !== 'resolved' ? (
               <Button
                 size="sm"
                 onClick={() => {
