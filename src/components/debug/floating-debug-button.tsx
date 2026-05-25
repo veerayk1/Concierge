@@ -19,11 +19,35 @@ if (process.env.NODE_ENV === 'production') {
 
 type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
 
+// Roles that should NEVER see the bug-reporter widget even in dev. It
+// looks like an actionable button on every page and confuses residents
+// (and customers we are demoing to).
+const RESIDENT_ROLES_HIDE_DEBUG = new Set([
+  'resident_owner',
+  'resident_tenant',
+  'family_member',
+  'offsite_owner',
+  'resident',
+  'owner',
+  'tenant',
+]);
+
 export function FloatingDebugButton() {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
   const [severity, setSeverity] = useState<Severity>('HIGH');
   const [submitted, setSubmitted] = useState(false);
+  const [hideForRole, setHideForRole] = useState(false);
+
+  // Read demo role from localStorage once on mount so we can hide the
+  // widget for resident sessions even though we're in dev mode.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const role = window.localStorage.getItem('demo_role');
+    if (role && RESIDENT_ROLES_HIDE_DEBUG.has(role)) {
+      setHideForRole(true);
+    }
+  }, []);
 
   // Keyboard shortcut: Shift+D
   useEffect(() => {
@@ -60,8 +84,10 @@ export function FloatingDebugButton() {
     }, 1500);
   };
 
-  // Production guard
+  // Production guard + resident guard. Stays mounted for staff/admin
+  // sessions only, even during local development.
   if (process.env.NODE_ENV !== 'development') return null;
+  if (hideForRole) return null;
 
   return (
     <>

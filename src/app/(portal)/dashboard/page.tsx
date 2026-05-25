@@ -605,12 +605,18 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
   );
   const announcements: AnnouncementSummary[] = useMemo(() => {
     if (!annData) return [];
-    return Array.isArray(annData) ? annData.slice(0, 3) : [];
+    const list = Array.isArray(annData) ? annData : [];
+    return list.filter((a) => !isTestSeedTitle(a.title)).slice(0, 3);
   }, [annData]);
 
   // Split the unified activity feed into past (Recent activity) and
   // future (Coming up). Each item carries its own timestamp.
-  const allActivity = apiData?.recentActivity ?? [];
+  //
+  // We also strip entries whose titles are obviously seed/test data —
+  // anything starting with EXH-C:, UI-CHAIN, CHAIN-E, QA-TEST,
+  // WRITE-MATRIX, SEC-, etc. A resident should never see "EXH-C: Work
+  // Order test event" on their own dashboard.
+  const allActivity = (apiData?.recentActivity ?? []).filter((a) => !isTestSeedTitle(a.title));
   const nowMs = Date.now();
   const getTime = (a: { timestamp?: string; createdAt?: string }) =>
     new Date(a.createdAt ?? a.timestamp ?? 0).getTime();
@@ -727,7 +733,7 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
                     <h3 className="mt-1 text-[15px] font-semibold text-neutral-900">{ann.title}</h3>
                     {ann.content && (
                       <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-neutral-600">
-                        {ann.content}
+                        {stripHtml(ann.content)}
                       </p>
                     )}
                   </div>
@@ -767,35 +773,35 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
       <section className="flex flex-col gap-3">
         <h2 className="text-[15px] font-semibold text-neutral-900">Today, at a glance</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiTile
+          <ResidentKpi
             label="My packages"
             value={pkgCount}
             icon={Package}
-            accent={pkgCount > 0 ? 'primary' : 'neutral'}
             href="/my-packages"
+            tone={pkgCount > 0 ? 'primary' : 'neutral'}
             caption={pkgCount > 0 ? 'Ready for pickup at the front desk' : 'Nothing waiting'}
           />
-          <KpiTile
+          <ResidentKpi
             label="Visitors today"
             value={visitorCount}
             icon={Users}
-            accent={visitorCount > 0 ? 'info' : 'neutral'}
+            tone={visitorCount > 0 ? 'info' : 'neutral'}
             caption={visitorCount > 0 ? 'Expected today' : 'No one expected'}
           />
-          <KpiTile
+          <ResidentKpi
             label="My requests"
             value={reqCount}
             icon={Wrench}
-            accent={reqCount > 0 ? 'warning' : 'success'}
             href="/my-requests"
+            tone={reqCount > 0 ? 'warning' : 'success'}
             caption={reqCount > 0 ? 'In progress' : 'All caught up'}
           />
-          <KpiTile
+          <ResidentKpi
             label="Next booking"
-            value={bookingCount > 0 ? bookingCount : <span className="text-neutral-300">—</span>}
+            value={bookingCount > 0 ? bookingCount : null}
             icon={Calendar}
-            accent={bookingCount > 0 ? 'primary' : 'neutral'}
             href="/amenity-booking"
+            tone={bookingCount > 0 ? 'primary' : 'neutral'}
             caption={
               bookingCount > 0
                 ? bookingCount === 1
@@ -951,6 +957,117 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
 // Resident dashboard helpers
 // ---------------------------------------------------------------------------
 
+// Test/seed-data prefixes and substrings that show up in the demo
+// database. A real resident should never see "EXH-C: Work Order test
+// event" or "QA Test: Elevator Maintenance Notice" on their dashboard.
+const TEST_TITLE_PATTERN =
+  /^(EXH[-_]?[A-Z]+|UI[-_]?CHAIN|CHAIN[-_]?[A-Z]|QA[-_ ]?(TEST|[A-Z]+:|TOWER)|QA TEST|WRITE[-_]?MATRIX|SEC[-_]?\d+|TEST[-_ ]?|FBSNCK|VERIFY[-_ ]?|TC[-_]?\d+|E2E[-_ ]?)/i;
+
+// Common test-data marker substrings that can appear anywhere in a title.
+const TEST_SUBSTRING_PATTERN = /\btest (event|notice|announcement|item|run|data)\b/i;
+
+function isTestSeedTitle(title: string | undefined | null): boolean {
+  if (!title) return false;
+  const t = title.trim();
+  return TEST_TITLE_PATTERN.test(t) || TEST_SUBSTRING_PATTERN.test(t);
+}
+
+// Strip HTML markup from announcement bodies. The CMS stores rich text
+// with <p>, <strong>, etc. — we only want the readable text on the
+// dashboard preview. Also collapses whitespace and trims.
+function stripHtml(html: string | null | undefined): string {
+  if (!html) return '';
+  return html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Resident-tuned KPI tile. Bigger number, top-right icon, tighter caption
+// — closer in feel to the inspiration than the shared KpiTile which is
+// optimised for staff-side data density.
+type ResidentKpiTone = 'primary' | 'info' | 'warning' | 'success' | 'neutral';
+
+const KPI_TONE_VALUE: Record<ResidentKpiTone, string> = {
+  primary: 'text-neutral-900',
+  info: 'text-neutral-900',
+  warning: 'text-neutral-900',
+  success: 'text-neutral-900',
+  neutral: 'text-neutral-900',
+};
+
+const KPI_TONE_ICON: Record<ResidentKpiTone, string> = {
+  primary: 'text-primary-500',
+  info: 'text-info-500',
+  warning: 'text-warning-500',
+  success: 'text-success-500',
+  neutral: 'text-neutral-300',
+};
+
+const KPI_TONE_CAPTION: Record<ResidentKpiTone, string> = {
+  primary: 'text-neutral-500',
+  info: 'text-neutral-500',
+  warning: 'text-neutral-500',
+  success: 'text-success-600',
+  neutral: 'text-neutral-400',
+};
+
+function ResidentKpi({
+  label,
+  value,
+  icon: Icon,
+  href,
+  tone,
+  caption,
+}: {
+  label: string;
+  value: number | null;
+  icon: LucideIcon;
+  href?: string;
+  tone: ResidentKpiTone;
+  caption: string;
+}) {
+  const display = value === null ? <span className="text-neutral-300">—</span> : value.toString();
+  const inner = (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-[10.5px] font-semibold tracking-[0.08em] text-neutral-500 uppercase">
+          {label}
+        </span>
+        <Icon
+          className={`h-4 w-4 flex-shrink-0 ${KPI_TONE_ICON[tone]}`}
+          strokeWidth={1.6}
+          aria-hidden="true"
+        />
+      </div>
+      <div
+        className={`mt-3 text-[34px] leading-none font-semibold tracking-[-0.02em] ${KPI_TONE_VALUE[tone]}`}
+        style={{ fontFeatureSettings: '"tnum"' }}
+      >
+        {display}
+      </div>
+      <p className={`mt-3 line-clamp-2 text-[12.5px] leading-snug ${KPI_TONE_CAPTION[tone]}`}>
+        {caption}
+      </p>
+    </>
+  );
+
+  const base =
+    'group block rounded-2xl border border-neutral-200 bg-white px-5 py-5 transition-all';
+  if (href) {
+    return (
+      <a href={href} className={`${base} hover:border-neutral-300 hover:shadow-sm`}>
+        {inner}
+      </a>
+    );
+  }
+  return <div className={base}>{inner}</div>;
+}
+
 // Map an announcement to a category icon. Falls back to a megaphone so
 // uncategorised notices still render a recognisable affordance.
 function iconForAnnouncement(ann: AnnouncementSummary) {
@@ -1007,7 +1124,8 @@ function formatAnnouncementDate(iso?: string | null): string {
 }
 
 // Relative descriptor for the date column — "today", "tomorrow", "in 3 days",
-// or "Jun 15" for anything more than a week out.
+// or empty for anything more than two weeks away (the top "Tue 26" line
+// already shows the absolute date, so we don't want to print "Apr 3 / Apr 3").
 function formatAnnouncementRelative(iso?: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
@@ -1019,7 +1137,10 @@ function formatAnnouncementRelative(iso?: string | null): string {
   if (days === -1) return 'yesterday';
   if (days > 1 && days < 14) return `in ${days} days`;
   if (days < -1 && days > -14) return `${Math.abs(days)} days ago`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  // Older than two weeks — show the year if it's not the current year,
+  // otherwise leave the relative line empty (the top line carries the date).
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return sameYear ? '' : String(d.getFullYear());
 }
 
 // Stacked date chip for the "Coming up" rail — MAY over 26.
