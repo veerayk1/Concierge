@@ -178,6 +178,22 @@ export async function apiClient<T>(path: string, options: ApiClientOptions = {})
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
+  // Demo-mode parity with useApi(): when the page is running under a
+  // demo role, every API write needs the demo headers too, otherwise the
+  // server falls back to the dev mock user (whose UUID isn't in the DB)
+  // and we get spurious "Failed to update profile" / P2025 errors on
+  // PATCH /api/v1/users/me, etc.
+  if (typeof window !== 'undefined') {
+    try {
+      const demoRole = window.localStorage.getItem('demo_role');
+      const demoMode = window.localStorage.getItem('demo_mode');
+      if (demoRole) headers['x-demo-role'] = demoRole;
+      if (demoMode) headers['x-demo-mode'] = demoMode;
+    } catch {
+      // localStorage not available — proceed without demo headers.
+    }
+  }
+
   const response = await fetch(url, {
     ...fetchOptions,
     headers,

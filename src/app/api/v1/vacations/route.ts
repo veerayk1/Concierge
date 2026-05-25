@@ -163,18 +163,33 @@ export async function POST(request: NextRequest) {
 
     const user = userResult[0];
 
-    // If unitId not provided, try to look up the user's unit
+    // If unitId not provided, look up the user's active occupancy. Units
+    // are attached via the occupancy_records join table on the live
+    // schema (the legacy `users.unitId` column never existed). Without
+    // this, every resident-initiated vacation POST fails the NOT NULL
+    // constraint on vacation_periods.unitId.
     if (!unitId) {
-      try {
-        const unitResult = await prisma.$queryRaw<any[]>`
-          SELECT "unitId" FROM users
-          WHERE id = ${userId}::uuid AND "unitId" IS NOT NULL
-          LIMIT 1
-        `;
-        unitId = unitResult?.[0]?.unitId || null;
-      } catch {
-        // Best-effort unit lookup — unitId column may not exist on users table
-      }
+      const occupancy = await prisma.occupancyRecord.findFirst({
+        where: {
+          userId,
+          propertyId,
+          moveOutDate: null,
+        },
+        orderBy: { moveInDate: 'desc' },
+        select: { unitId: true },
+      });
+      unitId = occupancy?.unitId ?? null;
+    }
+
+    if (!unitId) {
+      return Response.json(
+        {
+          error: 'NO_UNIT',
+          message:
+            'We could not find your unit. Ask the front desk to mark you on file before adding a vacation.',
+        },
+        { status: 422 },
+      );
     }
 
     const sanitizedNotes = notes ? stripControlChars(stripHtml(notes)) : null;

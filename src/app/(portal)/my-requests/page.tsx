@@ -458,18 +458,21 @@ export default function MyRequestsPage() {
         ))}
       </div>
 
-      {/* Requests Table.
-          NOTE: the row-click previously routed residents into the
-          staff-side /maintenance/[id] detail page, which surfaces
-          assignment, vendor, and SLA admin surfaces. Until we ship a
-          resident-scoped detail route, the description is rendered in
-          full inline and the click is intentionally a no-op. */}
+      {/* Requests Table. Row click opens /my-requests/[id], the
+          resident-scoped detail page (the staff /maintenance/[id]
+          page surfaces internal notes, vendor compliance, and SLA
+          timers that residents should never see). */}
       {requests.length > 0 ? (
         <DataTable
           columns={columns}
           data={requests}
           emptyMessage="You have no maintenance requests."
           emptyIcon={<Wrench className="h-6 w-6" />}
+          onRowClick={(row) => {
+            if (typeof window !== 'undefined') {
+              window.location.href = `/my-requests/${row.id}`;
+            }
+          }}
         />
       ) : (
         <EmptyState

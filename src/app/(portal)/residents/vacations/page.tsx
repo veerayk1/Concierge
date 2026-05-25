@@ -75,13 +75,36 @@ export default function VacationsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const propertyId = getPropertyId();
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
 
-  // In demo mode `useAuth()` returns null — fall back to the
-  // localStorage demo_role so the resident view applies in
-  // /system/properties demo sessions just like on the dashboard.
+  // In demo mode `useAuth()` returns null. We resolve the resident's
+  // identity by:
+  //   1. Trusting the real auth session when one exists.
+  //   2. Falling back to /api/v1/users/me, which returns Alice Johnson
+  //      (or whichever demo resident is signed in) with a real id +
+  //      name + email. Same approach /my-account uses.
+  //   3. Last-resort: an anonymous demo shell so the page still renders.
+  // Without this fallback, "userId" comes through empty on form submit
+  // and the API rejects the request with
+  //   "propertyId, userId, startDate, and endDate are required"
+  // — a horrible error to put in front of a resident.
+  const { data: meResponse } = useApi<
+    | {
+        data?: { id: string; firstName: string; lastName: string };
+      }
+    | { id: string; firstName: string; lastName: string }
+  >(!authUser ? '/api/v1/users/me' : null);
+  const demoUser = useMemo(() => {
+    if (!meResponse) return null;
+    const raw = (meResponse as { data?: { id: string } }).data ?? (meResponse as { id: string });
+    if (!raw || typeof raw !== 'object' || !('id' in raw)) return null;
+    return raw as { id: string };
+  }, [meResponse]);
+
+  const user = (authUser ?? demoUser) as { id: string; role?: string } | null;
+
   const demoRole = typeof window !== 'undefined' ? localStorage.getItem('demo_role') : null;
-  const effectiveRole = (user?.role as string | undefined) ?? demoRole;
+  const effectiveRole = (authUser?.role as string | undefined) ?? demoRole;
   const isResident = effectiveRole ? RESIDENT_ROLES.includes(effectiveRole) : false;
 
   const { units } = usePropertyUnits(propertyId);
@@ -177,7 +200,21 @@ export default function VacationsPage() {
 
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
-        setServerError(result.message || `Failed to create vacation (${response.status})`);
+        // Some backend handlers respond with raw field-list errors like
+        // "propertyId, userId, startDate, and endDate are required" —
+        // useful for developers, hostile for a resident. Filter those
+        // out to a friendlier message; pass through anything that looks
+        // like a real human-readable sentence.
+        const raw = String(result.message || '');
+        const looksTechnical =
+          /\b(propertyId|userId|unitId|startDate|endDate|residentId|null|undefined|JSON)\b/.test(
+            raw,
+          );
+        setServerError(
+          looksTechnical || !raw
+            ? "We couldn't save that vacation. Double-check the dates and try again."
+            : raw,
+        );
         return;
       }
 
