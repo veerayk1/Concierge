@@ -14,6 +14,7 @@ import type { Role } from '@/types';
 import {
   Activity,
   AlertTriangle,
+  ArrowRight,
   ArrowUpRight,
   BarChart3,
   Building2,
@@ -24,11 +25,15 @@ import {
   CreditCard,
   FileText,
   Key,
+  Lock,
   Megaphone,
   Package,
+  Plane,
   Shield,
   Sparkles,
+  Star,
   StickyNote,
+  Thermometer,
   TrendingUp,
   Users,
   Wrench,
@@ -547,322 +552,494 @@ interface ResidentDashboardProps {
   apiData: {
     kpis?: {
       unreleasedPackages?: number;
+      activeVisitors?: number;
       openMaintenanceRequests?: number;
       pendingBookingApprovals?: number;
+      upcomingBookings?: number;
     };
     recentActivity?: Array<{
       id: string;
       type: string;
       title: string;
       description?: string;
+      unit?: string;
       timestamp?: string;
+      createdAt?: string;
       status?: string;
     }>;
   } | null;
 }
 
-function ResidentDashboard({
-  name,
-  greeting,
-  kpiCards,
-  kpiValues,
-  buildingHealthScore,
-  apiData,
-}: ResidentDashboardProps) {
+interface AnnouncementSummary {
+  id: string;
+  title: string;
+  content?: string | null;
+  priority?: string | null;
+  status?: string | null;
+  isPinned?: boolean;
+  requireAcknowledgment?: boolean;
+  category?: { id: string; name: string } | null;
+  publishedAt?: string | null;
+  expiresAt?: string | null;
+}
+
+function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) {
+  const firstName = name.split(' ')[0] || name;
+
+  // Long, readable date — "Sunday, May 25" reads warmer than "May 25, 2026".
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   });
 
-  // Only show resident-relevant KPIs. Filter out anything that leaked in
-  // from a shared config.
-  const RESIDENT_KPI_WHITELIST = new Set([
-    'My Packages',
-    'Open Requests',
-    'Upcoming Bookings',
-    'Announcements',
-    'Upcoming Events',
-  ]);
-  const residentKpis = kpiCards.filter((k) => RESIDENT_KPI_WHITELIST.has(k));
+  // Pinned/recent announcements for the "From management" section.
+  // The dashboard payload only returns a count of unread, so we fetch
+  // titles + bodies separately rather than bloating every dashboard call.
+  const { data: annData } = useApi<AnnouncementSummary[]>(
+    apiUrl('/api/v1/announcements', {
+      propertyId: getPropertyId(),
+      status: 'published',
+      limit: '3',
+    }),
+  );
+  const announcements: AnnouncementSummary[] = useMemo(() => {
+    if (!annData) return [];
+    return Array.isArray(annData) ? annData.slice(0, 3) : [];
+  }, [annData]);
 
-  // Pull the four most recent activity entries that are actually relevant
-  // for a resident (their requests, their bookings, their packages, building
-  // announcements). Anything that looks like a staff/security log is dropped.
-  const residentActivity =
-    apiData?.recentActivity
-      ?.filter((a) => {
-        const t = (a.type || '').toLowerCase();
-        return (
-          t.includes('package') ||
-          t.includes('booking') ||
-          t.includes('request') ||
-          t.includes('announcement') ||
-          t.includes('visitor')
-        );
-      })
-      .slice(0, 5) ?? [];
+  // Split the unified activity feed into past (Recent activity) and
+  // future (Coming up). Each item carries its own timestamp.
+  const allActivity = apiData?.recentActivity ?? [];
+  const nowMs = Date.now();
+  const getTime = (a: { timestamp?: string; createdAt?: string }) =>
+    new Date(a.createdAt ?? a.timestamp ?? 0).getTime();
+  const recentActivity = allActivity.filter((a) => getTime(a) <= nowMs).slice(0, 6);
+  const upcomingItems = allActivity.filter((a) => getTime(a) > nowMs).slice(0, 5);
 
-  const quickActions = [
-    {
-      label: 'Submit a request',
-      sub: 'For maintenance or building issues.',
-      href: '/my-requests?action=new',
-      icon: Wrench,
-    },
+  // The four KPIs that matter to a resident, in priority order.
+  const pkgCount = apiData?.kpis?.unreleasedPackages ?? 0;
+  const visitorCount = apiData?.kpis?.activeVisitors ?? 0;
+  const reqCount = apiData?.kpis?.openMaintenanceRequests ?? 0;
+  const bookingCount = apiData?.kpis?.upcomingBookings ?? 0;
+
+  // Quick actions are the verbs a resident actually does today. We only
+  // surface actions that route to features we have actually built.
+  const quickActions: { label: string; sub: string; href: string; icon: LucideIcon }[] = [
     {
       label: 'Book an amenity',
-      sub: 'Party room, gym, pool, guest suite.',
+      sub: 'Pool, sauna, party room.',
       href: '/amenity-booking',
       icon: Calendar,
     },
     {
-      label: 'View announcements',
-      sub: 'Latest building news and notices.',
-      href: '/announcements',
-      icon: Megaphone,
+      label: 'Submit a request',
+      sub: 'Maintenance, plumbing, more.',
+      href: '/my-requests',
+      icon: Wrench,
+    },
+    {
+      label: 'View packages',
+      sub: 'See what is waiting for you.',
+      href: '/my-packages',
+      icon: Package,
+    },
+    {
+      label: 'Set vacation dates',
+      sub: 'Let staff know you are away.',
+      href: '/residents/vacations',
+      icon: Plane,
     },
   ];
 
-  // AI briefing lines, scoped from resident-relevant signals returned
-  // by the dashboard API.
-  const briefingLines: { strong: string; rest: string }[] = [];
-  const pkg = apiData?.kpis?.unreleasedPackages ?? 0;
-  const req = apiData?.kpis?.openMaintenanceRequests ?? 0;
-  const bk = apiData?.kpis?.pendingBookingApprovals ?? 0;
-  if (pkg > 0) {
-    briefingLines.push({
-      strong: `${pkg} package${pkg !== 1 ? 's' : ''} waiting`,
-      rest: ' for pickup at the front desk.',
-    });
-  }
-  if (req > 0) {
-    briefingLines.push({
-      strong: `${req} open request${req !== 1 ? 's' : ''}`,
-      rest: ` ${req !== 1 ? 'are' : 'is'} being worked on by the team.`,
-    });
-  }
-  if (bk > 0) {
-    briefingLines.push({
-      strong: `${bk} booking${bk !== 1 ? 's' : ''} pending`,
-      rest: ' management approval.',
-    });
-  }
-  const briefingHasSignal = briefingLines.length > 0;
-  const firstName = name.split(' ')[0] || name;
-
   return (
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-5">
-      {/* Greeting */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
-            {greeting}, {name}
-          </h1>
-          <p className="mt-0.5 text-[14px] text-neutral-500">My dashboard · {today}</p>
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 pb-12">
+      {/* ----------------------------------------------------------------- */}
+      {/* Greeting                                                            */}
+      {/* ----------------------------------------------------------------- */}
+      <header className="flex flex-col gap-1.5">
+        <h1 className="text-[30px] leading-[1.05] font-bold tracking-tight text-neutral-900">
+          {greeting}, <span className="text-primary-500">{firstName}.</span>
+        </h1>
+        <p className="text-[13.5px] text-neutral-500">
+          Your dashboard <span className="px-1.5 text-neutral-300">·</span> {today}
+        </p>
+      </header>
+
+      {/* ----------------------------------------------------------------- */}
+      {/* From management — what the desk needs you to know, first          */}
+      {/* ----------------------------------------------------------------- */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-[15px] font-semibold text-neutral-900">From management</h2>
+            {announcements.length > 0 && (
+              <span className="text-[12px] text-neutral-400">
+                {announcements.length} active notice{announcements.length === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+          <a
+            href="/announcements"
+            className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1 text-[12.5px] font-medium"
+          >
+            All announcements
+            <ArrowRight className="h-3.5 w-3.5" />
+          </a>
         </div>
-      </div>
 
-      {/* Row 1 — AI briefing (large, left) + Building health + Quick actions
-          (stacked, right). items-stretch + h-full on cards keeps both columns
-          the same height, killing the empty white space the old layout had. */}
-      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
-        <Card className="flex h-full flex-col lg:col-span-2">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Sparkles className="text-primary-500 h-4 w-4" strokeWidth={1.8} />
-              <CardTitle>Your daily briefing</CardTitle>
-            </div>
-            <Badge variant="info" size="sm">
-              AI-generated
-            </Badge>
-          </CardHeader>
-          <CardContent className="flex flex-1 flex-col">
-            <p className="text-[14px] leading-relaxed text-neutral-700">
-              {greeting}, {firstName}. Here is what is happening today:
-            </p>
-            <ul className="mt-3 space-y-2.5 text-[13.5px] leading-relaxed text-neutral-600">
-              {briefingHasSignal ? (
-                briefingLines.map((line, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
-                    <span
-                      aria-hidden="true"
-                      className="bg-primary-400 mt-[7px] inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                    />
-                    <span>
-                      <strong className="font-semibold text-neutral-900">{line.strong}</strong>
-                      {line.rest}
-                    </span>
-                  </li>
-                ))
-              ) : (
-                <li className="flex items-start gap-2.5">
-                  <span
-                    aria-hidden="true"
-                    className="mt-[7px] inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400"
-                  />
-                  <span>All caught up — no packages, requests, or pending bookings on file.</span>
-                </li>
-              )}
-              <li className="flex items-start gap-2.5">
-                <span
-                  aria-hidden="true"
-                  className="mt-[7px] inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-neutral-300"
-                />
-                <span>
-                  Lobby is open until midnight. Quiet hours start at{' '}
-                  <strong className="font-semibold text-neutral-900">10pm</strong>.
-                </span>
-              </li>
-            </ul>
-            {/* Spacer pushes the next-step CTA to the bottom of the card so
-                the briefing fills its full height instead of leaving white space. */}
-            <div className="mt-auto flex flex-wrap items-center gap-3 pt-5">
-              <a
-                href="/my-requests"
-                className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1.5 text-[13px] font-medium"
-              >
-                Open my requests
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </a>
-              <span className="text-neutral-300">·</span>
-              <a
-                href="/my-packages"
-                className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1.5 text-[13px] font-medium"
-              >
-                Go to packages
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </a>
-            </div>
-          </CardContent>
-        </Card>
+        {announcements.length > 0 ? (
+          <div className="overflow-hidden rounded-2xl border border-neutral-200">
+            <ul className="divide-y divide-neutral-100">
+              {announcements.map((ann, i) => (
+                <li
+                  key={ann.id ?? i}
+                  className={`grid grid-cols-[40px_1fr_auto] items-start gap-4 px-5 py-4 ${
+                    ann.isPinned ? 'bg-primary-50/40' : ''
+                  }`}
+                >
+                  {/* Category icon */}
+                  <div className="pt-0.5">{iconForAnnouncement(ann)}</div>
 
-        {/* Right column — Building health on top, Quick actions below.
-            flex-1 on the lower card pushes it to fill remaining space so the
-            column height matches the AI briefing card to the left. */}
-        <div className="flex h-full flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Building health</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {buildingHealthScore !== null ? (
-                <BuildingHealthRing score={buildingHealthScore} />
-              ) : (
-                <div className="flex items-center gap-3 py-1">
-                  <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-neutral-100">
-                    <span className="text-[22px] font-light text-neutral-300">&mdash;</span>
+                  {/* Tags + title + body */}
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      {ann.isPinned && (
+                        <span className="text-primary-600 inline-flex items-center gap-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase">
+                          <Star
+                            className="fill-primary-500 stroke-primary-500 h-3 w-3"
+                            aria-hidden="true"
+                          />
+                          Pinned
+                        </span>
+                      )}
+                      {ann.category?.name && (
+                        <span className="text-[10.5px] font-semibold tracking-[0.08em] text-neutral-500 uppercase">
+                          {ann.isPinned ? '·' : ''} {ann.category.name}
+                        </span>
+                      )}
+                      {ann.requireAcknowledgment && (
+                        <span className="text-warning-600 text-[10.5px] font-semibold tracking-[0.08em] uppercase">
+                          · Action required
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="mt-1 text-[15px] font-semibold text-neutral-900">{ann.title}</h3>
+                    {ann.content && (
+                      <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-neutral-600">
+                        {ann.content}
+                      </p>
+                    )}
                   </div>
-                  <p className="text-[12px] leading-snug text-neutral-500">
-                    Score appears once operations data starts flowing.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          <Card className="flex flex-1 flex-col">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Sparkles className="text-primary-500 h-4 w-4" strokeWidth={1.8} />
-                <CardTitle>Quick actions</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-1 flex-col justify-center">
-              <div className="-mx-2 flex flex-col">
-                {quickActions.map((action) => (
-                  <a
-                    key={action.label}
-                    href={action.href}
-                    className="group flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-[13px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <action.icon
-                        className="text-primary-500 h-3.5 w-3.5 flex-shrink-0"
-                        strokeWidth={1.8}
-                      />
-                      {action.label}
+                  {/* Date column */}
+                  <div className="flex flex-col items-end pt-1 text-right whitespace-nowrap">
+                    <span className="text-[14px] font-semibold text-neutral-900">
+                      {formatAnnouncementDate(ann.expiresAt ?? ann.publishedAt)}
                     </span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-neutral-300 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-neutral-600" />
-                  </a>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                    <span className="text-[11.5px] text-neutral-400">
+                      {formatAnnouncementRelative(ann.expiresAt ?? ann.publishedAt)}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-neutral-200 px-6 py-10 text-center">
+            <div className="bg-primary-50 flex h-12 w-12 items-center justify-center rounded-full">
+              <CheckCircle2 className="text-primary-500 h-5 w-5" strokeWidth={1.6} />
+            </div>
+            <p className="text-[14.5px] font-semibold text-neutral-900 italic">
+              All quiet from the desk.
+            </p>
+            <p className="max-w-md text-[12.5px] leading-relaxed text-neutral-500">
+              There are no active notices from management right now. Anything that needs your
+              attention will land here first.
+            </p>
+          </div>
+        )}
+      </section>
 
-      {/* Row 2 — KPI tiles. Grid template adapts to the exact number of
-          tiles we render so we never leave a phantom empty column. */}
-      {residentKpis.length > 0 && (
-        <div
-          className={`grid gap-3 ${
-            residentKpis.length === 1
-              ? 'grid-cols-1'
-              : residentKpis.length === 2
-                ? 'grid-cols-1 sm:grid-cols-2'
-                : residentKpis.length === 3
-                  ? 'grid-cols-1 sm:grid-cols-3'
-                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
-          }`}
-        >
-          {residentKpis.map((kpi) => {
-            const kpiConfig = KPI_ICONS[kpi] || {
-              label: kpi,
-              icon: FileText,
-              color: 'text-neutral-600',
-              bgColor: 'bg-neutral-50',
-            };
-            return (
-              <KpiTile
-                key={kpi}
-                label={kpiConfig.label}
-                value={kpiValues[kpi] ?? '—'}
-                icon={kpiConfig.icon}
-                accent={KPI_ACCENTS[kpi] ?? 'neutral'}
-                href={KPI_DRILL_HREFS[kpi]}
+      {/* ----------------------------------------------------------------- */}
+      {/* Today, at a glance — 4 KPI tiles with rich subtext                 */}
+      {/* ----------------------------------------------------------------- */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[15px] font-semibold text-neutral-900">Today, at a glance</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiTile
+            label="My packages"
+            value={pkgCount}
+            icon={Package}
+            accent={pkgCount > 0 ? 'primary' : 'neutral'}
+            href="/my-packages"
+            caption={pkgCount > 0 ? 'Ready for pickup at the front desk' : 'Nothing waiting'}
+          />
+          <KpiTile
+            label="Visitors today"
+            value={visitorCount}
+            icon={Users}
+            accent={visitorCount > 0 ? 'info' : 'neutral'}
+            caption={visitorCount > 0 ? 'Expected today' : 'No one expected'}
+          />
+          <KpiTile
+            label="My requests"
+            value={reqCount}
+            icon={Wrench}
+            accent={reqCount > 0 ? 'warning' : 'success'}
+            href="/my-requests"
+            caption={reqCount > 0 ? 'In progress' : 'All caught up'}
+          />
+          <KpiTile
+            label="Next booking"
+            value={bookingCount > 0 ? bookingCount : <span className="text-neutral-300">—</span>}
+            icon={Calendar}
+            accent={bookingCount > 0 ? 'primary' : 'neutral'}
+            href="/amenity-booking"
+            caption={
+              bookingCount > 0
+                ? bookingCount === 1
+                  ? '1 upcoming booking'
+                  : `${bookingCount} upcoming bookings`
+                : 'Book the pool, sauna, party room…'
+            }
+          />
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------------------- */}
+      {/* Quick actions — verbs the resident actually does                   */}
+      {/* ----------------------------------------------------------------- */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[15px] font-semibold text-neutral-900">Quick actions</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {quickActions.map((action) => (
+            <a
+              key={action.href}
+              href={action.href}
+              className="group flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white px-5 py-4 transition-all hover:border-neutral-300 hover:shadow-sm"
+            >
+              <action.icon
+                className="text-primary-500 h-5 w-5"
+                strokeWidth={1.8}
+                aria-hidden="true"
               />
-            );
-          })}
-        </div>
-      )}
-
-      {/* Row 3 — Recent activity, full width. */}
-      <Card padding="none">
-        <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
-          <CardTitle>Recent activity</CardTitle>
-        </CardHeader>
-        <div className="divide-y divide-neutral-100">
-          {residentActivity.length > 0 ? (
-            residentActivity.map((a, i) => (
-              <div key={i} className="grid grid-cols-[20px_1fr_auto] items-start gap-3 px-5 py-3.5">
-                <Activity
-                  className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-300"
-                  strokeWidth={1.8}
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-[13.5px] font-medium text-neutral-900">{a.title}</p>
-                  {a.description ? (
-                    <p className="mt-0.5 truncate text-[12px] text-neutral-500">{a.description}</p>
-                  ) : null}
-                </div>
-                {a.timestamp ? (
-                  <span className="text-[11.5px] whitespace-nowrap text-neutral-400">
-                    {formatRelativeTimestamp(a.timestamp)}
-                  </span>
-                ) : null}
+              <div>
+                <p className="text-[14.5px] font-semibold text-neutral-900">{action.label}</p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-neutral-500">{action.sub}</p>
               </div>
-            ))
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------------------- */}
+      {/* Recent activity + Coming up                                        */}
+      {/* ----------------------------------------------------------------- */}
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Recent activity */}
+        <Card padding="none" className="flex flex-col">
+          <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <CardTitle>Recent activity</CardTitle>
+                <p className="mt-0.5 text-[11.5px] text-neutral-400">
+                  Things touching your unit, last 7 days
+                </p>
+              </div>
+              <a
+                href="/my-account"
+                className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1 text-[12px] font-medium"
+              >
+                Full timeline
+                <ArrowRight className="h-3 w-3" />
+              </a>
+            </div>
+          </CardHeader>
+          {recentActivity.length > 0 ? (
+            <ul className="divide-y divide-neutral-100">
+              {recentActivity.map((a, i) => (
+                <li
+                  key={a.id ?? i}
+                  className="grid grid-cols-[24px_1fr_auto] items-start gap-3 px-5 py-3.5"
+                >
+                  <span className="mt-0.5">{iconForActivity(a.type)}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-[13.5px] font-medium text-neutral-900">{a.title}</p>
+                    {a.unit && (
+                      <p className="mt-0.5 truncate text-[12px] text-neutral-500">Unit {a.unit}</p>
+                    )}
+                  </div>
+                  <span className="text-[11.5px] whitespace-nowrap text-neutral-400">
+                    {formatRelativeTimestamp(a.createdAt ?? a.timestamp ?? '')}
+                  </span>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <div className="px-5 py-8 text-center">
-              <p className="text-[13px] font-medium text-neutral-600">All quiet</p>
-              <p className="mt-1 text-[12px] text-neutral-400">
-                Nothing has happened on your account recently.
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-50">
+                <Activity className="h-5 w-5 text-neutral-400" strokeWidth={1.6} />
+              </div>
+              <p className="mt-1 text-[14.5px] font-semibold text-neutral-900 italic">
+                A quiet week.
+              </p>
+              <p className="max-w-sm text-[12.5px] leading-relaxed text-neutral-500">
+                No packages, visitors, or requests in the last seven days. Activity will appear here
+                as it happens.
               </p>
             </div>
           )}
-        </div>
-      </Card>
+        </Card>
+
+        {/* Coming up */}
+        <Card padding="none" className="flex flex-col">
+          <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <CardTitle>Coming up</CardTitle>
+                <p className="mt-0.5 text-[11.5px] text-neutral-400">
+                  Bookings, deliveries, building events
+                </p>
+              </div>
+              <a
+                href="/events"
+                className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1 text-[12px] font-medium"
+              >
+                Calendar
+                <ArrowRight className="h-3 w-3" />
+              </a>
+            </div>
+          </CardHeader>
+          {upcomingItems.length > 0 ? (
+            <ul className="divide-y divide-neutral-100">
+              {upcomingItems.map((a, i) => (
+                <li
+                  key={a.id ?? i}
+                  className="grid grid-cols-[52px_1fr] items-start gap-3 px-5 py-3.5"
+                >
+                  <DateChip iso={a.createdAt ?? a.timestamp ?? ''} />
+                  <div className="min-w-0">
+                    <p className="text-[13.5px] font-medium text-neutral-900">{a.title}</p>
+                    <p className="mt-0.5 truncate text-[12px] text-neutral-500">
+                      {formatRelativeTimestamp(a.createdAt ?? a.timestamp ?? '')}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-50">
+                <Calendar className="h-5 w-5 text-neutral-400" strokeWidth={1.6} />
+              </div>
+              <p className="mt-1 text-[14.5px] font-semibold text-neutral-900 italic">
+                Nothing on the horizon.
+              </p>
+              <p className="max-w-sm text-[12.5px] leading-relaxed text-neutral-500">
+                You have no upcoming bookings or building events. The pool is yours to claim.
+              </p>
+            </div>
+          )}
+        </Card>
+      </section>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Resident dashboard helpers
+// ---------------------------------------------------------------------------
+
+// Map an announcement to a category icon. Falls back to a megaphone so
+// uncategorised notices still render a recognisable affordance.
+function iconForAnnouncement(ann: AnnouncementSummary) {
+  const isUrgent = (ann.priority || '').toLowerCase() === 'urgent';
+  const cat = (ann.category?.name || ann.title || '').toLowerCase();
+  let Icon: LucideIcon = Megaphone;
+  let tint = 'text-primary-500 bg-primary-50';
+  if (isUrgent) {
+    Icon = AlertTriangle;
+    tint = 'text-error-600 bg-error-50';
+  } else if (/parking|garage|vehicle|tow/.test(cat)) {
+    Icon = Lock;
+  } else if (/hvac|heat|cool|temperature/.test(cat)) {
+    Icon = Thermometer;
+  } else if (/amenit|pool|gym|sauna|party/.test(cat)) {
+    Icon = Clock;
+  } else if (/maintenance|repair|service/.test(cat)) {
+    Icon = Wrench;
+  } else if (/security|incident|emergency/.test(cat)) {
+    Icon = Shield;
+    tint = 'text-warning-600 bg-warning-50';
+  }
+  return (
+    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${tint}`}>
+      <Icon className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
+    </div>
+  );
+}
+
+// Map an activity type to the small leading icon for the timeline row.
+function iconForActivity(type: string) {
+  const t = (type || '').toLowerCase();
+  if (t.includes('package'))
+    return <Package className="h-4 w-4 text-neutral-400" strokeWidth={1.7} aria-hidden="true" />;
+  if (t.includes('visitor'))
+    return <Users className="h-4 w-4 text-neutral-400" strokeWidth={1.7} aria-hidden="true" />;
+  if (t.includes('request') || t.includes('maintenance'))
+    return <Wrench className="h-4 w-4 text-neutral-400" strokeWidth={1.7} aria-hidden="true" />;
+  if (t.includes('booking') || t.includes('amenity'))
+    return <Calendar className="h-4 w-4 text-neutral-400" strokeWidth={1.7} aria-hidden="true" />;
+  if (t.includes('announcement'))
+    return <Megaphone className="h-4 w-4 text-neutral-400" strokeWidth={1.7} aria-hidden="true" />;
+  return <CheckCircle2 className="text-success-500 h-4 w-4" strokeWidth={1.7} aria-hidden="true" />;
+}
+
+// Short, weekday-prefixed date — "Tue 26".
+function formatAnnouncementDate(iso?: string | null): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+  const day = d.getDate();
+  return `${weekday} ${day}`;
+}
+
+// Relative descriptor for the date column — "today", "tomorrow", "in 3 days",
+// or "Jun 15" for anything more than a week out.
+function formatAnnouncementRelative(iso?: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const ms = d.getTime() - Date.now();
+  const days = Math.round(ms / 86_400_000);
+  if (days === 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days === -1) return 'yesterday';
+  if (days > 1 && days < 14) return `in ${days} days`;
+  if (days < -1 && days > -14) return `${Math.abs(days)} days ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// Stacked date chip for the "Coming up" rail — MAY over 26.
+function DateChip({ iso }: { iso: string }) {
+  if (!iso) {
+    return (
+      <div className="flex h-12 w-12 flex-col items-center justify-center rounded-lg bg-neutral-50 text-neutral-400">
+        <span className="text-[10px] font-semibold tracking-[0.08em] uppercase">—</span>
+      </div>
+    );
+  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  return (
+    <div className="bg-primary-50 flex h-12 w-12 flex-col items-center justify-center rounded-lg">
+      <span className="text-primary-600 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
+        {month}
+      </span>
+      <span className="text-primary-700 text-[16px] leading-none font-bold">{d.getDate()}</span>
     </div>
   );
 }
