@@ -26,6 +26,20 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Test-seed regex shared with /my-packages, /my-requests, /dashboard.
+// Residents see "CHAIN-E FBSNCK test", "UI-CHAIN-E-E10: Emergency...",
+// "QA Test:..." in the demo property; a real building won't, but the
+// filter applies cleanly in production too.
+const TEST_TITLE_PATTERN =
+  /^(EXH[-_]?[A-Z]+|UI[-_]?CHAIN|UI[-_]?TASK|CHAIN[-_]?[A-Z]|QA[-_ ]?(TEST|[A-Z]+:|TOWER)|QA TEST|UX[-_]?\d+|WRITE[-_]?MATRIX|SEC[-_]?\d+|TEST[-_ ]?|FBSNCK|VERIFY[-_ ]?|TC[-_]?\d+|E2E[-_ ]?)/i;
+const TEST_SUBSTRING_PATTERN = /\btest (event|notice|announcement|item|run|data|xyz)\b/i;
+
+function isTestSeedTitle(title: string | undefined | null): boolean {
+  if (!title) return false;
+  const t = title.trim();
+  return TEST_TITLE_PATTERN.test(t) || TEST_SUBSTRING_PATTERN.test(t);
+}
+
 // ---------------------------------------------------------------------------
 // Types — matches API response shape from GET /api/v1/announcements
 // ---------------------------------------------------------------------------
@@ -115,6 +129,11 @@ export default function AnnouncementsPage() {
   const isResident = effectiveRole?.startsWith('resident') || effectiveRole === 'board_member';
   const canCreate = !isResident;
 
+  // Residents are forced to "published" regardless of any UI filter —
+  // they should never see drafts/scheduled/archived rows even
+  // accidentally. Staff respect whatever the filter row is set to.
+  const effectiveStatus = isResident ? 'published' : statusFilter;
+
   const {
     data: apiResponse,
     loading,
@@ -124,7 +143,7 @@ export default function AnnouncementsPage() {
     apiUrl('/api/v1/announcements', {
       propertyId: getPropertyId(),
       search: searchQuery || undefined,
-      status: statusFilter !== 'all' ? statusFilter : undefined,
+      status: effectiveStatus !== 'all' ? effectiveStatus : undefined,
       pageSize: '50',
     }),
   );
@@ -133,34 +152,36 @@ export default function AnnouncementsPage() {
     const rawAnnouncements = apiResponse?.data ?? (apiResponse as unknown as ApiAnnouncement[]);
     if (!rawAnnouncements || !Array.isArray(rawAnnouncements)) return [];
 
-    return rawAnnouncements.map((a) => {
-      // channels can be a JSON string or array
-      let channels: string[] = ['web'];
-      if (Array.isArray(a.channels)) {
-        channels = a.channels;
-      } else if (typeof a.channels === 'string') {
-        try {
-          channels = JSON.parse(a.channels);
-        } catch {
-          channels = ['web'];
+    return rawAnnouncements
+      .filter((a) => !isTestSeedTitle(a.title))
+      .map((a) => {
+        // channels can be a JSON string or array
+        let channels: string[] = ['web'];
+        if (Array.isArray(a.channels)) {
+          channels = a.channels;
+        } else if (typeof a.channels === 'string') {
+          try {
+            channels = JSON.parse(a.channels);
+          } catch {
+            channels = ['web'];
+          }
         }
-      }
 
-      return {
-        id: a.id,
-        title: a.title,
-        body: a.content, // API field is "content", UI displays as "body"
-        status: normalizeAnnouncementStatus(a.status),
-        priority: normalizeAnnouncementPriority(a.priority),
-        channels,
-        category: a.category?.name || '',
-        publishedAt: a.publishedAt || undefined,
-        scheduledFor: a.scheduledAt || undefined, // API field is "scheduledAt"
-        createdAt: a.createdAt,
-        isPinned: a.isPinned,
-        isEmergency: a.isEmergency,
-      };
-    });
+        return {
+          id: a.id,
+          title: a.title,
+          body: a.content, // API field is "content", UI displays as "body"
+          status: normalizeAnnouncementStatus(a.status),
+          priority: normalizeAnnouncementPriority(a.priority),
+          channels,
+          category: a.category?.name || '',
+          publishedAt: a.publishedAt || undefined,
+          scheduledFor: a.scheduledAt || undefined, // API field is "scheduledAt"
+          createdAt: a.createdAt,
+          isPinned: a.isPinned,
+          isEmergency: a.isEmergency,
+        };
+      });
   }, [apiResponse]);
 
   // Loading state
@@ -197,7 +218,11 @@ export default function AnnouncementsPage() {
   return (
     <PageShell
       title="Announcements"
-      description="Create and distribute announcements via web, email, SMS, and push."
+      description={
+        isResident
+          ? 'Notices from management.'
+          : 'Create and distribute announcements via web, email, SMS, and push.'
+      }
       actions={
         canCreate ? (
           <Button size="sm" onClick={() => setShowCreateDialog(true)}>
@@ -207,7 +232,9 @@ export default function AnnouncementsPage() {
         ) : undefined
       }
     >
-      {/* Search + Filter */}
+      {/* Search + Filter. Residents only ever see published notices, so
+          the draft/scheduled filter tabs are admin-only — they leak
+          workflow concepts that residents shouldn't be aware of. */}
       <div className="mb-6 flex items-center gap-3">
         <div className="relative max-w-md flex-1">
           <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
@@ -228,27 +255,29 @@ export default function AnnouncementsPage() {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-1.5">
-          {[
-            { key: 'all', label: 'All' },
-            { key: 'published', label: 'Published' },
-            { key: 'scheduled', label: 'Scheduled' },
-            { key: 'draft', label: 'Drafts' },
-          ].map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => setStatusFilter(s.key)}
-              className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 ${
-                statusFilter === s.key
-                  ? 'bg-primary-500 text-white shadow-sm'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        {!isResident && (
+          <div className="flex items-center gap-1.5">
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'published', label: 'Published' },
+              { key: 'scheduled', label: 'Scheduled' },
+              { key: 'draft', label: 'Drafts' },
+            ].map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setStatusFilter(s.key)}
+                className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 ${
+                  statusFilter === s.key
+                    ? 'bg-primary-500 text-white shadow-sm'
+                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Announcements Feed */}
@@ -259,12 +288,16 @@ export default function AnnouncementsPage() {
             title={
               searchQuery || statusFilter !== 'all'
                 ? 'No announcements found'
-                : 'No announcements yet'
+                : isResident
+                  ? 'All quiet from the desk.'
+                  : 'No announcements yet'
             }
             description={
               searchQuery || statusFilter !== 'all'
                 ? 'Try adjusting your search or filter.'
-                : 'Create your first announcement to communicate with residents.'
+                : isResident
+                  ? 'There are no active notices right now. Anything new from management will land here.'
+                  : 'Create your first announcement to communicate with residents.'
             }
             action={
               canCreate && !searchQuery && statusFilter === 'all' ? (
@@ -304,9 +337,14 @@ export default function AnnouncementsPage() {
                       <h3 className="text-[16px] font-semibold text-neutral-900">
                         {announcement.title}
                       </h3>
-                      <Badge variant={sc.variant} size="sm">
-                        {sc.label}
-                      </Badge>
+                      {/* Workflow status is admin metadata — residents
+                          only see published anyway, so the pill carries
+                          no signal for them. */}
+                      {!isResident && (
+                        <Badge variant={sc.variant} size="sm">
+                          {sc.label}
+                        </Badge>
+                      )}
                       {pc && (
                         <Badge variant={pc.variant} size="sm" dot>
                           {pc.label}
@@ -360,18 +398,22 @@ export default function AnnouncementsPage() {
                     </div>
                   </div>
 
-                  {/* Channels */}
-                  <div className="flex items-center gap-1">
-                    {announcement.channels.map((ch) => (
-                      <div
-                        key={ch}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500"
-                        title={ch}
-                      >
-                        <ChannelIcon channel={ch} />
-                      </div>
-                    ))}
-                  </div>
+                  {/* Distribution channels (web/email/sms/push) describe
+                      how the announcement was delivered. Operational
+                      concern — admin only. */}
+                  {!isResident && (
+                    <div className="flex items-center gap-1">
+                      {announcement.channels.map((ch) => (
+                        <div
+                          key={ch}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500"
+                          title={ch}
+                        >
+                          <ChannelIcon channel={ch} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </Card>
             );
