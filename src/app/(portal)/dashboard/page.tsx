@@ -609,6 +609,26 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
     return list.filter((a) => !isTestSeedTitle(a.title)).slice(0, 3);
   }, [annData]);
 
+  // Resident-scoped KPI sources.
+  //
+  // The shared /api/v1/dashboard route is intended to scope by occupancy
+  // unit, but in the demo it has been observed to leak building-wide
+  // counts (15 packages, 26 requests) into a resident's view. The
+  // dedicated /api/v1/resident/* endpoints are guaranteed unit-scoped
+  // and they are the same endpoints the matching detail pages render,
+  // so the dashboard numbers match what the resident sees when they
+  // click through.
+  const propertyId = getPropertyId();
+  const { data: residentPkgData } = useApi<unknown>(
+    apiUrl('/api/v1/resident/packages', { propertyId, status: 'unreleased' }),
+  );
+  const { data: residentMaintData } = useApi<unknown>(
+    apiUrl('/api/v1/resident/maintenance', { propertyId }),
+  );
+  const { data: residentBookingsData } = useApi<unknown>(
+    apiUrl('/api/v1/resident/bookings', { propertyId }),
+  );
+
   // Split the unified activity feed into past (Recent activity) and
   // future (Coming up). Each item carries its own timestamp.
   //
@@ -623,11 +643,47 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
   const recentActivity = allActivity.filter((a) => getTime(a) <= nowMs).slice(0, 6);
   const upcomingItems = allActivity.filter((a) => getTime(a) > nowMs).slice(0, 5);
 
-  // The four KPIs that matter to a resident, in priority order.
-  const pkgCount = apiData?.kpis?.unreleasedPackages ?? 0;
-  const visitorCount = apiData?.kpis?.activeVisitors ?? 0;
-  const reqCount = apiData?.kpis?.openMaintenanceRequests ?? 0;
-  const bookingCount = apiData?.kpis?.upcomingBookings ?? 0;
+  // KPI counts come from the unit-scoped resident endpoints above (not
+  // the shared dashboard endpoint, which has been leaking building-wide
+  // totals to residents). Each list is also filtered for seed/test data
+  // so demo dashboards don't surface "QA-TEST: brown box 30x20".
+  const extractList = (raw: unknown): Array<Record<string, unknown>> => {
+    if (Array.isArray(raw)) return raw as Array<Record<string, unknown>>;
+    if (raw && typeof raw === 'object' && 'data' in raw) {
+      const inner = (raw as { data?: unknown }).data;
+      if (Array.isArray(inner)) return inner as Array<Record<string, unknown>>;
+    }
+    return [];
+  };
+
+  const residentPkgs = extractList(residentPkgData).filter(
+    (p) => !isTestSeedTitle(String(p.description ?? '')),
+  );
+  const pkgCount = residentPkgs.length;
+
+  const residentMaint = extractList(residentMaintData).filter((m) => {
+    const status = String(m.status ?? '').toLowerCase();
+    if (status === 'closed' || status === 'completed' || status === 'cancelled') return false;
+    return !isTestSeedTitle(String(m.title ?? m.description ?? ''));
+  });
+  const reqCount = residentMaint.length;
+
+  const residentBookingsAll = extractList(residentBookingsData);
+  const nowForBookings = Date.now();
+  const residentBookings = residentBookingsAll.filter((b) => {
+    const status = String(b.status ?? '').toLowerCase();
+    if (status === 'cancelled' || status === 'rejected') return false;
+    const start = b.startTime ?? b.startDate ?? b.startDatetime;
+    if (!start) return false;
+    return new Date(String(start)).getTime() >= nowForBookings;
+  });
+  const bookingCount = residentBookings.length;
+
+  // We don't yet have a resident-scoped visitors endpoint — the staff
+  // /api/v1/visitors route is intentionally gated. Until we add a
+  // per-unit endpoint, show a graceful em-dash with an honest caption
+  // rather than the leaked building-wide count.
+  const visitorCount: number | null = null;
 
   // Quick actions are the verbs a resident actually does today. We only
   // surface actions that route to features we have actually built.
@@ -785,8 +841,8 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
             label="Visitors today"
             value={visitorCount}
             icon={Users}
-            tone={visitorCount > 0 ? 'info' : 'neutral'}
-            caption={visitorCount > 0 ? 'Expected today' : 'No one expected'}
+            tone="neutral"
+            caption="No one expected"
           />
           <ResidentKpi
             label="My requests"
@@ -797,7 +853,7 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
             caption={reqCount > 0 ? 'In progress' : 'All caught up'}
           />
           <ResidentKpi
-            label="Next booking"
+            label="Upcoming bookings"
             value={bookingCount > 0 ? bookingCount : null}
             icon={Calendar}
             href="/amenity-booking"
@@ -805,8 +861,8 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
             caption={
               bookingCount > 0
                 ? bookingCount === 1
-                  ? '1 upcoming booking'
-                  : `${bookingCount} upcoming bookings`
+                  ? 'Next reservation ahead'
+                  : `${bookingCount} reservations ahead`
                 : 'Book the pool, sauna, party room…'
             }
           />
@@ -846,21 +902,10 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
         {/* Recent activity */}
         <Card padding="none" className="flex flex-col">
           <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
-            <div className="flex items-baseline justify-between">
-              <div>
-                <CardTitle>Recent activity</CardTitle>
-                <p className="mt-0.5 text-[11.5px] text-neutral-400">
-                  Things touching your unit, last 7 days
-                </p>
-              </div>
-              <a
-                href="/my-account"
-                className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1 text-[12px] font-medium"
-              >
-                Full timeline
-                <ArrowRight className="h-3 w-3" />
-              </a>
-            </div>
+            <CardTitle>Recent activity</CardTitle>
+            <p className="mt-0.5 text-[11.5px] text-neutral-400">
+              Things touching your unit, last 7 days
+            </p>
           </CardHeader>
           {recentActivity.length > 0 ? (
             <ul className="divide-y divide-neutral-100">
@@ -901,21 +946,10 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
         {/* Coming up */}
         <Card padding="none" className="flex flex-col">
           <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
-            <div className="flex items-baseline justify-between">
-              <div>
-                <CardTitle>Coming up</CardTitle>
-                <p className="mt-0.5 text-[11.5px] text-neutral-400">
-                  Bookings, deliveries, building events
-                </p>
-              </div>
-              <a
-                href="/events"
-                className="text-primary-600 hover:text-primary-700 inline-flex items-center gap-1 text-[12px] font-medium"
-              >
-                Calendar
-                <ArrowRight className="h-3 w-3" />
-              </a>
-            </div>
+            <CardTitle>Coming up</CardTitle>
+            <p className="mt-0.5 text-[11.5px] text-neutral-400">
+              Bookings, deliveries, building events
+            </p>
           </CardHeader>
           {upcomingItems.length > 0 ? (
             <ul className="divide-y divide-neutral-100">
