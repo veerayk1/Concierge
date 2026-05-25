@@ -8,13 +8,14 @@
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Calendar, MapPin, AlertTriangle, Loader2 } from 'lucide-react';
+import { Plus, Plane, MapPin, AlertTriangle, Loader2, CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
 
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { KpiTile } from '@/components/ui/kpi-tile';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -76,7 +77,12 @@ export default function VacationsPage() {
   const propertyId = getPropertyId();
   const { user } = useAuth();
 
-  const isResident = user ? RESIDENT_ROLES.includes(user.role as string) : false;
+  // In demo mode `useAuth()` returns null — fall back to the
+  // localStorage demo_role so the resident view applies in
+  // /system/properties demo sessions just like on the dashboard.
+  const demoRole = typeof window !== 'undefined' ? localStorage.getItem('demo_role') : null;
+  const effectiveRole = (user?.role as string | undefined) ?? demoRole;
+  const isResident = effectiveRole ? RESIDENT_ROLES.includes(effectiveRole) : false;
 
   const { units } = usePropertyUnits(propertyId);
   // Residents only see their own vacations; staff see all
@@ -203,7 +209,7 @@ export default function VacationsPage() {
       sortable: true,
       cell: (row) => (
         <div className="flex items-center gap-2 text-[14px] text-neutral-700">
-          <Calendar className="h-4 w-4 text-neutral-400" />
+          <Plane className="h-4 w-4 text-neutral-400" />
           {row.startDate} – {row.endDate}
         </div>
       ),
@@ -308,41 +314,50 @@ export default function VacationsPage() {
 
       {!loading && !error && (
         <>
-          {/* Stats */}
+          {/* Stats — use the shared KpiTile (2px accent rail + monoline
+              icon) to match the rest of the portal. The previous
+              icon-in-tinted-square pattern was killed for KPIs in
+              UX-093/094. */}
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {[
-              {
-                label: 'Active Vacations',
-                value: activeCount,
-                color: 'text-success-600',
-                bg: 'bg-success-50',
-              },
-              {
-                label: 'Upcoming',
-                value: upcomingCount,
-                color: 'text-info-600',
-                bg: 'bg-info-50',
-              },
-            ].map((stat) => (
-              <Card key={stat.label} padding="sm" className="flex items-center gap-4">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.bg}`}>
-                  <Calendar className={`h-5 w-5 ${stat.color}`} />
-                </div>
-                <div>
-                  <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-                    {stat.value}
-                  </p>
-                  <p className="text-[13px] text-neutral-500">{stat.label}</p>
-                </div>
-              </Card>
-            ))}
+            <KpiTile
+              label={isResident ? 'Away right now' : 'Active vacations'}
+              value={activeCount}
+              icon={Plane}
+              accent={activeCount > 0 ? 'success' : 'neutral'}
+              caption={
+                isResident
+                  ? activeCount > 0
+                    ? 'Staff knows you are away.'
+                    : 'No active vacation on file.'
+                  : activeCount > 0
+                    ? 'Holding packages and pausing notifications.'
+                    : 'No residents away right now.'
+              }
+            />
+            <KpiTile
+              label="Upcoming"
+              value={upcomingCount}
+              icon={CheckCircle2}
+              accent={upcomingCount > 0 ? 'primary' : 'neutral'}
+              caption={
+                isResident
+                  ? upcomingCount > 0
+                    ? `${upcomingCount} trip${upcomingCount === 1 ? '' : 's'} on the calendar.`
+                    : 'Nothing scheduled.'
+                  : 'Planned future absences.'
+              }
+            />
           </div>
 
           {/* Table */}
           <DataTable
             columns={columns}
             data={vacations}
-            emptyMessage="No vacations recorded. Add one to track resident absences."
+            emptyMessage={
+              isResident
+                ? 'Going away? Let the desk know.'
+                : 'No vacations recorded. Add one to track resident absences.'
+            }
             emptyIcon={<MapPin className="h-6 w-6" />}
           />
         </>
@@ -352,7 +367,7 @@ export default function VacationsPage() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="max-w-xl">
           <DialogTitle className="flex items-center gap-2 text-[18px] font-bold text-neutral-900">
-            <Calendar className="text-primary-500 h-5 w-5" />
+            <Plane className="text-primary-500 h-5 w-5" />
             Add Vacation
           </DialogTitle>
           <DialogDescription className="text-[14px] text-neutral-500">
