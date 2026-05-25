@@ -853,8 +853,8 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
             caption={reqCount > 0 ? 'In progress' : 'All caught up'}
           />
           <ResidentKpi
-            label="Upcoming bookings"
-            value={bookingCount > 0 ? bookingCount : null}
+            label="Bookings"
+            value={bookingCount}
             icon={Calendar}
             href="/amenity-booking"
             tone={bookingCount > 0 ? 'primary' : 'neutral'}
@@ -1065,7 +1065,20 @@ function ResidentKpi({
   tone: ResidentKpiTone;
   caption: string;
 }) {
-  const display = value === null ? <span className="text-neutral-300">—</span> : value.toString();
+  // Truly unknown values (e.g. visitors today, until we have a unit-scoped
+  // endpoint) render as a calm vertical dash that sits on the cap-height of
+  // surrounding numbers rather than a 34px em-dash that visually shouts.
+  const display =
+    value === null ? (
+      <span
+        className="inline-block align-middle text-[24px] leading-none font-light text-neutral-300"
+        aria-label="not available"
+      >
+        —
+      </span>
+    ) : (
+      value.toString()
+    );
   const inner = (
     <>
       <div className="flex items-start justify-between gap-3">
@@ -1079,12 +1092,14 @@ function ResidentKpi({
         />
       </div>
       <div
-        className={`mt-3 text-[34px] leading-none font-semibold tracking-[-0.02em] ${KPI_TONE_VALUE[tone]}`}
+        className={`mt-3 flex h-[36px] items-end text-[34px] leading-none font-semibold tracking-[-0.02em] ${KPI_TONE_VALUE[tone]}`}
         style={{ fontFeatureSettings: '"tnum"' }}
       >
         {display}
       </div>
-      <p className={`mt-3 line-clamp-2 text-[12.5px] leading-snug ${KPI_TONE_CAPTION[tone]}`}>
+      <p
+        className={`mt-3 line-clamp-2 min-h-[34px] text-[12.5px] leading-snug ${KPI_TONE_CAPTION[tone]}`}
+      >
         {caption}
       </p>
     </>
