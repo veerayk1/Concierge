@@ -387,17 +387,34 @@ export default function VacationsPage() {
             />
           </div>
 
-          {/* Table */}
-          <DataTable
-            columns={columns}
-            data={vacations}
-            emptyMessage={
-              isResident
-                ? 'Going away? Let the desk know.'
-                : 'No vacations recorded. Add one to track resident absences.'
-            }
-            emptyIcon={<MapPin className="h-6 w-6" />}
-          />
+          {/* Table — for residents, fall back to the rich EmptyState
+              treatment (gradient bubble, glow halo, CTA) instead of the
+              DataTable's tiny minimalist empty row. */}
+          {vacations.length > 0 ? (
+            <DataTable
+              columns={columns}
+              data={vacations}
+              emptyMessage="No vacations recorded."
+              emptyIcon={<MapPin className="h-6 w-6" />}
+            />
+          ) : (
+            <EmptyState
+              tone={isResident ? 'violet' : 'neutral'}
+              icon={<Plane className="h-6 w-6" />}
+              title={isResident ? 'Going away? Let the desk know.' : 'No vacations recorded.'}
+              description={
+                isResident
+                  ? 'Mark the dates you will be away and we will hold your packages and pause notifications while you are out.'
+                  : 'Track resident absences here so the desk can hold packages and pause notifications.'
+              }
+              action={
+                <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+                  <Plus className="h-4 w-4" />
+                  {isResident ? 'Mark vacation' : 'Add Vacation'}
+                </Button>
+              }
+            />
+          )}
         </>
       )}
 
