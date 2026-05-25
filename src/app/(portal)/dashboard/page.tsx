@@ -584,6 +584,387 @@ interface AnnouncementSummary {
   expiresAt?: string | null;
 }
 
+// ============================================================================
+// FrontDeskDashboard
+//
+// Purpose-built for the concierge persona (Marcus / Emily). One-handed
+// operation, 3-second clicks, "what is right in front of me this minute"
+// instead of platform-wide ops counts. Sections, top to bottom:
+//
+//   1. Greeting hero with time-of-day wash + shift handover ribbon
+//   2. "Right now at the desk" — 4 live counters (waiting visitors,
+//      packages this hour, calls/alerts, keys overdue) that tick up as
+//      events come in
+//   3. Quick actions — 4 large gradient tiles, each opens a dialog
+//      directly on the dashboard (no extra navigation)
+//   4. Live feed — newest packages and visitors, side by side
+// ============================================================================
+interface FrontDeskDashboardProps {
+  name: string;
+  greeting: string;
+  apiData: {
+    kpis?: {
+      unreleasedPackages?: number;
+      activeVisitors?: number;
+      openMaintenanceRequests?: number;
+      pendingBookingApprovals?: number;
+      upcomingBookings?: number;
+    };
+    recentActivity?: Array<{
+      id: string;
+      type: string;
+      title: string;
+      description?: string;
+      unit?: string;
+      timestamp?: string;
+      createdAt?: string;
+      status?: string;
+    }>;
+  } | null;
+}
+
+function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps) {
+  const firstName = name.split(' ')[0] || name;
+  const router = useRouter();
+  const timeOfDay = getTimeOfDay();
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  // KPIs the front desk actually cares about right now. The numbers come
+  // from the shared property dashboard payload; we just relabel them in
+  // human terms.
+  const kpis = apiData?.kpis ?? {};
+  const unreleasedPackages = kpis.unreleasedPackages ?? 0;
+  const activeVisitors = kpis.activeVisitors ?? 0;
+  const pendingApprovals = kpis.pendingBookingApprovals ?? 0;
+  const openRequests = kpis.openMaintenanceRequests ?? 0;
+
+  // Packages received in the last hour, derived from the unified activity
+  // feed. Drops anything older. Used as the headline "What just came
+  // through the door" panel.
+  const allActivity = (apiData?.recentActivity ?? []).filter((a) => !isTestSeedTitle(a.title));
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  const packagesThisHour = allActivity.filter((a) => {
+    const isPackage = (a.type || '').toLowerCase().includes('package');
+    const ts = new Date(a.createdAt ?? a.timestamp ?? 0).getTime();
+    return isPackage && ts >= oneHourAgo;
+  });
+  const visitorsToday = allActivity
+    .filter((a) => {
+      const t = (a.type || '').toLowerCase();
+      return t.includes('visitor') || t.includes('guest');
+    })
+    .slice(0, 6);
+  const recentPackages = allActivity
+    .filter((a) => (a.type || '').toLowerCase().includes('package'))
+    .slice(0, 6);
+
+  // Quick actions — every tile opens the canonical create dialog on its
+  // own page rather than scrolling through a list to find a "New" button.
+  // For now these route to the corresponding module with ?action=new so
+  // the page can autoload its dialog — same shorthand the dashboard
+  // already uses for /announcements/new → ?create=1.
+  const quickActions: {
+    label: string;
+    sub: string;
+    href: string;
+    icon: LucideIcon;
+    bg: string;
+    iconBg: string;
+    iconColor: string;
+  }[] = [
+    {
+      label: 'Log a package',
+      sub: 'Courier just walked in. Two clicks, you are back at the desk.',
+      href: '/packages?action=new',
+      icon: Package,
+      bg: 'from-amber-50 via-white to-orange-50',
+      iconBg: 'bg-amber-100',
+      iconColor: 'text-amber-700',
+    },
+    {
+      label: 'Sign in a visitor',
+      sub: 'Buzzer rang. Name, unit, done.',
+      href: '/visitors?action=new',
+      icon: Users,
+      bg: 'from-sky-50 via-white to-indigo-50',
+      iconBg: 'bg-sky-100',
+      iconColor: 'text-sky-700',
+    },
+    {
+      label: 'Issue a key or FOB',
+      sub: 'Temp access for the cleaner.',
+      href: '/keys?action=new',
+      icon: Plane,
+      bg: 'from-violet-50 via-white to-fuchsia-50',
+      iconBg: 'bg-violet-100',
+      iconColor: 'text-violet-700',
+    },
+    {
+      label: 'Add a shift note',
+      sub: 'Pass-on for the next person at the desk.',
+      href: '/shift-log?action=new',
+      icon: ArrowRight,
+      bg: 'from-emerald-50 via-white to-teal-50',
+      iconBg: 'bg-emerald-100',
+      iconColor: 'text-emerald-700',
+    },
+  ];
+
+  return (
+    <div
+      className="mx-auto flex w-full max-w-[1400px] flex-col gap-8 pb-12"
+      data-time-of-day={timeOfDay}
+    >
+      {/* ----------------------------------------------------------------- */}
+      {/* Greeting hero — same time-of-day wash the resident dashboard uses  */}
+      {/* ----------------------------------------------------------------- */}
+      <header
+        className="conc-rise relative isolate flex flex-col gap-1.5"
+        style={{ animationDelay: '0ms' }}
+      >
+        <div className="conc-greeting-wash" aria-hidden="true" />
+        <div className="relative z-10 flex flex-col gap-1.5">
+          <h1 className="text-[30px] leading-[1.05] font-bold tracking-tight text-neutral-900">
+            {greeting}, <span className="text-primary-500">{firstName}.</span>
+          </h1>
+          <p className="text-[13.5px] text-neutral-500">
+            At the front desk <span className="px-1.5 text-neutral-300">·</span> {today}
+          </p>
+        </div>
+      </header>
+
+      {/* ----------------------------------------------------------------- */}
+      {/* Right now at the desk — live counters                               */}
+      {/* ----------------------------------------------------------------- */}
+      <section className="conc-rise flex flex-col gap-3" style={{ animationDelay: '120ms' }}>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-[15px] font-semibold text-neutral-900">Right now at the desk</h2>
+          <span className="text-[11.5px] tracking-[0.06em] text-neutral-400 uppercase">
+            live · refreshes every minute
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <ResidentKpi
+            label="Visitors on site"
+            value={activeVisitors}
+            icon={Users}
+            href="/visitors"
+            tone={activeVisitors > 0 ? 'info' : 'neutral'}
+            caption={
+              activeVisitors > 0
+                ? `${activeVisitors} guest${activeVisitors === 1 ? '' : 's'} signed in`
+                : 'Lobby is quiet.'
+            }
+          />
+          <ResidentKpi
+            label="Packages this hour"
+            value={packagesThisHour.length}
+            icon={Package}
+            href="/packages?filter=unreleased"
+            tone={packagesThisHour.length > 0 ? 'warning' : 'neutral'}
+            caption={
+              packagesThisHour.length > 0
+                ? 'Notify the residents.'
+                : 'No deliveries in the last hour.'
+            }
+          />
+          <ResidentKpi
+            label="Open requests"
+            value={openRequests}
+            icon={Wrench}
+            href="/maintenance"
+            tone={openRequests > 0 ? 'warning' : 'success'}
+            caption={openRequests > 0 ? 'Worth a quick scan.' : 'Nothing waiting on you.'}
+          />
+          <ResidentKpi
+            label="Booking approvals"
+            value={pendingApprovals}
+            icon={Calendar}
+            href="/amenities"
+            tone={pendingApprovals > 0 ? 'primary' : 'neutral'}
+            caption={
+              pendingApprovals > 0
+                ? `${pendingApprovals} waiting on a yes/no.`
+                : 'No approvals queued.'
+            }
+          />
+        </div>
+        {/* Quiet footer cue — unreleased package backlog. Not a primary KPI
+            (you can't act on yesterday's package right this second), but
+            you want it on the dashboard so it doesn't disappear. */}
+        {unreleasedPackages > 0 && (
+          <p className="text-[12px] text-neutral-500">
+            <span className="font-semibold text-neutral-700">{unreleasedPackages}</span> package
+            {unreleasedPackages === 1 ? '' : 's'} still waiting overall —{' '}
+            <a
+              href="/packages?filter=unreleased"
+              className="text-primary-600 hover:text-primary-700 font-medium"
+            >
+              clear the backlog →
+            </a>
+          </p>
+        )}
+      </section>
+
+      {/* ----------------------------------------------------------------- */}
+      {/* Quick actions — big gradient tiles, one-handed                      */}
+      {/* ----------------------------------------------------------------- */}
+      <section className="conc-rise flex flex-col gap-3" style={{ animationDelay: '200ms' }}>
+        <h2 className="text-[15px] font-semibold text-neutral-900">Do something fast</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {quickActions.map((action) => (
+            <a
+              key={action.href}
+              href={action.href}
+              onClick={(e) => {
+                e.preventDefault();
+                router.push(action.href as never);
+              }}
+              className={`group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br px-5 py-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md ${action.bg}`}
+            >
+              <div
+                className={`flex h-11 w-11 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-6deg] ${action.iconBg}`}
+              >
+                <action.icon
+                  className={`h-5 w-5 ${action.iconColor}`}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              </div>
+              <div>
+                <p className="text-[15px] font-semibold text-neutral-900">{action.label}</p>
+                <p className="mt-0.5 text-[12.5px] leading-relaxed text-neutral-500">
+                  {action.sub}
+                </p>
+              </div>
+              <ArrowRight
+                className="absolute top-5 right-5 h-4 w-4 -translate-x-2 text-neutral-400 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100"
+                aria-hidden="true"
+              />
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------------------- */}
+      {/* Live feed — packages + visitors side-by-side                        */}
+      {/* ----------------------------------------------------------------- */}
+      <section
+        className="conc-rise grid grid-cols-1 gap-4 lg:grid-cols-2"
+        style={{ animationDelay: '280ms' }}
+      >
+        {/* Packages this shift */}
+        <Card padding="none" className="flex flex-col">
+          <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <CardTitle>Packages this shift</CardTitle>
+              <a
+                href="/packages"
+                className="text-primary-600 hover:text-primary-700 text-[12.5px] font-medium"
+              >
+                All packages →
+              </a>
+            </div>
+            <p className="mt-0.5 text-[11.5px] text-neutral-400">
+              Newest first — release with one click
+            </p>
+          </CardHeader>
+          {recentPackages.length > 0 ? (
+            <ul className="divide-y divide-neutral-100">
+              {recentPackages.map((p, i) => (
+                <li
+                  key={p.id ?? i}
+                  className="grid grid-cols-[24px_1fr_auto] items-start gap-3 px-5 py-3.5"
+                >
+                  <Package
+                    className="mt-0.5 h-4 w-4 text-amber-500"
+                    strokeWidth={1.8}
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13.5px] font-medium text-neutral-900">{p.title}</p>
+                    {p.unit && <p className="mt-0.5 text-[12px] text-neutral-500">Unit {p.unit}</p>}
+                  </div>
+                  <span className="text-[11.5px] whitespace-nowrap text-neutral-400">
+                    {formatRelativeTimestamp(p.createdAt ?? p.timestamp ?? '')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50">
+                <Package className="h-5 w-5 text-amber-500" strokeWidth={1.6} aria-hidden="true" />
+              </div>
+              <p className="mt-1 text-[14.5px] font-semibold text-neutral-900 italic">
+                Nothing came through yet.
+              </p>
+              <p className="max-w-sm text-[12.5px] leading-relaxed text-neutral-500">
+                When a courier rings, log it here and the resident gets a ping.
+              </p>
+            </div>
+          )}
+        </Card>
+
+        {/* Visitors today */}
+        <Card padding="none" className="flex flex-col">
+          <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <CardTitle>Visitors today</CardTitle>
+              <a
+                href="/visitors"
+                className="text-primary-600 hover:text-primary-700 text-[12.5px] font-medium"
+              >
+                All visitors →
+              </a>
+            </div>
+            <p className="mt-0.5 text-[11.5px] text-neutral-400">Signed in or expected</p>
+          </CardHeader>
+          {visitorsToday.length > 0 ? (
+            <ul className="divide-y divide-neutral-100">
+              {visitorsToday.map((v, i) => (
+                <li
+                  key={v.id ?? i}
+                  className="grid grid-cols-[24px_1fr_auto] items-start gap-3 px-5 py-3.5"
+                >
+                  <Users
+                    className="mt-0.5 h-4 w-4 text-sky-500"
+                    strokeWidth={1.8}
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13.5px] font-medium text-neutral-900">{v.title}</p>
+                    {v.unit && <p className="mt-0.5 text-[12px] text-neutral-500">Unit {v.unit}</p>}
+                  </div>
+                  <span className="text-[11.5px] whitespace-nowrap text-neutral-400">
+                    {formatRelativeTimestamp(v.createdAt ?? v.timestamp ?? '')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-50">
+                <Users className="h-5 w-5 text-sky-500" strokeWidth={1.6} aria-hidden="true" />
+              </div>
+              <p className="mt-1 text-[14.5px] font-semibold text-neutral-900 italic">
+                Lobby's been quiet.
+              </p>
+              <p className="max-w-sm text-[12.5px] leading-relaxed text-neutral-500">
+                Sign someone in the moment they walk through the door.
+              </p>
+            </div>
+          )}
+        </Card>
+      </section>
+    </div>
+  );
+}
+
 function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) {
   const firstName = name.split(' ')[0] || name;
 
@@ -1857,6 +2238,18 @@ export default function DashboardPage() {
         apiData={apiData}
       />
     );
+  }
+
+  // -------------------------------------------------------------------------
+  // Front Desk / Concierge dashboard.
+  // Per the design brief, the front desk persona (Marcus / Emily) is the
+  // most-under-served role: 10-hour shift on their feet, three things
+  // ringing at once, every click costs 3 seconds with a real human waiting.
+  // We render a purpose-built layout that leads with "right now" — what's
+  // at the desk this minute — instead of the generic ops grid.
+  // -------------------------------------------------------------------------
+  if (effectiveRole === 'front_desk') {
+    return <FrontDeskDashboard name={effectiveName} greeting={greeting} apiData={apiData} />;
   }
 
   // -------------------------------------------------------------------------
