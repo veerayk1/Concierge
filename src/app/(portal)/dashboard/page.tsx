@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 // Using <a> tags instead of Next.js Link for demo mode compatibility
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
@@ -727,24 +728,47 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
     },
   ];
 
+  // The greeting block sits over a soft radial wash that shifts colour
+  // based on the time of day — peach at sunrise, soft sky during the
+  // day, warm gold at sunset, dusky violet at night. The wash is muted
+  // (low alpha + blur) so the H1 stays crisp; it just adds ambient
+  // warmth instead of the page reading as bone-white.
+  const timeOfDay = getTimeOfDay();
+
   return (
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 pb-12">
+    <div
+      className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 pb-12"
+      data-time-of-day={timeOfDay}
+    >
       {/* ----------------------------------------------------------------- */}
-      {/* Greeting                                                            */}
+      {/* Greeting hero                                                       */}
       {/* ----------------------------------------------------------------- */}
-      <header className="flex flex-col gap-1.5">
-        <h1 className="text-[30px] leading-[1.05] font-bold tracking-tight text-neutral-900">
-          {greeting}, <span className="text-primary-500">{firstName}.</span>
-        </h1>
-        <p className="text-[13.5px] text-neutral-500">
-          Your dashboard <span className="px-1.5 text-neutral-300">·</span> {today}
-        </p>
+      <header
+        className="conc-rise relative isolate flex flex-col gap-1.5"
+        style={{ animationDelay: '0ms' }}
+      >
+        <div className="conc-greeting-wash" aria-hidden="true" />
+        <div className="relative z-10 flex flex-col gap-1.5">
+          <h1 className="text-[30px] leading-[1.05] font-bold tracking-tight text-neutral-900">
+            {greeting}, <span className="text-primary-500">{firstName}.</span>
+          </h1>
+          <p className="text-[13.5px] text-neutral-500">
+            Your dashboard <span className="px-1.5 text-neutral-300">·</span> {today}
+          </p>
+        </div>
       </header>
+
+      {/* ----------------------------------------------------------------- */}
+      {/* Spotlight — top pinned/high-priority unread notice. Pulses gently  */}
+      {/* until the resident clicks through; the click marks it seen and    */}
+      {/* the pulse stops on the next render.                                */}
+      {/* ----------------------------------------------------------------- */}
+      <SpotlightBanner announcements={announcements} />
 
       {/* ----------------------------------------------------------------- */}
       {/* From management — what the desk needs you to know, first          */}
       {/* ----------------------------------------------------------------- */}
-      <section className="flex flex-col gap-3">
+      <section className="conc-rise flex flex-col gap-3" style={{ animationDelay: '120ms' }}>
         {/* On narrow viewports the heading, count, and link were all
             competing for one row, forcing "From management" to wrap onto
             two lines. Wrap the right-side link on small screens. */}
@@ -842,9 +866,9 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
       </section>
 
       {/* ----------------------------------------------------------------- */}
-      {/* Today, at a glance — 4 KPI tiles with rich subtext                 */}
+      {/* Today, at a glance — 4 KPI tiles with rich subtext + count-up      */}
       {/* ----------------------------------------------------------------- */}
-      <section className="flex flex-col gap-3">
+      <section className="conc-rise flex flex-col gap-3" style={{ animationDelay: '200ms' }}>
         <h2 className="text-[15px] font-semibold text-neutral-900">Today, at a glance</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <ResidentKpi
@@ -890,7 +914,7 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
       {/* ----------------------------------------------------------------- */}
       {/* Quick actions — verbs the resident actually does                   */}
       {/* ----------------------------------------------------------------- */}
-      <section className="flex flex-col gap-3">
+      <section className="conc-rise flex flex-col gap-3" style={{ animationDelay: '280ms' }}>
         <h2 className="text-[15px] font-semibold text-neutral-900">Quick actions</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {quickActions.map((action) => (
@@ -916,7 +940,10 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
       {/* ----------------------------------------------------------------- */}
       {/* Recent activity + Coming up                                        */}
       {/* ----------------------------------------------------------------- */}
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <section
+        className="conc-rise grid grid-cols-1 gap-4 lg:grid-cols-2"
+        style={{ animationDelay: '360ms' }}
+      >
         {/* Recent activity */}
         <Card padding="none" className="flex flex-col">
           <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
@@ -1010,6 +1037,171 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
 // ---------------------------------------------------------------------------
 
 // Test/seed-data prefixes and substrings that show up in the demo
+// ---------------------------------------------------------------------------
+// getTimeOfDay — picks a colour palette key for the greeting wash.
+// 5–9am = sunrise (peach), 9am–5pm = day (sky blue), 5–8pm = golden
+// (gold/pink), otherwise evening (dusky violet). Driven by local time so
+// it always feels right for the resident, not the server.
+// ---------------------------------------------------------------------------
+function getTimeOfDay(): 'sunrise' | 'day' | 'golden' | 'evening' {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 9) return 'sunrise';
+  if (h >= 9 && h < 17) return 'day';
+  if (h >= 17 && h < 20) return 'golden';
+  return 'evening';
+}
+
+// ---------------------------------------------------------------------------
+// SpotlightBanner — animated, attention-getting card that surfaces the top
+// unread high-priority announcement. Pulses (via .conc-spotlight CSS) until
+// the resident clicks through. Acknowledgement persists in localStorage so
+// the same notice doesn't keep nagging the user across reloads, but a new
+// urgent notice will surface immediately.
+// ---------------------------------------------------------------------------
+function SpotlightBanner({ announcements }: { announcements: AnnouncementSummary[] }) {
+  const router = useRouter();
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => new Set());
+
+  // Hydrate dismissed list once on mount — we can't read localStorage during
+  // render (SSR mismatch), so we wait for the client to take over.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem('concierge:spotlightDismissed');
+      if (raw) setDismissedIds(new Set(JSON.parse(raw)));
+    } catch {
+      // localStorage unavailable / parse failure — show banner normally.
+    }
+  }, []);
+
+  // Pick the first announcement that:
+  //   - is urgent or important priority, OR isPinned, OR requireAcknowledgment
+  //   - has not been dismissed
+  // Falls back to the first announcement at all if nothing matches the
+  // priority filter — keeps the spotlight pattern visible in the demo even
+  // when seed data has no high-priority items.
+  const candidate = useMemo(() => {
+    const isHighPriority = (a: AnnouncementSummary) =>
+      Boolean(a.requireAcknowledgment) ||
+      a.isPinned === true ||
+      (a.priority || '').toLowerCase() === 'urgent' ||
+      (a.priority || '').toLowerCase() === 'high';
+
+    const unread = announcements.filter((a) => !!a.id && !dismissedIds.has(a.id));
+    return unread.find(isHighPriority) ?? unread[0] ?? null;
+  }, [announcements, dismissedIds]);
+
+  if (!candidate) return null;
+
+  const dismiss = (navigate: boolean) => {
+    if (!candidate.id) return;
+    const next = new Set(dismissedIds);
+    next.add(candidate.id);
+    setDismissedIds(next);
+    try {
+      window.localStorage.setItem('concierge:spotlightDismissed', JSON.stringify(Array.from(next)));
+    } catch {
+      // ignore — dismissal is best-effort.
+    }
+    if (navigate) router.push(`/announcements/${candidate.id}` as never);
+  };
+
+  const isUrgent =
+    (candidate.priority || '').toLowerCase() === 'urgent' ||
+    candidate.requireAcknowledgment === true;
+
+  return (
+    <section
+      className="conc-rise relative"
+      style={{ animationDelay: '60ms' }}
+      aria-label="Heads up"
+    >
+      <button
+        type="button"
+        onClick={() => dismiss(true)}
+        className="conc-spotlight relative block w-full overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 px-5 py-4 text-left transition-transform hover:scale-[1.005] active:scale-[0.998]"
+      >
+        {/* Decorative gradient swatch in the corner — adds depth without
+            stealing focus from the message. */}
+        <div
+          aria-hidden="true"
+          className="absolute top-0 right-0 -mt-12 -mr-12 h-40 w-40 rounded-full bg-gradient-to-br from-amber-300/30 via-orange-300/20 to-rose-300/20 blur-2xl"
+        />
+        <div className="relative flex items-start gap-4">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/70 shadow-sm ring-1 ring-amber-200/60 backdrop-blur-sm">
+            {isUrgent ? (
+              <AlertTriangle className="h-5 w-5 text-amber-600" strokeWidth={1.8} />
+            ) : (
+              <Star
+                className="h-5 w-5 fill-amber-500 text-amber-500"
+                strokeWidth={1.8}
+                aria-hidden="true"
+              />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10.5px] font-semibold tracking-[0.1em] text-amber-700 uppercase">
+                {isUrgent ? 'Heads up' : 'Worth knowing'}
+              </span>
+              {candidate.publishedAt && (
+                <span className="text-[11.5px] text-amber-700/70">
+                  · {formatAnnouncementRelative(candidate.publishedAt)}
+                </span>
+              )}
+            </div>
+            <h3 className="mt-1 text-[16px] font-semibold text-neutral-900">{candidate.title}</h3>
+            {candidate.content && (
+              <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-neutral-700">
+                {stripHtml(candidate.content)}
+              </p>
+            )}
+          </div>
+          <div className="hidden flex-shrink-0 items-center gap-1 self-center text-[12.5px] font-semibold text-amber-700 sm:flex">
+            Got it
+            <ArrowRight className="h-3.5 w-3.5" />
+          </div>
+        </div>
+      </button>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// useCountUp — tick a number from 0 up to `value` over `duration` ms,
+// using requestAnimationFrame for smooth 60fps. Used by ResidentKpi to give
+// the dashboard a small "comes alive" moment on first paint instead of
+// numbers just popping in.
+// ---------------------------------------------------------------------------
+function useCountUp(value: number, duration = 600): number {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setDisplay(value);
+      return;
+    }
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced || value === 0) {
+      setDisplay(value);
+      return;
+    }
+    const start = performance.now();
+    const from = 0;
+    let rafId = 0;
+    const tick = (now: number) => {
+      const elapsed = now - start;
+      const t = Math.min(1, elapsed / duration);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(from + (value - from) * eased));
+      if (t < 1) rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [value, duration]);
+  return display;
+}
+
 // database. A real resident should never see "EXH-C: Work Order test
 // event" or "QA Test: Elevator Maintenance Notice" on their dashboard.
 // Kept in sync with the same patterns in /my-packages, /my-requests, and
@@ -1088,6 +1280,10 @@ function ResidentKpi({
   tone: ResidentKpiTone;
   caption: string;
 }) {
+  // Numbers tick up from 0 to value on first paint so the page feels alive
+  // when Alice walks up to it. Falls back to instant render under
+  // prefers-reduced-motion or when the value is genuinely unknown (null).
+  const animatedValue = useCountUp(value ?? 0);
   // Truly unknown values (e.g. visitors today, until we have a unit-scoped
   // endpoint) render as a calm vertical dash that sits on the cap-height of
   // surrounding numbers rather than a 34px em-dash that visually shouts.
@@ -1100,7 +1296,7 @@ function ResidentKpi({
         —
       </span>
     ) : (
-      value.toString()
+      animatedValue.toString()
     );
   const inner = (
     <>

@@ -349,7 +349,7 @@ body {
      Using both an animation and the data attribute means content never
      gets stuck invisible if the selector doesn't match. */
   [data-portal-page] {
-    animation: concPageEnter 240ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: concPageEnter 180ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
 
@@ -362,6 +362,104 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ============================================================================
+   Resident dashboard delight — UX-113
+   Subtle, premium animations that make the resident home feel alive. Each
+   utility opts in via a class so we don't accidentally animate the entire
+   portal.
+   ============================================================================ */
+
+/* Card / section entrance — fades up with a soft cubic ease. Pair with an
+   inline animation-delay so siblings stagger naturally. */
+@media (prefers-reduced-motion: no-preference) {
+  .conc-rise {
+    opacity: 0;
+    animation: concRise 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes concRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Attention-required announcement spotlight — a calm but persistent pulse
+   that draws the eye until the resident clicks through. The pulse is on
+   the outer ring (box-shadow), not the card itself, so text stays calm. */
+@media (prefers-reduced-motion: no-preference) {
+  .conc-spotlight {
+    animation: concSpotlight 2600ms ease-in-out infinite;
+  }
+  .conc-spotlight:hover {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes concSpotlight {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(245, 158, 11, 0),
+      0 6px 16px -6px rgba(245, 158, 11, 0.15),
+      0 2px 4px -2px rgba(245, 158, 11, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px rgba(245, 158, 11, 0.18),
+      0 10px 28px -8px rgba(245, 158, 11, 0.35),
+      0 4px 8px -2px rgba(245, 158, 11, 0.18);
+  }
+}
+
+/* Greeting hero — a warm radial gradient that shifts hour to hour via
+   custom properties. The wash is *very* subtle so the H1 stays crisp. */
+.conc-greeting-wash {
+  position: absolute;
+  inset: -40px -30% auto -30%;
+  height: 280px;
+  background:
+    radial-gradient(
+      60% 70% at 25% 30%,
+      var(--conc-wash-a, rgba(255, 224, 178, 0.45)) 0%,
+      transparent 65%
+    ),
+    radial-gradient(
+      45% 60% at 80% 15%,
+      var(--conc-wash-b, rgba(186, 215, 255, 0.4)) 0%,
+      transparent 60%
+    );
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(2px);
+}
+
+/* Sunrise — 5am to 9am */
+[data-time-of-day='sunrise'] {
+  --conc-wash-a: rgba(255, 213, 184, 0.6);
+  --conc-wash-b: rgba(255, 232, 207, 0.55);
+}
+/* Day — 9am to 5pm */
+[data-time-of-day='day'] {
+  --conc-wash-a: rgba(199, 224, 255, 0.45);
+  --conc-wash-b: rgba(220, 234, 255, 0.4);
+}
+/* Golden hour — 5pm to 8pm */
+[data-time-of-day='golden'] {
+  --conc-wash-a: rgba(255, 196, 142, 0.55);
+  --conc-wash-b: rgba(255, 178, 196, 0.5);
+}
+/* Evening — 8pm to 5am */
+[data-time-of-day='evening'] {
+  --conc-wash-a: rgba(182, 165, 230, 0.45);
+  --conc-wash-b: rgba(149, 163, 218, 0.4);
 }
 
 /* Smooth, calm focus rings across the portal */
