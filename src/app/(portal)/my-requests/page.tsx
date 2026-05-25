@@ -447,10 +447,10 @@ export default function MyRequestsPage() {
             key={filter.value || 'all'}
             type="button"
             onClick={() => setStatusFilter(filter.value)}
-            className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 ${
+            className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all duration-200 ${
               statusFilter === filter.value
-                ? 'bg-primary-500 text-white shadow-sm'
-                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                ? 'from-primary-500 to-primary-600 ring-primary-400 bg-gradient-to-br text-white shadow-[0_2px_8px_rgba(37,99,235,0.35)] ring-1'
+                : 'bg-white text-neutral-600 ring-1 ring-neutral-200 hover:-translate-y-px hover:bg-neutral-50 hover:ring-neutral-300'
             }`}
           >
             {filter.label}
