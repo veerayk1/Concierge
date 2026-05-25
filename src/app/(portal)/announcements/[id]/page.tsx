@@ -110,10 +110,31 @@ function AnnouncementDetailSkeleton() {
 // Component
 // ---------------------------------------------------------------------------
 
+// Roles that get the read-only resident view of an announcement.
+// Edit / Resend / Archive / Delete buttons, audience size, delivery
+// stats, and the non-delivered mailing list are all admin-side
+// concerns and must not appear on a resident's detail page.
+const READ_ONLY_RESIDENT_ROLES = new Set([
+  'resident_owner',
+  'resident_tenant',
+  'family_member',
+  'offsite_owner',
+  'resident',
+  'owner',
+  'tenant',
+]);
+
 export default function AnnouncementDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Demo-mode role gate. Mirrors the pattern used on the dashboard:
+  // read from localStorage so the resident view can be rendered
+  // before any session-derived role is hydrated.
+  const isResidentRole =
+    typeof window !== 'undefined' &&
+    READ_ONLY_RESIDENT_ROLES.has(window.localStorage.getItem('demo_role') ?? '');
 
   const {
     data: announcement,
@@ -124,9 +145,10 @@ export default function AnnouncementDetailPage() {
     apiUrl(`/api/v1/announcements/${id}`, { propertyId: getPropertyId() }),
   );
 
-  // Fetch delivery records for the failure tracking section (GAP 9.3)
+  // Delivery records are staff-only. Skip the fetch for residents so
+  // we don't 403 in the console or surface failed-mailbox data.
   const { data: deliveriesData } = useApi<DeliveriesResponse>(
-    id ? `/api/v1/announcements/${id}/deliveries` : null,
+    !isResidentRole && id ? `/api/v1/announcements/${id}/deliveries` : null,
   );
 
   // -- Action Handlers --
@@ -309,28 +331,30 @@ export default function AnnouncementDetailPage() {
               : 'Draft'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={handleEdit}>
-            <Edit2 className="h-4 w-4" />
-            Edit
-          </Button>
-          <Button variant="secondary" size="sm" onClick={handleResend}>
-            <RefreshCw className="h-4 w-4" />
-            Resend
-          </Button>
-          <Button variant="secondary" size="sm" onClick={handleArchive}>
-            <Archive className="h-4 w-4" />
-            Archive
-          </Button>
-          <Button variant="ghost" size="sm" className="text-error-600" onClick={handleDelete}>
-            <Trash2 className="h-4 w-4" />
-            Delete
-          </Button>
-        </div>
+        {!isResidentRole && (
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={handleEdit}>
+              <Edit2 className="h-4 w-4" />
+              Edit
+            </Button>
+            <Button variant="secondary" size="sm" onClick={handleResend}>
+              <RefreshCw className="h-4 w-4" />
+              Resend
+            </Button>
+            <Button variant="secondary" size="sm" onClick={handleArchive}>
+              <Archive className="h-4 w-4" />
+              Archive
+            </Button>
+            <Button variant="ghost" size="sm" className="text-error-600" onClick={handleDelete}>
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Delivery failure banner (GAP 9.3) */}
-      {failedCount > 0 && (
+      {/* Delivery failure banner (GAP 9.3) — staff only */}
+      {!isResidentRole && failedCount > 0 && (
         <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
           <AlertTriangle className="h-4 w-4 flex-shrink-0 text-red-600" />
           <span className="text-[14px] font-medium text-red-700">
@@ -443,86 +467,92 @@ export default function AnnouncementDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Audience */}
-          <Card>
-            <div className="mb-4 flex items-center gap-2">
-              <Users className="h-4 w-4 text-neutral-400" />
-              <h2 className="text-[14px] font-semibold text-neutral-900">Audience</h2>
-            </div>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[14px] font-medium text-neutral-900">{audience.label}</p>
-                  <p className="text-[13px] text-neutral-500">{audience.count} recipients</p>
-                </div>
-                <Badge variant="primary" size="sm">
-                  {audience.type === 'all_residents' ? 'All' : 'Targeted'}
-                </Badge>
+          {/* Audience — staff only. Residents don't need to know the
+              recipient count or whether their unit was targeted. */}
+          {!isResidentRole && (
+            <Card>
+              <div className="mb-4 flex items-center gap-2">
+                <Users className="h-4 w-4 text-neutral-400" />
+                <h2 className="text-[14px] font-semibold text-neutral-900">Audience</h2>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Delivery Stats */}
-          <Card>
-            <div className="mb-4 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-neutral-400" />
-              <h2 className="text-[14px] font-semibold text-neutral-900">Delivery Stats</h2>
-            </div>
-            <CardContent>
-              <div className="flex flex-col gap-3">
+              <CardContent>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-[14px] text-neutral-600">
-                    <Send className="h-4 w-4 text-neutral-400" />
-                    Total Sent
-                  </span>
-                  <span className="text-[16px] font-bold text-neutral-900">
-                    {deliveryStats.totalSent}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-[14px] text-neutral-600">
-                    <Mail className="h-4 w-4 text-neutral-400" />
-                    Delivered
-                  </span>
-                  <span className="text-[14px] font-medium text-neutral-900">
-                    {deliveryStats.delivered}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-[14px] text-neutral-600">
-                    <Eye className="h-4 w-4 text-neutral-400" />
-                    Opened
-                  </span>
-                  <span className="text-success-700 text-[14px] font-medium">
-                    {deliveryStats.opened}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-[14px] text-neutral-600">
-                    <BarChart3 className="h-4 w-4 text-neutral-400" />
-                    Click Rate
-                  </span>
-                  <span className="text-[14px] font-medium text-neutral-900">
-                    {deliveryStats.clickRate}%
-                  </span>
-                </div>
-                {failedCount > 0 && (
-                  <div className="flex items-center justify-between border-t border-neutral-100 pt-3">
-                    <span className="flex items-center gap-2 text-[14px] text-red-600">
-                      <XCircle className="h-4 w-4" />
-                      Failed
-                    </span>
-                    <span className="text-[14px] font-semibold text-red-700">{failedCount}</span>
+                  <div>
+                    <p className="text-[14px] font-medium text-neutral-900">{audience.label}</p>
+                    <p className="text-[13px] text-neutral-500">{audience.count} recipients</p>
                   </div>
-                )}
+                  <Badge variant="primary" size="sm">
+                    {audience.type === 'all_residents' ? 'All' : 'Targeted'}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Delivery Stats — staff only. Total sent / delivered /
+              opened / click rate are admin metrics. */}
+          {!isResidentRole && (
+            <Card>
+              <div className="mb-4 flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-neutral-400" />
+                <h2 className="text-[14px] font-semibold text-neutral-900">Delivery Stats</h2>
               </div>
-            </CardContent>
-          </Card>
+              <CardContent>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-[14px] text-neutral-600">
+                      <Send className="h-4 w-4 text-neutral-400" />
+                      Total Sent
+                    </span>
+                    <span className="text-[16px] font-bold text-neutral-900">
+                      {deliveryStats.totalSent}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-[14px] text-neutral-600">
+                      <Mail className="h-4 w-4 text-neutral-400" />
+                      Delivered
+                    </span>
+                    <span className="text-[14px] font-medium text-neutral-900">
+                      {deliveryStats.delivered}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-[14px] text-neutral-600">
+                      <Eye className="h-4 w-4 text-neutral-400" />
+                      Opened
+                    </span>
+                    <span className="text-success-700 text-[14px] font-medium">
+                      {deliveryStats.opened}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-[14px] text-neutral-600">
+                      <BarChart3 className="h-4 w-4 text-neutral-400" />
+                      Click Rate
+                    </span>
+                    <span className="text-[14px] font-medium text-neutral-900">
+                      {deliveryStats.clickRate}%
+                    </span>
+                  </div>
+                  {failedCount > 0 && (
+                    <div className="flex items-center justify-between border-t border-neutral-100 pt-3">
+                      <span className="flex items-center gap-2 text-[14px] text-red-600">
+                        <XCircle className="h-4 w-4" />
+                        Failed
+                      </span>
+                      <span className="text-[14px] font-semibold text-red-700">{failedCount}</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
-      {/* Non-Delivered Mailing List — GAP 9.3 */}
-      {failedDeliveries.length > 0 && (
+      {/* Non-Delivered Mailing List — GAP 9.3 (staff only) */}
+      {!isResidentRole && failedDeliveries.length > 0 && (
         <Card>
           <div className="mb-4 flex items-center gap-2">
             <XCircle className="h-4 w-4 text-red-500" />
