@@ -8,6 +8,8 @@ import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog';
+import { CreateShiftEntryDialog } from '@/components/forms/create-shift-entry-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -822,7 +824,9 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
               href={action.href}
               onClick={(e) => {
                 e.preventDefault();
-                router.push(action.href as never);
+                const click = (action as { onClick?: () => void }).onClick;
+                if (click) click();
+                else router.push(action.href as never);
               }}
               className={`group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br px-5 py-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md ${action.bg}`}
             >
@@ -982,6 +986,11 @@ type SecurityDashboardProps = FrontDeskDashboardProps;
 function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) {
   const firstName = name.split(' ')[0] || name;
   const router = useRouter();
+  // Inline dialog state — quick-action tiles open the create UI right
+  // on the dashboard instead of bouncing to a list page and forcing a
+  // second click. Guard never loses context.
+  const [showIncidentDialog, setShowIncidentDialog] = useState(false);
+  const [showShiftEntryDialog, setShowShiftEntryDialog] = useState(false);
   const timeOfDay = getTimeOfDay();
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -1028,6 +1037,7 @@ function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) 
     bg: string;
     iconBg: string;
     iconColor: string;
+    onClick?: () => void;
   }[] = [
     {
       label: 'Report incident',
@@ -1037,6 +1047,7 @@ function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) 
       bg: 'from-rose-50 via-white to-orange-50',
       iconBg: 'bg-rose-100',
       iconColor: 'text-rose-700',
+      onClick: () => setShowIncidentDialog(true),
     },
     {
       label: 'Log a patrol',
@@ -1046,6 +1057,7 @@ function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) 
       bg: 'from-emerald-50 via-white to-teal-50',
       iconBg: 'bg-emerald-100',
       iconColor: 'text-emerald-700',
+      onClick: () => setShowShiftEntryDialog(true),
     },
     {
       label: 'Issue a FOB or key',
@@ -1206,7 +1218,9 @@ function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) 
               href={action.href}
               onClick={(e) => {
                 e.preventDefault();
-                router.push(action.href as never);
+                const click = (action as { onClick?: () => void }).onClick;
+                if (click) click();
+                else router.push(action.href as never);
               }}
               className={`group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br px-5 py-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md ${action.bg}`}
             >
@@ -1345,6 +1359,19 @@ function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) 
           )}
         </Card>
       </section>
+
+      {/* Inline dialogs — opened directly by the quick-action tiles so the
+          guard never leaves the dashboard. */}
+      <ReportIncidentDialog
+        open={showIncidentDialog}
+        onOpenChange={setShowIncidentDialog}
+        propertyId={getPropertyId()}
+      />
+      <CreateShiftEntryDialog
+        open={showShiftEntryDialog}
+        onOpenChange={setShowShiftEntryDialog}
+        propertyId={getPropertyId()}
+      />
     </div>
   );
 }
