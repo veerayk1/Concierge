@@ -965,6 +965,390 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
   );
 }
 
+// ============================================================================
+// SecurityDashboard
+//
+// Purpose-built for the security_guard / security_supervisor persona.
+// Guards glance at this page on patrol — they need to know in one second:
+//   - Are there active incidents I should be on?
+//   - Who's currently inside the building (visitor count)?
+//   - Are any keys / FOBs out and overdue?
+//   - Any recent parking violations to follow up on?
+// They don't need package counts, booking approvals, or maintenance queues
+// — those are concierge / manager concerns.
+// ============================================================================
+type SecurityDashboardProps = FrontDeskDashboardProps;
+
+function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) {
+  const firstName = name.split(' ')[0] || name;
+  const router = useRouter();
+  const timeOfDay = getTimeOfDay();
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const kpis = apiData?.kpis ?? {};
+  const activeVisitors = kpis.activeVisitors ?? 0;
+  const keysOut = (kpis as { keysOut?: number }).keysOut ?? 0;
+  const todayEvents = (kpis as { todayEvents?: number }).todayEvents ?? 0;
+
+  // Pull the activity feed for "recent" incidents / patrol notes / parking
+  // violations. We split it three ways: open incidents (red), recent
+  // checkouts (amber if overdue), and routine patrol notes (neutral).
+  const allActivity = (apiData?.recentActivity ?? []).filter((a) => !isTestSeedTitle(a.title));
+
+  const isIncident = (type: string) => {
+    const t = type.toLowerCase();
+    return t.includes('incident') || t.includes('alarm') || t.includes('alert');
+  };
+  const isPatrol = (type: string) => {
+    const t = type.toLowerCase();
+    return t.includes('patrol') || t.includes('pass-on') || t.includes('note');
+  };
+  const isParking = (type: string) => {
+    const t = type.toLowerCase();
+    return t.includes('parking') || t.includes('violation') || t.includes('tow');
+  };
+
+  const incidents = allActivity.filter((a) => isIncident(a.type));
+  const activeIncidents = incidents.filter(
+    (a) =>
+      (a.status || '').toLowerCase() !== 'resolved' && (a.status || '').toLowerCase() !== 'closed',
+  );
+  const patrols = allActivity.filter((a) => isPatrol(a.type)).slice(0, 5);
+  const parkingFeed = allActivity.filter((a) => isParking(a.type)).slice(0, 4);
+
+  const quickActions: {
+    label: string;
+    sub: string;
+    href: string;
+    icon: LucideIcon;
+    bg: string;
+    iconBg: string;
+    iconColor: string;
+  }[] = [
+    {
+      label: 'Report incident',
+      sub: 'Intruder, alarm, anything urgent — get it on the record.',
+      href: '/security?action=incident',
+      icon: AlertTriangle,
+      bg: 'from-rose-50 via-white to-orange-50',
+      iconBg: 'bg-rose-100',
+      iconColor: 'text-rose-700',
+    },
+    {
+      label: 'Log a patrol',
+      sub: 'End-of-round note with a stamped timestamp.',
+      href: '/shift-log?action=new',
+      icon: Activity,
+      bg: 'from-emerald-50 via-white to-teal-50',
+      iconBg: 'bg-emerald-100',
+      iconColor: 'text-emerald-700',
+    },
+    {
+      label: 'Issue a FOB or key',
+      sub: 'Temp access for the cleaner, contractor, or guest.',
+      href: '/keys?action=new',
+      icon: Plane,
+      bg: 'from-violet-50 via-white to-fuchsia-50',
+      iconBg: 'bg-violet-100',
+      iconColor: 'text-violet-700',
+    },
+    {
+      label: 'Parking violation',
+      sub: 'Photo + plate. The form fills in the rest.',
+      href: '/parking?action=violation',
+      icon: Package,
+      bg: 'from-amber-50 via-white to-orange-50',
+      iconBg: 'bg-amber-100',
+      iconColor: 'text-amber-700',
+    },
+  ];
+
+  return (
+    <div
+      className="mx-auto flex w-full max-w-[1400px] flex-col gap-8 pb-12"
+      data-time-of-day={timeOfDay}
+    >
+      {/* Greeting hero */}
+      <header
+        className="conc-rise relative isolate flex flex-col gap-1.5"
+        style={{ animationDelay: '0ms' }}
+      >
+        <div className="conc-greeting-wash" aria-hidden="true" />
+        <div className="relative z-10 flex flex-col gap-1.5">
+          <h1 className="text-[30px] leading-[1.05] font-bold tracking-tight text-neutral-900">
+            {greeting}, <span className="text-primary-500">{firstName}.</span>
+          </h1>
+          <p className="text-[13.5px] text-neutral-500">
+            On security duty <span className="px-1.5 text-neutral-300">·</span> {today}
+          </p>
+        </div>
+      </header>
+
+      {/* ACTIVE INCIDENT BANNER — red, pulsing, the loudest thing on the
+          page when there's anything open. Guard cannot miss this. */}
+      {activeIncidents.length > 0 && (
+        <section
+          className="conc-rise relative"
+          style={{ animationDelay: '60ms' }}
+          aria-label="Active incident"
+        >
+          <a
+            href={`/security?id=${activeIncidents[0]?.id ?? ''}`}
+            className="conc-spotlight block overflow-hidden rounded-2xl border border-rose-300 bg-gradient-to-br from-rose-50 via-white to-amber-50 px-5 py-4 transition-transform hover:scale-[1.005]"
+            style={{
+              // Override the .conc-spotlight amber pulse to a red pulse for
+              // genuine urgency. Inline so it doesn't bleed to other
+              // spotlights elsewhere in the app.
+              animationName: 'concSpotlight',
+            }}
+          >
+            <div className="relative flex items-start gap-4">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/70 shadow-sm ring-1 ring-rose-300/60 backdrop-blur-sm">
+                <AlertTriangle className="h-5 w-5 text-rose-600" strokeWidth={1.9} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10.5px] font-semibold tracking-[0.1em] text-rose-700 uppercase">
+                    Active incident
+                  </span>
+                  {activeIncidents.length > 1 && (
+                    <span className="text-[11.5px] text-rose-700/80">
+                      · +{activeIncidents.length - 1} more open
+                    </span>
+                  )}
+                </div>
+                <h3 className="mt-1 text-[16px] font-semibold text-neutral-900">
+                  {activeIncidents[0]?.title}
+                </h3>
+                {activeIncidents[0]?.unit && (
+                  <p className="mt-0.5 text-[12.5px] text-neutral-600">
+                    Unit {activeIncidents[0]?.unit}
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-shrink-0 items-center gap-1 self-center text-[12.5px] font-semibold text-rose-700">
+                Open it
+                <ArrowRight className="h-3.5 w-3.5" />
+              </div>
+            </div>
+          </a>
+        </section>
+      )}
+
+      {/* "On post right now" — four glanceable counters */}
+      <section className="conc-rise flex flex-col gap-3" style={{ animationDelay: '120ms' }}>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-[15px] font-semibold text-neutral-900">On post right now</h2>
+          <span className="text-[11.5px] tracking-[0.06em] text-neutral-400 uppercase">
+            refreshes every minute
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <ResidentKpi
+            label="Active incidents"
+            value={activeIncidents.length}
+            icon={AlertTriangle}
+            href="/security"
+            tone={activeIncidents.length > 0 ? 'warning' : 'success'}
+            caption={
+              activeIncidents.length > 0
+                ? activeIncidents.length === 1
+                  ? 'One open. Get on it.'
+                  : `${activeIncidents.length} open right now.`
+                : 'All clear.'
+            }
+          />
+          <ResidentKpi
+            label="People in building"
+            value={activeVisitors}
+            icon={Users}
+            href="/visitors"
+            tone={activeVisitors > 0 ? 'info' : 'neutral'}
+            caption={
+              activeVisitors > 0
+                ? `${activeVisitors} guest${activeVisitors === 1 ? '' : 's'} signed in.`
+                : 'Lobby is quiet.'
+            }
+          />
+          <ResidentKpi
+            label="Keys / FOBs out"
+            value={keysOut}
+            icon={Plane}
+            href="/keys"
+            tone={keysOut > 0 ? 'warning' : 'neutral'}
+            caption={keysOut > 0 ? 'Check none are overdue for return.' : 'Nothing checked out.'}
+          />
+          <ResidentKpi
+            label="Events today"
+            value={todayEvents}
+            icon={Calendar}
+            href="/events"
+            tone="neutral"
+            caption={
+              todayEvents > 0 ? 'Heads up — extra foot traffic.' : 'No building events on calendar.'
+            }
+          />
+        </div>
+      </section>
+
+      {/* Quick actions — distinct from concierge: report incident is the
+          big red one, not a beige administrative tile. */}
+      <section className="conc-rise flex flex-col gap-3" style={{ animationDelay: '200ms' }}>
+        <h2 className="text-[15px] font-semibold text-neutral-900">Do something fast</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {quickActions.map((action) => (
+            <a
+              key={action.href}
+              href={action.href}
+              onClick={(e) => {
+                e.preventDefault();
+                router.push(action.href as never);
+              }}
+              className={`group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br px-5 py-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md ${action.bg}`}
+            >
+              <div
+                className={`flex h-11 w-11 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-6deg] ${action.iconBg}`}
+              >
+                <action.icon
+                  className={`h-5 w-5 ${action.iconColor}`}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              </div>
+              <div>
+                <p className="text-[15px] font-semibold text-neutral-900">{action.label}</p>
+                <p className="mt-0.5 text-[12.5px] leading-relaxed text-neutral-500">
+                  {action.sub}
+                </p>
+              </div>
+              <ArrowRight
+                className="absolute top-5 right-5 h-4 w-4 -translate-x-2 text-neutral-400 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100"
+                aria-hidden="true"
+              />
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* Recent patrol notes + parking — two side-by-side cards */}
+      <section
+        className="conc-rise grid grid-cols-1 gap-4 lg:grid-cols-2"
+        style={{ animationDelay: '280ms' }}
+      >
+        <Card padding="none" className="flex flex-col">
+          <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <CardTitle>Latest patrol notes</CardTitle>
+              <a
+                href="/shift-log"
+                className="text-primary-600 hover:text-primary-700 text-[12.5px] font-medium"
+              >
+                Open shift log →
+              </a>
+            </div>
+            <p className="mt-0.5 text-[11.5px] text-neutral-400">
+              Newest first — from this shift and the last
+            </p>
+          </CardHeader>
+          {patrols.length > 0 ? (
+            <ul className="divide-y divide-neutral-100">
+              {patrols.map((p, i) => (
+                <li
+                  key={p.id ?? i}
+                  className="grid grid-cols-[24px_1fr_auto] items-start gap-3 px-5 py-3.5"
+                >
+                  <Activity
+                    className="mt-0.5 h-4 w-4 text-emerald-500"
+                    strokeWidth={1.8}
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13.5px] font-medium text-neutral-900">{p.title}</p>
+                    {p.unit && <p className="mt-0.5 text-[12px] text-neutral-500">Unit {p.unit}</p>}
+                  </div>
+                  <span className="text-[11.5px] whitespace-nowrap text-neutral-400">
+                    {formatRelativeTimestamp(p.createdAt ?? p.timestamp ?? '')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
+                <Activity
+                  className="h-5 w-5 text-emerald-500"
+                  strokeWidth={1.6}
+                  aria-hidden="true"
+                />
+              </div>
+              <p className="mt-1 text-[14.5px] font-semibold text-neutral-900 italic">
+                Quiet shift so far.
+              </p>
+              <p className="max-w-sm text-[12.5px] leading-relaxed text-neutral-500">
+                Log a patrol after your next round and it shows up here.
+              </p>
+            </div>
+          )}
+        </Card>
+
+        <Card padding="none" className="flex flex-col">
+          <CardHeader className="border-b border-neutral-100 px-5 pt-5 pb-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <CardTitle>Parking activity</CardTitle>
+              <a
+                href="/parking"
+                className="text-primary-600 hover:text-primary-700 text-[12.5px] font-medium"
+              >
+                All parking →
+              </a>
+            </div>
+            <p className="mt-0.5 text-[11.5px] text-neutral-400">Recent violations + tow notes</p>
+          </CardHeader>
+          {parkingFeed.length > 0 ? (
+            <ul className="divide-y divide-neutral-100">
+              {parkingFeed.map((p, i) => (
+                <li
+                  key={p.id ?? i}
+                  className="grid grid-cols-[24px_1fr_auto] items-start gap-3 px-5 py-3.5"
+                >
+                  <Package
+                    className="mt-0.5 h-4 w-4 text-amber-500"
+                    strokeWidth={1.8}
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13.5px] font-medium text-neutral-900">{p.title}</p>
+                    {p.unit && <p className="mt-0.5 text-[12px] text-neutral-500">Unit {p.unit}</p>}
+                  </div>
+                  <span className="text-[11.5px] whitespace-nowrap text-neutral-400">
+                    {formatRelativeTimestamp(p.createdAt ?? p.timestamp ?? '')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50">
+                <Package className="h-5 w-5 text-amber-500" strokeWidth={1.6} aria-hidden="true" />
+              </div>
+              <p className="mt-1 text-[14.5px] font-semibold text-neutral-900 italic">
+                No parking issues today.
+              </p>
+              <p className="max-w-sm text-[12.5px] leading-relaxed text-neutral-500">
+                Any vehicle in the wrong spot? Snap a photo and log it.
+              </p>
+            </div>
+          )}
+        </Card>
+      </section>
+    </div>
+  );
+}
+
 function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) {
   const firstName = name.split(' ')[0] || name;
 
@@ -2250,6 +2634,17 @@ export default function DashboardPage() {
   // -------------------------------------------------------------------------
   if (effectiveRole === 'front_desk') {
     return <FrontDeskDashboard name={effectiveName} greeting={greeting} apiData={apiData} />;
+  }
+
+  // -------------------------------------------------------------------------
+  // Security Guard dashboard.
+  // Distinct from the concierge view. Guards lead with active incidents and
+  // who's currently in the building — they glance, they don't read. Colour
+  // language matters: red for active incidents, amber for keys overdue,
+  // neutral otherwise.
+  // -------------------------------------------------------------------------
+  if (effectiveRole === 'security_guard' || effectiveRole === 'security_supervisor') {
+    return <SecurityDashboard name={effectiveName} greeting={greeting} apiData={apiData} />;
   }
 
   // -------------------------------------------------------------------------
