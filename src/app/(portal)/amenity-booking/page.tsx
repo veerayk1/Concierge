@@ -315,50 +315,37 @@ export default function AmenityBookingPage() {
 
   const bookingColumns: Column<MyBooking>[] = [
     {
-      id: 'referenceNumber',
-      header: 'Ref #',
-      accessorKey: 'referenceNumber',
-      sortable: true,
-      cell: (row) => (
-        <span className="text-primary-600 font-mono text-[13px] font-semibold">
-          {row.referenceNumber}
-        </span>
-      ),
-    },
-    {
       id: 'amenity',
       header: 'Amenity',
       accessorKey: 'amenity',
       sortable: true,
       cell: (row) => (
-        <span className="font-medium text-neutral-900">{row.amenity?.name || 'Unknown'}</span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[14px] font-medium text-neutral-900">
+            {row.amenity?.name || 'Unknown'}
+          </span>
+          {row.guestCount > 0 && (
+            <span className="text-[11.5px] text-neutral-500">
+              {row.guestCount} guest{row.guestCount === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
       ),
     },
     {
-      id: 'date',
-      header: 'Date',
+      id: 'when',
+      header: 'When',
       accessorKey: 'startDate',
       sortable: true,
       cell: (row) => (
-        <span className="text-[13px] text-neutral-600">{formatDate(row.startDate)}</span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[13px] text-neutral-700">{formatDate(row.startDate)}</span>
+          <span className="flex items-center gap-1 text-[11.5px] text-neutral-500">
+            <Clock className="h-3 w-3 text-neutral-400" />
+            {formatTime(row.startTime)} – {formatTime(row.endTime)}
+          </span>
+        </div>
       ),
-    },
-    {
-      id: 'time',
-      header: 'Time',
-      accessorKey: 'startTime',
-      cell: (row) => (
-        <span className="flex items-center gap-1.5 text-[13px] text-neutral-500">
-          <Clock className="h-3.5 w-3.5 text-neutral-400" />
-          {formatTime(row.startTime)} - {formatTime(row.endTime)}
-        </span>
-      ),
-    },
-    {
-      id: 'guests',
-      header: 'Guests',
-      accessorKey: 'guestCount',
-      cell: (row) => <span className="text-[13px] text-neutral-500">{row.guestCount}</span>,
     },
     {
       id: 'status',
