@@ -239,8 +239,18 @@ export function SubmitShiftReportDialog({
           We rolled up everything you logged this shift. Review, tweak, sign off.
         </DialogDescription>
 
+        {/* Thin gradient progress bar — animates from 25% (step 0)
+            up to 100% (sign-off). Lives above the dots so the guard
+            sees how close they are at a glance. */}
+        <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-neutral-100">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-amber-400 via-emerald-500 to-teal-500 transition-[width] duration-500 ease-out"
+            style={{ width: `${((step + 1) / stepLabels.length) * 100}%` }}
+          />
+        </div>
+
         {/* Progress dots */}
-        <div className="mt-4 flex items-center gap-2 text-[11.5px] tracking-[0.06em] text-neutral-400 uppercase">
+        <div className="mt-3 flex items-center gap-2 text-[11.5px] tracking-[0.06em] text-neutral-400 uppercase">
           {stepLabels.map((label, i) => (
             <div key={label} className="flex items-center gap-2">
               <span
