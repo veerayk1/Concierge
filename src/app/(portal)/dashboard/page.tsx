@@ -21,6 +21,7 @@ import { DecisionQueueCard } from '@/components/dashboard/decision-queue-card';
 import { MyExpectingCard } from '@/components/dashboard/my-expecting-card';
 import { GovernanceSnapshotCard } from '@/components/dashboard/governance-snapshot-card';
 import { MyOpenRequestsCard } from '@/components/dashboard/my-open-requests-card';
+import { MyBookingsCard } from '@/components/dashboard/my-bookings-card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -1667,6 +1668,12 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
           doesn't have to dig into /my-requests to see "is anyone
           working on this?". Self-hides when nothing is open. */}
       <MyOpenRequestsCard />
+
+      {/* Upcoming amenity bookings with approval status. Pulses while
+          anything is still pending so the resident knows they're in
+          the manager's queue (UX-131 closes the loop on the staff
+          side). Self-hides when nothing is upcoming. */}
+      <MyBookingsCard />
 
       {/* ----------------------------------------------------------------- */}
       {/* From management — what the desk needs you to know, first          */}
