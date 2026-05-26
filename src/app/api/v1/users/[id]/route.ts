@@ -26,7 +26,16 @@ function badIdResponse() {
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    // Resident detail pages are core to a property manager's job —
+    // looking up emergency contacts, unit assignment, move-in date,
+    // language preference. Originally locked to super_admin /
+    // property_admin which gave managers a "Insufficient permissions"
+    // wall when they clicked a resident row. Front desk + board member
+    // also need read access for visitor verification and governance.
+    // (PATCH/DELETE stay restricted — only admins can mutate user data.)
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin', 'property_manager', 'front_desk', 'board_member'],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;

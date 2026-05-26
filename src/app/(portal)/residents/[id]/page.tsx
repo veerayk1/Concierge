@@ -327,19 +327,37 @@ export default function ResidentDetailPage() {
                 <h1 className="text-[24px] font-bold tracking-tight text-neutral-900">
                   {resident.firstName} {resident.lastName}
                 </h1>
-                <Badge variant="primary" size="lg">
-                  {resident.role.charAt(0).toUpperCase() + resident.role.slice(1)}
-                </Badge>
-                <Badge variant={resident.status === 'active' ? 'success' : 'default'} size="lg" dot>
-                  {resident.status.charAt(0).toUpperCase() + resident.status.slice(1)}
-                </Badge>
+                {resident.role && (
+                  <Badge variant="primary" size="lg">
+                    {resident.role.charAt(0).toUpperCase() + resident.role.slice(1)}
+                  </Badge>
+                )}
+                {resident.status && (
+                  <Badge
+                    variant={resident.status === 'active' ? 'success' : 'default'}
+                    size="lg"
+                    dot
+                  >
+                    {resident.status.charAt(0).toUpperCase() + resident.status.slice(1)}
+                  </Badge>
+                )}
               </div>
               <p className="mt-1 text-[14px] text-neutral-500">
-                Unit {resident.unit} &middot; {resident.building} &middot; Since{' '}
-                {new Date(resident.moveInDate).toLocaleDateString('en-US', {
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {/* Gracefully degrade when the user payload is missing
+                    unit / building / move-in date — the page was
+                    rendering "Unit · · Since Invalid Date" before. */}
+                {[
+                  resident.unit ? `Unit ${resident.unit}` : null,
+                  resident.building || null,
+                  (() => {
+                    if (!resident.moveInDate) return null;
+                    const d = new Date(resident.moveInDate);
+                    if (isNaN(d.getTime())) return null;
+                    return `Since ${d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
+                  })(),
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || 'Account details not yet set up'}
               </p>
             </div>
           </div>
@@ -388,7 +406,13 @@ export default function ResidentDetailPage() {
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
                     <Building2 className="h-4 w-4 text-neutral-400" />
-                    {resident.building} &middot; Unit {resident.unit}
+                    {resident.building && resident.unit
+                      ? `${resident.building} · Unit ${resident.unit}`
+                      : resident.unit
+                        ? `Unit ${resident.unit}`
+                        : resident.building || (
+                            <span className="text-neutral-400">Not assigned</span>
+                          )}
                   </p>
                 </div>
                 <div>
@@ -397,11 +421,16 @@ export default function ResidentDetailPage() {
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[15px] text-neutral-900">
                     <Calendar className="h-4 w-4 text-neutral-400" />
-                    {new Date(resident.moveInDate).toLocaleDateString('en-US', {
-                      month: 'long',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
+                    {(() => {
+                      if (!resident.moveInDate) return <span className="text-neutral-400">—</span>;
+                      const d = new Date(resident.moveInDate);
+                      if (isNaN(d.getTime())) return <span className="text-neutral-400">—</span>;
+                      return d.toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                      });
+                    })()}
                   </p>
                 </div>
                 <div>
