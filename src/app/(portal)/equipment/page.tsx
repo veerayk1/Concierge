@@ -472,6 +472,9 @@ export default function EquipmentPage() {
         data={filteredEquipment}
         emptyMessage="No equipment found."
         emptyIcon={<Wrench className="h-6 w-6" />}
+        onRowClick={(row) => {
+          window.location.href = `/equipment/${row.id}`;
+        }}
       />
 
       <CreateEquipmentDialog

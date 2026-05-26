@@ -459,6 +459,9 @@ export default function KeysPage() {
             data={filteredKeys}
             emptyMessage="No keys or FOBs found."
             emptyIcon={<Key className="h-6 w-6" />}
+            onRowClick={(row) => {
+              window.location.href = `/keys/${row.id}`;
+            }}
           />
         </>
       )}

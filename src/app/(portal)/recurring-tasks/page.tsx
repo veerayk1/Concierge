@@ -516,6 +516,9 @@ export default function RecurringTasksPage() {
             data={filteredTasks}
             emptyMessage="No recurring tasks found."
             emptyIcon={<Repeat className="h-6 w-6" />}
+            onRowClick={(row) => {
+              window.location.href = `/recurring-tasks/${row.id}`;
+            }}
           />
         </>
       )}

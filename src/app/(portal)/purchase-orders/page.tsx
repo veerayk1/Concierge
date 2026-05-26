@@ -532,6 +532,9 @@ export default function PurchaseOrdersPage() {
           data={filteredPurchaseOrders}
           emptyMessage="No purchase orders found."
           emptyIcon={<ShoppingCart className="h-6 w-6" />}
+          onRowClick={(row) => {
+            window.location.href = `/purchase-orders/${row.id}`;
+          }}
         />
       )}
 
