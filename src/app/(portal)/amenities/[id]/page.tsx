@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { EditAmenityDialog } from '@/components/forms/edit-amenity-dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -150,35 +151,59 @@ export default function AmenityDetailPage() {
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  // Replaces native confirm()/alert() — see UX-184 pattern.
+  const [confirm, setConfirm] = useState<null | {
+    title: string;
+    body: string;
+    destructive?: boolean;
+    run: () => Promise<void>;
+  }>(null);
+  const [flash, setFlash] = useState<null | { tone: 'ok' | 'err'; text: string }>(null);
+  const flashMessage = (tone: 'ok' | 'err', text: string) => {
+    setFlash({ tone, text });
+    setTimeout(() => setFlash(null), 4000);
+  };
 
   async function handleBookingAction(
     bookingId: string,
     status: 'confirmed' | 'rejected' | 'cancelled',
   ) {
     const labels: Record<string, string> = {
-      confirmed: 'accept',
-      rejected: 'reject',
-      cancelled: 'cancel',
+      confirmed: 'Approve',
+      rejected: 'Reject',
+      cancelled: 'Cancel',
     };
-    if (!confirm(`Are you sure you want to ${labels[status]} this booking?`)) return;
-
-    setActionLoading(bookingId);
-    try {
-      const resp = await apiRequest(`/api/v1/bookings/${bookingId}`, {
-        method: 'PATCH',
-        body: { status },
-      });
-      if (!resp.ok) {
-        const result = await resp.json().catch(() => ({}));
-        alert(result.message || `Failed to ${labels[status]} booking.`);
-      } else {
-        await refetch();
-      }
-    } catch {
-      alert('Network error. Please try again.');
-    } finally {
-      setActionLoading(null);
-    }
+    const verb = labels[status] ?? 'Update';
+    setConfirm({
+      title: `${verb} this booking?`,
+      destructive: status !== 'confirmed',
+      body:
+        status === 'confirmed'
+          ? 'The resident will be notified that their booking is approved.'
+          : status === 'rejected'
+            ? 'The resident will be notified that their booking was declined.'
+            : 'The booking will be cancelled and removed from the schedule.',
+      run: async () => {
+        setActionLoading(bookingId);
+        try {
+          const resp = await apiRequest(`/api/v1/bookings/${bookingId}`, {
+            method: 'PATCH',
+            body: { status },
+          });
+          if (!resp.ok) {
+            const result = await resp.json().catch(() => ({}));
+            flashMessage('err', result.message || `Failed to ${verb.toLowerCase()} booking.`);
+          } else {
+            flashMessage('ok', `Booking ${verb.toLowerCase()}d.`);
+            await refetch();
+          }
+        } catch {
+          flashMessage('err', 'Network error. Please try again.');
+        } finally {
+          setActionLoading(null);
+        }
+      },
+    });
   }
 
   // -- Loading State --
@@ -282,22 +307,32 @@ export default function AmenityDetailPage() {
             variant="ghost"
             size="sm"
             className="text-error-600"
-            onClick={async () => {
-              if (!confirm('Are you sure you want to disable bookings for this amenity?')) return;
-              try {
-                const resp = await apiRequest(`/api/v1/amenities/${id}`, {
-                  method: 'PATCH',
-                  body: { isActive: false },
-                });
-                if (resp.ok) {
-                  await refetch();
-                } else {
-                  const result = await resp.json().catch(() => ({}));
-                  alert((result as { message?: string }).message || 'Failed to disable bookings.');
-                }
-              } catch {
-                alert('Network error. Please try again.');
-              }
+            onClick={() => {
+              setConfirm({
+                title: 'Disable bookings for this amenity?',
+                body: 'Residents will not be able to book it until it is re-enabled. Existing bookings stay on the calendar.',
+                destructive: true,
+                run: async () => {
+                  try {
+                    const resp = await apiRequest(`/api/v1/amenities/${id}`, {
+                      method: 'PATCH',
+                      body: { isActive: false },
+                    });
+                    if (resp.ok) {
+                      flashMessage('ok', 'Bookings disabled.');
+                      await refetch();
+                    } else {
+                      const result = await resp.json().catch(() => ({}));
+                      flashMessage(
+                        'err',
+                        (result as { message?: string }).message || 'Failed to disable bookings.',
+                      );
+                    }
+                  } catch {
+                    flashMessage('err', 'Network error. Please try again.');
+                  }
+                },
+              });
             }}
           >
             <Ban className="h-4 w-4" />
@@ -625,6 +660,44 @@ export default function AmenityDetailPage() {
           amenity={amenity}
           onSuccess={() => refetch()}
         />
+      )}
+
+      {/* Confirm + toast — replaces native confirm()/alert(). */}
+      <Dialog open={confirm !== null} onOpenChange={(o) => !o && setConfirm(null)}>
+        <DialogContent>
+          <DialogTitle>{confirm?.title ?? ''}</DialogTitle>
+          <DialogDescription>{confirm?.body ?? ''}</DialogDescription>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setConfirm(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className={
+                confirm?.destructive ? 'bg-error-500 hover:bg-error-600 text-white' : undefined
+              }
+              onClick={async () => {
+                const action = confirm;
+                setConfirm(null);
+                if (action) await action.run();
+              }}
+            >
+              Confirm
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {flash && (
+        <div
+          role="status"
+          className={`fixed right-6 bottom-6 z-50 max-w-sm rounded-xl px-4 py-3 text-[13.5px] font-medium shadow-lg ring-1 ${
+            flash.tone === 'ok'
+              ? 'bg-success-50 text-success-700 ring-success-200'
+              : 'bg-error-50 text-error-700 ring-error-200'
+          }`}
+        >
+          {flash.text}
+        </div>
       )}
     </div>
   );

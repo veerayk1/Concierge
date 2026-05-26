@@ -21,6 +21,7 @@ import { useApi, apiRequest } from '@/lib/hooks/use-api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface ParkingPermit {
   id: string;
@@ -93,6 +94,9 @@ export default function VisitorDetailPage() {
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [signOutComments, setSignOutComments] = useState('');
+  // Native confirm() looked unfinished and blocked the page during
+  // automated QA. Confirm dialog state machine instead.
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
 
   if (loading) {
     return (
@@ -128,9 +132,16 @@ export default function VisitorDetailPage() {
 
   const isSignedIn = data.status === 'signed_in';
 
-  async function handleSignOut() {
+  // Open confirm dialog. The real sign-out work runs from
+  // performSignOut() when the user clicks "Sign out" in the dialog.
+  function handleSignOut() {
     if (!data) return;
-    if (!confirm(`Sign out ${data.visitorName}?`)) return;
+    setConfirmingSignOut(true);
+  }
+
+  async function performSignOut() {
+    if (!data) return;
+    setConfirmingSignOut(false);
     setSigningOut(true);
     setSignOutError(null);
     try {
@@ -327,6 +338,29 @@ export default function VisitorDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Confirm dialog replaces native confirm() — looks consistent
+          with the rest of the portal and doesn't block the page. */}
+      <Dialog
+        open={confirmingSignOut}
+        onOpenChange={(open) => !open && setConfirmingSignOut(false)}
+      >
+        <DialogContent>
+          <DialogTitle>Sign out {data?.visitorName ?? 'visitor'}?</DialogTitle>
+          <DialogDescription>
+            Their visit will be marked complete. Any comments you typed will be saved with the
+            record.
+          </DialogDescription>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setConfirmingSignOut(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={performSignOut}>
+              Sign out
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
