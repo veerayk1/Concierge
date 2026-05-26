@@ -106,19 +106,28 @@ function buildPriorShiftSummary(entries: ShiftEntryForSummary[]): {
   let patrols = 0;
   let passOns = 0;
   let urgent = 0;
+  let visitors = 0;
+  let contractors = 0;
+  let residentIssues = 0;
   const important: { title: string; description: string | null }[] = [];
 
   for (const e of priorEntries) {
     const title = (e.title || '').toLowerCase();
     const evt = (e.eventType?.name || '').toLowerCase();
-    if (title.includes('patrol') || evt.includes('patrol')) patrols += 1;
-    if (evt.includes('pass') || (e.customFields?.category || '').toLowerCase().includes('pass'))
-      passOns += 1;
+    const desc = (e.description || '').toLowerCase();
+    const cat = (e.customFields?.category || '').toLowerCase();
+    if (cat.includes('patrol') || title.includes('patrol') || evt.includes('patrol')) patrols += 1;
+    if (cat.includes('pass') || evt.includes('pass')) passOns += 1;
+    if (cat.includes('visitor') || desc.includes('visitor') || desc.includes('guest'))
+      visitors += 1;
+    if (cat.includes('contractor') || desc.includes('contractor')) contractors += 1;
+    if (cat.includes('resident') || desc.includes('complaint') || desc.includes('noise'))
+      residentIssues += 1;
     if (e.priority === 'urgent') {
       urgent += 1;
-      important.push({ title: e.title, description: e.description });
+      important.push({ title: e.description || e.title, description: e.description });
     } else if (e.priority === 'important' && important.length < 3) {
-      important.push({ title: e.title, description: e.description });
+      important.push({ title: e.description || e.title, description: e.description });
     }
   }
 
@@ -127,6 +136,14 @@ function buildPriorShiftSummary(entries: ShiftEntryForSummary[]): {
     `${priorEntries.length} entr${priorEntries.length === 1 ? 'y' : 'ies'} logged on the ${label}.`,
   );
   if (patrols > 0) bullets.push(`${patrols} patrol${patrols === 1 ? '' : 's'} completed.`);
+  if (visitors > 0)
+    bullets.push(`${visitors} visitor entr${visitors === 1 ? 'y' : 'ies'} on the desk.`);
+  if (contractors > 0)
+    bullets.push(`${contractors} contractor${contractors === 1 ? '' : 's'} on-site.`);
+  if (residentIssues > 0)
+    bullets.push(
+      `${residentIssues} resident issue${residentIssues === 1 ? '' : 's'} flagged — follow up.`,
+    );
   if (passOns > 0)
     bullets.push(`${passOns} pass-on note${passOns === 1 ? '' : 's'} waiting for follow-up.`);
   if (urgent > 0) bullets.push(`${urgent} urgent item${urgent === 1 ? '' : 's'} — see below.`);
@@ -439,13 +456,13 @@ export default function ShiftLogPage() {
               {clockBusy ? 'Working…' : 'Clock In'}
             </Button>
           )}
+          {/* "Add Pass-On Note" and "Add Entry" both opened the same
+              dialog with the same defaults — kept one button and let
+              the dialog handle category/priority. Inline compose
+              below covers the one-sentence case. */}
           <Button variant="secondary" size="sm" onClick={() => setShowCreateDialog(true)}>
-            <MessageSquare className="h-4 w-4" />
-            Add Pass-On Note
-          </Button>
-          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
-            Add Entry
+            Detailed entry
           </Button>
           {/* End-of-shift report — the big new flow. Opens a wizard
               that auto-rolls up every entry and produces a draft for
@@ -693,29 +710,33 @@ export default function ShiftLogPage() {
                         <div className="bg-warning-100 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
                           <AlertTriangle className="text-warning-600 h-4 w-4" />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[13px] font-semibold text-neutral-900">
-                              {note.title}
-                            </span>
+                        <div className="min-w-0 flex-1">
+                          {/* Same treatment as regular entries — the
+                              user-typed content is the headline, not
+                              the generic "Shift log note" title. */}
+                          {note.description ? (
+                            <p className="text-[14px] leading-relaxed font-medium text-neutral-900">
+                              {note.description}
+                            </p>
+                          ) : (
+                            <p className="text-[14px] text-neutral-400 italic">
+                              {note.title || 'No detail recorded.'}
+                            </p>
+                          )}
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2">
                             <Badge variant="warning" size="sm" dot>
                               {note.priority}
                             </Badge>
+                            <span className="text-[12px] text-neutral-400">
+                              {new Date(note.createdAt).toLocaleString('en-US', {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })}
+                            </span>
                           </div>
-                          {note.description && (
-                            <p className="mt-1.5 text-[14px] leading-relaxed text-neutral-700">
-                              {note.description}
-                            </p>
-                          )}
-                          <p className="mt-1.5 text-[12px] text-neutral-400">
-                            {new Date(note.createdAt).toLocaleString('en-US', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit',
-                            })}
-                          </p>
                         </div>
                       </div>
                     </div>
@@ -791,7 +812,7 @@ export default function ShiftLogPage() {
                       : 'border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
                   }`}
                 >
-                  {type === 'all' ? 'All Types' : type.charAt(0).toUpperCase() + type.slice(1)}
+                  {type === 'all' ? 'All priorities' : type.charAt(0).toUpperCase() + type.slice(1)}
                 </button>
               ))}
             </div>
@@ -835,16 +856,20 @@ export default function ShiftLogPage() {
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100">
                             <User className="h-4 w-4 text-neutral-500" />
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[14px] font-semibold text-neutral-900">
-                                {entry.title}
-                              </span>
-                              {entry.eventType?.name && (
-                                <span className="text-[12px] text-neutral-400">
-                                  {entry.eventType.name}
-                                </span>
-                              )}
+                          <div className="min-w-0 flex-1">
+                            {/* Lead with the note content \u2014 title is always
+                                "Shift log note" so showing it adds noise. The
+                                shift + priority badges live to the right. */}
+                            {entry.description ? (
+                              <p className="text-[14px] leading-relaxed text-neutral-800">
+                                {entry.description}
+                              </p>
+                            ) : (
+                              <p className="text-[14px] text-neutral-400 italic">
+                                {entry.title || 'No note recorded.'}
+                              </p>
+                            )}
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
                               <Badge
                                 variant="default"
                                 size="sm"
@@ -857,22 +882,21 @@ export default function ShiftLogPage() {
                                   Important
                                 </Badge>
                               )}
+                              <span className="text-[12px] text-neutral-400">
+                                {new Date(entry.createdAt).toLocaleString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                              {entry.referenceNo && (
+                                <span className="font-mono text-[11px] text-neutral-300">
+                                  {entry.referenceNo}
+                                </span>
+                              )}
                             </div>
-                            {entry.description && (
-                              <p className="mt-2 text-[14px] leading-relaxed text-neutral-700">
-                                {entry.description}
-                              </p>
-                            )}
-                            <p className="mt-2 text-[12px] text-neutral-400">
-                              {new Date(entry.createdAt).toLocaleString('en-US', {
-                                weekday: 'short',
-                                month: 'short',
-                                day: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit',
-                              })}
-                              {entry.referenceNo && ` \u00B7 Ref: ${entry.referenceNo}`}
-                            </p>
                           </div>
                         </div>
                       </div>
