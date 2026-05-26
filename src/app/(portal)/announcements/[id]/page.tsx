@@ -160,9 +160,26 @@ export default function AnnouncementDetailPage() {
   // Demo-mode role gate. Mirrors the pattern used on the dashboard:
   // read from localStorage so the resident view can be rendered
   // before any session-derived role is hydrated.
-  const isResidentRole =
-    typeof window !== 'undefined' &&
-    READ_ONLY_RESIDENT_ROLES.has(window.localStorage.getItem('demo_role') ?? '');
+  // Role gate: check BOTH demo_role (demo mode without real auth) AND
+  // auth_user.role (real authenticated session). Previously only checked
+  // demo_role, which meant an authenticated resident with auth_user
+  // populated still saw Edit/Resend/Archive/Delete — those are
+  // admin-only actions and absolutely must not appear in the resident
+  // view of a notice.
+  const isResidentRole = (() => {
+    if (typeof window === 'undefined') return false;
+    const demoRole = window.localStorage.getItem('demo_role') ?? '';
+    if (READ_ONLY_RESIDENT_ROLES.has(demoRole)) return true;
+    try {
+      const stored = window.localStorage.getItem('auth_user');
+      const parsed = stored ? (JSON.parse(stored) as { role?: string }) : null;
+      const realRole = parsed?.role ?? '';
+      if (READ_ONLY_RESIDENT_ROLES.has(realRole)) return true;
+    } catch {
+      // fall through
+    }
+    return false;
+  })();
 
   const {
     data: announcement,
