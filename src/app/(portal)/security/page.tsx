@@ -286,7 +286,26 @@ export default function SecurityPage() {
             createdAt: f.alarmTime || f.createdAt || new Date().toISOString(),
           }));
 
-    return [...fireRows, ...visitorRows, ...eventRows].sort((a, b) => {
+    // Drop test fixtures from the unified security console so guards
+    // see real visitor traffic, real incidents, and real pass-on
+    // notes — not CHAIN/UI-CHAIN/E2E/SEC/EXH/QA seed data.
+    const TEST_PATTERN =
+      /^(CHAIN[- ]?[A-Z]|UI[- ]?CHAIN[- ]?[A-Z]|UI[- ]?[A-Z]?\d|UI[- ]?TASK|UI[- ]?[01]\d{2}|E2E[- ]|SEC[- ]\d|EXH[- ]?[A-Z]?|TEST[- ]|QA[- ]?(TEST|TOWER|:))/i;
+    // QA-fixture markers anywhere in the title: "Marco Plumber QA",
+    // "Marco Plumber QA-tomorrow", "E2E-FINAL: Test Cleaner",
+    // "Sarah QA fixture". " QA" as a trailing word is suspect because
+    // real visitors don't end their name with QA — fixtures do.
+    const TEST_NAME_SUBSTR =
+      /(\bqa[- ]?(test|tomorrow|fixture)|\bqa-\w| qa$|E2E[- ]|test cleaner)/i;
+    const TEST_DESC_PATTERN = /\b(CHAIN[- ]?[A-Z][^a-z]|Cascade verification test|UI test)\b/i;
+    const all = [...fireRows, ...visitorRows, ...eventRows].filter((e) => {
+      const title = (e.title ?? '').trim();
+      if (TEST_PATTERN.test(title)) return false;
+      if (TEST_NAME_SUBSTR.test(title)) return false;
+      if (TEST_DESC_PATTERN.test(e.description ?? '')) return false;
+      return true;
+    });
+    return all.sort((a, b) => {
       const aTime = new Date(a.createdAt).getTime();
       const bTime = new Date(b.createdAt).getTime();
       return bTime - aTime;
