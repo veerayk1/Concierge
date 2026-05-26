@@ -26,6 +26,7 @@ import { ResidentOnboardingCard } from '@/components/dashboard/resident-onboardi
 import { MyPackagesCard } from '@/components/dashboard/my-packages-card';
 import { StaffOnDutyStrip } from '@/components/dashboard/staff-on-duty-strip';
 import { ResidentBriefingCard } from '@/components/dashboard/resident-briefing-card';
+import { ShiftBriefingCard } from '@/components/dashboard/shift-briefing-card';
 import { AgingShelfCard } from '@/components/dashboard/aging-shelf-card';
 import { KeysOverdueCard } from '@/components/dashboard/keys-overdue-card';
 import { TodaysScheduleCard } from '@/components/dashboard/todays-schedule-card';
@@ -781,6 +782,10 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
         </div>
       </header>
 
+      {/* One-paragraph synthesised briefing — what to look at first
+          this shift, in plain English. */}
+      <ShiftBriefingCard />
+
       {/* Pass-on from the prior shift — pulses if there are flagged items. */}
       <ShiftHandoffCard />
 
@@ -1181,6 +1186,10 @@ function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) 
           </p>
         </div>
       </header>
+
+      {/* One-paragraph synthesised briefing — incidents to chase,
+          keys overdue, perishables on the shelf. */}
+      <ShiftBriefingCard />
 
       {/* Pass-on from the prior shift — pulses if items need follow-up. */}
       <ShiftHandoffCard />
