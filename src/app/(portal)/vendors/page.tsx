@@ -92,7 +92,34 @@ export default function VendorsPage() {
     }),
   );
 
-  const allVendors = useMemo<VendorItem[]>(() => apiVendors ?? [], [apiVendors]);
+  const allVendors = useMemo<VendorItem[]>(() => {
+    // Drop test fixtures (SWEEP Test Vendor LLC, *.test emails)
+    // so the manager's vendor directory reads like real contractor
+    // relationships. Same pattern as residents (UX-157) and
+    // packages (UX-168).
+    const TEST_NAME_PATTERN = /\b(SWEEP|TEST|FIXTURE|UI[- ]?CHAIN|CHAIN[- ]?[A-Z]|E2E)\b/i;
+    const TEST_EMAIL_PATTERN = /@(test|vendor\.test|example\.com|qa\.test)/i;
+    const list = (apiVendors ?? []).filter((v) => {
+      if (TEST_NAME_PATTERN.test(v.name?.trim() ?? '')) return false;
+      if (TEST_EMAIL_PATTERN.test(v.email ?? '')) return false;
+      return true;
+    });
+    // Sort by compliance risk: expired → expiring → not-tracking →
+    // compliant. Manager's first scan lands on what needs chasing.
+    const RISK_RANK: Record<string, number> = {
+      expired: 0,
+      expiring: 1,
+      not_tracking: 2,
+      compliant: 3,
+    };
+    list.sort((a, b) => {
+      const ra = RISK_RANK[a.complianceStatus] ?? 4;
+      const rb = RISK_RANK[b.complianceStatus] ?? 4;
+      if (ra !== rb) return ra - rb;
+      return (a.name ?? '').localeCompare(b.name ?? '');
+    });
+    return list;
+  }, [apiVendors]);
 
   // Client-side category filter (API uses categoryId, we filter by name here)
   const filteredVendors = useMemo(
