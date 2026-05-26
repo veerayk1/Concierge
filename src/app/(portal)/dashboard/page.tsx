@@ -19,6 +19,7 @@ import { ExpectedVisitorsCard } from '@/components/dashboard/expected-visitors-c
 import { ScheduleVisitorDialog } from '@/components/forms/schedule-visitor-dialog';
 import { DecisionQueueCard } from '@/components/dashboard/decision-queue-card';
 import { MyExpectingCard } from '@/components/dashboard/my-expecting-card';
+import { GovernanceSnapshotCard } from '@/components/dashboard/governance-snapshot-card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -2802,6 +2803,7 @@ export default function DashboardPage() {
         effectiveRole === 'board_member' ||
         effectiveRole === 'superintendent') && (
         <>
+          <GovernanceSnapshotCard />
           <DecisionQueueCard />
           <ShiftHandoffCard />
           <ActiveIncidentsCard />
