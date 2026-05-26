@@ -32,6 +32,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
@@ -169,6 +170,7 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [closingRequest, setClosingRequest] = useState(false);
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [updatingStaff, setUpdatingStaff] = useState(false);
   const [updatingVendor, setUpdatingVendor] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -282,10 +284,15 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
   // -----------------------------------------------------------------------
   // Close request handler (convenience button)
   // -----------------------------------------------------------------------
-  const handleCloseRequest = useCallback(async () => {
+  // Open confirm dialog. The real close work runs from performClose()
+  // when the user confirms in the dialog.
+  const handleCloseRequest = useCallback(() => {
     if (!req) return;
-    const confirmed = window.confirm('Are you sure you want to close this request?');
-    if (!confirmed) return;
+    setConfirmCloseOpen(true);
+  }, [req]);
+
+  const performClose = useCallback(async () => {
+    setConfirmCloseOpen(false);
     setClosingRequest(true);
     setStatusError(null);
     try {
@@ -304,7 +311,7 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
     } finally {
       setClosingRequest(false);
     }
-  }, [req, id, refetch]);
+  }, [id, refetch]);
 
   // -----------------------------------------------------------------------
   // Assign staff handler
@@ -1179,6 +1186,25 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
           </Card>
         </div>
       </div>
+
+      {/* Close-request confirm — replaces native confirm(). */}
+      <Dialog open={confirmCloseOpen} onOpenChange={(o) => !o && setConfirmCloseOpen(false)}>
+        <DialogContent>
+          <DialogTitle>Close this request?</DialogTitle>
+          <DialogDescription>
+            The resident will see this request as closed and no further updates will be sent. You
+            can still reopen it later if more work is needed.
+          </DialogDescription>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setConfirmCloseOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={performClose}>
+              Close request
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
