@@ -12,6 +12,8 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LogEventDialog } from '@/components/forms/log-event-dialog';
 import { exportToCsv } from '@/lib/export-csv';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types — Unified Event Model (API response shape)
@@ -86,6 +88,10 @@ function normalizeEvent(e: ApiEvent): EventLogEntry {
 // ---------------------------------------------------------------------------
 
 export default function EventsPage() {
+  // Hooks always run first. Resident-gate is rendered conditionally
+  // at the bottom of this function, after every other hook has been
+  // called — that keeps React's hook-call order stable.
+  const isResident = useIsResident();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -225,6 +231,17 @@ export default function EventsPage() {
       ),
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Event Log" description="">
+        <AccessDeniedPanel
+          resource="The building event log"
+          whoCanSee="front desk and security staff"
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

@@ -25,6 +25,8 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { exportToCsv } from '@/lib/export-csv';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types — mapped from API response (Prisma Vendor + relations)
@@ -72,6 +74,10 @@ const STATUS_CONFIG: Record<
 // ---------------------------------------------------------------------------
 
 export default function VendorsPage() {
+  // Hooks first — must run on every render to keep React's hook order
+  // stable. The access gate is at the render level (see below), not via
+  // an early return.
+  const isResident = useIsResident();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -224,6 +230,16 @@ export default function VendorsPage() {
       cell: (row) => <span className="text-[13px] text-neutral-500">{row.email ?? '\u2014'}</span>,
     },
   ];
+
+  // Resident accidentally landed here (admin-only page) — show a clean
+  // "not for your role" panel instead of the admin chrome + a 403 error.
+  if (isResident) {
+    return (
+      <PageShell title="Vendors" description="">
+        <AccessDeniedPanel resource="The vendor list" whoCanSee="your property manager or admin" />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell
