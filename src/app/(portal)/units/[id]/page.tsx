@@ -413,7 +413,16 @@ export default function UnitDetailPage() {
       header: 'Courier',
       accessorKey: 'courier',
       sortable: true,
-      cell: (row) => <span className="text-[14px] text-neutral-900">{row.courier}</span>,
+      // Courier is optional on the unit-summary endpoint (the API trims
+      // the package payload). Fall back to a neutral dash instead of
+      // rendering "UNKNOWN" or the literal "[object Object]".
+      cell: (row) => {
+        const c =
+          typeof row.courier === 'string'
+            ? row.courier
+            : ((row.courier as { name?: string } | null)?.name ?? '');
+        return <span className="text-[14px] text-neutral-900">{c || '—'}</span>;
+      },
     },
     {
       id: 'status',
@@ -421,12 +430,13 @@ export default function UnitDetailPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => {
+        if (!row.status) return <span className="text-[13px] text-neutral-400">—</span>;
         const m: Record<string, { v: 'warning' | 'success' | 'default'; l: string }> = {
           unreleased: { v: 'warning', l: 'Unreleased' },
           released: { v: 'success', l: 'Released' },
           returned: { v: 'default', l: 'Returned' },
         };
-        const s = m[row.status] ?? { v: 'default' as const, l: row.status ?? 'unknown' };
+        const s = m[row.status] ?? { v: 'default' as const, l: row.status };
         return (
           <Badge variant={s.v} size="sm" dot>
             {s.l}
@@ -439,16 +449,25 @@ export default function UnitDetailPage() {
       header: 'Received',
       accessorKey: 'receivedAt',
       sortable: true,
-      cell: (row) => (
-        <span className="text-[13px] text-neutral-500">
-          {new Date(row.receivedAt).toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          })}
-        </span>
-      ),
+      cell: (row) => {
+        // Unit-summary packages omit receivedAt; fall back to createdAt
+        // and render "—" if neither is parseable. Stops "Invalid Date"
+        // from leaking into the table.
+        const raw = row.receivedAt || (row as unknown as { createdAt?: string }).createdAt || '';
+        if (!raw) return <span className="text-[13px] text-neutral-400">—</span>;
+        const d = new Date(raw);
+        if (isNaN(d.getTime())) return <span className="text-[13px] text-neutral-400">—</span>;
+        return (
+          <span className="text-[13px] text-neutral-500">
+            {d.toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            })}
+          </span>
+        );
+      },
     },
     {
       id: 'releasedTo',
