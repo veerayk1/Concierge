@@ -25,6 +25,20 @@ interface GovernanceData {
     total: number;
     atRisk: number;
     byStatus: Record<string, number>;
+    atRiskList: {
+      id: string;
+      companyName: string;
+      complianceStatus: string;
+      category: string | null;
+    }[];
+    expiringDocs: {
+      id: string;
+      documentType: string;
+      expiresAt: string | null;
+      daysUntilExpiry: number | null;
+      vendorId: string;
+      vendorName: string;
+    }[];
   };
   outstandingFees: { total: number; count: number };
   recentMoves: {
@@ -35,6 +49,27 @@ interface GovernanceData {
     on: string;
     residentType: string;
   }[];
+}
+
+const COMPLIANCE_TONE: Record<string, string> = {
+  expired: 'bg-rose-50 text-rose-700 ring-rose-200',
+  expiring: 'bg-amber-50 text-amber-700 ring-amber-200',
+  not_compliant: 'bg-rose-50 text-rose-700 ring-rose-200',
+};
+
+function statusLabel(s: string): string {
+  if (s === 'not_compliant') return 'Not compliant';
+  if (s === 'expiring') return 'Expiring';
+  if (s === 'expired') return 'Expired';
+  return s;
+}
+
+function docLabel(s: string): string {
+  if (s === 'insurance') return 'Insurance';
+  if (s === 'license') return 'License';
+  if (s === 'wsib') return 'WSIB';
+  if (s === 'certification') return 'Cert.';
+  return s;
 }
 
 function dollar(n: number): string {
@@ -196,6 +231,68 @@ export function GovernanceSnapshotCard() {
               </span>
             </button>
           </div>
+
+          {(data.vendors.atRiskList.length > 0 || data.vendors.expiringDocs.length > 0) && (
+            <div className="mt-3 rounded-xl bg-white/60 px-3 py-2 ring-1 ring-rose-100/80">
+              {data.vendors.atRiskList.length > 0 && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-neutral-700">
+                  <span className="text-[10.5px] font-semibold tracking-[0.06em] text-rose-700 uppercase">
+                    Chase
+                  </span>
+                  {data.vendors.atRiskList.slice(0, 4).map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => router.push(`/vendors/${v.id}` as never)}
+                      className="inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 hover:bg-rose-50"
+                    >
+                      <span
+                        className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase ring-1 ${
+                          COMPLIANCE_TONE[v.complianceStatus] ??
+                          'bg-rose-50 text-rose-700 ring-rose-200'
+                        }`}
+                      >
+                        {statusLabel(v.complianceStatus)}
+                      </span>
+                      <span className="font-medium text-neutral-900">{v.companyName}</span>
+                      {v.category && <span className="text-neutral-500">· {v.category}</span>}
+                    </button>
+                  ))}
+                  {data.vendors.atRiskList.length > 4 && (
+                    <button
+                      type="button"
+                      onClick={() => router.push('/vendors' as never)}
+                      className="inline-flex items-center gap-1 text-[12px] font-semibold text-rose-700 hover:text-rose-800"
+                    >
+                      + {data.vendors.atRiskList.length - 4} more
+                      <ArrowRight className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              )}
+              {data.vendors.expiringDocs.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-neutral-700">
+                  <span className="text-[10.5px] font-semibold tracking-[0.06em] text-amber-700 uppercase">
+                    Heads up
+                  </span>
+                  {data.vendors.expiringDocs.slice(0, 4).map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => router.push(`/vendors/${d.vendorId}` as never)}
+                      className="inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 hover:bg-amber-50"
+                    >
+                      <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-[0.06em] text-amber-700 uppercase ring-1 ring-amber-200">
+                        {docLabel(d.documentType)}{' '}
+                        {d.daysUntilExpiry !== null && `· ${d.daysUntilExpiry}d`}
+                      </span>
+                      <span className="font-medium text-neutral-900">{d.vendorName}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {data.recentMoves.length > 0 && (
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-neutral-600">

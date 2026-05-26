@@ -42,47 +42,91 @@ export async function GET(request: NextRequest) {
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [unitsRes, occupiedRes, vendorRollupRes, outstandingFeesRes, recentMovesRes] =
-      await Promise.allSettled([
-        prisma.unit.count({
-          where: { propertyId, deletedAt: null },
-        }),
-        // Distinct units with at least one active occupancy.
-        prisma.occupancyRecord
-          .findMany({
-            where: { propertyId, moveOutDate: null },
-            select: { unitId: true },
-            distinct: ['unitId'],
-          })
-          .then((rows) => rows.length),
-        prisma.vendor.groupBy({
-          by: ['complianceStatus'],
-          where: { propertyId, isActive: true },
-          _count: { _all: true },
-        }),
-        prisma.booking.aggregate({
-          where: {
-            propertyId,
-            // "Owed" — booking is active and not paid in full yet.
-            status: { in: ['pending', 'approved', 'completed'] },
-            paymentStatus: { in: ['pending', 'overdue', 'partial_refund'] },
+    const thirtyDaysAhead = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    const [
+      unitsRes,
+      occupiedRes,
+      vendorRollupRes,
+      atRiskVendorsRes,
+      expiringDocsRes,
+      outstandingFeesRes,
+      recentMovesRes,
+    ] = await Promise.allSettled([
+      prisma.unit.count({
+        where: { propertyId, deletedAt: null },
+      }),
+      // Distinct units with at least one active occupancy.
+      prisma.occupancyRecord
+        .findMany({
+          where: { propertyId, moveOutDate: null },
+          select: { unitId: true },
+          distinct: ['unitId'],
+        })
+        .then((rows) => rows.length),
+      prisma.vendor.groupBy({
+        by: ['complianceStatus'],
+        where: { propertyId, isActive: true },
+        _count: { _all: true },
+      }),
+      // Vendors flagged at-risk by their stored complianceStatus —
+      // these are what the admin should chase first.
+      prisma.vendor.findMany({
+        where: {
+          propertyId,
+          isActive: true,
+          complianceStatus: { in: ['expired', 'expiring', 'not_compliant'] },
+        },
+        select: {
+          id: true,
+          companyName: true,
+          complianceStatus: true,
+          serviceCategory: { select: { name: true } },
+        },
+        orderBy: { complianceStatus: 'asc' },
+        take: 8,
+      }),
+      // Documents expiring in the next 30 days — early warning for
+      // vendors whose stored status hasn't yet flipped to 'expiring'.
+      prisma.vendorDocument.findMany({
+        where: {
+          vendor: { propertyId, isActive: true },
+          expiresAt: { gte: new Date(), lte: thirtyDaysAhead },
+        },
+        select: {
+          id: true,
+          documentType: true,
+          expiresAt: true,
+          vendor: {
+            select: { id: true, companyName: true, complianceStatus: true },
           },
-          _sum: { totalAmount: true },
-          _count: { _all: true },
-        }),
-        prisma.occupancyRecord.findMany({
-          where: {
-            propertyId,
-            OR: [{ createdAt: { gte: thirtyDaysAgo } }, { moveOutDate: { gte: thirtyDaysAgo } }],
-          },
-          include: {
-            unit: { select: { number: true } },
-            user: { select: { firstName: true, lastName: true } },
-          },
-          orderBy: { updatedAt: 'desc' },
-          take: 10,
-        }),
-      ]);
+        },
+        orderBy: { expiresAt: 'asc' },
+        take: 8,
+      }),
+      prisma.booking.aggregate({
+        where: {
+          propertyId,
+          // "Owed" — booking is active and not paid in full yet.
+          status: { in: ['pending', 'approved', 'completed'] },
+          paymentStatus: { in: ['pending', 'overdue', 'partial_refund'] },
+        },
+        _sum: { totalAmount: true },
+        _count: { _all: true },
+      }),
+      prisma.occupancyRecord.findMany({
+        where: {
+          propertyId,
+          OR: [{ createdAt: { gte: thirtyDaysAgo } }, { moveOutDate: { gte: thirtyDaysAgo } }],
+        },
+        include: {
+          unit: { select: { number: true } },
+          user: { select: { firstName: true, lastName: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 10,
+      }),
+    ]);
 
     const totalUnits = unitsRes.status === 'fulfilled' ? unitsRes.value : 0;
     const occupiedUnits = occupiedRes.status === 'fulfilled' ? occupiedRes.value : 0;
@@ -107,6 +151,43 @@ export async function GET(request: NextRequest) {
       (vendorBuckets.expired ?? 0) +
       (vendorBuckets.expiring ?? 0) +
       (vendorBuckets.not_compliant ?? 0);
+
+    const atRiskVendors =
+      atRiskVendorsRes.status === 'fulfilled'
+        ? atRiskVendorsRes.value.map((v) => ({
+            id: v.id,
+            companyName: v.companyName,
+            complianceStatus: v.complianceStatus,
+            category: v.serviceCategory?.name ?? null,
+          }))
+        : [];
+
+    // Early-warning expirations — surface vendors whose stored status
+    // is still 'compliant'/'not_tracking' but who have a document about
+    // to expire. (Vendors already flagged at-risk skip this list to
+    // avoid double-counting.)
+    const expiringDocs =
+      expiringDocsRes.status === 'fulfilled'
+        ? expiringDocsRes.value
+            .filter(
+              (d) =>
+                d.vendor &&
+                !['expired', 'expiring', 'not_compliant'].includes(d.vendor.complianceStatus),
+            )
+            .map((d) => ({
+              id: d.id,
+              documentType: d.documentType,
+              expiresAt: d.expiresAt?.toISOString() ?? null,
+              daysUntilExpiry: d.expiresAt
+                ? Math.max(
+                    0,
+                    Math.ceil((d.expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)),
+                  )
+                : null,
+              vendorId: d.vendor!.id,
+              vendorName: d.vendor!.companyName,
+            }))
+        : [];
 
     const outstandingTotal =
       outstandingFeesRes.status === 'fulfilled'
@@ -139,6 +220,8 @@ export async function GET(request: NextRequest) {
           total: vendorTotal,
           atRisk: vendorAtRisk,
           byStatus: vendorBuckets,
+          atRiskList: atRiskVendors,
+          expiringDocs,
         },
         outstandingFees: {
           total: outstandingTotal,
