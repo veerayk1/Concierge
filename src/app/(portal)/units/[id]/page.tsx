@@ -35,6 +35,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { Avatar } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { EditUnitDialog } from '@/components/forms/edit-unit-dialog';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -217,6 +218,7 @@ export default function UnitDetailPage() {
     data: apiUnit,
     loading,
     error,
+    forbidden,
     refetch,
   } = useApi<Record<string, unknown>>(
     apiUrl(`/api/v1/units/${id}`, { propertyId: getPropertyId() }),
@@ -267,6 +269,10 @@ export default function UnitDetailPage() {
   }
 
   // -- Error State --
+  if (forbidden) {
+    return <AccessDeniedPanel resource="This unit record" whoCanSee="your property manager" />;
+  }
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">

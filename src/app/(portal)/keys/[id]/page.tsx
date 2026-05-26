@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 import { useState } from 'react';
 
 // ---------------------------------------------------------------------------
@@ -157,6 +158,7 @@ export default function KeyDetailPage() {
     data: keyItem,
     loading,
     error,
+    forbidden,
     refetch,
   } = useApi<KeyDetail>(apiUrl(`/api/v1/keys/${id}`, { propertyId: getPropertyId() }));
 
@@ -208,6 +210,12 @@ export default function KeyDetailPage() {
   }
 
   // -- Error State --
+  if (forbidden) {
+    return (
+      <AccessDeniedPanel resource="Key and FOB records" whoCanSee="front desk and security staff" />
+    );
+  }
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">

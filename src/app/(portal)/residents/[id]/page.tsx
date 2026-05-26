@@ -37,6 +37,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -140,6 +141,7 @@ export default function ResidentDetailPage() {
     data: resident,
     loading,
     error,
+    forbidden,
     refetch,
   } = useApi<ResidentDetail>(apiUrl(`/api/v1/users/${id}`, { propertyId: getPropertyId() }));
 
@@ -260,6 +262,10 @@ export default function ResidentDetailPage() {
   }
 
   // -- Error State --
+  if (forbidden) {
+    return <AccessDeniedPanel resource="Resident profiles" whoCanSee="your property manager" />;
+  }
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">
