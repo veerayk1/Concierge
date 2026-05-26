@@ -26,6 +26,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { apiRequest } from '@/lib/hooks/use-api';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -141,27 +143,55 @@ export default function AlterationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const { confirm, flash, ConfirmHost } = useConfirmDialog();
+  const [saving, setSaving] = useState(false);
+
+  async function fetchAlteration() {
+    try {
+      setLoading(true);
+      const res = await apiRequest(`/api/v1/alterations/${id}`, { method: 'GET' });
+      if (res.status === 404) {
+        setNotFound(true);
+        return;
+      }
+      if (!res.ok) throw new Error(`Failed to fetch alteration (${res.status})`);
+      const json = await res.json();
+      setAlt(json.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchAlteration() {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/v1/alterations/${id}`);
-        if (res.status === 404) {
-          setNotFound(true);
-          return;
-        }
-        if (!res.ok) throw new Error(`Failed to fetch alteration (${res.status})`);
-        const json = await res.json();
-        setAlt(json.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    }
     if (id) fetchAlteration();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  async function patchAlteration(
+    body: Record<string, unknown>,
+    successMessage: string,
+  ): Promise<void> {
+    setSaving(true);
+    try {
+      const res = await apiRequest(`/api/v1/alterations/${id}`, {
+        method: 'PATCH',
+        body,
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not update this project. Try again.');
+        return;
+      }
+      flash('ok', successMessage);
+      fetchAlteration();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (loading) return <AlterationSkeleton />;
 
@@ -488,27 +518,97 @@ export default function AlterationDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <p className="mb-1 text-[12px] text-neutral-500">
-                  Alteration approval is a board-level decision — it runs through the governance
-                  workflow with documentation review.
-                </p>
-                <Button
-                  fullWidth
-                  disabled
-                  title="Approval routes through the board governance workflow — coming with the alteration approvals release."
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Approve
-                </Button>
-                <Button
-                  variant="danger"
-                  fullWidth
-                  disabled
-                  title="Rejection routes through the board governance workflow — coming with the alteration approvals release."
-                >
-                  <XCircle className="h-4 w-4" />
-                  Reject
-                </Button>
+                {(alt.status === 'submitted' || alt.status === 'under_review') && (
+                  <>
+                    <Button
+                      fullWidth
+                      disabled={saving}
+                      onClick={() =>
+                        confirm({
+                          title: `Approve this alteration?`,
+                          body: `${alt.type ? alt.type + ' — ' : ''}Unit ${alt.unit?.number ?? ''}. Approving moves this to the contractor scheduling phase. The resident will be notified.`,
+                          confirmLabel: 'Approve project',
+                          run: () => patchAlteration({ status: 'approved' }, 'Project approved.'),
+                        })
+                      }
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Approve
+                    </Button>
+                    <Button
+                      variant="danger"
+                      fullWidth
+                      disabled={saving}
+                      onClick={() =>
+                        confirm({
+                          title: `Decline this alteration?`,
+                          body: `Unit ${alt.unit?.number ?? ''} — let the resident know what would have been needed for approval. They'll see the reason in their notification.`,
+                          confirmLabel: 'Decline project',
+                          destructive: true,
+                          input: {
+                            label: 'Decline reason',
+                            placeholder: 'e.g. Insurance certificate is required before approval.',
+                            required: true,
+                            maxLength: 500,
+                            validate: (v) =>
+                              v.length < 10
+                                ? 'Please give the resident at least a one-sentence reason.'
+                                : null,
+                          },
+                          run: (reason) =>
+                            patchAlteration(
+                              { status: 'declined', declineReason: reason },
+                              'Project declined.',
+                            ),
+                        })
+                      }
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Decline
+                    </Button>
+                  </>
+                )}
+                {alt.status === 'approved' && (
+                  <Button
+                    fullWidth
+                    disabled={saving}
+                    onClick={() =>
+                      confirm({
+                        title: 'Start work on this alteration?',
+                        body: `Marks the project as in progress. The resident and assigned contractor will see the status change immediately.`,
+                        confirmLabel: 'Start work',
+                        run: () =>
+                          patchAlteration({ status: 'in_progress' }, 'Project marked in progress.'),
+                      })
+                    }
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Start work
+                  </Button>
+                )}
+                {alt.status === 'in_progress' && (
+                  <Button
+                    fullWidth
+                    disabled={saving}
+                    onClick={() =>
+                      confirm({
+                        title: 'Mark this alteration completed?',
+                        body: `Final inspection sign-off. The completion date is recorded as today. This action cannot be reversed.`,
+                        confirmLabel: 'Mark completed',
+                        run: () =>
+                          patchAlteration({ status: 'completed' }, 'Project marked completed.'),
+                      })
+                    }
+                  >
+                    <Shield className="h-4 w-4" />
+                    Mark completed
+                  </Button>
+                )}
+                {(alt.status === 'completed' || alt.status === 'declined') && (
+                  <p className="text-[13px] text-neutral-500">
+                    This project is closed. No further status changes are available.
+                  </p>
+                )}
                 <Button
                   variant="secondary"
                   fullWidth
@@ -522,19 +622,10 @@ export default function AlterationDetailPage() {
                   variant="secondary"
                   fullWidth
                   disabled
-                  title="Document requests are coming with the alteration approvals release."
+                  title="Document requests are coming with the next release — for now, contact the resident directly."
                 >
                   <FileText className="h-4 w-4" />
                   Request Documents
-                </Button>
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  disabled
-                  title="Closeout step is coming with the alteration approvals release."
-                >
-                  <Shield className="h-4 w-4" />
-                  Close
                 </Button>
               </div>
             </CardContent>
@@ -594,6 +685,7 @@ export default function AlterationDetailPage() {
           </Card>
         </div>
       </div>
+      <ConfirmHost />
     </PageShell>
   );
 }
