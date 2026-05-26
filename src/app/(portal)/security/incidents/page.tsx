@@ -348,7 +348,13 @@ export default function IncidentsPage() {
           data={incidents}
           emptyMessage="No incidents match your search."
           emptyIcon={<ShieldAlert className="h-6 w-6" />}
-          onRowClick={(row) => router.push(`/events/${row.id}`)}
+          // Route to the security-incident detail page (where the
+          // acknowledgment trail and incident-specific actions live)
+          // rather than /events/[id], which is built for community
+          // events and renders an incident as "Community Event" with
+          // RSVPs, Send Reminder, Export RSVP List — none of which
+          // apply to a fire alarm or suspicious activity.
+          onRowClick={(row) => router.push(`/security/incidents/${row.id}`)}
         />
       )}
 
