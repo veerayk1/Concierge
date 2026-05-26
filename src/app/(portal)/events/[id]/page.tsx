@@ -25,6 +25,7 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EditEventDialog } from '@/components/forms/edit-event-dialog';
 
@@ -161,10 +162,19 @@ export default function EventDetailPage() {
   const [postingComment, setPostingComment] = useState(false);
   const [cancellingEvent, setCancellingEvent] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelFlash, setCancelFlash] = useState<null | { tone: 'ok' | 'err'; text: string }>(null);
+  const flashCancel = (tone: 'ok' | 'err', text: string) => {
+    setCancelFlash({ tone, text });
+    setTimeout(() => setCancelFlash(null), 4000);
+  };
 
-  async function handleCancelEvent() {
-    if (!confirm('Are you sure you want to cancel this event? This action cannot be undone.'))
-      return;
+  function handleCancelEvent() {
+    setConfirmCancel(true);
+  }
+
+  async function performCancel() {
+    setConfirmCancel(false);
     setCancellingEvent(true);
     try {
       const res = await apiRequest(`/api/v1/events/${id}`, {
@@ -172,13 +182,14 @@ export default function EventDetailPage() {
         body: { status: 'cancelled' },
       });
       if (res.ok) {
+        flashCancel('ok', 'Event cancelled.');
         await refetch();
       } else {
         const result = await res.json().catch(() => ({}));
-        alert(result.message || 'Failed to cancel event.');
+        flashCancel('err', result.message || 'Failed to cancel event.');
       }
     } catch {
-      alert('Network error. Please try again.');
+      flashCancel('err', 'Network error. Please try again.');
     } finally {
       setCancellingEvent(false);
     }
@@ -668,6 +679,42 @@ export default function EventDetailPage() {
           event={event}
           onSuccess={() => refetch()}
         />
+      )}
+
+      {/* Cancel-event confirm — replaces native confirm()/alert(). */}
+      <Dialog open={confirmCancel} onOpenChange={(o) => !o && setConfirmCancel(false)}>
+        <DialogContent>
+          <DialogTitle>Cancel this event?</DialogTitle>
+          <DialogDescription>
+            Attendees will be notified and the event will no longer appear on the schedule. This
+            cannot be undone.
+          </DialogDescription>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setConfirmCancel(false)}>
+              Keep event
+            </Button>
+            <Button
+              size="sm"
+              className="bg-error-500 hover:bg-error-600 text-white"
+              onClick={performCancel}
+            >
+              Cancel event
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {cancelFlash && (
+        <div
+          role="status"
+          className={`fixed right-6 bottom-6 z-50 max-w-sm rounded-xl px-4 py-3 text-[13.5px] font-medium shadow-lg ring-1 ${
+            cancelFlash.tone === 'ok'
+              ? 'bg-success-50 text-success-700 ring-success-200'
+              : 'bg-error-50 text-error-700 ring-error-200'
+          }`}
+        >
+          {cancelFlash.text}
+        </div>
       )}
     </PageShell>
   );
