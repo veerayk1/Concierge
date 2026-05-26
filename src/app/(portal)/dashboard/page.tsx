@@ -23,6 +23,7 @@ import { GovernanceSnapshotCard } from '@/components/dashboard/governance-snapsh
 import { MyOpenRequestsCard } from '@/components/dashboard/my-open-requests-card';
 import { MyBookingsCard } from '@/components/dashboard/my-bookings-card';
 import { ResidentOnboardingCard } from '@/components/dashboard/resident-onboarding-card';
+import { MyPackagesCard } from '@/components/dashboard/my-packages-card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -1669,6 +1670,11 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
           "Expecting someone?" entry actually landed and reminds them
           about who's coming this week. Self-hides when empty. */}
       <MyExpectingCard />
+
+      {/* Packages waiting at the desk — courier, reference number, and
+          a perishable flag so the resident knows what's urgent.
+          Self-hides when nothing is waiting. */}
+      <MyPackagesCard />
 
       {/* Open service requests with current status, so the resident
           doesn't have to dig into /my-requests to see "is anyone
