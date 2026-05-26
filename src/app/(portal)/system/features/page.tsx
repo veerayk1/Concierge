@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   ChevronDown,
   ChevronRight,
@@ -2021,6 +2022,7 @@ export default function FeatureIntelligencePage() {
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
+  const { confirm, ConfirmHost } = useConfirmDialog();
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -2067,11 +2069,17 @@ export default function FeatureIntelligencePage() {
   }, []);
 
   const resetAll = useCallback(() => {
-    if (window.confirm('Reset all progress? This cannot be undone.')) {
-      setCompleted(new Set());
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, []);
+    confirm({
+      title: 'Reset all feature progress?',
+      body: `Clears every checkmark across all phases and steps. The checklist itself stays — you'll just be starting from zero. Cannot be undone.`,
+      confirmLabel: 'Reset progress',
+      destructive: true,
+      run: () => {
+        setCompleted(new Set());
+        localStorage.removeItem(STORAGE_KEY);
+      },
+    });
+  }, [confirm]);
 
   const completedCount = completed.size;
   const progressPercent = TOTAL_STEPS > 0 ? Math.round((completedCount / TOTAL_STEPS) * 100) : 0;
@@ -2257,6 +2265,7 @@ export default function FeatureIntelligencePage() {
           );
         })}
       </div>
+      <ConfirmHost />
     </div>
   );
 }
