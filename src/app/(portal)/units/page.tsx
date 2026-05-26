@@ -119,17 +119,33 @@ export default function UnitsPage() {
     const rawUnits = apiResponse?.data ?? (apiResponse as unknown as ApiUnit[]);
     if (!rawUnits || !Array.isArray(rawUnits)) return [];
 
-    return rawUnits.map((u) => ({
-      id: u.id,
-      number: u.number,
-      floor: u.floor ?? 1,
-      building: u.building?.name || 'Main',
-      type: u.unitType || 'residential',
-      occupantCount: u.occupantCount ?? 0,
-      primaryResident: u.primaryResident?.name || '',
-      status: normalizeUnitStatus(u.status),
-      hasInstructions: (u.unitInstructions?.length ?? 0) > 0,
-    }));
+    // Same test-seed filter as the residents directory — drop test
+    // names from the unit's primary occupant column so demo properties
+    // read like real ones.
+    const TEST_NAME_PATTERN =
+      /^(Chain [A-Z]|QA [A-Z]|UI[- ]?CHAIN|EXH|E2E[- ]|SEC[- ]\d|TEST[- ]|CHAIN[- ]?[A-Z])/i;
+    return rawUnits.map((u) => {
+      const rawName = u.primaryResident?.name || '';
+      const isTestName = TEST_NAME_PATTERN.test(rawName.trim());
+      const occupantCount = u.occupantCount ?? 0;
+      // Status derivation: the DB column doesn't always match
+      // occupant count (units 304 + 401-404 show OCCUPIED with 0
+      // occupants on the demo). Use occupants as the source of
+      // truth: 0 occupants = vacant, regardless of what the DB says.
+      const baseStatus = normalizeUnitStatus(u.status);
+      const status = occupantCount === 0 ? 'vacant' : baseStatus;
+      return {
+        id: u.id,
+        number: u.number,
+        floor: u.floor ?? 1,
+        building: u.building?.name || 'Main',
+        type: u.unitType || 'residential',
+        occupantCount,
+        primaryResident: isTestName ? '' : rawName,
+        status,
+        hasInstructions: (u.unitInstructions?.length ?? 0) > 0,
+      };
+    });
   }, [apiResponse]);
 
   const occupiedCount = units.filter((u) => u.status !== 'vacant').length;
