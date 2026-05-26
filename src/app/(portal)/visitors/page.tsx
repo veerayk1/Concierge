@@ -35,7 +35,10 @@ import { CreateVisitorDialog } from '@/components/forms/create-visitor-dialog';
 // ---------------------------------------------------------------------------
 const TEST_TITLE_PATTERN =
   /^(EXH[-_]?[A-Z]+|UI[-_]?CHAIN|UI[-_]?TASK|CHAIN[-_]?[A-Z]|QA[-_ ]?(TEST|[A-Z]+:|TOWER)|QA TEST|UX[-_]?\d+|WRITE[-_]?MATRIX|SEC[-_]?\d+|TEST[-_ ]?|FBSNCK|VERIFY[-_ ]?|TC[-_]?\d+|E2E[-_ ]?)/i;
-const TEST_SUBSTRING_PATTERN = /\btest (event|notice|announcement|item|run|data|visitor|guest)\b/i;
+// Catches visitor names with "test"-style markers anywhere: "Marco
+// Plumber QA-tomorrow", "Acme Test Guest", "Sarah Kim QA fixture".
+const TEST_SUBSTRING_PATTERN =
+  /\b(test (event|notice|announcement|item|run|data|visitor|guest)|qa[- ]?(test|tomorrow|fixture)|qa$|qa-)/i;
 function isTestSeedTitle(s: string | undefined | null): boolean {
   if (!s) return false;
   const t = s.trim();
@@ -193,9 +196,15 @@ export default function VisitorsPage() {
     return raw.filter((v) => !isTestSeedTitle(v.visitorName));
   }, [apiVisitors]);
 
-  // Derive status from data: no departureAt = signed_in, has departureAt = signed_out
-  const getStatus = (v: VisitorItem): 'signed_in' | 'signed_out' => {
-    return v.departureAt ? 'signed_out' : 'signed_in';
+  // Derive status from data: signed-out wins. Otherwise: if the
+  // arrival is in the future, it's an "expected" pre-authorization
+  // (resident-scheduled, hasn't shown up yet) — those should NOT
+  // count as currently-in-building. Anything else with no departure
+  // is on the floor right now.
+  const getStatus = (v: VisitorItem): 'signed_in' | 'signed_out' | 'expected' => {
+    if (v.departureAt) return 'signed_out';
+    if (new Date(v.arrivalAt).getTime() > Date.now() + 5 * 60 * 1000) return 'expected';
+    return 'signed_in';
   };
 
   // Filtered lists
@@ -218,9 +227,9 @@ export default function VisitorsPage() {
   );
 
   // Summary counts (unfiltered)
-  const totalCurrentlyIn = allVisitors.filter((v) => !v.departureAt).length;
-  const totalSignedInToday = allVisitors.length;
-  const totalExpected = 0; // Expected visitors would need a separate query
+  const totalCurrentlyIn = allVisitors.filter((v) => getStatus(v) === 'signed_in').length;
+  const totalSignedInToday = allVisitors.filter((v) => getStatus(v) !== 'expected').length;
+  const totalExpected = allVisitors.filter((v) => getStatus(v) === 'expected').length;
 
   // ---------------------------------------------------------------------------
   // Currently In Building Columns
