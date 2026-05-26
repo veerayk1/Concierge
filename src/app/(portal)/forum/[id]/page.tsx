@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { apiRequest } from '@/lib/hooks/use-api';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -114,7 +115,7 @@ export default function ForumThreadDetailPage() {
     async function fetchThread() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/v1/forum/${id}`);
+        const res = await apiRequest(`/api/v1/forum/${id}`, { method: 'GET' });
         if (res.status === 404) {
           setNotFound(true);
           return;

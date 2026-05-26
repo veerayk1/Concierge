@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { apiRequest } from '@/lib/hooks/use-api';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -125,7 +126,7 @@ export default function ShiftLogEntryDetailPage() {
     async function fetchEntry() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/v1/shift-log/${id}`);
+        const res = await apiRequest(`/api/v1/shift-log/${id}`, { method: 'GET' });
         if (res.status === 404) {
           setNotFound(true);
           return;
