@@ -259,8 +259,9 @@ export default function KeysPage() {
 
   return (
     <PageShell
+      hero="violet"
       title="Keys & FOBs"
-      description="Track all keys, FOBs, garage clickers, and buzzer codes."
+      description="Every physical credential in the building — who has it, when it comes back."
       actions={
         <div className="flex items-center gap-2">
           <Button

@@ -145,8 +145,9 @@ export default function TrainingPage() {
 
   return (
     <PageShell
-      title="Training & LMS"
-      description="Staff training courses with quizzes and progress tracking."
+      hero="emerald"
+      title="Training"
+      description="Courses, quizzes, and pass-rate tracking — keep the team current."
       actions={
         <Button size="sm" onClick={handleCreateCourse} loading={creating}>
           <Plus className="h-4 w-4" />
@@ -169,19 +170,33 @@ export default function TrainingPage() {
         </div>
       )}
 
-      {/* Error State */}
-      {!loading && error && (
+      {/* Error State — distinguish "module not enabled" (a soft state
+          the building can opt into) from a real fetch failure. */}
+      {!loading && error && /not enabled|disabled|TRAINING_DISABLED/i.test(error) ? (
         <EmptyState
+          tone="emerald"
+          icon={<AlertCircle className="h-6 w-6" />}
+          title="Training isn't switched on for this building yet."
+          description="Ask the property admin to enable the training module to publish courses, quizzes, and track pass rates for the staff."
+          action={
+            <Button variant="secondary" size="sm" onClick={() => refetch()}>
+              Check again
+            </Button>
+          }
+        />
+      ) : !loading && error ? (
+        <EmptyState
+          tone="emerald"
           icon={<AlertCircle className="h-6 w-6" />}
           title="Failed to load training courses"
           description={error}
           action={
             <Button variant="secondary" size="sm" onClick={() => refetch()}>
-              Try Again
+              Try again
             </Button>
           }
         />
-      )}
+      ) : null}
 
       {/* GAP 11.2 — Platform Updates section (always visible when there are update courses) */}
       {!loading && !error && platformUpdateCourses.length > 0 && (

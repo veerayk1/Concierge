@@ -29,6 +29,20 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { CreateVisitorDialog } from '@/components/forms/create-visitor-dialog';
 
 // ---------------------------------------------------------------------------
+// Test-seed filter — same regex as /my-packages, /my-requests, /dashboard.
+// The demo property's visitor log is flooded with "CHAIN-D BKTPJK" entries
+// that should never appear in a real building.
+// ---------------------------------------------------------------------------
+const TEST_TITLE_PATTERN =
+  /^(EXH[-_]?[A-Z]+|UI[-_]?CHAIN|UI[-_]?TASK|CHAIN[-_]?[A-Z]|QA[-_ ]?(TEST|[A-Z]+:|TOWER)|QA TEST|UX[-_]?\d+|WRITE[-_]?MATRIX|SEC[-_]?\d+|TEST[-_ ]?|FBSNCK|VERIFY[-_ ]?|TC[-_]?\d+|E2E[-_ ]?)/i;
+const TEST_SUBSTRING_PATTERN = /\btest (event|notice|announcement|item|run|data|visitor|guest)\b/i;
+function isTestSeedTitle(s: string | undefined | null): boolean {
+  if (!s) return false;
+  const t = s.trim();
+  return TEST_TITLE_PATTERN.test(t) || TEST_SUBSTRING_PATTERN.test(t);
+}
+
+// ---------------------------------------------------------------------------
 // Types — mapped from API response (Prisma VisitorEntry + relations)
 // ---------------------------------------------------------------------------
 
@@ -172,7 +186,12 @@ export default function VisitorsPage() {
     }
   };
 
-  const allVisitors = useMemo<VisitorItem[]>(() => apiVisitors ?? [], [apiVisitors]);
+  // Drop seed-pollution names like "CHAIN-D BKTPJK". Same regex pattern
+  // used by /my-packages, /my-requests, /dashboard.
+  const allVisitors = useMemo<VisitorItem[]>(() => {
+    const raw = apiVisitors ?? [];
+    return raw.filter((v) => !isTestSeedTitle(v.visitorName));
+  }, [apiVisitors]);
 
   // Derive status from data: no departureAt = signed_in, has departureAt = signed_out
   const getStatus = (v: VisitorItem): 'signed_in' | 'signed_out' => {
@@ -373,8 +392,9 @@ export default function VisitorsPage() {
 
   return (
     <PageShell
+      hero="sky"
       title="Visitors"
-      description="Track visitor sign-in and sign-out for building security."
+      description="Who's in the building, who just signed out, who is expected."
       actions={
         <div className="flex items-center gap-2">
           <Button

@@ -290,7 +290,8 @@ export default function ParkingPage() {
 
   return (
     <PageShell
-      title="Parking Management"
+      hero="amber"
+      title="Parking"
       description={
         !loading && !error
           ? (() => {
