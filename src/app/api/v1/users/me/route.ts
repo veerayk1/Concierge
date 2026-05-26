@@ -56,6 +56,38 @@ export async function GET(request: NextRequest) {
       select: { unitId: true, unit: { select: { number: true, propertyId: true } } },
     });
 
+    // Onboarding checklist signals — surface from one call so the
+    // resident dashboard doesn't fan out a separate request per field.
+    // Skip for non-resident roles; staff don't need a setup card.
+    let onboarding: {
+      hasPhone: boolean;
+      hasAvatar: boolean;
+      hasEmergencyContact: boolean;
+      hasLanguagePreference: boolean;
+      complete: boolean;
+    } | null = null;
+    if (
+      auth.user.role === 'resident_owner' ||
+      auth.user.role === 'resident_tenant' ||
+      auth.user.role === 'family_member' ||
+      auth.user.role === 'offsite_owner'
+    ) {
+      const emergencyCount = await prisma.emergencyContact.count({
+        where: { userId: auth.user.userId },
+      });
+      const hasPhone = Boolean(user.phone && user.phone.trim().length >= 7);
+      const hasAvatar = Boolean(user.avatarUrl);
+      const hasEmergencyContact = emergencyCount > 0;
+      const hasLanguagePreference = Boolean(user.languagePreference);
+      onboarding = {
+        hasPhone,
+        hasAvatar,
+        hasEmergencyContact,
+        hasLanguagePreference,
+        complete: hasPhone && hasAvatar && hasEmergencyContact && hasLanguagePreference,
+      };
+    }
+
     return NextResponse.json({
       data: {
         ...user,
@@ -65,6 +97,7 @@ export async function GET(request: NextRequest) {
         occupancyUnitId: occupancy?.unitId ?? null,
         occupancyUnitNumber: occupancy?.unit?.number ?? null,
         propertyId: occupancy?.unit?.propertyId ?? null,
+        onboarding,
       },
     });
   } catch (error) {

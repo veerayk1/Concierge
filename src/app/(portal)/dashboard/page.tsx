@@ -22,6 +22,7 @@ import { MyExpectingCard } from '@/components/dashboard/my-expecting-card';
 import { GovernanceSnapshotCard } from '@/components/dashboard/governance-snapshot-card';
 import { MyOpenRequestsCard } from '@/components/dashboard/my-open-requests-card';
 import { MyBookingsCard } from '@/components/dashboard/my-bookings-card';
+import { ResidentOnboardingCard } from '@/components/dashboard/resident-onboarding-card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -1658,6 +1659,11 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
       {/* the pulse stops on the next render.                                */}
       {/* ----------------------------------------------------------------- */}
       <SpotlightBanner announcements={announcements} />
+
+      {/* First-time resident orientation — surfaces the four
+          set-up tasks that keep them safe and reachable. Self-hides
+          once all four are done. */}
+      <ResidentOnboardingCard />
 
       {/* Pre-authorized visitors the resident scheduled — confirms their
           "Expecting someone?" entry actually landed and reminds them
