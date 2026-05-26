@@ -69,12 +69,28 @@ export function ExpectedVisitorsCard() {
       ? (response as { data: ExpectedVisitor[] }).data
       : (response as unknown as ExpectedVisitor[]) || [];
 
-  // Limit to the next 24 hours — anything later is "scheduled" and lives
-  // on the visitors list page. The dashboard is about the near term.
-  const within24h = rows.filter(
-    (r) => new Date(r.arrivalAt).getTime() - Date.now() < 24 * 60 * 60 * 1000,
-  );
-  if (within24h.length === 0) return null;
+  // Today + tomorrow window. Pre-prepping a contractor badge for the
+  // 8am arrival the next morning is the desk's evening ritual, so
+  // tomorrow needs to be visible too — anything beyond gets the
+  // /visitors list page.
+  const now = Date.now();
+  const within48h = rows.filter((r) => {
+    const ts = new Date(r.arrivalAt).getTime();
+    return ts > now - 60 * 60 * 1000 && ts - now < 48 * 60 * 60 * 1000;
+  });
+  if (within48h.length === 0) return null;
+
+  // Partition into "today" (local-day match) and "tomorrow" so the
+  // section reads as two short lists, not one long one. Today first,
+  // each section sorted earliest-arrival-first.
+  const todayKey = new Date().toDateString();
+  const tomorrowKey = new Date(now + 24 * 60 * 60 * 1000).toDateString();
+  const todayList = within48h
+    .filter((v) => new Date(v.arrivalAt).toDateString() === todayKey)
+    .sort((a, b) => new Date(a.arrivalAt).getTime() - new Date(b.arrivalAt).getTime());
+  const tomorrowList = within48h
+    .filter((v) => new Date(v.arrivalAt).toDateString() === tomorrowKey)
+    .sort((a, b) => new Date(a.arrivalAt).getTime() - new Date(b.arrivalAt).getTime());
 
   async function checkIn(id: string) {
     setCheckingIn(id);
@@ -111,45 +127,83 @@ export function ExpectedVisitorsCard() {
                 Expected
               </span>
               <span className="text-[11.5px] text-sky-700/80">
-                · {within24h.length} pre-authorized visitor{within24h.length === 1 ? '' : 's'}{' '}
-                heading in
+                · {todayList.length} today
+                {tomorrowList.length > 0 ? ` · ${tomorrowList.length} tomorrow` : ''}
               </span>
             </div>
-            <ul className="mt-2.5 flex flex-col gap-2">
-              {within24h.slice(0, 6).map((v) => {
-                const busy = checkingIn === v.id;
-                return (
-                  <li
-                    key={v.id}
-                    className="flex items-center justify-between gap-3 rounded-xl bg-white/60 px-3 py-2 ring-1 ring-sky-100/60"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-semibold text-neutral-900">
-                        {v.visitorName}
-                      </p>
-                      <p className="flex items-center gap-1.5 text-[12px] text-neutral-600">
-                        <Users className="h-3 w-3" />
-                        {TYPE_LABEL[v.visitorType] ?? 'Guest'}
-                        {v.unit && <span> · Unit {v.unit.number}</span>}
-                        <span className="ml-1 inline-flex items-center gap-0.5 text-sky-700">
-                          <Clock className="h-2.5 w-2.5" />
-                          {whenLabel(v.arrivalAt)}
-                        </span>
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => checkIn(v.id)}
-                      disabled={busy}
-                      className="flex flex-shrink-0 items-center gap-1 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 px-3 py-1.5 text-[12.5px] font-semibold text-white shadow-[0_2px_8px_rgba(16,185,129,0.35)] transition hover:from-emerald-600 hover:to-teal-700 disabled:opacity-60"
+            {todayList.length > 0 && (
+              <>
+                {tomorrowList.length > 0 && (
+                  <p className="mt-2.5 text-[10px] font-semibold tracking-[0.08em] text-sky-700 uppercase">
+                    Today
+                  </p>
+                )}
+                <ul
+                  className={`flex flex-col gap-2 ${tomorrowList.length > 0 ? 'mt-1.5' : 'mt-2.5'}`}
+                >
+                  {todayList.slice(0, 6).map((v) => {
+                    const busy = checkingIn === v.id;
+                    return (
+                      <li
+                        key={v.id}
+                        className="flex items-center justify-between gap-3 rounded-xl bg-white/60 px-3 py-2 ring-1 ring-sky-100/60"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[14px] font-semibold text-neutral-900">
+                            {v.visitorName}
+                          </p>
+                          <p className="flex items-center gap-1.5 text-[12px] text-neutral-600">
+                            <Users className="h-3 w-3" />
+                            {TYPE_LABEL[v.visitorType] ?? 'Guest'}
+                            {v.unit && <span> · Unit {v.unit.number}</span>}
+                            <span className="ml-1 inline-flex items-center gap-0.5 text-sky-700">
+                              <Clock className="h-2.5 w-2.5" />
+                              {whenLabel(v.arrivalAt)}
+                            </span>
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => checkIn(v.id)}
+                          disabled={busy}
+                          className="flex flex-shrink-0 items-center gap-1 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 px-3 py-1.5 text-[12.5px] font-semibold text-white shadow-[0_2px_8px_rgba(16,185,129,0.35)] transition hover:from-emerald-600 hover:to-teal-700 disabled:opacity-60"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          {busy ? 'Checking in…' : 'Arrived'}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+            {tomorrowList.length > 0 && (
+              <>
+                <p className="mt-3 text-[10px] font-semibold tracking-[0.08em] text-sky-700/70 uppercase">
+                  Tomorrow · prep badges
+                </p>
+                {/* Tomorrow's list reads as a roster — no check-in
+                    button since they're not here yet. Eight max to
+                    keep the card glanceable. */}
+                <ul className="mt-1.5 flex flex-col gap-1.5">
+                  {tomorrowList.slice(0, 8).map((v) => (
+                    <li
+                      key={v.id}
+                      className="flex items-center gap-3 rounded-xl bg-white/40 px-3 py-1.5 ring-1 ring-sky-100/40"
                     >
-                      <Check className="h-3.5 w-3.5" />
-                      {busy ? 'Checking in…' : 'Arrived'}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                      <span className="min-w-[3.25rem] text-[12px] font-semibold text-sky-700">
+                        {whenLabel(v.arrivalAt)}
+                      </span>
+                      <span className="truncate text-[13px] text-neutral-800">{v.visitorName}</span>
+                      <span className="ml-auto text-[11.5px] text-neutral-500">
+                        {TYPE_LABEL[v.visitorType] ?? 'Guest'}
+                        {v.unit && ` · Unit ${v.unit.number}`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
         </div>
       </div>
