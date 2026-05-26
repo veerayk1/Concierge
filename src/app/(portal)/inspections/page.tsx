@@ -150,11 +150,17 @@ export default function InspectionsPage() {
   );
 
   const allInspections = useMemo<InspectionItem[]>(() => {
-    if (!apiInspections) return [];
-    if (Array.isArray(apiInspections)) return apiInspections;
-    if (Array.isArray((apiInspections as ApiResponse).data))
-      return (apiInspections as ApiResponse).data;
-    return [];
+    let list: InspectionItem[] = [];
+    if (!apiInspections) return list;
+    if (Array.isArray(apiInspections)) list = apiInspections;
+    else if (Array.isArray((apiInspections as ApiResponse).data))
+      list = (apiInspections as ApiResponse).data;
+    // Drop test fixtures (SWEEP, CHAIN, UI-CHAIN, EXH, E2E, QA TEST
+    // prefixes) so the manager's inspection list reflects real
+    // building inspections.
+    const TEST_TITLE =
+      /^(SWEEP[:\s]|EXH[- ]?[A-Z]|CHAIN[- ]?[A-Z]|UI[- ]?CHAIN|E2E[- ]|SEC[- ]\d|TEST[- ]|QA[- ]?TEST)/i;
+    return list.filter((i) => !TEST_TITLE.test((i.title ?? '').trim()));
   }, [apiInspections]);
 
   const filteredInspections = useMemo(
