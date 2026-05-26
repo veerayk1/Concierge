@@ -26,6 +26,7 @@ import { ResidentOnboardingCard } from '@/components/dashboard/resident-onboardi
 import { MyPackagesCard } from '@/components/dashboard/my-packages-card';
 import { AgingShelfCard } from '@/components/dashboard/aging-shelf-card';
 import { KeysOverdueCard } from '@/components/dashboard/keys-overdue-card';
+import { TodaysScheduleCard } from '@/components/dashboard/todays-schedule-card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -787,6 +788,12 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
       {/* Packages aging on the shelf (>=7 days) so they don't get
           forgotten. Self-hides when nothing is stale. */}
       <AgingShelfCard />
+
+      {/* Today's confirmed amenity bookings — what's actually
+          happening on the property today, with a "Live now" pill on
+          any booking that's currently in its window. Self-hides
+          when nothing is booked. */}
+      <TodaysScheduleCard />
 
       {/* ----------------------------------------------------------------- */}
       {/* Right now at the desk — live counters                               */}
@@ -2844,6 +2851,7 @@ export default function DashboardPage() {
           <DecisionQueueCard />
           <ShiftHandoffCard />
           <ActiveIncidentsCard />
+          <TodaysScheduleCard />
         </>
       )}
 
