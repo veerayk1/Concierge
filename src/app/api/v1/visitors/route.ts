@@ -33,6 +33,10 @@ const signInVisitorSchema = z.object({
     ])
     .default('visitor'),
   unitId: z.string().uuid('Select a unit'),
+  // When provided and in the future, the visitor is "expected" — the row is
+  // created but the resident notification is suppressed until check-in. Used
+  // by the resident-facing "Expecting someone?" flow.
+  expectedArrivalAt: z.string().datetime().optional(),
   expectedDepartureAt: z.string().datetime().optional(),
   comments: z.string().max(500).optional().or(z.literal('')),
   parkingPermit: z
@@ -109,12 +113,20 @@ export async function GET(request: NextRequest) {
       propertyId,
     };
 
-    // Status filter: signed_in = no departureAt, signed_out = has departureAt
-    // "active" is an alias for "signed_in" for backward compatibility
+    // Status filter: signed_in = no departureAt, signed_out = has departureAt.
+    // "active" is an alias for "signed_in" for backward compatibility.
+    // "expected" is a row that was pre-authorized (arrivalAt in the future)
+    // and has not yet been checked in. We split this out of "active" so a
+    // scheduled-for-tomorrow visitor doesn't inflate the "on-site now" count.
+    const now = new Date();
     if (status === 'active' || status === 'signed_in') {
       where.departureAt = null;
+      where.arrivalAt = { lte: now };
     } else if (status === 'signed_out') {
       where.departureAt = { not: null };
+    } else if (status === 'expected') {
+      where.departureAt = null;
+      where.arrivalAt = { gt: now };
     }
     // status === 'all' -> no departureAt filter
 
@@ -268,15 +280,20 @@ export async function POST(request: NextRequest) {
     const commentsText =
       commentParts.length > 0 ? stripControlChars(stripHtml(commentParts.join('. '))) : null;
 
+    const expectedArrival = input.expectedArrivalAt ? new Date(input.expectedArrivalAt) : null;
+    const isExpected = expectedArrival !== null && expectedArrival.getTime() > Date.now();
     const visitor = await prisma.visitorEntry.create({
       data: {
         propertyId: input.propertyId,
         visitorName: stripControlChars(stripHtml(input.visitorName)),
         visitorType: resolvedVisitorType,
         unitId: input.unitId,
-        arrivalAt: new Date(),
+        arrivalAt: expectedArrival ?? new Date(),
         expectedDepartureAt: input.expectedDepartureAt ? new Date(input.expectedDepartureAt) : null,
-        notifyResident: input.notifyResident,
+        // Hold notifications for pre-authorized visitors — fire them on
+        // check-in, not at schedule time, so the resident hears about it
+        // when their guest actually walks in.
+        notifyResident: isExpected ? false : input.notifyResident,
         comments: commentsText,
       },
       include: {

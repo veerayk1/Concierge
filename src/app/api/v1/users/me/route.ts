@@ -45,12 +45,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'User not found' }, { status: 404 });
     }
 
+    // Resolve primary occupancy unit so resident-facing flows (vacation,
+    // visitor pre-auth, package self-view) don't have to make a second
+    // round-trip just to know "which unit am I?".
+    const occupancy = await prisma.occupancyRecord.findFirst({
+      where: {
+        userId: auth.user.userId,
+        moveOutDate: null,
+      },
+      select: { unitId: true, unit: { select: { number: true, propertyId: true } } },
+    });
+
     return NextResponse.json({
       data: {
         ...user,
         requiresAssistance: user.assistanceRequired, // GAP 8.2: rename for client
         emailSignature: user.emailSignature ?? null, // GAP 8.1
         languagePreference: user.languagePreference, // GAP 7.6
+        occupancyUnitId: occupancy?.unitId ?? null,
+        occupancyUnitNumber: occupancy?.unit?.number ?? null,
+        propertyId: occupancy?.unit?.propertyId ?? null,
       },
     });
   } catch (error) {

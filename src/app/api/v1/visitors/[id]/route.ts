@@ -117,6 +117,26 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       );
     }
 
+    // Check-in path — moves a pre-authorized "expected" visitor to "on-site"
+    // by rewriting arrivalAt to now. Same handler so the front desk only
+    // needs to know one endpoint.
+    if (body.action === 'check_in') {
+      if (visitor.arrivalAt.getTime() <= Date.now()) {
+        return NextResponse.json(
+          { error: 'ALREADY_CHECKED_IN', message: 'Visitor is already checked in.' },
+          { status: 400 },
+        );
+      }
+      const updated = await prisma.visitorEntry.update({
+        where: { id },
+        data: { arrivalAt: new Date(), notifyResident: true },
+      });
+      return NextResponse.json({
+        data: updated,
+        message: `${visitor.visitorName} checked in.`,
+      });
+    }
+
     // Allow optional sign-out comments
     const signOutComments = body.comments ? stripControlChars(stripHtml(body.comments)) : undefined;
 

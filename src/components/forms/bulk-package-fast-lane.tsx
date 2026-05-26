@@ -108,20 +108,33 @@ export function BulkPackageFastLane({
       .catch(() => {});
   }, [open, propertyId]);
 
-  // Resolve unitId for every row whenever the typed unit number changes
-  // or units finish loading.
+  // Re-resolve unitId for any pre-existing rows after units finish
+  // loading. Depending on `units.length` avoids an infinite re-render
+  // loop — usePropertyUnits returns a new array reference each render,
+  // so depending on `units` itself would re-fire forever.
   useEffect(() => {
-    setRows((prev) =>
-      prev.map((r) => {
-        if (!r.unitInput) return r.unitId ? { ...r, unitId: null } : r;
+    if (units.length === 0) return;
+    setRows((prev) => {
+      let touched = false;
+      const next = prev.map((r) => {
+        if (!r.unitInput) {
+          if (r.unitId) {
+            touched = true;
+            return { ...r, unitId: null };
+          }
+          return r;
+        }
         const match = units.find(
           (u) => u.number.toLowerCase() === r.unitInput.trim().toLowerCase(),
         );
         const nextUnitId = match?.id ?? null;
-        return r.unitId === nextUnitId ? r : { ...r, unitId: nextUnitId };
-      }),
-    );
-  }, [units]);
+        if (r.unitId === nextUnitId) return r;
+        touched = true;
+        return { ...r, unitId: nextUnitId };
+      });
+      return touched ? next : prev;
+    });
+  }, [units.length]);
 
   function update(rowId: string, patch: Partial<Row>) {
     setRows((prev) =>

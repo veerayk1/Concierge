@@ -15,6 +15,8 @@ import { BulkPackageFastLane } from '@/components/forms/bulk-package-fast-lane';
 import { CreateVisitorDialog } from '@/components/forms/create-visitor-dialog';
 import { ShiftHandoffCard } from '@/components/dashboard/shift-handoff-card';
 import { ActiveIncidentsCard } from '@/components/dashboard/active-incidents-card';
+import { ExpectedVisitorsCard } from '@/components/dashboard/expected-visitors-card';
+import { ScheduleVisitorDialog } from '@/components/forms/schedule-visitor-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -27,6 +29,7 @@ import {
   BarChart3,
   Building2,
   Calendar,
+  CalendarCheck,
   CheckCircle2,
   Clock,
   CloudSun,
@@ -769,6 +772,9 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
       {/* Pass-on from the prior shift — pulses if there are flagged items. */}
       <ShiftHandoffCard />
 
+      {/* Pre-authorized visitors arriving in the next 24h — one-tap check-in. */}
+      <ExpectedVisitorsCard />
+
       {/* ----------------------------------------------------------------- */}
       {/* Right now at the desk — live counters                               */}
       {/* ----------------------------------------------------------------- */}
@@ -1435,6 +1441,7 @@ function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) 
 
 function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) {
   const firstName = name.split(' ')[0] || name;
+  const [showScheduleVisitor, setShowScheduleVisitor] = useState(false);
 
   // Long, readable date — "Sunday, May 25" reads warmer than "May 25, 2026".
   const today = new Date().toLocaleDateString('en-US', {
@@ -1598,6 +1605,15 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
       bg: 'from-violet-50 via-white to-white',
       iconBg: 'bg-violet-100',
       iconColor: 'text-violet-600',
+    },
+    {
+      label: 'Expecting someone?',
+      sub: 'Let the desk know — they will let your guest right up.',
+      href: '#schedule-visitor',
+      icon: CalendarCheck,
+      bg: 'from-sky-50 via-white to-indigo-50',
+      iconBg: 'bg-sky-100',
+      iconColor: 'text-sky-600',
     },
   ];
 
@@ -1794,6 +1810,12 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
             <a
               key={action.href}
               href={action.href}
+              onClick={(e) => {
+                if (action.href === '#schedule-visitor') {
+                  e.preventDefault();
+                  setShowScheduleVisitor(true);
+                }
+              }}
               className={`group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br px-5 py-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md ${action.bg}`}
             >
               <div
@@ -1911,6 +1933,12 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
           )}
         </Card>
       </section>
+
+      <ScheduleVisitorDialog
+        open={showScheduleVisitor}
+        onOpenChange={setShowScheduleVisitor}
+        propertyId={getPropertyId()}
+      />
     </div>
   );
 }
