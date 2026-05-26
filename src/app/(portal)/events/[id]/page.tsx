@@ -206,13 +206,14 @@ export default function EventDetailPage() {
       });
       if (res.ok) {
         setCommentText('');
+        flashCancel('ok', 'Comment posted.');
         await refetch();
       } else {
         const result = await res.json().catch(() => ({}));
-        alert(result.message || 'Failed to post comment.');
+        flashCancel('err', result.message || 'Failed to post comment.');
       }
     } catch {
-      alert('Network error. Please try again.');
+      flashCancel('err', 'Network error. Please try again.');
     } finally {
       setPostingComment(false);
     }
