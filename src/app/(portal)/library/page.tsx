@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { useIsBuildingOps } from '@/lib/role-mode';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
@@ -106,31 +107,6 @@ function getFileExtension(mimeType: string): string {
 // Component
 // ---------------------------------------------------------------------------
 
-// Residents browse the building library; only admins / managers /
-// superintendents create folders or upload documents. We detect role
-// the same way every other resident-aware page does.
-const LIBRARY_AUTHOR_ROLES = new Set([
-  'super_admin',
-  'property_admin',
-  'property_manager',
-  'board_member',
-  'superintendent',
-  'front_desk',
-]);
-
-function detectLibraryAuthor(): boolean {
-  if (typeof window === 'undefined') return false;
-  const demo = window.localStorage.getItem('demo_role') ?? '';
-  if (LIBRARY_AUTHOR_ROLES.has(demo)) return true;
-  try {
-    const stored = window.localStorage.getItem('auth_user');
-    const parsed = stored ? (JSON.parse(stored) as { role?: string }) : null;
-    return LIBRARY_AUTHOR_ROLES.has(parsed?.role ?? '');
-  } catch {
-    return false;
-  }
-}
-
 export default function LibraryPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -140,10 +116,8 @@ export default function LibraryPage() {
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [folderName, setFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
-  const [canAuthor, setCanAuthor] = useState(false);
-  useEffect(() => {
-    setCanAuthor(detectLibraryAuthor());
-  }, []);
+  // Residents browse; admins / superintendents / desk can author.
+  const canAuthor = useIsBuildingOps();
 
   const {
     data: apiData,

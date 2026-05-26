@@ -25,6 +25,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateDirectoryEntryDialog } from '@/components/forms/create-directory-entry-dialog';
+import { useIsBuildingOps } from '@/lib/role-mode';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -76,6 +77,9 @@ export default function BuildingDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  // Residents need a read-only directory to find who to call (concierge,
+  // emergency, building manager). Only ops staff can add or export entries.
+  const canEdit = useIsBuildingOps();
 
   const {
     data: apiEntries,
@@ -216,36 +220,42 @@ export default function BuildingDirectoryPage() {
   return (
     <PageShell
       title="Building Directory"
-      description="Contact information for building services, staff, and common areas."
+      description={
+        canEdit
+          ? 'Contact information for building services, staff, and common areas.'
+          : 'Who to call in this building — concierge, emergency, and shared services.'
+      }
       actions={
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={filteredEntries.length === 0}
-            onClick={() =>
-              exportToCsv(
-                filteredEntries,
-                [
-                  { key: 'name', header: 'Name' },
-                  { key: 'category', header: 'Category' },
-                  { key: 'contactPerson', header: 'Contact' },
-                  { key: 'phone', header: 'Phone' },
-                  { key: 'email', header: 'Email' },
-                  { key: 'location', header: 'Location' },
-                ],
-                'building-directory',
-              )
-            }
-          >
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4" />
-            Add Entry
-          </Button>
-        </div>
+        canEdit ? (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={filteredEntries.length === 0}
+              onClick={() =>
+                exportToCsv(
+                  filteredEntries,
+                  [
+                    { key: 'name', header: 'Name' },
+                    { key: 'category', header: 'Category' },
+                    { key: 'contactPerson', header: 'Contact' },
+                    { key: 'phone', header: 'Phone' },
+                    { key: 'email', header: 'Email' },
+                    { key: 'location', header: 'Location' },
+                  ],
+                  'building-directory',
+                )
+              }
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4" />
+              Add Entry
+            </Button>
+          </div>
+        ) : null
       }
     >
       {/* Loading State */}
@@ -375,13 +385,19 @@ export default function BuildingDirectoryPage() {
           ) : allEntries.length === 0 ? (
             <EmptyState
               icon={<Building className="h-6 w-6" />}
-              title="No directory entries yet"
-              description="Add the building's emergency contacts, vendors, and shared services so residents can find them."
+              title={canEdit ? 'No directory entries yet' : 'Building directory is empty'}
+              description={
+                canEdit
+                  ? "Add the building's emergency contacts, vendors, and shared services so residents can find them."
+                  : "Your building hasn't published a directory yet. Reach out to management directly for now."
+              }
               action={
-                <Button size="sm" onClick={() => setShowCreateDialog(true)}>
-                  <Plus className="h-4 w-4" />
-                  Add Entry
-                </Button>
+                canEdit ? (
+                  <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+                    <Plus className="h-4 w-4" />
+                    Add Entry
+                  </Button>
+                ) : null
               }
             />
           ) : (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ClipboardList,
@@ -24,6 +24,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { exportToCsv } from '@/lib/export-csv';
+import { useIsResident } from '@/lib/role-mode';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -119,39 +120,14 @@ const STATUS_LABELS: Record<SurveyStatus, string> = {
 // Component
 // ---------------------------------------------------------------------------
 
-// Resident-facing roles see this page in a different mode: it's an
-// invitation to participate, not an authoring console. We check both
-// demo_role and auth_user.role from localStorage (same pattern used
-// across the portal for read-only-resident gating).
-const RESIDENT_ROLES = new Set([
-  'resident_owner',
-  'resident_tenant',
-  'offsite_owner',
-  'family_member',
-]);
-
-function detectResidentMode(): boolean {
-  if (typeof window === 'undefined') return false;
-  const demo = window.localStorage.getItem('demo_role') ?? '';
-  if (RESIDENT_ROLES.has(demo)) return true;
-  try {
-    const stored = window.localStorage.getItem('auth_user');
-    const parsed = stored ? (JSON.parse(stored) as { role?: string }) : null;
-    return RESIDENT_ROLES.has(parsed?.role ?? '');
-  } catch {
-    return false;
-  }
-}
-
 export default function SurveysPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<SurveyType | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<SurveyStatus | 'all'>('all');
-  const [isResident, setIsResident] = useState(false);
-  useEffect(() => {
-    setIsResident(detectResidentMode());
-  }, []);
+  // Resident-facing roles see this page in a different mode: it's an
+  // invitation to participate, not an authoring console.
+  const isResident = useIsResident();
 
   const {
     data: apiSurveys,

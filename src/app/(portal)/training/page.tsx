@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
+import { useIsPropertyAdmin } from '@/lib/role-mode';
 import {
   AlertCircle,
   Award,
@@ -66,36 +67,13 @@ function formatDuration(minutes: number): string {
 // Component
 // ---------------------------------------------------------------------------
 
-// Only admins / managers / board author training. Front desk and security
-// guards / supervisors / maintenance / superintendent are the trainees.
-const COURSE_AUTHOR_ROLES = new Set([
-  'super_admin',
-  'property_admin',
-  'property_manager',
-  'board_member',
-]);
-
-function detectCourseAuthor(): boolean {
-  if (typeof window === 'undefined') return false;
-  const demo = window.localStorage.getItem('demo_role') ?? '';
-  if (COURSE_AUTHOR_ROLES.has(demo)) return true;
-  try {
-    const stored = window.localStorage.getItem('auth_user');
-    const parsed = stored ? (JSON.parse(stored) as { role?: string }) : null;
-    return COURSE_AUTHOR_ROLES.has(parsed?.role ?? '');
-  } catch {
-    return false;
-  }
-}
-
 export default function TrainingPage() {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [canAuthor, setCanAuthor] = useState(false);
-  useEffect(() => {
-    setCanAuthor(detectCourseAuthor());
-  }, []);
+  // Only admins / managers / board author training. Front desk and security
+  // guards / supervisors / maintenance / superintendent are the trainees.
+  const canAuthor = useIsPropertyAdmin();
 
   const {
     data: apiCourses,
