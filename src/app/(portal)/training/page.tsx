@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   AlertCircle,
   Award,
@@ -66,10 +66,36 @@ function formatDuration(minutes: number): string {
 // Component
 // ---------------------------------------------------------------------------
 
+// Only admins / managers / board author training. Front desk and security
+// guards / supervisors / maintenance / superintendent are the trainees.
+const COURSE_AUTHOR_ROLES = new Set([
+  'super_admin',
+  'property_admin',
+  'property_manager',
+  'board_member',
+]);
+
+function detectCourseAuthor(): boolean {
+  if (typeof window === 'undefined') return false;
+  const demo = window.localStorage.getItem('demo_role') ?? '';
+  if (COURSE_AUTHOR_ROLES.has(demo)) return true;
+  try {
+    const stored = window.localStorage.getItem('auth_user');
+    const parsed = stored ? (JSON.parse(stored) as { role?: string }) : null;
+    return COURSE_AUTHOR_ROLES.has(parsed?.role ?? '');
+  } catch {
+    return false;
+  }
+}
+
 export default function TrainingPage() {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [canAuthor, setCanAuthor] = useState(false);
+  useEffect(() => {
+    setCanAuthor(detectCourseAuthor());
+  }, []);
 
   const {
     data: apiCourses,
@@ -147,12 +173,18 @@ export default function TrainingPage() {
     <PageShell
       hero="emerald"
       title="Training"
-      description="Courses, quizzes, and pass-rate tracking — keep the team current."
+      description={
+        canAuthor
+          ? 'Courses, quizzes, and pass-rate tracking — keep the team current.'
+          : 'Courses and quizzes assigned to you. Keep your certifications current.'
+      }
       actions={
-        <Button size="sm" onClick={handleCreateCourse} loading={creating}>
-          <Plus className="h-4 w-4" />
-          Create Course
-        </Button>
+        canAuthor ? (
+          <Button size="sm" onClick={handleCreateCourse} loading={creating}>
+            <Plus className="h-4 w-4" />
+            Create Course
+          </Button>
+        ) : null
       }
     >
       {/* Create Error */}
@@ -248,13 +280,19 @@ export default function TrainingPage() {
           {allCourses.length === 0 ? (
             <EmptyState
               icon={<GraduationCap className="h-6 w-6" />}
-              title="No training courses"
-              description="Create your first course to start building your training program."
+              title={canAuthor ? 'No training courses' : 'No courses assigned'}
+              description={
+                canAuthor
+                  ? 'Create your first course to start building your training program.'
+                  : 'Your manager will assign courses to you here when they are ready.'
+              }
               action={
-                <Button size="sm" onClick={handleCreateCourse} loading={creating}>
-                  <Plus className="h-4 w-4" />
-                  Create Course
-                </Button>
+                canAuthor ? (
+                  <Button size="sm" onClick={handleCreateCourse} loading={creating}>
+                    <Plus className="h-4 w-4" />
+                    Create Course
+                  </Button>
+                ) : null
               }
             />
           ) : (
