@@ -132,12 +132,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const updateData: Record<string, unknown> = {};
 
     if (body.status) {
+      // 'confirmed' is the legacy DB value seeded by auto-approval — semantically
+      // identical to 'approved' for transition purposes. Treat them as one node
+      // in the graph so existing bookings can still be marked completed,
+      // cancelled, or no_show.
       const validTransitions: Record<string, string[]> = {
         pending: ['approved', 'declined', 'cancelled'],
         approved: ['cancelled', 'completed', 'no_show'],
+        confirmed: ['cancelled', 'completed', 'no_show'],
         declined: [],
         cancelled: [],
         completed: [],
+        no_show: [],
       };
 
       const booking = await prisma.booking.findUnique({

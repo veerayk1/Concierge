@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -11,22 +11,22 @@ import {
   Clock,
   CreditCard,
   DollarSign,
-  LogIn,
-  LogOut,
   MapPin,
   MessageSquare,
   RotateCcw,
   ShieldCheck,
   User,
+  UserX,
   Users,
   XCircle,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -57,10 +57,19 @@ interface BookingAmenity {
   todayBookings: number;
 }
 
+type ApiBookingStatus =
+  | 'pending'
+  | 'approved'
+  | 'confirmed'
+  | 'declined'
+  | 'cancelled'
+  | 'completed'
+  | 'no_show';
+
 interface BookingData {
   id: string;
   reference: string;
-  status: 'requested' | 'pending_approval' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled';
+  status: ApiBookingStatus;
   amenity: BookingAmenity;
   date: string;
   timeStart: string;
@@ -85,18 +94,20 @@ function getStatusConfig(status: string): {
   label: string;
 } {
   switch (status) {
-    case 'requested':
-      return { variant: 'default', label: 'Requested' };
-    case 'pending_approval':
+    case 'pending':
       return { variant: 'warning', label: 'Pending Approval' };
+    case 'approved':
+      return { variant: 'success', label: 'Approved' };
     case 'confirmed':
       return { variant: 'success', label: 'Confirmed' };
-    case 'checked_in':
-      return { variant: 'info', label: 'Checked In' };
     case 'completed':
       return { variant: 'primary', label: 'Completed' };
+    case 'declined':
+      return { variant: 'error', label: 'Declined' };
     case 'cancelled':
-      return { variant: 'error', label: 'Cancelled' };
+      return { variant: 'default', label: 'Cancelled' };
+    case 'no_show':
+      return { variant: 'error', label: 'No-show' };
     default:
       return { variant: 'default', label: status };
   }
@@ -160,15 +171,123 @@ interface BookingDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+// The API returns the raw Prisma row (snake_case fields like startDate,
+// startTime, guestCount, referenceNumber, plus nested unit/amenity objects).
+// This page was written against an aspirational normalized shape — keep the
+// shape it expects, but build it from what we actually have. Missing data
+// becomes safe defaults rather than crashing the page.
+interface RawBooking {
+  id: string;
+  referenceNumber?: string | null;
+  status: string;
+  startDate?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  guestCount?: number | null;
+  requestorComments?: string | null;
+  createdAt?: string | null;
+  feeAmount?: number | null;
+  depositAmount?: number | null;
+  totalAmount?: number | null;
+  paymentStatus?: string | null;
+  paymentMethod?: string | null;
+  paymentReceivedAt?: string | null;
+  depositRefunded?: boolean | null;
+  amenity?: {
+    id: string;
+    name: string;
+    description?: string | null;
+    maxConcurrent?: number | null;
+  } | null;
+  unit?: { id: string; number: string } | null;
+}
+
+function normalizeBooking(raw: RawBooking | null | undefined): BookingData | null {
+  if (!raw) return null;
+  // Prisma stores Time columns as full ISO datetimes anchored at 1970-01-01,
+  // so we extract just the time of day in 12-hour format. Fall back to the
+  // raw value if parsing fails so the page never crashes on malformed data.
+  const fmtTime = (t?: string | null): string => {
+    if (!t) return '—';
+    const d = new Date(t);
+    if (Number.isNaN(d.getTime())) return t.slice(0, 5);
+    return d.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'UTC',
+    });
+  };
+  const residentLabel = raw.unit?.number ? `Resident in Unit ${raw.unit.number}` : 'Resident';
+  return {
+    id: raw.id,
+    reference: raw.referenceNumber ?? raw.id.slice(0, 8).toUpperCase(),
+    status: raw.status as ApiBookingStatus,
+    amenity: {
+      name: raw.amenity?.name ?? 'Amenity',
+      location: raw.amenity?.description ?? '',
+      capacity: raw.amenity?.maxConcurrent ?? 0,
+      todayBookings: 0,
+    },
+    date: raw.startDate ?? new Date().toISOString(),
+    timeStart: fmtTime(raw.startTime),
+    timeEnd: fmtTime(raw.endTime),
+    resident: residentLabel,
+    unit: raw.unit?.number ?? '—',
+    building: 'Building',
+    guests: raw.guestCount ?? 0,
+    purpose: raw.requestorComments ?? '',
+    createdAt: raw.createdAt ?? new Date().toISOString(),
+    rules: [],
+    fees: {
+      rental: Number(raw.feeAmount ?? 0),
+      securityDeposit: Number(raw.depositAmount ?? 0),
+      depositStatus: raw.depositRefunded ? 'released' : 'held',
+      total: Number(raw.totalAmount ?? 0),
+      paymentStatus: (raw.paymentStatus ?? 'pending') as BookingFees['paymentStatus'],
+      paymentMethod: raw.paymentMethod ?? '—',
+      paidAt: raw.paymentReceivedAt ?? null,
+    },
+    timeline: [],
+  };
+}
+
 export default function BookingDetailPage({ params }: BookingDetailPageProps) {
   const { id } = use(params);
+  const { confirm, flash, ConfirmHost } = useConfirmDialog();
+  const [saving, setSaving] = useState(false);
 
   const {
-    data: booking,
+    data: rawBooking,
     loading,
     error,
     refetch,
-  } = useApi<BookingData>(apiUrl(`/api/v1/bookings/${id}`, { propertyId: getPropertyId() }));
+  } = useApi<RawBooking>(apiUrl(`/api/v1/bookings/${id}`, { propertyId: getPropertyId() }));
+
+  const booking = normalizeBooking(rawBooking);
+
+  async function patchStatus(
+    nextStatus: 'approved' | 'declined' | 'cancelled' | 'completed' | 'no_show',
+    successMessage: string,
+  ) {
+    setSaving(true);
+    try {
+      const res = await apiRequest(`/api/v1/bookings/${id}`, {
+        method: 'PATCH',
+        body: { status: nextStatus },
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not update booking. Try again.');
+        return;
+      }
+      flash('ok', successMessage);
+      refetch();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (loading) return <BookingSkeleton />;
 
@@ -226,7 +345,12 @@ export default function BookingDetailPage({ params }: BookingDetailPageProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled
+            title="Resident messaging is coming with the in-app messaging release."
+          >
             <MessageSquare className="h-4 w-4" />
             Message Resident
           </Button>
@@ -452,18 +576,24 @@ export default function BookingDetailPage({ params }: BookingDetailPageProps) {
             <div className="flex flex-col items-center py-2">
               <div
                 className={`flex h-14 w-14 items-center justify-center rounded-full ${
-                  booking.status === 'confirmed'
+                  booking.status === 'approved' ||
+                  booking.status === 'confirmed' ||
+                  booking.status === 'completed'
                     ? 'bg-success-50'
-                    : booking.status === 'pending_approval'
+                    : booking.status === 'pending'
                       ? 'bg-warning-50'
-                      : booking.status === 'cancelled'
+                      : booking.status === 'cancelled' ||
+                          booking.status === 'declined' ||
+                          booking.status === 'no_show'
                         ? 'bg-error-50'
                         : 'bg-neutral-50'
                 }`}
               >
-                {booking.status === 'confirmed' ? (
+                {booking.status === 'approved' || booking.status === 'completed' ? (
                   <CheckCircle2 className="text-success-600 h-7 w-7" />
-                ) : booking.status === 'cancelled' ? (
+                ) : booking.status === 'cancelled' ||
+                  booking.status === 'declined' ||
+                  booking.status === 'no_show' ? (
                   <XCircle className="text-error-600 h-7 w-7" />
                 ) : (
                   <Clock className="text-warning-600 h-7 w-7" />
@@ -484,85 +614,137 @@ export default function BookingDetailPage({ params }: BookingDetailPageProps) {
           </Card>
 
           {/* Actions */}
-          <Card>
-            <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Actions</h2>
-            <CardContent>
-              <div className="flex flex-col gap-2">
-                <p className="mb-1 text-[12px] text-neutral-500">
-                  Manage this booking from the amenity page — every approve, reject, check in, or
-                  cancel action there writes back to the same record.
-                </p>
-                <Link href={`/amenities`} className="block">
-                  <Button variant="secondary" fullWidth>
-                    <Calendar className="h-4 w-4" />
-                    Open in Amenities
-                  </Button>
-                </Link>
-                {booking.status === 'pending_approval' && (
-                  <>
-                    <Button
-                      fullWidth
-                      size="lg"
-                      disabled
-                      title="Approve this booking from the amenity page."
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Approve
-                    </Button>
-                    <Button
-                      variant="danger"
-                      fullWidth
-                      disabled
-                      title="Reject this booking from the amenity page."
-                    >
-                      <XCircle className="h-4 w-4" />
-                      Reject
-                    </Button>
-                  </>
-                )}
-                {booking.status === 'confirmed' && (
+          {(booking.status === 'pending' ||
+            booking.status === 'approved' ||
+            booking.status === 'confirmed') && (
+            <Card>
+              <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Actions</h2>
+              <CardContent>
+                <div className="flex flex-col gap-2">
+                  {booking.status === 'pending' && (
+                    <>
+                      <Button
+                        fullWidth
+                        size="lg"
+                        disabled={saving}
+                        onClick={() =>
+                          confirm({
+                            title: `Approve ${booking.resident}'s booking?`,
+                            body: `${booking.amenity?.name ?? 'Amenity'} on ${new Date(
+                              booking.date,
+                            ).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              month: 'long',
+                              day: 'numeric',
+                            })}, ${booking.timeStart}–${booking.timeEnd}. They'll get a confirmation email immediately.`,
+                            confirmLabel: 'Approve booking',
+                            run: () => patchStatus('approved', 'Booking approved.'),
+                          })
+                        }
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Approve
+                      </Button>
+                      <Button
+                        variant="danger"
+                        fullWidth
+                        disabled={saving}
+                        onClick={() =>
+                          confirm({
+                            title: `Decline ${booking.resident}'s booking?`,
+                            body: `${booking.amenity?.name ?? 'Amenity'} on ${new Date(
+                              booking.date,
+                            ).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              month: 'long',
+                              day: 'numeric',
+                            })}, ${booking.timeStart}–${booking.timeEnd}. They'll get a decline notification.`,
+                            confirmLabel: 'Decline booking',
+                            destructive: true,
+                            run: () => patchStatus('declined', 'Booking declined.'),
+                          })
+                        }
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Decline
+                      </Button>
+                    </>
+                  )}
+                  {(booking.status === 'approved' || booking.status === 'confirmed') && (
+                    <>
+                      <Button
+                        fullWidth
+                        size="lg"
+                        disabled={saving}
+                        onClick={() =>
+                          confirm({
+                            title: 'Mark booking as completed?',
+                            body: `${booking.resident}'s booking for ${
+                              booking.amenity?.name ?? 'the amenity'
+                            } on ${new Date(booking.date).toLocaleDateString('en-US', {
+                              month: 'long',
+                              day: 'numeric',
+                            })}, ${booking.timeStart}–${booking.timeEnd}.`,
+                            confirmLabel: 'Mark completed',
+                            run: () => patchStatus('completed', 'Booking marked completed.'),
+                          })
+                        }
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Mark completed
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        fullWidth
+                        disabled={saving}
+                        onClick={() =>
+                          confirm({
+                            title: 'Mark resident as no-show?',
+                            body: `${booking.resident} did not show up for their ${
+                              booking.amenity?.name ?? 'amenity'
+                            } booking on ${new Date(booking.date).toLocaleDateString('en-US', {
+                              month: 'long',
+                              day: 'numeric',
+                            })}. This counts toward their no-show history.`,
+                            confirmLabel: 'Mark no-show',
+                            destructive: true,
+                            run: () => patchStatus('no_show', 'Booking marked as no-show.'),
+                          })
+                        }
+                      >
+                        <UserX className="h-4 w-4" />
+                        Mark no-show
+                      </Button>
+                    </>
+                  )}
                   <Button
+                    variant="secondary"
                     fullWidth
-                    size="lg"
-                    disabled
-                    title="Check in flow is coming with on-site kiosk mode."
+                    disabled={saving}
+                    onClick={() =>
+                      confirm({
+                        title: 'Cancel this booking?',
+                        body: `${booking.amenity?.name ?? 'Amenity'} on ${new Date(
+                          booking.date,
+                        ).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                        })}, ${booking.timeStart}–${booking.timeEnd}. ${booking.resident} will be notified.`,
+                        confirmLabel: 'Cancel booking',
+                        cancelLabel: 'Keep booking',
+                        destructive: true,
+                        run: () => patchStatus('cancelled', 'Booking cancelled.'),
+                      })
+                    }
                   >
-                    <LogIn className="h-4 w-4" />
-                    Check In
+                    <Ban className="h-4 w-4" />
+                    Cancel booking
                   </Button>
-                )}
-                {booking.status === 'checked_in' && (
-                  <Button
-                    fullWidth
-                    size="lg"
-                    disabled
-                    title="Check out flow is coming with on-site kiosk mode."
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Check Out
-                  </Button>
-                )}
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  disabled
-                  title="Cancel this booking from the amenity page or your own bookings list."
-                >
-                  <Ban className="h-4 w-4" />
-                  Cancel Booking
-                </Button>
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  disabled
-                  title="Deposit refunds are processed through the billing module."
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Refund Deposit
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Amenity Info */}
           {booking.amenity && (
@@ -609,6 +791,7 @@ export default function BookingDetailPage({ params }: BookingDetailPageProps) {
           )}
         </div>
       </div>
+      <ConfirmHost />
     </div>
   );
 }
