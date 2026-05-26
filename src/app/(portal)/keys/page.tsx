@@ -89,6 +89,11 @@ export default function KeysPage() {
   const totalCount = allKeys.length;
   const checkedOutCount = allKeys.filter((k) => k.status === 'checked_out').length;
   const lostCount = allKeys.filter((k) => k.status === 'lost').length;
+  // Overdue is "checked out AND past expected return". A guard's first
+  // glance at this page should answer "is anyone holding something
+  // they were supposed to return"; surfacing the count next to the
+  // header beats forcing them to scan the table.
+  const overdueCount = allKeys.filter((k) => k.isOverdue).length;
 
   // Category badge color map
   const categoryBadgeVariant: Record<string, 'info' | 'error' | 'default' | 'warning' | 'success'> =
@@ -198,21 +203,45 @@ export default function KeysPage() {
     {
       id: 'expectedReturn',
       header: 'Expected Return',
-      cell: (row) =>
-        row.activeCheckout?.expectedReturn ? (
-          <span
-            className={`text-[13px] ${row.isOverdue ? 'text-error-600 font-medium' : 'text-neutral-500'}`}
-          >
-            {new Date(row.activeCheckout.expectedReturn).toLocaleString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })}
-            {row.isOverdue && ' (Overdue)'}
-          </span>
-        ) : (
-          <span className="text-[13px] text-neutral-400">{'\u2014'}</span>
-        ),
+      cell: (row) => {
+        if (!row.activeCheckout?.expectedReturn) {
+          return <span className="text-[13px] text-neutral-400">{'\u2014'}</span>;
+        }
+        const due = new Date(row.activeCheckout.expectedReturn);
+        const ms = Date.now() - due.getTime();
+        const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+        const hours = Math.floor(ms / (60 * 60 * 1000));
+        // Compose a guard-friendly overdue label \u2014 "Overdue \u00b7 3 days"
+        // beats "(Overdue)" because the guard knows immediately whether
+        // it's an hour late (chase by phone) or three days late
+        // (escalate to supervisor).
+        const overdueLabel = row.isOverdue
+          ? days >= 1
+            ? `${days} day${days === 1 ? '' : 's'} late`
+            : hours >= 1
+              ? `${hours} hr late`
+              : 'Just overdue'
+          : null;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span
+              className={`text-[13px] ${row.isOverdue ? 'text-error-700 font-semibold' : 'text-neutral-700'}`}
+            >
+              {due.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </span>
+            {overdueLabel && (
+              <span className="bg-error-50 text-error-700 ring-error-200 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ring-1">
+                <span className="bg-error-500 h-1.5 w-1.5 rounded-full" />
+                {overdueLabel}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       id: 'actions',
@@ -261,7 +290,11 @@ export default function KeysPage() {
     <PageShell
       hero="violet"
       title="Keys & FOBs"
-      description="Every physical credential in the building — who has it, when it comes back."
+      description={
+        overdueCount > 0
+          ? `${overdueCount} past return time — chase the borrower. ${checkedOutCount} checked out total.`
+          : 'Every physical credential in the building — who has it, when it comes back.'
+      }
       actions={
         <div className="flex items-center gap-2">
           <Button
