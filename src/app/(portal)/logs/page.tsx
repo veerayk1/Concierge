@@ -23,6 +23,8 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types matching the actual AuditEntry from /api/v1/audit-log
@@ -72,6 +74,7 @@ const ACTION_VARIANTS: Record<
 // ---------------------------------------------------------------------------
 
 export default function LogsPage() {
+  const isResident = useIsResident();
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [resourceFilter, setResourceFilter] = useState<string>('all');
@@ -221,6 +224,14 @@ export default function LogsPage() {
         ),
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Audit Log" description="">
+        <AccessDeniedPanel resource="The audit log" whoCanSee="your property admin" />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

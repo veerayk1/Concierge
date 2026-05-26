@@ -27,6 +27,8 @@ import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types (aligned with API response)
@@ -298,6 +300,7 @@ function StartImportDialog({
 // ---------------------------------------------------------------------------
 
 export default function DataMigrationPage() {
+  const isResident = useIsResident();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -572,6 +575,14 @@ export default function DataMigrationPage() {
   ];
 
   // Loading skeleton
+  if (isResident) {
+    return (
+      <PageShell title="Data Migration" description="">
+        <AccessDeniedPanel resource="Data migration tools" whoCanSee="your property admin" />
+      </PageShell>
+    );
+  }
+
   if (loading) {
     return (
       <PageShell

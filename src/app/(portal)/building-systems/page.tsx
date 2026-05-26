@@ -4,8 +4,21 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Building2 } from 'lucide-react';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 export default function BuildingSystemsPage() {
+  const isResident = useIsResident();
+  if (isResident) {
+    return (
+      <PageShell title="Building Systems" description="">
+        <AccessDeniedPanel
+          resource="Building systems"
+          whoCanSee="your property manager or superintendent"
+        />
+      </PageShell>
+    );
+  }
   return (
     <PageShell title="Building Systems" description="Monitor and manage building infrastructure.">
       <Card>

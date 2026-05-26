@@ -23,6 +23,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types (aligned with /api/v1/dashboard response)
@@ -173,6 +175,7 @@ const CHART_SECTIONS: ChartSection[] = [
 // ---------------------------------------------------------------------------
 
 export default function AnalyticsPage() {
+  const isResident = useIsResident();
   const [dateRange, setDateRange] = useState<string>('month');
 
   const {
@@ -241,6 +244,17 @@ export default function AnalyticsPage() {
   }, [kpis, recentActivity, dateRange]);
 
   // Loading skeleton
+  if (isResident) {
+    return (
+      <PageShell title="Analytics" description="">
+        <AccessDeniedPanel
+          resource="Building analytics"
+          whoCanSee="your property manager or admin"
+        />
+      </PageShell>
+    );
+  }
+
   if (loading) {
     return (
       <PageShell

@@ -29,6 +29,8 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { KpiTile } from '@/components/ui/kpi-tile';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 import { Search } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -329,6 +331,7 @@ const WEBHOOK_EVENT_CATALOG: Array<{ id: string; label: string; group: string }>
 ];
 
 export default function DeveloperPortalPage() {
+  const isResident = useIsResident();
   const [activeTab, setActiveTab] = useState<Tab>('api-keys');
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
   const [showCreateKeyDialog, setShowCreateKeyDialog] = useState(false);
@@ -760,6 +763,14 @@ export default function DeveloperPortalPage() {
   ];
 
   // Loading skeleton
+  if (isResident) {
+    return (
+      <PageShell title="Developer Portal" description="">
+        <AccessDeniedPanel resource="API keys and webhooks" whoCanSee="your property admin" />
+      </PageShell>
+    );
+  }
+
   if (loading) {
     return (
       <PageShell

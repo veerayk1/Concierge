@@ -24,6 +24,8 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateAssetDialog } from '@/components/forms/create-asset-dialog';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -111,6 +113,7 @@ const conditionConfig: Record<
 // ---------------------------------------------------------------------------
 
 export default function AssetsPage() {
+  const isResident = useIsResident();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<AssetCategory | 'all'>('all');
@@ -266,6 +269,14 @@ export default function AssetsPage() {
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+
+  if (isResident) {
+    return (
+      <PageShell title="Assets" description="">
+        <AccessDeniedPanel resource="Asset management" whoCanSee="your property manager" />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

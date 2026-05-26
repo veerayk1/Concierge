@@ -16,6 +16,54 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const TARGETS = [
   {
+    file: 'src/app/(portal)/analytics/page.tsx',
+    resource: 'Building analytics',
+    title: 'Analytics',
+    audience: 'your property manager or admin',
+  },
+  {
+    file: 'src/app/(portal)/assets/page.tsx',
+    resource: 'Asset management',
+    title: 'Assets',
+    audience: 'your property manager',
+  },
+  {
+    file: 'src/app/(portal)/bookings/page.tsx',
+    resource: 'Booking management',
+    title: 'Bookings',
+    audience: 'your property manager',
+  },
+  {
+    file: 'src/app/(portal)/building-systems/page.tsx',
+    resource: 'Building systems',
+    title: 'Building Systems',
+    audience: 'your property manager or superintendent',
+  },
+  {
+    file: 'src/app/(portal)/data-migration/page.tsx',
+    resource: 'Data migration tools',
+    title: 'Data Migration',
+    audience: 'your property admin',
+  },
+  {
+    file: 'src/app/(portal)/developer-portal/page.tsx',
+    resource: 'API keys and webhooks',
+    title: 'Developer Portal',
+    audience: 'your property admin',
+  },
+  {
+    file: 'src/app/(portal)/logs/page.tsx',
+    resource: 'The audit log',
+    title: 'Audit Log',
+    audience: 'your property admin',
+  },
+  {
+    file: 'src/app/(portal)/parts-supplies/page.tsx',
+    resource: 'Parts and supplies inventory',
+    title: 'Parts & Supplies',
+    audience: 'your property manager or superintendent',
+  },
+  {
     file: 'src/app/(portal)/shift-log/page.tsx',
     resource: 'The staff shift log',
     title: 'Shift Log',
