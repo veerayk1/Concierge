@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -20,11 +20,13 @@ import {
   User,
   XCircle,
 } from 'lucide-react';
-import { useApi } from '@/lib/hooks/use-api';
+import { useApi, apiRequest } from '@/lib/hooks/use-api';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -90,6 +92,8 @@ interface SurveyDetailPageProps {
 
 export default function SurveyDetailPage({ params }: SurveyDetailPageProps) {
   const { id } = use(params);
+  const { confirm, flash, ConfirmHost } = useConfirmDialog();
+  const [saving, setSaving] = useState(false);
 
   const {
     data: survey,
@@ -97,6 +101,54 @@ export default function SurveyDetailPage({ params }: SurveyDetailPageProps) {
     error,
     refetch,
   } = useApi<ApiSurveyDetail>(`/api/v1/surveys/${id}`);
+
+  async function patchStatus(nextStatus: 'active' | 'closed' | 'archived', successMessage: string) {
+    setSaving(true);
+    try {
+      const res = await apiRequest(`/api/v1/surveys/${id}`, {
+        method: 'PATCH',
+        body: { status: nextStatus },
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not update this survey. Try again.');
+        return;
+      }
+      flash('ok', successMessage);
+      refetch();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function exportSurveyRow() {
+    if (!survey) return;
+    exportToCsv(
+      [
+        {
+          id: survey.id,
+          title: survey.title,
+          status: survey.status,
+          responseCount: survey.responseCount,
+          questionCount: survey.questionCount,
+          createdAt: survey.createdAt,
+          expiryDate: survey.expiryDate ?? '',
+        },
+      ],
+      [
+        { key: 'id', header: 'Survey ID' },
+        { key: 'title', header: 'Title' },
+        { key: 'status', header: 'Status' },
+        { key: 'responseCount', header: 'Responses' },
+        { key: 'questionCount', header: 'Questions' },
+        { key: 'createdAt', header: 'Created' },
+        { key: 'expiryDate', header: 'Expires' },
+      ],
+      `survey-${survey.id.slice(0, 8)}`,
+    );
+  }
 
   // Loading
   if (loading) {
@@ -378,34 +430,49 @@ export default function SurveyDetailPage({ params }: SurveyDetailPageProps) {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <p className="mb-1 text-[12px] text-neutral-500">
-                  Survey authoring, sharing, and lifecycle management are coming with the surveys
-                  release.
-                </p>
+                {survey.status === 'draft' && (
+                  <Button
+                    fullWidth
+                    disabled={saving}
+                    onClick={() =>
+                      confirm({
+                        title: `Publish ${survey.title}?`,
+                        body: `Residents will see the survey on their dashboard and can start responding immediately. You can close it any time once it's published.`,
+                        confirmLabel: 'Publish survey',
+                        run: () => patchStatus('active', 'Survey published.'),
+                      })
+                    }
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Publish survey
+                  </Button>
+                )}
                 {survey.status === 'active' && (
                   <Button
                     fullWidth
-                    disabled
-                    title="Closing surveys is coming with the surveys release."
+                    disabled={saving}
+                    onClick={() =>
+                      confirm({
+                        title: `Close ${survey.title}?`,
+                        body: `Locks responses at ${survey.responseCount} so the results stay clean. Residents will no longer be able to submit. You can still export the data.`,
+                        confirmLabel: 'Close survey',
+                        run: () => patchStatus('closed', 'Survey closed.'),
+                      })
+                    }
                   >
                     <XCircle className="h-4 w-4" />
-                    Close Survey
+                    Close survey
                   </Button>
                 )}
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  disabled
-                  title="Per-survey CSV export is coming with the surveys release. Use the list page export for now."
-                >
+                <Button variant="secondary" fullWidth onClick={exportSurveyRow}>
                   <Download className="h-4 w-4" />
-                  Export Results (CSV)
+                  Export survey row (CSV)
                 </Button>
                 <Button
                   variant="secondary"
                   fullWidth
                   disabled
-                  title="Share-results link generation is coming with the surveys release."
+                  title="Per-response export and share-results links are coming with the next surveys release."
                 >
                   <Share2 className="h-4 w-4" />
                   Share Results
@@ -414,20 +481,35 @@ export default function SurveyDetailPage({ params }: SurveyDetailPageProps) {
                   variant="secondary"
                   fullWidth
                   disabled
-                  title="Preview mode is coming with the surveys release."
+                  title="Preview-as-resident is coming with the question builder UI."
                 >
                   <Eye className="h-4 w-4" />
                   Preview Survey
                 </Button>
-                <Button
-                  variant="danger"
-                  fullWidth
-                  disabled
-                  title="Survey deletion is coming with the surveys release."
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete Survey
-                </Button>
+                {survey.status === 'closed' && (
+                  <Button
+                    variant="danger"
+                    fullWidth
+                    disabled={saving}
+                    onClick={() =>
+                      confirm({
+                        title: `Archive ${survey.title}?`,
+                        body: `Hides this survey from the active list while keeping all ${survey.responseCount} responses for compliance / audit. Residents and the question builder won't see it.`,
+                        confirmLabel: 'Archive survey',
+                        destructive: true,
+                        run: () => patchStatus('archived', 'Survey archived.'),
+                      })
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Archive survey
+                  </Button>
+                )}
+                {survey.status === 'archived' && (
+                  <p className="text-[13px] text-neutral-500">
+                    Archived. Results are preserved for audit and can still be exported.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -474,6 +556,7 @@ export default function SurveyDetailPage({ params }: SurveyDetailPageProps) {
           </Card>
         </div>
       </div>
+      <ConfirmHost />
     </PageShell>
   );
 }
