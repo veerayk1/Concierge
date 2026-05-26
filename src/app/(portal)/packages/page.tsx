@@ -194,15 +194,36 @@ export default function PackagesPage() {
 
   const { data: apiPackages, loading, error, refetch } = useApi<ApiPackage[]>(fetchUrl);
 
-  const allPackages = useMemo<PackageItem[]>(
-    () => (apiPackages ?? []).map(normalizePackage),
-    [apiPackages],
-  );
+  const allPackages = useMemo<PackageItem[]>(() => {
+    // Same test-seed filter pattern used across the portal — keeps
+    // EXH-A/B, CHAIN-*, UI-CHAIN, QA-TEST, SEC{n}, E2E demo fixtures
+    // out of the front desk's working view of the shelf. Description
+    // and recipient name are both checked because some seeds tag the
+    // description while others tag the recipient.
+    const TEST_PATTERN =
+      /^(EXH[- ]?[A-Z]?[:\s]|CHAIN[- ]?[A-Z]|UI[- ]?CHAIN[- ]?[A-Z]|QA[- ]?TEST|SEC[- ]?\d|E2E[- ]|TEST[- ])/i;
+    const TEST_RECIPIENT = /^(Chain [A-Z]|UI-CHAIN|QA Test|EXH)/i;
+    return (apiPackages ?? []).map(normalizePackage).filter((p) => {
+      if (TEST_PATTERN.test(p.description?.trim() ?? '')) return false;
+      if (TEST_PATTERN.test(p.referenceNumber?.trim() ?? '')) return false;
+      if (TEST_RECIPIENT.test(p.recipient?.trim() ?? '')) return false;
+      return true;
+    });
+  }, [apiPackages]);
 
-  const unreleasedPackages = useMemo(
-    () => allPackages.filter((p) => p.status === 'unreleased'),
-    [allPackages],
-  );
+  const unreleasedPackages = useMemo(() => {
+    // Sort: perishable first (these can spoil) → then by oldest age
+    // (the back of the shelf), so the front desk's eye lands on
+    // what's urgent and what's stale before what's brand new.
+    const rows = allPackages.filter((p) => p.status === 'unreleased');
+    rows.sort((a, b) => {
+      const aP = a.isPerishable ? 0 : 1;
+      const bP = b.isPerishable ? 0 : 1;
+      if (aP !== bP) return aP - bP;
+      return b.ageHours - a.ageHours;
+    });
+    return rows;
+  }, [allPackages]);
 
   const releasedPackages = useMemo(
     () => allPackages.filter((p) => p.status === 'released'),
