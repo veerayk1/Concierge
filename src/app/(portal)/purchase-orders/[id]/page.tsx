@@ -19,11 +19,13 @@ import {
   User,
   X as XIcon,
 } from 'lucide-react';
-import { useApi } from '@/lib/hooks/use-api';
+import { useApi, apiRequest } from '@/lib/hooks/use-api';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useState } from 'react';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -133,6 +135,8 @@ function formatFileSize(bytes: number): string {
 
 export default function PurchaseOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { confirm, flash, ConfirmHost } = useConfirmDialog();
+  const [saving, setSaving] = useState(false);
 
   const {
     data: po,
@@ -140,6 +144,27 @@ export default function PurchaseOrderDetailPage() {
     error,
     refetch,
   } = useApi<ApiPurchaseOrderDetail>(`/api/v1/purchase-orders/${id}`);
+
+  async function patchPo(body: Record<string, unknown>, successMessage: string) {
+    setSaving(true);
+    try {
+      const res = await apiRequest(`/api/v1/purchase-orders/${id}`, {
+        method: 'PATCH',
+        body,
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not update this purchase order. Try again.');
+        return;
+      }
+      flash('ok', successMessage);
+      refetch();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   // Loading
   if (loading) {
@@ -415,45 +440,120 @@ export default function PurchaseOrderDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <p className="mb-1 text-[12px] text-neutral-500">
-                  PO approval and lifecycle transitions route through finance — wired with the
-                  purchase orders release.
-                </p>
-                <Button
-                  fullWidth
-                  disabled
-                  title="PO approval is coming with the purchase orders workflow release."
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Approve
-                </Button>
-                <Button
-                  variant="danger"
-                  fullWidth
-                  disabled
-                  title="PO rejection is coming with the purchase orders workflow release."
-                >
-                  <XIcon className="h-4 w-4" />
-                  Reject
-                </Button>
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  disabled
-                  title="Mark Ordered is coming with the purchase orders workflow release."
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                  Mark Ordered
-                </Button>
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  disabled
-                  title="Mark Received is coming with the receiving workflow."
-                >
-                  <Package className="h-4 w-4" />
-                  Mark Received
-                </Button>
+                {po.status === 'submitted' && (
+                  <>
+                    <Button
+                      fullWidth
+                      disabled={saving}
+                      onClick={() =>
+                        confirm({
+                          title: `Approve this purchase order?`,
+                          body: `${po.vendor?.companyName ?? 'Vendor'} — ${formatCurrency(po.totalAmount)} across ${po.items.length} line ${po.items.length === 1 ? 'item' : 'items'}. Approving locks the totals and signals the vendor can be issued the order.`,
+                          confirmLabel: 'Approve PO',
+                          run: () => patchPo({ status: 'approved' }, 'PO approved.'),
+                        })
+                      }
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Approve
+                    </Button>
+                    <Button
+                      variant="danger"
+                      fullWidth
+                      disabled={saving}
+                      onClick={() =>
+                        confirm({
+                          title: `Send this PO back to draft?`,
+                          body: `${po.vendor?.companyName ?? 'Vendor'} — ${formatCurrency(po.totalAmount)}. The requester will see your notes and can revise before resubmitting.`,
+                          confirmLabel: 'Send back',
+                          destructive: true,
+                          input: {
+                            label: 'Reason / changes needed',
+                            placeholder:
+                              'e.g. Itemize labor separately from materials; HVAC code requires hourly breakdown.',
+                            required: true,
+                            maxLength: 1000,
+                            validate: (v) =>
+                              v.length < 10
+                                ? 'Give the requester at least a one-sentence reason.'
+                                : null,
+                          },
+                          run: (reason) =>
+                            patchPo(
+                              { status: 'draft', approvalNotes: reason },
+                              'PO sent back to draft.',
+                            ),
+                        })
+                      }
+                    >
+                      <XIcon className="h-4 w-4" />
+                      Send back to draft
+                    </Button>
+                  </>
+                )}
+                {po.status === 'approved' && (
+                  <Button
+                    fullWidth
+                    disabled={saving}
+                    onClick={() =>
+                      confirm({
+                        title: 'Mark this PO as ordered?',
+                        body: `Confirms the order has been placed with ${po.vendor?.companyName ?? 'the vendor'}. Once marked, the next step is recording receipt.`,
+                        confirmLabel: 'Mark ordered',
+                        run: () => patchPo({ status: 'ordered' }, 'PO marked as ordered.'),
+                      })
+                    }
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    Mark Ordered
+                  </Button>
+                )}
+                {po.status === 'ordered' && (
+                  <Button
+                    fullWidth
+                    disabled={saving}
+                    onClick={() =>
+                      confirm({
+                        title: 'Mark this PO as received?',
+                        body: `Confirms the goods or service from ${po.vendor?.companyName ?? 'the vendor'} have arrived. The next step is closing the PO once invoices reconcile.`,
+                        confirmLabel: 'Mark received',
+                        run: () => patchPo({ status: 'received' }, 'PO marked as received.'),
+                      })
+                    }
+                  >
+                    <Package className="h-4 w-4" />
+                    Mark Received
+                  </Button>
+                )}
+                {po.status === 'received' && (
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    disabled={saving}
+                    onClick={() =>
+                      confirm({
+                        title: 'Close this purchase order?',
+                        body: `Finalizes the PO and stops further reconciliation actions. Make sure all invoices have been recorded.`,
+                        confirmLabel: 'Close PO',
+                        run: () => patchPo({ status: 'closed' }, 'PO closed.'),
+                      })
+                    }
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Close PO
+                  </Button>
+                )}
+                {po.status === 'draft' && (
+                  <p className="text-[13px] text-neutral-500">
+                    This PO is still a draft. Submit it from the list page to start the approval
+                    workflow.
+                  </p>
+                )}
+                {(po.status === 'closed' || po.status === 'rejected') && (
+                  <p className="text-[13px] text-neutral-500">
+                    This PO is closed. No further lifecycle actions are available.
+                  </p>
+                )}
                 <Button
                   variant="secondary"
                   fullWidth
@@ -526,6 +626,7 @@ export default function PurchaseOrderDetailPage() {
           )}
         </div>
       </div>
+      <ConfirmHost />
     </PageShell>
   );
 }
