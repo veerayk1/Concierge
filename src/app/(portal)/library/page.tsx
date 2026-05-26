@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
@@ -106,6 +106,31 @@ function getFileExtension(mimeType: string): string {
 // Component
 // ---------------------------------------------------------------------------
 
+// Residents browse the building library; only admins / managers /
+// superintendents create folders or upload documents. We detect role
+// the same way every other resident-aware page does.
+const LIBRARY_AUTHOR_ROLES = new Set([
+  'super_admin',
+  'property_admin',
+  'property_manager',
+  'board_member',
+  'superintendent',
+  'front_desk',
+]);
+
+function detectLibraryAuthor(): boolean {
+  if (typeof window === 'undefined') return false;
+  const demo = window.localStorage.getItem('demo_role') ?? '';
+  if (LIBRARY_AUTHOR_ROLES.has(demo)) return true;
+  try {
+    const stored = window.localStorage.getItem('auth_user');
+    const parsed = stored ? (JSON.parse(stored) as { role?: string }) : null;
+    return LIBRARY_AUTHOR_ROLES.has(parsed?.role ?? '');
+  } catch {
+    return false;
+  }
+}
+
 export default function LibraryPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -115,6 +140,10 @@ export default function LibraryPage() {
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [folderName, setFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [canAuthor, setCanAuthor] = useState(false);
+  useEffect(() => {
+    setCanAuthor(detectLibraryAuthor());
+  }, []);
 
   const {
     data: apiData,
@@ -282,29 +311,35 @@ export default function LibraryPage() {
   return (
     <PageShell
       title="Library"
-      description="Building documents, policies, and shared files."
+      description={
+        canAuthor
+          ? 'Building documents, policies, and shared files.'
+          : 'Browse building documents, policies, and shared files.'
+      }
       actions={
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setFolderName('');
-              setFolderDialogOpen(true);
-            }}
-          >
-            <Folder className="h-4 w-4" />
-            New Folder
-          </Button>
-          <Button
-            size="sm"
-            disabled
-            title="Document upload is coming in the next release. For now use the API or your admin file share."
-          >
-            <Plus className="h-4 w-4" />
-            Upload Document
-          </Button>
-        </div>
+        canAuthor ? (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setFolderName('');
+                setFolderDialogOpen(true);
+              }}
+            >
+              <Folder className="h-4 w-4" />
+              New Folder
+            </Button>
+            <Button
+              size="sm"
+              disabled
+              title="Document upload is coming in the next release. For now use the API or your admin file share."
+            >
+              <Plus className="h-4 w-4" />
+              Upload Document
+            </Button>
+          </div>
+        ) : null
       }
     >
       {/* Summary Cards */}
