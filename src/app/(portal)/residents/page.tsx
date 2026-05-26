@@ -15,6 +15,8 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { exportToCsv } from '@/lib/export-csv';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types — matches API response shape from GET /api/v1/residents
@@ -66,6 +68,7 @@ interface Resident {
 // ---------------------------------------------------------------------------
 
 export default function ResidentsPage() {
+  const isResident = useIsResident();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -244,6 +247,14 @@ export default function ResidentsPage() {
             </Button>
           }
         />
+      </PageShell>
+    );
+  }
+
+  if (isResident) {
+    return (
+      <PageShell title="Residents" description="">
+        <AccessDeniedPanel resource="The resident directory" whoCanSee="your property manager" />
       </PageShell>
     );
   }

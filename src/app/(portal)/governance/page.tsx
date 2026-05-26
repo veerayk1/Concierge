@@ -26,6 +26,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { exportToCsv } from '@/lib/export-csv';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -135,6 +137,7 @@ interface ResolutionsApiResponse {
 // ---------------------------------------------------------------------------
 
 export default function GovernancePage() {
+  const isResident = useIsResident();
   const [activeTab, setActiveTab] = useState<TabKey>('meetings');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -429,6 +432,17 @@ export default function GovernancePage() {
               Try Again
             </Button>
           }
+        />
+      </PageShell>
+    );
+  }
+
+  if (isResident) {
+    return (
+      <PageShell title="Governance" description="">
+        <AccessDeniedPanel
+          resource="Board governance — meetings, minutes, resolutions"
+          whoCanSee="the board and your property manager"
         />
       </PageShell>
     );

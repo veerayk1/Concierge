@@ -25,6 +25,8 @@ import { exportToCsv } from '@/lib/export-csv';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -129,6 +131,7 @@ interface ApiResponse {
 // ---------------------------------------------------------------------------
 
 export default function AlterationsPage() {
+  const isResident = useIsResident();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<AlterationStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<AlterationType | 'all'>('all');
@@ -300,6 +303,17 @@ export default function AlterationsPage() {
         ),
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Alterations" description="">
+        <AccessDeniedPanel
+          resource="Alteration project tracking"
+          whoCanSee="the board and your property manager"
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

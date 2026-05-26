@@ -26,6 +26,8 @@ import { exportToCsv } from '@/lib/export-csv';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreatePurchaseOrderDialog } from '@/components/forms/create-purchase-order-dialog';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -178,6 +180,7 @@ function formatCurrency(amount: number): string {
 // ---------------------------------------------------------------------------
 
 export default function PurchaseOrdersPage() {
+  const isResident = useIsResident();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<POStatus | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<POCategory | 'all'>('all');
@@ -316,6 +319,17 @@ export default function PurchaseOrdersPage() {
       ),
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Purchase Orders" description="">
+        <AccessDeniedPanel
+          resource="Purchase orders"
+          whoCanSee="your property manager or finance"
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

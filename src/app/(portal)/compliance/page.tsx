@@ -26,6 +26,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { KpiTile } from '@/components/ui/kpi-tile';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -339,6 +341,7 @@ function GenerateReportDialog({
 // ---------------------------------------------------------------------------
 
 export default function CompliancePage() {
+  const isResident = useIsResident();
   const [searchQuery, setSearchQuery] = useState('');
   const [showReportDialog, setShowReportDialog] = useState(false);
 
@@ -467,6 +470,17 @@ export default function CompliancePage() {
       ),
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Compliance" description="">
+        <AccessDeniedPanel
+          resource="Compliance reports and audit"
+          whoCanSee="your property manager or admin"
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

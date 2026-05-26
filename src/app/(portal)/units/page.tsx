@@ -27,6 +27,8 @@ import { CreateUnitDialog } from '@/components/forms/create-unit-dialog';
 import { exportToCsv } from '@/lib/export-csv';
 import { ImportWizard } from '@/components/import/import-wizard';
 import { GenerateUnitsDialog } from '@/components/forms/generate-units-dialog';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types — matches API response shape from GET /api/v1/units
@@ -84,6 +86,7 @@ const TYPE_LABELS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 export default function UnitsPage() {
+  const isResident = useIsResident();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -270,6 +273,14 @@ export default function UnitsPage() {
             </Button>
           }
         />
+      </PageShell>
+    );
+  }
+
+  if (isResident) {
+    return (
+      <PageShell title="Units" description="">
+        <AccessDeniedPanel resource="Unit management" whoCanSee="your property manager" />
       </PageShell>
     );
   }

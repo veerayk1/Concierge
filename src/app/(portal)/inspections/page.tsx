@@ -26,6 +26,8 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { exportToCsv } from '@/lib/export-csv';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -128,6 +130,7 @@ const PRIORITY_BADGE_VARIANT: Record<
 // ---------------------------------------------------------------------------
 
 export default function InspectionsPage() {
+  const isResident = useIsResident();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -286,6 +289,17 @@ export default function InspectionsPage() {
       ),
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Inspections" description="">
+        <AccessDeniedPanel
+          resource="Inspection records"
+          whoCanSee="your property manager or superintendent"
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

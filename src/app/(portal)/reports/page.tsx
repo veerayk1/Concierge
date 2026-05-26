@@ -23,6 +23,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -164,6 +166,7 @@ const DEFAULT_META: ReportMeta = {
 // ---------------------------------------------------------------------------
 
 export default function ReportsPage() {
+  const isResident = useIsResident();
   const [generating, setGenerating] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -305,6 +308,17 @@ export default function ReportsPage() {
           icon={<BarChart3 className="h-6 w-6" />}
           title="No reports available"
           description="Report types will appear here once configured for your property."
+        />
+      </PageShell>
+    );
+  }
+
+  if (isResident) {
+    return (
+      <PageShell title="Reports" description="">
+        <AccessDeniedPanel
+          resource="Property reports and analytics"
+          whoCanSee="your property manager or admin"
         />
       </PageShell>
     );

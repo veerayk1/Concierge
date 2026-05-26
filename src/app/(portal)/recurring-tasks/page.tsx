@@ -25,6 +25,8 @@ import { exportToCsv } from '@/lib/export-csv';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -121,6 +123,7 @@ interface ApiResponse {
 // ---------------------------------------------------------------------------
 
 export default function RecurringTasksPage() {
+  const isResident = useIsResident();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<TaskCategory | 'all'>('all');
   const [frequencyFilter, setFrequencyFilter] = useState<TaskFrequency | 'all'>('all');
@@ -306,6 +309,17 @@ export default function RecurringTasksPage() {
       },
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Recurring Tasks" description="">
+        <AccessDeniedPanel
+          resource="Recurring maintenance tasks"
+          whoCanSee="your property manager or superintendent"
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

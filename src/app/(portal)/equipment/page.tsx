@@ -25,6 +25,8 @@ import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateEquipmentDialog } from '@/components/forms/create-equipment-dialog';
 import { exportToCsv } from '@/lib/export-csv';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -108,6 +110,7 @@ interface ApiResponse {
 // ---------------------------------------------------------------------------
 
 export default function EquipmentPage() {
+  const isResident = useIsResident();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<EquipmentCategory | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<EquipmentStatus | 'all'>('all');
@@ -311,6 +314,17 @@ export default function EquipmentPage() {
               Try Again
             </Button>
           }
+        />
+      </PageShell>
+    );
+  }
+
+  if (isResident) {
+    return (
+      <PageShell title="Equipment" description="">
+        <AccessDeniedPanel
+          resource="Building equipment records"
+          whoCanSee="your property manager or superintendent"
         />
       </PageShell>
     );
