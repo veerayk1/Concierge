@@ -18,6 +18,7 @@ import { ActiveIncidentsCard } from '@/components/dashboard/active-incidents-car
 import { ExpectedVisitorsCard } from '@/components/dashboard/expected-visitors-card';
 import { ScheduleVisitorDialog } from '@/components/forms/schedule-visitor-dialog';
 import { DecisionQueueCard } from '@/components/dashboard/decision-queue-card';
+import { MyExpectingCard } from '@/components/dashboard/my-expecting-card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -1654,6 +1655,11 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
       {/* the pulse stops on the next render.                                */}
       {/* ----------------------------------------------------------------- */}
       <SpotlightBanner announcements={announcements} />
+
+      {/* Pre-authorized visitors the resident scheduled — confirms their
+          "Expecting someone?" entry actually landed and reminds them
+          about who's coming this week. Self-hides when empty. */}
+      <MyExpectingCard />
 
       {/* ----------------------------------------------------------------- */}
       {/* From management — what the desk needs you to know, first          */}
