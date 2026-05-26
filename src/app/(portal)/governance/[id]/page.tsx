@@ -22,6 +22,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { apiRequest } from '@/lib/hooks/use-api';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -129,27 +133,132 @@ export default function GovernanceMeetingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const { confirm, flash, ConfirmHost } = useConfirmDialog();
+  const [saving, setSaving] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [minutesOpen, setMinutesOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    scheduledAt: '',
+    location: '',
+    description: '',
+  });
+  const [minutesContent, setMinutesContent] = useState('');
+
+  async function fetchMeeting() {
+    try {
+      setLoading(true);
+      const res = await apiRequest(`/api/v1/governance/${id}`, { method: 'GET' });
+      if (res.status === 404) {
+        setNotFound(true);
+        return;
+      }
+      if (!res.ok) throw new Error(`Failed to fetch meeting (${res.status})`);
+      const json = await res.json();
+      setMeeting(json.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchMeeting() {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/v1/governance/${id}`);
-        if (res.status === 404) {
-          setNotFound(true);
-          return;
-        }
-        if (!res.ok) throw new Error(`Failed to fetch meeting (${res.status})`);
-        const json = await res.json();
-        setMeeting(json.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    }
     if (id) fetchMeeting();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  function openEdit() {
+    if (!meeting) return;
+    // input[type=datetime-local] needs YYYY-MM-DDTHH:MM (no Z). Slice the
+    // ISO string down so the picker shows the current value.
+    setEditForm({
+      title: meeting.title ?? '',
+      scheduledAt: meeting.scheduledAt ? meeting.scheduledAt.slice(0, 16) : '',
+      location: meeting.location ?? '',
+      description: (meeting.description as string | undefined) ?? '',
+    });
+    setEditOpen(true);
+  }
+
+  async function saveEdit() {
+    setSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        entityType: 'meeting',
+        title: editForm.title.trim(),
+        location: editForm.location.trim(),
+      };
+      if (editForm.description.trim()) payload.description = editForm.description.trim();
+      // Convert datetime-local back to an ISO string so the schema's
+      // .datetime() validator accepts it.
+      if (editForm.scheduledAt) {
+        payload.scheduledAt = new Date(editForm.scheduledAt).toISOString();
+      }
+      const res = await apiRequest(`/api/v1/governance/${id}`, { method: 'PATCH', body: payload });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not save changes. Try again.');
+        return;
+      }
+      flash('ok', 'Meeting updated.');
+      setEditOpen(false);
+      fetchMeeting();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveMinutes() {
+    const content = minutesContent.trim();
+    if (content.length < 10) {
+      flash('err', 'Minutes need at least 10 characters.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await apiRequest(`/api/v1/governance/${id}`, {
+        method: 'PATCH',
+        body: { entityType: 'meeting', minutes: { content } },
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not save minutes. Try again.');
+        return;
+      }
+      flash('ok', 'Minutes saved.');
+      setMinutesOpen(false);
+      setMinutesContent('');
+      fetchMeeting();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function cancelMeeting() {
+    setSaving(true);
+    try {
+      const res = await apiRequest(`/api/v1/governance/${id}`, {
+        method: 'PATCH',
+        body: { entityType: 'meeting', status: 'cancelled' },
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not cancel the meeting. Try again.');
+        return;
+      }
+      flash('ok', 'Meeting cancelled.');
+      fetchMeeting();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (loading) return <GovernanceSkeleton />;
 
@@ -196,7 +305,7 @@ export default function GovernanceMeetingDetailPage() {
   const agendaItems = meeting.agendaItems || [];
   const resolutions = meeting.resolutions || [];
   const documents = meeting.documents || [];
-  const minutesContent = meeting.minutes?.[0]?.content || null;
+  const existingMinutes = meeting.minutes?.[0]?.content || null;
 
   return (
     <PageShell
@@ -207,8 +316,8 @@ export default function GovernanceMeetingDetailPage() {
           <Button
             variant="secondary"
             size="sm"
-            disabled
-            title="Meeting edit is coming with the board governance module."
+            disabled={saving || meeting.status === 'cancelled' || meeting.status === 'completed'}
+            onClick={openEdit}
           >
             <Edit2 className="h-4 w-4" />
             Edit Meeting
@@ -328,10 +437,10 @@ export default function GovernanceMeetingDetailPage() {
               <CardTitle>Minutes</CardTitle>
             </CardHeader>
             <CardContent>
-              {minutesContent ? (
+              {existingMinutes ? (
                 <div className="rounded-xl border border-neutral-100 bg-neutral-50/50 p-5">
                   <p className="text-[14px] leading-relaxed whitespace-pre-line text-neutral-700">
-                    {minutesContent}
+                    {existingMinutes}
                   </p>
                 </div>
               ) : (
@@ -388,14 +497,21 @@ export default function GovernanceMeetingDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <p className="mb-1 text-[12px] text-neutral-500">
-                  Meeting management is coming with the board governance module — these actions will
-                  be wired in the next release.
-                </p>
+                {meeting.status === 'cancelled' ? (
+                  <p className="text-[13px] text-neutral-500">
+                    This meeting was cancelled. No further actions are available.
+                  </p>
+                ) : meeting.status === 'completed' ? (
+                  <p className="text-[13px] text-neutral-500">
+                    This meeting is closed. You can still upload minutes for the official record.
+                  </p>
+                ) : null}
                 <Button
                   fullWidth
-                  disabled
-                  title="Meeting edit is coming with the board governance module."
+                  disabled={
+                    saving || meeting.status === 'cancelled' || meeting.status === 'completed'
+                  }
+                  onClick={openEdit}
                 >
                   <Edit2 className="h-4 w-4" />
                   Edit Meeting
@@ -403,30 +519,46 @@ export default function GovernanceMeetingDetailPage() {
                 <Button
                   variant="secondary"
                   fullWidth
-                  disabled
-                  title="Minutes upload is coming with the board governance module."
+                  disabled={saving || meeting.status === 'cancelled'}
+                  onClick={() => {
+                    setMinutesContent(minutesContent || (meeting.minutes?.[0]?.content ?? ''));
+                    setMinutesOpen(true);
+                  }}
                 >
                   <Upload className="h-4 w-4" />
-                  Upload Minutes
+                  {minutesContent.length > 0 || meeting.minutes?.length
+                    ? 'Update minutes'
+                    : 'Upload minutes'}
                 </Button>
                 <Button
                   variant="secondary"
                   fullWidth
                   disabled
-                  title="Attendance recording is coming with the board governance module."
+                  title="Per-attendee tracking is coming next release — for now, include the attendee list at the top of the minutes."
                 >
                   <Users className="h-4 w-4" />
                   Record Attendance
                 </Button>
-                <Button
-                  variant="danger"
-                  fullWidth
-                  disabled
-                  title="Meeting cancellation is coming with the board governance module."
-                >
-                  <XIcon className="h-4 w-4" />
-                  Cancel Meeting
-                </Button>
+                {meeting.status !== 'cancelled' && meeting.status !== 'completed' && (
+                  <Button
+                    variant="danger"
+                    fullWidth
+                    disabled={saving}
+                    onClick={() =>
+                      confirm({
+                        title: `Cancel ${meeting.title}?`,
+                        body: `Residents who saw the agenda will see this meeting marked cancelled. You can't un-cancel — schedule a new meeting if it gets re-set.`,
+                        confirmLabel: 'Cancel meeting',
+                        cancelLabel: 'Keep meeting',
+                        destructive: true,
+                        run: cancelMeeting,
+                      })
+                    }
+                  >
+                    <XIcon className="h-4 w-4" />
+                    Cancel meeting
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -467,6 +599,125 @@ export default function GovernanceMeetingDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Edit meeting dialog — board secretary edits title/time/location/agenda
+          notes. Most common edit is moving the time after a conflict surfaces. */}
+      <Dialog open={editOpen} onOpenChange={(open) => !saving && setEditOpen(open)}>
+        <DialogContent className="max-w-2xl">
+          <DialogTitle>Edit meeting</DialogTitle>
+          <DialogDescription>
+            Update what changed. Residents who already saw the agenda will see the new details next
+            time they open the meeting.
+          </DialogDescription>
+          <form
+            className="mt-4 flex flex-col gap-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void saveEdit();
+            }}
+          >
+            <Input
+              label="Title"
+              value={editForm.title}
+              onChange={(e) => setEditForm((s) => ({ ...s, title: e.target.value }))}
+              disabled={saving}
+              maxLength={200}
+              required
+            />
+            <Input
+              label="When"
+              type="datetime-local"
+              value={editForm.scheduledAt}
+              onChange={(e) => setEditForm((s) => ({ ...s, scheduledAt: e.target.value }))}
+              disabled={saving}
+            />
+            <Input
+              label="Location"
+              value={editForm.location}
+              onChange={(e) => setEditForm((s) => ({ ...s, location: e.target.value }))}
+              placeholder="e.g. Conference Room A, 7th Floor or Zoom link"
+              disabled={saving}
+              maxLength={200}
+            />
+            <div className="flex flex-col gap-2">
+              <label className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700">
+                Notes / agenda summary
+              </label>
+              <textarea
+                rows={4}
+                value={editForm.description}
+                onChange={(e) => setEditForm((s) => ({ ...s, description: e.target.value }))}
+                disabled={saving}
+                maxLength={5000}
+                placeholder="Quick summary of what the board will cover."
+                className="focus:border-primary-300 focus:ring-primary-100 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:ring-4 focus:outline-none disabled:bg-neutral-50"
+              />
+            </div>
+            <div className="mt-2 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={saving}
+                onClick={() => setEditOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" disabled={saving || !editForm.title.trim()}>
+                {saving ? 'Saving…' : 'Save changes'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload minutes dialog — paste from a Word doc or type fresh.
+          Markdown is fine. Required min 10 chars so the API accepts it. */}
+      <Dialog open={minutesOpen} onOpenChange={(open) => !saving && setMinutesOpen(open)}>
+        <DialogContent className="max-w-2xl">
+          <DialogTitle>{meeting.minutes?.length ? 'Update minutes' : 'Upload minutes'}</DialogTitle>
+          <DialogDescription>
+            Paste from Word or type fresh. Markdown formatting is supported. Include the attendee
+            list at the top until per-attendee tracking ships.
+          </DialogDescription>
+          <div className="mt-4 flex flex-col gap-2">
+            <textarea
+              autoFocus
+              rows={12}
+              value={minutesContent}
+              onChange={(e) => setMinutesContent(e.target.value)}
+              disabled={saving}
+              maxLength={50000}
+              placeholder={`Attendees: Sarah Chen, David Patel, ...\n\n1. Call to order — 7:02 PM\n2. Approval of previous minutes — passed\n3. New business: ...`}
+              className="focus:border-primary-300 focus:ring-primary-100 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:ring-4 focus:outline-none disabled:bg-neutral-50"
+            />
+            <p className="text-[12px] text-neutral-400">
+              {minutesContent.trim().length}/50,000 characters
+            </p>
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={saving}
+              onClick={() => setMinutesOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={saving || minutesContent.trim().length < 10}
+              onClick={() => void saveMinutes()}
+            >
+              {saving ? 'Saving…' : 'Save minutes'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmHost />
     </PageShell>
   );
 }
