@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { exportToCsv } from '@/lib/export-csv';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -306,7 +307,25 @@ export default function AlterationsPage() {
       description="Track renovation projects, permits, and contractor compliance."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={filteredAlterations.length === 0}
+            onClick={() =>
+              exportToCsv(
+                filteredAlterations,
+                [
+                  { key: 'referenceNumber', header: 'Ref #' },
+                  { key: 'description', header: 'Description' },
+                  { key: 'type', header: 'Type' },
+                  { key: 'status', header: 'Status' },
+                  { key: 'momentum', header: 'Momentum' },
+                  { key: 'contractor', header: 'Contractor' },
+                ],
+                'alterations',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>
@@ -490,6 +509,11 @@ export default function AlterationsPage() {
             data={filteredAlterations}
             emptyMessage="No alteration projects found."
             emptyIcon={<Hammer className="h-6 w-6" />}
+            // Row click → detail page. Manager picks an alteration row
+            // and lands on its full record (permits, insurance, status).
+            onRowClick={(row) => {
+              window.location.href = `/alterations/${row.id}`;
+            }}
           />
         </>
       )}
