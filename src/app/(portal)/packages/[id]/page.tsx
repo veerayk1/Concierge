@@ -3,7 +3,8 @@
 import { use, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useApi } from '@/lib/hooks/use-api';
+import { useApi, apiRequest } from '@/lib/hooks/use-api';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -137,8 +138,51 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
   const { id } = use(params);
   const router = useRouter();
   const [showReleaseDialog, setShowReleaseDialog] = useState(false);
+  const { confirm, flash, ConfirmHost } = useConfirmDialog();
+  const [saving, setSaving] = useState(false);
 
   const { data: pkg, loading, error, refetch } = useApi<ApiPackageDetail>(`/api/v1/packages/${id}`);
+
+  async function sendReminder() {
+    setSaving(true);
+    try {
+      const res = await apiRequest(`/api/v1/packages/${id}/remind`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not send the reminder. Try again.');
+        return;
+      }
+      flash('ok', 'Reminder sent to the resident.');
+      refetch();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function markReturned() {
+    setSaving(true);
+    try {
+      const res = await apiRequest(`/api/v1/packages/${id}`, {
+        method: 'PATCH',
+        body: { action: 'mark_returned' },
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not mark this package returned. Try again.');
+        return;
+      }
+      flash('ok', 'Package marked as returned to courier.');
+      refetch();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Loading State
@@ -493,24 +537,45 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
                   <Printer className="h-4 w-4" />
                   Print Label
                 </Button>
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  disabled
-                  title="Pickup reminders go out automatically. Manual resend is coming next release."
-                >
-                  <Send className="h-4 w-4" />
-                  Send Reminder
-                </Button>
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  disabled
-                  title="Mark-as-returned flow is coming with the courier returns module."
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Mark as Returned
-                </Button>
+                {pkg.status === 'unreleased' && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      fullWidth
+                      disabled={saving}
+                      onClick={() => {
+                        const recipientLabel =
+                          unitNumber !== 'N/A' ? `Unit ${unitNumber}` : 'the resident';
+                        confirm({
+                          title: `Send a pickup reminder?`,
+                          body: `${recipientLabel} will get an email${pkg.isPerishable ? ' (and SMS if available)' : ''} about package ${pkg.referenceNumber}${categoryName ? ` (${categoryName})` : ''}.`,
+                          confirmLabel: 'Send reminder',
+                          run: sendReminder,
+                        });
+                      }}
+                    >
+                      <Send className="h-4 w-4" />
+                      Send Reminder
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      fullWidth
+                      disabled={saving}
+                      onClick={() =>
+                        confirm({
+                          title: 'Mark this package as returned to courier?',
+                          body: `Package ${pkg.referenceNumber}${categoryName ? ` (${categoryName})` : ''} will be closed and the resident will see it disappear from their waiting list. This cannot be undone — only do this if the courier physically reclaims the parcel.`,
+                          confirmLabel: 'Mark returned',
+                          destructive: true,
+                          run: markReturned,
+                        })
+                      }
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Mark as Returned
+                    </Button>
+                  </>
+                )}
                 <Button
                   variant="ghost"
                   fullWidth
@@ -612,6 +677,7 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
           refetch();
         }}
       />
+      <ConfirmHost />
     </div>
   );
 }

@@ -226,6 +226,38 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       });
     }
 
+    // Mark-as-returned: when a courier reclaims a package the front desk
+    // had been holding. Status transitions from unreleased -> returned.
+    // Same atomic CAS pattern as release to prevent double-writes from
+    // concurrent staff clicks.
+    if (body.action === 'mark_returned') {
+      const result = await prisma.package.updateMany({
+        where: { id, status: 'unreleased' },
+        data: { status: 'returned' },
+      });
+      if (result.count === 0) {
+        return NextResponse.json(
+          {
+            error: 'INVALID_STATE',
+            message: 'Only unreleased packages can be marked as returned to courier.',
+          },
+          { status: 409 },
+        );
+      }
+      const returnedActorName = await resolveActorName(auth.user.userId);
+      await prisma.packageHistory.create({
+        data: {
+          packageId: id,
+          action: 'returned',
+          details: 'Package returned to courier',
+          actorId: auth.user.userId,
+          actorName: returnedActorName,
+        },
+      });
+      const pkg = await prisma.package.findUnique({ where: { id } });
+      return NextResponse.json({ data: pkg, message: 'Package marked as returned to courier.' });
+    }
+
     // Regular update (e.g., storage location, description)
     const updateData: Record<string, unknown> = {};
     if (body.storageSpotId !== undefined) updateData.storageSpotId = body.storageSpotId;
