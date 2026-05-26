@@ -38,6 +38,16 @@ interface ApiEvent {
     id: string;
     number: string;
   } | null;
+  // The incident wizard stores the actual incident type (fire,
+  // medical, security, etc.) in customFields.category — eventType
+  // is always the generic "Incident Report". Use the wizard value
+  // when present so the table differentiates fire-alarm from a
+  // noise complaint at a glance.
+  customFields?: {
+    category?: string;
+    incidentTypeKey?: string;
+    location?: string | null;
+  } | null;
 }
 
 interface ApiResponse {
@@ -98,17 +108,26 @@ export default function IncidentsPage() {
     // type (slug 'incident-report' or 'incident_report' — both seed
     // patterns are valid).
     const INCIDENT_NAME_PATTERN = /^incident( report)?$/i;
+    // Same test-seed filter pattern as the residents directory —
+    // CHAIN-*, UI-CHAIN, E2E, SEC, EXH, TEST are demo-data prefixes
+    // that should not pollute the production-feel security console.
+    const TEST_TITLE_PATTERN =
+      /^(CHAIN[- ]?[A-Z]|UI[- ]?CHAIN[- ]?[A-Z]|E2E[- ]|SEC[- ]\d|EXH[- ]|TEST[- ]|UI-?H[- ]?\d)/i;
     return events
       .filter((evt) => {
         const name = evt.eventType?.name?.trim() ?? '';
-        return INCIDENT_NAME_PATTERN.test(name);
+        if (!INCIDENT_NAME_PATTERN.test(name)) return false;
+        if (TEST_TITLE_PATTERN.test(evt.title?.trim() ?? '')) return false;
+        return true;
       })
       .map((evt) => ({
         id: evt.id,
         referenceNumber: evt.referenceNo || 'N/A',
         title: evt.title,
         description: evt.description || '',
-        category: evt.eventType?.name || 'General',
+        // Wizard-saved type takes precedence over the generic event
+        // type name — "Fire / Smoke alarm" beats "Incident Report".
+        category: evt.customFields?.category || evt.eventType?.name || 'General',
         unit: evt.unit?.number,
         status: normalizeStatus(evt.status),
         priority: normalizePriority(evt.priority),
@@ -151,11 +170,26 @@ export default function IncidentsPage() {
       header: 'Category',
       accessorKey: 'category',
       sortable: true,
-      cell: (row) => (
-        <Badge variant="default" size="sm">
-          {row.category}
-        </Badge>
-      ),
+      cell: (row) => {
+        // Colour the category chip by incident-type family so the
+        // table reads at a glance — fire/medical jump out red, noise
+        // / parking are quieter neutral chips, etc. Variant maps
+        // keep a single source of truth for the seven wizard types.
+        const cat = row.category.toLowerCase();
+        const variant: 'error' | 'warning' | 'info' | 'default' =
+          cat.includes('fire') || cat.includes('medical') || cat.includes('flood')
+            ? 'error'
+            : cat.includes('theft') || cat.includes('vandalism') || cat.includes('suspicious')
+              ? 'warning'
+              : cat.includes('noise') || cat.includes('parking')
+                ? 'default'
+                : 'info';
+        return (
+          <Badge variant={variant} size="sm">
+            {row.category}
+          </Badge>
+        );
+      },
     },
     {
       id: 'priority',
