@@ -284,6 +284,17 @@ export default function EquipmentPage() {
   ];
 
   // Loading state
+  if (isResident) {
+    return (
+      <PageShell title="Equipment" description="">
+        <AccessDeniedPanel
+          resource="Building equipment records"
+          whoCanSee="your property manager or superintendent"
+        />
+      </PageShell>
+    );
+  }
+
   if (loading) {
     return (
       <PageShell title="Equipment" description="Loading...">
@@ -314,17 +325,6 @@ export default function EquipmentPage() {
               Try Again
             </Button>
           }
-        />
-      </PageShell>
-    );
-  }
-
-  if (isResident) {
-    return (
-      <PageShell title="Equipment" description="">
-        <AccessDeniedPanel
-          resource="Building equipment records"
-          whoCanSee="your property manager or superintendent"
         />
       </PageShell>
     );

@@ -401,6 +401,17 @@ export default function GovernancePage() {
   }
 
   // Loading state
+  if (isResident) {
+    return (
+      <PageShell title="Governance" description="">
+        <AccessDeniedPanel
+          resource="Board governance — meetings, minutes, resolutions"
+          whoCanSee="the board and your property manager"
+        />
+      </PageShell>
+    );
+  }
+
   if (loading) {
     return (
       <PageShell title="Governance" description="Loading...">
@@ -432,17 +443,6 @@ export default function GovernancePage() {
               Try Again
             </Button>
           }
-        />
-      </PageShell>
-    );
-  }
-
-  if (isResident) {
-    return (
-      <PageShell title="Governance" description="">
-        <AccessDeniedPanel
-          resource="Board governance — meetings, minutes, resolutions"
-          whoCanSee="the board and your property manager"
         />
       </PageShell>
     );

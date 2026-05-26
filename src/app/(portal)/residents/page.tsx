@@ -221,6 +221,14 @@ export default function ResidentsPage() {
   ];
 
   // Loading state
+  if (isResident) {
+    return (
+      <PageShell title="Residents" description="">
+        <AccessDeniedPanel resource="The resident directory" whoCanSee="your property manager" />
+      </PageShell>
+    );
+  }
+
   if (loading) {
     return (
       <PageShell title="Resident Directory" description="Loading...">
@@ -247,14 +255,6 @@ export default function ResidentsPage() {
             </Button>
           }
         />
-      </PageShell>
-    );
-  }
-
-  if (isResident) {
-    return (
-      <PageShell title="Residents" description="">
-        <AccessDeniedPanel resource="The resident directory" whoCanSee="your property manager" />
       </PageShell>
     );
   }

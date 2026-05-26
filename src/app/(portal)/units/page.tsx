@@ -247,6 +247,14 @@ export default function UnitsPage() {
   ];
 
   // Loading state
+  if (isResident) {
+    return (
+      <PageShell title="Units" description="">
+        <AccessDeniedPanel resource="Unit management" whoCanSee="your property manager" />
+      </PageShell>
+    );
+  }
+
   if (loading) {
     return (
       <PageShell title="Unit Directory" description="Loading...">
@@ -273,14 +281,6 @@ export default function UnitsPage() {
             </Button>
           }
         />
-      </PageShell>
-    );
-  }
-
-  if (isResident) {
-    return (
-      <PageShell title="Units" description="">
-        <AccessDeniedPanel resource="Unit management" whoCanSee="your property manager" />
       </PageShell>
     );
   }

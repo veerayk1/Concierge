@@ -260,6 +260,19 @@ export default function ReportsPage() {
     [dateFrom, dateTo],
   );
 
+  // Resident gate — fires BEFORE loading/error states so residents
+  // never see admin chrome flash or a 403 error toast.
+  if (isResident) {
+    return (
+      <PageShell title="Reports" description="">
+        <AccessDeniedPanel
+          resource="Property reports and analytics"
+          whoCanSee="your property manager or admin"
+        />
+      </PageShell>
+    );
+  }
+
   // Loading skeleton
   if (loading) {
     return (
@@ -308,17 +321,6 @@ export default function ReportsPage() {
           icon={<BarChart3 className="h-6 w-6" />}
           title="No reports available"
           description="Report types will appear here once configured for your property."
-        />
-      </PageShell>
-    );
-  }
-
-  if (isResident) {
-    return (
-      <PageShell title="Reports" description="">
-        <AccessDeniedPanel
-          resource="Property reports and analytics"
-          whoCanSee="your property manager or admin"
         />
       </PageShell>
     );
