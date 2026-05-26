@@ -24,6 +24,7 @@ import { MyOpenRequestsCard } from '@/components/dashboard/my-open-requests-card
 import { MyBookingsCard } from '@/components/dashboard/my-bookings-card';
 import { ResidentOnboardingCard } from '@/components/dashboard/resident-onboarding-card';
 import { MyPackagesCard } from '@/components/dashboard/my-packages-card';
+import { StaffOnDutyStrip } from '@/components/dashboard/staff-on-duty-strip';
 import { AgingShelfCard } from '@/components/dashboard/aging-shelf-card';
 import { KeysOverdueCard } from '@/components/dashboard/keys-overdue-card';
 import { TodaysScheduleCard } from '@/components/dashboard/todays-schedule-card';
@@ -1679,6 +1680,11 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
       {/* the pulse stops on the next render.                                */}
       {/* ----------------------------------------------------------------- */}
       <SpotlightBanner announcements={announcements} />
+
+      {/* Tiny "is the desk staffed right now" strip — green dot when
+          any front_desk or security user is clocked in. Quiet line,
+          not a full card. */}
+      <StaffOnDutyStrip />
 
       {/* First-time resident orientation — surfaces the four
           set-up tasks that keep them safe and reachable. Self-hides
