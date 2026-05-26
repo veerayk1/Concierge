@@ -96,6 +96,41 @@ export function SubmitShiftReportDialog({
   const [editedNotes, setEditedNotes] = useState('');
   const [editedSummary, setEditedSummary] = useState('');
   const [addendum, setAddendum] = useState('');
+  const [polishingSummary, setPolishingSummary] = useState(false);
+  const [polishingNotes, setPolishingNotes] = useState(false);
+
+  // One-tap server-side polish — typo fixes and sentence-cased
+  // capitalisation over the edited summary or notes. The user can
+  // edit freely, then click Polish if they want the rough draft
+  // cleaned up before they sign off.
+  async function polishText(
+    text: string,
+    onSet: (next: string) => void,
+    setBusy: (b: boolean) => void,
+  ) {
+    if (!text.trim()) return;
+    setBusy(true);
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (typeof window !== 'undefined') {
+        const tok = localStorage.getItem('auth_token');
+        if (tok) headers['Authorization'] = `Bearer ${tok}`;
+        const dr = localStorage.getItem('demo_role');
+        if (dr) headers['x-demo-role'] = dr;
+      }
+      const r = await fetch('/api/v1/ai/polish', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ text }),
+      });
+      const j = await r.json();
+      if (j?.data?.polished) onSet(j.data.polished);
+    } catch {
+      /* silent — leave text as-is */
+    } finally {
+      setBusy(false);
+    }
+  }
 
   // Compose the draft when the dialog opens.
   useEffect(() => {
@@ -288,10 +323,24 @@ export function SubmitShiftReportDialog({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-1.5 text-[12px] font-semibold tracking-[0.06em] text-neutral-500 uppercase">
-                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                    Auto-summary
-                  </label>
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="flex items-center gap-1.5 text-[12px] font-semibold tracking-[0.06em] text-neutral-500 uppercase">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      Auto-summary
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        polishText(editedSummary, setEditedSummary, setPolishingSummary)
+                      }
+                      disabled={polishingSummary || !editedSummary.trim()}
+                      className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-0.5 text-[11.5px] font-semibold text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-50 disabled:opacity-50"
+                      title="Fix typos and capitalize sentences"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      {polishingSummary ? 'Polishing…' : 'Polish with AI'}
+                    </button>
+                  </div>
                   <textarea
                     value={editedSummary}
                     onChange={(e) => setEditedSummary(e.target.value)}
@@ -299,7 +348,8 @@ export function SubmitShiftReportDialog({
                     className="focus:border-primary-500 focus:ring-primary-100 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[14.5px] leading-relaxed text-neutral-900 transition-all focus:ring-4 focus:outline-none"
                   />
                   <p className="text-[11.5px] text-neutral-400">
-                    Generated from your entries. Edit anything that doesn't read right.
+                    Generated from your entries. Edit anything that doesn't read right, then hit
+                    Polish to clean up typos.
                   </p>
                 </div>
               </div>
@@ -379,9 +429,21 @@ export function SubmitShiftReportDialog({
             {step === 2 && (
               <div className="mt-5 flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-[12px] font-semibold tracking-[0.06em] text-neutral-500 uppercase">
-                    The full handoff notes
-                  </label>
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="text-[12px] font-semibold tracking-[0.06em] text-neutral-500 uppercase">
+                      The full handoff notes
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => polishText(editedNotes, setEditedNotes, setPolishingNotes)}
+                      disabled={polishingNotes || !editedNotes.trim()}
+                      className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-0.5 text-[11.5px] font-semibold text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-50 disabled:opacity-50"
+                      title="Fix typos and capitalize sentences"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      {polishingNotes ? 'Polishing…' : 'Polish with AI'}
+                    </button>
+                  </div>
                   <textarea
                     value={editedNotes}
                     onChange={(e) => setEditedNotes(e.target.value)}
