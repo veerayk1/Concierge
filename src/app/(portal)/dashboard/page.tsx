@@ -24,6 +24,7 @@ import { MyOpenRequestsCard } from '@/components/dashboard/my-open-requests-card
 import { MyBookingsCard } from '@/components/dashboard/my-bookings-card';
 import { ResidentOnboardingCard } from '@/components/dashboard/resident-onboarding-card';
 import { MyPackagesCard } from '@/components/dashboard/my-packages-card';
+import { QuickReportStrip } from '@/components/dashboard/quick-report-strip';
 import { StaffOnDutyStrip } from '@/components/dashboard/staff-on-duty-strip';
 import { ResidentBriefingCard } from '@/components/dashboard/resident-briefing-card';
 import { ShiftBriefingCard } from '@/components/dashboard/shift-briefing-card';
@@ -1716,6 +1717,11 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
           a perishable flag so the resident knows what's urgent.
           Self-hides when nothing is waiting. */}
       <MyPackagesCard />
+
+      {/* Inline "report a problem" compose — one-sentence quick file.
+          Always visible; the full /my-requests dialog is still
+          available for photos / entry permission / category. */}
+      <QuickReportStrip />
 
       {/* Open service requests with current status, so the resident
           doesn't have to dig into /my-requests to see "is anyone
