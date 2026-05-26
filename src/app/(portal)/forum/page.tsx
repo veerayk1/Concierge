@@ -146,10 +146,17 @@ export default function ForumPage() {
   );
 
   const allThreads = useMemo<ForumThread[]>(() => {
-    if (!apiThreads) return [];
-    if (Array.isArray(apiThreads)) return apiThreads;
-    if (Array.isArray((apiThreads as ApiResponse).data)) return (apiThreads as ApiResponse).data;
-    return [];
+    let list: ForumThread[] = [];
+    if (!apiThreads) return list;
+    if (Array.isArray(apiThreads)) list = apiThreads;
+    else if (Array.isArray((apiThreads as ApiResponse).data))
+      list = (apiThreads as ApiResponse).data;
+    // Drop SWEEP/CHAIN/EXH/TEST/UI-CHAIN/E2E/QA test threads so the
+    // community forum reads like a real conversation board, not a
+    // QA dumping ground.
+    const TEST_TITLE =
+      /^(SWEEP[:\- ]|EXH[- ]?[A-Z]|CHAIN[- ]?[A-Z]|UI[- ]?CHAIN|E2E[- ]|SEC[- ]\d|TEST[- ]|QA[- ]?TEST)/i;
+    return list.filter((t) => !TEST_TITLE.test((t.title ?? '').trim()));
   }, [apiThreads]);
 
   // Extract category from moderationFlags or direct field
