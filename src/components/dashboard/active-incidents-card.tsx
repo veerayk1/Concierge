@@ -54,10 +54,17 @@ export function ActiveIncidentsCard() {
     apiUrl('/api/v1/incidents/active', { propertyId }),
   );
 
-  const rows =
+  const rawRows =
     response && 'data' in (response as object)
       ? (response as { data: IncidentRow[] }).data
       : (response as unknown as IncidentRow[]) || [];
+
+  // Same test-seed filter as the residents directory and incidents
+  // page — keep CHAIN/E2E/UI-CHAIN fixtures out of the manager's
+  // "Needs your attention" rail so it reads like a real building.
+  const TEST_TITLE_PATTERN =
+    /^(CHAIN[- ]?[A-Z]|UI[- ]?CHAIN[- ]?[A-Z]|E2E[- ]|SEC[- ]\d|EXH[- ]?[A-Z]?|TEST[- ]|UI-?H[- ]?\d)/i;
+  const rows = (rawRows || []).filter((r) => !TEST_TITLE_PATTERN.test(r.title?.trim() ?? ''));
 
   if (!rows || rows.length === 0) return null;
 

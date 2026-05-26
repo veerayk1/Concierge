@@ -100,12 +100,32 @@ export function DecisionQueueCard() {
   );
   const [acting, setActing] = useState<string | null>(null);
 
-  const rows =
+  const rawRows =
     response && 'data' in (response as object)
       ? (response as { data: DecisionItem[] }).data
       : (response as unknown as DecisionItem[]) || [];
 
+  // Same test-seed filter used across the portal — CHAIN-*, UI-CHAIN,
+  // E2E, SEC, EXH, TEST title prefixes are demo fixtures, not real
+  // resident requests, and they shouldn't be cluttering a manager's
+  // morning decision queue.
+  const TEST_TITLE_PATTERN =
+    /^(CHAIN[- ]?[A-Z]|UI[- ]?CHAIN[- ]?[A-Z]|E2E[- ]|SEC[- ]\d|EXH[- ]?[A-Z]?|TEST[- ]|UI-?H[- ]?\d)/i;
+  const rows = (rawRows || []).filter((r) => !TEST_TITLE_PATTERN.test(r.title?.trim() ?? ''));
+
   if (!rows || rows.length === 0) return null;
+
+  // Sort: urgent priority first, then by how long they've been waiting
+  // (oldest at the top). The manager's first scan should land on the
+  // thing that's both important AND oldest, not whatever the API
+  // happened to return first.
+  const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+  rows.sort((a, b) => {
+    const pa = PRIORITY_RANK[a.priority] ?? 4;
+    const pb = PRIORITY_RANK[b.priority] ?? 4;
+    if (pa !== pb) return pa - pb;
+    return b.hoursWaiting - a.hoursWaiting;
+  });
 
   const stale = rows.some((r) => r.hoursWaiting >= 24);
 
