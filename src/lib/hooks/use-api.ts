@@ -8,7 +8,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import { getAccessToken, getRefreshToken, setAccessToken, setRefreshToken, clearTokens } from '@/lib/api-client';
+import {
+  getAccessToken,
+  getRefreshToken,
+  setAccessToken,
+  setRefreshToken,
+  clearTokens,
+} from '@/lib/api-client';
 import { reportDebugEvent } from '@/lib/hooks/use-debug-session';
 
 /**
@@ -69,13 +75,20 @@ async function attemptRefresh(): Promise<boolean> {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: rt }),
       });
-      if (!res.ok) { clearTokens(); return false; }
+      if (!res.ok) {
+        clearTokens();
+        return false;
+      }
       const json = await res.json();
       setAccessToken(json.data.accessToken);
       setRefreshToken(json.data.refreshToken);
       return true;
-    } catch { clearTokens(); return false; }
-    finally { refreshPromise = null; }
+    } catch {
+      clearTokens();
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
   })();
   return refreshPromise;
 }
@@ -88,6 +101,13 @@ interface UseApiResult<T> {
   data: T | null;
   loading: boolean;
   error: string | null;
+  /**
+   * True when the API responded 403 (RBAC denied the role). Pages can
+   * use this to render <AccessDeniedPanel /> instead of an "Insufficient
+   * permissions" EmptyState — friendlier UX for residents who URL-hit
+   * an admin-only resource.
+   */
+  forbidden: boolean;
   refetch: () => Promise<void>;
 }
 
@@ -96,6 +116,7 @@ export function useApi<T>(url: string | null, options: UseApiOptions = {}): UseA
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!url || !enabled) {
@@ -105,6 +126,7 @@ export function useApi<T>(url: string | null, options: UseApiOptions = {}): UseA
 
     setLoading(true);
     setError(null);
+    setForbidden(false);
 
     const startTime = performance.now();
 
@@ -182,6 +204,9 @@ export function useApi<T>(url: string | null, options: UseApiOptions = {}): UseA
           });
         }
 
+        if (response.status === 403) {
+          setForbidden(true);
+        }
         setError(result.message || `Failed to fetch (${response.status})`);
         setData(null);
         return;
@@ -201,7 +226,7 @@ export function useApi<T>(url: string | null, options: UseApiOptions = {}): UseA
     fetchData();
   }, [fetchData]);
 
-  return { data, loading, error, refetch: fetchData };
+  return { data, loading, error, forbidden, refetch: fetchData };
 }
 
 /**
@@ -233,7 +258,11 @@ export async function apiRequest(
   });
 
   // Auto-refresh on 401 and retry once
-  if (response.status === 401 && typeof window !== 'undefined' && !localStorage.getItem('demo_role')) {
+  if (
+    response.status === 401 &&
+    typeof window !== 'undefined' &&
+    !localStorage.getItem('demo_role')
+  ) {
     const refreshed = await attemptRefresh();
     if (refreshed) {
       return fetch(url, {

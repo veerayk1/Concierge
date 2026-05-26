@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 import { EditVendorDialog } from '@/components/forms/edit-vendor-dialog';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
@@ -204,6 +205,7 @@ export default function VendorDetailPage() {
     data: vendor,
     loading,
     error,
+    forbidden,
     refetch,
   } = useApi<VendorDetail>(apiUrl(`/api/v1/vendors/${id}`, { propertyId: getPropertyId() }));
 
@@ -264,6 +266,19 @@ export default function VendorDetailPage() {
   // -- Loading State --
   if (loading) {
     return <VendorDetailSkeleton />;
+  }
+
+  // -- Forbidden State -- friendly panel instead of "Insufficient permissions"
+  if (forbidden) {
+    return (
+      <PageShell title="Vendor" description="">
+        <AccessDeniedPanel
+          resource="The vendor record"
+          whoCanSee="your property manager or admin"
+          backHref="/dashboard"
+        />
+      </PageShell>
+    );
   }
 
   // -- Error State --
