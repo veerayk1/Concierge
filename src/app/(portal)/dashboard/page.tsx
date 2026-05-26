@@ -13,6 +13,7 @@ import { CreateShiftEntryDialog } from '@/components/forms/create-shift-entry-di
 import { CreatePackageDialog } from '@/components/forms/create-package-dialog';
 import { CreateVisitorDialog } from '@/components/forms/create-visitor-dialog';
 import { ShiftHandoffCard } from '@/components/dashboard/shift-handoff-card';
+import { ActiveIncidentsCard } from '@/components/dashboard/active-incidents-card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -2737,6 +2738,20 @@ export default function DashboardPage() {
           })}
         </p>
       </div>
+
+      {/* Overnight digest — managers and admins need to see what their
+          team logged and any urgent incidents from the last 24 hours
+          before they look at anything else. Residents and visitors skip
+          this. Both cards self-hide when there's nothing to show. */}
+      {(effectiveRole === 'property_admin' ||
+        effectiveRole === 'property_manager' ||
+        effectiveRole === 'board_member' ||
+        effectiveRole === 'superintendent') && (
+        <>
+          <ShiftHandoffCard />
+          <ActiveIncidentsCard />
+        </>
+      )}
 
       {/* AI Briefing + Building Health + Weather Row */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

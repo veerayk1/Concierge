@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
       where: {
         propertyId,
         deletedAt: null,
-        eventType: { slug: 'shift_log' },
+        eventType: { slug: { in: ['shift-log', 'shift_log'] } },
         createdAt: { gte: start, lt: end },
       },
       include: {
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
         where: {
           propertyId,
           deletedAt: null,
-          eventType: { slug: 'incident_report' },
+          eventType: { slug: { in: ['incident-report', 'incident_report'] } },
           createdAt: { gte: start, lt: end },
         },
       }),
