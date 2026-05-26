@@ -92,19 +92,30 @@ export default function IncidentsPage() {
     const events = apiResponse?.data ?? (apiResponse as unknown as ApiEvent[]);
     if (!events || !Array.isArray(events)) return [];
 
-    return events.map((evt) => ({
-      id: evt.id,
-      referenceNumber: evt.referenceNo || 'N/A',
-      title: evt.title,
-      description: evt.description || '',
-      category: evt.eventType?.name || 'General',
-      unit: evt.unit?.number,
-      status: normalizeStatus(evt.status),
-      priority: normalizePriority(evt.priority),
-      reportedBy: 'Staff', // createdById is a UUID; display name not included in response
-      assignedTo: evt.closedById ? 'Assigned' : undefined,
-      reportedAt: evt.createdAt,
-    }));
+    // Filter out non-incident event types — the unified events feed
+    // also contains shift logs, packages, visitors, etc. The Incidents
+    // page should only show events whose type is the incident-report
+    // type (slug 'incident-report' or 'incident_report' — both seed
+    // patterns are valid).
+    const INCIDENT_NAME_PATTERN = /^incident( report)?$/i;
+    return events
+      .filter((evt) => {
+        const name = evt.eventType?.name?.trim() ?? '';
+        return INCIDENT_NAME_PATTERN.test(name);
+      })
+      .map((evt) => ({
+        id: evt.id,
+        referenceNumber: evt.referenceNo || 'N/A',
+        title: evt.title,
+        description: evt.description || '',
+        category: evt.eventType?.name || 'General',
+        unit: evt.unit?.number,
+        status: normalizeStatus(evt.status),
+        priority: normalizePriority(evt.priority),
+        reportedBy: 'Staff', // createdById is a UUID; display name not included in response
+        assignedTo: evt.closedById ? 'Assigned' : undefined,
+        reportedAt: evt.createdAt,
+      }));
   }, [apiResponse]);
 
   const openCount = incidents.filter(
