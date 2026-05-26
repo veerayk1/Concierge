@@ -148,11 +148,62 @@ export default function AnnouncementsPage() {
     }),
   );
 
+  // Read state shared with the dashboard (UX-166). When the resident
+  // opens an announcement here, mark it read so the dashboard's NEW
+  // pill goes away too. Same localStorage key, same Set semantics.
+  const ANN_READ_KEY = 'conc_ann_read_ids';
+  const [readIds, setReadIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const raw = localStorage.getItem(ANN_READ_KEY);
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set();
+    }
+  });
+  const markRead = (id: string) => {
+    setReadIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      try {
+        localStorage.setItem(ANN_READ_KEY, JSON.stringify(Array.from(next)));
+      } catch {
+        // localStorage quota — silent
+      }
+      return next;
+    });
+  };
+  // Same first-visit seed pattern as the dashboard (UX-166) — on the
+  // very first visit, silently mark every existing announcement as
+  // read so we don't scream NEW at the resident's entire history.
+  // Only fires when the seeded flag is unset; after that, NEW only
+  // appears for things actually published after the resident's first
+  // visit. Shared seeded flag across dashboard + this page means a
+  // resident who started on the dashboard won't re-seed here.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isResident) return;
+    if (localStorage.getItem('conc_ann_read_seeded') === '1') return;
+    if (!apiResponse) return;
+    const rawList = (apiResponse?.data ??
+      (apiResponse as unknown as ApiAnnouncement[])) as ApiAnnouncement[];
+    const ids = (rawList || []).map((a) => a.id).filter(Boolean);
+    if (!ids.length) return;
+    setReadIds(new Set(ids));
+    try {
+      localStorage.setItem(ANN_READ_KEY, JSON.stringify(ids));
+      localStorage.setItem('conc_ann_read_seeded', '1');
+    } catch {
+      // ignore
+    }
+  }, [apiResponse, isResident]);
+
   const announcements = useMemo<Announcement[]>(() => {
     const rawAnnouncements = apiResponse?.data ?? (apiResponse as unknown as ApiAnnouncement[]);
     if (!rawAnnouncements || !Array.isArray(rawAnnouncements)) return [];
 
-    return rawAnnouncements
+    const list = rawAnnouncements
       .filter((a) => !isTestSeedTitle(a.title))
       .map((a) => {
         // channels can be a JSON string or array
@@ -182,7 +233,28 @@ export default function AnnouncementsPage() {
           isEmergency: a.isEmergency,
         };
       });
-  }, [apiResponse]);
+
+    // Sort: emergency → pinned → unread → recency. Only applied for
+    // resident view — admins keep API-default ordering because they
+    // care about workflow state more than read state.
+    if (isResident) {
+      list.sort((a, b) => {
+        const aE = a.isEmergency ? 0 : 1;
+        const bE = b.isEmergency ? 0 : 1;
+        if (aE !== bE) return aE - bE;
+        const aP = a.isPinned ? 0 : 1;
+        const bP = b.isPinned ? 0 : 1;
+        if (aP !== bP) return aP - bP;
+        const aR = readIds.has(a.id) ? 1 : 0;
+        const bR = readIds.has(b.id) ? 1 : 0;
+        if (aR !== bR) return aR - bR;
+        const aT = new Date(a.publishedAt ?? a.createdAt).getTime();
+        const bT = new Date(b.publishedAt ?? b.createdAt).getTime();
+        return bT - aT;
+      });
+    }
+    return list;
+  }, [apiResponse, isResident, readIds]);
 
   // Loading state
   if (loading) {
@@ -325,16 +397,26 @@ export default function AnnouncementsPage() {
             const sc = statusConfig[announcement.status];
             const pc = priorityConfig[announcement.priority];
 
+            const isUnread = isResident && !readIds.has(announcement.id);
             return (
               <Card
                 key={announcement.id}
                 hoverable
-                className="cursor-pointer transition-all duration-200"
-                onClick={() => router.push(`/announcements/${announcement.id}` as never)}
+                className={`cursor-pointer transition-all duration-200 ${isUnread ? 'bg-sky-50/30 ring-1 ring-sky-100' : ''}`}
+                onClick={() => {
+                  markRead(announcement.id);
+                  router.push(`/announcements/${announcement.id}` as never);
+                }}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
+                      {isUnread && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold tracking-[0.08em] text-sky-700 uppercase">
+                          <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                          New
+                        </span>
+                      )}
                       <h3 className="text-[16px] font-semibold text-neutral-900">
                         {announcement.title}
                       </h3>
