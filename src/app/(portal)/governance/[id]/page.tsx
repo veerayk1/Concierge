@@ -204,7 +204,12 @@ export default function GovernanceMeetingDetailPage() {
       description={meeting.entityType === 'resolution' ? 'Board Resolution' : 'Board Meeting'}
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled
+            title="Meeting edit is coming with the board governance module."
+          >
             <Edit2 className="h-4 w-4" />
             Edit Meeting
           </Button>

@@ -230,7 +230,12 @@ export default function KeyDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled
+            title="Edit key metadata from the Keys & FOBs list page."
+          >
             <Edit2 className="h-4 w-4" />
             Edit
           </Button>
