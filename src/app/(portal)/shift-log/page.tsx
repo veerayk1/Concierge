@@ -21,6 +21,7 @@ import {
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { CreateShiftEntryDialog } from '@/components/forms/create-shift-entry-dialog';
+import { SubmitShiftReportDialog } from '@/components/forms/submit-shift-report-dialog';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -210,6 +211,7 @@ interface ActiveShift {
 
 export default function ShiftLogPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
   const [entryTypeFilter, setEntryTypeFilter] = useState<EntryTypeFilter>('all');
   const [clockBusy, setClockBusy] = useState(false);
   const [clockMessage, setClockMessage] = useState<{
@@ -375,6 +377,17 @@ export default function ShiftLogPage() {
           <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4" />
             Add Entry
+          </Button>
+          {/* End-of-shift report — the big new flow. Opens a wizard
+              that auto-rolls up every entry and produces a draft for
+              the user to review/edit, then submits to ShiftHandoff. */}
+          <Button
+            size="sm"
+            onClick={() => setShowReportDialog(true)}
+            className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-[0_2px_8px_rgba(16,185,129,0.35)] hover:from-emerald-600 hover:to-teal-700"
+          >
+            <Sparkles className="h-4 w-4" />
+            End shift &amp; submit report
           </Button>
         </div>
       }
@@ -744,6 +757,18 @@ export default function ShiftLogPage() {
         onSuccess={() => {
           setShowCreateDialog(false);
           refetch();
+        }}
+      />
+      <SubmitShiftReportDialog
+        open={showReportDialog}
+        onOpenChange={setShowReportDialog}
+        propertyId={getPropertyId()}
+        onSuccess={() => {
+          setShowReportDialog(false);
+          refetch();
+          // Also clock out if there's an active shift so the report
+          // and the time card stay in sync.
+          if (activeShift) handleClockOut();
         }}
       />
     </PageShell>

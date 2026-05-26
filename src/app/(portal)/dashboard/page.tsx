@@ -12,6 +12,7 @@ import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog'
 import { CreateShiftEntryDialog } from '@/components/forms/create-shift-entry-dialog';
 import { CreatePackageDialog } from '@/components/forms/create-package-dialog';
 import { CreateVisitorDialog } from '@/components/forms/create-visitor-dialog';
+import { ShiftHandoffCard } from '@/components/dashboard/shift-handoff-card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -751,6 +752,9 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
         </div>
       </header>
 
+      {/* Pass-on from the prior shift — pulses if there are flagged items. */}
+      <ShiftHandoffCard />
+
       {/* ----------------------------------------------------------------- */}
       {/* Right now at the desk — live counters                               */}
       {/* ----------------------------------------------------------------- */}
@@ -1130,6 +1134,9 @@ function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) 
           </p>
         </div>
       </header>
+
+      {/* Pass-on from the prior shift — pulses if items need follow-up. */}
+      <ShiftHandoffCard />
 
       {/* ACTIVE INCIDENT BANNER — red, pulsing, the loudest thing on the
           page when there's anything open. Guard cannot miss this. */}

@@ -48,6 +48,10 @@ export async function POST(request: NextRequest) {
     const shiftType: string = body.shiftType ?? 'morning';
     const notes: string | null = body.notes ?? null;
     const flaggedItems = body.flaggedItems ?? [];
+    // aiSummary is the editable narrative the wizard produces from
+    // POST /api/v1/shift-log/handoff/compose. Persisted on the
+    // ShiftHandoff row so the next shift sees it verbatim.
+    const aiSummary: string | null = body.aiSummary ?? null;
 
     const handoff = await prisma.shiftHandoff.upsert({
       where: {
@@ -56,6 +60,7 @@ export async function POST(request: NextRequest) {
       update: {
         notes,
         flaggedItems,
+        aiSummary,
         eventCount: Array.isArray(flaggedItems) ? flaggedItems.length : 0,
       },
       create: {
@@ -65,6 +70,7 @@ export async function POST(request: NextRequest) {
         outgoingUserId: auth.user.userId,
         notes,
         flaggedItems,
+        aiSummary,
         eventCount: Array.isArray(flaggedItems) ? flaggedItems.length : 0,
       },
     });
