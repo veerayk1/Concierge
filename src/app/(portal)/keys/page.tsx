@@ -25,6 +25,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { CreateKeyCheckoutDialog } from '@/components/forms/create-key-checkout-dialog';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { AddKeyDialog } from '@/components/forms/add-key-dialog';
 import { exportToCsv } from '@/lib/export-csv';
 
@@ -64,6 +65,7 @@ export default function KeysPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showAddKeyDialog, setShowAddKeyDialog] = useState(false);
+  const { flash, ConfirmHost } = useConfirmDialog();
 
   // Fetch real data from API with server-side filters
   const {
@@ -270,12 +272,13 @@ export default function KeysPage() {
                 });
                 if (!res.ok) {
                   const err = await res.json();
-                  alert(err.message || 'Failed to return key');
+                  flash('err', err.message || 'Failed to return key');
                   return;
                 }
+                flash('ok', 'Key returned.');
                 refetch();
               } catch {
-                alert('An unexpected error occurred while returning the key.');
+                flash('err', 'An unexpected error occurred while returning the key.');
               }
             }}
           >
@@ -477,6 +480,7 @@ export default function KeysPage() {
           refetch();
         }}
       />
+      <ConfirmHost />
     </PageShell>
   );
 }

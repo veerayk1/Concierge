@@ -19,6 +19,7 @@ import {
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -140,6 +141,7 @@ export default function AmenityBookingPage() {
     null,
   );
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const { confirm: askConfirm, ConfirmHost } = useConfirmDialog();
   // Page-level toast for events that outlive the modal (e.g., booking submit
   // closes the dialog and the resident loses the in-dialog confirmation).
   const [pageBanner, setPageBanner] = useState<{
@@ -282,46 +284,48 @@ export default function AmenityBookingPage() {
   );
 
   const handleCancelBooking = useCallback(
-    async (bookingId: string) => {
-      // Destructive action — confirm before firing.
-      if (
-        typeof window !== 'undefined' &&
-        !window.confirm('Cancel this booking? This cannot be undone.')
-      ) {
-        return;
-      }
-      setCancelling(bookingId);
-      try {
-        const resp = await apiRequest(`/api/v1/resident/bookings/${bookingId}`, {
-          method: 'DELETE',
-        });
-        const body = (await resp.json().catch(() => ({}))) as {
-          message?: string;
-        };
-        if (!resp.ok) {
-          setPageBanner({
-            type: 'error',
-            message: body.message ?? 'Failed to cancel booking.',
-          });
-        } else {
-          setPageBanner({
-            type: 'success',
-            message: body.message ?? 'Booking cancelled.',
-          });
-        }
-        refetchBookings();
-        setTimeout(() => setPageBanner(null), 5000);
-      } catch {
-        setPageBanner({
-          type: 'error',
-          message: 'An unexpected error occurred while cancelling.',
-        });
-        setTimeout(() => setPageBanner(null), 5000);
-      } finally {
-        setCancelling(null);
-      }
+    (bookingId: string) => {
+      askConfirm({
+        title: 'Cancel this booking?',
+        body: 'Your reservation will be released and other residents can claim the slot. This cannot be undone.',
+        destructive: true,
+        confirmLabel: 'Cancel booking',
+        cancelLabel: 'Keep it',
+        run: async () => {
+          setCancelling(bookingId);
+          try {
+            const resp = await apiRequest(`/api/v1/resident/bookings/${bookingId}`, {
+              method: 'DELETE',
+            });
+            const body = (await resp.json().catch(() => ({}))) as {
+              message?: string;
+            };
+            if (!resp.ok) {
+              setPageBanner({
+                type: 'error',
+                message: body.message ?? 'Failed to cancel booking.',
+              });
+            } else {
+              setPageBanner({
+                type: 'success',
+                message: body.message ?? 'Booking cancelled.',
+              });
+            }
+            refetchBookings();
+            setTimeout(() => setPageBanner(null), 5000);
+          } catch {
+            setPageBanner({
+              type: 'error',
+              message: 'An unexpected error occurred while cancelling.',
+            });
+            setTimeout(() => setPageBanner(null), 5000);
+          } finally {
+            setCancelling(null);
+          }
+        },
+      });
     },
-    [refetchBookings],
+    [askConfirm, refetchBookings],
   );
 
   const bookingColumns: Column<MyBooking>[] = [
@@ -698,6 +702,8 @@ export default function AmenityBookingPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmHost />
     </PageShell>
   );
 }
