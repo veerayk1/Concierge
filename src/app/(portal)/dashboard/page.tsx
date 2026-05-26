@@ -25,6 +25,7 @@ import { MyBookingsCard } from '@/components/dashboard/my-bookings-card';
 import { ResidentOnboardingCard } from '@/components/dashboard/resident-onboarding-card';
 import { MyPackagesCard } from '@/components/dashboard/my-packages-card';
 import { AgingShelfCard } from '@/components/dashboard/aging-shelf-card';
+import { KeysOverdueCard } from '@/components/dashboard/keys-overdue-card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -1174,6 +1175,12 @@ function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) 
 
       {/* Pass-on from the prior shift — pulses if items need follow-up. */}
       <ShiftHandoffCard />
+
+      {/* Keys / FOBs still out — pulses (.conc-spotlight) when anything
+          is past its expectedReturn. Lost keys are the most expensive
+          recurring security cost in a small building. Self-hides
+          when nothing is overdue. */}
+      <KeysOverdueCard />
 
       {/* ACTIVE INCIDENT BANNER — red, pulsing, the loudest thing on the
           page when there's anything open. Guard cannot miss this. */}
