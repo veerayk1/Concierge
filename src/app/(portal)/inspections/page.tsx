@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { exportToCsv } from '@/lib/export-csv';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -292,7 +293,25 @@ export default function InspectionsPage() {
       description="Schedule and track building inspections with checklists and compliance tracking."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={filteredInspections.length === 0}
+            onClick={() =>
+              exportToCsv(
+                filteredInspections,
+                [
+                  { key: 'title', header: 'Title' },
+                  { key: 'type', header: 'Type' },
+                  { key: 'location', header: 'Location' },
+                  { key: 'scheduledDate', header: 'Scheduled' },
+                  { key: 'status', header: 'Status' },
+                  { key: 'priority', header: 'Priority' },
+                ],
+                'inspections',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>
