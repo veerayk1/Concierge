@@ -19,6 +19,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { apiRequest } from '@/lib/hooks/use-api';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -118,27 +122,124 @@ export default function EquipmentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const { confirm, flash, ConfirmHost } = useConfirmDialog();
+  const [editOpen, setEditOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    location: '',
+    serialNumber: '',
+    manufacturer: '',
+    modelNumber: '',
+    warrantyExpiry: '',
+    notes: '',
+  });
+
+  async function fetchEquipment() {
+    try {
+      setLoading(true);
+      const res = await apiRequest(`/api/v1/equipment/${id}`, { method: 'GET' });
+      if (res.status === 404) {
+        setNotFound(true);
+        return;
+      }
+      if (!res.ok) throw new Error(`Failed to fetch equipment (${res.status})`);
+      const json = await res.json();
+      setEquipment(json.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchEquipment() {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/v1/equipment/${id}`);
-        if (res.status === 404) {
-          setNotFound(true);
-          return;
-        }
-        if (!res.ok) throw new Error(`Failed to fetch equipment (${res.status})`);
-        const json = await res.json();
-        setEquipment(json.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    }
     if (id) fetchEquipment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  function openEdit() {
+    if (!equipment) return;
+    // Pre-fill the dialog with current values so the manager only has to
+    // change what's different. Warranty expiry uses the input[type=date]
+    // YYYY-MM-DD slice so it shows correctly in the picker.
+    setEditForm({
+      name: equipment.name ?? '',
+      location: equipment.location ?? '',
+      serialNumber: equipment.serialNumber ?? '',
+      manufacturer: equipment.manufacturer ?? '',
+      modelNumber: equipment.modelNumber ?? '',
+      warrantyExpiry: equipment.warrantyExpiry ? equipment.warrantyExpiry.slice(0, 10) : '',
+      notes: (equipment.notes as string | undefined) ?? '',
+    });
+    setEditOpen(true);
+  }
+
+  async function saveEdit() {
+    setSaving(true);
+    try {
+      // Build the payload narrowly — only include fields the user can edit
+      // here. The schema accepts empty strings, but rejects `null` for date
+      // fields (z.date().optional() does not allow null), so we omit
+      // warrantyExpiry when the field is cleared.
+      const payload: Record<string, unknown> = {
+        name: editForm.name.trim(),
+        location: editForm.location.trim(),
+        serialNumber: editForm.serialNumber.trim(),
+        manufacturer: editForm.manufacturer.trim(),
+        modelNumber: editForm.modelNumber.trim(),
+        notes: editForm.notes.trim(),
+      };
+      if (editForm.warrantyExpiry) {
+        payload.warrantyExpiry = editForm.warrantyExpiry;
+      }
+      const res = await apiRequest(`/api/v1/equipment/${id}`, {
+        method: 'PATCH',
+        body: payload,
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not save changes. Try again.');
+        return;
+      }
+      flash('ok', 'Equipment updated.');
+      setEditOpen(false);
+      fetchEquipment();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function decommissionEquipment(reason?: string) {
+    setSaving(true);
+    try {
+      const res = await apiRequest(`/api/v1/equipment/${id}`, {
+        method: 'PATCH',
+        body: {
+          status: 'decommissioned',
+          // Reason rides in notes — the schema doesn't have a dedicated
+          // decommissionReason field, but keeping the reason searchable
+          // matters more than the field name.
+          notes: equipment?.notes
+            ? `${equipment.notes}\n\n[Decommissioned ${new Date().toISOString().slice(0, 10)}] ${reason}`
+            : `[Decommissioned ${new Date().toISOString().slice(0, 10)}] ${reason}`,
+        },
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not decommission this equipment. Try again.');
+        return;
+      }
+      flash('ok', 'Equipment decommissioned. It will no longer appear in inspection queues.');
+      fetchEquipment();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (loading) return <EquipmentSkeleton />;
 
@@ -442,8 +543,8 @@ export default function EquipmentDetailPage() {
                   variant="secondary"
                   size="sm"
                   fullWidth
-                  disabled
-                  title="Equipment editing is coming with the next admin tooling release."
+                  disabled={equipment.status === 'decommissioned' || saving}
+                  onClick={openEdit}
                 >
                   <Edit className="h-4 w-4" />
                   Edit Equipment
@@ -452,8 +553,11 @@ export default function EquipmentDetailPage() {
                   variant="secondary"
                   size="sm"
                   fullWidth
-                  disabled
-                  title="Create the request from the Maintenance page and link this equipment in the form."
+                  onClick={() =>
+                    router.push(
+                      `/maintenance?equipmentId=${equipment.id}&equipmentName=${encodeURIComponent(equipment.name)}`,
+                    )
+                  }
                 >
                   <Wrench className="h-4 w-4" />
                   Create Maintenance Request
@@ -472,11 +576,31 @@ export default function EquipmentDetailPage() {
                   variant="danger"
                   size="sm"
                   fullWidth
-                  disabled
-                  title="Decommission is a destructive action — coming with the admin tooling release."
+                  disabled={equipment.status === 'decommissioned' || saving}
+                  onClick={() =>
+                    confirm({
+                      title: `Decommission ${equipment.name}?`,
+                      body: `This piece of equipment will be removed from inspection queues, maintenance forecasts, and warranty tracking. The audit trail stays — but it stops appearing in active operations.`,
+                      confirmLabel: 'Decommission',
+                      destructive: true,
+                      input: {
+                        label: 'Reason for decommissioning',
+                        placeholder: 'e.g. Replaced after compressor failure, May 26 2026.',
+                        required: true,
+                        maxLength: 500,
+                        validate: (v) =>
+                          v.length < 8
+                            ? 'Add a short reason so future audits know why this was retired.'
+                            : null,
+                      },
+                      run: (reason) => decommissionEquipment(reason),
+                    })
+                  }
                 >
                   <Trash2 className="h-4 w-4" />
-                  Decommission
+                  {equipment.status === 'decommissioned'
+                    ? 'Already decommissioned'
+                    : 'Decommission'}
                 </Button>
               </div>
             </CardContent>
@@ -519,6 +643,103 @@ export default function EquipmentDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Edit Equipment dialog — pre-filled with current values so the
+          manager only changes what's different. Compact 2-column layout
+          on desktop so the whole form sits above the fold. */}
+      <Dialog open={editOpen} onOpenChange={(open) => !saving && setEditOpen(open)}>
+        <DialogContent className="max-w-2xl">
+          <DialogTitle>Edit equipment</DialogTitle>
+          <DialogDescription>
+            Update what changed — leave anything you don&apos;t edit alone.
+          </DialogDescription>
+          <form
+            className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void saveEdit();
+            }}
+          >
+            <div className="sm:col-span-2">
+              <Input
+                label="Name"
+                value={editForm.name}
+                onChange={(e) => setEditForm((s) => ({ ...s, name: e.target.value }))}
+                disabled={saving}
+                maxLength={200}
+                required
+              />
+            </div>
+            <Input
+              label="Location"
+              value={editForm.location}
+              onChange={(e) => setEditForm((s) => ({ ...s, location: e.target.value }))}
+              placeholder="e.g. Mechanical room, B2"
+              disabled={saving}
+              maxLength={200}
+            />
+            <Input
+              label="Serial number"
+              value={editForm.serialNumber}
+              onChange={(e) => setEditForm((s) => ({ ...s, serialNumber: e.target.value }))}
+              disabled={saving}
+              maxLength={100}
+            />
+            <Input
+              label="Manufacturer"
+              value={editForm.manufacturer}
+              onChange={(e) => setEditForm((s) => ({ ...s, manufacturer: e.target.value }))}
+              disabled={saving}
+              maxLength={100}
+            />
+            <Input
+              label="Model number"
+              value={editForm.modelNumber}
+              onChange={(e) => setEditForm((s) => ({ ...s, modelNumber: e.target.value }))}
+              disabled={saving}
+              maxLength={100}
+            />
+            <div className="sm:col-span-2">
+              <Input
+                label="Warranty expires"
+                type="date"
+                value={editForm.warrantyExpiry}
+                onChange={(e) => setEditForm((s) => ({ ...s, warrantyExpiry: e.target.value }))}
+                disabled={saving}
+              />
+            </div>
+            <div className="flex flex-col gap-2 sm:col-span-2">
+              <label className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700">
+                Notes
+              </label>
+              <textarea
+                rows={3}
+                value={editForm.notes}
+                onChange={(e) => setEditForm((s) => ({ ...s, notes: e.target.value }))}
+                disabled={saving}
+                maxLength={2000}
+                placeholder="Anything the next person handling this equipment should know."
+                className="focus:border-primary-300 focus:ring-primary-100 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:ring-4 focus:outline-none disabled:bg-neutral-50"
+              />
+            </div>
+            <div className="mt-2 flex justify-end gap-2 sm:col-span-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={saving}
+                onClick={() => setEditOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" disabled={saving || !editForm.name.trim()}>
+                {saving ? 'Saving…' : 'Save changes'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <ConfirmHost />
     </PageShell>
   );
 }
