@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { EditAnnouncementDialog } from '@/components/forms/edit-announcement-dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -137,6 +138,24 @@ export default function AnnouncementDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  // Confirm/feedback state machine — replaces native confirm()/alert()
+  // which (a) blocks the page, (b) looks unprofessional, (c) hangs
+  // automated QA tools. The Confirm dialog at the bottom of the page
+  // listens for `confirmAction` and shows the matching prompt; on
+  // accept it invokes the pending callback.
+  const [confirmAction, setConfirmAction] = useState<null | {
+    title: string;
+    body: string;
+    destructive?: boolean;
+    run: () => Promise<void>;
+  }>(null);
+  const [actionMessage, setActionMessage] = useState<null | { tone: 'ok' | 'err'; text: string }>(
+    null,
+  );
+  const flash = (tone: 'ok' | 'err', text: string) => {
+    setActionMessage({ tone, text });
+    setTimeout(() => setActionMessage(null), 4000);
+  };
 
   // Demo-mode role gate. Mirrors the pattern used on the dashboard:
   // read from localStorage so the resident view can be rendered
@@ -166,62 +185,76 @@ export default function AnnouncementDetailPage() {
     setEditDialogOpen(true);
   };
 
-  const handleResend = async () => {
-    if (!confirm('Are you sure you want to resend this announcement?')) return;
-    try {
-      const res = await apiRequest(
-        apiUrl(`/api/v1/announcements/${id}/resend`, { propertyId: getPropertyId() }),
-        { method: 'POST' },
-      );
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        alert(body.message || `Failed to resend (${res.status})`);
-        return;
-      }
-      alert('Announcement resent.');
-      await refetch();
-    } catch {
-      alert('Network error. Please try again.');
-    }
+  const handleResend = () => {
+    setConfirmAction({
+      title: 'Resend announcement?',
+      body: 'Recipients will receive it again on every channel they originally got it.',
+      run: async () => {
+        try {
+          const res = await apiRequest(
+            apiUrl(`/api/v1/announcements/${id}/resend`, { propertyId: getPropertyId() }),
+            { method: 'POST' },
+          );
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            flash('err', body.message || `Failed to resend (${res.status})`);
+            return;
+          }
+          flash('ok', 'Announcement resent.');
+          await refetch();
+        } catch {
+          flash('err', 'Network error. Please try again.');
+        }
+      },
+    });
   };
 
-  const handleArchive = async () => {
-    if (!confirm('Are you sure you want to archive this announcement?')) return;
-    try {
-      const res = await apiRequest(
-        apiUrl(`/api/v1/announcements/${id}`, { propertyId: getPropertyId() }),
-        { method: 'PATCH', body: { status: 'archived' } },
-      );
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        alert(body.message || `Failed to archive (${res.status})`);
-        return;
-      }
-      await refetch();
-    } catch {
-      alert('Network error. Please try again.');
-    }
+  const handleArchive = () => {
+    setConfirmAction({
+      title: 'Archive this announcement?',
+      body: 'Residents will stop seeing it. You can still find it in Archived filter.',
+      run: async () => {
+        try {
+          const res = await apiRequest(
+            apiUrl(`/api/v1/announcements/${id}`, { propertyId: getPropertyId() }),
+            { method: 'PATCH', body: { status: 'archived' } },
+          );
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            flash('err', body.message || `Failed to archive (${res.status})`);
+            return;
+          }
+          flash('ok', 'Announcement archived.');
+          await refetch();
+        } catch {
+          flash('err', 'Network error. Please try again.');
+        }
+      },
+    });
   };
 
-  const handleDelete = async () => {
-    if (
-      !confirm('Are you sure you want to delete this announcement? This action cannot be undone.')
-    )
-      return;
-    try {
-      const res = await apiRequest(
-        apiUrl(`/api/v1/announcements/${id}`, { propertyId: getPropertyId() }),
-        { method: 'DELETE' },
-      );
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        alert(body.message || `Failed to delete (${res.status})`);
-        return;
-      }
-      router.push('/announcements');
-    } catch {
-      alert('Network error. Please try again.');
-    }
+  const handleDelete = () => {
+    setConfirmAction({
+      title: 'Delete this announcement?',
+      body: 'This cannot be undone. Recipients who already received it will keep their copy.',
+      destructive: true,
+      run: async () => {
+        try {
+          const res = await apiRequest(
+            apiUrl(`/api/v1/announcements/${id}`, { propertyId: getPropertyId() }),
+            { method: 'DELETE' },
+          );
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            flash('err', body.message || `Failed to delete (${res.status})`);
+            return;
+          }
+          router.push('/announcements');
+        } catch {
+          flash('err', 'Network error. Please try again.');
+        }
+      },
+    });
   };
 
   // -- Loading State --
@@ -645,6 +678,56 @@ export default function AnnouncementDetailPage() {
           announcement={announcement}
           onSuccess={refetch}
         />
+      )}
+
+      {/* Confirm dialog — replaces native confirm() for Resend/Archive/
+          Delete. Reads cleaner than the browser's grey OS dialog and
+          doesn't lock the page during automated QA. */}
+      <Dialog
+        open={confirmAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmAction(null);
+        }}
+      >
+        <DialogContent>
+          <DialogTitle>{confirmAction?.title ?? ''}</DialogTitle>
+          <DialogDescription>{confirmAction?.body ?? ''}</DialogDescription>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setConfirmAction(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className={
+                confirmAction?.destructive
+                  ? 'bg-error-500 hover:bg-error-600 text-white'
+                  : undefined
+              }
+              onClick={async () => {
+                const action = confirmAction;
+                setConfirmAction(null);
+                if (action) await action.run();
+              }}
+            >
+              {confirmAction?.destructive ? 'Delete' : 'Confirm'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Inline action feedback. Self-dismisses after 4 seconds.
+          Replaces alert() popups that interrupted the workflow. */}
+      {actionMessage && (
+        <div
+          role="status"
+          className={`fixed right-6 bottom-6 z-50 max-w-sm rounded-xl px-4 py-3 text-[13.5px] font-medium shadow-lg ring-1 ${
+            actionMessage.tone === 'ok'
+              ? 'bg-success-50 text-success-700 ring-success-200'
+              : 'bg-error-50 text-error-700 ring-error-200'
+          }`}
+        >
+          {actionMessage.text}
+        </div>
       )}
     </div>
   );
