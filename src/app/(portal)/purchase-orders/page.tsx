@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
+import { exportToCsv } from '@/lib/export-csv';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreatePurchaseOrderDialog } from '@/components/forms/create-purchase-order-dialog';
@@ -322,7 +323,24 @@ export default function PurchaseOrdersPage() {
       description="Create and track purchase orders for building supplies and services."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={filteredPurchaseOrders.length === 0}
+            onClick={() =>
+              exportToCsv(
+                filteredPurchaseOrders,
+                [
+                  { key: 'poNumber', header: 'PO #' },
+                  { key: 'vendorName', header: 'Vendor' },
+                  { key: 'status', header: 'Status' },
+                  { key: 'totalAmount', header: 'Total' },
+                  { key: 'orderDate', header: 'Order Date' },
+                ],
+                'purchase-orders',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>

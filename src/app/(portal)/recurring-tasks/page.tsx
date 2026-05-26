@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { exportToCsv } from '@/lib/export-csv';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -312,7 +313,24 @@ export default function RecurringTasksPage() {
       description="Manage preventive maintenance schedules and recurring building tasks."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={filteredTasks.length === 0}
+            onClick={() =>
+              exportToCsv(
+                filteredTasks,
+                [
+                  { key: 'title', header: 'Title' },
+                  { key: 'category', header: 'Category' },
+                  { key: 'frequency', header: 'Frequency' },
+                  { key: 'nextDue', header: 'Next Due' },
+                  { key: 'isActive', header: 'Active' },
+                ],
+                'recurring-tasks',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>
