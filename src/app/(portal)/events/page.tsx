@@ -106,13 +106,38 @@ export default function EventsPage() {
 
   const allEvents = useMemo<EventLogEntry[]>(() => {
     if (!apiEvents || !Array.isArray(apiEvents)) return [];
-    return apiEvents.map(normalizeEvent);
+    // Drop test fixtures from the unified events feed so the page
+    // reflects real building activity. Same TEST_TITLE shape used
+    // across the portal (incidents, security console, packages,
+    // residents).
+    const TEST_TITLE =
+      /^(CHAIN[- ]?[A-Z]|UI[- ]?CHAIN[- ]?[A-Z]|UI[- ]?H\d|UI[- ]?TASK|E2E[- ]|SEC[- ]\d|EXH[- ]?[A-Z]?|TEST[- ]|QA[- ]?(TEST|TOWER|:))/i;
+    return apiEvents.filter((e) => !TEST_TITLE.test((e.title ?? '').trim())).map(normalizeEvent);
   }, [apiEvents]);
 
+  // Filter chips use friendly keys ('package', 'visitor', 'incident',
+  // 'key', 'pass_on') but the underlying eventType slugs are richer
+  // ('incident_report', 'shift_log', 'announcement', 'visitor_signin').
+  // Match by substring so the filter chips actually catch the events
+  // they're labelled for instead of returning empty lists.
+  const TYPE_MATCHERS: Record<string, RegExp> = {
+    package: /package|parcel|delivery/i,
+    visitor: /visitor|guest/i,
+    incident: /incident|alert|alarm/i,
+    key: /\bkey|fob/i,
+    pass_on: /pass|shift_log|handoff/i,
+  };
   // Client-side type filter for display (API may not support type filter)
   const filteredEvents = useMemo(() => {
     return allEvents.filter((e) => {
-      if (typeFilter !== 'all' && e.type !== typeFilter) return false;
+      if (typeFilter !== 'all') {
+        const matcher = TYPE_MATCHERS[typeFilter];
+        if (matcher) {
+          if (!matcher.test(e.type) && !matcher.test(e.typeLabel)) return false;
+        } else if (e.type !== typeFilter) {
+          return false;
+        }
+      }
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return (
