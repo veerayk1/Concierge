@@ -26,7 +26,7 @@
  * rich customFields blob.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Camera,
@@ -285,6 +285,21 @@ const TYPES: IncidentTypeConfig[] = [
   },
 ];
 
+// Keywords by type for the "looks like a different incident — switch?"
+// inline suggestion in step 2. Per-type regex over what the guard
+// types into free-text.
+const TYPE_KEYWORDS: Record<IncidentTypeKey, RegExp> = {
+  fire: /\b(fire|smoke|burning|alarm|evacuat|burnt|burn)\b/i,
+  medical:
+    /\b(medical|injury|injured|bleeding|unconscious|chest pain|paramedic|ambulance|fell|fall|seizure)\b/i,
+  theft: /\b(theft|stole|stolen|missing|robbed|broken into)\b/i,
+  vandalism: /\b(graffiti|vandal|spray|broken window|smashed|damaged door|defaced)\b/i,
+  flood: /\b(leak|leaking|flood|burst pipe|water|overflow|wet|pooling)\b/i,
+  suspicious: /\b(suspicious|loiter|stranger|trespass|prowl|tampering|prowling)\b/i,
+  parking: /\b(parking|tow|towed|vehicle|car|abandoned|blocked)\b/i,
+  noise: /\b(noise|loud|music|party|argument|barking|shouting)\b/i,
+};
+
 const COMMON_LOCATIONS = [
   'Lobby',
   'P1 Parking',
@@ -365,6 +380,19 @@ export function IncidentWizard({ open, onOpenChange, propertyId, onSuccess }: In
     setPriority(t.defaultPriority);
     setStep(1);
   }
+
+  // If the guard picks one type and then types content that strongly
+  // matches a different type, suggest the switch. Skip when there's
+  // no free text or the matched type IS the current type.
+  const suggestedSwitchType = useMemo<IncidentTypeConfig | null>(() => {
+    const text = freeText.trim();
+    if (text.length < 8 || !typeKey) return null;
+    for (const t of TYPES) {
+      if (t.key === typeKey) continue;
+      if (TYPE_KEYWORDS[t.key].test(text)) return t;
+    }
+    return null;
+  }, [freeText, typeKey]);
 
   function toggle(list: string[], setter: (next: string[]) => void, value: string) {
     if (list.includes(value)) setter(list.filter((v) => v !== value));
@@ -632,6 +660,30 @@ export function IncidentWizard({ open, onOpenChange, propertyId, onSuccess }: In
               placeholder="Anything specific not covered above…"
               className="focus:border-primary-500 focus:ring-primary-100 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[14px] leading-relaxed text-neutral-900 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
             />
+            {/* AI category-switch suggestion — if what they typed
+                sounds like a different incident type, surface a soft
+                nudge with a one-tap switch. The guard can keep the
+                current type and ignore the banner. */}
+            {suggestedSwitchType && (
+              <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800">
+                <Sparkles className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-600" />
+                <span className="flex-1">
+                  This sounds more like a{' '}
+                  <strong className="text-amber-900">{suggestedSwitchType.label}</strong> incident.
+                  Want to switch?
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypeKey(suggestedSwitchType.key);
+                    setPriority(suggestedSwitchType.defaultPriority);
+                  }}
+                  className="rounded-md bg-white px-2 py-0.5 text-[11.5px] font-semibold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"
+                >
+                  Switch
+                </button>
+              </div>
+            )}
             <div className="flex flex-col gap-2">
               <label className="text-[12px] font-semibold tracking-[0.06em] text-neutral-500 uppercase">
                 Priority
