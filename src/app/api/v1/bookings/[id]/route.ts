@@ -96,7 +96,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request, { roles: ['super_admin', 'property_admin'] });
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin', 'property_manager'],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -292,6 +294,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (body.approverComments !== undefined) updateData.approverComments = body.approverComments;
+
+    // Stand-alone approvalStatus update — for the manager decision queue,
+    // which only wants to flip a "needs approval" gate without driving
+    // the full booking state machine. (Status changes still go through
+    // the validated transition path above.)
+    if (
+      body.approvalStatus !== undefined &&
+      ['pending', 'approved', 'declined'].includes(body.approvalStatus)
+    ) {
+      const tenancy = enforcePropertyAccess(
+        auth.user,
+        (await prisma.booking.findUnique({ where: { id }, select: { propertyId: true } }))
+          ?.propertyId || '',
+      );
+      if (tenancy) return tenancy;
+      updateData.approvalStatus = body.approvalStatus;
+      if (body.approvalStatus === 'approved') {
+        updateData.approvedById = auth.user.userId;
+        updateData.approvedAt = new Date();
+      }
+    }
 
     const updatedBooking = await prisma.booking.update({
       where: { id },

@@ -17,6 +17,7 @@ import { ShiftHandoffCard } from '@/components/dashboard/shift-handoff-card';
 import { ActiveIncidentsCard } from '@/components/dashboard/active-incidents-card';
 import { ExpectedVisitorsCard } from '@/components/dashboard/expected-visitors-card';
 import { ScheduleVisitorDialog } from '@/components/forms/schedule-visitor-dialog';
+import { DecisionQueueCard } from '@/components/dashboard/decision-queue-card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -2786,14 +2787,16 @@ export default function DashboardPage() {
       </div>
 
       {/* Overnight digest — managers and admins need to see what their
-          team logged and any urgent incidents from the last 24 hours
-          before they look at anything else. Residents and visitors skip
-          this. Both cards self-hide when there's nothing to show. */}
+          team logged, any urgent incidents from the last 24 hours, and
+          everything currently waiting on their sign-off before they
+          look at anything else. Residents and visitors skip this. All
+          three cards self-hide when there's nothing to show. */}
       {(effectiveRole === 'property_admin' ||
         effectiveRole === 'property_manager' ||
         effectiveRole === 'board_member' ||
         effectiveRole === 'superintendent') && (
         <>
+          <DecisionQueueCard />
           <ShiftHandoffCard />
           <ActiveIncidentsCard />
         </>
