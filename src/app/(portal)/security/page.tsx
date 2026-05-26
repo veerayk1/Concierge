@@ -148,9 +148,19 @@ function SecurityShortcut({
 
 export default function SecurityPage() {
   const router = useRouter();
-  // Role gate — bounce residents (and any other non-staff) to their dashboard.
+  // Role gate — bounce residents (and any other non-staff) to their
+  // dashboard. Reads BOTH demo_role and auth_user.role so real
+  // authenticated residents can't paste the URL.
   if (typeof window !== 'undefined') {
-    const role = localStorage.getItem('demo_role');
+    const demoRole = localStorage.getItem('demo_role') ?? '';
+    let realRole = '';
+    try {
+      const stored = localStorage.getItem('auth_user');
+      realRole = stored ? ((JSON.parse(stored) as { role?: string }).role ?? '') : '';
+    } catch {
+      // ignore
+    }
+    const role = demoRole || realRole;
     if (role && !SECURITY_CONSOLE_ROLES.has(role)) {
       window.location.replace('/dashboard');
     }

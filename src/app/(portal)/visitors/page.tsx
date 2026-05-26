@@ -133,8 +133,19 @@ const VISITOR_PAGE_ROLES = new Set([
 export default function VisitorsPage() {
   const router = useRouter();
   // Role gate — bounce residents and anyone else to their dashboard.
+  // Honours BOTH demo_role (demo mode) and auth_user.role (real
+  // session). Previously only checked demo_role, so a real resident
+  // pasting /visitors saw the staff page.
   if (typeof window !== 'undefined') {
-    const role = localStorage.getItem('demo_role');
+    const demoRole = localStorage.getItem('demo_role') ?? '';
+    let realRole = '';
+    try {
+      const stored = localStorage.getItem('auth_user');
+      realRole = stored ? ((JSON.parse(stored) as { role?: string }).role ?? '') : '';
+    } catch {
+      // ignore
+    }
+    const role = demoRole || realRole;
     if (role && !VISITOR_PAGE_ROLES.has(role)) {
       window.location.replace('/dashboard');
     }
