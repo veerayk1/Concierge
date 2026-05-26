@@ -368,6 +368,9 @@ export default function BuildingDirectoryPage() {
               data={filteredEntries}
               emptyMessage="No directory entries found."
               emptyIcon={<Building className="h-6 w-6" />}
+              onRowClick={(row) => {
+                window.location.href = `/building-directory/${row.id}`;
+              }}
             />
           ) : allEntries.length === 0 ? (
             <EmptyState

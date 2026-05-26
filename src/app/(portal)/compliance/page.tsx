@@ -650,7 +650,13 @@ export default function CompliancePage() {
                 </div>
 
                 {filteredReports.length > 0 ? (
-                  <DataTable columns={reportColumns} data={filteredReports} />
+                  <DataTable
+                    columns={reportColumns}
+                    data={filteredReports}
+                    onRowClick={(row) => {
+                      window.location.href = `/compliance/${row.id}`;
+                    }}
+                  />
                 ) : (
                   <EmptyState
                     icon={<FileText className="h-5 w-5" />}
