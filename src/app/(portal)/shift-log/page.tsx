@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
@@ -12,11 +12,13 @@ import {
   MessageSquare,
   Moon,
   Plus,
+  Send,
   Sparkles,
   Sun,
   Sunrise,
   User,
   Users,
+  Zap,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
@@ -219,6 +221,15 @@ export default function ShiftLogPage() {
     text: string;
   } | null>(null);
 
+  // Inline quick-note compose — guard types one line, hits Enter (or
+  // ⌘+Enter), entry is logged. No dialog. The dialog is still there
+  // for richer entries with templates / urgency / categories, but
+  // the 80% case is one sentence and we collapse it to one input.
+  const [quickNote, setQuickNote] = useState('');
+  const [quickBusy, setQuickBusy] = useState(false);
+  const [quickMessage, setQuickMessage] = useState<string | null>(null);
+  const quickInputRef = useRef<HTMLInputElement>(null);
+
   const {
     data: apiEntries,
     loading,
@@ -256,6 +267,64 @@ export default function ShiftLogPage() {
   // AI-style auto-briefing card up top so the on-shift guard knows
   // "what mattered before I started" in one glance.
   const lastShiftSummary = useMemo(() => buildPriorShiftSummary(allEntries), [allEntries]);
+
+  // Auto-refresh — guards leave the tab open all shift. Without
+  // polling they have to manually refresh to see what other staff
+  // logged. 30s is the sweet spot: live enough to feel real-time,
+  // light enough to not hammer the API.
+  useEffect(() => {
+    const id = setInterval(() => {
+      refetch();
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [refetch]);
+
+  // Auto-urgent detection — same keyword set as the dialog so the
+  // inline compose flips priority='urgent' when the guard types
+  // "alarm" or "leak" without them having to remember to flag it.
+  const URGENT_KEYWORDS =
+    /\b(urgent|emergency|alarm|fire|smoke|police|injury|injured|bleeding|unconscious|leak|leaking|flood|flooding|intrusion|break.?in|trespass|assault|theft|stolen|tow|towed|sparking|burst|gas)\b/i;
+
+  async function submitQuickNote(e?: React.FormEvent) {
+    e?.preventDefault();
+    const text = quickNote.trim();
+    if (!text || quickBusy) return;
+    setQuickBusy(true);
+    const isUrgent = URGENT_KEYWORDS.test(text);
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (typeof window !== 'undefined') {
+        const tok = localStorage.getItem('auth_token');
+        if (tok) headers['Authorization'] = `Bearer ${tok}`;
+        const dr = localStorage.getItem('demo_role');
+        if (dr) headers['x-demo-role'] = dr;
+      }
+      const r = await fetch('/api/v1/shift-log', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          propertyId: getPropertyId(),
+          content: text,
+          priority: isUrgent ? 'urgent' : 'normal',
+          category: 'security',
+        }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        setQuickMessage(j.message || `Failed to log (${r.status})`);
+        return;
+      }
+      setQuickNote('');
+      setQuickMessage(isUrgent ? 'Logged as urgent ⚡' : 'Logged.');
+      refetch();
+      setTimeout(() => quickInputRef.current?.focus(), 50);
+    } catch {
+      setQuickMessage('Network error — please try again.');
+    } finally {
+      setQuickBusy(false);
+      setTimeout(() => setQuickMessage(null), 3000);
+    }
+  }
 
   async function handleClockIn() {
     setClockBusy(true);
@@ -403,6 +472,40 @@ export default function ShiftLogPage() {
           {clockMessage.text}
         </div>
       )}
+
+      {/* Inline quick-note compose — the 80% case for a guard during
+          a shift is "type one sentence about a routine thing".
+          Wrapping that in a dialog wastes their time. Type → Enter →
+          done. Urgent keywords ("alarm", "leak", "fire") flip the
+          priority automatically. */}
+      <form
+        onSubmit={submitQuickNote}
+        className="conc-rise mb-4 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50/80 via-white to-teal-50/80 px-4 py-2.5 shadow-sm"
+        aria-label="Quick patrol note compose"
+      >
+        <Zap className="h-4 w-4 flex-shrink-0 text-emerald-600" strokeWidth={1.8} />
+        <input
+          ref={quickInputRef}
+          type="text"
+          value={quickNote}
+          onChange={(e) => setQuickNote(e.target.value)}
+          placeholder="Quick note — “Patrolled floors 1-3, all clear” · type and hit Enter"
+          maxLength={500}
+          className="min-w-0 flex-1 bg-transparent text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
+          disabled={quickBusy}
+        />
+        {quickMessage && (
+          <span className="text-[12px] font-medium text-emerald-700">{quickMessage}</span>
+        )}
+        <button
+          type="submit"
+          disabled={!quickNote.trim() || quickBusy}
+          className="flex items-center gap-1 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 px-3 py-1.5 text-[12.5px] font-semibold text-white shadow-[0_2px_8px_rgba(16,185,129,0.35)] transition hover:from-emerald-600 hover:to-teal-700 disabled:opacity-50"
+        >
+          <Send className="h-3.5 w-3.5" />
+          {quickBusy ? 'Logging…' : 'Log it'}
+        </button>
+      </form>
 
       {/* Loading State */}
       {loading && (
