@@ -30,6 +30,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAccessToken } from '@/lib/api-client';
 import { AcknowledgmentTrail } from '@/components/dashboard/acknowledgment-trail';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { apiRequest } from '@/lib/hooks/use-api';
 
 interface AcknowledgmentRecord {
   userId: string;
@@ -159,6 +163,72 @@ export default function IncidentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const { confirm: askConfirm, flash, ConfirmHost } = useConfirmDialog();
+  // Add Update dialog is its own state because it needs a textarea
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [updateText, setUpdateText] = useState('');
+  const [savingUpdate, setSavingUpdate] = useState(false);
+
+  async function escalateIncident() {
+    if (!incident) return;
+    try {
+      const res = await apiRequest(`/api/v1/events/${incident.id}`, {
+        method: 'PATCH',
+        body: { priority: 'urgent' },
+      });
+      if (res.ok) {
+        flash('ok', 'Incident escalated to urgent priority.');
+        setIncident((prev) => (prev ? { ...prev, priority: 'urgent' } : prev));
+      } else {
+        const body = await res.json().catch(() => ({}));
+        flash('err', body.message || 'Failed to escalate.');
+      }
+    } catch {
+      flash('err', 'Network error. Please try again.');
+    }
+  }
+
+  async function addUpdate() {
+    if (!incident || !updateText.trim()) return;
+    setSavingUpdate(true);
+    try {
+      const res = await apiRequest(`/api/v1/events/${incident.id}/comments`, {
+        method: 'POST',
+        body: { content: updateText.trim() },
+      });
+      if (res.ok) {
+        flash('ok', 'Update added.');
+        setUpdateText('');
+        setUpdateDialogOpen(false);
+      } else {
+        const body = await res.json().catch(() => ({}));
+        flash('err', body.message || 'Failed to add update.');
+      }
+    } catch {
+      flash('err', 'Network error. Please try again.');
+    } finally {
+      setSavingUpdate(false);
+    }
+  }
+
+  async function closeIncident() {
+    if (!incident) return;
+    try {
+      const res = await apiRequest(`/api/v1/events/${incident.id}`, {
+        method: 'PATCH',
+        body: { status: 'resolved' },
+      });
+      if (res.ok) {
+        flash('ok', 'Incident closed.');
+        setIncident((prev) => (prev ? { ...prev, status: 'resolved' } : prev));
+      } else {
+        const body = await res.json().catch(() => ({}));
+        flash('err', body.message || 'Failed to close incident.');
+      }
+    } catch {
+      flash('err', 'Network error. Please try again.');
+    }
+  }
 
   useEffect(() => {
     async function fetchIncident() {
@@ -268,11 +338,16 @@ export default function IncidentDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled
+            title="Edit must happen through Add Update — incident records are append-only for audit"
+          >
             <Edit2 className="h-4 w-4" />
             Edit
           </Button>
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" onClick={() => window.print()}>
             <Printer className="h-4 w-4" />
             Print Report
           </Button>
@@ -388,19 +463,46 @@ export default function IncidentDetailPage() {
             <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Actions</h2>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button variant="danger" fullWidth size="lg">
+                <Button
+                  variant="danger"
+                  fullWidth
+                  size="lg"
+                  disabled={incident.priority === 'urgent'}
+                  onClick={() =>
+                    askConfirm({
+                      title: 'Escalate this incident?',
+                      body: 'Priority will be raised to URGENT and the on-call supervisor will see this at the top of their queue.',
+                      destructive: true,
+                      confirmLabel: 'Escalate',
+                      run: escalateIncident,
+                    })
+                  }
+                >
                   <AlertTriangle className="h-4 w-4" />
-                  Escalate
+                  {incident.priority === 'urgent' ? 'Already Urgent' : 'Escalate'}
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button variant="secondary" fullWidth onClick={() => setUpdateDialogOpen(true)}>
                   <MessageSquare className="h-4 w-4" />
                   Add Update
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled={incident.status === 'resolved' || incident.status === 'closed'}
+                  onClick={() =>
+                    askConfirm({
+                      title: 'Close this incident?',
+                      body: 'The incident will be marked resolved. You can reopen it later if needed.',
+                      run: closeIncident,
+                    })
+                  }
+                >
                   <CheckCircle2 className="h-4 w-4" />
-                  Close Incident
+                  {incident.status === 'resolved' || incident.status === 'closed'
+                    ? 'Closed'
+                    : 'Close Incident'}
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button variant="secondary" fullWidth onClick={() => window.print()}>
                   <Printer className="h-4 w-4" />
                   Print Report
                 </Button>
@@ -482,6 +584,51 @@ export default function IncidentDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Add Update dialog — captures a free-text update from the
+          guard and appends it as an event comment. The
+          acknowledgment trail tracks "I've seen this", separately. */}
+      <Dialog
+        open={updateDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setUpdateDialogOpen(false);
+            setUpdateText('');
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogTitle>Add update to incident</DialogTitle>
+          <DialogDescription>
+            Anything you log here is visible to the next shift and to the property manager. Keep it
+            short — what changed, what you did, what is still open.
+          </DialogDescription>
+          <Textarea
+            value={updateText}
+            onChange={(e) => setUpdateText(e.target.value)}
+            placeholder="e.g. Spoke to unit 401, asked them to keep music down. Will check back in an hour."
+            rows={4}
+            className="mt-4"
+          />
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setUpdateDialogOpen(false);
+                setUpdateText('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button size="sm" onClick={addUpdate} disabled={!updateText.trim() || savingUpdate}>
+              {savingUpdate ? 'Saving…' : 'Add update'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmHost />
     </div>
   );
 }
