@@ -57,6 +57,7 @@ const mockGuardRoute = vi.fn();
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: (...args: unknown[]) => mockGuardRoute(...args),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 // Route imports MUST come after vi.mock calls

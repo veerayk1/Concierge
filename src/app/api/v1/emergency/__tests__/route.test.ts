@@ -60,6 +60,7 @@ vi.mock('@/lib/sanitize', () => ({
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: (...args: unknown[]) => mockGuardRoute(...args),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 // ---------------------------------------------------------------------------

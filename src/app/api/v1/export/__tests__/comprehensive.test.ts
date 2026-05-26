@@ -55,6 +55,7 @@ vi.mock('@/server/db', () => ({
 const mockGuardRoute = vi.fn();
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: (...args: unknown[]) => mockGuardRoute(...args),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 // ---------------------------------------------------------------------------

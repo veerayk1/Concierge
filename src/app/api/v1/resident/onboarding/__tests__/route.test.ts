@@ -71,6 +71,7 @@ vi.mock('@/server/db', () => ({
 // Mock guardRoute
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn(),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 // Import after mocks

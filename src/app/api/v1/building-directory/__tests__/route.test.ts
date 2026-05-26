@@ -53,6 +53,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
     },
     error: null,
   }),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 // Route imports MUST come after vi.mock calls

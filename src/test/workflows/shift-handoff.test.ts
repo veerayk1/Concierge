@@ -30,25 +30,21 @@ vi.mock('@/server/db', () => ({
     },
     eventType: {
       findFirst: vi.fn().mockResolvedValue({ id: 'shift-log-type', name: 'Shift Log' }),
-      create: vi
-        .fn()
-        .mockImplementation((args: Record<string, unknown>) =>
-          Promise.resolve({
-            id: 'shift-log-type-new',
-            ...(args as { data?: Record<string, unknown> }).data,
-          }),
-        ),
+      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+        Promise.resolve({
+          id: 'shift-log-type-new',
+          ...(args as { data?: Record<string, unknown> }).data,
+        }),
+      ),
     },
     eventGroup: {
       findFirst: vi.fn().mockResolvedValue({ id: 'shift-log-group', name: 'Shift Log' }),
-      create: vi
-        .fn()
-        .mockImplementation((args: Record<string, unknown>) =>
-          Promise.resolve({
-            id: 'shift-log-group-new',
-            ...(args as { data?: Record<string, unknown> }).data,
-          }),
-        ),
+      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+        Promise.resolve({
+          id: 'shift-log-group-new',
+          ...(args as { data?: Record<string, unknown> }).data,
+        }),
+      ),
     },
     shiftLogEntry: {
       findUnique: vi.fn().mockResolvedValue(null),
@@ -79,6 +75,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
       error: null,
     }),
   ),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 // ---------------------------------------------------------------------------

@@ -110,6 +110,7 @@ const mockGuardRoute = vi.fn();
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: (...args: unknown[]) => mockGuardRoute(...args),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 function setResidentAuth(role: string = 'resident_owner', unitId: string = RESIDENT_UNIT_ID) {

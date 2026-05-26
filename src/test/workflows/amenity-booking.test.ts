@@ -90,6 +90,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
     }
     return Promise.resolve({ user, error: null });
   }),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock('@/server/email', () => ({

@@ -125,14 +125,12 @@ vi.mock('@/server/db', () => ({
     },
     permitType: {
       findFirst: vi.fn().mockResolvedValue({ id: 'permit-type-1', name: 'Resident' }),
-      create: vi
-        .fn()
-        .mockImplementation((args: Record<string, unknown>) =>
-          Promise.resolve({
-            id: 'permit-type-new',
-            ...(args as { data?: Record<string, unknown> }).data,
-          }),
-        ),
+      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+        Promise.resolve({
+          id: 'permit-type-new',
+          ...(args as { data?: Record<string, unknown> }).data,
+        }),
+      ),
     },
     parkingLimitConfig: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -214,6 +212,7 @@ const mockGuardRoute = vi.fn().mockResolvedValue({
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: (...args: unknown[]) => mockGuardRoute(...args),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 // ---------------------------------------------------------------------------

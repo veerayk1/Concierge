@@ -68,6 +68,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
     },
     error: null,
   }),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 const PROPERTY_ID = '00000000-0000-4000-b000-000000000001';

@@ -36,6 +36,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
     },
     error: null,
   }),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 import { PATCH, DELETE } from '@/app/api/v1/packages/[id]/route';

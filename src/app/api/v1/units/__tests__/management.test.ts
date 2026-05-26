@@ -102,6 +102,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
     },
     error: null,
   }),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 // Import route handlers AFTER mocks are set up

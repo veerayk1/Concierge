@@ -60,6 +60,7 @@ vi.mock('@/server/storage', () => {
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn(),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 import { POST } from '../route';

@@ -64,6 +64,7 @@ vi.mock('@/server/middleware/api-guard', () => ({
     user: { userId: 'user-1', propertyId: 'prop-1', role: 'ADMIN' },
     error: null,
   }),
+  enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock('nanoid', () => ({
