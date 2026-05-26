@@ -120,6 +120,7 @@ export default function MyRequestsPage() {
   const [triage, setTriage] = useState<TriageSuggestion | null>(null);
   const [triaging, setTriaging] = useState(false);
   const [triageApplied, setTriageApplied] = useState(false);
+  const [polishingDescription, setPolishingDescription] = useState(false);
 
   // Cache the resident's unitId on dialog open so the triage call can
   // run duplicate-detection scoped to their own unit.
@@ -598,9 +599,42 @@ export default function MyRequestsPage() {
 
           <form onSubmit={handleNewRequest} className="mt-6 flex flex-col gap-4">
             <div>
-              <label className="mb-1.5 block text-[14px] font-medium text-neutral-700">
-                Description <span className="text-red-500">*</span>
-              </label>
+              <div className="mb-1.5 flex items-center justify-between gap-3">
+                <label className="block text-[14px] font-medium text-neutral-700">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!newDescription.trim() || polishingDescription) return;
+                    setPolishingDescription(true);
+                    try {
+                      const headers: Record<string, string> = {
+                        'Content-Type': 'application/json',
+                      };
+                      if (typeof window !== 'undefined') {
+                        const tok = localStorage.getItem('auth_token');
+                        if (tok) headers['Authorization'] = `Bearer ${tok}`;
+                      }
+                      const r = await fetch('/api/v1/ai/polish', {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({ text: newDescription }),
+                      });
+                      const j = await r.json();
+                      if (j?.data?.polished) setNewDescription(j.data.polished);
+                    } finally {
+                      setPolishingDescription(false);
+                    }
+                  }}
+                  disabled={polishingDescription || newDescription.trim().length < 10}
+                  className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-0.5 text-[11.5px] font-semibold text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-50 disabled:opacity-50"
+                  title="Fix typos and capitalize sentences"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  {polishingDescription ? 'Polishing…' : 'Polish with AI'}
+                </button>
+              </div>
               <textarea
                 required
                 minLength={10}
