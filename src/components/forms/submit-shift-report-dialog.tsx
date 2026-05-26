@@ -479,6 +479,38 @@ export function SubmitShiftReportDialog({
                     and property manager get a copy too.
                   </p>
                 </div>
+
+                {/* Recipient preview — explicit list of who sees this
+                    report. Removes "will my supervisor see it?"
+                    second-guessing. */}
+                <div className="rounded-xl bg-white px-4 py-3 text-[12.5px] ring-1 ring-neutral-200">
+                  <p className="text-[10.5px] font-semibold tracking-[0.08em] text-neutral-500 uppercase">
+                    This goes to
+                  </p>
+                  <ul className="mt-2 flex flex-col gap-1 text-neutral-700">
+                    <li className="flex items-center gap-2">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      The next shift's dashboard — pass-on card appears immediately
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-sky-500" />
+                      Property manager — surfaces on their morning briefing
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-violet-500" />
+                      Security supervisor — receives an email summary
+                    </li>
+                    {draft && draft.flaggedItems.length - excludedIds.size > 0 && (
+                      <li className="flex items-center gap-2 text-rose-700">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-500" />
+                        {draft.flaggedItems.length - excludedIds.size} flagged item
+                        {draft.flaggedItems.length - excludedIds.size === 1 ? '' : 's'} pulses on
+                        the dashboard until acknowledged
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
                 <div className="rounded-xl bg-neutral-50 px-4 py-3 text-[12.5px] text-neutral-600 ring-1 ring-neutral-200">
                   <p className="font-semibold text-neutral-700">Final summary</p>
                   <p className="mt-1 leading-relaxed">{editedSummary}</p>
