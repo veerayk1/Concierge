@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -13,6 +13,7 @@ import {
   Loader2,
   ImageIcon,
   FileText,
+  Sparkles,
 } from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
@@ -104,6 +105,71 @@ export default function MyRequestsPage() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const MAX_FILE_SIZE = 4 * 1024 * 1024;
+
+  // AI triage — fires server-side analysis on the description with a
+  // 600ms debounce, surfaces a "we think it's HVAC, urgent — change?"
+  // banner the resident can accept or override. Also warns about likely
+  // duplicate requests on the same unit so they don't double-file.
+  interface TriageSuggestion {
+    suggestedCategoryKey: string | null;
+    suggestedCategoryName: string | null;
+    suggestedPriority: 'low' | 'medium' | 'high' | 'urgent';
+    suggestedTitle: string;
+    duplicates: { id: string; title: string; status: string; createdAt: string }[];
+  }
+  const [triage, setTriage] = useState<TriageSuggestion | null>(null);
+  const [triaging, setTriaging] = useState(false);
+  const [triageApplied, setTriageApplied] = useState(false);
+
+  // Cache the resident's unitId on dialog open so the triage call can
+  // run duplicate-detection scoped to their own unit.
+  const [residentUnitId, setResidentUnitId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!dialogOpen) return;
+    const tok = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (!tok) return;
+    fetch('/api/v1/users/me', { headers: { Authorization: `Bearer ${tok}` } })
+      .then((r) => r.json())
+      .then((j) => setResidentUnitId(j?.data?.occupancyUnitId ?? null))
+      .catch(() => {});
+  }, [dialogOpen]);
+
+  useEffect(() => {
+    if (!dialogOpen || newDescription.trim().length < 10) {
+      setTriage(null);
+      setTriageApplied(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setTriaging(true);
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const tok = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      if (tok) headers['Authorization'] = `Bearer ${tok}`;
+      fetch('/api/v1/maintenance/triage', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          propertyId: getPropertyId(),
+          unitId: residentUnitId,
+          description: newDescription,
+        }),
+      })
+        .then((r) => r.json())
+        .then((j) => {
+          if (j?.data) setTriage(j.data);
+        })
+        .catch(() => {})
+        .finally(() => setTriaging(false));
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [dialogOpen, newDescription, residentUnitId]);
+
+  function applyTriage() {
+    if (!triage) return;
+    if (triage.suggestedCategoryKey) setNewCategory(triage.suggestedCategoryKey);
+    setNewPriority(triage.suggestedPriority);
+    setTriageApplied(true);
+  }
 
   // Fetch all the resident's requests once; counts and the filtered table
   // both work from the same client-side list. Keeps the KPI tiles honest
@@ -550,6 +616,73 @@ export default function MyRequestsPage() {
                 {newDescription.length}/4000 characters (minimum 10)
               </p>
             </div>
+
+            {/* AI triage — appears once the description has enough text to
+                analyse. Suggestion is opt-in: one tap to accept or just
+                edit the dropdowns manually. */}
+            {triage && (triage.suggestedCategoryName || triage.duplicates.length > 0) && (
+              <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-indigo-50 px-4 py-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/70 shadow-sm ring-1 ring-sky-200/60">
+                    <Sparkles className="h-4 w-4 text-sky-600" strokeWidth={1.8} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10.5px] font-semibold tracking-[0.1em] text-sky-700 uppercase">
+                      {triaging ? 'Analyzing…' : 'Our suggestion'}
+                    </p>
+                    {triage.suggestedCategoryName && (
+                      <p className="mt-1 text-[13.5px] text-neutral-800">
+                        Looks like a{' '}
+                        <strong className="text-sky-700">{triage.suggestedCategoryName}</strong>{' '}
+                        issue,{' '}
+                        <strong
+                          className={
+                            triage.suggestedPriority === 'urgent'
+                              ? 'text-rose-700'
+                              : triage.suggestedPriority === 'high'
+                                ? 'text-amber-700'
+                                : 'text-neutral-700'
+                          }
+                        >
+                          {triage.suggestedPriority}
+                        </strong>{' '}
+                        priority.{' '}
+                        {!triageApplied ? (
+                          <button
+                            type="button"
+                            onClick={applyTriage}
+                            className="ml-1 inline-flex items-center gap-1 rounded-lg bg-white px-2 py-0.5 text-[12px] font-semibold text-sky-700 ring-1 ring-sky-200 hover:bg-sky-50"
+                          >
+                            <CheckCircle2 className="h-3 w-3" />
+                            Use this
+                          </button>
+                        ) : (
+                          <span className="ml-1 inline-flex items-center gap-1 text-[12px] font-semibold text-emerald-700">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Applied
+                          </span>
+                        )}
+                      </p>
+                    )}
+                    {triage.duplicates.length > 0 && (
+                      <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 ring-1 ring-amber-200">
+                        <p className="flex items-center gap-1.5 text-[12px] font-semibold text-amber-800">
+                          <AlertTriangle className="h-3 w-3" />
+                          You might have already reported this:
+                        </p>
+                        <ul className="mt-1.5 flex flex-col gap-1">
+                          {triage.duplicates.map((d) => (
+                            <li key={d.id} className="text-[12.5px] text-neutral-800">
+                              · "{d.title}" — still {d.status.replace('_', ' ')}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* File Attachments */}
             <div>
