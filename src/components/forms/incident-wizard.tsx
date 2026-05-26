@@ -474,6 +474,18 @@ export function IncidentWizard({ open, onOpenChange, propertyId, onSuccess }: In
               : ''}
         </DialogDescription>
 
+        {/* Thin gradient progress bar — 20% per step (5 steps total).
+            Color tracks the urgency of the picked type so a fire
+            incident reads rose, a noise complaint reads blue. */}
+        <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-neutral-100">
+          <div
+            className={`h-full rounded-full bg-gradient-to-r transition-[width] duration-500 ease-out ${
+              type?.tone ?? 'from-rose-400 via-amber-400 to-emerald-400'
+            }`}
+            style={{ width: `${((step + 1) / 5) * 100}%` }}
+          />
+        </div>
+
         {error && (
           <div className="border-error-200 bg-error-50 text-error-700 mt-4 rounded-xl border px-4 py-3 text-[14px]">
             {error}
