@@ -151,11 +151,17 @@ export default function AlterationsPage() {
   );
 
   const allAlterations = useMemo<AlterationItem[]>(() => {
-    if (!apiAlterations) return [];
-    if (Array.isArray(apiAlterations)) return apiAlterations;
-    if (Array.isArray((apiAlterations as ApiResponse).data))
-      return (apiAlterations as ApiResponse).data;
-    return [];
+    let list: AlterationItem[] = [];
+    if (!apiAlterations) return list;
+    if (Array.isArray(apiAlterations)) list = apiAlterations;
+    else if (Array.isArray((apiAlterations as ApiResponse).data))
+      list = (apiAlterations as ApiResponse).data;
+    // Drop test-fixture descriptions ("admin legitimate edit",
+    // "r1 legitimate edit", CHAIN/EXH/E2E prefixes) so the
+    // manager's alteration board reads like real renovation work.
+    const TEST_DESC =
+      /^(EXH[- ]?[A-Z]|CHAIN[- ]?[A-Z]|UI[- ]?CHAIN|E2E[- ]|SEC[- ]\d|TEST[- ]|QA[- ]?TEST|admin legitimate edit|r\d legitimate edit)/i;
+    return list.filter((a) => !TEST_DESC.test((a.description ?? '').trim()));
   }, [apiAlterations]);
 
   const filteredAlterations = useMemo(() => {
