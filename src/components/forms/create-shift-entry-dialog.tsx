@@ -143,6 +143,32 @@ export function CreateShiftEntryDialog({
   const selectedShift = watch('shift');
   const isImportant = watch('isImportant');
   const content = watch('content');
+  const [polishing, setPolishing] = useState(false);
+
+  async function polishContent() {
+    if (!content?.trim() || polishing) return;
+    setPolishing(true);
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (typeof window !== 'undefined') {
+        const tok = localStorage.getItem('auth_token');
+        if (tok) headers['Authorization'] = `Bearer ${tok}`;
+        const dr = localStorage.getItem('demo_role');
+        if (dr) headers['x-demo-role'] = dr;
+      }
+      const r = await fetch('/api/v1/ai/polish', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ text: content }),
+      });
+      const j = await r.json();
+      if (j?.data?.polished) setValue('content', j.data.polished);
+    } catch {
+      /* silent */
+    } finally {
+      setPolishing(false);
+    }
+  }
 
   // Smart priority — if the content reads URGENT, auto-flip the
   // important toggle so the concierge doesn't have to remember. The
@@ -334,13 +360,23 @@ export function CreateShiftEntryDialog({
             </div>
           </div>
 
-          {/* CONTENT — textarea with live char counter and a soft
-              focus ring. */}
+          {/* CONTENT — textarea with live char counter, a Polish
+              with AI button, and a soft focus ring. */}
           <div className="flex flex-col gap-2">
-            <label className="flex items-center justify-between text-[12px] font-semibold tracking-[0.06em] text-neutral-500 uppercase">
+            <label className="flex items-center justify-between gap-3 text-[12px] font-semibold tracking-[0.06em] text-neutral-500 uppercase">
               <span>What happened?</span>
-              <span className="text-[10.5px] tracking-normal text-neutral-400 normal-case">
-                {(content || '').length} / 4000 · ⌘+Enter to send
+              <span className="flex items-center gap-2 text-[10.5px] tracking-normal text-neutral-400 normal-case">
+                <button
+                  type="button"
+                  onClick={polishContent}
+                  disabled={polishing || !content?.trim()}
+                  className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-0.5 text-[11.5px] font-semibold text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-50 disabled:opacity-50"
+                  title="Fix typos and capitalize sentences"
+                >
+                  <span>✨</span>
+                  {polishing ? 'Polishing…' : 'Polish'}
+                </button>
+                <span>{(content || '').length} / 4000 · ⌘+Enter to send</span>
               </span>
             </label>
             <textarea
