@@ -34,9 +34,12 @@ describe('Marketing Layout', () => {
     const navLinks = within(nav).getAllByRole('link');
     const navHrefs = navLinks.map((link) => link.getAttribute('href'));
     expect(navHrefs).toContain('/features');
-    expect(navHrefs).toContain('/pricing');
+    expect(navHrefs).toContain('/for-teams');
+    expect(navHrefs).toContain('/about');
     expect(navHrefs).toContain('/contact');
     expect(navHrefs).toContain('/login');
+    // Pricing removed — replaced by /contact ("Talk to us") to drive demos.
+    expect(navHrefs).not.toContain('/pricing');
   });
 
   it('renders logo linking to home', () => {

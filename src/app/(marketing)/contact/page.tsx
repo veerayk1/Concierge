@@ -18,7 +18,7 @@ function isValidEmail(email: string): boolean {
 const SUBJECTS = [
   { value: '', label: 'Select a subject' },
   { value: 'general', label: 'General Inquiry' },
-  { value: 'sales', label: 'Sales & Pricing' },
+  { value: 'sales', label: 'Sales & Demo' },
   { value: 'support', label: 'Technical Support' },
   { value: 'security', label: 'Security & Privacy' },
 ] as const;
@@ -368,10 +368,10 @@ export default function ContactPage() {
                   Request a Demo
                 </Link>
                 <Link
-                  href={'/pricing' as never}
+                  href={'/for-teams' as never}
                   className="text-[14px] font-medium text-neutral-600 underline underline-offset-2 transition-colors hover:text-neutral-900"
                 >
-                  View Pricing
+                  See it by role
                 </Link>
                 <Link
                   href={'/security-privacy' as never}

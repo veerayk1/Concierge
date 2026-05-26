@@ -12,15 +12,14 @@ import { CustomCursor } from '@/components/marketing/CustomCursor';
 
 const NAV_LINKS = [
   { label: 'Features', href: '/features' },
-  { label: 'For Teams', href: '/about' },
-  { label: 'Pricing', href: '/pricing' },
+  { label: 'For Teams', href: '/for-teams' },
   { label: 'About', href: '/about' },
 ] as const;
 
 const FOOTER_LINKS = {
   product: [
     { label: 'Features', href: '/features' },
-    { label: 'Pricing', href: '/pricing' },
+    { label: 'For Teams', href: '/for-teams' },
     { label: 'Security', href: '/security-privacy' },
     { label: 'Integrations', href: '/features' },
     { label: 'Changelog', href: '/blog' },
@@ -89,9 +88,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           background: 'rgba(10, 10, 10, 0.8)',
-          borderBottom: scrolled
-            ? '1px solid rgba(255,255,255,0.06)'
-            : '1px solid transparent',
+          borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
           transition: 'border-color 300ms ease',
         }}
       >

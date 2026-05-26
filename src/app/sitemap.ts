@@ -17,7 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
-      url: `${BASE_URL}/pricing`,
+      url: `${BASE_URL}/for-teams`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.9,

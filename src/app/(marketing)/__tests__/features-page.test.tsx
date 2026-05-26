@@ -19,38 +19,39 @@ vi.mock('next/link', () => ({
 }));
 
 describe('Features Page', () => {
-  it('renders page heading', () => {
+  it('renders the SEO-tuned page heading', () => {
     render(<FeaturesPage />);
 
     expect(
-      screen.getByRole('heading', { level: 1, name: /everything you need/i }),
+      screen.getByRole('heading', { level: 1, name: /all-in-one property management/i }),
     ).toBeInTheDocument();
   });
 
-  it('shows all major feature modules', () => {
+  it('mentions every major module on the page', () => {
     render(<FeaturesPage />);
 
-    expect(screen.getByText('Security Console')).toBeInTheDocument();
-    expect(screen.getByText('Package Tracking')).toBeInTheDocument();
-    expect(screen.getByText('Maintenance Requests')).toBeInTheDocument();
-    expect(screen.getByText('Amenity Booking')).toBeInTheDocument();
-    expect(screen.getByText('Announcements')).toBeInTheDocument();
-    expect(screen.getByText('Staff Training')).toBeInTheDocument();
+    // We match against the *module-titles* (the new SEO-rich h3s),
+    // since module names mid-paragraph can be re-worded freely.
+    expect(screen.getByText(/package management software/i)).toBeInTheDocument();
+    expect(screen.getByText(/visitor management system/i)).toBeInTheDocument();
+    expect(screen.getByText(/maintenance request software/i)).toBeInTheDocument();
+    expect(screen.getByText(/amenity booking software/i)).toBeInTheDocument();
+    expect(screen.getByText(/security command center/i)).toBeInTheDocument();
+    expect(screen.getByText(/board governance software/i)).toBeInTheDocument();
   });
 
-  it('shows role-based showcase section', () => {
+  it('has FAQ section for SEO rich results', () => {
     render(<FeaturesPage />);
-
-    expect(screen.getByText('Concierge & Front Desk')).toBeInTheDocument();
-    expect(screen.getByText('Property Manager')).toBeInTheDocument();
-    expect(screen.getByText('Resident')).toBeInTheDocument();
+    expect(screen.getByText(/common questions/i)).toBeInTheDocument();
+    // Schema.org FAQ JSON-LD is rendered as a non-visible script tag.
+    expect(document.querySelector('script[type="application/ld+json"]')).toBeTruthy();
   });
 
-  it('has CTA to request demo', () => {
+  it('has CTA to request a demo', () => {
     render(<FeaturesPage />);
 
-    const cta = screen.getByRole('link', { name: /request a demo/i });
-    expect(cta).toBeInTheDocument();
-    expect(cta).toHaveAttribute('href', '/contact');
+    const ctas = screen.getAllByRole('link', { name: /request a demo/i });
+    expect(ctas.length).toBeGreaterThan(0);
+    expect(ctas[0]).toHaveAttribute('href', '/contact');
   });
 });

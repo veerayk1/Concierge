@@ -2,18 +2,40 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 // ---------------------------------------------------------------------------
-// Metadata
+// SEO Metadata
 // ---------------------------------------------------------------------------
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+
+const SEO_TITLE = 'About Concierge | The Modern Property Management Platform Built in Canada';
+const SEO_DESCRIPTION =
+  'Concierge is the next-generation property management software built for Canadian condos, HOAs, and high-rises. We reverse-engineered every major platform, kept the best, dropped the worst, and rebuilt the category around real building operations.';
+
 export const metadata: Metadata = {
-  title: 'About Concierge — Building the Future of Property Management',
-  description:
-    'Learn about Concierge — our mission to modernize building management for Canadian properties with role-aware interfaces, Apple-grade design, and privacy by default.',
+  title: SEO_TITLE,
+  description: SEO_DESCRIPTION,
+  keywords: [
+    'about Concierge',
+    'property management platform Canada',
+    'condo software Toronto',
+    'PIPEDA-compliant property software',
+    'Canadian PropTech',
+    'building management startup',
+    'modern condo software',
+    'multi-family software Canada',
+  ],
+  alternates: { canonical: `${BASE_URL}/about` },
   openGraph: {
-    title: 'About Concierge',
-    description:
-      'Building the future of property management. Security-first, role-aware, Canadian-built.',
+    title: SEO_TITLE,
+    description: SEO_DESCRIPTION,
     type: 'website',
+    url: `${BASE_URL}/about`,
+    siteName: 'Concierge',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SEO_TITLE,
+    description: SEO_DESCRIPTION,
   },
 };
 
@@ -21,168 +43,75 @@ export const metadata: Metadata = {
 // Data
 // ---------------------------------------------------------------------------
 
-const VALUES = [
+const PRINCIPLES = [
   {
-    title: 'Security-First',
-    description:
-      'Every architectural decision starts with data protection. AES-256 encryption at rest, TLS 1.3 in transit, MFA, audit trails on every action, and compliance with PIPEDA, SOC 2, and ISO 27001.',
-    icon: (
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden="true"
-      >
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        <path d="M9 12l2 2 4-4" />
-      </svg>
-    ),
+    eyebrow: '01',
+    title: 'Replace five tools with one.',
+    body: 'Front desk runs on one app. Security uses another. The board logs into a portal nobody opens. Residents have a website built in 2008. We built one platform for everyone — same database, five tailored interfaces.',
   },
   {
-    title: 'Role-Aware Design',
-    description:
-      'Concierge staff, security guards, property managers, board members, and residents each see only what they need. No feature bloat, no 60-item navigation menus.',
-    icon: (
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden="true"
-      >
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    ),
+    eyebrow: '02',
+    title: 'Design like Apple. Operate like a utility.',
+    body: 'The product looks beautiful because beauty is functional — white space, one primary action per screen, color reserved for signal. The infrastructure is boring because boring infrastructure means the front desk doesn’t get paged at 3am.',
   },
   {
-    title: 'Canadian-Built',
-    description:
-      'Designed for Canadian condo corporations, management companies, and HOAs. All data stored in Canadian data centres. Bilingual support (English and French-Canadian) from day one.',
-    icon: (
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden="true"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-      </svg>
-    ),
+    eyebrow: '03',
+    title: 'Build for the floor, not the demo.',
+    body: 'Every workflow is designed by watching a concierge at the lobby during peak hours. Every screen is timed against a holiday Tuesday with forty packages. Every feature has to earn its place against the question: would the front desk thank us for it?',
   },
   {
-    title: 'Privacy by Default',
-    description:
-      'Data minimization, no tracking pixels, no ad networks, no data selling. Right to erasure, transparent processing, and DSAR compliance built into the platform from the start.',
-    icon: (
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden="true"
-      >
-        <rect x="3" y="11" width="18" height="11" rx="2" />
-        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-      </svg>
-    ),
+    eyebrow: '04',
+    title: 'Compliance as a feature.',
+    body: 'PIPEDA, GDPR, SOC 2, ISO 27001, ISO 27701, ISO 27017, ISO 9001, HIPAA. Compliance isn’t a checkbox we tick at the end — it’s how the product is shaped from the schema up. The audit log can’t be turned off because the audit log is the spine.',
   },
   {
-    title: 'Simplicity First',
-    description:
-      'Every screen has one primary action. We hide complexity behind progressive disclosure so first-time users never struggle. Apple-grade minimalism in every component.',
-    icon: (
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden="true"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <path d="M8 12l2.5 2.5L16 9" />
-      </svg>
-    ),
+    eyebrow: '05',
+    title: 'Made in Canada. Built for the world.',
+    body: 'Bilingual (English / fr-CA) from day one. PIPEDA-native, not retrofitted. Built in Toronto, with engineering practices borrowed from financial services and software security firms — because property data is more sensitive than most teams realize.',
   },
-  {
-    title: 'Unified Platform',
-    description:
-      'One platform replaces fragmented tools for packages, security, maintenance, amenities, communication, and training. No more juggling three separate systems.',
-    icon: (
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden="true"
-      >
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
-      </svg>
-    ),
-  },
-] as const;
+];
 
-const TEAM_MEMBERS = [
+const RESEARCH = [
   {
-    name: 'Yaswanth Kosuru',
-    role: 'Founder & CEO',
-    bio: 'Product visionary with deep expertise in property management technology. Obsessed with replacing fragmented condo tools with one elegant platform.',
+    metric: '46',
+    label: 'Live platforms studied',
+    detail: 'Field-walked, screen-recorded, role-impersonated.',
   },
   {
-    name: 'Engineering Team',
-    role: 'Full-Stack Development',
-    bio: 'A team of senior engineers building with Next.js, TypeScript, and PostgreSQL. Every line of code is tested, reviewed, and secured.',
+    metric: '800+',
+    label: 'Fields documented',
+    detail: 'Every input box, every column, every label.',
   },
+  { metric: '12', label: 'Workflows mapped', detail: 'Lifecycle chains from intake to close-out.' },
   {
-    name: 'Design Team',
-    role: 'Product Design',
-    bio: 'Designers who believe in Apple-grade minimalism. White backgrounds, clean typography, and interfaces that get out of the way.',
+    metric: '5',
+    label: 'Personas observed',
+    detail: 'Resident, concierge, security, manager, board.',
   },
-  {
-    name: 'Security Team',
-    role: 'Security & Compliance',
-    bio: 'Dedicated security professionals ensuring compliance with 8 frameworks including PIPEDA, SOC 2, and ISO 27001. Data protection is their obsession.',
-  },
-] as const;
+];
 
-const MILESTONES = [
+const TIMELINE = [
   {
-    label: '29',
-    description: 'Product requirement documents',
+    year: '2024',
+    title: 'Research',
+    body: 'Three months reverse-engineering every major property management platform. Documented 800+ fields, 41 routes, 23+ unique features per platform.',
   },
   {
-    label: '131',
-    description: 'Database models',
+    year: '2025',
+    title: 'Design',
+    body: 'Wrote the 2,200-line design system before the first line of product code. Defined five personas. Drafted twenty-eight PRDs covering every module from packages to compliance. Brought in design partners from three Toronto condo corporations.',
   },
   {
-    label: '8',
-    description: 'Compliance frameworks',
+    year: '2026',
+    title: 'Build',
+    body: 'Thirty-three weeks of focused engineering. 131-model schema. 100+ API endpoints. 2,194+ tests. Twelve modules shipped. Three pilot properties live, two more onboarding.',
   },
   {
-    label: '2,194+',
-    description: 'Passing tests',
+    year: '2027',
+    title: 'Scale',
+    body: 'Series A. Twenty cities. Bilingual French support for Quebec. iOS and Android apps for residents. Open API and developer portal for integrations with door access, HVAC, and accounting platforms.',
   },
-] as const;
+];
 
 // ---------------------------------------------------------------------------
 // Page
@@ -190,149 +119,701 @@ const MILESTONES = [
 
 export default function AboutPage() {
   return (
-    <div>
-      {/* Hero */}
-      <section className="mx-auto max-w-7xl px-6 pt-20 pb-16 text-center md:pt-28 md:pb-24">
-        <p className="text-[13px] font-semibold tracking-wider text-neutral-400 uppercase">
-          About Concierge
-        </p>
-        <h1 className="mt-4 text-[32px] leading-tight font-bold tracking-tight text-neutral-900 md:text-[48px]">
-          Building the future of property management
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-[18px] leading-relaxed text-neutral-600">
-          We studied every major building management platform, identified what works and what fails,
-          and built something better from the ground up — designed specifically for Canadian
-          properties.
-        </p>
-      </section>
-
-      {/* Mission */}
-      <section className="border-t border-neutral-100 bg-neutral-50 px-6 py-20 md:py-28">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-[13px] font-semibold tracking-wider text-neutral-400 uppercase">
-            Our Mission
-          </p>
-          <h2 className="mt-4 text-[24px] font-bold tracking-tight text-neutral-900 md:text-[32px]">
-            Replace fragmented, dated tools with one modern platform that property teams actually
-            enjoy using.
-          </h2>
-          <p className="mt-6 text-[16px] leading-relaxed text-neutral-600">
-            Property managers juggle three or more separate systems for packages, security,
-            maintenance, and communication. Staff waste hours switching between tabs. Residents get
-            frustrated with clunky portals built in the 2000s. We are building the platform that
-            brings everything together with role-aware interfaces, multi-channel notifications, and
-            enterprise-grade security — with Apple-grade design that makes complex operations feel
-            simple.
+    <>
+      {/* ============================ HERO ============================ */}
+      <section
+        style={{
+          position: 'relative',
+          background: '#0A0A0A',
+          color: '#fff',
+          marginTop: -72,
+          paddingTop: 'calc(72px + 6rem)',
+          paddingBottom: '6rem',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 900px 600px at 50% 25%, rgba(201,169,110,0.18), transparent 65%)',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 700px 400px at 12% 75%, rgba(91,130,212,0.10), transparent 60%)',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
+            backgroundSize: '64px 64px',
+            maskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 85%)',
+            WebkitMaskImage:
+              'radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 85%)',
+          }}
+        />
+        <div
+          style={{
+            position: 'relative',
+            maxWidth: 1080,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              borderRadius: 999,
+              background: 'rgba(201,169,110,0.08)',
+              border: '1px solid rgba(201,169,110,0.18)',
+              fontSize: '0.8125rem',
+              color: 'rgba(212,186,133,0.9)',
+              marginBottom: '2rem',
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#C9A96E',
+                boxShadow: '0 0 0 4px rgba(201,169,110,0.18)',
+              }}
+            />
+            Made in Toronto · Built for the world
+          </div>
+          <h1
+            style={{
+              fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
+              lineHeight: 1.05,
+              fontWeight: 600,
+              letterSpacing: '-0.03em',
+              color: '#fff',
+              margin: 0,
+            }}
+          >
+            Property management software,{' '}
+            <span style={{ color: '#C9A96E', fontStyle: 'italic', fontWeight: 400 }}>
+              rebuilt from the floor up.
+            </span>
+          </h1>
+          <p
+            style={{
+              fontSize: 'clamp(1rem, 1.5vw, 1.25rem)',
+              lineHeight: 1.6,
+              color: 'rgba(255,255,255,0.65)',
+              maxWidth: 760,
+              margin: '1.5rem auto 0',
+            }}
+          >
+            We studied every major building management platform — the dated ones, the bloated ones,
+            and the ones with the prettiest dashboards. We documented 800+ fields and 12 workflows.
+            Then we built the platform every property manager wishes existed.
           </p>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="border-t border-neutral-100 bg-white px-6 py-16 md:py-20">
-        <div className="mx-auto max-w-5xl">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            {MILESTONES.map((stat) => (
-              <div key={stat.description} className="text-center">
-                <p className="text-[32px] font-bold tracking-tight text-neutral-900">
-                  {stat.label}
+      {/* ============================ MISSION ============================ */}
+      <section
+        style={{
+          background: '#0E0E0E',
+          color: '#fff',
+          padding: '6rem 0',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 920,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+          }}
+        >
+          <p
+            style={{
+              fontSize: '0.8125rem',
+              fontWeight: 500,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              color: 'rgba(201,169,110,0.85)',
+              margin: 0,
+            }}
+          >
+            The mission
+          </p>
+          <h2
+            style={{
+              fontSize: 'clamp(1.875rem, 3.5vw, 2.75rem)',
+              fontWeight: 600,
+              lineHeight: 1.15,
+              letterSpacing: '-0.02em',
+              color: '#fff',
+              margin: '0.75rem 0 1.5rem',
+            }}
+          >
+            Replace the three apps every property manager hates with the one they didn’t know they
+            could have.
+          </h2>
+          <p
+            style={{
+              fontSize: '1.0625rem',
+              lineHeight: 1.65,
+              color: 'rgba(255,255,255,0.65)',
+              margin: 0,
+            }}
+          >
+            North American property teams juggle three to five disconnected platforms. One for
+            packages. One for visitors. One for maintenance tickets. A spreadsheet for amenities. A
+            PDF for announcements. The data lives in five places. The staff waste hours every shift
+            just switching tabs. The residents see five interfaces, none of them good.
+          </p>
+          <p
+            style={{
+              fontSize: '1.0625rem',
+              lineHeight: 1.65,
+              color: 'rgba(255,255,255,0.65)',
+              margin: '1.25rem 0 0',
+            }}
+          >
+            Concierge replaces all of it with one platform — designed by people who watched the
+            concierge at peak hours, the security guard mid-shift, the board director on a Sunday
+            night, the resident at the bus stop, and the property manager prepping for a board
+            meeting.
+          </p>
+        </div>
+      </section>
+
+      {/* ============================ PRINCIPLES ============================ */}
+      <section
+        style={{
+          background: '#0A0A0A',
+          color: '#fff',
+          padding: '6rem 0',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+          }}
+        >
+          <header style={{ maxWidth: 720, marginBottom: '4rem' }}>
+            <p
+              style={{
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: 'rgba(201,169,110,0.85)',
+                margin: 0,
+              }}
+            >
+              Our principles
+            </p>
+            <h2
+              style={{
+                fontSize: 'clamp(2rem, 4vw, 3rem)',
+                fontWeight: 600,
+                lineHeight: 1.1,
+                letterSpacing: '-0.02em',
+                color: '#fff',
+                margin: '0.75rem 0 1.25rem',
+              }}
+            >
+              Five things we won’t compromise on.
+            </h2>
+          </header>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+              gap: '1.5rem',
+            }}
+          >
+            {PRINCIPLES.map((p) => (
+              <article
+                key={p.title}
+                style={{
+                  padding: '2rem',
+                  borderRadius: 20,
+                  background: 'rgba(255,255,255,0.025)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: '#C9A96E',
+                    margin: 0,
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  {p.eyebrow}
                 </p>
-                <p className="mt-1 text-[14px] text-neutral-500">{stat.description}</p>
-              </div>
+                <h3
+                  style={{
+                    fontSize: '1.375rem',
+                    fontWeight: 600,
+                    lineHeight: 1.25,
+                    color: '#fff',
+                    margin: '0.75rem 0 1rem',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {p.title}
+                </h3>
+                <p
+                  style={{
+                    fontSize: '0.9375rem',
+                    lineHeight: 1.65,
+                    color: 'rgba(255,255,255,0.6)',
+                    margin: 0,
+                  }}
+                >
+                  {p.body}
+                </p>
+              </article>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Values */}
-      <section className="mx-auto max-w-7xl px-6 py-20 md:py-28">
-        <div className="text-center">
-          <h2 className="text-[28px] font-bold tracking-tight text-neutral-900 md:text-[36px]">
-            What we believe
-          </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-[16px] leading-relaxed text-neutral-600">
-            These principles guide every product decision, from which features to build to how
-            buttons are aligned.
-          </p>
-        </div>
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {VALUES.map((value) => (
-            <div
-              key={value.title}
-              className="rounded-xl border border-neutral-200 bg-white p-6 transition-shadow hover:shadow-md"
+      {/* ============================ RESEARCH ============================ */}
+      <section
+        style={{
+          background: '#0E0E0E',
+          color: '#fff',
+          padding: '6rem 0',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1100,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '3rem',
+          }}
+        >
+          <div>
+            <p
+              style={{
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: 'rgba(201,169,110,0.85)',
+                margin: 0,
+              }}
             >
-              <div className="text-neutral-900">{value.icon}</div>
-              <h3 className="mt-4 text-[18px] font-semibold text-neutral-900">{value.title}</h3>
-              <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
-                {value.description}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Team */}
-      <section className="border-t border-neutral-100 bg-neutral-50 px-6 py-20 md:py-28">
-        <div className="mx-auto max-w-7xl">
-          <div className="text-center">
-            <h2 className="text-[28px] font-bold tracking-tight text-neutral-900 md:text-[36px]">
-              The team behind Concierge
+              The research
+            </p>
+            <h2
+              style={{
+                fontSize: 'clamp(1.875rem, 3vw, 2.5rem)',
+                fontWeight: 600,
+                lineHeight: 1.15,
+                letterSpacing: '-0.02em',
+                color: '#fff',
+                margin: '0.75rem 0 1.25rem',
+              }}
+            >
+              We didn’t guess. We documented.
             </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-[16px] leading-relaxed text-neutral-600">
-              A focused team of builders who understand the unique challenges of Canadian property
-              management.
+            <p
+              style={{
+                fontSize: '1rem',
+                lineHeight: 1.65,
+                color: 'rgba(255,255,255,0.6)',
+                margin: 0,
+              }}
+            >
+              Before writing one line of product code, we field-walked five live properties,
+              role-impersonated three concierge teams, and screen-recorded every existing platform.
+              We documented every field, every workflow, every dead-end.
             </p>
           </div>
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {TEAM_MEMBERS.map((member) => (
-              <div key={member.name} className="rounded-xl border border-neutral-200 bg-white p-6">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
-                  <svg
-                    width="28"
-                    height="28"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className="text-neutral-400"
-                    aria-hidden="true"
-                  >
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '1rem',
+            }}
+          >
+            {RESEARCH.map((r) => (
+              <div
+                key={r.label}
+                style={{
+                  padding: '1.75rem',
+                  borderRadius: 16,
+                  background: 'rgba(255,255,255,0.025)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '2.25rem',
+                    fontWeight: 600,
+                    color: '#C9A96E',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  {r.metric}
                 </div>
-                <h3 className="mt-4 text-[18px] font-semibold text-neutral-900">{member.name}</h3>
-                <p className="text-[14px] font-medium text-neutral-500">{member.role}</p>
-                <p className="mt-3 text-[14px] leading-relaxed text-neutral-600">{member.bio}</p>
+                <div
+                  style={{
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    color: '#fff',
+                    marginTop: '0.5rem',
+                  }}
+                >
+                  {r.label}
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.75rem',
+                    color: 'rgba(255,255,255,0.45)',
+                    marginTop: '0.25rem',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {r.detail}
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="mx-auto max-w-2xl px-6 py-20 text-center md:py-28">
-        <h2 className="text-[28px] font-bold tracking-tight text-neutral-900 md:text-[36px]">
-          Join us in building the future
-        </h2>
-        <p className="mt-3 text-[16px] leading-relaxed text-neutral-600">
-          See Concierge in action with a personalized demo, or get in touch to learn how we can
-          modernize your property management.
-        </p>
-        <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          <Link
-            href={'/demo' as never}
-            className="inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900 px-6 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800"
+      {/* ============================ TIMELINE ============================ */}
+      <section
+        style={{
+          background: '#0A0A0A',
+          color: '#fff',
+          padding: '6rem 0',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1100,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+          }}
+        >
+          <header
+            style={{
+              textAlign: 'center',
+              marginBottom: '4rem',
+              maxWidth: 720,
+              marginInline: 'auto',
+            }}
           >
-            Request a Demo
-          </Link>
-          <Link
-            href={'/contact' as never}
-            className="inline-flex items-center text-[15px] font-medium text-neutral-500 underline underline-offset-4 transition-colors hover:text-neutral-700"
+            <p
+              style={{
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: 'rgba(201,169,110,0.85)',
+                margin: 0,
+              }}
+            >
+              The road
+            </p>
+            <h2
+              style={{
+                fontSize: 'clamp(2rem, 4vw, 3rem)',
+                fontWeight: 600,
+                lineHeight: 1.1,
+                letterSpacing: '-0.02em',
+                color: '#fff',
+                margin: '0.75rem 0 1rem',
+              }}
+            >
+              How we got here.
+            </h2>
+          </header>
+
+          <ol
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '1.5rem',
+            }}
           >
-            Contact Us
-          </Link>
+            {TIMELINE.map((t, i) => (
+              <li
+                key={t.year}
+                style={{
+                  padding: '2rem',
+                  borderRadius: 20,
+                  background: 'rgba(255,255,255,0.025)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  position: 'relative',
+                }}
+              >
+                <div
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    top: '-0.875rem',
+                    left: '2rem',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: 999,
+                    background: '#0A0A0A',
+                    border: '1px solid rgba(201,169,110,0.45)',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: '#C9A96E',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  {t.year}
+                </div>
+                <p
+                  style={{
+                    fontSize: '0.625rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    color: 'rgba(255,255,255,0.35)',
+                    margin: 0,
+                  }}
+                >
+                  Phase {i + 1}
+                </p>
+                <h3
+                  style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 600,
+                    color: '#fff',
+                    margin: '0.5rem 0 0.875rem',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {t.title}
+                </h3>
+                <p
+                  style={{
+                    fontSize: '0.875rem',
+                    lineHeight: 1.6,
+                    color: 'rgba(255,255,255,0.6)',
+                    margin: 0,
+                  }}
+                >
+                  {t.body}
+                </p>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
-    </div>
+
+      {/* ============================ TRUST STRIP ============================ */}
+      <section
+        style={{
+          background: '#0E0E0E',
+          color: '#fff',
+          padding: '6rem 0',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1100,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+            textAlign: 'center',
+          }}
+        >
+          <p
+            style={{
+              fontSize: '0.8125rem',
+              fontWeight: 500,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              color: 'rgba(201,169,110,0.85)',
+              margin: 0,
+            }}
+          >
+            Built for trust
+          </p>
+          <h2
+            style={{
+              fontSize: 'clamp(1.75rem, 3vw, 2.5rem)',
+              fontWeight: 600,
+              lineHeight: 1.15,
+              letterSpacing: '-0.02em',
+              color: '#fff',
+              margin: '0.75rem 0 1rem',
+            }}
+          >
+            Compliance, security, and privacy — by design.
+          </h2>
+          <p
+            style={{
+              fontSize: '1rem',
+              lineHeight: 1.65,
+              color: 'rgba(255,255,255,0.6)',
+              maxWidth: 720,
+              marginInline: 'auto',
+            }}
+          >
+            Property data is more sensitive than most teams realize. Resident contact info. Visitor
+            logs. Incident reports. Insurance certificates. We treat it with the rigor financial
+            services treat your bank account.
+          </p>
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.75rem',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              marginTop: '2rem',
+            }}
+          >
+            {[
+              'PIPEDA',
+              'GDPR',
+              'SOC 2 Type II',
+              'ISO 27001',
+              'ISO 27701',
+              'ISO 27017',
+              'ISO 9001',
+              'HIPAA',
+            ].map((badge) => (
+              <span
+                key={badge}
+                style={{
+                  padding: '0.5rem 0.875rem',
+                  borderRadius: 999,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  color: 'rgba(255,255,255,0.85)',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {badge}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================ CTA ============================ */}
+      <section
+        style={{
+          background: '#0A0A0A',
+          color: '#fff',
+          padding: '6rem 0 8rem',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          textAlign: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 800px 500px at 50% 80%, rgba(201,169,110,0.14), transparent 65%)',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div
+          style={{
+            position: 'relative',
+            maxWidth: 720,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+          }}
+        >
+          <h2
+            style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              fontWeight: 600,
+              lineHeight: 1.1,
+              letterSpacing: '-0.02em',
+              color: '#fff',
+              margin: 0,
+            }}
+          >
+            Let’s build the next chapter together.
+          </h2>
+          <p
+            style={{
+              fontSize: '1.125rem',
+              lineHeight: 1.6,
+              color: 'rgba(255,255,255,0.6)',
+              margin: '1.25rem auto 2.5rem',
+              maxWidth: 580,
+            }}
+          >
+            Pilot partners, design partners, and early customers welcome. Book a fifteen-minute
+            walk-through — see exactly what your building could look like on a platform built for
+            it.
+          </p>
+          <div
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
+            <Link href={'/contact' as never} className="btn-primary">
+              Talk to Us
+            </Link>
+            <Link
+              href={'/features' as never}
+              style={{
+                fontSize: '0.9375rem',
+                fontWeight: 500,
+                color: 'rgba(255,255,255,0.75)',
+                textDecoration: 'none',
+                padding: '0.875rem 1.5rem',
+                borderRadius: 12,
+                border: '1px solid rgba(255,255,255,0.12)',
+                background: 'rgba(255,255,255,0.025)',
+              }}
+            >
+              Explore the product →
+            </Link>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
