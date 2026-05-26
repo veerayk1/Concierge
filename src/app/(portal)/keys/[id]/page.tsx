@@ -18,11 +18,13 @@ import {
   User,
   XCircle,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useState } from 'react';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,6 +50,9 @@ interface RelatedIncident {
 interface KeyDetail {
   id: string;
   serialNumber: string;
+  // Raw Prisma also surfaces keyName; UI prefers that when serialNumber is empty
+  keyName?: string;
+  category?: string;
   type: string;
   status: string;
   property: string;
@@ -61,6 +66,14 @@ interface KeyDetail {
     checkedOutAt: string;
     expectedReturn: string | null;
     idVerified: boolean;
+  } | null;
+  // The actual API attaches activeCheckout (with id) — we need that to call
+  // the return endpoint which is keyed on the checkout, not the key.
+  activeCheckout?: {
+    id: string;
+    checkedOutTo?: string;
+    expectedReturn?: string | null;
+    checkoutTime?: string | null;
   } | null;
   assignmentHistory: AssignmentHistoryEntry[];
   relatedIncidents: RelatedIncident[];
@@ -137,12 +150,57 @@ function KeyDetailSkeleton() {
 
 export default function KeyDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { confirm, flash, ConfirmHost } = useConfirmDialog();
+  const [saving, setSaving] = useState(false);
 
   const {
     data: keyItem,
     loading,
     error,
+    refetch,
   } = useApi<KeyDetail>(apiUrl(`/api/v1/keys/${id}`, { propertyId: getPropertyId() }));
+
+  async function returnKey(checkoutId: string) {
+    setSaving(true);
+    try {
+      const res = await apiRequest(`/api/v1/keys/checkouts/${checkoutId}`, {
+        method: 'PATCH',
+        body: { action: 'return' },
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not return this key. Try again.');
+        return;
+      }
+      flash('ok', 'Key returned successfully.');
+      refetch();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function markLost() {
+    setSaving(true);
+    try {
+      const res = await apiRequest(`/api/v1/keys/${id}`, {
+        method: 'PATCH',
+        body: { action: 'lost' },
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        flash('err', data?.message ?? 'Could not mark this key as lost. Try again.');
+        return;
+      }
+      flash('ok', 'Key marked as lost — an incident report has been opened.');
+      refetch();
+    } catch {
+      flash('err', 'Network error. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   // -- Loading State --
   if (loading) {
@@ -527,33 +585,35 @@ export default function KeyDetailPage() {
             <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Actions</h2>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <p className="mb-1 text-[12px] text-neutral-500">
-                  Manage check-out, return, and lost-key state from the Keys &amp; FOBs page — every
-                  action there updates this record.
-                </p>
-                <Link href="/keys" className="block">
-                  <Button variant="secondary" fullWidth>
-                    <LogIn className="h-4 w-4" />
-                    Open in Keys &amp; FOBs
-                  </Button>
-                </Link>
                 {isAvailable && (
-                  <Button
-                    fullWidth
-                    size="lg"
-                    disabled
-                    title="Check out this key from the Keys &amp; FOBs page."
-                  >
-                    <LogIn className="h-4 w-4" />
-                    Check Out
-                  </Button>
+                  <>
+                    <p className="mb-1 text-[12px] text-neutral-500">
+                      Check-out captures the holder, ID type, and expected return — best done from
+                      the Keys &amp; FOBs list where the full form lives.
+                    </p>
+                    <Link href="/keys" className="block">
+                      <Button fullWidth size="lg">
+                        <LogIn className="h-4 w-4" />
+                        Check this key out
+                      </Button>
+                    </Link>
+                  </>
                 )}
-                {isCheckedOut && (
+                {isCheckedOut && keyItem.activeCheckout?.id && (
                   <Button
                     fullWidth
                     size="lg"
-                    disabled
-                    title="Return this key from the Keys &amp; FOBs page."
+                    disabled={saving}
+                    onClick={() =>
+                      confirm({
+                        title: `Return ${keyItem.serialNumber || keyItem.keyName || 'this key'}?`,
+                        body: `${
+                          keyItem.currentAssignment?.resident ?? 'The current holder'
+                        } will be marked as returned. Make sure you have the physical key in hand.`,
+                        confirmLabel: 'Confirm return',
+                        run: () => returnKey(keyItem.activeCheckout!.id),
+                      })
+                    }
                   >
                     <LogOut className="h-4 w-4" />
                     Return Key
@@ -562,18 +622,28 @@ export default function KeyDetailPage() {
                 <Button
                   variant="secondary"
                   fullWidth
-                  disabled
-                  title="Mark-as-lost flow is coming with the lost-key workflow next release."
+                  disabled={saving || keyItem.status === 'lost'}
+                  onClick={() =>
+                    confirm({
+                      title: `Mark ${
+                        keyItem.serialNumber || keyItem.keyName || 'this key'
+                      } as lost?`,
+                      body: `This opens a security incident report automatically and locks the key out of future check-outs. Only do this if the key cannot be physically located.`,
+                      confirmLabel: 'Mark as lost',
+                      destructive: true,
+                      run: markLost,
+                    })
+                  }
                 >
                   <AlertTriangle className="h-4 w-4" />
-                  Mark as Lost
+                  {keyItem.status === 'lost' ? 'Already marked lost' : 'Mark as Lost'}
                 </Button>
                 <Button
                   variant="ghost"
                   fullWidth
                   className="text-error-600 hover:text-error-700"
                   disabled
-                  title="Decommission is coming with the admin tooling release."
+                  title="Decommission is restricted to property admins — coming with the admin tooling release."
                 >
                   <XCircle className="h-4 w-4" />
                   Decommission
@@ -638,6 +708,7 @@ export default function KeyDetailPage() {
           </Card>
         </div>
       </div>
+      <ConfirmHost />
     </div>
   );
 }
