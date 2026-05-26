@@ -8,7 +8,7 @@ import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog';
+import { IncidentWizard } from '@/components/forms/incident-wizard';
 import { CreateShiftEntryDialog } from '@/components/forms/create-shift-entry-dialog';
 import { CreatePackageDialog } from '@/components/forms/create-package-dialog';
 import { CreateVisitorDialog } from '@/components/forms/create-visitor-dialog';
@@ -1400,7 +1400,7 @@ function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) 
 
       {/* Inline dialogs — opened directly by the quick-action tiles so the
           guard never leaves the dashboard. */}
-      <ReportIncidentDialog
+      <IncidentWizard
         open={showIncidentDialog}
         onOpenChange={setShowIncidentDialog}
         propertyId={getPropertyId()}

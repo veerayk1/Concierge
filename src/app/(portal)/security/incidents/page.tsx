@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, Plus, Search, ShieldAlert, X, Loader2 } from 'lucide-react';
-import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog';
+import { IncidentWizard } from '@/components/forms/incident-wizard';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
@@ -307,7 +307,7 @@ export default function IncidentsPage() {
         />
       )}
 
-      <ReportIncidentDialog
+      <IncidentWizard
         open={showReportDialog}
         onOpenChange={setShowReportDialog}
         propertyId={getPropertyId()}

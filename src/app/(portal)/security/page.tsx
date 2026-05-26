@@ -1,8 +1,8 @@
 'use client';
-// Security Console — Updated to use ReportIncidentDialog
+// Security Console — uses IncidentWizard for one-tap incident filing
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ReportIncidentDialog } from '@/components/forms/report-incident-dialog';
+import { IncidentWizard } from '@/components/forms/incident-wizard';
 import { CreateFireLogDialog } from '@/components/forms/create-fire-log-dialog';
 import { CreateNoiseComplaintDialog } from '@/components/forms/create-noise-complaint-dialog';
 import { AuthorizedEntryDialog } from '@/components/forms/authorized-entry-dialog';
@@ -596,7 +596,7 @@ export default function SecurityPage() {
         </>
       )}
 
-      <ReportIncidentDialog
+      <IncidentWizard
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         propertyId={getPropertyId()}
