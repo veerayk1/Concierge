@@ -207,7 +207,12 @@ export default function SurveyDetailPage({ params }: SurveyDetailPageProps) {
       description="Survey Results"
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled
+            title="Editing question content comes with the question builder release. Title/description/expiry edits are coming in the same update."
+          >
             <Edit2 className="h-4 w-4" />
             Edit
           </Button>
