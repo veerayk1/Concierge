@@ -298,11 +298,103 @@ function CreateApiKeyDialog({ open, onOpenChange, onSuccess }: CreateApiKeyDialo
 // Component
 // ---------------------------------------------------------------------------
 
+// Default event subscriptions when the developer opens the Create Webhook
+// dialog — the four most-likely-useful ones for an integration. They can
+// add or remove any of the WEBHOOK_EVENTS catalog from the checkbox list.
+const DEFAULT_WEBHOOK_EVENTS = [
+  'package.received',
+  'maintenance.created',
+  'booking.created',
+  'visitor.signed_in',
+];
+
+const WEBHOOK_EVENT_CATALOG: Array<{ id: string; label: string; group: string }> = [
+  { id: 'event.created', label: 'Event created', group: 'Events' },
+  { id: 'event.updated', label: 'Event updated', group: 'Events' },
+  { id: 'event.closed', label: 'Event closed', group: 'Events' },
+  { id: 'package.received', label: 'Package received', group: 'Packages' },
+  { id: 'package.released', label: 'Package picked up', group: 'Packages' },
+  { id: 'maintenance.created', label: 'Maintenance request created', group: 'Maintenance' },
+  { id: 'maintenance.updated', label: 'Maintenance request updated', group: 'Maintenance' },
+  { id: 'maintenance.resolved', label: 'Maintenance request resolved', group: 'Maintenance' },
+  { id: 'booking.created', label: 'Amenity booking created', group: 'Amenities' },
+  { id: 'booking.approved', label: 'Amenity booking approved', group: 'Amenities' },
+  { id: 'booking.rejected', label: 'Amenity booking declined', group: 'Amenities' },
+  { id: 'visitor.signed_in', label: 'Visitor signed in', group: 'Visitors' },
+  { id: 'visitor.signed_out', label: 'Visitor signed out', group: 'Visitors' },
+  { id: 'announcement.published', label: 'Announcement published', group: 'Communication' },
+  { id: 'unit.updated', label: 'Unit updated', group: 'Units & Residents' },
+  { id: 'resident.created', label: 'Resident created', group: 'Units & Residents' },
+  { id: 'resident.updated', label: 'Resident updated', group: 'Units & Residents' },
+];
+
 export default function DeveloperPortalPage() {
   const [activeTab, setActiveTab] = useState<Tab>('api-keys');
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
   const [showCreateKeyDialog, setShowCreateKeyDialog] = useState(false);
+  const [showCreateWebhookDialog, setShowCreateWebhookDialog] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookEvents, setWebhookEvents] = useState<string[]>(DEFAULT_WEBHOOK_EVENTS);
+  const [webhookSubmitting, setWebhookSubmitting] = useState(false);
+  const [webhookFormError, setWebhookFormError] = useState<string | null>(null);
+  const [createdWebhookSecret, setCreatedWebhookSecret] = useState<string | null>(null);
   const { confirm: askConfirm, flash, ConfirmHost } = useConfirmDialog();
+
+  function resetWebhookForm() {
+    setWebhookUrl('');
+    setWebhookEvents(DEFAULT_WEBHOOK_EVENTS);
+    setWebhookFormError(null);
+    setCreatedWebhookSecret(null);
+  }
+
+  function toggleWebhookEvent(eventId: string) {
+    setWebhookEvents((prev) =>
+      prev.includes(eventId) ? prev.filter((e) => e !== eventId) : [...prev, eventId],
+    );
+  }
+
+  async function submitWebhook() {
+    setWebhookFormError(null);
+    const url = webhookUrl.trim();
+    if (!url) {
+      setWebhookFormError('Endpoint URL is required.');
+      return;
+    }
+    if (!url.startsWith('https://')) {
+      setWebhookFormError('Endpoint must use HTTPS.');
+      return;
+    }
+    if (webhookEvents.length === 0) {
+      setWebhookFormError('Pick at least one event to subscribe to.');
+      return;
+    }
+    setWebhookSubmitting(true);
+    try {
+      const res = await apiRequest('/api/v1/developer/webhooks', {
+        method: 'POST',
+        body: { propertyId: getPropertyId(), url, events: webhookEvents },
+      });
+      const json = (await res.json().catch(() => null)) as {
+        data?: { secret?: string };
+        message?: string;
+        fields?: Record<string, string[]>;
+      } | null;
+      if (!res.ok) {
+        const firstField = json?.fields ? Object.values(json.fields)[0]?.[0] : null;
+        setWebhookFormError(firstField ?? json?.message ?? 'Could not create webhook.');
+        return;
+      }
+      if (json?.data?.secret) {
+        setCreatedWebhookSecret(json.data.secret);
+      }
+      flash('ok', 'Webhook created. Signing secret displayed once below.');
+      refetchWebhooks();
+    } catch {
+      setWebhookFormError('Network error. Try again.');
+    } finally {
+      setWebhookSubmitting(false);
+    }
+  }
 
   // Fetch API keys
   const {
@@ -728,8 +820,10 @@ export default function DeveloperPortalPage() {
           {activeTab === 'webhooks' && (
             <Button
               size="sm"
-              disabled
-              title="Webhook creation dialog is coming next release. Use the REST API to register webhooks for now."
+              onClick={() => {
+                resetWebhookForm();
+                setShowCreateWebhookDialog(true);
+              }}
             >
               <Plus className="h-4 w-4" />
               Create Webhook
@@ -816,7 +910,13 @@ export default function DeveloperPortalPage() {
               title="No webhooks configured yet"
               description="Create a webhook to receive real-time notifications about events in your property."
               action={
-                <Button size="sm">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    resetWebhookForm();
+                    setShowCreateWebhookDialog(true);
+                  }}
+                >
                   <Plus className="h-4 w-4" />
                   Create Webhook
                 </Button>
@@ -863,6 +963,148 @@ export default function DeveloperPortalPage() {
         onOpenChange={setShowCreateKeyDialog}
         onSuccess={() => refetchKeys()}
       />
+
+      {/* Create Webhook Dialog — registers an HTTPS endpoint that receives
+          event payloads, with a per-webhook signing secret shown once. */}
+      <Dialog
+        open={showCreateWebhookDialog}
+        onOpenChange={(open) => {
+          if (!webhookSubmitting) {
+            setShowCreateWebhookDialog(open);
+            if (!open) resetWebhookForm();
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          {createdWebhookSecret ? (
+            <>
+              <DialogTitle>Webhook created</DialogTitle>
+              <DialogDescription>
+                Your signing secret is shown <strong>once</strong> below. Store it somewhere safe —
+                we hash it on our side and can&apos;t show it again.
+              </DialogDescription>
+              <div className="mt-4 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 font-mono text-[13px] break-all text-neutral-900">
+                  <span>{createdWebhookSecret}</span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      void navigator.clipboard?.writeText(createdWebhookSecret);
+                      flash('ok', 'Secret copied to clipboard.');
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-[12.5px] text-neutral-500">
+                  Use this secret to verify the <code>X-Concierge-Signature</code> header on every
+                  delivery. Algorithm: HMAC-SHA256 of the request body.
+                </p>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setShowCreateWebhookDialog(false);
+                    resetWebhookForm();
+                  }}
+                >
+                  Done
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogTitle>Create webhook</DialogTitle>
+              <DialogDescription>
+                Register an HTTPS endpoint that receives event payloads. We&apos;ll deliver each
+                subscribed event with an HMAC-SHA256 signature.
+              </DialogDescription>
+              <form
+                className="mt-4 flex flex-col gap-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void submitWebhook();
+                }}
+              >
+                <Input
+                  label="Endpoint URL"
+                  type="url"
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                  placeholder="https://example.com/concierge-events"
+                  disabled={webhookSubmitting}
+                  helperText="HTTPS only. Cannot point at localhost or private IP ranges."
+                  required
+                />
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-[14px] font-medium tracking-[-0.01em] text-neutral-700">
+                    Subscribe to events ({webhookEvents.length} selected)
+                  </label>
+                  <div className="grid max-h-[280px] grid-cols-1 gap-y-3 overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50 p-4 sm:grid-cols-2">
+                    {Array.from(new Set(WEBHOOK_EVENT_CATALOG.map((e) => e.group))).map((group) => (
+                      <div key={group} className="flex flex-col gap-1.5 sm:col-span-2">
+                        <p className="text-[11.5px] font-semibold tracking-wide text-neutral-500 uppercase">
+                          {group}
+                        </p>
+                        <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                          {WEBHOOK_EVENT_CATALOG.filter((e) => e.group === group).map((evt) => (
+                            <label
+                              key={evt.id}
+                              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-[13px] text-neutral-700 hover:bg-white"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={webhookEvents.includes(evt.id)}
+                                onChange={() => toggleWebhookEvent(evt.id)}
+                                disabled={webhookSubmitting}
+                                className="h-3.5 w-3.5 rounded border-neutral-300"
+                              />
+                              {evt.label}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {webhookFormError && (
+                  <p className="text-error-600 text-[13px]" role="alert">
+                    {webhookFormError}
+                  </p>
+                )}
+
+                <div className="mt-2 flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={webhookSubmitting}
+                    onClick={() => {
+                      setShowCreateWebhookDialog(false);
+                      resetWebhookForm();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={webhookSubmitting || !webhookUrl.trim() || webhookEvents.length === 0}
+                  >
+                    {webhookSubmitting ? 'Creating…' : 'Create webhook'}
+                  </Button>
+                </div>
+              </form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <ConfirmHost />
     </PageShell>
