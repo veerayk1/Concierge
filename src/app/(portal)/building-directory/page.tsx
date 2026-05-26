@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { exportToCsv } from '@/lib/export-csv';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -218,7 +219,25 @@ export default function BuildingDirectoryPage() {
       description="Contact information for building services, staff, and common areas."
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={filteredEntries.length === 0}
+            onClick={() =>
+              exportToCsv(
+                filteredEntries,
+                [
+                  { key: 'name', header: 'Name' },
+                  { key: 'category', header: 'Category' },
+                  { key: 'contactPerson', header: 'Contact' },
+                  { key: 'phone', header: 'Phone' },
+                  { key: 'email', header: 'Email' },
+                  { key: 'location', header: 'Location' },
+                ],
+                'building-directory',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>

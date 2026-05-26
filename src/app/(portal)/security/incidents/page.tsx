@@ -10,6 +10,7 @@ import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { exportToCsv } from '@/lib/export-csv';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -297,7 +298,26 @@ export default function IncidentsPage() {
       description={`${incidents.length} incidents \u00B7 ${openCount} active`}
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={incidents.length === 0}
+            onClick={() =>
+              exportToCsv(
+                incidents,
+                [
+                  { key: 'referenceNumber', header: 'Ref #' },
+                  { key: 'title', header: 'Incident' },
+                  { key: 'category', header: 'Category' },
+                  { key: 'priority', header: 'Priority' },
+                  { key: 'status', header: 'Status' },
+                  { key: 'unit', header: 'Unit' },
+                  { key: 'reportedAt', header: 'Reported' },
+                ],
+                'incidents',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>
