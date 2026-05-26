@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EditVendorDialog } from '@/components/forms/edit-vendor-dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -186,6 +187,18 @@ export default function VendorDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const certInputRef = useRef<HTMLInputElement>(null);
+  // Confirm + flash state — replaces native confirm()/alert() per UX-184.
+  const [confirmAction, setConfirmAction] = useState<null | {
+    title: string;
+    body: string;
+    destructive?: boolean;
+    run: () => Promise<void>;
+  }>(null);
+  const [flashV, setFlashV] = useState<null | { tone: 'ok' | 'err'; text: string }>(null);
+  const flashMsg = (tone: 'ok' | 'err', text: string) => {
+    setFlashV({ tone, text });
+    setTimeout(() => setFlashV(null), 4000);
+  };
 
   const {
     data: vendor,
@@ -210,39 +223,42 @@ export default function VendorDetailPage() {
       );
       if (!res.ok) {
         const result = await res.json().catch(() => ({}));
-        alert(result.message || 'Failed to upload certificate.');
+        flashMsg('err', result.message || 'Failed to upload certificate.');
       } else {
-        alert('Certificate uploaded successfully.');
+        flashMsg('ok', 'Certificate uploaded successfully.');
         refetch();
       }
     } catch {
-      alert('Network error. Please try again.');
+      flashMsg('err', 'Network error. Please try again.');
     } finally {
       setUploading(false);
       if (certInputRef.current) certInputRef.current.value = '';
     }
   };
 
-  const handleDeactivateVendor = async () => {
-    const confirmed = window.confirm(
-      'Are you sure you want to deactivate this vendor? They will no longer be assignable to new work orders.',
-    );
-    if (!confirmed) return;
-    try {
-      const res = await apiRequest(
-        apiUrl(`/api/v1/vendors/${id}`, { propertyId: getPropertyId() }),
-        { method: 'PATCH', body: { status: 'inactive' } },
-      );
-      if (!res.ok) {
-        const result = await res.json().catch(() => ({}));
-        alert(result.message || 'Failed to deactivate vendor.');
-        return;
-      }
-      alert('Vendor has been deactivated.');
-      refetch();
-    } catch {
-      alert('Network error. Please try again.');
-    }
+  const handleDeactivateVendor = () => {
+    setConfirmAction({
+      title: 'Deactivate this vendor?',
+      body: 'They will no longer be assignable to new work orders. Existing assignments stay intact. You can reactivate later from the edit dialog.',
+      destructive: true,
+      run: async () => {
+        try {
+          const res = await apiRequest(
+            apiUrl(`/api/v1/vendors/${id}`, { propertyId: getPropertyId() }),
+            { method: 'PATCH', body: { status: 'inactive' } },
+          );
+          if (!res.ok) {
+            const result = await res.json().catch(() => ({}));
+            flashMsg('err', result.message || 'Failed to deactivate vendor.');
+            return;
+          }
+          flashMsg('ok', 'Vendor has been deactivated.');
+          refetch();
+        } catch {
+          flashMsg('err', 'Network error. Please try again.');
+        }
+      },
+    });
   };
 
   // -- Loading State --
@@ -658,7 +674,7 @@ export default function VendorDetailPage() {
                 <Button
                   variant="secondary"
                   fullWidth
-                  onClick={() => alert('Insurance update request sent.')}
+                  onClick={() => flashMsg('ok', 'Insurance update request sent.')}
                 >
                   <RefreshCw className="h-4 w-4" />
                   Request Insurance Update
@@ -674,7 +690,7 @@ export default function VendorDetailPage() {
                           d.name.toLowerCase().includes('contract'),
                       ) || documents[0];
                     if (!contractDoc) {
-                      alert('No documents available. Upload a contract first.');
+                      flashMsg('err', 'No documents available. Upload a contract first.');
                       return;
                     }
                     try {
@@ -688,10 +704,10 @@ export default function VendorDetailPage() {
                       if (result.data?.url) {
                         window.open(result.data.url, '_blank');
                       } else {
-                        alert('Download link not available.');
+                        flashMsg('err', 'Download link not available.');
                       }
                     } catch {
-                      alert('Failed to load contract.');
+                      flashMsg('err', 'Failed to load contract.');
                     }
                   }}
                 >
@@ -756,10 +772,10 @@ export default function VendorDetailPage() {
                               link.click();
                               document.body.removeChild(link);
                             } else {
-                              alert('Download link not available.');
+                              flashMsg('err', 'Download link not available.');
                             }
                           } catch {
-                            alert('Failed to download document.');
+                            flashMsg('err', 'Failed to download document.');
                           }
                         }}
                       >
@@ -783,6 +799,47 @@ export default function VendorDetailPage() {
         vendor={vendor}
         onSuccess={refetch}
       />
+
+      {/* Confirm + flash — replaces native confirm()/alert(). */}
+      <Dialog open={confirmAction !== null} onOpenChange={(o) => !o && setConfirmAction(null)}>
+        <DialogContent>
+          <DialogTitle>{confirmAction?.title ?? ''}</DialogTitle>
+          <DialogDescription>{confirmAction?.body ?? ''}</DialogDescription>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setConfirmAction(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className={
+                confirmAction?.destructive
+                  ? 'bg-error-500 hover:bg-error-600 text-white'
+                  : undefined
+              }
+              onClick={async () => {
+                const action = confirmAction;
+                setConfirmAction(null);
+                if (action) await action.run();
+              }}
+            >
+              {confirmAction?.destructive ? 'Deactivate' : 'Confirm'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {flashV && (
+        <div
+          role="status"
+          className={`fixed right-6 bottom-6 z-50 max-w-sm rounded-xl px-4 py-3 text-[13.5px] font-medium shadow-lg ring-1 ${
+            flashV.tone === 'ok'
+              ? 'bg-success-50 text-success-700 ring-success-200'
+              : 'bg-error-50 text-error-700 ring-error-200'
+          }`}
+        >
+          {flashV.text}
+        </div>
+      )}
     </PageShell>
   );
 }
