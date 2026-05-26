@@ -24,6 +24,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateResidentCardDialog } from '@/components/forms/create-resident-card-dialog';
+import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -311,7 +312,26 @@ export default function ResidentCardsPage() {
       description="Issue and manage resident identification cards."
       actions={
         <>
-          <Button variant="secondary" size="sm">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={filteredCards.length === 0}
+            onClick={() =>
+              exportToCsv(
+                filteredCards,
+                [
+                  { key: 'cardNumber', header: 'Card Number' },
+                  { key: 'residentName', header: 'Resident' },
+                  { key: 'unit', header: 'Unit' },
+                  { key: 'type', header: 'Type' },
+                  { key: 'status', header: 'Status' },
+                  { key: 'issuedDate', header: 'Issued' },
+                  { key: 'expiryDate', header: 'Expires' },
+                ],
+                'resident-cards',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>
