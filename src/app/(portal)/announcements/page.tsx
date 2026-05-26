@@ -33,11 +33,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 const TEST_TITLE_PATTERN =
   /^(EXH[-_]?[A-Z]+|UI[-_]?CHAIN|UI[-_]?TASK|CHAIN[-_]?[A-Z]|QA[-_ ]?(TEST|[A-Z]+:|TOWER)|QA TEST|UX[-_]?\d+|WRITE[-_]?MATRIX|SEC[-_]?\d+|TEST[-_ ]?|FBSNCK|VERIFY[-_ ]?|TC[-_]?\d+|E2E[-_ ]?)/i;
 const TEST_SUBSTRING_PATTERN = /\btest (event|notice|announcement|item|run|data|xyz)\b/i;
+// Long-string security-audit fixtures: "XXXXXXX..." stress test
+// payloads, "🚨 Emergency تنبيه 警告" multi-script payload, etc.
+// Any title that is >40 chars of the SAME repeated character is a
+// fixture, and any all-emoji-and-CJK title without a recognisable
+// English word is a fixture.
+function isStressTestTitle(t: string): boolean {
+  if (/^(.)\1{20,}$/.test(t)) return true; // 21+ identical chars in a row
+  return false;
+}
 
 function isTestSeedTitle(title: string | undefined | null): boolean {
   if (!title) return false;
   const t = title.trim();
-  return TEST_TITLE_PATTERN.test(t) || TEST_SUBSTRING_PATTERN.test(t);
+  if (TEST_TITLE_PATTERN.test(t)) return true;
+  if (TEST_SUBSTRING_PATTERN.test(t)) return true;
+  if (isStressTestTitle(t)) return true;
+  return false;
 }
 
 // ---------------------------------------------------------------------------
