@@ -1499,10 +1499,75 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
       limit: '3',
     }),
   );
+  // Per-resident read state lives in localStorage — a Set of
+  // announcement IDs the user has already opened. Cheap, no API
+  // round-trip, and survives across sessions. We seed it once on
+  // first mount so the very first dashboard visit doesn't scream
+  // "NEW" on every existing announcement.
+  const ANN_READ_KEY = 'conc_ann_read_ids';
+  const [readIds, setReadIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const raw = localStorage.getItem(ANN_READ_KEY);
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set();
+    }
+  });
+  const markAnnRead = (id: string) => {
+    setReadIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      try {
+        localStorage.setItem(ANN_READ_KEY, JSON.stringify(Array.from(next)));
+      } catch {
+        // localStorage quota — silent
+      }
+      return next;
+    });
+  };
   const announcements: AnnouncementSummary[] = useMemo(() => {
     if (!annData) return [];
     const list = Array.isArray(annData) ? annData : [];
-    return list.filter((a) => !isTestSeedTitle(a.title)).slice(0, 3);
+    // Filter test seed, then sort unread-first (pinned always wins),
+    // with most-recent unread at the top. Read announcements drop to
+    // the bottom so the resident's eye lands on what they haven't
+    // seen yet.
+    const filtered = list.filter((a) => !isTestSeedTitle(a.title));
+    filtered.sort((a, b) => {
+      const aRead = readIds.has(a.id) ? 1 : 0;
+      const bRead = readIds.has(b.id) ? 1 : 0;
+      if (aRead !== bRead) return aRead - bRead; // unread (0) first
+      // Pinned floats inside its own read/unread bucket
+      const aPin = a.isPinned ? 0 : 1;
+      const bPin = b.isPinned ? 0 : 1;
+      if (aPin !== bPin) return aPin - bPin;
+      const aTs = new Date(a.publishedAt ?? '').getTime();
+      const bTs = new Date(b.publishedAt ?? '').getTime();
+      return bTs - aTs;
+    });
+    return filtered.slice(0, 3);
+  }, [annData, readIds]);
+  // First-load seed: if the user has never used the dashboard,
+  // we don't want every existing announcement showing "NEW". Mark
+  // all currently-published announcements as read on the very first
+  // visit so the indicator only fires on things published AFTER.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const seeded = localStorage.getItem('conc_ann_read_seeded') === '1';
+    if (seeded) return;
+    if (!annData) return;
+    const list = Array.isArray(annData) ? annData : [];
+    const ids = list.map((a) => a.id).filter(Boolean);
+    if (!ids.length) return;
+    setReadIds(new Set(ids));
+    try {
+      localStorage.setItem(ANN_READ_KEY, JSON.stringify(ids));
+      localStorage.setItem('conc_ann_read_seeded', '1');
+    } catch {
+      // ignore
+    }
   }, [annData]);
 
   // Resident-scoped KPI sources.
@@ -1764,58 +1829,70 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
         {announcements.length > 0 ? (
           <div className="overflow-hidden rounded-2xl border border-neutral-200">
             <ul className="divide-y divide-neutral-100">
-              {announcements.map((ann, i) => (
-                <li
-                  key={ann.id ?? i}
-                  className={`grid grid-cols-[40px_1fr_auto] items-start gap-4 px-5 py-4 ${
-                    ann.isPinned ? 'bg-primary-50/40' : ''
-                  }`}
-                >
-                  {/* Category icon */}
-                  <div className="pt-0.5">{iconForAnnouncement(ann)}</div>
+              {announcements.map((ann, i) => {
+                const isUnread = !readIds.has(ann.id);
+                return (
+                  <li
+                    key={ann.id ?? i}
+                    onClick={() => markAnnRead(ann.id)}
+                    className={`grid cursor-pointer grid-cols-[40px_1fr_auto] items-start gap-4 px-5 py-4 transition-colors hover:bg-neutral-50/60 ${
+                      isUnread ? 'bg-sky-50/30' : ann.isPinned ? 'bg-primary-50/40' : ''
+                    }`}
+                  >
+                    {/* Category icon */}
+                    <div className="pt-0.5">{iconForAnnouncement(ann)}</div>
 
-                  {/* Tags + title + body */}
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      {ann.isPinned && (
-                        <span className="text-primary-600 inline-flex items-center gap-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase">
-                          <Star
-                            className="fill-primary-500 stroke-primary-500 h-3 w-3"
-                            aria-hidden="true"
-                          />
-                          Pinned
-                        </span>
-                      )}
-                      {ann.category?.name && (
-                        <span className="text-[10.5px] font-semibold tracking-[0.08em] text-neutral-500 uppercase">
-                          {ann.isPinned ? '·' : ''} {ann.category.name}
-                        </span>
-                      )}
-                      {ann.requireAcknowledgment && (
-                        <span className="text-warning-600 text-[10.5px] font-semibold tracking-[0.08em] uppercase">
-                          · Action required
-                        </span>
+                    {/* Tags + title + body */}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        {isUnread && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold tracking-[0.08em] text-sky-700 uppercase">
+                            <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                            New
+                          </span>
+                        )}
+                        {ann.isPinned && (
+                          <span className="text-primary-600 inline-flex items-center gap-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase">
+                            <Star
+                              className="fill-primary-500 stroke-primary-500 h-3 w-3"
+                              aria-hidden="true"
+                            />
+                            Pinned
+                          </span>
+                        )}
+                        {ann.category?.name && (
+                          <span className="text-[10.5px] font-semibold tracking-[0.08em] text-neutral-500 uppercase">
+                            {isUnread || ann.isPinned ? '·' : ''} {ann.category.name}
+                          </span>
+                        )}
+                        {ann.requireAcknowledgment && (
+                          <span className="text-warning-600 text-[10.5px] font-semibold tracking-[0.08em] uppercase">
+                            · Action required
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="mt-1 text-[15px] font-semibold text-neutral-900">
+                        {ann.title}
+                      </h3>
+                      {ann.content && (
+                        <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-neutral-600">
+                          {stripHtml(ann.content)}
+                        </p>
                       )}
                     </div>
-                    <h3 className="mt-1 text-[15px] font-semibold text-neutral-900">{ann.title}</h3>
-                    {ann.content && (
-                      <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-neutral-600">
-                        {stripHtml(ann.content)}
-                      </p>
-                    )}
-                  </div>
 
-                  {/* Date column */}
-                  <div className="flex flex-col items-end pt-1 text-right whitespace-nowrap">
-                    <span className="text-[14px] font-semibold text-neutral-900">
-                      {formatAnnouncementDate(ann.expiresAt ?? ann.publishedAt)}
-                    </span>
-                    <span className="text-[11.5px] text-neutral-400">
-                      {formatAnnouncementRelative(ann.expiresAt ?? ann.publishedAt)}
-                    </span>
-                  </div>
-                </li>
-              ))}
+                    {/* Date column */}
+                    <div className="flex flex-col items-end pt-1 text-right whitespace-nowrap">
+                      <span className="text-[14px] font-semibold text-neutral-900">
+                        {formatAnnouncementDate(ann.expiresAt ?? ann.publishedAt)}
+                      </span>
+                      <span className="text-[11.5px] text-neutral-400">
+                        {formatAnnouncementRelative(ann.expiresAt ?? ann.publishedAt)}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ) : (
