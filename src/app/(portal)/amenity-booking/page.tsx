@@ -184,10 +184,21 @@ export default function AmenityBookingPage() {
 
   const bookings = useMemo<MyBooking[]>(() => {
     if (!bookingsRaw) return [];
-    if (Array.isArray(bookingsRaw)) return bookingsRaw;
-    if (Array.isArray((bookingsRaw as BookingsApiResponse).data))
-      return (bookingsRaw as BookingsApiResponse).data;
-    return [];
+    let rows: MyBooking[] = [];
+    if (Array.isArray(bookingsRaw)) rows = bookingsRaw;
+    else if (Array.isArray((bookingsRaw as BookingsApiResponse).data))
+      rows = (bookingsRaw as BookingsApiResponse).data;
+    // "My upcoming bookings" should be exactly that — upcoming. Hide
+    // cancelled rows (they're dead) and hide anything that already
+    // ended today or earlier (they're past). Resident can still see
+    // history on a dedicated /my-bookings page if we build one.
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    return rows.filter((b) => {
+      if (b.status === 'cancelled' || b.status === 'declined') return false;
+      const start = new Date(b.startDate);
+      return start >= todayStart;
+    });
   }, [bookingsRaw]);
 
   const openBookingDialog = useCallback((amenity: Amenity) => {
