@@ -29,6 +29,14 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAccessToken } from '@/lib/api-client';
+import { AcknowledgmentTrail } from '@/components/dashboard/acknowledgment-trail';
+
+interface AcknowledgmentRecord {
+  userId: string;
+  name: string;
+  role: string;
+  at: string;
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -360,6 +368,17 @@ export default function IncidentDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Acknowledgment trail — staff who've tapped "I've seen
+              this". Closes the "did anyone read this?" loop the
+              filing guard has after submit. */}
+          <AcknowledgmentTrail
+            eventId={incident.id}
+            initial={
+              (incident.customFields as { acknowledgments?: AcknowledgmentRecord[] } | null)
+                ?.acknowledgments ?? []
+            }
+          />
         </div>
 
         {/* Right Column */}
