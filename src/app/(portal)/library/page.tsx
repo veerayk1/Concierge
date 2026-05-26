@@ -20,6 +20,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -109,6 +111,10 @@ export default function LibraryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [currentFolderId, setCurrentFolderId] = useState<string>('');
+  const { flash, ConfirmHost } = useConfirmDialog();
+  const [folderDialogOpen, setFolderDialogOpen] = useState(false);
+  const [folderName, setFolderName] = useState('');
+  const [creatingFolder, setCreatingFolder] = useState(false);
 
   const {
     data: apiData,
@@ -282,23 +288,9 @@ export default function LibraryPage() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={async () => {
-              const name = window.prompt('Folder name');
-              if (!name?.trim()) return;
-              const r = await apiRequest('/api/v1/library/folders', {
-                method: 'POST',
-                body: {
-                  propertyId: getPropertyId(),
-                  name: name.trim(),
-                  parentFolderId: currentFolderId || undefined,
-                },
-              });
-              if (r.ok) {
-                refetch();
-              } else {
-                const j = await r.json().catch(() => ({}));
-                window.alert(j?.message || 'Failed to create folder.');
-              }
+            onClick={() => {
+              setFolderName('');
+              setFolderDialogOpen(true);
             }}
           >
             <Folder className="h-4 w-4" />
@@ -422,6 +414,81 @@ export default function LibraryPage() {
           }
         />
       )}
+
+      {/* New Folder dialog — replaces window.prompt() + window.alert(). */}
+      <Dialog
+        open={folderDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFolderDialogOpen(false);
+            setFolderName('');
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogTitle>New folder</DialogTitle>
+          <DialogDescription>
+            Give the folder a short name so residents and staff can find what they need.
+          </DialogDescription>
+          <input
+            type="text"
+            value={folderName}
+            onChange={(e) => setFolderName(e.target.value)}
+            placeholder="e.g. Policies, Move-in Forms, AGM Minutes"
+            className="focus:border-primary-300 focus:ring-primary-100 mt-4 h-10 w-full rounded-xl border border-neutral-200 bg-white px-3 text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
+            autoFocus
+          />
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setFolderDialogOpen(false);
+                setFolderName('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={!folderName.trim() || creatingFolder}
+              onClick={async () => {
+                setCreatingFolder(true);
+                try {
+                  const r = await apiRequest('/api/v1/library/folders', {
+                    method: 'POST',
+                    body: {
+                      propertyId: getPropertyId(),
+                      name: folderName.trim(),
+                      parentFolderId: currentFolderId || undefined,
+                    },
+                  });
+                  if (r.ok) {
+                    flash('ok', 'Folder created.');
+                    setFolderDialogOpen(false);
+                    setFolderName('');
+                    refetch();
+                  } else {
+                    const j = await r.json().catch(() => ({}));
+                    flash(
+                      'err',
+                      (j as { message?: string })?.message || 'Failed to create folder.',
+                    );
+                  }
+                } catch {
+                  flash('err', 'Network error. Please try again.');
+                } finally {
+                  setCreatingFolder(false);
+                }
+              }}
+            >
+              {creatingFolder ? 'Creating…' : 'Create folder'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmHost />
     </PageShell>
   );
 }
