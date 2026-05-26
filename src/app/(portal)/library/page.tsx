@@ -132,9 +132,19 @@ export default function LibraryPage() {
       files?: LibraryFile[];
       folders?: LibraryFolder[];
     };
-    if (raw.data) return raw.data;
-    if (raw.files) return { files: raw.files, folders: raw.folders || [] };
-    return { files: [], folders: [] };
+    let payload: LibraryResponse;
+    if (raw.data) payload = raw.data;
+    else if (raw.files) payload = { files: raw.files, folders: raw.folders || [] };
+    else payload = { files: [], folders: [] };
+    // Drop SWEEP/CHAIN/EXH test folders and files so the residents'
+    // document library reads like a real building's. Same pattern as
+    // residents (UX-157) and packages (UX-168).
+    const TEST_NAME =
+      /^(SWEEP[:\- ]|EXH[- ]?[A-Z]|CHAIN[- ]?[A-Z]|UI[- ]?CHAIN|E2E[- ]|SEC[- ]\d|TEST[- ]|QA[- ]?TEST)/i;
+    return {
+      files: (payload.files || []).filter((f) => !TEST_NAME.test((f.fileName ?? '').trim())),
+      folders: (payload.folders || []).filter((f) => !TEST_NAME.test((f.name ?? '').trim())),
+    };
   }, [apiData]);
 
   const { files, folders } = libraryData;
