@@ -19,6 +19,7 @@ import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -94,6 +95,7 @@ export default function CustomFieldsPage() {
   const [activeTab, setActiveTab] = useState<TabEntityType>('unit');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingField, setEditingField] = useState<CustomFieldDefinition | null>(null);
+  const { confirm: askConfirm, flash, ConfirmHost } = useConfirmDialog();
 
   // Fetch all custom fields for this property
   const {
@@ -222,22 +224,28 @@ export default function CustomFieldsPage() {
             type="button"
             className="hover:bg-error-50 hover:text-error-600 rounded-lg p-1.5 text-neutral-400 transition-colors"
             title="Delete field"
-            onClick={async () => {
-              if (!confirm(`Delete custom field "${row.fieldLabel}"? This cannot be undone.`))
-                return;
-              try {
-                const res = await apiRequest(`/api/v1/custom-fields/${row.id}`, {
-                  method: 'DELETE',
-                });
-                if (res.ok) {
-                  refetch();
-                } else {
-                  const result = await res.json().catch(() => ({}));
-                  alert(result.message || 'Failed to delete field.');
-                }
-              } catch {
-                alert('Network error. Please try again.');
-              }
+            onClick={() => {
+              askConfirm({
+                title: `Delete custom field "${row.fieldLabel}"?`,
+                body: 'This cannot be undone. Any data stored in this field across all records will be lost.',
+                destructive: true,
+                run: async () => {
+                  try {
+                    const res = await apiRequest(`/api/v1/custom-fields/${row.id}`, {
+                      method: 'DELETE',
+                    });
+                    if (res.ok) {
+                      flash('ok', 'Custom field deleted.');
+                      refetch();
+                    } else {
+                      const result = await res.json().catch(() => ({}));
+                      flash('err', result.message || 'Failed to delete field.');
+                    }
+                  } catch {
+                    flash('err', 'Network error. Please try again.');
+                  }
+                },
+              });
             }}
           >
             <Trash2 className="h-4 w-4" />
@@ -448,6 +456,7 @@ export default function CustomFieldsPage() {
           onSuccess={refetch}
         />
       )}
+      <ConfirmHost />
     </div>
   );
 }

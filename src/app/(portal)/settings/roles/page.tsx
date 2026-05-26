@@ -21,6 +21,7 @@ import { getPropertyId } from '@/lib/demo-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditRoleDialog } from '@/components/forms/edit-role-dialog';
@@ -80,6 +81,7 @@ export default function RolesPermissionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRoleId, setExpandedRoleId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<RoleFromApi | null>(null);
+  const { confirm: askConfirm, flash, ConfirmHost } = useConfirmDialog();
 
   // Fetch roles from API
   const {
@@ -378,23 +380,29 @@ export default function RolesPermissionsPage() {
                             }
                             title={role.isSystem ? 'System roles cannot be deleted' : 'Delete role'}
                             disabled={role.isSystem}
-                            onClick={async (e) => {
+                            onClick={(e) => {
                               e.stopPropagation();
-                              if (!confirm(`Delete role "${role.name}"? This cannot be undone.`))
-                                return;
-                              try {
-                                const res = await apiRequest(`/api/v1/roles/${role.id}`, {
-                                  method: 'DELETE',
-                                });
-                                if (res.ok) {
-                                  refetch();
-                                } else {
-                                  const result = await res.json().catch(() => ({}));
-                                  alert(result.message || 'Failed to delete role.');
-                                }
-                              } catch {
-                                alert('Network error. Please try again.');
-                              }
+                              askConfirm({
+                                title: `Delete role "${role.name}"?`,
+                                body: 'This cannot be undone. Users assigned this role will need to be re-assigned manually.',
+                                destructive: true,
+                                run: async () => {
+                                  try {
+                                    const res = await apiRequest(`/api/v1/roles/${role.id}`, {
+                                      method: 'DELETE',
+                                    });
+                                    if (res.ok) {
+                                      flash('ok', 'Role deleted.');
+                                      refetch();
+                                    } else {
+                                      const result = await res.json().catch(() => ({}));
+                                      flash('err', result.message || 'Failed to delete role.');
+                                    }
+                                  } catch {
+                                    flash('err', 'Network error. Please try again.');
+                                  }
+                                },
+                              });
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -503,6 +511,7 @@ export default function RolesPermissionsPage() {
           onSuccess={refetch}
         />
       )}
+      <ConfirmHost />
     </div>
   );
 }

@@ -25,6 +25,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -301,6 +302,7 @@ export default function DeveloperPortalPage() {
   const [activeTab, setActiveTab] = useState<Tab>('api-keys');
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
   const [showCreateKeyDialog, setShowCreateKeyDialog] = useState(false);
+  const { confirm: askConfirm, flash, ConfirmHost } = useConfirmDialog();
 
   // Fetch API keys
   const {
@@ -457,21 +459,29 @@ export default function DeveloperPortalPage() {
             variant="ghost"
             size="sm"
             className="text-error-600 hover:text-error-700"
-            onClick={async () => {
-              if (!confirm(`Revoke API key "${row.name}"? This cannot be undone.`)) return;
-              try {
-                const res = await apiRequest(`/api/v1/developer/api-keys/${row.id}`, {
-                  method: 'DELETE',
-                });
-                if (res.ok) {
-                  refetchKeys();
-                } else {
-                  const result = await res.json().catch(() => ({}));
-                  alert(result.message || 'Failed to revoke API key.');
-                }
-              } catch {
-                alert('Network error. Please try again.');
-              }
+            onClick={() => {
+              askConfirm({
+                title: `Revoke API key "${row.name}"?`,
+                body: 'Any service using this key will lose access immediately. This cannot be undone.',
+                destructive: true,
+                confirmLabel: 'Revoke',
+                run: async () => {
+                  try {
+                    const res = await apiRequest(`/api/v1/developer/api-keys/${row.id}`, {
+                      method: 'DELETE',
+                    });
+                    if (res.ok) {
+                      flash('ok', 'API key revoked.');
+                      refetchKeys();
+                    } else {
+                      const result = await res.json().catch(() => ({}));
+                      flash('err', result.message || 'Failed to revoke API key.');
+                    }
+                  } catch {
+                    flash('err', 'Network error. Please try again.');
+                  }
+                },
+              });
             }}
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -574,13 +584,14 @@ export default function DeveloperPortalPage() {
                     body: { status: 'paused' },
                   });
                   if (res.ok) {
+                    flash('ok', 'Webhook paused.');
                     refetchWebhooks();
                   } else {
                     const result = await res.json().catch(() => ({}));
-                    alert(result.message || 'Failed to pause webhook.');
+                    flash('err', result.message || 'Failed to pause webhook.');
                   }
                 } catch {
-                  alert('Network error. Please try again.');
+                  flash('err', 'Network error. Please try again.');
                 }
               }}
             >
@@ -597,13 +608,14 @@ export default function DeveloperPortalPage() {
                     body: { status: 'active' },
                   });
                   if (res.ok) {
+                    flash('ok', 'Webhook resumed.');
                     refetchWebhooks();
                   } else {
                     const result = await res.json().catch(() => ({}));
-                    alert(result.message || 'Failed to resume webhook.');
+                    flash('err', result.message || 'Failed to resume webhook.');
                   }
                 } catch {
-                  alert('Network error. Please try again.');
+                  flash('err', 'Network error. Please try again.');
                 }
               }}
             >
@@ -614,21 +626,28 @@ export default function DeveloperPortalPage() {
             variant="ghost"
             size="sm"
             className="text-error-600 hover:text-error-700"
-            onClick={async () => {
-              if (!confirm('Delete this webhook? This cannot be undone.')) return;
-              try {
-                const res = await apiRequest(`/api/v1/developer/webhooks/${row.id}`, {
-                  method: 'DELETE',
-                });
-                if (res.ok) {
-                  refetchWebhooks();
-                } else {
-                  const result = await res.json().catch(() => ({}));
-                  alert(result.message || 'Failed to delete webhook.');
-                }
-              } catch {
-                alert('Network error. Please try again.');
-              }
+            onClick={() => {
+              askConfirm({
+                title: 'Delete this webhook?',
+                body: 'Events will no longer be delivered to this endpoint. This cannot be undone.',
+                destructive: true,
+                run: async () => {
+                  try {
+                    const res = await apiRequest(`/api/v1/developer/webhooks/${row.id}`, {
+                      method: 'DELETE',
+                    });
+                    if (res.ok) {
+                      flash('ok', 'Webhook deleted.');
+                      refetchWebhooks();
+                    } else {
+                      const result = await res.json().catch(() => ({}));
+                      flash('err', result.message || 'Failed to delete webhook.');
+                    }
+                  } catch {
+                    flash('err', 'Network error. Please try again.');
+                  }
+                },
+              });
             }}
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -840,6 +859,8 @@ export default function DeveloperPortalPage() {
         onOpenChange={setShowCreateKeyDialog}
         onSuccess={() => refetchKeys()}
       />
+
+      <ConfirmHost />
     </PageShell>
   );
 }
