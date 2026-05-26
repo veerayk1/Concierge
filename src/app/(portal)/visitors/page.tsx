@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -157,6 +158,7 @@ export default function VisitorsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [signingOutId, setSigningOutId] = useState<string | null>(null);
+  const { flash, ConfirmHost } = useConfirmDialog();
 
   // Debounce search input to avoid firing API calls on every keystroke
   useEffect(() => {
@@ -190,11 +192,13 @@ export default function VisitorsPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Sign-out failed (${res.status})`);
+        flash('err', body.message || body.error || `Sign-out failed (${res.status})`);
+        return;
       }
+      flash('ok', 'Visitor signed out.');
       refetch();
-    } catch (err) {
-      console.error('Failed to sign out visitor:', err);
+    } catch {
+      flash('err', 'Network error — visitor not signed out.');
     } finally {
       setSigningOutId(null);
     }
@@ -632,6 +636,7 @@ export default function VisitorsPage() {
           refetch();
         }}
       />
+      <ConfirmHost />
     </PageShell>
   );
 }
