@@ -20,11 +20,10 @@ import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
-import { Skeleton } from '@/components/ui/skeleton';
+import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -263,7 +262,14 @@ export default function SurveysPage() {
       header: 'Actions',
       accessorKey: 'id',
       cell: (row) => (
-        <Button variant="secondary" size="sm">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/surveys/${row.id}`);
+          }}
+        >
           <BarChart3 className="h-3.5 w-3.5" />
           View Results
         </Button>
@@ -280,8 +286,22 @@ export default function SurveysPage() {
           <Button
             variant="secondary"
             size="sm"
-            disabled
-            title="Survey result export is coming in the next release."
+            disabled={filteredSurveys.length === 0}
+            onClick={() =>
+              exportToCsv(
+                filteredSurveys,
+                [
+                  { key: 'title', header: 'Title' },
+                  { key: 'status', header: 'Status' },
+                  { key: 'responseCount', header: 'Responses' },
+                  { key: 'targetCount', header: 'Target' },
+                  { key: 'responseRate', header: 'Rate %' },
+                  { key: 'createdAt', header: 'Created' },
+                  { key: 'closesAt', header: 'Closes' },
+                ],
+                'surveys',
+              )
+            }
           >
             <Download className="h-4 w-4" />
             Export Results
@@ -418,6 +438,7 @@ export default function SurveysPage() {
           data={filteredSurveys}
           emptyMessage="No surveys found."
           emptyIcon={<ClipboardList className="h-6 w-6" />}
+          onRowClick={(row) => router.push(`/surveys/${row.id}`)}
         />
       )}
     </PageShell>

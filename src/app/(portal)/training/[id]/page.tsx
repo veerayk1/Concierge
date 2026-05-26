@@ -496,19 +496,39 @@ export default function TrainingDetailPage() {
             <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Actions</h2>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button fullWidth size="lg">
+                <Button
+                  fullWidth
+                  size="lg"
+                  disabled
+                  title="Course player is coming in the next release."
+                >
                   <PlayCircle className="h-4 w-4" />
                   Resume Course
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Quiz retake is coming with the course player."
+                >
                   <RotateCcw className="h-4 w-4" />
                   Retake Quiz
                 </Button>
-                <Button variant="secondary" fullWidth disabled>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Certificate generation is available after course completion."
+                >
                   <Download className="h-4 w-4" />
                   Download Certificate
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Manual completion override is coming with the admin training controls."
+                >
                   <CheckCircle2 className="h-4 w-4" />
                   Mark Complete (Admin)
                 </Button>

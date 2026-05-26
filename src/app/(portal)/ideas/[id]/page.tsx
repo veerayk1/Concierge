@@ -13,7 +13,7 @@ import {
   ThumbsUp,
   User,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -132,6 +132,9 @@ function IdeaDetailSkeleton() {
 export default function IdeaDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
+  const [commentText, setCommentText] = useState('');
+  const [postingComment, setPostingComment] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
 
   const {
     data: idea,
@@ -139,6 +142,30 @@ export default function IdeaDetailPage() {
     error,
     refetch,
   } = useApi<IdeaDetail>(apiUrl(`/api/v1/ideas/${id}`, { propertyId: getPropertyId() }));
+
+  async function postComment() {
+    const content = commentText.trim();
+    if (!content) return;
+    setPostingComment(true);
+    setCommentError(null);
+    try {
+      const res = await apiRequest(`/api/v1/ideas/${id}/comments`, {
+        method: 'POST',
+        body: { content },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setCommentError(data?.message ?? 'Could not post comment. Try again.');
+        return;
+      }
+      setCommentText('');
+      refetch();
+    } catch {
+      setCommentError('Network error. Try again.');
+    } finally {
+      setPostingComment(false);
+    }
+  }
 
   if (loading) return <IdeaDetailSkeleton />;
 
@@ -299,13 +326,36 @@ export default function IdeaDetailPage() {
                   ))}
                 </div>
               )}
-              <div className="mt-4 flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Add a comment..."
-                  className="focus:border-primary-300 focus:ring-primary-100 h-10 flex-1 rounded-xl border border-neutral-200 bg-white px-4 text-[14px] placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
-                />
-                <Button size="sm">Post</Button>
+              <div className="mt-4 flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add a comment..."
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && commentText.trim()) {
+                        e.preventDefault();
+                        void postComment();
+                      }
+                    }}
+                    disabled={postingComment}
+                    maxLength={2000}
+                    className="focus:border-primary-300 focus:ring-primary-100 h-10 flex-1 rounded-xl border border-neutral-200 bg-white px-4 text-[14px] placeholder:text-neutral-400 focus:ring-4 focus:outline-none disabled:bg-neutral-50"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => void postComment()}
+                    disabled={postingComment || !commentText.trim()}
+                  >
+                    {postingComment ? 'Posting…' : 'Post'}
+                  </Button>
+                </div>
+                {commentError && (
+                  <p role="alert" className="text-error-600 text-[12.5px]">
+                    {commentError}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

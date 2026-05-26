@@ -25,6 +25,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
+import { exportToCsv } from '@/lib/export-csv';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -442,8 +443,44 @@ export default function GovernancePage() {
           <Button
             variant="secondary"
             size="sm"
-            disabled
-            title="Governance export is coming in the next release."
+            disabled={
+              activeTab === 'meetings'
+                ? filteredMeetings.length === 0
+                : activeTab === 'resolutions'
+                  ? filteredResolutions.length === 0
+                  : true
+            }
+            onClick={() => {
+              if (activeTab === 'meetings') {
+                exportToCsv(
+                  filteredMeetings,
+                  [
+                    { key: 'title', header: 'Title' },
+                    { key: 'type', header: 'Type' },
+                    { key: 'date', header: 'Date' },
+                    { key: 'time', header: 'Time' },
+                    { key: 'location', header: 'Location' },
+                    { key: 'status', header: 'Status' },
+                    { key: 'attendeeCount', header: 'Attendees' },
+                  ],
+                  'governance-meetings',
+                );
+              } else if (activeTab === 'resolutions') {
+                exportToCsv(
+                  filteredResolutions,
+                  [
+                    { key: 'number', header: 'Number' },
+                    { key: 'title', header: 'Title' },
+                    { key: 'proposedBy', header: 'Proposed By' },
+                    { key: 'status', header: 'Status' },
+                    { key: 'votesFor', header: 'For' },
+                    { key: 'votesAgainst', header: 'Against' },
+                    { key: 'votesAbstain', header: 'Abstain' },
+                  ],
+                  'governance-resolutions',
+                );
+              }
+            }}
           >
             <Download className="h-4 w-4" />
             Export

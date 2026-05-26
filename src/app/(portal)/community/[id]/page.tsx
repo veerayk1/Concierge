@@ -301,10 +301,18 @@ export default function CommunityEventDetailPage() {
               <div className="mt-4 flex gap-2">
                 <input
                   type="text"
-                  placeholder="Add a comment..."
-                  className="focus:border-primary-300 focus:ring-primary-100 h-10 flex-1 rounded-xl border border-neutral-200 bg-white px-4 text-[14px] placeholder:text-neutral-400 focus:ring-4 focus:outline-none"
+                  placeholder="Comments are coming in the next release..."
+                  disabled
+                  title="Community comments are coming in the next release. Contact the seller directly using the details above."
+                  className="h-10 flex-1 rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-[14px] text-neutral-400 placeholder:text-neutral-400"
                 />
-                <Button size="sm">Post</Button>
+                <Button
+                  size="sm"
+                  disabled
+                  title="Community comments are coming in the next release."
+                >
+                  Post
+                </Button>
               </div>
             </CardContent>
           </Card>
