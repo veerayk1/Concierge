@@ -488,23 +488,51 @@ export default function AlterationDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button fullWidth>
+                <p className="mb-1 text-[12px] text-neutral-500">
+                  Alteration approval is a board-level decision — it runs through the governance
+                  workflow with documentation review.
+                </p>
+                <Button
+                  fullWidth
+                  disabled
+                  title="Approval routes through the board governance workflow — coming with the alteration approvals release."
+                >
                   <CheckCircle2 className="h-4 w-4" />
                   Approve
                 </Button>
-                <Button variant="danger" fullWidth>
+                <Button
+                  variant="danger"
+                  fullWidth
+                  disabled
+                  title="Rejection routes through the board governance workflow — coming with the alteration approvals release."
+                >
                   <XCircle className="h-4 w-4" />
                   Reject
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Inspection scheduling is coming with the inspections rollout."
+                >
                   <ClipboardCheck className="h-4 w-4" />
                   Schedule Inspection
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Document requests are coming with the alteration approvals release."
+                >
                   <FileText className="h-4 w-4" />
                   Request Documents
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Closeout step is coming with the alteration approvals release."
+                >
                   <Shield className="h-4 w-4" />
                   Close
                 </Button>

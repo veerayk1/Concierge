@@ -438,19 +438,43 @@ export default function EquipmentDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button variant="secondary" size="sm" fullWidth>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  disabled
+                  title="Equipment editing is coming with the next admin tooling release."
+                >
                   <Edit className="h-4 w-4" />
                   Edit Equipment
                 </Button>
-                <Button variant="secondary" size="sm" fullWidth>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  disabled
+                  title="Create the request from the Maintenance page and link this equipment in the form."
+                >
                   <Wrench className="h-4 w-4" />
                   Create Maintenance Request
                 </Button>
-                <Button variant="secondary" size="sm" fullWidth>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  disabled
+                  title="Inspection scheduling is coming with the inspections rollout."
+                >
                   <Calendar className="h-4 w-4" />
                   Schedule Inspection
                 </Button>
-                <Button variant="danger" size="sm" fullWidth>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  fullWidth
+                  disabled
+                  title="Decommission is a destructive action — coming with the admin tooling release."
+                >
                   <Trash2 className="h-4 w-4" />
                   Decommission
                 </Button>

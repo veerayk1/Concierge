@@ -378,25 +378,53 @@ export default function SurveyDetailPage({ params }: SurveyDetailPageProps) {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
+                <p className="mb-1 text-[12px] text-neutral-500">
+                  Survey authoring, sharing, and lifecycle management are coming with the surveys
+                  release.
+                </p>
                 {survey.status === 'active' && (
-                  <Button fullWidth>
+                  <Button
+                    fullWidth
+                    disabled
+                    title="Closing surveys is coming with the surveys release."
+                  >
                     <XCircle className="h-4 w-4" />
                     Close Survey
                   </Button>
                 )}
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Per-survey CSV export is coming with the surveys release. Use the list page export for now."
+                >
                   <Download className="h-4 w-4" />
                   Export Results (CSV)
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Share-results link generation is coming with the surveys release."
+                >
                   <Share2 className="h-4 w-4" />
                   Share Results
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Preview mode is coming with the surveys release."
+                >
                   <Eye className="h-4 w-4" />
                   Preview Survey
                 </Button>
-                <Button variant="danger" fullWidth>
+                <Button
+                  variant="danger"
+                  fullWidth
+                  disabled
+                  title="Survey deletion is coming with the surveys release."
+                >
                   <Trash2 className="h-4 w-4" />
                   Delete Survey
                 </Button>

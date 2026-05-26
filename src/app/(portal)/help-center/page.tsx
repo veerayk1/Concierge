@@ -488,7 +488,13 @@ export default function HelpCenterPage() {
             Can&apos;t find what you&apos;re looking for? Our support team is here to help.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Button variant="primary" size="md">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => {
+                window.location.href = 'mailto:support@concierge.app?subject=Support%20request';
+              }}
+            >
               <MessageSquare className="h-4 w-4" />
               Contact Support
             </Button>

@@ -415,23 +415,51 @@ export default function PurchaseOrderDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button fullWidth>
+                <p className="mb-1 text-[12px] text-neutral-500">
+                  PO approval and lifecycle transitions route through finance — wired with the
+                  purchase orders release.
+                </p>
+                <Button
+                  fullWidth
+                  disabled
+                  title="PO approval is coming with the purchase orders workflow release."
+                >
                   <CheckCircle2 className="h-4 w-4" />
                   Approve
                 </Button>
-                <Button variant="danger" fullWidth>
+                <Button
+                  variant="danger"
+                  fullWidth
+                  disabled
+                  title="PO rejection is coming with the purchase orders workflow release."
+                >
                   <XIcon className="h-4 w-4" />
                   Reject
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Mark Ordered is coming with the purchase orders workflow release."
+                >
                   <ShoppingCart className="h-4 w-4" />
                   Mark Ordered
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Mark Received is coming with the receiving workflow."
+                >
                   <Package className="h-4 w-4" />
                   Mark Received
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => window.print()}
+                  title="Print this PO using the browser dialog."
+                >
                   <Printer className="h-4 w-4" />
                   Print PO
                 </Button>

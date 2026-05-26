@@ -484,19 +484,40 @@ export default function PackageDetailPage({ params }: PackageDetailPageProps) {
                     Release Package
                   </Button>
                 )}
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => window.print()}
+                  title="Print this page — use the browser's print dialog to capture a label."
+                >
                   <Printer className="h-4 w-4" />
                   Print Label
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Pickup reminders go out automatically. Manual resend is coming next release."
+                >
                   <Send className="h-4 w-4" />
                   Send Reminder
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Mark-as-returned flow is coming with the courier returns module."
+                >
                   <RotateCcw className="h-4 w-4" />
                   Mark as Returned
                 </Button>
-                <Button variant="ghost" fullWidth className="text-error-600 hover:text-error-700">
+                <Button
+                  variant="ghost"
+                  fullWidth
+                  className="text-error-600 hover:text-error-700"
+                  disabled
+                  title="Package deletion is restricted — contact your administrator to remove a record."
+                >
                   <Trash2 className="h-4 w-4" />
                   Delete
                 </Button>

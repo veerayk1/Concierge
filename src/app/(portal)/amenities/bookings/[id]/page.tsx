@@ -488,35 +488,75 @@ export default function BookingDetailPage({ params }: BookingDetailPageProps) {
             <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Actions</h2>
             <CardContent>
               <div className="flex flex-col gap-2">
+                <p className="mb-1 text-[12px] text-neutral-500">
+                  Manage this booking from the amenity page — every approve, reject, check in, or
+                  cancel action there writes back to the same record.
+                </p>
+                <Link href={`/amenities`} className="block">
+                  <Button variant="secondary" fullWidth>
+                    <Calendar className="h-4 w-4" />
+                    Open in Amenities
+                  </Button>
+                </Link>
                 {booking.status === 'pending_approval' && (
                   <>
-                    <Button fullWidth size="lg">
+                    <Button
+                      fullWidth
+                      size="lg"
+                      disabled
+                      title="Approve this booking from the amenity page."
+                    >
                       <CheckCircle2 className="h-4 w-4" />
                       Approve
                     </Button>
-                    <Button variant="danger" fullWidth>
+                    <Button
+                      variant="danger"
+                      fullWidth
+                      disabled
+                      title="Reject this booking from the amenity page."
+                    >
                       <XCircle className="h-4 w-4" />
                       Reject
                     </Button>
                   </>
                 )}
                 {booking.status === 'confirmed' && (
-                  <Button fullWidth size="lg">
+                  <Button
+                    fullWidth
+                    size="lg"
+                    disabled
+                    title="Check in flow is coming with on-site kiosk mode."
+                  >
                     <LogIn className="h-4 w-4" />
                     Check In
                   </Button>
                 )}
                 {booking.status === 'checked_in' && (
-                  <Button fullWidth size="lg">
+                  <Button
+                    fullWidth
+                    size="lg"
+                    disabled
+                    title="Check out flow is coming with on-site kiosk mode."
+                  >
                     <LogOut className="h-4 w-4" />
                     Check Out
                   </Button>
                 )}
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Cancel this booking from the amenity page or your own bookings list."
+                >
                   <Ban className="h-4 w-4" />
                   Cancel Booking
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Deposit refunds are processed through the billing module."
+                >
                   <RotateCcw className="h-4 w-4" />
                   Refund Deposit
                 </Button>

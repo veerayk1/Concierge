@@ -383,19 +383,42 @@ export default function GovernanceMeetingDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2">
-                <Button fullWidth>
+                <p className="mb-1 text-[12px] text-neutral-500">
+                  Meeting management is coming with the board governance module — these actions will
+                  be wired in the next release.
+                </p>
+                <Button
+                  fullWidth
+                  disabled
+                  title="Meeting edit is coming with the board governance module."
+                >
                   <Edit2 className="h-4 w-4" />
                   Edit Meeting
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Minutes upload is coming with the board governance module."
+                >
                   <Upload className="h-4 w-4" />
                   Upload Minutes
                 </Button>
-                <Button variant="secondary" fullWidth>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Attendance recording is coming with the board governance module."
+                >
                   <Users className="h-4 w-4" />
                   Record Attendance
                 </Button>
-                <Button variant="danger" fullWidth>
+                <Button
+                  variant="danger"
+                  fullWidth
+                  disabled
+                  title="Meeting cancellation is coming with the board governance module."
+                >
                   <XIcon className="h-4 w-4" />
                   Cancel Meeting
                 </Button>

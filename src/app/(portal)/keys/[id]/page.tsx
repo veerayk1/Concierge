@@ -522,19 +522,44 @@ export default function KeyDetailPage() {
             <h2 className="mb-4 text-[14px] font-semibold text-neutral-900">Actions</h2>
             <CardContent>
               <div className="flex flex-col gap-2">
+                <p className="mb-1 text-[12px] text-neutral-500">
+                  Manage check-out, return, and lost-key state from the Keys &amp; FOBs page — every
+                  action there updates this record.
+                </p>
+                <Link href="/keys" className="block">
+                  <Button variant="secondary" fullWidth>
+                    <LogIn className="h-4 w-4" />
+                    Open in Keys &amp; FOBs
+                  </Button>
+                </Link>
                 {isAvailable && (
-                  <Button fullWidth size="lg">
+                  <Button
+                    fullWidth
+                    size="lg"
+                    disabled
+                    title="Check out this key from the Keys &amp; FOBs page."
+                  >
                     <LogIn className="h-4 w-4" />
                     Check Out
                   </Button>
                 )}
                 {isCheckedOut && (
-                  <Button fullWidth size="lg">
+                  <Button
+                    fullWidth
+                    size="lg"
+                    disabled
+                    title="Return this key from the Keys &amp; FOBs page."
+                  >
                     <LogOut className="h-4 w-4" />
                     Return Key
                   </Button>
                 )}
-                <Button variant="secondary" fullWidth disabled={keyItem.status === 'lost'}>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled
+                  title="Mark-as-lost flow is coming with the lost-key workflow next release."
+                >
                   <AlertTriangle className="h-4 w-4" />
                   Mark as Lost
                 </Button>
@@ -542,7 +567,8 @@ export default function KeyDetailPage() {
                   variant="ghost"
                   fullWidth
                   className="text-error-600 hover:text-error-700"
-                  disabled={keyItem.status === 'decommissioned'}
+                  disabled
+                  title="Decommission is coming with the admin tooling release."
                 >
                   <XCircle className="h-4 w-4" />
                   Decommission

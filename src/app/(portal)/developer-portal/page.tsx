@@ -726,7 +726,11 @@ export default function DeveloperPortalPage() {
             </Button>
           )}
           {activeTab === 'webhooks' && (
-            <Button size="sm">
+            <Button
+              size="sm"
+              disabled
+              title="Webhook creation dialog is coming next release. Use the REST API to register webhooks for now."
+            >
               <Plus className="h-4 w-4" />
               Create Webhook
             </Button>

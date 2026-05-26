@@ -431,10 +431,12 @@ export default function AmenityDetailPage() {
                   Upcoming Bookings ({bookings.length})
                 </h2>
               </div>
-              <Button size="sm">
-                <Plus className="h-4 w-4" />
-                New Booking
-              </Button>
+              <Link href="/amenity-booking">
+                <Button size="sm">
+                  <Plus className="h-4 w-4" />
+                  New Booking
+                </Button>
+              </Link>
             </div>
             <CardContent>
               {bookings.length > 0 ? (

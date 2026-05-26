@@ -15,6 +15,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { exportToCsv } from '@/lib/export-csv';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -455,7 +456,12 @@ export default function CompliancePage() {
       id: 'actions',
       header: '',
       cell: () => (
-        <Button variant="ghost" size="sm">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled
+          title="Per-report download is coming with the compliance reports release. Use the Export button above to download the filtered list."
+        >
           <Download className="h-3.5 w-3.5" />
         </Button>
       ),
@@ -468,7 +474,24 @@ export default function CompliancePage() {
       description="Monitor compliance status across PIPEDA, GDPR, SOC 2, and other frameworks."
       actions={
         <>
-          <Button variant="secondary" size="md">
+          <Button
+            variant="secondary"
+            size="md"
+            disabled={filteredReports.length === 0}
+            onClick={() =>
+              exportToCsv(
+                filteredReports,
+                [
+                  { key: 'title', header: 'Title' },
+                  { key: 'framework', header: 'Framework' },
+                  { key: 'type', header: 'Type' },
+                  { key: 'createdAt', header: 'Created' },
+                  { key: 'fileSize', header: 'Size' },
+                ],
+                'compliance-reports',
+              )
+            }
+          >
             <Download className="h-4 w-4" />
             Export
           </Button>
