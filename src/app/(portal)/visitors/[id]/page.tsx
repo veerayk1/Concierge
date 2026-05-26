@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 interface ParkingPermit {
   id: string;
@@ -87,7 +88,7 @@ export default function VisitorDetailPage() {
   const router = useRouter();
   const id = params?.id;
 
-  const { data, loading, error, refetch } = useApi<VisitorDetail>(
+  const { data, loading, error, forbidden, refetch } = useApi<VisitorDetail>(
     id ? `/api/v1/visitors/${id}` : null,
   );
 
@@ -103,6 +104,12 @@ export default function VisitorDetailPage() {
       <div className="flex h-[60vh] items-center justify-center">
         <div className="text-[14px] text-neutral-400">Loading visitor…</div>
       </div>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <AccessDeniedPanel resource="Visitor records" whoCanSee="front desk and security staff" />
     );
   }
 

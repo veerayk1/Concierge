@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useApi, apiRequest } from '@/lib/hooks/use-api';
 import { PageShell } from '@/components/layout/page-shell';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -142,6 +143,7 @@ export default function PurchaseOrderDetailPage() {
     data: po,
     loading,
     error,
+    forbidden,
     refetch,
   } = useApi<ApiPurchaseOrderDetail>(`/api/v1/purchase-orders/${id}`);
 
@@ -183,6 +185,18 @@ export default function PurchaseOrderDetailPage() {
           <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
           <p className="mt-3 text-[14px] text-neutral-500">Loading purchase order...</p>
         </div>
+      </PageShell>
+    );
+  }
+
+  // Forbidden — resident URL-hit an admin-only PO
+  if (forbidden) {
+    return (
+      <PageShell title="Purchase Order" description="">
+        <AccessDeniedPanel
+          resource="Purchase orders"
+          whoCanSee="your property manager or finance"
+        />
       </PageShell>
     );
   }

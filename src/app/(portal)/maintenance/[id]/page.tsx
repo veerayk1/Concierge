@@ -34,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 
@@ -181,6 +182,7 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
     data: req,
     loading,
     error,
+    forbidden,
     refetch,
   } = useApi<MaintenanceDetail>(`/api/v1/maintenance/${id}`);
 
@@ -593,6 +595,18 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
         <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
         <p className="mt-3 text-[14px] text-neutral-500">Loading request details...</p>
       </div>
+    );
+  }
+
+  // -----------------------------------------------------------------------
+  // Forbidden — resident URL-hit an admin-only request
+  // -----------------------------------------------------------------------
+  if (forbidden) {
+    return (
+      <AccessDeniedPanel
+        resource="This service request"
+        whoCanSee="your property manager or superintendent"
+      />
     );
   }
 
