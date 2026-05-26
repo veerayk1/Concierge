@@ -100,7 +100,7 @@ export default function VendorsPage() {
     const TEST_NAME_PATTERN = /\b(SWEEP|TEST|FIXTURE|UI[- ]?CHAIN|CHAIN[- ]?[A-Z]|E2E)\b/i;
     const TEST_EMAIL_PATTERN = /@(test|vendor\.test|example\.com|qa\.test)/i;
     const list = (apiVendors ?? []).filter((v) => {
-      if (TEST_NAME_PATTERN.test(v.name?.trim() ?? '')) return false;
+      if (TEST_NAME_PATTERN.test(v.companyName?.trim() ?? '')) return false;
       if (TEST_EMAIL_PATTERN.test(v.email ?? '')) return false;
       return true;
     });
@@ -116,7 +116,7 @@ export default function VendorsPage() {
       const ra = RISK_RANK[a.complianceStatus] ?? 4;
       const rb = RISK_RANK[b.complianceStatus] ?? 4;
       if (ra !== rb) return ra - rb;
-      return (a.name ?? '').localeCompare(b.name ?? '');
+      return (a.companyName ?? '').localeCompare(b.companyName ?? '');
     });
     return list;
   }, [apiVendors]);
