@@ -78,6 +78,7 @@ interface IncidentTypeConfig {
   icon: typeof AlertTriangle;
   tone: string;
   ringTone: string;
+  iconColor: string;
   defaultPriority: 'low' | 'medium' | 'high' | 'urgent';
   whatHappened: string[];
   actions: string[];
@@ -95,6 +96,7 @@ const TYPES: IncidentTypeConfig[] = [
     icon: Flame,
     tone: 'from-rose-50 via-white to-orange-50',
     ringTone: 'ring-rose-300',
+    iconColor: 'text-rose-600',
     defaultPriority: 'urgent',
     whatHappened: [
       'False alarm — no smoke, no fire',
@@ -119,6 +121,7 @@ const TYPES: IncidentTypeConfig[] = [
     icon: HeartPulse,
     tone: 'from-rose-50 via-white to-pink-50',
     ringTone: 'ring-rose-300',
+    iconColor: 'text-pink-600',
     defaultPriority: 'urgent',
     whatHappened: [
       'Resident slipped / fell',
@@ -142,6 +145,7 @@ const TYPES: IncidentTypeConfig[] = [
     icon: ShieldAlert,
     tone: 'from-amber-50 via-white to-orange-50',
     ringTone: 'ring-amber-300',
+    iconColor: 'text-amber-700',
     defaultPriority: 'high',
     whatHappened: [
       'Package stolen from lobby',
@@ -165,6 +169,7 @@ const TYPES: IncidentTypeConfig[] = [
     icon: Trash2,
     tone: 'from-violet-50 via-white to-pink-50',
     ringTone: 'ring-violet-300',
+    iconColor: 'text-violet-600',
     defaultPriority: 'medium',
     whatHappened: [
       'Graffiti in stairwell',
@@ -188,6 +193,7 @@ const TYPES: IncidentTypeConfig[] = [
     icon: Droplet,
     tone: 'from-sky-50 via-white to-cyan-50',
     ringTone: 'ring-sky-300',
+    iconColor: 'text-sky-600',
     defaultPriority: 'high',
     whatHappened: [
       'Active leak from ceiling',
@@ -211,6 +217,7 @@ const TYPES: IncidentTypeConfig[] = [
     icon: AlertTriangle,
     tone: 'from-amber-50 via-white to-rose-50',
     ringTone: 'ring-amber-300',
+    iconColor: 'text-amber-700',
     defaultPriority: 'high',
     whatHappened: [
       'Loitering near entrance',
@@ -234,6 +241,7 @@ const TYPES: IncidentTypeConfig[] = [
     icon: Car,
     tone: 'from-amber-50 via-white to-yellow-50',
     ringTone: 'ring-amber-300',
+    iconColor: 'text-yellow-700',
     defaultPriority: 'low',
     whatHappened: [
       'Unauthorised vehicle in resident spot',
@@ -257,6 +265,7 @@ const TYPES: IncidentTypeConfig[] = [
     icon: Volume2,
     tone: 'from-sky-50 via-white to-blue-50',
     ringTone: 'ring-sky-300',
+    iconColor: 'text-blue-600',
     defaultPriority: 'low',
     whatHappened: [
       'Loud music after quiet hours',
@@ -305,6 +314,32 @@ export function IncidentWizard({ open, onOpenChange, propertyId, onSuccess }: In
   const [whatHappened, setWhatHappened] = useState<string[]>([]);
   const [actions, setActions] = useState<string[]>([]);
   const [freeText, setFreeText] = useState('');
+  const [polishing, setPolishing] = useState(false);
+
+  async function polishFreeText() {
+    if (!freeText.trim() || polishing) return;
+    setPolishing(true);
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (typeof window !== 'undefined') {
+        const tok = localStorage.getItem('auth_token');
+        if (tok) headers['Authorization'] = `Bearer ${tok}`;
+        const dr = localStorage.getItem('demo_role');
+        if (dr) headers['x-demo-role'] = dr;
+      }
+      const r = await fetch('/api/v1/ai/polish', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ text: freeText }),
+      });
+      const j = await r.json();
+      if (j?.data?.polished) setFreeText(j.data.polished);
+    } catch {
+      /* silent */
+    } finally {
+      setPolishing(false);
+    }
+  }
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [photos, setPhotos] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -460,7 +495,7 @@ export function IncidentWizard({ open, onOpenChange, propertyId, onSuccess }: In
                   <div
                     className={`flex h-10 w-10 items-center justify-center rounded-xl bg-white/80 ring-1 ${t.ringTone} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-6deg]`}
                   >
-                    <Icon className="h-5 w-5 text-rose-700" strokeWidth={1.8} />
+                    <Icon className={`h-5 w-5 ${t.iconColor}`} strokeWidth={1.8} />
                   </div>
                   <span className="text-[12.5px] font-semibold text-neutral-900">{t.label}</span>
                 </button>
@@ -563,9 +598,21 @@ export function IncidentWizard({ open, onOpenChange, propertyId, onSuccess }: In
                 );
               })}
             </div>
-            <p className="text-[11.5px] text-neutral-500">
-              Each tap adds it to the report. You can also write details below.
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11.5px] text-neutral-500">
+                Each tap adds it to the report. You can also write details below.
+              </p>
+              <button
+                type="button"
+                onClick={polishFreeText}
+                disabled={polishing || !freeText.trim()}
+                className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-0.5 text-[11.5px] font-semibold text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-50 disabled:opacity-50"
+                title="Fix typos and capitalize sentences"
+              >
+                <Sparkles className="h-3 w-3" />
+                {polishing ? 'Polishing…' : 'Polish with AI'}
+              </button>
+            </div>
             <textarea
               value={freeText}
               onChange={(e) => setFreeText(e.target.value)}
@@ -683,7 +730,7 @@ export function IncidentWizard({ open, onOpenChange, propertyId, onSuccess }: In
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/80 ring-1 ring-rose-200">
-                  <type.icon className="h-5 w-5 text-rose-700" strokeWidth={1.8} />
+                  <type.icon className={`h-5 w-5 ${type.iconColor}`} strokeWidth={1.8} />
                 </div>
                 <div>
                   <p className="text-[10.5px] font-semibold tracking-[0.1em] text-rose-700 uppercase">
@@ -742,6 +789,41 @@ export function IncidentWizard({ open, onOpenChange, propertyId, onSuccess }: In
                   </p>
                 )}
               </div>
+            </div>
+
+            {/* Notification preview — make it explicit who gets paged
+                so the guard knows the consequence of clicking File
+                incident. Urgent items wake up the manager and
+                supervisor; emergency services get a chip per service. */}
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50/60 px-4 py-3">
+              <p className="text-[10.5px] font-semibold tracking-[0.08em] text-neutral-500 uppercase">
+                When you file
+              </p>
+              <ul className="mt-1.5 flex flex-col gap-1 text-[12.5px] text-neutral-700">
+                <li>· Saved to the building incident log immediately</li>
+                {priority === 'urgent' && (
+                  <li className="text-rose-700">
+                    · Property manager and supervisor get an immediate notification
+                  </li>
+                )}
+                {priority === 'high' && (
+                  <li className="text-amber-700">
+                    · Supervisor sees it on their next dashboard load
+                  </li>
+                )}
+                {type.emergencyServices.fire && (
+                  <li>· Reminder: call 911 / fire department directly if you haven't already</li>
+                )}
+                {type.emergencyServices.ambulance && (
+                  <li>· Reminder: call 911 directly if you haven't already</li>
+                )}
+                {type.emergencyServices.police && (
+                  <li>
+                    · Reminder: police involvement is appropriate — consider 911 or non-emergency
+                    line
+                  </li>
+                )}
+              </ul>
             </div>
           </div>
         )}
