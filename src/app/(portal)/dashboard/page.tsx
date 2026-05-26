@@ -20,6 +20,7 @@ import { ScheduleVisitorDialog } from '@/components/forms/schedule-visitor-dialo
 import { DecisionQueueCard } from '@/components/dashboard/decision-queue-card';
 import { MyExpectingCard } from '@/components/dashboard/my-expecting-card';
 import { GovernanceSnapshotCard } from '@/components/dashboard/governance-snapshot-card';
+import { MyOpenRequestsCard } from '@/components/dashboard/my-open-requests-card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -1661,6 +1662,11 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
           "Expecting someone?" entry actually landed and reminds them
           about who's coming this week. Self-hides when empty. */}
       <MyExpectingCard />
+
+      {/* Open service requests with current status, so the resident
+          doesn't have to dig into /my-requests to see "is anyone
+          working on this?". Self-hides when nothing is open. */}
+      <MyOpenRequestsCard />
 
       {/* ----------------------------------------------------------------- */}
       {/* From management — what the desk needs you to know, first          */}
