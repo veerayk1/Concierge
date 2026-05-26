@@ -90,20 +90,34 @@ export default function ResidentsPage() {
     const rawResidents = apiResponse?.data ?? (apiResponse as unknown as ApiResident[]);
     if (!rawResidents || !Array.isArray(rawResidents)) return [];
 
-    return rawResidents.map((r) => ({
-      id: r.id,
-      firstName: r.firstName,
-      lastName: r.lastName,
-      email: r.email,
-      phone: r.phone || '',
-      avatarUrl: r.avatarUrl || null,
-      role: normalizeRole(r.role?.slug),
-      roleLabel: r.role?.name || 'Resident',
-      unitNumber: r.unit?.number || '',
-      status: 'active' as const,
-      createdAt: r.createdAt,
-      assistanceRequired: r.assistanceRequired ?? false, // GAP 8.2
-    }));
+    // Same test-seed pattern as the rest of the portal — *@test.local
+    // and obvious test names ("Chain G", "QA Test", "UI-CHAIN", etc.)
+    // get filtered out of the manager directory so demo properties
+    // read like real ones.
+    const TEST_EMAIL_PATTERN = /@(test\.local|example\.com|qa\.test)$/i;
+    const TEST_NAME_PATTERN =
+      /^(Chain [A-Z]|QA [A-Z]|UI[- ]?CHAIN|EXH|E2E[- ]|SEC[- ]\d|TEST[- ]|CHAIN[- ]?[A-Z])/i;
+    return rawResidents
+      .filter((r) => {
+        if (TEST_EMAIL_PATTERN.test(r.email ?? '')) return false;
+        const fullName = `${r.firstName ?? ''} ${r.lastName ?? ''}`.trim();
+        if (TEST_NAME_PATTERN.test(fullName)) return false;
+        return true;
+      })
+      .map((r) => ({
+        id: r.id,
+        firstName: r.firstName,
+        lastName: r.lastName,
+        email: r.email,
+        phone: r.phone || '',
+        avatarUrl: r.avatarUrl || null,
+        role: normalizeRole(r.role?.slug),
+        roleLabel: r.role?.name || 'Resident',
+        unitNumber: r.unit?.number || '',
+        status: 'active' as const,
+        createdAt: r.createdAt,
+        assistanceRequired: r.assistanceRequired ?? false, // GAP 8.2
+      }));
   }, [apiResponse]);
 
   const columns: Column<Resident>[] = [
