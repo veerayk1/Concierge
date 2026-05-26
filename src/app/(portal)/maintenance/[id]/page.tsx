@@ -235,31 +235,27 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
   // -----------------------------------------------------------------------
   // Status update handler
   // -----------------------------------------------------------------------
-  const handleStatusChange = useCallback(
-    async (newStatus: string) => {
-      if (!req || newStatus === req.status) return;
+  // For transitions that need extra info (hold reason / resolution
+  // notes), open a small Dialog rather than firing a blocking
+  // window.prompt. The dialog captures the value and then runs the
+  // actual PATCH via performStatusChange().
+  const [statusPrompt, setStatusPrompt] = useState<null | {
+    newStatus: string;
+    field: 'holdReason' | 'resolutionNotes';
+    title: string;
+    description: string;
+    placeholder: string;
+  }>(null);
+  const [statusPromptText, setStatusPromptText] = useState('');
+
+  const performStatusChange = useCallback(
+    async (newStatus: string, extra?: Record<string, unknown>) => {
+      if (!req) return;
       setUpdatingStatus(true);
       setStatusError(null);
       setStatusSuccess(null);
       try {
-        // Build payload — some transitions require extra fields
-        const payload: Record<string, unknown> = { status: newStatus };
-        if (newStatus === 'on_hold') {
-          const reason = window.prompt('Enter a reason for putting this request on hold:');
-          if (!reason) {
-            setUpdatingStatus(false);
-            return;
-          }
-          payload.holdReason = reason;
-        }
-        if (newStatus === 'completed') {
-          const notes = window.prompt('Enter resolution notes:');
-          if (!notes) {
-            setUpdatingStatus(false);
-            return;
-          }
-          payload.resolutionNotes = notes;
-        }
+        const payload: Record<string, unknown> = { status: newStatus, ...(extra ?? {}) };
         const response = await apiRequest(`/api/v1/maintenance/${id}`, {
           method: 'PATCH',
           body: payload,
@@ -279,6 +275,38 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
       }
     },
     [req, id, refetch],
+  );
+
+  const handleStatusChange = useCallback(
+    (newStatus: string) => {
+      if (!req || newStatus === req.status) return;
+      if (newStatus === 'on_hold') {
+        setStatusPromptText('');
+        setStatusPrompt({
+          newStatus,
+          field: 'holdReason',
+          title: 'Put this request on hold?',
+          description:
+            'Tell the resident why work is paused — waiting on parts, scheduled for next week, contractor follow-up.',
+          placeholder: 'e.g. Waiting on parts — back in stock Thursday.',
+        });
+        return;
+      }
+      if (newStatus === 'completed') {
+        setStatusPromptText('');
+        setStatusPrompt({
+          newStatus,
+          field: 'resolutionNotes',
+          title: 'Mark request complete?',
+          description:
+            'Tell the resident what was done. They will see this in the request history.',
+          placeholder: 'e.g. Replaced the kitchen faucet cartridge. Tested for leaks, all clear.',
+        });
+        return;
+      }
+      void performStatusChange(newStatus);
+    },
+    [req, performStatusChange],
   );
 
   // -----------------------------------------------------------------------
@@ -1201,6 +1229,58 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
             </Button>
             <Button size="sm" onClick={performClose}>
               Close request
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status-prompt dialog — replaces two window.prompt() calls
+          for the on-hold and completed transitions. Captures the
+          reason / notes value before firing the PATCH. */}
+      <Dialog
+        open={statusPrompt !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setStatusPrompt(null);
+            setStatusPromptText('');
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogTitle>{statusPrompt?.title ?? ''}</DialogTitle>
+          <DialogDescription>{statusPrompt?.description ?? ''}</DialogDescription>
+          <Textarea
+            value={statusPromptText}
+            onChange={(e) => setStatusPromptText(e.target.value)}
+            placeholder={statusPrompt?.placeholder ?? ''}
+            rows={3}
+            className="mt-4"
+          />
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setStatusPrompt(null);
+                setStatusPromptText('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={!statusPromptText.trim() || updatingStatus}
+              onClick={async () => {
+                if (!statusPrompt) return;
+                const newStatus = statusPrompt.newStatus;
+                const field = statusPrompt.field;
+                const value = statusPromptText.trim();
+                setStatusPrompt(null);
+                setStatusPromptText('');
+                await performStatusChange(newStatus, { [field]: value });
+              }}
+            >
+              {updatingStatus ? 'Saving…' : 'Confirm'}
             </Button>
           </div>
         </DialogContent>
