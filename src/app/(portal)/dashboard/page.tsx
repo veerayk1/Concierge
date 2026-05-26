@@ -24,6 +24,7 @@ import { MyOpenRequestsCard } from '@/components/dashboard/my-open-requests-card
 import { MyBookingsCard } from '@/components/dashboard/my-bookings-card';
 import { ResidentOnboardingCard } from '@/components/dashboard/resident-onboarding-card';
 import { MyPackagesCard } from '@/components/dashboard/my-packages-card';
+import { AgingShelfCard } from '@/components/dashboard/aging-shelf-card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KpiTile } from '@/components/ui/kpi-tile';
@@ -781,6 +782,10 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
 
       {/* Pre-authorized visitors arriving in the next 24h — one-tap check-in. */}
       <ExpectedVisitorsCard />
+
+      {/* Packages aging on the shelf (>=7 days) so they don't get
+          forgotten. Self-hides when nothing is stale. */}
+      <AgingShelfCard />
 
       {/* ----------------------------------------------------------------- */}
       {/* Right now at the desk — live counters                               */}
