@@ -140,6 +140,18 @@ export async function GET(request: NextRequest) {
     const aging = Number(agingPackages[0]?.count ?? 0n);
     const perishable = Number(perishableAging[0]?.count ?? 0n);
 
+    // Per-role scope. A security guard does not handle packages, visitor
+    // pre-auth, or amenity bookings — those live with front desk. Mentioning
+    // "3 perishable packages — surface to the resident" on a guard's
+    // dashboard makes the briefing feel generic and undermines trust. So
+    // we slice the paragraphs by what each role actually acts on.
+    const userRole = auth.user.role;
+    const isSecurity = userRole === 'security_guard' || userRole === 'security_supervisor';
+    const isFrontDesk = userRole === 'front_desk';
+    const handlesPackages = isFrontDesk || !isSecurity;
+    const handlesVisitors = isFrontDesk || !isSecurity;
+    const handlesAmenities = isFrontDesk || !isSecurity;
+
     const paragraphs: string[] = [];
     paragraphs.push(`${greeting()}, ${me?.firstName ?? 'team'}.`);
 
@@ -153,21 +165,23 @@ export async function GET(request: NextRequest) {
         `${overdueKeys} key${overdueKeys === 1 ? '' : 's'} still out past return time — chase the borrower when you can.`,
       );
     }
-    if (perishable > 0) {
-      paragraphs.push(
-        `${perishable} perishable package${perishable === 1 ? '' : 's'} on the shelf — surface those to the resident today.`,
-      );
-    } else if (aging > 0) {
-      paragraphs.push(
-        `${aging} package${aging === 1 ? '' : 's'} aging 7+ days on the shelf — worth a reminder to the resident.`,
-      );
+    if (handlesPackages) {
+      if (perishable > 0) {
+        paragraphs.push(
+          `${perishable} perishable package${perishable === 1 ? '' : 's'} on the shelf — surface those to the resident today.`,
+        );
+      } else if (aging > 0) {
+        paragraphs.push(
+          `${aging} package${aging === 1 ? '' : 's'} aging 7+ days on the shelf — worth a reminder to the resident.`,
+        );
+      }
     }
-    if (expectedToday > 0) {
+    if (handlesVisitors && expectedToday > 0) {
       paragraphs.push(
         `${expectedToday} pre-authorised visitor${expectedToday === 1 ? '' : 's'} expected through the day.`,
       );
     }
-    if (todaysBookings.length > 0) {
+    if (handlesAmenities && todaysBookings.length > 0) {
       const first = todaysBookings[0]!;
       paragraphs.push(
         `${first.amenity?.name ?? 'An amenity'} starts at ${timeOnly(first.startTime.toISOString())}${
@@ -179,7 +193,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (paragraphs.length === 1) {
-      paragraphs.push('Floor is quiet — perfect time to catch up on patrols.');
+      // Different idle states for different roles — security walks
+      // patrols, front desk catches up on filing/comms.
+      paragraphs.push(
+        isSecurity
+          ? 'Floor is quiet — perfect time to catch up on patrols.'
+          : 'Lobby is quiet — good moment to clear the inbox or sort the back room.',
+      );
     }
 
     return NextResponse.json({
