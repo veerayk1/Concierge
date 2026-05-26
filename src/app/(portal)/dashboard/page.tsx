@@ -27,6 +27,7 @@ import { MyPackagesCard } from '@/components/dashboard/my-packages-card';
 import { StaffOnDutyStrip } from '@/components/dashboard/staff-on-duty-strip';
 import { ResidentBriefingCard } from '@/components/dashboard/resident-briefing-card';
 import { ShiftBriefingCard } from '@/components/dashboard/shift-briefing-card';
+import { ManagerBriefingCard } from '@/components/dashboard/manager-briefing-card';
 import { AgingShelfCard } from '@/components/dashboard/aging-shelf-card';
 import { KeysOverdueCard } from '@/components/dashboard/keys-overdue-card';
 import { TodaysScheduleCard } from '@/components/dashboard/todays-schedule-card';
@@ -2868,6 +2869,7 @@ export default function DashboardPage() {
         effectiveRole === 'board_member' ||
         effectiveRole === 'superintendent') && (
         <>
+          <ManagerBriefingCard />
           <GovernanceSnapshotCard />
           <DecisionQueueCard />
           <ShiftHandoffCard />
