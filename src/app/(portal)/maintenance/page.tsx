@@ -103,34 +103,63 @@ export default function MaintenancePage() {
       ? apiResponse
       : ((apiResponse as MaintenanceApiResponse).data ?? []);
 
-    return rawList.map((r) => ({
-      id: (r.id as string) || '',
-      referenceNumber: (r.referenceNumber as string) || '',
-      unit: (r.unit as Record<string, string>)?.number || (r.unitId as string) || '',
-      resident: (() => {
-        const res = r.resident as Record<string, string> | undefined;
-        if (res?.firstName && res?.lastName) return `${res.firstName} ${res.lastName}`;
-        if (res?.firstName) return res.firstName;
-        // Show friendly label instead of raw UUID
-        const unitNum = (r.unit as Record<string, string>)?.number;
-        if (r.residentId) return unitNum ? `Unit ${unitNum} Resident` : 'Resident';
-        return '';
-      })(),
-      category: (r.category as Record<string, string>)?.name || 'General',
-      description: (r.description as string) || '',
-      status: (r.status as MaintenanceRequest['status']) || 'open',
-      priority: (r.priority as MaintenanceRequest['priority']) || 'medium',
-      assignedTo: (r.assignedEmployeeId as string) || undefined,
-      vendor: (r.assignedVendorId as string) || undefined,
-      createdAt: (r.createdAt as string) || '',
-      updatedAt: (r.updatedAt as string) || '',
-      permissionToEnter: r.permissionToEnter === true || r.permissionToEnter === 'yes',
-    }));
+    // Same test-seed filter pattern used across the portal. Most
+    // maintenance test fixtures tag the description (UI-TASK-20,
+    // CHAIN-B SI77C9, "test 10+ chars description", "Mass-assignment
+    // probe") so we match on description rather than name.
+    const TEST_DESC_PATTERN =
+      /^(EXH[- ]?[A-Z]|UI[- ]?CHAIN|UI[- ]?TASK[- ]?\d|CHAIN[- ]?[A-Z]|QA[- ]?(TEST|TOWER|:)|SEC[- ]?\d|E2E[- ]|TEST[- ]?\d|test (xyz|\d+\+? chars|legitimate edit)|Mass-assignment probe|r\d legitimate edit|test \d+\+ chars)/i;
+    return rawList
+      .filter((r) => {
+        const desc = (r.description as string) || '';
+        if (TEST_DESC_PATTERN.test(desc.trim())) return false;
+        return true;
+      })
+      .map((r) => ({
+        id: (r.id as string) || '',
+        referenceNumber: (r.referenceNumber as string) || '',
+        unit: (r.unit as Record<string, string>)?.number || (r.unitId as string) || '',
+        resident: (() => {
+          const res = r.resident as Record<string, string> | undefined;
+          if (res?.firstName && res?.lastName) return `${res.firstName} ${res.lastName}`;
+          if (res?.firstName) return res.firstName;
+          // Show friendly label instead of raw UUID
+          const unitNum = (r.unit as Record<string, string>)?.number;
+          if (r.residentId) return unitNum ? `Unit ${unitNum} Resident` : 'Resident';
+          return '';
+        })(),
+        category: (r.category as Record<string, string>)?.name || 'General',
+        description: (r.description as string) || '',
+        status: (r.status as MaintenanceRequest['status']) || 'open',
+        priority: (r.priority as MaintenanceRequest['priority']) || 'medium',
+        assignedTo: (r.assignedEmployeeId as string) || undefined,
+        vendor: (r.assignedVendorId as string) || undefined,
+        createdAt: (r.createdAt as string) || '',
+        updatedAt: (r.updatedAt as string) || '',
+        permissionToEnter: r.permissionToEnter === true || r.permissionToEnter === 'yes',
+      }));
   }, [apiResponse]);
 
-  // Client-side search filtering is no longer needed since the API handles
-  // search and status filtering. We pass the full list to the table.
-  const filteredRequests = allRequests;
+  // Sort: urgent unassigned first (these need a manager NOW), then by
+  // priority rank, then by oldest first. The manager's first scan
+  // lands on "the urgent thing nobody's working on yet" instead of
+  // whatever the API returned first.
+  const filteredRequests = useMemo(() => {
+    const PRIO: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+    const sorted = [...allRequests];
+    sorted.sort((a, b) => {
+      const aOpenUnassigned = a.status === 'open' && !a.assignedTo && !a.vendor ? 0 : 1;
+      const bOpenUnassigned = b.status === 'open' && !b.assignedTo && !b.vendor ? 0 : 1;
+      if (aOpenUnassigned !== bOpenUnassigned) return aOpenUnassigned - bOpenUnassigned;
+      const pa = PRIO[a.priority] ?? 4;
+      const pb = PRIO[b.priority] ?? 4;
+      if (pa !== pb) return pa - pb;
+      const aTs = new Date(a.createdAt).getTime();
+      const bTs = new Date(b.createdAt).getTime();
+      return aTs - bTs; // oldest first within same priority
+    });
+    return sorted;
+  }, [allRequests]);
 
   const statusCounts = {
     open: allRequests.filter((r) => r.status === 'open').length,
