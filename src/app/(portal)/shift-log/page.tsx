@@ -29,6 +29,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Test-seed filter — same regex as /my-packages, /my-requests, /dashboard.
@@ -229,6 +231,7 @@ interface ActiveShift {
 }
 
 export default function ShiftLogPage() {
+  const isResident = useIsResident();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [entryTypeFilter, setEntryTypeFilter] = useState<EntryTypeFilter>('all');
@@ -425,6 +428,17 @@ export default function ShiftLogPage() {
   const currentShift = getCurrentShift();
   const shiftTimes = getShiftTimes(currentShift);
   const CurrentShiftIcon = SHIFT_ICONS[currentShift] ?? Sunrise;
+
+  if (isResident) {
+    return (
+      <PageShell title="Shift Log" description="">
+        <AccessDeniedPanel
+          resource="The staff shift log"
+          whoCanSee="front desk and security staff"
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

@@ -23,6 +23,8 @@ import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { exportToCsv } from '@/lib/export-csv';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -57,6 +59,7 @@ interface ParkingViolation {
 // ---------------------------------------------------------------------------
 
 export default function ParkingPage() {
+  const isResident = useIsResident();
   const [tab, setTab] = useState<'permits' | 'violations'>('permits');
   const [searchQuery, setSearchQuery] = useState('');
   const [showPermitDialog, setShowPermitDialog] = useState(false);
@@ -287,6 +290,17 @@ export default function ParkingPage() {
       ),
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Parking" description="">
+        <AccessDeniedPanel
+          resource="Parking permits and violations"
+          whoCanSee="your property manager or security"
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

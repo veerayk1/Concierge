@@ -29,6 +29,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types — mapped from API response (Prisma Amenity + relations)
@@ -83,6 +85,7 @@ function getAmenityIcon(name: string) {
 // ---------------------------------------------------------------------------
 
 export default function AmenitiesPage() {
+  const isResident = useIsResident();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showBookingDialog, setShowBookingDialog] = useState(false);
@@ -101,6 +104,17 @@ export default function AmenitiesPage() {
   );
 
   const allAmenities = useMemo<Amenity[]>(() => amenities ?? [], [amenities]);
+
+  if (isResident) {
+    return (
+      <PageShell title="Amenities" description="">
+        <AccessDeniedPanel
+          resource="Amenity management and approvals"
+          whoCanSee="your property manager"
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

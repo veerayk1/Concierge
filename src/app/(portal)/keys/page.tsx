@@ -28,6 +28,8 @@ import { CreateKeyCheckoutDialog } from '@/components/forms/create-key-checkout-
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { AddKeyDialog } from '@/components/forms/add-key-dialog';
 import { exportToCsv } from '@/lib/export-csv';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types — mapped from API response (Prisma KeyInventory + enrichment)
@@ -59,6 +61,7 @@ interface KeyItem {
 // ---------------------------------------------------------------------------
 
 export default function KeysPage() {
+  const isResident = useIsResident();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -288,6 +291,17 @@ export default function KeysPage() {
         ) : null,
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Keys & FOBs" description="">
+        <AccessDeniedPanel
+          resource="Keys and FOB inventory"
+          whoCanSee="front desk and security staff"
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

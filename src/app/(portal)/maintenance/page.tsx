@@ -26,6 +26,8 @@ import { Card } from '@/components/ui/card';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { exportToCsv } from '@/lib/export-csv';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,6 +63,7 @@ interface MaintenanceApiResponse {
 // ---------------------------------------------------------------------------
 
 export default function MaintenancePage() {
+  const isResident = useIsResident();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -296,6 +299,17 @@ export default function MaintenancePage() {
       ),
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Maintenance" description="">
+        <AccessDeniedPanel
+          resource="Building-wide maintenance triage"
+          whoCanSee="your property manager or superintendent"
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

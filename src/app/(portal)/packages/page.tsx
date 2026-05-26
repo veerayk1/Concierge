@@ -30,6 +30,8 @@ import { KpiTile } from '@/components/ui/kpi-tile';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { exportToCsv } from '@/lib/export-csv';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -157,6 +159,7 @@ function getAgeDisplay(hours: number): { text: string; variant: 'success' | 'war
 // ---------------------------------------------------------------------------
 
 export default function PackagesPage() {
+  const isResident = useIsResident();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -465,6 +468,14 @@ export default function PackagesPage() {
       cell: (row) => <span className="text-neutral-500">{row.releasedBy}</span>,
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Packages" description="">
+        <AccessDeniedPanel resource="The package intake console" whoCanSee="front desk staff" />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

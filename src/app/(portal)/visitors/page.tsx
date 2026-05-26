@@ -28,6 +28,8 @@ import { KpiTile } from '@/components/ui/kpi-tile';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CreateVisitorDialog } from '@/components/forms/create-visitor-dialog';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Test-seed filter — same regex as /my-packages, /my-requests, /dashboard.
@@ -121,36 +123,13 @@ function getDuration(arrival: string, departure: string): string {
 // see other residents' visitors (privacy). They have their own resident
 // portal scoped to their unit. Without this gate, a resident could open
 // /visitors and read every guest in the building with names + unit numbers.
-const VISITOR_PAGE_ROLES = new Set([
-  'super_admin',
-  'property_admin',
-  'property_manager',
-  'front_desk',
-  'security_guard',
-  'security_supervisor',
-  'superintendent',
-]);
-
 export default function VisitorsPage() {
+  // Role gate is rendered as <AccessDeniedPanel> below (after all hooks
+  // have run) — superseded the earlier `window.location.replace`
+  // redirect, which caused a visible URL-flip and bypassed the
+  // friendly "Not available for your role" panel.
+  const isResident = useIsResident();
   const router = useRouter();
-  // Role gate — bounce residents and anyone else to their dashboard.
-  // Honours BOTH demo_role (demo mode) and auth_user.role (real
-  // session). Previously only checked demo_role, so a real resident
-  // pasting /visitors saw the staff page.
-  if (typeof window !== 'undefined') {
-    const demoRole = localStorage.getItem('demo_role') ?? '';
-    let realRole = '';
-    try {
-      const stored = localStorage.getItem('auth_user');
-      realRole = stored ? ((JSON.parse(stored) as { role?: string }).role ?? '') : '';
-    } catch {
-      // ignore
-    }
-    const role = demoRole || realRole;
-    if (role && !VISITOR_PAGE_ROLES.has(role)) {
-      window.location.replace('/dashboard');
-    }
-  }
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -413,6 +392,14 @@ export default function VisitorsPage() {
       ),
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Visitors" description="">
+        <AccessDeniedPanel resource="The visitor log" whoCanSee="front desk and security staff" />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

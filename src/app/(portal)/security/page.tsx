@@ -32,6 +32,8 @@ import { KpiTile } from '@/components/ui/kpi-tile';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsResident } from '@/lib/role-mode';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
 // Types — Unified event model per CLAUDE.md
@@ -99,20 +101,6 @@ function mapEventType(rawType: string): SecurityEvent['type'] {
 // Component
 // ---------------------------------------------------------------------------
 
-// Roles allowed to see the Security Console. Residents must NOT see other
-// residents' incidents (privacy) and must NOT have access to log security
-// events. This is enforced both in the API (events route) and here at the
-// page level so the UI never even flashes.
-const SECURITY_CONSOLE_ROLES = new Set([
-  'super_admin',
-  'property_admin',
-  'property_manager',
-  'front_desk',
-  'security_guard',
-  'security_supervisor',
-  'superintendent',
-]);
-
 // Small secondary-action chip used in the security console row. Reads as a
 // utility shortcut, not a primary CTA — the only primary action on the page
 // is "Log event" in the page header.
@@ -147,24 +135,11 @@ function SecurityShortcut({
 }
 
 export default function SecurityPage() {
+  // Role gate is rendered as <AccessDeniedPanel> below — superseded
+  // the earlier `window.location.replace` redirect which caused a
+  // visible URL-flip and bypassed the friendly panel.
+  const isResident = useIsResident();
   const router = useRouter();
-  // Role gate — bounce residents (and any other non-staff) to their
-  // dashboard. Reads BOTH demo_role and auth_user.role so real
-  // authenticated residents can't paste the URL.
-  if (typeof window !== 'undefined') {
-    const demoRole = localStorage.getItem('demo_role') ?? '';
-    let realRole = '';
-    try {
-      const stored = localStorage.getItem('auth_user');
-      realRole = stored ? ((JSON.parse(stored) as { role?: string }).role ?? '') : '';
-    } catch {
-      // ignore
-    }
-    const role = demoRole || realRole;
-    if (role && !SECURITY_CONSOLE_ROLES.has(role)) {
-      window.location.replace('/dashboard');
-    }
-  }
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -460,6 +435,17 @@ export default function SecurityPage() {
       },
     },
   ];
+
+  if (isResident) {
+    return (
+      <PageShell title="Security" description="">
+        <AccessDeniedPanel
+          resource="The security console"
+          whoCanSee="front desk and security staff"
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell
