@@ -476,36 +476,68 @@ export default function ShiftLogPage() {
       {/* Inline quick-note compose — the 80% case for a guard during
           a shift is "type one sentence about a routine thing".
           Wrapping that in a dialog wastes their time. Type → Enter →
-          done. Urgent keywords ("alarm", "leak", "fire") flip the
+          done. Quick-template chips above seed the most common
+          entries so even typing the boilerplate is one tap.
+          Urgent keywords ("alarm", "leak", "fire") flip the
           priority automatically. */}
-      <form
-        onSubmit={submitQuickNote}
-        className="conc-rise mb-4 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50/80 via-white to-teal-50/80 px-4 py-2.5 shadow-sm"
-        aria-label="Quick patrol note compose"
-      >
-        <Zap className="h-4 w-4 flex-shrink-0 text-emerald-600" strokeWidth={1.8} />
-        <input
-          ref={quickInputRef}
-          type="text"
-          value={quickNote}
-          onChange={(e) => setQuickNote(e.target.value)}
-          placeholder="Quick note — “Patrolled floors 1-3, all clear” · type and hit Enter"
-          maxLength={500}
-          className="min-w-0 flex-1 bg-transparent text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
-          disabled={quickBusy}
-        />
-        {quickMessage && (
-          <span className="text-[12px] font-medium text-emerald-700">{quickMessage}</span>
-        )}
-        <button
-          type="submit"
-          disabled={!quickNote.trim() || quickBusy}
-          className="flex items-center gap-1 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 px-3 py-1.5 text-[12.5px] font-semibold text-white shadow-[0_2px_8px_rgba(16,185,129,0.35)] transition hover:from-emerald-600 hover:to-teal-700 disabled:opacity-50"
+      <div className="conc-rise mb-4 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/80 px-4 py-3 shadow-sm">
+        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          <span className="text-[10.5px] font-semibold tracking-[0.06em] text-emerald-700/80 uppercase">
+            Templates
+          </span>
+          {[
+            { label: 'Patrol', text: 'Patrolled the building, all clear.' },
+            {
+              label: 'Pass-on',
+              text: 'Pass-on for next shift: ',
+            },
+            { label: 'Visitor', text: 'Visitor signed in — ' },
+            { label: 'Contractor', text: 'Contractor on site — ' },
+            { label: 'Resident issue', text: 'Resident reported — ' },
+            { label: 'Quiet shift', text: 'Quiet shift, nothing to report.' },
+          ].map((t) => (
+            <button
+              key={t.label}
+              type="button"
+              onClick={() => {
+                setQuickNote(t.text);
+                setTimeout(() => quickInputRef.current?.focus(), 0);
+              }}
+              className="rounded-lg bg-white px-2 py-0.5 text-[11.5px] font-medium text-emerald-700 ring-1 ring-emerald-200 transition hover:bg-emerald-50"
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <form
+          onSubmit={submitQuickNote}
+          className="flex items-center gap-2"
+          aria-label="Quick patrol note compose"
         >
-          <Send className="h-3.5 w-3.5" />
-          {quickBusy ? 'Logging…' : 'Log it'}
-        </button>
-      </form>
+          <Zap className="h-4 w-4 flex-shrink-0 text-emerald-600" strokeWidth={1.8} />
+          <input
+            ref={quickInputRef}
+            type="text"
+            value={quickNote}
+            onChange={(e) => setQuickNote(e.target.value)}
+            placeholder="Quick note — “Patrolled floors 1-3, all clear” · type and hit Enter"
+            maxLength={500}
+            className="min-w-0 flex-1 bg-transparent text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
+            disabled={quickBusy}
+          />
+          {quickMessage && (
+            <span className="text-[12px] font-medium text-emerald-700">{quickMessage}</span>
+          )}
+          <button
+            type="submit"
+            disabled={!quickNote.trim() || quickBusy}
+            className="flex items-center gap-1 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 px-3 py-1.5 text-[12.5px] font-semibold text-white shadow-[0_2px_8px_rgba(16,185,129,0.35)] transition hover:from-emerald-600 hover:to-teal-700 disabled:opacity-50"
+          >
+            <Send className="h-3.5 w-3.5" />
+            {quickBusy ? 'Logging…' : 'Log it'}
+          </button>
+        </form>
+      </div>
 
       {/* Loading State */}
       {loading && (
