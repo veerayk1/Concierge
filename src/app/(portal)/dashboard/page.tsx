@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { IncidentWizard } from '@/components/forms/incident-wizard';
 import { CreateShiftEntryDialog } from '@/components/forms/create-shift-entry-dialog';
 import { CreatePackageDialog } from '@/components/forms/create-package-dialog';
+import { BulkPackageFastLane } from '@/components/forms/bulk-package-fast-lane';
 import { CreateVisitorDialog } from '@/components/forms/create-visitor-dialog';
 import { ShiftHandoffCard } from '@/components/dashboard/shift-handoff-card';
 import { ActiveIncidentsCard } from '@/components/dashboard/active-incidents-card';
@@ -44,6 +45,7 @@ import {
   TrendingUp,
   Users,
   Wrench,
+  Zap,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -636,6 +638,7 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
   // straight from the quick-action tiles so the concierge never leaves
   // the dashboard.
   const [showPackageDialog, setShowPackageDialog] = useState(false);
+  const [showFastLaneDialog, setShowFastLaneDialog] = useState(false);
   const [showVisitorDialog, setShowVisitorDialog] = useState(false);
   const [showShiftEntryDialog, setShowShiftEntryDialog] = useState(false);
   const timeOfDay = getTimeOfDay();
@@ -698,6 +701,16 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
       iconBg: 'bg-amber-100',
       iconColor: 'text-amber-700',
       onClick: () => setShowPackageDialog(true),
+    },
+    {
+      label: 'Bulk intake — fast lane',
+      sub: 'Holiday dump. Pick courier once, paste tracking #s, match units.',
+      href: '/packages?action=bulk',
+      icon: Zap,
+      bg: 'from-orange-50 via-white to-yellow-50',
+      iconBg: 'bg-orange-100',
+      iconColor: 'text-orange-700',
+      onClick: () => setShowFastLaneDialog(true),
     },
     {
       label: 'Sign in a visitor',
@@ -989,6 +1002,11 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
       <CreatePackageDialog
         open={showPackageDialog}
         onOpenChange={setShowPackageDialog}
+        propertyId={getPropertyId()}
+      />
+      <BulkPackageFastLane
+        open={showFastLaneDialog}
+        onOpenChange={setShowFastLaneDialog}
         propertyId={getPropertyId()}
       />
       <CreateVisitorDialog
