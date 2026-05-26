@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditDirectoryEntryDialog } from '@/components/forms/edit-directory-entry-dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -127,6 +128,12 @@ export default function BuildingDirectoryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [confirmToggle, setConfirmToggle] = useState(false);
+  const [flashBD, setFlashBD] = useState<null | { tone: 'ok' | 'err'; text: string }>(null);
+  const flashBDmsg = (tone: 'ok' | 'err', text: string) => {
+    setFlashBD({ tone, text });
+    setTimeout(() => setFlashBD(null), 4000);
+  };
 
   const {
     data: entry,
@@ -316,26 +323,7 @@ export default function BuildingDirectoryDetailPage() {
                   <Edit2 className="h-4 w-4" />
                   Edit Entry
                 </Button>
-                <Button
-                  variant="secondary"
-                  onClick={async () => {
-                    const action = isActive ? 'deactivate' : 'activate';
-                    if (!confirm(`Are you sure you want to ${action} this entry?`)) return;
-                    try {
-                      const res = await apiRequest(`/api/v1/building-directory/${id}`, {
-                        method: 'PATCH',
-                        body: { isActive: !isActive },
-                      });
-                      if (res.ok) {
-                        await refetch();
-                      } else {
-                        alert(`Failed to ${action} entry. Please try again.`);
-                      }
-                    } catch {
-                      alert(`Failed to ${action} entry. Please try again.`);
-                    }
-                  }}
-                >
+                <Button variant="secondary" onClick={() => setConfirmToggle(true)}>
                   <Power className="h-4 w-4" />
                   {isActive ? 'Deactivate' : 'Activate'}
                 </Button>
@@ -414,6 +402,60 @@ export default function BuildingDirectoryDetailPage() {
         entry={entry}
         onSuccess={refetch}
       />
+
+      {/* Activate/deactivate confirm — replaces native confirm(). */}
+      <Dialog open={confirmToggle} onOpenChange={(o) => !o && setConfirmToggle(false)}>
+        <DialogContent>
+          <DialogTitle>{isActive ? 'Deactivate this entry?' : 'Activate this entry?'}</DialogTitle>
+          <DialogDescription>
+            {isActive
+              ? 'Residents will no longer see this entry in the directory. You can reactivate it later.'
+              : 'This entry will become visible to residents in the directory again.'}
+          </DialogDescription>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setConfirmToggle(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className={isActive ? 'bg-error-500 hover:bg-error-600 text-white' : undefined}
+              onClick={async () => {
+                setConfirmToggle(false);
+                const action = isActive ? 'deactivate' : 'activate';
+                try {
+                  const res = await apiRequest(`/api/v1/building-directory/${id}`, {
+                    method: 'PATCH',
+                    body: { isActive: !isActive },
+                  });
+                  if (res.ok) {
+                    flashBDmsg('ok', `Entry ${action}d.`);
+                    await refetch();
+                  } else {
+                    flashBDmsg('err', `Failed to ${action} entry. Please try again.`);
+                  }
+                } catch {
+                  flashBDmsg('err', `Failed to ${action} entry. Please try again.`);
+                }
+              }}
+            >
+              {isActive ? 'Deactivate' : 'Activate'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {flashBD && (
+        <div
+          role="status"
+          className={`fixed right-6 bottom-6 z-50 max-w-sm rounded-xl px-4 py-3 text-[13.5px] font-medium shadow-lg ring-1 ${
+            flashBD.tone === 'ok'
+              ? 'bg-success-50 text-success-700 ring-success-200'
+              : 'bg-error-50 text-error-700 ring-error-200'
+          }`}
+        >
+          {flashBD.text}
+        </div>
+      )}
     </PageShell>
   );
 }
