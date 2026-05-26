@@ -615,6 +615,9 @@ export default function GovernancePage() {
           data={filteredMeetings}
           emptyMessage="No meetings found."
           emptyIcon={<Calendar className="h-6 w-6" />}
+          onRowClick={(row) => {
+            window.location.href = `/governance/${row.id}`;
+          }}
         />
       )}
 
@@ -624,6 +627,9 @@ export default function GovernancePage() {
           data={filteredResolutions}
           emptyMessage="No resolutions found."
           emptyIcon={<Scale className="h-6 w-6" />}
+          onRowClick={(row) => {
+            window.location.href = `/governance/${row.id}`;
+          }}
         />
       )}
 
