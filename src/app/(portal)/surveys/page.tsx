@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ClipboardList,
@@ -119,11 +119,39 @@ const STATUS_LABELS: Record<SurveyStatus, string> = {
 // Component
 // ---------------------------------------------------------------------------
 
+// Resident-facing roles see this page in a different mode: it's an
+// invitation to participate, not an authoring console. We check both
+// demo_role and auth_user.role from localStorage (same pattern used
+// across the portal for read-only-resident gating).
+const RESIDENT_ROLES = new Set([
+  'resident_owner',
+  'resident_tenant',
+  'offsite_owner',
+  'family_member',
+]);
+
+function detectResidentMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  const demo = window.localStorage.getItem('demo_role') ?? '';
+  if (RESIDENT_ROLES.has(demo)) return true;
+  try {
+    const stored = window.localStorage.getItem('auth_user');
+    const parsed = stored ? (JSON.parse(stored) as { role?: string }) : null;
+    return RESIDENT_ROLES.has(parsed?.role ?? '');
+  } catch {
+    return false;
+  }
+}
+
 export default function SurveysPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<SurveyType | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<SurveyStatus | 'all'>('all');
+  const [isResident, setIsResident] = useState(false);
+  useEffect(() => {
+    setIsResident(detectResidentMode());
+  }, []);
 
   const {
     data: apiSurveys,
@@ -277,64 +305,109 @@ export default function SurveysPage() {
     },
   ];
 
+  // Resident-mode counts: how many surveys are open for them to take,
+  // and how many have closed (so they can see what they missed or
+  // browse archived results).
+  const openCount = allSurveys.filter((s) => s.status === 'active').length;
+  const closedCount = allSurveys.filter(
+    (s) => s.status === 'closed' || s.status === 'archived',
+  ).length;
+
   return (
     <PageShell
       title="Surveys"
-      description="Create and manage resident surveys and polls."
+      description={
+        isResident
+          ? 'Your input shapes the building. Open surveys are waiting for your voice.'
+          : 'Create and manage resident surveys and polls.'
+      }
       actions={
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={filteredSurveys.length === 0}
-            onClick={() =>
-              exportToCsv(
-                filteredSurveys,
-                [
-                  { key: 'title', header: 'Title' },
-                  { key: 'status', header: 'Status' },
-                  { key: 'responseCount', header: 'Responses' },
-                  { key: 'targetCount', header: 'Target' },
-                  { key: 'responseRate', header: 'Rate %' },
-                  { key: 'createdAt', header: 'Created' },
-                  { key: 'closesAt', header: 'Closes' },
-                ],
-                'surveys',
-              )
-            }
-          >
-            <Download className="h-4 w-4" />
-            Export Results
-          </Button>
-          <Button size="sm" disabled title="Survey authoring is coming in the next release.">
-            <Plus className="h-4 w-4" />
-            Create Survey
-          </Button>
-        </div>
+        isResident ? null : (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={filteredSurveys.length === 0}
+              onClick={() =>
+                exportToCsv(
+                  filteredSurveys,
+                  [
+                    { key: 'title', header: 'Title' },
+                    { key: 'status', header: 'Status' },
+                    { key: 'responseCount', header: 'Responses' },
+                    { key: 'targetCount', header: 'Target' },
+                    { key: 'responseRate', header: 'Rate %' },
+                    { key: 'createdAt', header: 'Created' },
+                    { key: 'closesAt', header: 'Closes' },
+                  ],
+                  'surveys',
+                )
+              }
+            >
+              <Download className="h-4 w-4" />
+              Export Results
+            </Button>
+            <Button size="sm" disabled title="Survey authoring is coming in the next release.">
+              <Plus className="h-4 w-4" />
+              Create Survey
+            </Button>
+          </div>
+        )
       }
     >
-      {/* Summary Cards */}
+      {/* Summary Cards — residents see participation-focused KPIs;
+          admins see response analytics. */}
       <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <KpiTile
-          label="Total Surveys"
-          value={loading ? '—' : totalCount}
-          icon={ClipboardList}
-          accent="neutral"
-        />
-        <KpiTile
-          label="Active"
-          value={loading ? '—' : activeCount}
-          icon={CheckCircle2}
-          accent="success"
-          caption="Currently collecting responses."
-        />
-        <KpiTile
-          label="Avg Response Rate"
-          value={loading ? '—' : `${avgResponseRate}%`}
-          icon={Users}
-          accent="info"
-          caption="Across all surveys."
-        />
+        {isResident ? (
+          <>
+            <KpiTile
+              label="Open right now"
+              value={loading ? '—' : openCount}
+              icon={CheckCircle2}
+              accent={openCount > 0 ? 'success' : 'neutral'}
+              caption={
+                openCount > 0 ? 'Tap one below to give your input.' : 'Nothing to vote on yet.'
+              }
+            />
+            <KpiTile
+              label="Closed"
+              value={loading ? '—' : closedCount}
+              icon={ClipboardList}
+              accent="neutral"
+              caption="Past surveys — browse the results."
+            />
+            <KpiTile
+              label="Posted"
+              value={loading ? '—' : totalCount}
+              icon={Users}
+              accent="info"
+              caption="Total surveys this building has run."
+            />
+          </>
+        ) : (
+          <>
+            <KpiTile
+              label="Total Surveys"
+              value={loading ? '—' : totalCount}
+              icon={ClipboardList}
+              accent="neutral"
+            />
+            <KpiTile
+              label="Active"
+              value={loading ? '—' : activeCount}
+              icon={CheckCircle2}
+              accent="success"
+              caption="Currently collecting responses."
+            />
+            <KpiTile
+              label="Avg Response Rate"
+              value={loading ? '—' : `${avgResponseRate}%`}
+              icon={Users}
+              accent="info"
+              caption="Across all surveys."
+            />
+          </>
+        )}
       </div>
 
       {/* Search & Filters */}
