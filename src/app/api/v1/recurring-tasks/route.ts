@@ -17,7 +17,22 @@ import type { ScheduleConfig } from '@/server/scheduling';
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Staff-only: recurring task schedules (HVAC checks, fire drills,
+    // elevator inspections) are operational data residents shouldn't see.
+    // The 'recurring' module is a property-management concern, not a
+    // resident-facing one. Same fix shape as UX-275 on /maintenance.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'maintenance_staff',
+        'superintendent',
+        'front_desk',
+        'security_supervisor',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

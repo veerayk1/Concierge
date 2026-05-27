@@ -115,7 +115,22 @@ function generateReferenceNumber(date: string): string {
 export async function GET(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request);
+    // Staff-only: the parking permits list exposes license plates,
+    // stall assignments, and vehicle owners — residents shouldn't see
+    // their neighbours' parking arrangements. Residents who want their
+    // own permit should hit a resident-scoped endpoint (or, if not yet
+    // implemented, the request should be routed through the front desk).
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'security_guard',
+        'security_supervisor',
+        'front_desk',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const moduleCheck = await requireModule(request, 'parking');
