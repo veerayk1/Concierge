@@ -1,403 +1,234 @@
-import Link from 'next/link';
 import type { Metadata } from 'next';
+import { LegalShell } from '@/components/marketing/LegalShell';
 
 // ---------------------------------------------------------------------------
-// Metadata
+// SEO Metadata
 // ---------------------------------------------------------------------------
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+
+const SEO_TITLE = 'Terms of Service | Concierge Property Management Platform';
+const SEO_DESCRIPTION =
+  'The terms governing your use of Concierge — the all-in-one property management platform. Plain-language, fair-use, and built on enterprise security commitments.';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — Concierge',
-  description:
-    'Terms and conditions for using the Concierge building management platform. Governed by the laws of Ontario, Canada.',
+  title: SEO_TITLE,
+  description: SEO_DESCRIPTION,
+  alternates: { canonical: `${BASE_URL}/terms` },
   openGraph: {
-    title: 'Terms of Service — Concierge',
-    description: 'Terms and conditions for the Concierge building management platform.',
+    title: SEO_TITLE,
+    description: SEO_DESCRIPTION,
     type: 'website',
+    url: `${BASE_URL}/terms`,
+    siteName: 'Concierge',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SEO_TITLE,
+    description: SEO_DESCRIPTION,
   },
 };
+
+const LAST_UPDATED = 'March 20, 2026';
 
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
-const LAST_UPDATED = 'March 20, 2026';
-
 export default function TermsOfServicePage() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16 md:py-20">
-      <h1 className="text-[32px] font-bold tracking-tight text-neutral-900">Terms of Service</h1>
-      <p className="mt-2 text-[14px] text-neutral-500">Last updated: {LAST_UPDATED}</p>
+    <LegalShell
+      eyebrow="Plain-language terms"
+      title="Terms of Service"
+      description="The agreement between you and Concierge — written in plain English, with no hidden gotchas, and built on enterprise security commitments."
+      lastUpdated={LAST_UPDATED}
+    >
+      <h2>1. Agreement to terms</h2>
+      <p>
+        By accessing or using Concierge (&ldquo;the Service&rdquo;) you agree to be bound by these
+        Terms of Service (&ldquo;Terms&rdquo;). If you are using the Service on behalf of a property
+        corporation, building owner, condo board, HOA, or other entity, you represent that you have
+        authority to bind that entity to these Terms.
+      </p>
+      <p>If you do not agree to these Terms, do not use the Service.</p>
 
-      <div className="mt-10 max-w-none text-[15px] leading-relaxed text-neutral-700">
-        {/* 1. Acceptance of Terms */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">1. Acceptance of Terms</h2>
-          <p className="mt-3">
-            By accessing or using the Concierge platform (&quot;Service&quot;), you agree to be
-            bound by these Terms of Service (&quot;Terms&quot;). If you are using the Service on
-            behalf of a property management company, condominium corporation, homeowners
-            association, or other organization, you represent that you have the authority to bind
-            that organization to these Terms. If you do not agree to these Terms, you must not use
-            the Service.
-          </p>
-        </section>
+      <h2>2. The service</h2>
+      <p>
+        Concierge is a multi-tenant property management software-as-a-service platform that replaces
+        a portfolio of legacy tools. It includes (without limitation): package tracking, visitor
+        management, maintenance requests, amenity booking, security console, resident portal, board
+        governance, vendor compliance, and compliance reporting.
+      </p>
+      <p>
+        We provide the Service on a continuous-improvement basis. New features ship regularly.
+        Material changes that affect data handling are communicated 30 days in advance.
+      </p>
 
-        {/* 2. Description of Service */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">2. Description of Service</h2>
-          <p className="mt-3">
-            Concierge is a cloud-based building management platform that provides tools for:
-          </p>
-          <ul className="mt-3 list-disc space-y-2 pl-6">
-            <li>Property and unit management with configurable fields</li>
-            <li>
-              Security operations including visitor logging, incident reporting, and FOB/key
-              tracking
-            </li>
-            <li>Package tracking with courier-branded cards and notification workflows</li>
-            <li>Maintenance request management with photo uploads and vendor assignment</li>
-            <li>Amenity booking with calendar views and approval workflows</li>
-            <li>Multi-channel communication (email, SMS, push notifications)</li>
-            <li>Resident self-service portal</li>
-            <li>Staff training and compliance management</li>
-            <li>Reporting and analytics</li>
-          </ul>
-          <p className="mt-3">
-            The Service is provided on a subscription basis. Features available depend on your
-            selected plan (Starter, Professional, or Enterprise).
-          </p>
-        </section>
+      <h2>3. Accounts</h2>
+      <h3>Creating an account</h3>
+      <ul>
+        <li>You must be at least 13 years old to create an account</li>
+        <li>You agree to provide accurate, up-to-date information</li>
+        <li>
+          You are responsible for safeguarding your password and for all activity on your account
+        </li>
+        <li>
+          You must immediately notify us of any unauthorized access at{' '}
+          <a href="mailto:security@concierge.com">security@concierge.com</a>
+        </li>
+      </ul>
+      <h3>Roles & permissions</h3>
+      <p>
+        The Service uses role-based access control. The customer (property corporation, building
+        owner, board, or management company) is responsible for assigning roles appropriately and
+        removing access when staff or residents leave.
+      </p>
 
-        {/* 3. Account Terms */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">3. Account Terms</h2>
-          <ul className="mt-3 list-disc space-y-2 pl-6">
-            <li>
-              Accounts are created by Property Administrators. There is no self-registration. This
-              is by design for security-sensitive building environments.
-            </li>
-            <li>
-              You are responsible for maintaining the confidentiality of your account credentials.
-            </li>
-            <li>You must notify us immediately of any unauthorized access to your account.</li>
-            <li>You are responsible for all activity that occurs under your account.</li>
-            <li>
-              Account sharing is prohibited. Each user must have their own unique credentials.
-            </li>
-            <li>
-              Property Administrators are responsible for managing user access, assigning roles, and
-              deactivating accounts for departing staff or residents.
-            </li>
-            <li>
-              Multi-factor authentication (MFA) may be required by your Property Administrator. We
-              strongly recommend enabling MFA for all accounts.
-            </li>
-          </ul>
-        </section>
+      <h2>4. Acceptable use</h2>
+      <p>You agree not to:</p>
+      <ul>
+        <li>Use the Service for any unlawful purpose or in violation of these Terms</li>
+        <li>
+          Upload, post, or transmit content that is harmful, harassing, defamatory, obscene, or
+          infringing
+        </li>
+        <li>
+          Attempt to gain unauthorized access to any part of the Service, other accounts, or our
+          infrastructure
+        </li>
+        <li>
+          Reverse-engineer, decompile, or disassemble the Service, except as expressly permitted by
+          applicable law
+        </li>
+        <li>
+          Use the Service to harvest personal information about residents, staff, or visitors beyond
+          what is operationally necessary
+        </li>
+        <li>
+          Interfere with or disrupt the integrity or performance of the Service or the data
+          contained therein
+        </li>
+        <li>
+          Use automated means (bots, scrapers) to access the Service except through our published
+          API with valid credentials
+        </li>
+      </ul>
+      <p>We may suspend or terminate accounts that violate these acceptable-use rules.</p>
 
-        {/* 4. Acceptable Use */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">4. Acceptable Use</h2>
-          <p className="mt-3">You agree not to:</p>
-          <ul className="mt-3 list-disc space-y-2 pl-6">
-            <li>Use the Service for any unlawful purpose</li>
-            <li>Upload malicious code, viruses, or harmful content</li>
-            <li>Attempt to gain unauthorized access to other accounts or systems</li>
-            <li>Interfere with the proper operation of the Service</li>
-            <li>Use the Service to harass, discriminate against, or threaten any individual</li>
-            <li>Scrape, crawl, or data-mine the Service without written permission</li>
-            <li>Reverse engineer, decompile, or disassemble any part of the Service</li>
-            <li>
-              Use the Service to store or process data unrelated to building management operations
-            </li>
-            <li>
-              Exceed reasonable usage limits or use the Service in a way that degrades performance
-              for other users
-            </li>
-          </ul>
-        </section>
+      <h2>5. Customer data</h2>
+      <p>
+        You retain ownership of all data you upload to the Service (&ldquo;Customer Data&rdquo;).
+        Concierge processes Customer Data solely to provide the Service to you and on your behalf.
+      </p>
+      <p>
+        We do <strong>not</strong> sell Customer Data. We do <strong>not</strong> use Customer Data
+        to train machine-learning models that benefit other customers without your explicit consent.
+        We do <strong>not</strong> share Customer Data with third-party advertisers.
+      </p>
+      <p>
+        See our <a href="/privacy">Privacy Policy</a> and{' '}
+        <a href="/security-privacy">Security &amp; Privacy</a> page for the operational controls
+        that back this up.
+      </p>
 
-        {/* 5. Data Ownership */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">5. Data Ownership</h2>
-          <p className="mt-3">
-            You retain full ownership of all data you upload to the Service. Concierge does not
-            claim ownership of your property data, resident information, uploaded documents,
-            photographs, or any other content you create within the platform.
-          </p>
-          <p className="mt-3">
-            We process your data solely to provide the Service as described in our{' '}
-            <Link href={'/privacy' as never} className="font-medium text-neutral-900 underline">
-              Privacy Policy
-            </Link>
-            . We will never sell, license, or monetize your data. You may export your data at any
-            time in standard formats (CSV, JSON, PDF).
-          </p>
-          <p className="mt-3">
-            You grant Concierge a limited license to process, store, and transmit your data solely
-            for the purpose of providing and improving the Service.
-          </p>
-        </section>
+      <h2>6. Fees & billing</h2>
+      <ul>
+        <li>Fees are described in your order form or subscription agreement</li>
+        <li>Fees are billed monthly or annually, in advance</li>
+        <li>Subscriptions renew automatically unless cancelled at least 30 days before renewal</li>
+        <li>Late payments may result in suspension after 15 days&rsquo; written notice</li>
+        <li>All fees are exclusive of taxes (HST/GST/VAT) which you are responsible for paying</li>
+      </ul>
 
-        {/* 6. Payment Terms */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">6. Payment Terms</h2>
-          <ul className="mt-3 list-disc space-y-2 pl-6">
-            <li>
-              Subscription fees are billed monthly or annually as selected at the time of purchase.
-            </li>
-            <li>
-              All prices are in Canadian Dollars (CAD) unless otherwise stated in your agreement.
-            </li>
-            <li>
-              Pricing is per unit per month. The total subscription cost is calculated based on the
-              number of units in your property.
-            </li>
-            <li>
-              Payment is processed through Stripe. We do not store credit card numbers on our
-              servers.
-            </li>
-            <li>
-              Annual subscriptions are billed upfront for the full year. Monthly subscriptions are
-              billed on the same day each month.
-            </li>
-            <li>
-              Fees are non-refundable except as required by applicable consumer protection laws or
-              as specified in your Enterprise agreement.
-            </li>
-            <li>
-              We reserve the right to modify pricing with 30 days advance written notice. Price
-              changes will not apply to the current billing period.
-            </li>
-            <li>
-              If payment fails, we will attempt to charge the payment method on file for 7 days.
-              After 14 days of failed payment, the account may be suspended. After 30 days, the
-              account may be terminated.
-            </li>
-            <li>
-              Taxes (HST/GST) are applied based on your province of residence and are added to the
-              subscription price.
-            </li>
-          </ul>
-        </section>
+      <h2>7. Service level agreement</h2>
+      <p>
+        We commit to a <strong>99.99% uptime SLA</strong> measured monthly (approximately 52 minutes
+        of allowable downtime per year). Scheduled maintenance is announced at least 7 days in
+        advance and does not count against the SLA.
+      </p>
+      <p>
+        If we miss the SLA, service credits are issued automatically against your next invoice on
+        the schedule documented in your order form.
+      </p>
 
-        {/* 7. Service Level Agreement (SLA) */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">
-            7. Service Level Agreement (SLA)
-          </h2>
-          <p className="mt-3">We commit to the following service levels for all paid plans:</p>
-          <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-[13px] font-semibold tracking-wider text-neutral-400 uppercase">
-                  Uptime Guarantee
-                </p>
-                <p className="mt-1 text-[24px] font-bold text-neutral-900">99.9%</p>
-                <p className="mt-1 text-[13px] text-neutral-600">
-                  Measured monthly, excluding scheduled maintenance
-                </p>
-              </div>
-              <div>
-                <p className="text-[13px] font-semibold tracking-wider text-neutral-400 uppercase">
-                  Scheduled Maintenance
-                </p>
-                <p className="mt-1 text-[14px] text-neutral-700">
-                  Maintenance windows are scheduled during off-peak hours (2:00 AM - 5:00 AM ET)
-                  with at least 48 hours advance notice.
-                </p>
-              </div>
-            </div>
-          </div>
-          <p className="mt-4">
-            <strong>SLA Credits:</strong> If monthly uptime falls below 99.9%, affected customers
-            are eligible for service credits:
-          </p>
-          <ul className="mt-3 list-disc space-y-2 pl-6">
-            <li>99.0% - 99.9% uptime: 10% credit on monthly fees</li>
-            <li>95.0% - 99.0% uptime: 25% credit on monthly fees</li>
-            <li>Below 95.0% uptime: 50% credit on monthly fees</li>
-          </ul>
-          <p className="mt-3">
-            Credit requests must be submitted within 30 days of the downtime event. Credits are
-            applied to future invoices and do not exceed one month of fees.
-          </p>
-        </section>
+      <h2>8. Intellectual property</h2>
+      <p>
+        Concierge retains all rights, title, and interest in the Service, including all software,
+        documentation, designs, trademarks, and underlying technology. These Terms grant you a
+        limited, non-exclusive, non-transferable, revocable licence to use the Service in accordance
+        with these Terms and your subscription.
+      </p>
+      <p>
+        Customer Data remains your property. You grant Concierge a limited licence to use Customer
+        Data solely to provide the Service.
+      </p>
 
-        {/* 8. Intellectual Property */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">8. Intellectual Property</h2>
-          <p className="mt-3">
-            The Service, including its design, code, features, documentation, and branding, is owned
-            by Concierge and protected by intellectual property laws. Your subscription grants you a
-            non-exclusive, non-transferable, revocable license to use the Service for its intended
-            purpose.
-          </p>
-          <p className="mt-3">
-            You may not copy, modify, distribute, or create derivative works of the Service without
-            our express written permission.
-          </p>
-        </section>
+      <h2>9. Disclaimers</h2>
+      <p>
+        The Service is provided &ldquo;as is&rdquo; and &ldquo;as available&rdquo;. To the maximum
+        extent permitted by applicable law, we disclaim all warranties, express or implied,
+        including warranties of merchantability, fitness for a particular purpose, and non-
+        infringement.
+      </p>
+      <p>
+        Concierge is a tool to <em>support</em> property operations. It does not replace legal,
+        accounting, security, or emergency response professionals. If your building is in an active
+        emergency, contact emergency services.
+      </p>
 
-        {/* 9. Termination */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">9. Termination</h2>
-          <ul className="mt-3 list-disc space-y-2 pl-6">
-            <li>
-              Either party may terminate the subscription with 30 days written notice to the other
-              party.
-            </li>
-            <li>
-              Upon termination, your data will be available for export for 90 days in standard
-              formats (CSV, JSON, PDF). After 90 days, data will be permanently deleted.
-            </li>
-            <li>
-              We may immediately suspend or terminate accounts that violate these Terms, including
-              accounts involved in unauthorized access, data exfiltration, or abusive behavior.
-            </li>
-            <li>
-              If we terminate your account without cause, you will receive a pro-rated refund for
-              any prepaid, unused subscription period.
-            </li>
-            <li>
-              Sections relating to Data Ownership, Limitation of Liability, and Governing Law
-              survive termination.
-            </li>
-          </ul>
-        </section>
+      <h2>10. Limitation of liability</h2>
+      <p>
+        To the maximum extent permitted by applicable law, Concierge&rsquo;s aggregate liability for
+        any claim arising out of or relating to the Service is limited to the fees you paid in the
+        12 months preceding the event giving rise to the claim.
+      </p>
+      <p>
+        We are not liable for indirect, consequential, special, or punitive damages, including lost
+        profits or lost data, except where such liability cannot be excluded under applicable law.
+      </p>
 
-        {/* 10. Limitation of Liability */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">10. Limitation of Liability</h2>
-          <p className="mt-3">
-            To the maximum extent permitted by applicable law, Concierge shall not be liable for any
-            indirect, incidental, special, consequential, or punitive damages, including but not
-            limited to:
-          </p>
-          <ul className="mt-3 list-disc space-y-2 pl-6">
-            <li>Loss of profits, revenue, or business opportunities</li>
-            <li>
-              Loss of data (beyond our obligation to maintain backups as described in this
-              agreement)
-            </li>
-            <li>Cost of procurement of substitute services</li>
-            <li>
-              Any damages arising from unauthorized access to your account due to compromised
-              credentials
-            </li>
-          </ul>
-          <p className="mt-3">
-            Our total aggregate liability for any claims arising from or related to the Service
-            shall not exceed the total amount you paid for the Service in the 12 months immediately
-            preceding the event giving rise to the claim.
-          </p>
-          <p className="mt-3">
-            This limitation of liability applies regardless of the legal theory (contract, tort,
-            negligence, strict liability, or otherwise) and even if we have been advised of the
-            possibility of such damages.
-          </p>
-        </section>
+      <h2>11. Indemnification</h2>
+      <p>
+        You agree to defend, indemnify, and hold harmless Concierge and its officers, directors,
+        employees, and agents from any claim arising out of your use of the Service in violation of
+        these Terms or applicable law.
+      </p>
 
-        {/* 11. Indemnification */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">11. Indemnification</h2>
-          <p className="mt-3">
-            You agree to indemnify and hold harmless Concierge, its officers, directors, employees,
-            and agents from any claims, losses, damages, liabilities, and expenses (including
-            reasonable legal fees) arising from your use of the Service, violation of these Terms,
-            or infringement of any third-party rights.
-          </p>
-        </section>
+      <h2>12. Termination</h2>
+      <ul>
+        <li>You may cancel your subscription at any time via your account or by contacting us</li>
+        <li>
+          We may suspend or terminate accounts for material violation of these Terms with 14
+          days&rsquo; written notice (or immediately for serious security violations)
+        </li>
+        <li>
+          On termination, you have 30 days to export your Customer Data; after 30 days, we may
+          delete it
+        </li>
+        <li>
+          Sections of these Terms that by their nature should survive (IP, indemnification,
+          limitations) survive termination
+        </li>
+      </ul>
 
-        {/* 12. Dispute Resolution */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">12. Dispute Resolution</h2>
-          <p className="mt-3">
-            Before initiating formal legal proceedings, both parties agree to attempt to resolve
-            disputes through good-faith negotiation for a period of 30 days. If negotiation fails,
-            disputes may be submitted to binding arbitration in Toronto, Ontario, under the rules of
-            the ADR Institute of Canada.
-          </p>
-        </section>
+      <h2>13. Governing law</h2>
+      <p>
+        These Terms are governed by the laws of the Province of Ontario, Canada, without regard to
+        conflict-of-law principles. Disputes will be resolved in the courts of Toronto, Ontario.
+      </p>
 
-        {/* 13. Modifications to Terms */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">13. Modifications to Terms</h2>
-          <p className="mt-3">
-            We may update these Terms from time to time. Material changes will be communicated to
-            Property Administrators via email and in-platform notification at least 30 days before
-            they take effect. Continued use of the Service after the effective date constitutes
-            acceptance of the updated Terms.
-          </p>
-        </section>
+      <h2>14. Changes to these terms</h2>
+      <p>
+        We may modify these Terms from time to time. Material changes will be notified by email and
+        an in-app notice at least 30 days before they take effect. Continued use of the Service
+        after the change constitutes acceptance.
+      </p>
 
-        {/* 14. Governing Law */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">14. Governing Law</h2>
-          <p className="mt-3">
-            These Terms are governed by and construed in accordance with the laws of the Province of
-            Ontario and the federal laws of Canada applicable therein, without regard to conflict of
-            law principles. Any disputes arising from these Terms that are not resolved through
-            arbitration shall be submitted to the exclusive jurisdiction of the courts located in
-            Toronto, Ontario, Canada.
-          </p>
-        </section>
-
-        {/* 15. Severability */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">15. Severability</h2>
-          <p className="mt-3">
-            If any provision of these Terms is found to be unenforceable or invalid by a court of
-            competent jurisdiction, that provision shall be limited or eliminated to the minimum
-            extent necessary, and the remaining provisions shall remain in full force and effect.
-          </p>
-        </section>
-
-        {/* 16. Entire Agreement */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">16. Entire Agreement</h2>
-          <p className="mt-3">
-            These Terms, together with our Privacy Policy and any applicable Enterprise agreement,
-            constitute the entire agreement between you and Concierge regarding the use of the
-            Service and supersede all prior agreements and understandings.
-          </p>
-        </section>
-
-        {/* 17. Contact */}
-        <section className="mb-10">
-          <h2 className="text-[20px] font-bold text-neutral-900">17. Contact</h2>
-          <p className="mt-3">
-            For questions about these Terms, contact us at{' '}
-            <a href="mailto:legal@concierge.com" className="font-medium text-neutral-900 underline">
-              legal@concierge.com
-            </a>
-            .
-          </p>
-          <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-5">
-            <p className="font-semibold text-neutral-900">Concierge Legal</p>
-            <p className="mt-1 text-[14px] text-neutral-600">Toronto, Ontario, Canada</p>
-            <p className="mt-2 text-[14px]">
-              Email:{' '}
-              <a
-                href="mailto:legal@concierge.com"
-                className="font-medium text-neutral-900 underline"
-              >
-                legal@concierge.com
-              </a>
-            </p>
-          </div>
-        </section>
-      </div>
-
-      {/* Back to home */}
-      <div className="mt-8 border-t border-neutral-200 pt-8">
-        <Link
-          href={'/' as never}
-          className="text-[14px] font-medium text-neutral-500 underline underline-offset-4 transition-colors hover:text-neutral-700"
-        >
-          Back to home
-        </Link>
-      </div>
-    </div>
+      <h2>15. Contact</h2>
+      <p>
+        Questions about these Terms? Contact us at{' '}
+        <a href="mailto:legal@concierge.com">legal@concierge.com</a>.
+      </p>
+    </LegalShell>
   );
 }
