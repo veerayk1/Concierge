@@ -108,7 +108,7 @@ export function CreatePropertyDialog({
     watch,
     register,
     reset,
-    formState: { errors, isSubmitting, isDirty, isValid },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<CreatePropertyInput>({
     resolver: zodResolver(createPropertySchema),
     defaultValues: DEFAULT_VALUES,
@@ -443,11 +443,7 @@ export function CreatePropertyDialog({
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !isValid}
-                title={!isValid ? 'Fill in all required fields correctly' : undefined}
-              >
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
