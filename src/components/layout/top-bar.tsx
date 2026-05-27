@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Bell, ChevronRight, LogOut, Search, Settings, Shuffle, User } from 'lucide-react';
+import { useNotificationBadge } from '@/lib/hooks/use-notification-badge';
 import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
 import {
@@ -54,6 +55,14 @@ export function TopBar({
   className,
 }: TopBarProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
+  // The prop is kept for backwards compat (demo showcase mode passes 3),
+  // but in real-auth mode we now ground the badge in real data: count
+  // of failed outbound deliveries in the last 24h, via UX-282's
+  // NotificationDelivery table. Showing a real number on the bell is
+  // the difference between "decorative chrome" and "live signal".
+  const badge = useNotificationBadge();
+  const effectiveCount = badge.count > 0 ? badge.count : notificationCount;
+  const badgeHref = badge.href;
 
   useEffect(() => {
     function handleKeyDown(e: globalThis.KeyboardEvent) {
@@ -139,21 +148,24 @@ export function TopBar({
 
       {/* Right: Notifications + User Menu */}
       <div className="flex items-center gap-1">
-        {/* Notification Bell */}
-        <button
-          type="button"
+        {/* Notification Bell — links to /notifications filtered to failed
+            deliveries so a non-zero badge has somewhere actionable to land. */}
+        <Link
+          href={badgeHref as never}
           className="relative rounded-xl p-2.5 text-neutral-400 transition-all duration-200 hover:bg-neutral-50 hover:text-neutral-600"
           aria-label={
-            notificationCount > 0 ? `${notificationCount} unread notifications` : 'Notifications'
+            effectiveCount > 0
+              ? `${effectiveCount} failed notification deliveries — click to view`
+              : 'Notifications'
           }
         >
           <Bell className="h-[18px] w-[18px]" />
-          {notificationCount > 0 && (
+          {effectiveCount > 0 && (
             <span className="bg-error-500 absolute top-1.5 right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white">
-              {notificationCount > 99 ? '99+' : notificationCount}
+              {effectiveCount > 99 ? '99+' : effectiveCount}
             </span>
           )}
-        </button>
+        </Link>
 
         {/* User Avatar Dropdown */}
         <DropdownMenu>
