@@ -186,10 +186,35 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
       // Auto-create incident report (security alert) for lost keys —
       // guaranteed to fire exactly once because the CAS above won the race.
+      // Resolve the IncidentType id: prefer a property-scoped "lost_key" or
+      // "security" type, fall back to a system default (propertyId IS NULL),
+      // and as a last resort create a property-scoped "Lost Key" type so a
+      // freshly-onboarded property doesn't crash here on a foreign-key
+      // violation (previous code hardcoded a UUID that may not exist).
+      let lostKeyType = await prisma.incidentType.findFirst({
+        where: {
+          OR: [{ propertyId: key.propertyId }, { propertyId: null }],
+          slug: { in: ['lost_key', 'security', 'key_lost'] },
+        },
+        orderBy: { propertyId: 'desc' }, // prefer property-scoped over system default
+        select: { id: true },
+      });
+      if (!lostKeyType) {
+        lostKeyType = await prisma.incidentType.create({
+          data: {
+            propertyId: key.propertyId,
+            name: 'Lost Key',
+            slug: 'lost_key',
+            defaultPriority: 'high',
+          },
+          select: { id: true },
+        });
+      }
+
       await prisma.incidentReport.create({
         data: {
           propertyId: key.propertyId,
-          incidentTypeId: '00000000-0000-4000-b000-000000000000', // system default "lost_key" type
+          incidentTypeId: lostKeyType.id,
           title: `Lost Key: ${key.keyName}`,
           reportBody: `Key "${key.keyName}" (category: ${key.category}) has been reported as lost. ${input.reportedBy ? `Reported by: ${input.reportedBy}.` : ''} Immediate review recommended.`,
           timeOccurred: new Date(),
