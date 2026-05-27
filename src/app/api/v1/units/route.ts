@@ -33,7 +33,24 @@ const createUnitSchema = z.object({
 export async function GET(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request);
+    // Staff-only: the units list exposes building/floor/unit numbers
+    // alongside primary resident names and emails. Residents see only
+    // their own unit through their dashboard / occupancy data, not a
+    // building-wide directory. Several create-* dialogs need this list
+    // (Add Resident, Log Package, etc.) — those are staff workflows.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'maintenance_staff',
+        'superintendent',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

@@ -141,7 +141,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
   try {
-    const auth = await guardRoute(request);
+    // Staff-only POST: residents would otherwise be able to inject
+    // fake handoff notes into the security audit feed.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();

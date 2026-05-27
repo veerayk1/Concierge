@@ -9,7 +9,20 @@ import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Staff-only: the resident directory exposes every neighbor's full
+    // name, email, phone, unit, and accessibility flags (assistance
+    // required, mobility notes). Residents do not get a peer directory
+    // through this endpoint.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

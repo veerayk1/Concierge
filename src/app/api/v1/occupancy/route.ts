@@ -28,7 +28,19 @@ export async function GET(request: NextRequest) {
   if (demoRes) return demoRes;
 
   try {
-    const auth = await guardRoute(request);
+    // Staff-only: occupancy maps every unit to its current residents
+    // (move-in date, primary flag, accessibility flags). Residents
+    // should not be able to enumerate who lives where.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

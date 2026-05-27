@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 const createVehicleSchema = z.object({
   propertyId: z.string().uuid(),
@@ -23,15 +23,38 @@ const createVehicleSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Staff-only: vehicle registrations (plate, make, model, owner unit)
+    // are security data. Residents see their own vehicles through the
+    // resident-onboarding profile, not this endpoint. Plus this route
+    // previously had no cross-tenant guard, so a resident at property A
+    // could read property B's full vehicle list by passing its propertyId.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'security_guard',
+        'security_supervisor',
+        'front_desk',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const unitId = new URL(request.url).searchParams.get('unitId');
     const propertyId = new URL(request.url).searchParams.get('propertyId');
 
-    const where: Record<string, unknown> = { deletedAt: null };
+    if (!propertyId) {
+      return NextResponse.json(
+        { error: 'MISSING_PROPERTY', message: 'propertyId is required' },
+        { status: 400 },
+      );
+    }
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
+
+    const where: Record<string, unknown> = { deletedAt: null, propertyId };
     if (unitId) where.unitId = unitId;
-    if (propertyId) where.propertyId = propertyId;
 
     const vehicles = await prisma.vehicle.findMany({
       where,
@@ -51,6 +74,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Residents legitimately register their own vehicles via the
+    // resident onboarding flow, so this endpoint stays open to all
+    // authenticated users — but the propertyId in the body must match
+    // the caller's tenant, otherwise a resident at property A could
+    // POST a vehicle registration into property B.
     const auth = await guardRoute(request);
     if (auth.error) return auth.error;
 
@@ -65,6 +93,8 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
 
     const vehicle = await prisma.vehicle.create({
       data: {

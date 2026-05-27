@@ -28,7 +28,20 @@ const updateShiftEntrySchema = z.object({
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // Staff-only: shift logs are internal handoff notes — patrol routes,
+    // incident references, security observations. Residents must not
+    // read, modify, or delete them.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -73,7 +86,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // Staff-only: shift logs are internal handoff notes — patrol routes,
+    // incident references, security observations. Residents must not
+    // read, modify, or delete them.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -138,7 +164,20 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = await guardRoute(request);
+    // Staff-only: shift logs are internal handoff notes — patrol routes,
+    // incident references, security observations. Residents must not
+    // read, modify, or delete them.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_supervisor',
+        'security_guard',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
