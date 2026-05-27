@@ -15,7 +15,24 @@ export async function GET(request: NextRequest) {
   // Skip demo handler — uses the real database for consistent GET/POST
 
   try {
-    const auth = await guardRoute(request);
+    // Staff-only: residents see only their own requests via
+    // /api/v1/resident/maintenance. This admin endpoint returns every
+    // maintenance request for the property — descriptions, unit numbers,
+    // entry instructions — so it must reject residents and visitors
+    // outright rather than letting enforcePropertyAccess pass on a same-
+    // tenant request from a non-staff user.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'maintenance_staff',
+        'superintendent',
+        'front_desk',
+        'security_supervisor',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const moduleCheck = await requireModule(request, 'maintenance');
