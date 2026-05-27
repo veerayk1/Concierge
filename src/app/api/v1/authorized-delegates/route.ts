@@ -6,7 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import type { AuthenticatedUser } from '@/server/middleware/api-guard';
 
 const createDelegateSchema = z.object({
   unitId: z.string().uuid(),
@@ -16,6 +17,58 @@ const createDelegateSchema = z.object({
   validFrom: z.string().optional(),
   validUntil: z.string().optional(),
 });
+
+const STAFF_ROLES = new Set([
+  'super_admin',
+  'property_admin',
+  'property_manager',
+  'front_desk',
+  'security_supervisor',
+  'security_guard',
+  'superintendent',
+  'board_member',
+]);
+
+/**
+ * Resolve the unit, confirm it belongs to the caller's tenant, and
+ * confirm the caller has any business touching this unit's delegates.
+ * Returns a NextResponse to short-circuit if the access is denied.
+ */
+async function checkUnitAccess(
+  user: AuthenticatedUser,
+  unitId: string,
+): Promise<NextResponse | null> {
+  const unit = await prisma.unit.findFirst({
+    where: { id: unitId, deletedAt: null },
+    select: { id: true, propertyId: true },
+  });
+  if (!unit) {
+    return NextResponse.json({ error: 'NOT_FOUND', message: 'Unit not found' }, { status: 404 });
+  }
+  const tenancy = enforcePropertyAccess(user, unit.propertyId);
+  if (tenancy) return tenancy;
+
+  if (STAFF_ROLES.has(user.role)) return null;
+
+  // Non-staff caller — must be an active occupant of THIS unit. Without
+  // this check a resident at unit A could read or write the delegate
+  // list for unit B at the same property.
+  const occupant = await prisma.occupancyRecord.findFirst({
+    where: { unitId, userId: user.userId, moveOutDate: null },
+    select: { id: true },
+  });
+  if (!occupant) {
+    return NextResponse.json(
+      {
+        error: 'FORBIDDEN',
+        message: 'You can only manage delegates for a unit you occupy.',
+        code: 'NOT_OCCUPANT',
+      },
+      { status: 403 },
+    );
+  }
+  return null;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,6 +83,9 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    const denied = await checkUnitAccess(auth.user, unitId);
+    if (denied) return denied;
 
     const delegates = await prisma.authorizedDelegate.findMany({
       where: { unitId, isActive: true },
@@ -62,6 +118,9 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+
+    const denied = await checkUnitAccess(auth.user, input.unitId);
+    if (denied) return denied;
 
     const delegate = await prisma.authorizedDelegate.create({
       data: {

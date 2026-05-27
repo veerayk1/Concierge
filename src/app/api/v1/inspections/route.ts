@@ -106,7 +106,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Staff-only: inspections are a maintenance/operations workflow.
+    // Residents have no business creating inspection records — even with
+    // the inline cross-tenant guard in place, the open gate let a
+    // resident probe for validation errors and accidentally pollute
+    // the audit trail on a misconfigured property.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'maintenance_staff',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();
