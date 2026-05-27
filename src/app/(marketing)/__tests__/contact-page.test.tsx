@@ -74,11 +74,13 @@ describe('Contact Page', () => {
 
     await user.type(screen.getByLabelText(/name/i), 'John Doe');
     await user.type(screen.getByLabelText(/email/i), 'john@example.com');
-    // Subject is required by the form — select a valid option
-    await user.selectOptions(screen.getByLabelText(/subject/i), 'general');
+    // Subject is required by the form — select a valid option.
+    // The new dark form labels this "What can we help with?" instead of "Subject".
+    await user.selectOptions(screen.getByLabelText(/help with|subject/i), 'general');
     await user.type(screen.getByLabelText(/message/i), 'Hello, I have a question about Concierge.');
     await user.click(screen.getByRole('button', { name: /send message/i }));
 
-    expect(screen.getByText(/thank you/i)).toBeInTheDocument();
+    // New success copy: "We got it. We will be in touch."
+    expect(screen.getByText(/we got it|thank you|in touch/i)).toBeInTheDocument();
   });
 });

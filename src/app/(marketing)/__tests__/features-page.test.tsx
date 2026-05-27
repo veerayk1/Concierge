@@ -30,14 +30,18 @@ describe('Features Page', () => {
   it('mentions every major module on the page', () => {
     render(<FeaturesPage />);
 
-    // We match against the *module-titles* (the new SEO-rich h3s),
-    // since module names mid-paragraph can be re-worded freely.
-    expect(screen.getByText(/package management software/i)).toBeInTheDocument();
-    expect(screen.getByText(/visitor management system/i)).toBeInTheDocument();
-    expect(screen.getByText(/maintenance request software/i)).toBeInTheDocument();
-    expect(screen.getByText(/amenity booking software/i)).toBeInTheDocument();
-    expect(screen.getByText(/security command center/i)).toBeInTheDocument();
-    expect(screen.getByText(/board governance software/i)).toBeInTheDocument();
+    // We match against module-title keywords. getAllByText because the same
+    // SEO phrase often shows up in both the module h3 and the FAQ block.
+    for (const re of [
+      /package management software/i,
+      /visitor management system/i,
+      /maintenance request software/i,
+      /amenity booking software/i,
+      /security command center/i,
+      /board governance software/i,
+    ]) {
+      expect(screen.getAllByText(re).length).toBeGreaterThan(0);
+    }
   });
 
   it('has FAQ section for SEO rich results', () => {

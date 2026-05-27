@@ -17,76 +17,40 @@ function isValidEmail(email: string): boolean {
 
 const SUBJECTS = [
   { value: '', label: 'Select a subject' },
-  { value: 'general', label: 'General Inquiry' },
-  { value: 'sales', label: 'Sales & Demo' },
-  { value: 'support', label: 'Technical Support' },
-  { value: 'security', label: 'Security & Privacy' },
+  { value: 'sales', label: 'Book a demo (recommended)' },
+  { value: 'general', label: 'General inquiry' },
+  { value: 'support', label: 'Technical support' },
+  { value: 'security', label: 'Security & privacy' },
+  { value: 'partnership', label: 'Partnership or integration' },
 ] as const;
 
-const CONTACT_INFO = [
+const CONTACT_LINKS = [
   {
     label: 'Email',
     value: 'hello@concierge.com',
     href: 'mailto:hello@concierge.com',
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden="true"
-      >
-        <rect x="2" y="4" width="20" height="16" rx="2" />
-        <path d="M22 4l-10 8L2 4" />
-      </svg>
-    ),
   },
-  {
-    label: 'Phone',
-    value: 'Coming soon',
-    href: null,
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden="true"
-      >
-        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Address',
-    value: 'Toronto, Ontario, Canada',
-    href: null,
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden="true"
-      >
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-        <circle cx="12" cy="10" r="3" />
-      </svg>
-    ),
-  },
-] as const;
+  { label: 'Address', value: 'Toronto, Ontario, Canada', href: null },
+  { label: 'Hours', value: 'Mon–Fri · 9:00 AM – 6:00 PM ET', href: null },
+];
 
-const OFFICE_HOURS = [
-  { day: 'Monday - Friday', hours: '9:00 AM - 6:00 PM ET' },
-  { day: 'Saturday', hours: '10:00 AM - 2:00 PM ET' },
-  { day: 'Sunday', hours: 'Closed' },
-] as const;
+const REASONS = [
+  {
+    eyebrow: 'For property managers',
+    title: 'See your building on the platform.',
+    body: 'Book a 15-minute personalized walk-through. We will map your current tools to the modules that replace them — package tracking, visitor management, maintenance requests, amenity booking, security console.',
+  },
+  {
+    eyebrow: 'For condo & HOA boards',
+    title: 'Sit in on a board snapshot.',
+    body: 'See the board view — meetings, motions, resolutions, vendor compliance, financials at a glance. Built for volunteer boards who prep on Sunday nights.',
+  },
+  {
+    eyebrow: 'For residents & owners',
+    title: 'Your building uses something else?',
+    body: 'Forward this page to your property manager or board. We will follow up directly — no pressure, just a demo and a quote.',
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Page
@@ -107,20 +71,11 @@ export default function ContactPage() {
 
     const newErrors: Record<string, string> = {};
 
-    if (!name.trim()) {
-      newErrors.name = 'Name is required';
-    }
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!isValidEmail(email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-    if (!subject) {
-      newErrors.subject = 'Please select a subject';
-    }
-    if (!message.trim()) {
-      newErrors.message = 'Message is required';
-    }
+    if (!name.trim()) newErrors.name = 'Name is required';
+    if (!email.trim()) newErrors.email = 'Email is required';
+    else if (!isValidEmail(email)) newErrors.email = 'Please enter a valid email address';
+    if (!subject) newErrors.subject = 'Please select a subject';
+    if (!message.trim()) newErrors.message = 'Message is required';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -159,231 +114,545 @@ export default function ContactPage() {
 
   if (submitted) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-20 text-center md:py-28">
-        <div className="rounded-xl border border-neutral-200 bg-white p-8">
-          <svg
-            width="48"
-            height="48"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            className="mx-auto text-neutral-900"
-            aria-hidden="true"
+      <section
+        style={{
+          position: 'relative',
+          background: '#0A0A0A',
+          color: '#fff',
+          minHeight: '100vh',
+          marginTop: -72,
+          paddingTop: 'calc(72px + 8rem)',
+          paddingBottom: '8rem',
+          overflow: 'hidden',
+          textAlign: 'center',
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 900px 600px at 50% 30%, rgba(91,212,147,0.16), transparent 65%)',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div
+          style={{
+            position: 'relative',
+            maxWidth: 640,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+          }}
+        >
+          <div
+            style={{
+              width: 72,
+              height: 72,
+              margin: '0 auto 2rem',
+              borderRadius: '50%',
+              background: 'rgba(91,212,147,0.12)',
+              border: '1px solid rgba(91,212,147,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 0 12px rgba(91,212,147,0.06)',
+            }}
           >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          <h2 className="mt-4 text-[24px] font-bold text-neutral-900">Thank you!</h2>
-          <p className="mt-2 text-[16px] text-neutral-600">
-            We have received your message and will get back to you within one business day.
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#5BD493"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <h1
+            style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              fontWeight: 600,
+              lineHeight: 1.1,
+              letterSpacing: '-0.02em',
+              margin: 0,
+            }}
+          >
+            We got it. We will be in touch.
+          </h1>
+          <p
+            style={{
+              fontSize: '1.0625rem',
+              lineHeight: 1.65,
+              color: 'rgba(255,255,255,0.65)',
+              margin: '1.25rem auto 2.5rem',
+              maxWidth: 520,
+            }}
+          >
+            A real person on the team will reply within one business day. If your building is
+            mid-emergency, email{' '}
+            <a
+              href="mailto:urgent@concierge.com"
+              style={{ color: '#C9A96E', textDecoration: 'underline' }}
+            >
+              urgent@concierge.com
+            </a>{' '}
+            and someone will pick up faster.
           </p>
-          <Link
-            href={'/' as never}
-            className="mt-6 inline-flex h-10 items-center justify-center rounded-xl bg-neutral-900 px-5 text-[14px] font-medium text-white transition-colors hover:bg-neutral-800"
-          >
-            Back to Home
+          <Link href={'/' as never} className="btn-primary">
+            Back to homepage
           </Link>
         </div>
-      </div>
+      </section>
     );
   }
 
   return (
-    <div>
-      {/* Hero */}
-      <section className="mx-auto max-w-7xl px-6 pt-20 pb-8 text-center md:pt-28">
-        <h1 className="text-[32px] leading-tight font-bold tracking-tight text-neutral-900 md:text-[48px]">
-          Contact Us
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-[18px] leading-relaxed text-neutral-600">
-          Have a question, want a demo, or ready to get started? We would love to hear from you.
-        </p>
-      </section>
-
-      {/* Form + Sidebar */}
-      <section className="mx-auto max-w-5xl px-6 pt-8 pb-20 md:pb-28">
-        <div className="grid gap-12 md:grid-cols-3">
-          {/* Contact Form */}
-          <div className="md:col-span-2">
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-              {/* Name */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="contact-name" className="text-[14px] font-medium text-neutral-700">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="contact-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-none"
-                  placeholder="Your name"
-                />
-                {errors.name && (
-                  <p className="text-[13px] font-medium text-red-600" role="alert">
-                    {errors.name}
-                  </p>
-                )}
-              </div>
-
-              {/* Email */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="contact-email" className="text-[14px] font-medium text-neutral-700">
-                  Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="contact-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-[44px] w-full rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-none"
-                  placeholder="you@company.com"
-                />
-                {errors.email && (
-                  <p className="text-[13px] font-medium text-red-600" role="alert">
-                    {errors.email}
-                  </p>
-                )}
-              </div>
-
-              {/* Subject */}
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="contact-subject"
-                  className="text-[14px] font-medium text-neutral-700"
-                >
-                  Subject <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="contact-subject"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="h-[44px] w-full appearance-none rounded-xl border border-neutral-200 bg-white px-4 text-[15px] text-neutral-900 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-none"
-                >
-                  {SUBJECTS.map((s) => (
-                    <option key={s.value} value={s.value} disabled={s.value === ''}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.subject && (
-                  <p className="text-[13px] font-medium text-red-600" role="alert">
-                    {errors.subject}
-                  </p>
-                )}
-              </div>
-
-              {/* Message */}
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="contact-message"
-                  className="text-[14px] font-medium text-neutral-700"
-                >
-                  Message <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  id="contact-message"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  rows={6}
-                  className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-none"
-                  placeholder="Tell us about your property and what you are looking for..."
-                />
-                {errors.message && (
-                  <p className="text-[13px] font-medium text-red-600" role="alert">
-                    {errors.message}
-                  </p>
-                )}
-              </div>
-
-              {/* API error */}
-              {apiError && (
-                <p
-                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[14px] text-red-700"
-                  role="alert"
-                >
-                  {apiError}
-                </p>
-              )}
-
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={submitting}
-                className="mt-2 inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {submitting ? 'Sending...' : 'Send Message'}
-              </button>
-            </form>
+    <>
+      {/* ============================ HERO ============================ */}
+      <section
+        style={{
+          position: 'relative',
+          background: '#0A0A0A',
+          color: '#fff',
+          marginTop: -72,
+          paddingTop: 'calc(72px + 5rem)',
+          paddingBottom: '3rem',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 900px 600px at 50% 20%, rgba(201,169,110,0.18), transparent 65%)',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
+            backgroundSize: '64px 64px',
+            maskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 85%)',
+            WebkitMaskImage:
+              'radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 85%)',
+          }}
+        />
+        <div
+          style={{
+            position: 'relative',
+            maxWidth: 1080,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              borderRadius: 999,
+              background: 'rgba(201,169,110,0.08)',
+              border: '1px solid rgba(201,169,110,0.18)',
+              fontSize: '0.8125rem',
+              color: 'rgba(212,186,133,0.9)',
+              marginBottom: '2rem',
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#5BD493',
+                boxShadow: '0 0 0 4px rgba(91,212,147,0.18)',
+              }}
+            />
+            Replying within one business day · No pressure, no sales floor
           </div>
-
-          {/* Sidebar */}
-          <div className="md:col-span-1">
-            {/* Contact Info */}
-            <div className="rounded-xl border border-neutral-200 bg-white p-6">
-              <h3 className="text-[16px] font-semibold text-neutral-900">Contact Information</h3>
-              <div className="mt-5 flex flex-col gap-5">
-                {CONTACT_INFO.map((item) => (
-                  <div key={item.label} className="flex items-start gap-3">
-                    <div className="mt-0.5 shrink-0 text-neutral-400">{item.icon}</div>
-                    <div>
-                      <p className="text-[13px] font-medium text-neutral-400">{item.label}</p>
-                      {item.href ? (
-                        <a
-                          href={item.href}
-                          className="text-[14px] font-medium text-neutral-900 underline underline-offset-2 transition-colors hover:text-neutral-700"
-                        >
-                          {item.value}
-                        </a>
-                      ) : (
-                        <p className="text-[14px] text-neutral-700">{item.value}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Office Hours */}
-            <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-6">
-              <h3 className="text-[16px] font-semibold text-neutral-900">Office Hours</h3>
-              <div className="mt-4 flex flex-col gap-3">
-                {OFFICE_HOURS.map((item) => (
-                  <div key={item.day} className="flex items-center justify-between">
-                    <p className="text-[14px] text-neutral-600">{item.day}</p>
-                    <p className="text-[14px] font-medium text-neutral-900">{item.hours}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick links */}
-            <div className="mt-6 rounded-xl border border-neutral-200 bg-neutral-50 p-6">
-              <h3 className="text-[16px] font-semibold text-neutral-900">Quick Links</h3>
-              <div className="mt-3 flex flex-col gap-2">
-                <Link
-                  href={'/demo' as never}
-                  className="text-[14px] font-medium text-neutral-600 underline underline-offset-2 transition-colors hover:text-neutral-900"
-                >
-                  Request a Demo
-                </Link>
-                <Link
-                  href={'/for-teams' as never}
-                  className="text-[14px] font-medium text-neutral-600 underline underline-offset-2 transition-colors hover:text-neutral-900"
-                >
-                  See it by role
-                </Link>
-                <Link
-                  href={'/security-privacy' as never}
-                  className="text-[14px] font-medium text-neutral-600 underline underline-offset-2 transition-colors hover:text-neutral-900"
-                >
-                  Security & Privacy
-                </Link>
-              </div>
-            </div>
-          </div>
+          <h1
+            style={{
+              fontSize: 'clamp(2.5rem, 5.5vw, 4.25rem)',
+              lineHeight: 1.05,
+              fontWeight: 600,
+              letterSpacing: '-0.03em',
+              margin: 0,
+            }}
+          >
+            Let&rsquo;s see your building{' '}
+            <span style={{ color: '#C9A96E', fontStyle: 'italic', fontWeight: 400 }}>
+              on the platform.
+            </span>
+          </h1>
+          <p
+            style={{
+              fontSize: 'clamp(1rem, 1.5vw, 1.1875rem)',
+              lineHeight: 1.6,
+              color: 'rgba(255,255,255,0.65)',
+              maxWidth: 660,
+              margin: '1.5rem auto 0',
+            }}
+          >
+            Book a personalized demo, ask a question, or pilot the platform at your property.
+            Whatever it is, a real person on the team replies — usually within a few hours.
+          </p>
         </div>
       </section>
-    </div>
+
+      {/* ============================ FORM + DETAILS ============================ */}
+      <section
+        style={{
+          background: '#0E0E0E',
+          color: '#fff',
+          padding: '5rem 0 6rem',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)',
+            gap: '3rem',
+          }}
+          className="mkt-contact-grid"
+        >
+          {/* Form */}
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            style={{
+              padding: '2.5rem',
+              borderRadius: 24,
+              background: 'rgba(255,255,255,0.025)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 20px 60px -20px rgba(0,0,0,0.4)',
+            }}
+          >
+            <p
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: 'rgba(201,169,110,0.85)',
+                margin: 0,
+              }}
+            >
+              Send us a message
+            </p>
+            <h2
+              style={{
+                fontSize: '1.625rem',
+                fontWeight: 600,
+                color: '#fff',
+                margin: '0.5rem 0 2rem',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              Tell us about your building.
+            </h2>
+
+            {apiError && (
+              <div
+                role="alert"
+                style={{
+                  padding: '0.875rem 1rem',
+                  borderRadius: 12,
+                  background: 'rgba(244,123,123,0.08)',
+                  border: '1px solid rgba(244,123,123,0.25)',
+                  color: '#FCA5A5',
+                  fontSize: '0.875rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                {apiError}
+              </div>
+            )}
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '1rem',
+                marginBottom: '1rem',
+              }}
+              className="mkt-form-row"
+            >
+              <Field
+                label="Name"
+                error={errors.name}
+                input={
+                  <input
+                    type="text"
+                    autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Sarah Bennett"
+                    style={inputStyle(!!errors.name)}
+                  />
+                }
+              />
+              <Field
+                label="Email"
+                error={errors.email}
+                input={
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@property.com"
+                    style={inputStyle(!!errors.email)}
+                  />
+                }
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <Field
+                label="What can we help with?"
+                error={errors.subject}
+                input={
+                  <select
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    style={inputStyle(!!errors.subject)}
+                  >
+                    {SUBJECTS.map((s) => (
+                      <option key={s.value} value={s.value} disabled={!s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                }
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.75rem' }}>
+              <Field
+                label="Message"
+                error={errors.message}
+                input={
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Tell us about your property — how many units, what you use today, what you're hoping to improve."
+                    rows={6}
+                    style={{ ...inputStyle(!!errors.message), resize: 'vertical' }}
+                  />
+                }
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-primary"
+              style={{
+                width: '100%',
+                opacity: submitting ? 0.7 : 1,
+                cursor: submitting ? 'wait' : 'pointer',
+              }}
+            >
+              {submitting ? 'Sending…' : 'Send message'}
+            </button>
+            <p
+              style={{
+                fontSize: '0.75rem',
+                color: 'rgba(255,255,255,0.4)',
+                margin: '1rem 0 0',
+                textAlign: 'center',
+              }}
+            >
+              By submitting you agree to our{' '}
+              <Link
+                href={'/privacy' as never}
+                style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'underline' }}
+              >
+                privacy policy
+              </Link>
+              . We will never share your information.
+            </p>
+          </form>
+
+          {/* Right column — direct contact + reasons */}
+          <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div
+              style={{
+                padding: '1.75rem',
+                borderRadius: 20,
+                background: 'rgba(255,255,255,0.025)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <p
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: 'rgba(201,169,110,0.85)',
+                  margin: 0,
+                }}
+              >
+                Or reach out direct
+              </p>
+              <dl style={{ margin: '1.25rem 0 0', display: 'grid', gap: '1rem' }}>
+                {CONTACT_LINKS.map((c) => (
+                  <div key={c.label}>
+                    <dt
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'rgba(255,255,255,0.4)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                      }}
+                    >
+                      {c.label}
+                    </dt>
+                    <dd
+                      style={{
+                        fontSize: '0.9375rem',
+                        color: '#fff',
+                        margin: '0.25rem 0 0',
+                      }}
+                    >
+                      {c.href ? (
+                        <a href={c.href} style={{ color: '#fff', textDecoration: 'none' }}>
+                          {c.value}
+                        </a>
+                      ) : (
+                        c.value
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            {REASONS.map((r) => (
+              <div
+                key={r.eyebrow}
+                style={{
+                  padding: '1.5rem',
+                  borderRadius: 16,
+                  background: 'rgba(255,255,255,0.025)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: '0.6875rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: 'rgba(201,169,110,0.85)',
+                    margin: 0,
+                  }}
+                >
+                  {r.eyebrow}
+                </p>
+                <h3
+                  style={{
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    color: '#fff',
+                    margin: '0.5rem 0 0.5rem',
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {r.title}
+                </h3>
+                <p
+                  style={{
+                    fontSize: '0.8125rem',
+                    color: 'rgba(255,255,255,0.55)',
+                    lineHeight: 1.6,
+                    margin: 0,
+                  }}
+                >
+                  {r.body}
+                </p>
+              </div>
+            ))}
+          </aside>
+        </div>
+      </section>
+
+      <style jsx>{`
+        @media (max-width: 880px) {
+          .mkt-contact-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .mkt-form-row {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Form helpers
+// ---------------------------------------------------------------------------
+
+function inputStyle(hasError: boolean): React.CSSProperties {
+  return {
+    width: '100%',
+    padding: '0.875rem 1rem',
+    borderRadius: 10,
+    background: 'rgba(255,255,255,0.04)',
+    border: `1px solid ${hasError ? 'rgba(244,123,123,0.4)' : 'rgba(255,255,255,0.1)'}`,
+    color: '#fff',
+    fontSize: '0.9375rem',
+    fontFamily: 'inherit',
+    outline: 'none',
+    transition: 'border-color 200ms ease, background 200ms ease',
+  };
+}
+
+function Field({ label, error, input }: { label: string; error?: string; input: React.ReactNode }) {
+  return (
+    <label style={{ display: 'block' }}>
+      <span
+        style={{
+          fontSize: '0.8125rem',
+          color: 'rgba(255,255,255,0.7)',
+          display: 'block',
+          marginBottom: '0.5rem',
+          fontWeight: 500,
+        }}
+      >
+        {label}
+      </span>
+      {input}
+      {error && (
+        <span
+          style={{
+            fontSize: '0.75rem',
+            color: '#FCA5A5',
+            display: 'block',
+            marginTop: '0.375rem',
+          }}
+        >
+          {error}
+        </span>
+      )}
+    </label>
   );
 }

@@ -2,17 +2,42 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 // ---------------------------------------------------------------------------
-// Metadata
+// SEO Metadata
 // ---------------------------------------------------------------------------
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+
+const SEO_TITLE =
+  'The Concierge Field Notes | Property Management, Building Operations & Resident Experience';
+const SEO_DESCRIPTION =
+  'Insights for property managers, condo boards, and concierge teams. Building operations playbooks, security best practices, resident experience tactics, and product changelogs from the Concierge team.';
+
 export const metadata: Metadata = {
-  title: 'Blog — Concierge',
-  description:
-    'Insights on property management, building security, resident satisfaction, and property technology from the Concierge team.',
+  title: SEO_TITLE,
+  description: SEO_DESCRIPTION,
+  keywords: [
+    'property management blog',
+    'condo management insights',
+    'building operations playbook',
+    'concierge team training',
+    'resident experience',
+    'HOA best practices',
+    'property technology blog',
+    'PropTech insights',
+    'multi-family operations',
+  ],
+  alternates: { canonical: `${BASE_URL}/blog` },
   openGraph: {
-    title: 'Blog — Concierge',
-    description: 'Insights on property management and building technology.',
+    title: SEO_TITLE,
+    description: SEO_DESCRIPTION,
     type: 'website',
+    url: `${BASE_URL}/blog`,
+    siteName: 'Concierge',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SEO_TITLE,
+    description: SEO_DESCRIPTION,
   },
 };
 
@@ -20,81 +45,110 @@ export const metadata: Metadata = {
 // Data
 // ---------------------------------------------------------------------------
 
-const CATEGORIES = [
-  { label: 'All', value: 'all' },
-  { label: 'Product Updates', value: 'Product Updates' },
-  { label: 'Industry Insights', value: 'Industry Insights' },
-  { label: 'Security', value: 'Security' },
-  { label: 'Tips & Tricks', value: 'Tips & Tricks' },
-] as const;
-
-const BLOG_POSTS = [
+const POSTS = [
   {
     slug: 'future-of-condo-management',
-    title: 'The Future of Condo Management',
+    title: 'The future of condo management software',
     excerpt:
-      'Legacy platforms built in the 2000s are showing their age. Fragmented tools, dated UIs, and missing features are costing property managers hours every week. Here is what the next generation of building management looks like.',
+      'Legacy platforms built in the 2000s are showing their age. Fragmented tools, dated UIs, and missing features cost property managers hours every week. Here is what the next generation of building management looks like.',
     date: '2026-03-15',
     readTime: '8 min read',
     category: 'Industry Insights',
+    featured: true,
+    accent: '#C9A96E',
   },
   {
     slug: 'introducing-role-aware-dashboards',
-    title: 'Introducing Role-Aware Dashboards',
+    title: 'Introducing role-aware dashboards',
     excerpt:
       'Every user role now gets a tailored dashboard. Concierge staff see packages and visitors. Security guards see incidents and FOB tracking. Property managers see maintenance and vendor compliance. No more information overload.',
     date: '2026-03-10',
     readTime: '5 min read',
     category: 'Product Updates',
+    accent: '#5BD493',
   },
   {
     slug: 'improve-resident-satisfaction',
-    title: '5 Ways to Improve Resident Satisfaction',
+    title: '5 ways to improve resident satisfaction in a high-rise',
     excerpt:
       'Resident satisfaction drives retention and property value. From self-service portals to multi-channel notifications, these five strategies reduce complaints and build community trust.',
     date: '2026-03-08',
     readTime: '6 min read',
     category: 'Tips & Tricks',
+    accent: '#62C7E5',
   },
   {
     slug: 'security-best-practices-multi-tenant',
-    title: 'Security Best Practices for Multi-Tenant Buildings',
+    title: 'Security best practices for multi-tenant buildings',
     excerpt:
       'Physical security and digital security go hand in hand. FOB management, incident logging, audit trails, and visitor tracking form the foundation of a secure building.',
     date: '2026-02-28',
     readTime: '10 min read',
     category: 'Security',
+    accent: '#F47B7B',
   },
   {
     slug: 'ai-transforming-property-management',
-    title: 'How AI is Transforming Property Management',
+    title: 'How AI is transforming property management',
     excerpt:
-      'From predictive maintenance to smart briefings, AI is changing how property teams operate. We explore practical applications that save time without replacing human judgment.',
+      'From predictive maintenance to AI-assisted shift briefings, artificial intelligence is changing how property teams operate. We explore practical applications that save time without replacing human judgment.',
     date: '2026-02-20',
     readTime: '7 min read',
     category: 'Industry Insights',
+    accent: '#B292FF',
   },
   {
     slug: 'pipeda-compliance-guide',
-    title: "A Property Manager's Guide to PIPEDA Compliance",
+    title: "A property manager's guide to PIPEDA compliance",
     excerpt:
-      'Canadian privacy law applies to every condo corporation handling resident data. This guide breaks down your obligations under PIPEDA, what data you can collect, and how to handle access requests.',
+      'Canadian privacy law applies to every condo corporation and rental property. Here is the practical guide to PIPEDA: what data you can collect, how long to retain it, and how to handle DSAR requests.',
     date: '2026-02-12',
-    readTime: '9 min read',
+    readTime: '11 min read',
     category: 'Security',
+    accent: '#7C9CFF',
   },
+  {
+    slug: 'amenity-booking-strategies',
+    title: 'Amenity booking strategies that actually work',
+    excerpt:
+      'BBQ pits booked every weekend by the same unit. Party room double-booked. Gym overcrowded at 6pm. We share approval workflows and conflict-detection patterns that keep amenity access fair and predictable.',
+    date: '2026-02-04',
+    readTime: '6 min read',
+    category: 'Tips & Tricks',
+    accent: '#E89B6F',
+  },
+  {
+    slug: 'package-management-holidays',
+    title: 'Package management software during the holidays',
+    excerpt:
+      'Black Friday through New Year is the busiest stretch of the year for any front desk. Bulk intake, perishable flags, and aging-shelf alerts make the difference between a calm lobby and a customer-service crisis.',
+    date: '2026-01-22',
+    readTime: '5 min read',
+    category: 'Tips & Tricks',
+    accent: '#A5D5A8',
+  },
+  {
+    slug: 'visitor-management-modern-condo',
+    title: 'Modern visitor management for condo buildings',
+    excerpt:
+      'Pre-authorized arrivals, photo capture, ID verification, parking pass linkage. Visitor management has evolved past the paper sign-in book — here is what the modern stack looks like.',
+    date: '2026-01-10',
+    readTime: '7 min read',
+    category: 'Industry Insights',
+    accent: '#C9A96E',
+  },
+];
+
+const CATEGORIES = [
+  { label: 'All', value: 'all', accent: '#C9A96E' },
+  { label: 'Industry Insights', value: 'Industry Insights', accent: '#C9A96E' },
+  { label: 'Product Updates', value: 'Product Updates', accent: '#5BD493' },
+  { label: 'Security', value: 'Security', accent: '#F47B7B' },
+  { label: 'Tips & Tricks', value: 'Tips & Tricks', accent: '#62C7E5' },
 ] as const;
 
-const CATEGORY_COLORS: Record<string, string> = {
-  'Product Updates': 'bg-blue-50 text-blue-700',
-  'Industry Insights': 'bg-green-50 text-green-700',
-  Security: 'bg-amber-50 text-amber-700',
-  'Tips & Tricks': 'bg-purple-50 text-purple-700',
-};
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString + 'T00:00:00');
-  return date.toLocaleDateString('en-CA', {
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -106,131 +160,426 @@ function formatDate(dateString: string): string {
 // ---------------------------------------------------------------------------
 
 export default function BlogPage() {
+  const featured = POSTS.find((p) => p.featured);
+  const rest = POSTS.filter((p) => !p.featured);
+
   return (
-    <div>
-      {/* Hero */}
-      <section className="mx-auto max-w-7xl px-6 pt-20 pb-12 text-center md:pt-28 md:pb-16">
-        <h1 className="text-[32px] leading-tight font-bold tracking-tight text-neutral-900 md:text-[48px]">
-          Blog
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-[18px] leading-relaxed text-neutral-600">
-          Insights on property management, building technology, and creating better experiences for
-          residents and staff.
-        </p>
+    <>
+      {/* ============================ HERO ============================ */}
+      <section
+        style={{
+          position: 'relative',
+          background: '#0A0A0A',
+          color: '#fff',
+          marginTop: -72,
+          paddingTop: 'calc(72px + 5rem)',
+          paddingBottom: '3rem',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 900px 600px at 50% 25%, rgba(201,169,110,0.16), transparent 65%)',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
+            backgroundSize: '64px 64px',
+            maskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 85%)',
+            WebkitMaskImage:
+              'radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 85%)',
+          }}
+        />
+        <div
+          style={{
+            position: 'relative',
+            maxWidth: 1080,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              borderRadius: 999,
+              background: 'rgba(201,169,110,0.08)',
+              border: '1px solid rgba(201,169,110,0.18)',
+              fontSize: '0.8125rem',
+              color: 'rgba(212,186,133,0.9)',
+              marginBottom: '2rem',
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#C9A96E',
+                boxShadow: '0 0 0 4px rgba(201,169,110,0.18)',
+              }}
+            />
+            Field notes for property teams · Updated monthly
+          </div>
+          <h1
+            style={{
+              fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
+              lineHeight: 1.05,
+              fontWeight: 600,
+              letterSpacing: '-0.03em',
+              margin: 0,
+            }}
+          >
+            Field notes from{' '}
+            <span style={{ color: '#C9A96E', fontStyle: 'italic', fontWeight: 400 }}>
+              the property floor.
+            </span>
+          </h1>
+          <p
+            style={{
+              fontSize: 'clamp(1rem, 1.5vw, 1.1875rem)',
+              lineHeight: 1.6,
+              color: 'rgba(255,255,255,0.65)',
+              maxWidth: 720,
+              margin: '1.5rem auto 0',
+            }}
+          >
+            Operational playbooks, product updates, security deep-dives, and the occasional rant.
+            Written for property managers, board directors, concierge teams, and the rest of us who
+            care about how buildings actually run.
+          </p>
+        </div>
       </section>
 
-      {/* Category filters */}
-      <section className="mx-auto max-w-7xl px-6 pb-8">
-        <div className="flex flex-wrap items-center gap-2">
-          {CATEGORIES.map((cat) => (
+      {/* ============================ CATEGORY STRIP ============================ */}
+      <section
+        style={{
+          background: '#0E0E0E',
+          color: '#fff',
+          padding: '2rem 0',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1280,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+            display: 'flex',
+            gap: '0.5rem',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+          }}
+        >
+          {CATEGORIES.map((c, idx) => (
             <span
-              key={cat.value}
-              className={`inline-flex cursor-default rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
-                cat.value === 'all'
-                  ? 'bg-neutral-900 text-white'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-              }`}
+              key={c.value}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: 999,
+                background: idx === 0 ? 'rgba(201,169,110,0.12)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${
+                  idx === 0 ? 'rgba(201,169,110,0.3)' : 'rgba(255,255,255,0.08)'
+                }`,
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: idx === 0 ? '#C9A96E' : 'rgba(255,255,255,0.75)',
+              }}
             >
-              {cat.label}
+              {c.label}
             </span>
           ))}
         </div>
       </section>
 
-      {/* Coming soon banner */}
-      <section className="mx-auto max-w-7xl px-6 pb-8">
-        <div className="rounded-xl border border-blue-100 bg-blue-50 px-5 py-4">
-          <div className="flex items-start gap-3">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="mt-0.5 shrink-0 text-blue-600"
-              aria-hidden="true"
+      {/* ============================ FEATURED POST ============================ */}
+      {featured && (
+        <section
+          style={{
+            background: '#0E0E0E',
+            color: '#fff',
+            padding: '3rem 0',
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 1280,
+              margin: '0 auto',
+              padding: '0 clamp(1.5rem, 4vw, 3rem)',
+            }}
+          >
+            <article
+              style={{
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: 24,
+                background:
+                  'linear-gradient(135deg, rgba(201,169,110,0.10), rgba(255,255,255,0.03))',
+                border: '1px solid rgba(201,169,110,0.2)',
+                padding: 'clamp(2rem, 5vw, 4rem)',
+              }}
             >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-            <div>
-              <p className="text-[14px] font-medium text-blue-900">Coming soon</p>
-              <p className="mt-0.5 text-[13px] text-blue-700">
-                Full blog articles are in development. Subscribe to our newsletter to get notified
-                when new posts are published.
-              </p>
-            </div>
+              <div
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  top: -120,
+                  right: -120,
+                  width: 360,
+                  height: 360,
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(201,169,110,0.18), transparent 70%)',
+                  filter: 'blur(40px)',
+                  pointerEvents: 'none',
+                }}
+              />
+              <div style={{ position: 'relative', maxWidth: 720 }}>
+                <p
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    color: '#C9A96E',
+                    margin: 0,
+                  }}
+                >
+                  Featured · {featured.category}
+                </p>
+                <h2
+                  style={{
+                    fontSize: 'clamp(1.875rem, 4vw, 2.875rem)',
+                    fontWeight: 600,
+                    lineHeight: 1.15,
+                    letterSpacing: '-0.02em',
+                    color: '#fff',
+                    margin: '0.75rem 0 1.25rem',
+                  }}
+                >
+                  {featured.title}
+                </h2>
+                <p
+                  style={{
+                    fontSize: '1.0625rem',
+                    lineHeight: 1.65,
+                    color: 'rgba(255,255,255,0.7)',
+                    margin: 0,
+                  }}
+                >
+                  {featured.excerpt}
+                </p>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    marginTop: '2rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <Link href={`/blog/${featured.slug}` as never} className="btn-primary">
+                    Read the article
+                  </Link>
+                  <span
+                    style={{
+                      fontSize: '0.8125rem',
+                      color: 'rgba(255,255,255,0.4)',
+                    }}
+                  >
+                    {formatDate(featured.date)} · {featured.readTime}
+                  </span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+      )}
+
+      {/* ============================ POST GRID ============================ */}
+      <section
+        style={{
+          background: '#0E0E0E',
+          color: '#fff',
+          padding: '3rem 0 6rem',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1280,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+          }}
+        >
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+              gap: '1.5rem',
+            }}
+          >
+            {rest.map((post) => (
+              <article
+                key={post.slug}
+                style={{
+                  position: 'relative',
+                  padding: '2rem',
+                  borderRadius: 20,
+                  background: 'rgba(255,255,255,0.025)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem',
+                }}
+              >
+                <div
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 2,
+                    background: `linear-gradient(90deg, ${post.accent}, transparent 80%)`,
+                  }}
+                />
+                <p
+                  style={{
+                    fontSize: '0.6875rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: post.accent,
+                    margin: 0,
+                  }}
+                >
+                  {post.category}
+                </p>
+                <h3
+                  style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    color: '#fff',
+                    margin: 0,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  <Link
+                    href={`/blog/${post.slug}` as never}
+                    style={{
+                      color: 'inherit',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    {post.title}
+                  </Link>
+                </h3>
+                <p
+                  style={{
+                    fontSize: '0.9375rem',
+                    lineHeight: 1.65,
+                    color: 'rgba(255,255,255,0.6)',
+                    margin: 0,
+                    flex: 1,
+                  }}
+                >
+                  {post.excerpt}
+                </p>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingTop: '1rem',
+                    borderTop: '1px solid rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+                    {formatDate(post.date)}
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+                    {post.readTime}
+                  </span>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Blog grid */}
-      <section className="mx-auto max-w-7xl px-6 pb-20 md:pb-28">
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {BLOG_POSTS.map((post) => (
-            <article
-              key={post.slug}
-              className="group relative rounded-xl border border-neutral-200 bg-white transition-shadow hover:shadow-md"
-            >
-              {/* Thumbnail placeholder */}
-              <div className="aspect-[16/9] rounded-t-xl border-b border-neutral-100 bg-neutral-50" />
-
-              <div className="p-6">
-                {/* Category + meta */}
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium ${
-                      CATEGORY_COLORS[post.category] || 'bg-neutral-100 text-neutral-700'
-                    }`}
-                  >
-                    {post.category}
-                  </span>
-                  <span className="text-[13px] text-neutral-400">{post.readTime}</span>
-                </div>
-
-                {/* Title */}
-                <h2 className="mt-3 text-[18px] leading-snug font-semibold text-neutral-900 group-hover:text-neutral-700">
-                  <Link
-                    href={`/blog/${post.slug}` as never}
-                    className="after:absolute after:inset-0"
-                  >
-                    {post.title}
-                  </Link>
-                </h2>
-
-                {/* Excerpt */}
-                <p className="mt-2 line-clamp-3 text-[14px] leading-relaxed text-neutral-600">
-                  {post.excerpt}
-                </p>
-
-                {/* Date */}
-                <p className="mt-4 text-[13px] text-neutral-400">{formatDate(post.date)}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* Bottom CTA */}
-      <section className="border-t border-neutral-100 bg-neutral-50 px-6 py-20 md:py-28">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-[28px] font-bold tracking-tight text-neutral-900 md:text-[36px]">
-            Ready to see Concierge in action?
-          </h2>
-          <p className="mt-3 text-[16px] leading-relaxed text-neutral-600">
-            Request a personalized demo and discover how Concierge can modernize your building
-            management.
-          </p>
-          <Link
-            href={'/demo' as never}
-            className="mt-6 inline-flex h-12 items-center justify-center rounded-xl bg-neutral-900 px-6 text-[15px] font-medium text-white transition-colors hover:bg-neutral-800"
+      {/* ============================ NEWSLETTER CTA ============================ */}
+      <section
+        style={{
+          background: '#0A0A0A',
+          color: '#fff',
+          padding: '6rem 0 8rem',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          textAlign: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 800px 500px at 50% 80%, rgba(201,169,110,0.12), transparent 65%)',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div
+          style={{
+            position: 'relative',
+            maxWidth: 720,
+            margin: '0 auto',
+            padding: '0 clamp(1.5rem, 4vw, 3rem)',
+          }}
+        >
+          <h2
+            style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              fontWeight: 600,
+              lineHeight: 1.1,
+              letterSpacing: '-0.02em',
+              color: '#fff',
+              margin: 0,
+            }}
           >
-            Request a Demo
+            One short email a month. No fluff.
+          </h2>
+          <p
+            style={{
+              fontSize: '1.125rem',
+              lineHeight: 1.6,
+              color: 'rgba(255,255,255,0.6)',
+              margin: '1.25rem auto 2.5rem',
+              maxWidth: 580,
+            }}
+          >
+            New product features, our best operational playbooks, and the rare deep- dive that takes
+            us a week to write. Free, easy to unsubscribe, never sold.
+          </p>
+          <Link href={'/contact' as never} className="btn-primary">
+            Subscribe via the contact form
           </Link>
         </div>
       </section>
-    </div>
+    </>
   );
 }
