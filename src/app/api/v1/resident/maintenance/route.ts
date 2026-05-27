@@ -163,6 +163,34 @@ export async function POST(request: NextRequest) {
         // Table may not exist — continue with null
       }
     }
+    // categoryId is NOT NULL in the schema. Properties that have no
+    // categories seeded yet (fresh onboarding) would crash with 23502 on
+    // INSERT. Auto-create a "General" category so the resident's request
+    // succeeds and the property manager can rename / add categories later.
+    if (!categoryId) {
+      try {
+        const created = await prisma.maintenanceCategory.create({
+          data: {
+            propertyId,
+            name: 'General',
+            isActive: true,
+            sortOrder: 999,
+          },
+          select: { id: true },
+        });
+        categoryId = created.id;
+      } catch {
+        // If even create fails, bail with a clean 400 instead of a 500.
+        return NextResponse.json(
+          {
+            error: 'NO_CATEGORY',
+            message:
+              'No maintenance categories configured for this property yet. Ask your property manager to set them up.',
+          },
+          { status: 400 },
+        );
+      }
+    }
 
     // Use raw SQL for reliability (Prisma client may be stale)
     const id = crypto.randomUUID();
