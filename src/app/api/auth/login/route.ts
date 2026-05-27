@@ -366,6 +366,35 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }),
     );
 
+    // 14a. First-login security: when an account has never been activated,
+    // the only password the user holds is the admin-issued temporary one.
+    // Force a password change before the session is useful by surfacing
+    // `requiresPasswordChange: true` plus a fresh activation token the
+    // client can hand straight to /activate. The existing access token is
+    // still issued so client-side gating works without a second round-trip,
+    // but as soon as /activate completes it rotates passwordHash, clears
+    // temporaryPassword, and stamps activatedAt — at which point the temp
+    // password becomes useless.
+    let activationToken: string | null = null;
+    if (!user.activatedAt) {
+      const stillValid =
+        user.activationToken &&
+        user.activationTokenExpiresAt &&
+        user.activationTokenExpiresAt.getTime() > Date.now();
+      if (stillValid) {
+        activationToken = user.activationToken;
+      } else {
+        activationToken = `${crypto.randomUUID()}-${crypto.randomUUID()}`;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            activationToken,
+            activationTokenExpiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
+          },
+        });
+      }
+    }
+
     // 14. Return tokens (include propertyId so frontend can store it for multi-tenancy)
     // Include activatedAt so frontend can detect first-login and redirect to onboarding
     return NextResponse.json(
@@ -382,6 +411,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             propertyId,
             activatedAt: user.activatedAt?.toISOString() ?? null,
             isFirstLogin: !user.lastLoginAt,
+            requiresPasswordChange: !user.activatedAt,
+            activationToken,
           },
         },
         requestId,

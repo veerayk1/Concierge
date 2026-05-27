@@ -56,11 +56,29 @@ export function LoginForm() {
       // Check if this is a first-time login for a resident — redirect to onboarding
       const userData =
         'user' in response
-          ? (response as { user?: { isFirstLogin?: boolean; role?: string } }).user
+          ? (
+              response as {
+                user?: {
+                  isFirstLogin?: boolean;
+                  role?: string;
+                  requiresPasswordChange?: boolean;
+                  activationToken?: string | null;
+                };
+              }
+            ).user
           : null;
       const isFirstLogin = userData?.isFirstLogin === true;
       const isResident =
         userData?.role === 'resident_owner' || userData?.role === 'resident_tenant';
+
+      // Force a password change before anything else when the account
+      // has never been activated. Skips the resident-onboarding wizard
+      // because activation has to come first — the wizard would gate on
+      // the same activatedAt flag once we land there post-activation.
+      if (userData?.requiresPasswordChange && userData.activationToken) {
+        window.location.href = `/activate?token=${encodeURIComponent(userData.activationToken)}`;
+        return;
+      }
 
       if (isFirstLogin && isResident) {
         window.location.href = '/resident-onboarding';
