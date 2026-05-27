@@ -9,7 +9,25 @@ import { z } from 'zod';
 // Asset Categories & Statuses
 // ---------------------------------------------------------------------------
 
-export const ASSET_CATEGORIES = ['furniture', 'appliance', 'it', 'building_system'] as const;
+// Superset that covers both the original short list (furniture, appliance,
+// it, building_system) AND the richer set the admin form ships (fixture,
+// technology, vehicle, tool, infrastructure). The form picked richer
+// categories before the schema caught up; expanding is safer than
+// narrowing because existing rows may already carry any of these values.
+// The DB column is plain VARCHAR(30) with no CHECK constraint, so adding
+// values needs no migration.
+export const ASSET_CATEGORIES = [
+  'furniture',
+  'appliance',
+  'fixture',
+  'technology',
+  'vehicle',
+  'tool',
+  'infrastructure',
+  // Legacy values, kept for backwards compatibility with older rows:
+  'it',
+  'building_system',
+] as const;
 export type AssetCategory = (typeof ASSET_CATEGORIES)[number];
 
 export const ASSET_STATUSES = ['in_use', 'in_storage', 'under_repair', 'disposed'] as const;

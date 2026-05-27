@@ -47,12 +47,14 @@ const CATEGORIES = [
   { value: 'infrastructure', label: 'Infrastructure' },
 ] as const;
 
+// Values must match src/schemas/asset.ts ASSET_STATUSES exactly.
+// Previously the form sent 'in_service' / 'storage' / 'repair' / 'on_order'
+// which silently failed PATCH validation — admins thought edits saved.
 const STATUSES = [
-  { value: 'in_service', label: 'In Service' },
-  { value: 'storage', label: 'Storage' },
-  { value: 'repair', label: 'Repair' },
+  { value: 'in_use', label: 'In Use' },
+  { value: 'in_storage', label: 'In Storage' },
+  { value: 'under_repair', label: 'Under Repair' },
   { value: 'disposed', label: 'Disposed' },
-  { value: 'on_order', label: 'On Order' },
 ] as const;
 
 // ---------------------------------------------------------------------------
