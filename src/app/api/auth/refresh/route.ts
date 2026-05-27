@@ -12,6 +12,8 @@ import { z } from 'zod';
 
 import { prisma } from '@/server/db';
 import { signAccessToken, generateRefreshToken } from '@/server/auth/jwt';
+import { checkRateLimit } from '@/server/middleware/rate-limit';
+import { RateLimitError } from '@/server/errors';
 import type { Role, TokenPayload } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -28,8 +30,33 @@ const refreshSchema = z.object({
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
   try {
+    // 0. Rate limit — share the 'auth' bucket with /api/auth/login so an
+    // attacker can't bypass login throttling by spraying refresh requests
+    // with guessed token values. Default: 10 attempts per 15 min per IP.
+    try {
+      const rl = await checkRateLimit('auth', clientIp);
+      void rl;
+    } catch (e) {
+      if (e instanceof RateLimitError) {
+        return NextResponse.json(
+          {
+            error: 'RATE_LIMITED',
+            message: 'Too many refresh attempts. Please try again later.',
+            code: 'RATE_LIMITED',
+            requestId,
+          },
+          {
+            status: 429,
+            headers: { 'Retry-After': String(e.retryAfter), 'X-Request-Id': requestId },
+          },
+        );
+      }
+      throw e;
+    }
+
     // 1. Parse and validate request body
     let body: z.infer<typeof refreshSchema>;
     try {
