@@ -10,6 +10,7 @@ import { prisma } from '@/server/db';
 import { guardRoute } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
 import { z } from 'zod';
+import { seedPropertyDefaults } from '@/server/seed/seed-property-defaults';
 
 function isDatabaseUnreachable(error: unknown): boolean {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -238,6 +239,17 @@ export async function POST(request: NextRequest) {
           permissions: JSON.stringify(['*']),
         })),
       });
+
+      // Seed the lookup tables every property needs on day one
+      // (maintenance categories, incident types). Prevents the
+      // first-resident-maintenance-request 500 (UX-262) and the
+      // first-lost-key 500 (UX-266) from ever happening on new
+      // properties. Inside the same transaction so a partial seed
+      // never leaves a property half-configured.
+      await seedPropertyDefaults(
+        tx as unknown as Parameters<typeof seedPropertyDefaults>[0],
+        prop.id,
+      );
 
       return prop;
     });
