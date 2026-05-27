@@ -63,9 +63,12 @@ function getAuthHeaders(): Record<string, string> {
  */
 let refreshPromise: Promise<boolean> | null = null;
 async function attemptRefresh(): Promise<boolean> {
+  // getRefreshToken() falls back to localStorage so a page reload
+  // (or new tab via deeplink) can still recover the session via the
+  // 401-→-refresh interceptor. Previously refresh tokens were
+  // in-memory only and every reload forced a re-login at the 15-min
+  // access-token boundary.
   const rt = getRefreshToken();
-  // No refresh token available (e.g. page reload — refresh tokens are in-memory only).
-  // Return false without clearing tokens so the access token in localStorage is preserved.
   if (!rt) return false;
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {

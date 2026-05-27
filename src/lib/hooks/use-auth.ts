@@ -2,7 +2,9 @@
  * Concierge — Client-Side Auth Hook
  *
  * Provides login, logout, token refresh, and auth state management.
- * Stores tokens in memory (not localStorage) for security.
+ * Tokens are persisted to localStorage (access + refresh) so a page
+ * reload or new tab from a deeplink can recover the session via the
+ * 401-→-refresh interceptor — UX-263.
  *
  * @module lib/hooks/use-auth
  */
@@ -15,6 +17,7 @@ import {
   apiClient,
   clearTokens,
   getAccessToken,
+  getRefreshToken,
   setAccessToken,
   setRefreshToken,
 } from '@/lib/api-client';
@@ -111,37 +114,74 @@ export function useAuth(): UseAuthReturn {
 
   const isAuthenticated = user !== null;
 
-  // Hydrate: restore user from stored token + user data on mount
+  // Hydrate: restore user from stored token + user data on mount.
+  // If the access token is missing or expired, try the refresh token
+  // first — previously we bounced straight to /login, which meant
+  // every page reload past the 15-min access-TTL forced a re-login
+  // even though the refresh token was still valid for 7 days.
   useEffect(() => {
-    const token = getAccessToken();
-    if (token && !isTokenExpired(token)) {
+    let cancelled = false;
+
+    const restoreUserFromStorageOrToken = (token: string): void => {
       const payload = decodeJwtPayload(token);
-      if (payload && typeof payload.sub === 'string') {
-        // Try to restore user from localStorage
-        const storedUser = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-        if (storedUser) {
-          try {
-            const parsed = JSON.parse(storedUser) as AuthUser;
-            setUser(parsed);
-          } catch {
-            // Invalid stored user, ignore
-          }
-        } else {
-          // Reconstruct minimal user from token payload
-          setUser({
-            id: payload.sub,
-            email: (payload.email as string) || '',
-            firstName: (payload.firstName as string) || '',
-            lastName: (payload.lastName as string) || '',
-            role: (payload.role as Role) || 'visitor',
-            propertyId: payload.pid as string,
-          });
+      if (!payload || typeof payload.sub !== 'string') return;
+      const storedUser = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser) as AuthUser);
+          return;
+        } catch {
+          // Invalid stored user, fall through to token reconstruction
         }
-        setLoading(false);
+      }
+      setUser({
+        id: payload.sub,
+        email: (payload.email as string) || '',
+        firstName: (payload.firstName as string) || '',
+        lastName: (payload.lastName as string) || '',
+        role: (payload.role as Role) || 'visitor',
+        propertyId: payload.pid as string,
+      });
+    };
+
+    (async () => {
+      const token = getAccessToken();
+      if (token && !isTokenExpired(token)) {
+        restoreUserFromStorageOrToken(token);
+        if (!cancelled) setLoading(false);
         return;
       }
-    }
-    setLoading(false);
+
+      // Access token is missing or expired. Try the refresh token
+      // before declaring the user logged out.
+      const rt = getRefreshToken();
+      if (!rt) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+
+      try {
+        const data = await apiClient<RefreshResponse>('/api/auth/refresh', {
+          method: 'POST',
+          body: { refreshToken: rt },
+          skipAuth: true,
+          skipRefresh: true,
+        });
+        setAccessToken(data.accessToken);
+        setRefreshToken(data.refreshToken);
+        if (!cancelled) {
+          restoreUserFromStorageOrToken(data.accessToken);
+          setLoading(false);
+        }
+      } catch {
+        clearTokens();
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(
@@ -198,9 +238,13 @@ export function useAuth(): UseAuthReturn {
 
   const refreshAccessToken = useCallback(async (): Promise<boolean> => {
     try {
+      // Bug: previously passed the access token as the refresh token,
+      // which always 400'd. Use the actual refresh token.
+      const rt = getRefreshToken();
+      if (!rt) return false;
       const data = await apiClient<RefreshResponse>('/api/auth/refresh', {
         method: 'POST',
-        body: { refreshToken: getAccessToken() },
+        body: { refreshToken: rt },
         skipAuth: true,
         skipRefresh: true,
       });

@@ -42,14 +42,39 @@ export function getAccessToken(): string | null {
   return null;
 }
 
-/** Set the current refresh token. */
+/**
+ * Set the current refresh token. Persists to localStorage so a page
+ * reload (or a new tab opened from a deeplink) doesn't kill the
+ * session — the 15-min access token will expire and the 401-→-refresh
+ * interceptor needs the refresh token to recover.
+ *
+ * Refresh tokens are sensitive — they're long-lived bearer credentials.
+ * Acceptable risk for a logged-in browser session: they sit alongside
+ * the access token in localStorage today. A future hardening pass can
+ * move both to httpOnly cookies once SSR-aware auth is wired.
+ */
 export function setRefreshToken(token: string | null): void {
   refreshToken = token;
+  if (typeof window !== 'undefined') {
+    if (token) {
+      localStorage.setItem('auth_refresh', token);
+    } else {
+      localStorage.removeItem('auth_refresh');
+    }
+  }
 }
 
-/** Get the current refresh token. */
+/** Get the current refresh token (in-memory first, localStorage fallback). */
 export function getRefreshToken(): string | null {
-  return refreshToken;
+  if (refreshToken) return refreshToken;
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('auth_refresh');
+    if (stored) {
+      refreshToken = stored;
+      return stored;
+    }
+  }
+  return null;
 }
 
 /** Clear all stored tokens. */
@@ -99,7 +124,13 @@ export class ApiClientError extends Error {
 let refreshPromise: Promise<boolean> | null = null;
 
 async function attemptTokenRefresh(): Promise<boolean> {
-  if (!refreshToken) return false;
+  // Route through getRefreshToken() so a page reload that wiped
+  // the in-memory copy can still recover via the persisted token.
+  // Previously this read the module-level variable directly, which
+  // meant the first 401 after a page reload always failed-to-refresh
+  // and the user was bounced to /login.
+  const currentRefreshToken = getRefreshToken();
+  if (!currentRefreshToken) return false;
 
   // If a refresh is already in progress, wait for it
   if (refreshPromise) return refreshPromise;
@@ -110,7 +141,7 @@ async function attemptTokenRefresh(): Promise<boolean> {
       const response = await fetch(`${baseUrl}/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({ refreshToken: currentRefreshToken }),
       });
 
       if (!response.ok) {
