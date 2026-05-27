@@ -214,13 +214,17 @@ export function CreateUserDialog({
         // Do NOT call onSuccess or close here — keep dialog open so admin can see credentials.
         // onSuccess will be called when the admin clicks "Done".
       } else {
-        setSuccessMsg(result.message || 'Account created successfully.');
-        setTimeout(() => {
-          reset();
-          setSuccessMsg(null);
-          onOpenChange(false);
-          onSuccess?.();
-        }, 1500);
+        // Keep the dialog open with a persistent confirmation card the
+        // admin has to dismiss. Previously we auto-closed after 1.5s,
+        // which was too quick to read — admins didn't know whether the
+        // welcome email was actually sent or where it landed.
+        setCreatedEmail(result.data?.email ?? null);
+        setSuccessMsg(
+          result.data?.firstName && result.data?.lastName
+            ? `Account created for ${result.data.firstName} ${result.data.lastName}.`
+            : result.message || 'Account created.',
+        );
+        reset();
       }
     } catch {
       setServerError('An unexpected error occurred. Please try again.');
@@ -252,9 +256,41 @@ export function CreateUserDialog({
               {serverError}
             </div>
           )}
-          {successMsg && (
-            <div className="border-success-200 bg-success-50 text-success-700 rounded-xl border px-4 py-3 text-[14px]">
-              {successMsg}
+          {successMsg && !tempPassword && (
+            <div className="border-success-200 bg-success-50 rounded-xl border px-4 py-4 text-[14px]">
+              <p className="text-success-800 mb-1 font-semibold">{successMsg}</p>
+              {createdEmail ? (
+                <p className="text-success-700">
+                  Welcome email sent to{' '}
+                  <span className="font-mono font-medium">{createdEmail}</span>. They&rsquo;ll set
+                  their own password from the activation link inside.
+                </p>
+              ) : null}
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSuccessMsg(null);
+                    setCreatedEmail(null);
+                    // Stay open so admin can create another back-to-back.
+                  }}
+                  className="border-success-300 text-success-700 hover:bg-success-50 rounded-lg border bg-white px-3 py-1.5 text-[12px] font-medium transition-colors"
+                >
+                  Add another
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSuccessMsg(null);
+                    setCreatedEmail(null);
+                    onOpenChange(false);
+                    onSuccess?.();
+                  }}
+                  className="border-success-300 bg-success-600 hover:bg-success-700 rounded-lg border px-3 py-1.5 text-[12px] font-medium text-white transition-colors"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           )}
           {tempPassword && (
