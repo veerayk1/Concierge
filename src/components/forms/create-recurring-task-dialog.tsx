@@ -44,10 +44,14 @@ const FREQUENCIES = [
   { value: 'annually', label: 'Annually' },
 ];
 
+// Values must match src/schemas/recurring-task.ts defaultPriority enum
+// (low | normal | high | critical). The form previously sent 'medium',
+// which would fail server-side validation with a 400.
 const PRIORITIES = [
   { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
+  { value: 'normal', label: 'Normal' },
   { value: 'high', label: 'High' },
+  { value: 'critical', label: 'Critical' },
 ];
 
 interface CreateRecurringTaskDialogProps {
@@ -79,7 +83,7 @@ export function CreateRecurringTaskDialog({
       frequency: '',
       assignedTo: '',
       location: '',
-      priority: 'medium',
+      priority: 'normal',
       startDate: '',
       notes: '',
     },
