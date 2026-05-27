@@ -8,7 +8,7 @@ import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
-import { sendEmail } from '@/server/email';
+import { sendEmailWithLog } from '@/server/email';
 
 const VIOLATION_LABELS: Record<string, string> = {
   notice: 'Notice',
@@ -28,6 +28,7 @@ async function notifyUnitOccupantsOfViolation(args: {
   propertyId: string;
   unitId: string;
   violation: {
+    id?: string;
     referenceNumber: string;
     violationType: string;
     licensePlate: string;
@@ -51,15 +52,24 @@ async function notifyUnitOccupantsOfViolation(args: {
 
   for (const occ of occupants) {
     if (!occ.user?.email) continue;
-    await sendEmail({
-      to: occ.user.email,
-      subject: `Parking ${typeLabel} issued — ${propName}`,
-      html: `<p>Hi ${occ.user.firstName ?? 'there'},</p>
+    await sendEmailWithLog(
+      {
+        to: occ.user.email,
+        subject: `Parking ${typeLabel} issued — ${propName}`,
+        html: `<p>Hi ${occ.user.firstName ?? 'there'},</p>
 <p>A parking <strong>${typeLabel.toLowerCase()}</strong> (reference <code>${args.violation.referenceNumber}</code>) was just logged against a vehicle with license plate
 <strong>${args.violation.licensePlate}</strong>, attributed to unit ${unitNumber}.</p>
 ${args.violation.description ? `<p>Details from the building team: ${args.violation.description}</p>` : ''}
 <p>If you believe this was issued in error, contact the property manager or reply to this email.</p>`,
-    });
+      },
+      {
+        propertyId: args.propertyId,
+        category: 'parking_violation',
+        recipientUserId: occ.userId,
+        relatedEntityType: 'parking_violation',
+        relatedEntityId: args.violation.id ?? null,
+      },
+    );
   }
 }
 
@@ -141,6 +151,7 @@ export async function POST(request: NextRequest) {
         propertyId: input.propertyId,
         unitId,
         violation: {
+          id: violation.id,
           referenceNumber: refNum,
           violationType: input.violationType,
           licensePlate: input.licensePlate.toUpperCase(),

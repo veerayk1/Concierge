@@ -132,6 +132,78 @@ export async function sendEmail(payload: EmailPayload): Promise<string | null> {
 }
 
 // ---------------------------------------------------------------------------
+// Notification log — captures every outbound email in NotificationDelivery
+// so admins can answer "did the resident actually receive this?"
+// ---------------------------------------------------------------------------
+
+export interface NotificationMeta {
+  propertyId: string;
+  category: string; // 'welcome' | 'activation' | 'password_reset' | 'announcement' | 'parking_violation' | 'package_pickup' | …
+  recipientUserId?: string | null;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
+}
+
+function htmlToPreview(s: string | undefined): string | null {
+  if (!s) return null;
+  // Strip <style> and <script> CONTENTS first — otherwise the raw CSS
+  // bleeds into the preview ("body { margin: 0; padding: 0; … }").
+  // Then drop tags, collapse whitespace, cap. Just a preview — full
+  // content lives in the template source.
+  return s
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 500);
+}
+
+/**
+ * Like {@link sendEmail} but also writes a NotificationDelivery row so the
+ * admin Notification Log can show what went out, to whom, and whether
+ * Resend acked it. Logging failures are swallowed — they must never block
+ * the user-facing flow.
+ *
+ * Prefer this over the raw `sendEmail` for any user-facing notification
+ * (welcome, activation, password reset, announcements, violations, etc).
+ */
+export async function sendEmailWithLog(
+  payload: EmailPayload,
+  meta: NotificationMeta,
+): Promise<string | null> {
+  const messageId = await sendEmail(payload);
+
+  // Insert the delivery record asynchronously of the original send — if
+  // the log INSERT itself fails (DB blip, schema drift), don't bubble up.
+  try {
+    await prisma.notificationDelivery.create({
+      data: {
+        propertyId: meta.propertyId,
+        recipientUserId: meta.recipientUserId ?? null,
+        recipientEmail: payload.to,
+        channel: 'email',
+        category: meta.category,
+        subject: payload.subject,
+        bodyPreview: htmlToPreview(payload.html ?? payload.text),
+        relatedEntityType: meta.relatedEntityType ?? null,
+        relatedEntityId: meta.relatedEntityId ?? null,
+        status: messageId ? 'sent' : RESEND_API_KEY ? 'failed' : 'skipped',
+        providerId: messageId,
+        sentAt: messageId ? new Date() : null,
+      },
+    });
+  } catch (err) {
+    logger.error(
+      { err, to: payload.to, category: meta.category },
+      'NotificationDelivery log insert failed',
+    );
+  }
+
+  return messageId;
+}
+
+// ---------------------------------------------------------------------------
 // Bulk send
 // ---------------------------------------------------------------------------
 

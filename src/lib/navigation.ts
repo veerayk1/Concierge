@@ -56,6 +56,7 @@ import {
   Lightbulb,
   Bug,
   Mail,
+  BellRing,
 } from 'lucide-react';
 import type { Role } from '@/types';
 
@@ -732,6 +733,22 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         icon: Mail,
         // 7.1, 7.2 — Super Admin and Property Admin only
         roles: ['super_admin', 'property_admin'],
+      },
+      {
+        id: 'notifications',
+        label: 'Notification Log',
+        href: '/notifications',
+        icon: BellRing,
+        // Audit trail of every outbound notification — admins and the
+        // front desk need this to answer "did the resident receive it?"
+        roles: [
+          'super_admin',
+          'property_admin',
+          'property_manager',
+          'front_desk',
+          'security_supervisor',
+          'board_member',
+        ],
       },
       {
         id: 'assets',

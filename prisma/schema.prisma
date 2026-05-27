@@ -109,6 +109,7 @@ model Property {
   announcementCategories AnnouncementCategory[]
   announcementTemplates  AnnouncementTemplate[]
   notificationTemplates  NotificationTemplate[]
+  notificationDeliveries NotificationDelivery[]
   emergencyBroadcasts    EmergencyBroadcast[]
 
   // Training/LMS module relations
@@ -2031,6 +2032,42 @@ model NotificationTemplate {
 
   @@index([propertyId])
   @@map("notification_templates")
+}
+
+/// One row per outbound user-facing notification (email, SMS, push, in-app).
+/// Captures recipient, status, and provider id so the admin can answer the
+/// most-asked daily question: "did the resident actually receive my
+/// announcement / parking violation / welcome email?"
+///
+/// Body is summarised to bodyPreview (≤500 chars, stripped of HTML) so the
+/// table doesn't grow unbounded with full HTML payloads. Full body lives in
+/// the templated source if needed.
+model NotificationDelivery {
+  id                String    @id @default(uuid()) @db.Uuid
+  propertyId        String    @db.Uuid
+  recipientUserId   String?   @db.Uuid // null when the user record was deleted or never existed (e.g. pre-activation email bounce)
+  recipientEmail    String?   @db.VarChar(320)
+  recipientPhone    String?   @db.VarChar(30)
+  channel           String    @db.VarChar(10) // email | sms | push | in_app
+  category          String    @db.VarChar(50) // welcome | activation | password_reset | announcement | parking_violation | package_pickup | maintenance_update | …
+  subject           String?   @db.VarChar(500)
+  bodyPreview       String?   @db.VarChar(500)
+  relatedEntityType String?   @db.VarChar(50) // polymorphic — announcement, parking_violation, package, user, etc.
+  relatedEntityId   String?   @db.Uuid
+  status            String    @db.VarChar(20) // sent | failed | skipped | queued
+  providerId        String?   @db.VarChar(100) // e.g. Resend message id
+  errorMessage      String?   @db.VarChar(1000)
+  sentAt            DateTime?
+
+  createdAt DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, createdAt(sort: Desc)])
+  @@index([recipientUserId])
+  @@index([status])
+  @@index([category])
+  @@map("notification_deliveries")
 }
 
 model EmergencyBroadcast {

@@ -13,7 +13,7 @@ import { createUserSchema } from '@/schemas/user';
 import { nanoid } from 'nanoid';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
-import { sendEmail } from '@/server/email';
+import { sendEmailWithLog } from '@/server/email';
 import { renderTemplate } from '@/server/email-templates';
 
 // ---------------------------------------------------------------------------
@@ -425,15 +425,24 @@ export async function POST(request: NextRequest) {
       });
       const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
       const activateUrl = `${appUrl}/activate?token=${encodeURIComponent(activationToken)}`;
-      await sendEmail({
-        to: user.email,
-        subject: `Welcome to ${property?.name ?? 'Concierge'}`,
-        html: renderTemplate('welcome', {
-          firstName: user.firstName,
-          propertyName: property?.name ?? 'your property',
-          loginUrl: activateUrl,
-        }),
-      });
+      await sendEmailWithLog(
+        {
+          to: user.email,
+          subject: `Welcome to ${property?.name ?? 'Concierge'}`,
+          html: renderTemplate('welcome', {
+            firstName: user.firstName,
+            propertyName: property?.name ?? 'your property',
+            loginUrl: activateUrl,
+          }),
+        },
+        {
+          propertyId: input.propertyId,
+          category: 'welcome',
+          recipientUserId: user.id,
+          relatedEntityType: 'user',
+          relatedEntityId: user.id,
+        },
+      );
     })().catch((err) => console.error('Failed to send welcome email:', err));
 
     // TODO: Store frontDeskInstructions on unit-user relation
