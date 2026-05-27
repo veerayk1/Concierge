@@ -27,6 +27,14 @@ import type { Role, TokenPayload } from '@/types';
 const logger = createLogger('auth');
 
 const isDev = process.env.NODE_ENV !== 'production';
+// The mock-payload fallback is dangerous if it leaks into any deployed
+// environment: it silently swaps in a fake super-admin user whose
+// propertyId doesn't match real records, producing 403 CROSS_TENANT_BLOCKED
+// loops on every API call. Gate it behind an explicit opt-in env flag so a
+// staging deploy with NODE_ENV !== 'production' doesn't enable it by
+// accident. Local devs who want the bypass set ALLOW_DEV_AUTH_FALLBACK=true
+// in .env.local.
+const devFallbackEnabled = isDev && process.env.ALLOW_DEV_AUTH_FALLBACK === 'true';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -101,8 +109,8 @@ function isTokenPayload(value: unknown): value is TokenPayload {
 export async function requireAuth(req: NextRequest): Promise<TokenPayload> {
   const token = extractBearerToken(req);
 
-  // ---- Development bypass ----
-  if (isDev && !token) {
+  // ---- Development bypass (gated, opt-in only) ----
+  if (devFallbackEnabled && !token) {
     logger.warn('DEV MODE: No token provided — returning mock payload');
     return getMockPayload();
   }

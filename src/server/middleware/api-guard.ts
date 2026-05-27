@@ -219,10 +219,14 @@ export async function guardRoute(
     // time the browser had no token header yet.
     //
     // Only skip straight to 401 in production (and test/CI). next dev sets
-    // NODE_ENV === 'development', where we delegate to requireAuth.
+    // NODE_ENV === 'development' — delegate to requireAuth ONLY if the
+    // local mock-user fallback is explicitly opted in. Otherwise return
+    // 401 so the client triggers a refresh flow (and so a staging deploy
+    // never silently swaps in a mock super-admin).
     const authHeader = request.headers.get('authorization');
-    const isNextDev = process.env.NODE_ENV === 'development';
-    if (!authHeader && !isNextDev) {
+    const allowDevFallback =
+      process.env.NODE_ENV === 'development' && process.env.ALLOW_DEV_AUTH_FALLBACK === 'true';
+    if (!authHeader && !allowDevFallback) {
       return {
         user: null,
         error: NextResponse.json(
