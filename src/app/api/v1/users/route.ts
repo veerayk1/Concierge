@@ -295,9 +295,42 @@ export async function POST(request: NextRequest) {
     // different property, or soft-deleted anywhere) crashes with P2002.
     // Catch and translate to the same 409 EMAIL_EXISTS the pre-check
     // uses, so the admin sees a clean error instead of a 500.
+    const RESIDENT_ROLE_SLUGS = new Set([
+      'resident_owner',
+      'resident_tenant',
+      'family_member',
+      'offsite_owner',
+    ]);
+    const RESIDENT_TYPE_FROM_SLUG: Record<string, string> = {
+      resident_owner: 'owner',
+      resident_tenant: 'tenant',
+      family_member: 'family_member',
+      offsite_owner: 'offsite_owner',
+    };
+
     let user: { id: string; firstName: string; lastName: string; email: string; createdAt: Date };
     try {
       user = await prisma.$transaction(async (tx) => {
+        // If the new user is a resident-type role with a unit selected,
+        // we need to know the role slug to build the OccupancyRecord and
+        // confirm the unit actually belongs to this property — otherwise
+        // an admin could attach a user to a unit at another tenant.
+        const role = await tx.role.findUnique({
+          where: { id: input.roleId },
+          select: { slug: true },
+        });
+        const isResidentRole = role ? RESIDENT_ROLE_SLUGS.has(role.slug) : false;
+
+        if (isResidentRole && input.unitId) {
+          const unit = await tx.unit.findFirst({
+            where: { id: input.unitId, propertyId: input.propertyId, deletedAt: null },
+            select: { id: true },
+          });
+          if (!unit) {
+            throw new Error('UNIT_NOT_IN_PROPERTY');
+          }
+        }
+
         const newUser = await tx.user.create({
           data: {
             email: input.email.toLowerCase(),
@@ -318,9 +351,33 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        if (isResidentRole && input.unitId && role) {
+          await tx.occupancyRecord.create({
+            data: {
+              unitId: input.unitId,
+              userId: newUser.id,
+              propertyId: input.propertyId,
+              residentType: RESIDENT_TYPE_FROM_SLUG[role.slug] ?? 'tenant',
+              moveInDate: new Date(),
+              isPrimary: true,
+              recordedById: auth.user!.userId,
+            },
+          });
+        }
+
         return newUser;
       });
     } catch (err) {
+      if (err instanceof Error && err.message === 'UNIT_NOT_IN_PROPERTY') {
+        return NextResponse.json(
+          {
+            error: 'UNIT_NOT_IN_PROPERTY',
+            message: 'The selected unit does not belong to this property.',
+            fields: { unitId: ['Unit is not part of this property'] },
+          },
+          { status: 400 },
+        );
+      }
       const code = (err as { code?: string })?.code;
       if (code === 'P2002') {
         return NextResponse.json(
