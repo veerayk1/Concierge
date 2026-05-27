@@ -21,7 +21,7 @@ const violationSchema = z.object({
   location: z.string().max(100).optional().or(z.literal('')),
   unitId: z.string().optional().or(z.literal('')),
   description: z.string().max(2000).optional().or(z.literal('')),
-  notifyOwner: z.boolean().default(true),
+  notifyUnitOwner: z.boolean().default(true),
 });
 
 type ViolationInput = z.infer<typeof violationSchema>;
@@ -64,7 +64,7 @@ export function CreateParkingViolationDialog({
       location: '',
       unitId: '',
       description: '',
-      notifyOwner: true,
+      notifyUnitOwner: true,
     },
   });
 
@@ -202,7 +202,7 @@ export function CreateParkingViolationDialog({
           <label className="flex cursor-pointer items-center gap-2.5">
             <input
               type="checkbox"
-              {...register('notifyOwner')}
+              {...register('notifyUnitOwner')}
               className="text-primary-500 focus:ring-primary-200 h-4 w-4 rounded border-neutral-300"
             />
             <span className="text-[14px] text-neutral-700">Notify unit owner</span>
