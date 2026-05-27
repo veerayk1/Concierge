@@ -411,7 +411,9 @@ export default function UsersPage() {
     <PageShell
       title="User Management"
       description={
-        loading ? 'Loading users...' : `${allUsers.length} accounts \u00B7 ${activeCount} active`
+        loading
+          ? 'Loading users...'
+          : `${allUsers.length} ${allUsers.length === 1 ? 'account' : 'accounts'} \u00B7 ${activeCount} active`
       }
       actions={
         <div className="flex items-center gap-2">
