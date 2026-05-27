@@ -188,8 +188,8 @@ export default function UsersPage() {
             {row.temporaryPassword && (
               <button
                 type="button"
-                className="mt-0.5 inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 font-mono text-[11px] text-amber-700 transition-colors hover:bg-amber-100"
-                title="Click to copy password"
+                className="mt-0.5 inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 transition-colors hover:bg-amber-100"
+                title="Click to copy the user's temporary password to your clipboard"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigator.clipboard.writeText(row.temporaryPassword!);
@@ -202,7 +202,7 @@ export default function UsersPage() {
                 }}
               >
                 <KeyRound className="h-2.5 w-2.5" />
-                {row.temporaryPassword}
+                Copy temp password
               </button>
             )}
           </div>
