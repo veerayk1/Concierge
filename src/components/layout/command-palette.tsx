@@ -97,11 +97,18 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       try {
         const demoRole = localStorage.getItem('demo_role');
         const propertyId = getPropertyId();
+        // Include the Bearer token for real-auth users — previously
+        // only the x-demo-role header was sent, so any non-demo session
+        // hit /api/v1/search anonymously, got 401, and the palette
+        // silently showed "No results" for everything. Real-user search
+        // was effectively broken even though the API was correct.
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
         const res = await fetch(
           `/api/v1/search?propertyId=${propertyId}&q=${encodeURIComponent(query)}`,
           {
             headers: {
               ...(demoRole ? { 'x-demo-role': demoRole } : {}),
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           },
         );
