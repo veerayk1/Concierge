@@ -735,6 +735,15 @@ const ALL_NAV_GROUPS: NavGroup[] = [
         roles: ['super_admin', 'property_admin'],
       },
       {
+        id: 'activity',
+        label: 'Activity Log',
+        href: '/activity',
+        icon: Activity,
+        // Audit trail of who created/updated/deleted what — PMs and
+        // admins need this to investigate "who did this?".
+        roles: ['super_admin', 'property_admin', 'property_manager', 'security_supervisor'],
+      },
+      {
         id: 'notifications',
         label: 'Notification Log',
         href: '/notifications',

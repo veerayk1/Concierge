@@ -11,6 +11,7 @@ import { guardRoute } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
 import { z } from 'zod';
 import { seedPropertyDefaults } from '@/server/seed/seed-property-defaults';
+import { logAudit, AuditAction } from '@/server/audit';
 
 function isDatabaseUnreachable(error: unknown): boolean {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -252,6 +253,21 @@ export async function POST(request: NextRequest) {
       );
 
       return prop;
+    });
+
+    // Audit trail — surfaces in /activity for PMs/admins. Fire-and-forget
+    // so an audit infra blip never blocks the user-facing create flow.
+    void logAudit({
+      userId: auth.user.userId,
+      propertyId: property.id,
+      action: AuditAction.Create,
+      resource: 'property',
+      resourceId: property.id,
+      fields: ['name', 'address', 'unitCount'],
+      ip: request.headers.get('x-forwarded-for') ?? undefined,
+      userAgent: request.headers.get('user-agent') ?? undefined,
+    }).catch(() => {
+      /* logged internally */
     });
 
     return NextResponse.json({ data: property }, { status: 201 });

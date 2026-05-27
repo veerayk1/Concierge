@@ -13,6 +13,7 @@ import { sendPushToProperty } from '@/server/push';
 import { sendBulkEmail } from '@/server/email';
 import { renderTemplate } from '@/server/email-templates';
 import { createLogger } from '@/server/logger';
+import { logAudit, AuditAction } from '@/server/audit';
 import type { Role } from '@/types';
 
 const logger = createLogger('announcements');
@@ -233,6 +234,19 @@ export async function POST(request: NextRequest) {
         });
       }
     }
+
+    void logAudit({
+      userId: auth.user.userId,
+      propertyId: announcement.propertyId,
+      action: AuditAction.Create,
+      resource: 'announcement',
+      resourceId: announcement.id,
+      fields: ['title', 'priority', 'audience', 'channels'],
+      ip: request.headers.get('x-forwarded-for') ?? undefined,
+      userAgent: request.headers.get('user-agent') ?? undefined,
+    }).catch(() => {
+      /* logged internally */
+    });
 
     return NextResponse.json(
       { data: announcement, message: 'Announcement created.' },

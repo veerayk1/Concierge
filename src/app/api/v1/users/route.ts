@@ -14,6 +14,7 @@ import { nanoid } from 'nanoid';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { sendEmailWithLog } from '@/server/email';
+import { logAudit, AuditAction } from '@/server/audit';
 import { renderTemplate } from '@/server/email-templates';
 
 // ---------------------------------------------------------------------------
@@ -446,6 +447,22 @@ export async function POST(request: NextRequest) {
     })().catch((err) => console.error('Failed to send welcome email:', err));
 
     // TODO: Store frontDeskInstructions on unit-user relation
+
+    // Audit trail — feeds /activity ("Priya created Front Desk account
+    // for Marcus Chen 10 minutes ago"). Fire-and-forget so audit infra
+    // never blocks the user-create response.
+    void logAudit({
+      userId: auth.user!.userId,
+      propertyId: input.propertyId,
+      action: AuditAction.Create,
+      resource: 'user',
+      resourceId: user.id,
+      fields: ['email', 'firstName', 'lastName', 'roleId'],
+      ip: request.headers.get('x-forwarded-for') ?? undefined,
+      userAgent: request.headers.get('user-agent') ?? undefined,
+    }).catch(() => {
+      /* logged internally */
+    });
 
     return NextResponse.json(
       {

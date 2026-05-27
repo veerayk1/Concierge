@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { sendEmailWithLog } from '@/server/email';
+import { logAudit, AuditAction } from '@/server/audit';
 
 const VIOLATION_LABELS: Record<string, string> = {
   notice: 'Notice',
@@ -159,6 +160,19 @@ export async function POST(request: NextRequest) {
         },
       }).catch((err) => console.error('parking violation notify failed:', err));
     }
+
+    void logAudit({
+      userId: auth.user.userId,
+      propertyId: input.propertyId,
+      action: AuditAction.Create,
+      resource: 'parking_violation',
+      resourceId: violation.id,
+      fields: ['licensePlate', 'violationType', 'unitId'],
+      ip: request.headers.get('x-forwarded-for') ?? undefined,
+      userAgent: request.headers.get('user-agent') ?? undefined,
+    }).catch(() => {
+      /* logged internally */
+    });
 
     return NextResponse.json({ data: violation, message: 'Violation reported.' }, { status: 201 });
   } catch (error) {
