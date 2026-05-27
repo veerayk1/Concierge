@@ -98,6 +98,21 @@ function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
+function defaultFlagFor(m: (typeof MODULE_DEFINITIONS)[number]): ModuleFlag {
+  return {
+    key: m.key,
+    name: m.name,
+    description: m.description,
+    enabled: m.tier === 'starter' || m.tier === 'professional',
+    tier: m.tier,
+  };
+}
+
+function mergeServerFlags(serverFlags: ModuleFlag[]): ModuleFlag[] {
+  const byKey = new Map(serverFlags.map((f) => [f.key, f]));
+  return MODULE_DEFINITIONS.map((m) => byKey.get(m.key) ?? defaultFlagFor(m));
+}
+
 export function ModuleConfigProvider({ children }: { children: ReactNode }) {
   const [flags, setFlags] = useState<ModuleFlag[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,37 +131,26 @@ export function ModuleConfigProvider({ children }: { children: ReactNode }) {
           { headers: getAuthHeaders() },
         );
         if (!res.ok) {
-          // If API fails (e.g., non-admin role), fall back to all modules enabled
-          const allEnabled = MODULE_DEFINITIONS.map((m) => ({
-            key: m.key,
-            name: m.name,
-            description: m.description,
-            enabled: m.tier === 'starter' || m.tier === 'professional',
-            tier: m.tier,
-          }));
+          // If API fails (e.g., non-admin role), fall back to tier-based defaults
           if (!cancelled) {
-            setFlags(allEnabled);
+            setFlags(MODULE_DEFINITIONS.map(defaultFlagFor));
             setLoading(false);
           }
           return;
         }
         const json = await res.json();
         if (!cancelled) {
-          setFlags(json.data ?? []);
+          // Merge: server flags are authoritative for keys they cover; any module
+          // missing from the response falls back to its tier-based default. This
+          // prevents a partial flags list (e.g. right after onboarding provisions
+          // a new property) from disabling every module not yet flagged.
+          setFlags(mergeServerFlags(json.data ?? []));
           setLoading(false);
         }
       } catch {
-        // On error, assume all standard modules are enabled
+        // On error, assume tier-based defaults
         if (!cancelled) {
-          setFlags(
-            MODULE_DEFINITIONS.map((m) => ({
-              key: m.key,
-              name: m.name,
-              description: m.description,
-              enabled: true,
-              tier: m.tier,
-            })),
-          );
+          setFlags(MODULE_DEFINITIONS.map(defaultFlagFor));
           setLoading(false);
         }
       }
