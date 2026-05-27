@@ -454,14 +454,27 @@ export default function ParkingPage() {
               columns={permitColumns}
               data={filteredPermits}
               emptyMessage="No permits found."
+              emptyDescription="Issue a permit when a resident, contractor, or visitor needs guaranteed parking access."
               emptyIcon={<Car className="h-6 w-6" />}
+              emptyAction={
+                <Button size="sm" onClick={() => setShowPermitDialog(true)}>
+                  <Plus className="h-4 w-4" />
+                  New Permit
+                </Button>
+              }
             />
           ) : (
             <DataTable
               columns={violationColumns}
               data={allViolations}
               emptyMessage="No violations."
+              emptyDescription="Quiet day in the lot. Log a violation the moment one happens so the unit owner gets notified."
               emptyIcon={<AlertTriangle className="h-6 w-6" />}
+              emptyAction={
+                <Button size="sm" variant="secondary" onClick={() => setShowViolationDialog(true)}>
+                  Report violation
+                </Button>
+              }
             />
           )}
         </>

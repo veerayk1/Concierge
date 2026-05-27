@@ -472,7 +472,14 @@ export default function KeysPage() {
             columns={columns}
             data={filteredKeys}
             emptyMessage="No keys or FOBs found."
+            emptyDescription="Issue your first key, fob, or temporary access pass to start tracking checkouts and recoveries."
             emptyIcon={<Key className="h-6 w-6" />}
+            emptyAction={
+              <Button size="sm" onClick={() => setShowAddKeyDialog(true)}>
+                <Plus className="h-4 w-4" />
+                Add Key / FOB
+              </Button>
+            }
             onRowClick={(row) => {
               window.location.href = `/keys/${row.id}`;
             }}

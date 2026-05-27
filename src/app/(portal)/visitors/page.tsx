@@ -584,7 +584,13 @@ export default function VisitorsPage() {
               <EmptyState
                 icon={<Users className="h-6 w-6" />}
                 title="No visitors in building"
-                description="There are currently no signed-in visitors. New arrivals will appear here."
+                description="There are currently no signed-in visitors. When the buzzer rings, sign someone in to track who's on site."
+                action={
+                  <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+                    <Plus className="h-4 w-4" />
+                    Quick Sign In
+                  </Button>
+                }
               />
             )}
           </div>
