@@ -64,8 +64,15 @@ export function useNotificationBadge(): { count: number; href: string } {
   const { data } = useApi<DeliveriesResponse>(url);
   const total = data?.meta?.total ?? 0;
 
+  // Residents don't have read access to /notifications (it's the staff
+  // failed-delivery dashboard), so clicking their bell would land them
+  // on a 403 / redirect. /announcements is the closest "what's new for
+  // me" surface they do have. Staff get the failed-delivery view, which
+  // is where the badge count is sourced from anyway.
+  const href = isStaff ? '/notifications?status=failed' : '/announcements';
+
   return {
     count: total,
-    href: '/notifications?status=failed',
+    href,
   };
 }
