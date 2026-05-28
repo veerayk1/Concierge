@@ -10,6 +10,8 @@ import type { Role } from '@/types';
 import { getPropertyId, DEMO_PROPERTY } from '@/lib/demo-config';
 import { DemoShowcaseBanner } from '@/components/layout/demo-showcase-banner';
 import { ROLE_DISPLAY_NAMES } from '@/lib/navigation';
+import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
+import { PageShell } from '@/components/layout/page-shell';
 
 // Property info derived from centralized config
 const currentProperty = {
@@ -38,11 +40,40 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  // Helper to render a consistent denial panel for non-admin roles,
+  // instead of silently redirecting them to /dashboard with no
+  // explanation. The redirect-only behavior left residents wondering
+  // why their nav link did nothing — replaced with a clear message
+  // that matches the AccessDeniedPanel shown elsewhere in the app.
+  const renderDenied = (currentRole: Role) => (
+    <AppShell
+      user={{
+        id: 'denied-user',
+        firstName: ROLE_DISPLAY_NAMES[currentRole] ?? 'User',
+        lastName: '',
+        email: '',
+        role: currentRole,
+        avatarUrl: undefined,
+      }}
+      currentProperty={currentProperty}
+      properties={[currentProperty]}
+      breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Administration' }]}
+      notificationCount={0}
+      onLogout={() => router.push('/login')}
+    >
+      <PageShell title="Administration" description="">
+        <AccessDeniedPanel
+          resource="Administration tools"
+          whoCanSee="your property manager or building admin"
+        />
+      </PageShell>
+    </AppShell>
+  );
+
   // Demo mode
   if (demoRole) {
     if (!ADMIN_ROLES.has(demoRole)) {
-      router.replace('/dashboard');
-      return null;
+      return renderDenied(demoRole);
     }
     const isShowcase =
       typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'showcase';
@@ -85,8 +116,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   if (!loading && user && !ADMIN_ROLES.has(user.role)) {
-    router.replace('/dashboard');
-    return null;
+    return renderDenied(user.role);
   }
 
   if (loading || !user) {
