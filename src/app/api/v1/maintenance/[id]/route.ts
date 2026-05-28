@@ -323,8 +323,48 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (input.priority) updateData.priority = input.priority;
-    if (input.assignedEmployeeId) updateData.assignedEmployeeId = input.assignedEmployeeId;
-    if (input.assignedVendorId) updateData.assignedVendorId = input.assignedVendorId;
+
+    // Cross-tenant guard: an employee or vendor cannot be assigned to a
+    // maintenance request unless they belong to the same property as the
+    // request itself. Without this, a staff member at property A who
+    // knows a userId/vendorId from property B can attach that record to
+    // their MR — leaking the foreign user's name into property A's UI
+    // and potentially pinging that vendor with an MR they shouldn't see.
+    if (input.assignedEmployeeId) {
+      const employee = await prisma.user.findFirst({
+        where: {
+          id: input.assignedEmployeeId,
+          userProperties: { some: { propertyId: existing.propertyId, deletedAt: null } },
+        },
+        select: { id: true },
+      });
+      if (!employee) {
+        return NextResponse.json(
+          {
+            error: 'INVALID_ASSIGNMENT',
+            message: 'Assigned staff member is not a member of this property.',
+          },
+          { status: 400 },
+        );
+      }
+      updateData.assignedEmployeeId = input.assignedEmployeeId;
+    }
+    if (input.assignedVendorId) {
+      const vendor = await prisma.vendor.findFirst({
+        where: { id: input.assignedVendorId, propertyId: existing.propertyId },
+        select: { id: true },
+      });
+      if (!vendor) {
+        return NextResponse.json(
+          {
+            error: 'INVALID_ASSIGNMENT',
+            message: 'Assigned vendor does not belong to this property.',
+          },
+          { status: 400 },
+        );
+      }
+      updateData.assignedVendorId = input.assignedVendorId;
+    }
     if (input.description) updateData.description = stripControlChars(stripHtml(input.description));
     // GAP 5.1: Toggle resident visibility
     if (typeof input.hideFromResident === 'boolean')
