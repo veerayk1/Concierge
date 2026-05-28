@@ -220,6 +220,22 @@ export default function AmenityBookingPage() {
       e.preventDefault();
       if (!selectedAmenity) return;
 
+      // Client-side past-date guard: the date input has min=today so the
+      // picker won't offer past dates, but a user can still paste/type
+      // one in. Without this check the form would either silently no-op
+      // (HTML5 validity) or POST a past-date that the server rejects
+      // without a clear message. Be explicit about why we won't accept it.
+      if (startDate) {
+        const todayIso = new Date().toISOString().split('T')[0];
+        if (startDate < todayIso) {
+          setFeedback({
+            type: 'error',
+            message: 'Start date is in the past. Please pick a date from today onwards.',
+          });
+          return;
+        }
+      }
+
       setSubmitting(true);
       setFeedback(null);
 
