@@ -1117,19 +1117,26 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
             </div>
             <CardContent>
               {req.assignedEmployeeId ? (
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary-100 text-primary-700 flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-bold">
-                      <User className="h-4 w-4" />
+                (() => {
+                  const u = staffData?.find((s) => s.id === req.assignedEmployeeId);
+                  const displayName = u ? `${u.firstName} ${u.lastName}`.trim() : 'Loading…';
+                  const roleLabel = u?.role?.name ?? 'Assigned Staff';
+                  return (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-primary-100 text-primary-700 flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-bold">
+                          <User className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-[14px] font-semibold text-neutral-900">
+                            {displayName}
+                          </p>
+                          <p className="text-[12px] text-neutral-500">{roleLabel}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[14px] font-semibold text-neutral-900">
-                        {req.assignedEmployeeId}
-                      </p>
-                      <p className="text-[12px] text-neutral-500">Assigned Staff</p>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()
               ) : (
                 <div className="flex flex-col items-center py-4">
                   <User className="h-8 w-8 text-neutral-300" />
@@ -1142,7 +1149,8 @@ export default function MaintenanceDetailPage({ params }: MaintenanceDetailPageP
                     Vendor
                   </p>
                   <p className="mt-1 text-[14px] font-medium text-neutral-900">
-                    {req.assignedVendorId}
+                    {vendorData?.find((v) => v.id === req.assignedVendorId)?.companyName ??
+                      'Loading…'}
                   </p>
                 </div>
               )}
