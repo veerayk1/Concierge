@@ -15,6 +15,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { PageShell } from '@/components/layout/page-shell';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -84,6 +85,8 @@ function formatRelative(iso: string): string {
 
 export default function ActivityPage() {
   const isResident = useIsResident();
+  const searchParams = useSearchParams();
+  const propertyOverride = searchParams.get('propertyId');
   const [action, setAction] = useState('');
   const [resource, setResource] = useState('');
   const [mounted, setMounted] = useState(false);
@@ -91,13 +94,15 @@ export default function ActivityPage() {
 
   const url = useMemo(() => {
     if (!mounted) return null;
-    const propertyId = getPropertyId();
+    // Honor ?propertyId= so Super Admins can audit any property they manage
+    // (the API already gates access via enforcePropertyAccess).
+    const propertyId = propertyOverride || getPropertyId();
     if (!propertyId) return null;
     const params: Record<string, string> = { propertyId, pageSize: '100' };
     if (action) params.action = action;
     if (resource) params.resource = resource;
     return apiUrl('/api/v1/audit-log', params);
-  }, [mounted, action, resource]);
+  }, [mounted, action, resource, propertyOverride]);
 
   const { data, loading } = useApi<ApiResponse>(url);
   const items: AuditRow[] = data ?? [];
