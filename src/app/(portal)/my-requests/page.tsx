@@ -91,6 +91,11 @@ export default function MyRequestsPage() {
   const [statusFilter, setStatusFilter] = useState<ResidentFilter>('active');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // React state updates are async — a triple-click on Submit can fire
+  // three handlers before the disabled prop rerenders. This ref blocks
+  // synchronous re-entry, so even a stuck mouse / accessibility scripts
+  // can't create duplicate tickets.
+  const submittingRef = useRef(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
   );
@@ -219,6 +224,8 @@ export default function MyRequestsPage() {
   const handleNewRequest = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
+      if (submittingRef.current) return; // sync guard against double/triple clicks
+      submittingRef.current = true;
       setSubmitting(true);
       setFeedback(null);
 
@@ -266,6 +273,7 @@ export default function MyRequestsPage() {
             setFeedback({ type: 'error', message: 'Failed to upload files. Please try again.' });
             setUploading(false);
             setSubmitting(false);
+            submittingRef.current = false;
             return;
           }
           setUploading(false);
@@ -318,6 +326,7 @@ export default function MyRequestsPage() {
       } finally {
         setSubmitting(false);
         setUploading(false);
+        submittingRef.current = false;
       }
     },
     [
