@@ -59,10 +59,19 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const type = searchParams.get('type'); // production, demo, sandbox
 
-    // Super Admin sees all properties (including inactive); others see only active
+    // Super Admin sees all properties (including inactive). Everyone else only
+    // sees the properties they belong to via user_properties. Otherwise a
+    // resident on Property A can list every property on the platform — a
+    // cross-tenant data leak.
     const where: Record<string, unknown> = { deletedAt: null };
     if (auth.user.role !== 'super_admin') {
       where.isActive = true;
+      where.userProperties = {
+        some: {
+          userId: auth.user.userId,
+          deletedAt: null,
+        },
+      };
     }
     if (type) where.type = type.toUpperCase();
     if (search) {
