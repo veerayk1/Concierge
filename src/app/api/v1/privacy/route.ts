@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { z } from 'zod';
 
 const privacyErasureSchema = z.object({
@@ -59,6 +59,13 @@ export async function GET(request: NextRequest) {
         { error: 'MISSING_PROPERTY', message: 'propertyId is required' },
         { status: 400 },
       );
+    }
+
+    // Without this, a property_admin of Property A could pass propertyId=B
+    // and pull Property B's DSAR / retention / unusual-access reports.
+    if (propertyId) {
+      const tenancy = enforcePropertyAccess(auth.user, propertyId);
+      if (tenancy) return tenancy;
     }
 
     switch (type) {
@@ -148,6 +155,12 @@ export async function POST(request: NextRequest) {
       );
     }
     const input = parsed.data;
+
+    // Block cross-tenant writes: a property_admin of A must not be able to
+    // anonymize or log consent against Property B's data by passing
+    // {propertyId: B} in the body.
+    const writeTenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (writeTenancy) return writeTenancy;
 
     switch (input.action) {
       // --- Right to Erasure (Anonymization) ---
