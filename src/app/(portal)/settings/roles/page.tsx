@@ -25,6 +25,7 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditRoleDialog } from '@/components/forms/edit-role-dialog';
+import { CreateRoleDialog } from '@/components/forms/create-role-dialog';
 
 // ---------------------------------------------------------------------------
 // Types (aligned with API response)
@@ -81,6 +82,7 @@ export default function RolesPermissionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRoleId, setExpandedRoleId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<RoleFromApi | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const { confirm: askConfirm, flash, ConfirmHost } = useConfirmDialog();
 
   // Fetch roles from API
@@ -199,7 +201,7 @@ export default function RolesPermissionsPage() {
             Manage user roles and configure permissions for your property.
           </p>
         </div>
-        <Button size="md">
+        <Button size="md" onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4" />
           Create Custom Role
         </Button>
@@ -278,7 +280,7 @@ export default function RolesPermissionsPage() {
           title="No roles configured"
           description="Create your first role to start managing user permissions."
           action={
-            <Button size="md">
+            <Button size="md" onClick={() => setCreateOpen(true)}>
               <Plus className="h-4 w-4" />
               Create Custom Role
             </Button>
@@ -511,6 +513,14 @@ export default function RolesPermissionsPage() {
           onSuccess={refetch}
         />
       )}
+
+      {/* Create Role Dialog */}
+      <CreateRoleDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        propertyId={getPropertyId()}
+        onSuccess={refetch}
+      />
       <ConfirmHost />
     </div>
   );
