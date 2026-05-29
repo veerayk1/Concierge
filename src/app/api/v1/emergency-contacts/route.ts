@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createContactSchema = z.object({
@@ -34,6 +34,19 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    // Emergency contacts are highly sensitive PII (next of kin phones). Without
+    // this, any authenticated user could iterate unitIds and harvest contacts
+    // for every unit across the platform.
+    const unit = await prisma.unit.findFirst({
+      where: { id: unitId, deletedAt: null },
+      select: { propertyId: true },
+    });
+    if (!unit) {
+      return NextResponse.json({ error: 'NOT_FOUND', message: 'Unit not found' }, { status: 404 });
+    }
+    const tenancy = enforcePropertyAccess(auth.user, unit.propertyId);
+    if (tenancy) return tenancy;
 
     const contacts = await prisma.emergencyContact.findMany({
       where: { unitId },
@@ -66,6 +79,12 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+
+    // Block cross-tenant writes — a property_admin of A shouldn't be able to
+    // inject a fake "emergency contact" into Property B's audit trail.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     const contact = await prisma.emergencyContact.create({
       data: {
         propertyId: input.propertyId,
