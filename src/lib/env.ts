@@ -54,17 +54,47 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
 
+  // -- Email (Resend) -------------------------------------------------------
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().email().optional(),
+
   // -- SMS (Twilio) ---------------------------------------------------------
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
+  // src/server/sms.ts reads TWILIO_FROM_NUMBER, not TWILIO_PHONE_NUMBER.
+  // Keep both names in scope so existing deployments that set either one
+  // continue to work; the SMS sender prefers TWILIO_FROM_NUMBER.
+  TWILIO_FROM_NUMBER: z.string().optional(),
   TWILIO_PHONE_NUMBER: z.string().optional(),
 
   // -- Object Storage (S3) --------------------------------------------------
+  // src/server/storage.ts reads AWS_S3_BUCKET / AWS_S3_REGION. The shorter
+  // S3_* aliases stay declared here for older deployments but the
+  // canonical names are the AWS_-prefixed ones.
+  AWS_S3_BUCKET: z.string().optional(),
+  AWS_S3_REGION: z.string().default('ca-central-1'),
   S3_BUCKET: z.string().optional(),
   S3_REGION: z.string().default('ca-central-1'),
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   S3_ENDPOINT: z.string().url().optional(),
+
+  // -- Stripe billing -------------------------------------------------------
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PRICE_STARTER: z.string().optional(),
+  STRIPE_PRICE_PROFESSIONAL: z.string().optional(),
+  STRIPE_PRICE_ENTERPRISE: z.string().optional(),
+
+  // -- Push (FCM / Firebase) ------------------------------------------------
+  FIREBASE_PROJECT_ID: z.string().optional(),
+  FIREBASE_SERVICE_ACCOUNT_KEY: z.string().optional(),
+
+  // -- Demo mode safety -----------------------------------------------------
+  // Set to 'true' in production to turn off the X-Demo-Role header bypass
+  // in src/server/middleware/api-guard.ts. Leaving this unset in prod is
+  // a P0 — every guarded route accepts header-based role spoofing.
+  DEMO_MODE_DISABLED: z.string().optional(),
 
   // -- CORS -----------------------------------------------------------------
   CORS_ORIGINS: z
