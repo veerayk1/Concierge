@@ -101,20 +101,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     //    IP-based rate limit at step 0 still protects against abuse, and we
     //    always return the generic enumeration-safe response.
     const oneHourAgo = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
-    let recentTokenCount = 0;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recentTokenCount = await (prisma as any).passwordResetToken.count({
-        where: {
-          createdAt: { gte: oneHourAgo },
-        },
-      });
-    } catch (e) {
-      console.error(
-        '[forgot-password] passwordResetToken.count failed (model missing?):',
-        (e as Error)?.message,
-      );
-    }
+    const recentTokenCount = await prisma.passwordResetToken.count({
+      where: {
+        createdAt: { gte: oneHourAgo },
+      },
+    });
 
     if (recentTokenCount >= RATE_LIMIT_PER_EMAIL) {
       return NextResponse.json(
@@ -140,8 +131,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (user && user.isActive) {
       const resetToken = crypto.randomUUID();
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (prisma as any).passwordResetToken.create({
+        await prisma.passwordResetToken.create({
           data: {
             token: resetToken,
             userId: user.id,

@@ -238,6 +238,7 @@ model User {
   userAuditsAsTarget       UserAudit[]   @relation("UserAuditTarget")
   userAuditsAsActor        UserAudit[]   @relation("UserAuditActor")
   passwordHistory          PasswordHistory[]
+  passwordResetTokens      PasswordResetToken[]
   devicePushTokens         DevicePushToken[]
   occupancyRecords         OccupancyRecord[]
   kyrSessions              KyrSession[]
@@ -334,6 +335,26 @@ model PasswordHistory {
 
   @@index([userId])
   @@map("password_history")
+}
+
+/// Password reset tokens issued by /api/auth/forgot-password and consumed
+/// by /api/auth/reset-password. The token is a random UUID, expiresAt
+/// is checked on consume, and usedAt is stamped after a successful reset
+/// so the same link can't be replayed.
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  token     String    @unique @db.VarChar(255)
+  userId    String    @db.Uuid
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 // ---------------------------------------------------------------------------
