@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 const GOVERNANCE_ROLES = ['board_member', 'property_admin', 'property_manager', 'super_admin'];
 
@@ -44,6 +44,12 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
+
+    // Block cross-tenant — a board member of A shouldn't be able to file
+    // meeting minutes against Property B (which would then be visible to
+    // Property B's residents on the governance page).
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
 
     // Verify meeting exists
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
