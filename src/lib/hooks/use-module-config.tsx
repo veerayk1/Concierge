@@ -95,6 +95,10 @@ function getAuthHeaders(): Record<string, string> {
     if (demoMode) headers['x-demo-mode'] = demoMode;
     return headers;
   }
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   return headers;
 }
 
