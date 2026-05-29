@@ -52,13 +52,13 @@ export function AssignResidentDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch units and residents for dropdowns
-  const { data: unitsData } = useApi<{ data: Array<{ id: string; number: string }> }>(
+  const { data: unitsData } = useApi<Array<{ id: string; number: string }>>(
     open && !prefillUnitId ? apiUrl('/api/v1/units', { propertyId, pageSize: '500' }) : null,
   );
 
-  const { data: usersData } = useApi<{
-    data: Array<{ id: string; firstName: string; lastName: string; email: string }>;
-  }>(open && !prefillUserId ? apiUrl('/api/v1/users', { propertyId, pageSize: '500' }) : null);
+  const { data: usersData } = useApi<
+    Array<{ id: string; firstName: string; lastName: string; email: string }>
+  >(open && !prefillUserId ? apiUrl('/api/v1/users', { propertyId, pageSize: '500' }) : null);
 
   useEffect(() => {
     if (open) {
@@ -128,10 +128,9 @@ export function AssignResidentDialog({
     ],
   );
 
-  const units: ListItem[] =
-    unitsData?.data?.map((u) => ({ id: u.id, label: `Unit ${u.number}` })) ?? [];
+  const units: ListItem[] = unitsData?.map((u) => ({ id: u.id, label: `Unit ${u.number}` })) ?? [];
   const users: ListItem[] =
-    usersData?.data?.map((u) => ({
+    usersData?.map((u) => ({
       id: u.id,
       label: `${u.firstName} ${u.lastName}`,
       subtitle: u.email,

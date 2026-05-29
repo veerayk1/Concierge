@@ -35,6 +35,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { Avatar } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { EditUnitDialog } from '@/components/forms/edit-unit-dialog';
+import { AssignResidentDialog } from '@/components/forms/assign-resident-dialog';
 import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 
 // ---------------------------------------------------------------------------
@@ -205,6 +206,7 @@ export default function UnitDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('overview');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [assignOccupantOpen, setAssignOccupantOpen] = useState(false);
 
   // Role detection (Gap 7.3) — works in demo mode where useAuth() returns null
   const { user: currentUser } = useAuth();
@@ -782,7 +784,7 @@ export default function UnitDetailPage() {
             <p className="text-[14px] text-neutral-500">
               {occupants.length} resident{occupants.length !== 1 ? 's' : ''} in this unit
             </p>
-            <Button size="sm">
+            <Button size="sm" onClick={() => setAssignOccupantOpen(true)}>
               <Plus className="h-4 w-4" />
               Add Occupant
             </Button>
@@ -1163,6 +1165,21 @@ export default function UnitDetailPage() {
           onOpenChange={setEditDialogOpen}
           unit={unit}
           onSuccess={refetch}
+        />
+      )}
+
+      {/* Assign Resident Dialog */}
+      {unit && (
+        <AssignResidentDialog
+          open={assignOccupantOpen}
+          onOpenChange={setAssignOccupantOpen}
+          propertyId={getPropertyId()}
+          unitId={unit.id}
+          unitNumber={unit.number}
+          onSuccess={() => {
+            setAssignOccupantOpen(false);
+            refetch();
+          }}
         />
       )}
     </div>
