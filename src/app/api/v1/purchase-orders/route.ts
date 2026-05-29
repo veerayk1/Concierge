@@ -21,7 +21,19 @@ const PO_ALLOWED_ROLES = ['property_admin', 'board_member', 'property_manager', 
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // POs include vendor financials, line items, and costs — residents
+    // should never see them. Restrict to property staff who actually run
+    // procurement.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'board_member',
+        'maintenance_staff',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
