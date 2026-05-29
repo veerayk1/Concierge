@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
+import { useIsResident } from '@/lib/role-mode';
 import { PageShell } from '@/components/layout/page-shell';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Button } from '@/components/ui/button';
@@ -157,6 +158,11 @@ export default function AmenityBookingPage() {
   const [guestCount, setGuestCount] = useState(1);
   const [comments, setComments] = useState('');
 
+  // /api/v1/resident/bookings is resident-only and 400s for any other role
+  // (no unitId on the auth claims). Skip the fetch entirely for staff/admin
+  // viewing this page — they don't have personal bookings here anyway.
+  const isResident = useIsResident();
+
   // Fetch amenities
   const {
     data: amenitiesRaw,
@@ -181,7 +187,7 @@ export default function AmenityBookingPage() {
     error: bookingsError,
     refetch: refetchBookings,
   } = useApi<MyBooking[] | BookingsApiResponse>(
-    apiUrl('/api/v1/resident/bookings', { propertyId: getPropertyId() }),
+    isResident ? apiUrl('/api/v1/resident/bookings', { propertyId: getPropertyId() }) : null,
   );
 
   const bookings = useMemo<MyBooking[]>(() => {

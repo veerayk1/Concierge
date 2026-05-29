@@ -100,11 +100,15 @@ export default function PropertyDetailPage() {
   }
 
   const tierLabel =
-    property.subscriptionTier === 'TIER_3'
+    property.subscriptionTier === 'ENTERPRISE'
       ? 'Enterprise'
-      : property.subscriptionTier === 'TIER_2'
+      : property.subscriptionTier === 'PROFESSIONAL'
         ? 'Professional'
-        : 'Starter';
+        : property.subscriptionTier === 'STARTER'
+          ? 'Starter'
+          : property.subscriptionTier
+            ? property.subscriptionTier.charAt(0) + property.subscriptionTier.slice(1).toLowerCase()
+            : 'Starter';
 
   const typeColor =
     property.type === 'PRODUCTION' ? 'success' : property.type === 'DEMO' ? 'info' : 'warning';
@@ -160,7 +164,9 @@ export default function PropertyDetailPage() {
         </Badge>
         <Badge variant="default">{tierLabel}</Badge>
         <span className="text-[13px] text-neutral-400">Code: {property.propertyCode}</span>
-        <span className="text-[13px] text-neutral-400">Slug: /{property.slug}</span>
+        {property.slug && (
+          <span className="text-[13px] text-neutral-400">Slug: /{property.slug}</span>
+        )}
       </div>
 
       {/* KPI Cards */}

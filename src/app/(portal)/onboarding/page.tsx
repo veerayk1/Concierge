@@ -124,6 +124,7 @@ const STEPS: StepDef[] = [
 
 // Import dynamic property ID (supports multi-tenancy)
 import { getPropertyId } from '@/lib/demo-config';
+import { getAuthHeaders } from '@/lib/hooks/use-api';
 
 // ---------------------------------------------------------------------------
 // API Helpers
@@ -131,11 +132,7 @@ import { getPropertyId } from '@/lib/demo-config';
 
 async function fetchProgress(propertyId: string): Promise<OnboardingState> {
   const res = await fetch(`/api/v1/onboarding?propertyId=${propertyId}`, {
-    headers: {
-      ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
-        ? { 'x-demo-role': localStorage.getItem('demo_role')! }
-        : {}),
-    },
+    headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error('Failed to fetch onboarding progress');
   const json = await res.json();
@@ -159,9 +156,7 @@ async function saveStep(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
-        ? { 'x-demo-role': localStorage.getItem('demo_role')! }
-        : {}),
+      ...getAuthHeaders(),
     },
     body: JSON.stringify({ propertyId, step, data, skip }),
   });

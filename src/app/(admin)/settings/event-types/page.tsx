@@ -23,7 +23,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, apiRequest, getAuthHeaders } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
@@ -108,10 +108,10 @@ function CreateEventTypeDialog({
   useEffect(() => {
     if (!open) return;
     setGroupsLoading(true);
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (typeof window !== 'undefined' && localStorage.getItem('demo_role')) {
-      headers['x-demo-role'] = localStorage.getItem('demo_role')!;
-    }
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    };
     fetch(`/api/v1/event-groups?propertyId=${getPropertyId()}`, { headers })
       .then((res) => res.json())
       .then((result) => {

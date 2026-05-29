@@ -14,7 +14,7 @@ import {
   Users,
   Wrench,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, getAuthHeaders } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { exportToCsv } from '@/lib/export-csv';
 import { PageShell } from '@/components/layout/page-shell';
@@ -221,9 +221,7 @@ export default function ReportsPage() {
           {
             headers: {
               'Content-Type': 'application/json',
-              ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
-                ? { 'x-demo-role': localStorage.getItem('demo_role')! }
-                : {}),
+              ...getAuthHeaders(),
             },
           },
         );

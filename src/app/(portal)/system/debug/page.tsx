@@ -136,6 +136,11 @@ function getDebugAuthHeaders(): Record<string, string> {
   const demoRole = localStorage.getItem('demo_role');
   if (demoRole) {
     headers['x-demo-role'] = demoRole;
+    return headers;
+  }
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;
 }

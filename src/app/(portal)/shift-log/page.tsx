@@ -20,7 +20,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useApi, apiUrl, getAuthHeaders } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { CreateShiftEntryDialog } from '@/components/forms/create-shift-entry-dialog';
 import { SubmitShiftReportDialog } from '@/components/forms/submit-shift-report-dialog';
@@ -353,9 +353,7 @@ export default function ShiftLogPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(typeof window !== 'undefined' && localStorage.getItem('demo_role')
-            ? { 'x-demo-role': String(localStorage.getItem('demo_role')) }
-            : {}),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ propertyId: getPropertyId() }),
       });
@@ -379,10 +377,7 @@ export default function ShiftLogPage() {
     try {
       const r = await fetch(`/api/v1/shift-log/clock?propertyId=${getPropertyId()}`, {
         method: 'DELETE',
-        headers:
-          typeof window !== 'undefined' && localStorage.getItem('demo_role')
-            ? { 'x-demo-role': String(localStorage.getItem('demo_role')) }
-            : {},
+        headers: getAuthHeaders(),
       });
       if (r.ok) {
         setClockMessage({ type: 'success', text: 'Clocked out. Shift closed.' });

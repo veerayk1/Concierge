@@ -22,7 +22,7 @@ import { reportDebugEvent } from '@/lib/hooks/use-debug-session';
  * Demo mode (demo_role in localStorage) takes priority over Bearer tokens
  * to prevent stale/expired tokens from bypassing the demo handler.
  */
-function getAuthHeaders(): Record<string, string> {
+export function getAuthHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return {};
   const headers: Record<string, string> = {};
 
