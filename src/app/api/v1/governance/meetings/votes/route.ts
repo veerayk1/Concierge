@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import type { Role } from '@/types';
 
 const VOTING_ROLES = ['board_member', 'property_admin', 'super_admin'];
 
@@ -127,7 +128,11 @@ function computeVoteTally(votes: VoteRecord[]) {
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Per-meeting vote records identify which board member voted which way.
+    // That's sensitive even within the board; absolutely not for residents.
+    const auth = await guardRoute(request, {
+      roles: ['board_member', 'property_admin', 'property_manager', 'super_admin'] as Role[],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

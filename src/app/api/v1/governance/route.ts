@@ -11,12 +11,18 @@ import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
+import type { Role } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const GOVERNANCE_ROLES = ['board_member', 'property_admin', 'property_manager', 'super_admin'];
+const GOVERNANCE_ROLES: Role[] = [
+  'board_member',
+  'property_admin',
+  'property_manager',
+  'super_admin',
+];
 
 const MEETING_TYPES = ['regular', 'special', 'agm', 'emergency'] as const;
 const MEETING_STATUSES = ['scheduled', 'in_progress', 'completed', 'cancelled'] as const;
@@ -57,7 +63,9 @@ const createSchema = z.discriminatedUnion('type', [createMeetingSchema, createRe
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Aggregator returns meetings or resolutions — both restricted
+    // governance data, never resident-facing.
+    const auth = await guardRoute(request, { roles: GOVERNANCE_ROLES });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

@@ -7,10 +7,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import type { Role } from '@/types';
+
+const GOVERNANCE_ROLES: Role[] = [
+  'board_member',
+  'property_admin',
+  'property_manager',
+  'super_admin',
+];
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // P&L summaries, budget vs. actual, line-item spending — building
+    // financials are governance data, not resident data. Lock to board
+    // and property staff.
+    const auth = await guardRoute(request, { roles: GOVERNANCE_ROLES });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

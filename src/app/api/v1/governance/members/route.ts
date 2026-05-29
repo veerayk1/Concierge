@@ -9,8 +9,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import type { Role } from '@/types';
 
 const ADMIN_ROLES = ['property_admin', 'super_admin'];
+const GOVERNANCE_ROLES: Role[] = [
+  'board_member',
+  'property_admin',
+  'property_manager',
+  'super_admin',
+];
 
 const createMemberSchema = z
   .object({
@@ -33,7 +40,9 @@ const createMemberSchema = z
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Board member records include term dates, contact info, internal
+    // role assignments — operational data restricted to governance roles.
+    const auth = await guardRoute(request, { roles: GOVERNANCE_ROLES });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

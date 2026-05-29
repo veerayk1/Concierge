@@ -9,8 +9,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
 import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
+import type { Role } from '@/types';
 
-const GOVERNANCE_ROLES = ['board_member', 'property_admin', 'property_manager', 'super_admin'];
+const GOVERNANCE_ROLES: Role[] = [
+  'board_member',
+  'property_admin',
+  'property_manager',
+  'super_admin',
+];
 
 const createMeetingSchema = z.object({
   propertyId: z.string().uuid(),
@@ -23,7 +29,12 @@ const createMeetingSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Board meetings expose agenda items, descriptions, locations, and
+    // attendance — including emergency / special meetings whose existence
+    // alone can leak crisis information. Restrict to governance roles
+    // (board + property staff). Residents see meeting outcomes via
+    // announcements, not raw governance data.
+    const auth = await guardRoute(request, { roles: GOVERNANCE_ROLES });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
