@@ -22,7 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useApi } from '@/lib/hooks/use-api';
+import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { CreatePropertyDialog } from '@/components/admin/create-property-dialog';
 
 // ---------------------------------------------------------------------------
@@ -65,6 +65,18 @@ export default function PropertyDetailPage() {
     error,
     refetch,
   } = useApi<Property>(`/api/v1/properties/${propertyId}`);
+
+  // Live KPI counts so the stat cards actually reflect the property's pulse.
+  // Previously the JSX hard-coded each card to "0", so a fully populated
+  // property looked empty. The dashboard endpoint already aggregates everything
+  // we need; reuse it instead of three new endpoints.
+  const { data: dashboard } = useApi<{
+    kpis: {
+      unreleasedPackages: number;
+      openMaintenanceRequests: number;
+      residentCount: number;
+    };
+  }>(apiUrl('/api/v1/dashboard', { propertyId }));
 
   if (loading) {
     return (
@@ -170,8 +182,10 @@ export default function PropertyDetailPage() {
             <Users className="text-success-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">0</p>
-            <p className="text-[13px] text-neutral-500">Active Users</p>
+            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+              {dashboard?.kpis.residentCount ?? '—'}
+            </p>
+            <p className="text-[13px] text-neutral-500">Residents</p>
           </div>
         </Card>
 
@@ -180,7 +194,9 @@ export default function PropertyDetailPage() {
             <Package className="text-warning-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">0</p>
+            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+              {dashboard?.kpis.unreleasedPackages ?? '—'}
+            </p>
             <p className="text-[13px] text-neutral-500">Unreleased Packages</p>
           </div>
         </Card>
@@ -190,7 +206,9 @@ export default function PropertyDetailPage() {
             <Wrench className="text-info-600 h-5 w-5" />
           </div>
           <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">0</p>
+            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
+              {dashboard?.kpis.openMaintenanceRequests ?? '—'}
+            </p>
             <p className="text-[13px] text-neutral-500">Open Maintenance</p>
           </div>
         </Card>
