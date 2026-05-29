@@ -142,9 +142,18 @@ export default function VacationsPage() {
   const vacations: VacationDisplay[] = useMemo(() => {
     if (!apiVacations || !Array.isArray(apiVacations)) return [];
 
+    // Parse a Y-M-D / Y-M-DT00:00:00.000Z date as the *local* day. Using
+    // new Date('2026-07-01') treats the string as UTC midnight, which then
+    // renders one day earlier ("Jun 30") in any negative-offset timezone.
+    function parseDateOnly(input: string): Date {
+      const yyyymmdd = input.slice(0, 10);
+      const [y, m, d] = yyyymmdd.split('-').map((n) => parseInt(n, 10));
+      return new Date(y!, (m ?? 1) - 1, d ?? 1);
+    }
+
     return apiVacations.map((v) => {
-      const startDate = new Date(v.startDate);
-      const endDate = new Date(v.endDate);
+      const startDate = parseDateOnly(v.startDate);
+      const endDate = parseDateOnly(v.endDate);
       const today = new Date();
 
       let status: 'upcoming' | 'active' | 'completed' = 'upcoming';
