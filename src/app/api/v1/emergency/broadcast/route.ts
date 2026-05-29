@@ -28,7 +28,23 @@ const createBroadcastSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // The full broadcast history exposes drafts, cancellations, and
+    // target unit IDs property-wide — operational data for security /
+    // building staff. Residents receive broadcasts via push and a
+    // resident-scoped feed, not this raw list.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'security_supervisor',
+        'security_guard',
+        'front_desk',
+        'superintendent',
+        'maintenance_staff',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
