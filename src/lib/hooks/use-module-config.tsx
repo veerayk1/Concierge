@@ -118,7 +118,13 @@ function mergeServerFlags(serverFlags: ModuleFlag[]): ModuleFlag[] {
 }
 
 export function ModuleConfigProvider({ children }: { children: ReactNode }) {
-  const [flags, setFlags] = useState<ModuleFlag[]>([]);
+  // Seed with tier-based defaults so the sidebar doesn't flash a
+  // "everything disabled" state while the feature-flags API is in flight.
+  // Without this, every resident briefly sees a stripped sidebar (no
+  // My Packages, My Requests, Amenity Booking) during the first render
+  // pass, because flags=[] makes enabledModules empty which makes every
+  // nav-gated item appear "disabled".
+  const [flags, setFlags] = useState<ModuleFlag[]>(() => MODULE_DEFINITIONS.map(defaultFlagFor));
   const [loading, setLoading] = useState(true);
   const [fetchKey, setFetchKey] = useState(0);
 

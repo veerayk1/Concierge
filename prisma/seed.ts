@@ -1206,6 +1206,78 @@ export async function main(): Promise<void> {
   }
 
   // -------------------------------------------------------------------------
+  // 5b. Occupancy records — link each resident to a unit
+  // -------------------------------------------------------------------------
+  // Without these, /api/v1/resident/* endpoints all 400 with NO_UNIT
+  // because guardRoute resolves unitId from occupancy_records.
+  log('5b/15', 'Creating occupancy records for residents...');
+
+  const allResidentIds: { propertyId: string; userId: string; adminId: string }[] = [
+    ...[
+      IDS.mh_resident01,
+      IDS.mh_resident02,
+      IDS.mh_resident03,
+      IDS.mh_resident04,
+      IDS.mh_resident05,
+      IDS.mh_resident06,
+      IDS.mh_resident07,
+      IDS.mh_resident08,
+      IDS.mh_resident09,
+      IDS.mh_resident10,
+    ].map((id) => ({ propertyId: mapleHeights.id, userId: id, adminId: IDS.mh_adminUser })),
+    ...[
+      IDS.lt_resident01,
+      IDS.lt_resident02,
+      IDS.lt_resident03,
+      IDS.lt_resident04,
+      IDS.lt_resident05,
+      IDS.lt_resident06,
+      IDS.lt_resident07,
+      IDS.lt_resident08,
+      IDS.lt_resident09,
+      IDS.lt_resident10,
+    ].map((id) => ({ propertyId: lakeshoreTowers.id, userId: id, adminId: IDS.lt_adminUser })),
+  ];
+
+  for (const { propertyId, userId, adminId } of allResidentIds) {
+    // Pick the first occupied unit in this property that doesn't already
+    // have an active occupant. Stable across re-seeds because units are
+    // ordered by number ascending.
+    const unit = await prisma.unit.findFirst({
+      where: {
+        propertyId,
+        status: 'occupied',
+        occupancyRecords: { none: { moveOutDate: null } },
+      },
+      orderBy: { number: 'asc' },
+      select: { id: true },
+    });
+    if (!unit) continue;
+
+    const recordId = `00000000-0000-4000-c000-${userId.slice(-12)}`;
+    await prisma.occupancyRecord.upsert({
+      where: { id: recordId },
+      update: {
+        unitId: unit.id,
+        propertyId,
+        isPrimary: true,
+        moveOutDate: null,
+      },
+      create: {
+        id: recordId,
+        unitId: unit.id,
+        userId,
+        propertyId,
+        residentType: 'owner',
+        moveInDate: new Date('2025-01-01'),
+        isPrimary: true,
+        recordedById: adminId,
+      },
+    });
+  }
+  log('OK', `  ${allResidentIds.length} occupancy records created`);
+
+  // -------------------------------------------------------------------------
   // 6. Event Groups & Event Types
   // -------------------------------------------------------------------------
   log('6/15', 'Creating event groups and event types...');

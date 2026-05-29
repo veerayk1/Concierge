@@ -2994,60 +2994,11 @@ export default function DashboardPage() {
                   . Here is your daily summary:
                 </p>
                 <ul className="ml-4 list-disc space-y-1 text-[13px] text-neutral-600">
-                  {/* Role-aware copy. Without this, residents saw manager-style
-                      lines like "8 booking approvals pending review" — confusing
-                      because residents don't approve bookings (managers do). */}
                   {(() => {
-                    const isResident =
-                      effectiveRole === 'resident_owner' ||
-                      effectiveRole === 'resident_tenant' ||
-                      effectiveRole === 'family_member' ||
-                      effectiveRole === 'offsite_owner';
+                    // ResidentDashboard handles its own briefing copy and
+                    // returns before we get here. Residents never reach this
+                    // path; the IIFE only renders the manager/staff view.
                     const lines: React.ReactNode[] = [];
-                    if (isResident) {
-                      if (apiData.kpis.unreleasedPackages > 0) {
-                        lines.push(
-                          <li key="pkg">
-                            You have{' '}
-                            <strong>
-                              {apiData.kpis.unreleasedPackages} package
-                              {apiData.kpis.unreleasedPackages !== 1 ? 's' : ''}
-                            </strong>{' '}
-                            waiting for pickup at the front desk.
-                          </li>,
-                        );
-                      }
-                      if (apiData.kpis.openMaintenanceRequests > 0) {
-                        lines.push(
-                          <li key="mr">
-                            <strong>
-                              {apiData.kpis.openMaintenanceRequests} of your service request
-                              {apiData.kpis.openMaintenanceRequests !== 1 ? 's' : ''}
-                            </strong>{' '}
-                            {apiData.kpis.openMaintenanceRequests !== 1 ? 'are' : 'is'} still open.
-                          </li>,
-                        );
-                      }
-                      if (apiData.kpis.pendingBookingApprovals > 0) {
-                        lines.push(
-                          <li key="bk">
-                            <strong>
-                              {apiData.kpis.pendingBookingApprovals} of your booking request
-                              {apiData.kpis.pendingBookingApprovals !== 1 ? 's' : ''}
-                            </strong>{' '}
-                            {apiData.kpis.pendingBookingApprovals !== 1 ? 'are' : 'is'} awaiting
-                            management approval.
-                          </li>,
-                        );
-                      }
-                      if (lines.length === 0) {
-                        lines.push(
-                          <li key="ok">All caught up — no packages or open requests today.</li>,
-                        );
-                      }
-                      return lines;
-                    }
-                    // Staff & manager view (original copy)
                     if (apiData.kpis.openMaintenanceRequests > 0) {
                       lines.push(
                         <li key="mr">
@@ -3156,39 +3107,30 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions — role-aware top tasks. Front desk and security
-              get the operational shortcuts. Property admin / manager get
-              management shortcuts. Residents get resident-portal flows. */}
+          {/* Quick Actions — role-aware top tasks. Residents and super_admin
+              early-returned above, so this only sees property staff, mgmt,
+              and board members. */}
           {(() => {
-            const isResidentRole =
-              effectiveRole === 'resident_owner' || effectiveRole === 'resident_tenant';
             const isAdminRole =
               effectiveRole === 'property_admin' ||
               effectiveRole === 'property_manager' ||
-              effectiveRole === 'super_admin' ||
               effectiveRole === 'board_member';
 
-            const actions = isResidentRole
+            const actions = isAdminRole
               ? [
-                  { label: 'Submit a request', href: '/my-requests?action=new', icon: Wrench },
-                  { label: 'Book an amenity', href: '/amenity-booking', icon: Calendar },
-                  { label: 'View announcements', href: '/announcements', icon: Megaphone },
+                  {
+                    label: 'Post an announcement',
+                    href: '/announcements?action=new',
+                    icon: Megaphone,
+                  },
+                  { label: 'Add a resident', href: '/residents?action=new', icon: Users },
+                  { label: 'Review reports', href: '/reports', icon: BarChart3 },
                 ]
-              : isAdminRole
-                ? [
-                    {
-                      label: 'Post an announcement',
-                      href: '/announcements?action=new',
-                      icon: Megaphone,
-                    },
-                    { label: 'Add a resident', href: '/residents?action=new', icon: Users },
-                    { label: 'Review reports', href: '/reports', icon: BarChart3 },
-                  ]
-                : [
-                    { label: 'Log a package', href: '/packages?action=new', icon: Package },
-                    { label: 'Check in a visitor', href: '/visitors?action=new', icon: Users },
-                    { label: 'Open shift log', href: '/shift-log', icon: StickyNote },
-                  ];
+              : [
+                  { label: 'Log a package', href: '/packages?action=new', icon: Package },
+                  { label: 'Check in a visitor', href: '/visitors?action=new', icon: Users },
+                  { label: 'Open shift log', href: '/shift-log', icon: StickyNote },
+                ];
 
             return (
               <Card data-testid="quick-actions-card">
@@ -3283,11 +3225,10 @@ export default function DashboardPage() {
           })}
 
           {/* Dedicated staff quick action buttons — hidden for residents,
-              board members, visitors, and other non-operational roles. */}
-          {(effectiveRole === 'front_desk' ||
-            effectiveRole === 'security_guard' ||
-            effectiveRole === 'security_supervisor' ||
-            effectiveRole === 'property_admin' ||
+              board members, visitors, and other non-operational roles.
+              Front desk and security early-returned above; only ops staff
+              and managers reach this branch. */}
+          {(effectiveRole === 'property_admin' ||
             effectiveRole === 'property_manager' ||
             effectiveRole === 'maintenance_staff' ||
             effectiveRole === 'superintendent') && (
