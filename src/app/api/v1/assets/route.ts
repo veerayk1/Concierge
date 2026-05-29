@@ -99,7 +99,20 @@ function calculateWarrantyStatus(warrantyExpiry: string | null | undefined): {
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Asset inventory includes serial numbers, purchase prices, depreciation
+    // schedules, vendor / contractor assignments — operational data not
+    // intended for residents. Restrict to staff who actually run asset
+    // management.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'board_member',
+        'maintenance_staff',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
