@@ -31,8 +31,13 @@ export async function GET(request: NextRequest) {
     if (moduleCheck) return moduleCheck;
 
     const { searchParams } = new URL(request.url);
-    // Use authenticated user's propertyId to prevent IDOR
-    const propertyId = auth.user.propertyId || searchParams.get('propertyId');
+    // Prefer the query string so a property_admin asking for the wrong
+    // property is rejected by enforcePropertyAccess instead of silently
+    // getting their own data back under the other property's label.
+    // Fall back to auth.user.propertyId when the client omits the param
+    // (residents on their own dashboard, super_admin viewing platform-
+    // level data).
+    const propertyId = searchParams.get('propertyId') || auth.user.propertyId;
     const reportType = searchParams.get('type');
     const from = searchParams.get('from');
     const to = searchParams.get('to');
