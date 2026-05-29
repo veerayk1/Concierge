@@ -8,14 +8,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { batchCreatePackageSchema } from '@/schemas/package';
 import { nanoid } from 'nanoid';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { sendEmail } from '@/server/email';
 import { getUnitResidentEmails } from '@/server/email';
 import { renderTemplate } from '@/server/email-templates';
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Batch package intake is a front-desk / staff action. Without role
+    // restriction any authenticated user (including a resident) could
+    // POST packages into the building's intake log.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_guard',
+        'security_supervisor',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();
@@ -33,6 +45,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { propertyId, packages: packageInputs } = parsed.data;
+
+    // Block cross-tenant — a front_desk at A must not be able to inject
+    // packages onto Property B's intake log.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     // Create all packages in a transaction
     const created = await prisma.$transaction(

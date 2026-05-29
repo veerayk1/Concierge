@@ -18,7 +18,19 @@ const batchReleaseSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Batch-release marks packages picked up. Without role + tenant
+    // filtering any authenticated user could mass-release packages on any
+    // property, erasing the pickup audit trail.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'front_desk',
+        'security_guard',
+        'security_supervisor',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();
@@ -34,14 +46,26 @@ export async function POST(request: NextRequest) {
     const input = parsed.data;
     const now = new Date();
 
+    // Pin the where clause to the caller's property so a front_desk at A
+    // can't release Property B's packages by sending the right ids.
+    const where: {
+      id: { in: string[] };
+      status: string;
+      deletedAt: null;
+      propertyId?: string;
+    } = {
+      id: { in: input.packageIds },
+      status: 'unreleased',
+      deletedAt: null,
+    };
+    if (auth.user.role !== 'super_admin' && auth.user.propertyId) {
+      where.propertyId = auth.user.propertyId;
+    }
+
     // Release all packages in transaction
     const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.package.updateMany({
-        where: {
-          id: { in: input.packageIds },
-          status: 'unreleased',
-          deletedAt: null,
-        },
+        where,
         data: {
           status: 'released',
           releasedToName: input.releasedToName,
