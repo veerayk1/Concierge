@@ -353,7 +353,8 @@ describe('POST /api/auth/login', () => {
     expect(res.status).toBe(429);
     const body = await res.json();
     expect(body.code).toBe('RATE_LIMITED');
-    expect(body.error).toMatch(/too many login attempts/i);
+    expect(body.error).toBe('RATE_LIMITED');
+    expect(body.message).toMatch(/too many login attempts/i);
   });
 
   it('updates lastLoginAt on successful login', async () => {

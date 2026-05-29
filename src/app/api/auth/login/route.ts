@@ -73,7 +73,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     } catch (e) {
       if (e instanceof RateLimitError) {
         return NextResponse.json(
-          { error: 'Too many login attempts. Please try again later.', code: 'RATE_LIMITED' },
+          {
+            error: 'RATE_LIMITED',
+            message: 'Too many login attempts. Please try again later.',
+            code: 'RATE_LIMITED',
+            requestId,
+          },
           {
             status: 429,
             headers: {
