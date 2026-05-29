@@ -467,7 +467,10 @@ export default function UnitsPage() {
         open={showGenerateUnits}
         onOpenChange={setShowGenerateUnits}
         propertyId={propertyId}
-        onSuccess={() => refetch()}
+        onSuccess={() => {
+          setShowGenerateUnits(false);
+          refetch();
+        }}
       />
     </>
   );
