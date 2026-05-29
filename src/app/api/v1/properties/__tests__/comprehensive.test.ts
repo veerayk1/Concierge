@@ -275,6 +275,44 @@ describe('GET /properties — list properties', () => {
 
     expect(res.status).toBe(401);
   });
+
+  // ------------------------------------------------------------------------
+  // Regression: cross-tenant leak on GET /properties
+  //
+  // Before c8e9ff0 a non-super-admin caller got every active property on the
+  // platform back. The fix scopes the where clause to properties the caller
+  // has a user_properties row for.
+  // ------------------------------------------------------------------------
+  it('scopes the list to the caller user_properties for a non-super-admin', async () => {
+    mockGuardRole = 'resident_owner';
+    mockGuardUserId = TEST_USER_ID;
+    mockPropertyFindMany.mockResolvedValue([sampleProperty()]);
+
+    const req = createGetRequest('/api/v1/properties');
+    await GET(req);
+
+    const call = mockPropertyFindMany.mock.calls[0]?.[0] as {
+      where: { isActive?: boolean; userProperties?: { some?: { userId?: string } } };
+    };
+    // Membership filter must be there
+    expect(call.where.userProperties?.some?.userId).toBe(TEST_USER_ID);
+    // …and the active-only filter must still apply to non-super-admins
+    expect(call.where.isActive).toBe(true);
+  });
+
+  it('does NOT add the userProperties filter for super_admin', async () => {
+    mockGuardRole = 'super_admin';
+    mockPropertyFindMany.mockResolvedValue([]);
+
+    const req = createGetRequest('/api/v1/properties');
+    await GET(req);
+
+    const call = mockPropertyFindMany.mock.calls[0]?.[0] as {
+      where: { isActive?: boolean; userProperties?: unknown };
+    };
+    expect(call.where.userProperties).toBeUndefined();
+    expect(call.where.isActive).toBeUndefined();
+  });
 });
 
 // =========================================================================
