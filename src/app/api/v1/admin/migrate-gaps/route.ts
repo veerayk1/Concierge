@@ -10,8 +10,12 @@ import { guardRoute } from '@/server/middleware/api-guard';
 
 export async function POST(request: NextRequest) {
   try {
+    // DDL — restrict to platform super_admin. property_admin running raw
+    // CREATE TABLE statements on a multi-tenant Postgres is a privilege
+    // escalation we don't need to grant for what is effectively a one-time
+    // schema patch endpoint.
     const auth = await guardRoute(request, {
-      roles: ['property_admin', 'super_admin'],
+      roles: ['super_admin'],
     });
     if (auth.error) return auth.error;
 
@@ -44,8 +48,12 @@ export async function POST(request: NextRequest) {
           "deletedAt" TIMESTAMP WITH TIME ZONE
         )
       `);
-      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_fire_logs_property_alarm ON fire_logs ("propertyId", "alarmTime")`);
-      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_fire_logs_property_created ON fire_logs ("propertyId", "createdAt")`);
+      await prisma.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS idx_fire_logs_property_alarm ON fire_logs ("propertyId", "alarmTime")`,
+      );
+      await prisma.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS idx_fire_logs_property_created ON fire_logs ("propertyId", "createdAt")`,
+      );
       results.push('fire_logs: created');
     } catch (e: any) {
       results.push(`fire_logs: ${e.message}`);
@@ -71,7 +79,9 @@ export async function POST(request: NextRequest) {
           "deletedAt" TIMESTAMP WITH TIME ZONE
         )
       `);
-      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_noise_complaints_property ON noise_complaints ("propertyId", "createdAt")`);
+      await prisma.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS idx_noise_complaints_property ON noise_complaints ("propertyId", "createdAt")`,
+      );
       results.push('noise_complaints: created');
     } catch (e: any) {
       results.push(`noise_complaints: ${e.message}`);
@@ -145,7 +155,9 @@ export async function POST(request: NextRequest) {
 
     // Fix vacation_periods unitId to be nullable (Prisma schema has it as NOT NULL but we need it optional)
     try {
-      await prisma.$executeRawUnsafe(`ALTER TABLE vacation_periods ALTER COLUMN "unitId" DROP NOT NULL`);
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE vacation_periods ALTER COLUMN "unitId" DROP NOT NULL`,
+      );
       results.push('vacation_periods.unitId: made nullable');
     } catch (e: any) {
       results.push(`vacation_periods.unitId: ${e.message}`);
@@ -157,9 +169,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Migration error:', error);
-    return NextResponse.json(
-      { error: 'MIGRATION_ERROR', message: String(error) },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'MIGRATION_ERROR', message: String(error) }, { status: 500 });
   }
 }
