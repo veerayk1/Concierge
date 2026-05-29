@@ -15,7 +15,20 @@ import type { ScheduleConfig } from '@/server/scheduling';
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Mirror /recurring-tasks list gate — preventive maintenance schedule
+    // is staff-only operational data.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'maintenance_staff',
+        'superintendent',
+        'front_desk',
+        'security_supervisor',
+        'board_member',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);

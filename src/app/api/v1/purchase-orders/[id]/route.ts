@@ -25,7 +25,18 @@ const APPROVAL_ROLES = ['property_admin', 'board_member', 'super_admin'];
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // Detail mirrors list — POs include vendor financials and line items,
+    // never resident-facing.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'board_member',
+        'maintenance_staff',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;

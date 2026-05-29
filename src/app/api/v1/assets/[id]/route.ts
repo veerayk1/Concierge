@@ -73,7 +73,18 @@ function calculateWarrantyStatus(warrantyExpiry: string | null | undefined): {
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    // Detail route mirrors the list route's role gate (assets list is
+    // staff-only — serial numbers, prices, depreciation).
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'board_member',
+        'maintenance_staff',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;
@@ -156,7 +167,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'maintenance_staff',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { id } = await params;

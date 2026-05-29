@@ -14,7 +14,18 @@ import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    // Asset audit history exposes findings — missing/disposed items, fraud
+    // signals, value of inventory. Staff-only.
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'board_member',
+        'maintenance_staff',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
@@ -50,7 +61,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, {
+      roles: [
+        'super_admin',
+        'property_admin',
+        'property_manager',
+        'maintenance_staff',
+        'superintendent',
+      ],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();
