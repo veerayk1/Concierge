@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 
 const createPetSchema = z.object({
@@ -29,9 +29,19 @@ export async function GET(request: NextRequest) {
     const unitId = new URL(request.url).searchParams.get('unitId');
     const propertyId = new URL(request.url).searchParams.get('propertyId');
 
-    const where: Record<string, unknown> = { deletedAt: null };
+    // Pets are property-scoped and live behind a tenant boundary. Allowing a
+    // caller to omit propertyId would return every pet on the platform.
+    if (!propertyId) {
+      return NextResponse.json(
+        { error: 'MISSING_PROPERTY', message: 'propertyId is required' },
+        { status: 400 },
+      );
+    }
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
+
+    const where: Record<string, unknown> = { deletedAt: null, propertyId };
     if (unitId) where.unitId = unitId;
-    if (propertyId) where.propertyId = propertyId;
 
     const pets = await prisma.pet.findMany({
       where,
