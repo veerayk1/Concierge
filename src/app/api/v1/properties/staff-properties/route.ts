@@ -27,8 +27,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // For non-super-admin callers, filter to property assignments inside
+    // their own property. Otherwise a property_admin of A could pass any
+    // userId and discover the names and addresses of every other property
+    // that user is on (cross-tenant enumeration of property metadata).
+    const whereClause: { userId: string; deletedAt: null; propertyId?: string } = {
+      userId,
+      deletedAt: null,
+    };
+    if (auth.user.role !== 'super_admin' && auth.user.propertyId) {
+      whereClause.propertyId = auth.user.propertyId;
+    }
+
     const assignments = await prisma.userProperty.findMany({
-      where: { userId, deletedAt: null },
+      where: whereClause,
       include: {
         property: {
           select: {
