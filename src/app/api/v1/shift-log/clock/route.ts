@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import type { Role } from '@/types';
 
 const GUARD_ROLES: Role[] = [
@@ -77,6 +77,11 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    // Block cross-tenant clock-ins — a guard at Property A shouldn't be
+    // able to open a shift on Property B.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     // Double-clock-in guard — don't open a second active shift if one is
     // already open. Return the existing shift idempotently.

@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 const markReadSchema = z.object({
   propertyId: z.string().uuid(),
@@ -32,6 +32,11 @@ export async function POST(request: NextRequest) {
 
     const { propertyId, entryIds } = parsed.data;
     const userId = auth.user.userId;
+
+    // Block cross-tenant marks — a user on Property A shouldn't be able to
+    // mark Property B's shift-log entries as read on their own behalf.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     // Fetch all entries that belong to this property
     const entries = await prisma.event.findMany({
