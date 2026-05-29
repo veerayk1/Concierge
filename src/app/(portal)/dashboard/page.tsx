@@ -2617,14 +2617,19 @@ export default function DashboardPage() {
       // subscriptions + health), fall back to "\u2014" only when that fetch
       // hasn't returned yet. Total Properties / Total Units come from
       // the existing properties fetch so they show instantly.
+      const havePropsData = Array.isArray(platformProperties);
       return {
-        'Total Properties': String(platformKpis?.totalProperties ?? activeProps.length),
+        'Total Properties': platformKpis
+          ? String(platformKpis.totalProperties)
+          : havePropsData
+            ? String(activeProps.length)
+            : '\u2014',
         'Total Users': platformKpis ? String(platformKpis.activeUsers) : '\u2014',
         'Active Users': platformKpis ? String(platformKpis.activeUsers) : '\u2014',
         'Platform Health': platformKpis ? `${platformKpis.platformHealth}%` : '\u2014',
         'Active Subscriptions': platformKpis ? String(platformKpis.activeSubscriptions) : '\u2014',
         'AI Spend': '\u2014',
-        'Total Units': totalUnits.toLocaleString('en-US'),
+        'Total Units': havePropsData ? totalUnits.toLocaleString('en-US') : '\u2014',
       };
     }
 
