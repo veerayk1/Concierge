@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { z } from 'zod';
 
 const generateSchema = z.object({
@@ -45,6 +45,10 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
 
+    // Block cross-tenant writes — same pattern as the other bulk endpoints.
+    const tenancy = enforcePropertyAccess(auth.user, input.propertyId);
+    if (tenancy) return tenancy;
+
     if (input.floorEnd < input.floorStart) {
       return NextResponse.json(
         { error: 'VALIDATION_ERROR', message: 'floorEnd must be >= floorStart' },
@@ -75,7 +79,7 @@ export async function POST(request: NextRequest) {
       where: {
         propertyId: input.propertyId,
         deletedAt: null,
-        number: { notIn: seedMarkers }
+        number: { notIn: seedMarkers },
       },
       select: { number: true },
     });
