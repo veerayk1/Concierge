@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { z } from 'zod';
@@ -53,6 +53,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { propertyId, staff } = parsed.data;
+
+    // Block cross-tenant bulk-imports — a property_admin of A shouldn't be
+    // able to inject staff (and reset passwords) on Property B.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     // Pre-fetch existing users by email to skip duplicates
     const emails = staff.map((s) => s.email.toLowerCase());

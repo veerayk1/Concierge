@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { hashPassword } from '@/server/auth/password';
 import { nanoid } from 'nanoid';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { z } from 'zod';
 
 const bulkImportUserSchema = z.object({
@@ -40,6 +40,12 @@ export async function POST(request: NextRequest) {
       );
     }
     const { propertyId, roleId, users } = parsed.data;
+
+    // Block cross-tenant bulk-imports — would let a property_admin of A
+    // mass-create users (with role assignments and temp passwords) on
+    // Property B.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     const results = {
       created: 0,

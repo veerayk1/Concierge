@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { z } from 'zod';
@@ -49,6 +49,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { propertyId, codes } = parsed.data;
+
+    // Block cross-tenant bulk-writes — buzzer codes are physical access creds.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     // Pre-fetch units for this property
     const units = await prisma.unit.findMany({

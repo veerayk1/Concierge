@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -86,6 +86,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { propertyId, skipDuplicates } = parsed.data;
+
+    // Block cross-tenant writes — see other bulk endpoints.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
     // Validate each unit individually — skip invalid ones instead of rejecting the whole batch
     const units = parsed.data.units
       .map((rawUnit, idx) => {
@@ -122,7 +126,7 @@ export async function POST(request: NextRequest) {
       where: {
         propertyId,
         deletedAt: null,
-        number: { notIn: seedMarkers }
+        number: { notIn: seedMarkers },
       },
       select: { number: true },
     });

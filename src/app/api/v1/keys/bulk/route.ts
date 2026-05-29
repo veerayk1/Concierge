@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { z } from 'zod';
@@ -53,6 +53,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { propertyId, fobs } = parsed.data;
+
+    // Block cross-tenant bulk-writes — FOBs are physical access credentials.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     // Pre-fetch units for this property to resolve unitNumber -> unitId
     const units = await prisma.unit.findMany({

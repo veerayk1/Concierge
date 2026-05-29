@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { z } from 'zod';
@@ -55,6 +55,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { propertyId, amenities } = parsed.data;
+
+    // Block cross-tenant bulk-writes.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     // Get or create a "General" amenity group for this property
     let defaultGroup = await prisma.amenityGroup.findFirst({
