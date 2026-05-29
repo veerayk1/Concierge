@@ -158,3 +158,90 @@ describe('useModuleConfig (merge semantics)', () => {
     expect(enabled.has('sso')).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Regression: real-auth users must send Bearer token to /api/v1/feature-flags
+//
+// Before fix: getAuthHeaders only sent x-demo-role; real users got 401, the
+// 401 fallback used tier defaults that disabled enterprise modules, and the
+// sidebar collapsed to ~3 items even for roles that should see 9+.
+// ---------------------------------------------------------------------------
+
+describe('useModuleConfig (auth header)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('sends the auth_token as a Bearer token when no demo_role is set', async () => {
+    localStorage.setItem('auth_token', 'tok-abc-123');
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ data: [] }) }) as unknown as typeof fetch;
+    global.fetch = fetchMock;
+
+    render(
+      <ModuleConfigProvider>
+        <Probe />
+      </ModuleConfigProvider>,
+    );
+
+    await waitFor(() => expect(screen.queryByText('loading')).toBeNull());
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const init = (fetchMock as unknown as { mock: { calls: unknown[][] } }).mock.calls[0]?.[1] as {
+      headers?: Record<string, string>;
+    };
+    expect(init?.headers?.Authorization).toBe('Bearer tok-abc-123');
+    // demo headers must not appear for real-auth users
+    expect(init?.headers?.['x-demo-role']).toBeUndefined();
+  });
+
+  it('prefers x-demo-role when demo_role is set, ignores auth_token', async () => {
+    localStorage.setItem('auth_token', 'tok-abc-123');
+    localStorage.setItem('demo_role', 'front_desk');
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ data: [] }) }) as unknown as typeof fetch;
+    global.fetch = fetchMock;
+
+    render(
+      <ModuleConfigProvider>
+        <Probe />
+      </ModuleConfigProvider>,
+    );
+
+    await waitFor(() => expect(screen.queryByText('loading')).toBeNull());
+
+    const init = (fetchMock as unknown as { mock: { calls: unknown[][] } }).mock.calls[0]?.[1] as {
+      headers?: Record<string, string>;
+    };
+    expect(init?.headers?.['x-demo-role']).toBe('front_desk');
+    expect(init?.headers?.Authorization).toBeUndefined();
+  });
+
+  it('sends no auth header when neither demo_role nor auth_token is set', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ data: [] }) }) as unknown as typeof fetch;
+    global.fetch = fetchMock;
+
+    render(
+      <ModuleConfigProvider>
+        <Probe />
+      </ModuleConfigProvider>,
+    );
+
+    await waitFor(() => expect(screen.queryByText('loading')).toBeNull());
+
+    const init = (fetchMock as unknown as { mock: { calls: unknown[][] } }).mock.calls[0]?.[1] as {
+      headers?: Record<string, string>;
+    };
+    expect(init?.headers?.Authorization).toBeUndefined();
+    expect(init?.headers?.['x-demo-role']).toBeUndefined();
+  });
+});
