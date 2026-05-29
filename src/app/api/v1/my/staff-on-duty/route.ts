@@ -18,7 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 
 const FRONT_DESK_ROLES = ['front_desk', 'superintendent'];
 const SECURITY_ROLES = ['security_guard', 'security_supervisor'];
@@ -41,6 +41,12 @@ export async function GET(request: NextRequest) {
       propertyId = occ?.propertyId ?? null;
     }
     if (!propertyId) return NextResponse.json({ data: null });
+
+    // If the caller passed an explicit ?propertyId, enforce that they
+    // actually belong to it — otherwise a resident on A could read B's
+    // active guard roster.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     const shifts = await prisma.securityShift.findMany({
       where: {
