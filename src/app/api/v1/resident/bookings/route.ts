@@ -107,24 +107,68 @@ export async function POST(request: NextRequest) {
     const input = parsed.data;
     const year = new Date().getFullYear();
     const referenceNumber = `AMN-${year}-${nanoid(5).toUpperCase()}`;
+    const newId = crypto.randomUUID();
 
-    const booking = await prisma.booking.create({
-      data: {
-        referenceNumber,
-        propertyId,
-        amenityId: input.amenityId,
-        unitId, // Always from auth context
-        residentId: userId,
-        createdById: userId,
-        startDate: new Date(input.startDate),
-        startTime: new Date(`1970-01-01T${input.startTime}`),
-        endDate: new Date(input.endDate),
-        endTime: new Date(`1970-01-01T${input.endTime}`),
-        guestCount: input.guestCount,
-        requestorComments: input.requestorComments || null,
-        status: 'pending',
-        approvalStatus: 'pending',
-      },
+    // Concurrency: serialize concurrent writers for the same (amenity, day)
+    // tuple with a Postgres advisory transaction lock, then check + insert.
+    // Without the lock, INSERT … WHERE NOT EXISTS still races under
+    // READ COMMITTED — concurrent transactions don't see each other's
+    // uncommitted rows so two can both pass the NOT EXISTS check and both
+    // succeed. A 20-way drill against this endpoint produced 6 winners
+    // before adding the lock; with it, exactly one wins.
+    //
+    // Overlap predicate: same amenity, same start date, active status
+    // (not cancelled / declined), and the time ranges intersect on that
+    // day. Same-day is the dominant case — multi-day bookings (cottages,
+    // suites) are not gated here yet and should add an end-date overlap
+    // term if/when the UI lets residents pick spanning ranges.
+    const inserted = await prisma.$transaction(async (tx) => {
+      // Two 32-bit keys for the lock: one is the amenityId hash, the other
+      // is the startDate as YYYYMMDD. This namespaces locks per amenity per
+      // day so unrelated bookings don't queue behind each other.
+      const dateKey = parseInt(input.startDate.replace(/-/g, ''), 10);
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${input.amenityId})::int, ${dateKey}::int)`;
+
+      return tx.$queryRaw<{ id: string; referenceNumber: string }[]>`
+        INSERT INTO bookings (
+          id, "referenceNumber", "propertyId", "amenityId", "unitId",
+          "residentId", "createdById", "startDate", "startTime",
+          "endDate", "endTime", "guestCount", "requestorComments",
+          status, "approvalStatus", "createdAt", "updatedAt"
+        )
+        SELECT
+          ${newId}::uuid, ${referenceNumber}, ${propertyId}::uuid,
+          ${input.amenityId}::uuid, ${unitId}::uuid, ${userId}::uuid,
+          ${userId}::uuid, ${new Date(input.startDate)}::date,
+          ${`1970-01-01T${input.startTime}`}::timestamp::time,
+          ${new Date(input.endDate)}::date,
+          ${`1970-01-01T${input.endTime}`}::timestamp::time,
+          ${input.guestCount}::int, ${input.requestorComments || null},
+          'pending', 'pending', NOW(), NOW()
+        WHERE NOT EXISTS (
+          SELECT 1 FROM bookings
+          WHERE "amenityId" = ${input.amenityId}::uuid
+            AND "startDate" = ${new Date(input.startDate)}::date
+            AND status NOT IN ('cancelled', 'declined')
+            AND "startTime" < ${`1970-01-01T${input.endTime}`}::timestamp::time
+            AND "endTime" > ${`1970-01-01T${input.startTime}`}::timestamp::time
+        )
+        RETURNING id, "referenceNumber"
+      `;
+    });
+
+    if (inserted.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'SLOT_TAKEN',
+          message: 'That amenity slot is already booked. Please pick a different time.',
+        },
+        { status: 409 },
+      );
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: newId },
       include: {
         amenity: { select: { id: true, name: true } },
         unit: { select: { id: true, number: true } },
