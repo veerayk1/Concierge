@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { z } from 'zod';
 import {
   parseCsv,
@@ -84,6 +84,10 @@ export async function POST(request: NextRequest) {
       competitorFormat,
       fileName,
     } = parsed.data;
+
+    // Block cross-tenant imports — same shape leak as the bulk endpoints.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     if (!VALID_ENTITY_TYPES.includes(entityType as EntityType)) {
       return NextResponse.json(

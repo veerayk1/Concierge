@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { z } from 'zod';
 import { exportPropertyData, ENTITY_FIELDS } from '@/server/data-migration';
 import type { EntityType } from '@/server/data-migration';
@@ -39,6 +39,12 @@ export async function POST(request: NextRequest) {
       );
     }
     const { propertyId, entityTypes, format, dsarCompliant } = parsed.data;
+
+    // A data-migration export is a bulk PII pull. Block cross-tenant —
+    // PM of A must not be able to download Property B's residents, units,
+    // packages, etc.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     // Validate entity types if provided
     if (entityTypes) {
