@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { handleDemoRequest } from '@/server/demo';
 import { stripHtml, stripControlChars } from '@/lib/sanitize';
 import { z } from 'zod';
@@ -56,6 +56,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { propertyId, permits } = parsed.data;
+
+    // Without this, a property_admin of Property A could pass propertyId=B
+    // in the body and bulk-overwrite Property B's parking.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     // Pre-fetch units and find a user per unit for the Vehicle.userId requirement
     const units = await prisma.unit.findMany({
