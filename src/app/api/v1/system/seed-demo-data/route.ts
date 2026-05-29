@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DEFAULT_DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { prisma } from '@/server/db';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 const COURIERS = [
   { name: 'Amazon', slug: 'amazon', color: '#FF9900', sortOrder: 1 },
@@ -38,10 +39,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
   }
 
-  const demoRole = request.headers.get('x-demo-role');
-  if (demoRole !== 'super_admin') {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
-  }
+  // Real JWT required — see set-passwords route for the backdoor this
+  // replaces.
+  const auth = await guardRoute(request, { roles: ['super_admin'], allowDemo: false });
+  if (auth.error) return auth.error;
 
   try {
     const body = await request.json().catch(() => ({}));

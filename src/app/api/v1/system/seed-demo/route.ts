@@ -3,12 +3,13 @@
  * POST /api/v1/system/seed-demo
  *
  * Idempotent: safe to run multiple times (uses upsert on emails / reference numbers).
- * Requires super_admin or property_admin role via x-demo-role header.
+ * Requires super_admin or property_admin role via a real JWT.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { DEFAULT_DEMO_PROPERTY_ID } from '@/lib/demo-config';
 import { prisma } from '@/server/db';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 // ---------------------------------------------------------------------------
 // Constants — aligned with prisma/seed Maple Heights
@@ -496,14 +497,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
   }
 
-  // Auth: require super_admin or property_admin via demo header
-  const demoRole = request.headers.get('x-demo-role');
-  if (demoRole !== 'super_admin' && demoRole !== 'property_admin') {
-    return NextResponse.json(
-      { error: 'FORBIDDEN', message: 'Requires super_admin or property_admin role.' },
-      { status: 403 },
-    );
-  }
+  // Real JWT required — see set-passwords for the backdoor this replaces.
+  const auth = await guardRoute(request, {
+    roles: ['super_admin', 'property_admin'],
+    allowDemo: false,
+  });
+  if (auth.error) return auth.error;
 
   try {
     const propertyId = PROPERTY_ID;

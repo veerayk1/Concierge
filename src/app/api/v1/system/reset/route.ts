@@ -24,19 +24,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Guard 3: Require super_admin role via guardRoute or demo header
-  const demoRole = request.headers.get('x-demo-role');
-  if (demoRole && demoRole !== 'super_admin') {
-    return NextResponse.json(
-      { error: 'FORBIDDEN', message: 'Only super_admin can reset the system.' },
-      { status: 403 },
-    );
-  }
-
-  if (!demoRole) {
-    const auth = await guardRoute(request, { roles: ['super_admin'] });
-    if (auth.error) return auth.error;
-  }
+  // Guard 3: Real JWT for super_admin — required, no demo-header bypass.
+  // The previous "if (!demoRole) check JWT" branch was a backdoor:
+  // sending X-Demo-Role: super_admin skipped authentication entirely.
+  const auth = await guardRoute(request, { roles: ['super_admin'], allowDemo: false });
+  if (auth.error) return auth.error;
 
   try {
     const body = await request.json().catch(() => ({}));

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { hashPassword } from '@/server/auth/password';
+import { guardRoute } from '@/server/middleware/api-guard';
 
 export async function POST(request: NextRequest) {
   // Production guard — block in production unless explicitly allowed
@@ -13,13 +14,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
   }
 
-  const demoRole = request.headers.get('x-demo-role');
-  if (demoRole !== 'super_admin') {
-    return NextResponse.json(
-      { error: 'FORBIDDEN', message: 'Only super_admin can set passwords.' },
-      { status: 403 },
-    );
-  }
+  // Previously trusted the X-Demo-Role header — that's a client-supplied
+  // header, so the "super_admin only" gate was a backdoor. Anyone (in
+  // dev/staging, or in prod with ALLOW_SYSTEM_ROUTES set) could reset
+  // arbitrary user passwords by sending one header. Require a real JWT.
+  // allowDemo: false — guardRoute would otherwise honor x-demo-role,
+  // re-creating the backdoor this route was originally built around.
+  const auth = await guardRoute(request, { roles: ['super_admin'], allowDemo: false });
+  if (auth.error) return auth.error;
 
   try {
     const body = await request.json().catch(() => ({}));
