@@ -119,7 +119,9 @@ export function AuthorizedEntryDialog({
         },
         body: JSON.stringify({
           propertyId,
-          eventTypeSlug: 'authorized-entry',
+          // Server resolves non-UUID values as slug and auto-creates the
+          // event type under the property's Security event group.
+          eventTypeId: 'authorized-entry',
           unitId: data.unitId || undefined,
           title: `Authorized Entry — ${AUTH_TYPE_LABELS[data.authorizationType]}`,
           description: data.entryReason,
