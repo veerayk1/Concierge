@@ -17,7 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { parsePagination, buildPaginationMeta } from '@/lib/pagination';
 import { appCache } from '@/server/cache';
 
@@ -161,6 +161,11 @@ export async function GET(request: NextRequest) {
         data: { users: [], units: [], packages: [], events: [], announcements: [], results: [] },
       });
     }
+
+    // Without this, a caller from Property A could pass propertyId=B and
+    // search Property B's users, units, packages, events, and announcements.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     // Determine which modules to search
     const modules: SearchModule[] =
