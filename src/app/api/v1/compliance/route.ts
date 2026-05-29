@@ -219,7 +219,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await guardRoute(request);
+    const auth = await guardRoute(request, {
+      roles: ['super_admin', 'property_admin', 'property_manager', 'board_member'],
+    });
     if (auth.error) return auth.error;
 
     const body = await request.json();
