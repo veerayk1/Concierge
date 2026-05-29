@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { guardRoute } from '@/server/middleware/api-guard';
+import { guardRoute, enforcePropertyAccess } from '@/server/middleware/api-guard';
 import { z } from 'zod';
 import {
   REPORT_CATALOG,
@@ -73,6 +73,10 @@ export async function POST(request: NextRequest) {
       );
     }
     const { type, propertyId, from, to, schedule } = parsed.data;
+
+    // Block cross-tenant — compliance reports include PII.
+    const tenancy = enforcePropertyAccess(auth.user, propertyId);
+    if (tenancy) return tenancy;
 
     // Validate report type against allowed list
     if (!COMPLIANCE_REPORT_TYPES.includes(type as ComplianceReportType)) {
