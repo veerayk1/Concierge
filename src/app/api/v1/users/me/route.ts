@@ -188,3 +188,116 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// DELETE /api/v1/users/me — Account deletion (App Store policy 5.1.1(v))
+// ---------------------------------------------------------------------------
+//
+// Apple requires every app that supports account creation to support
+// in-app account deletion. The deletion flow has to be obvious,
+// reachable without leaving the app, and complete on the user's
+// terms (not "we'll email support to delete this for you").
+//
+// What we do:
+//   - Soft-delete the user (deletedAt = now).
+//   - Revoke all refresh tokens so other devices are signed out.
+//   - Delete all device push tokens so we stop pushing to a deleted
+//     account's phones.
+//   - Anonymize PII on a delay (a separate scheduled job will do the
+//     30-day hard-purge); for compliance reasons we keep the audit
+//     trail (`UserAudit`, `LoginAudit`) so the building can show "this
+//     person held a key on Jan 4" even after their account is gone.
+//   - Cannot be undone by the resident themselves; their property
+//     admin can re-invite them under the same email.
+//
+// What we do NOT do here:
+//   - Hard-delete property data (packages, requests, bookings) — those
+//     belong to the property, not the resident, and reference the user
+//     for audit. They survive deletion with the resident's name
+//     archived in place.
+//   - Allow a property_admin to delete themselves via this route. Use
+//     /api/v1/users/[id] DELETE for admin-initiated deletions; the
+//     in-app self-delete is for residents.
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const auth = await guardRoute(request, { allowDemo: false });
+    if (auth.error) return auth.error;
+
+    const userId = auth.user.userId;
+
+    // Property admins / super admins can't self-delete via the mobile
+    // flow — too easy to lock the building out. They need to be
+    // deleted by someone with admin authority via /api/v1/users/[id].
+    if (
+      auth.user.role === 'super_admin' ||
+      auth.user.role === 'property_admin' ||
+      auth.user.role === 'property_manager'
+    ) {
+      return NextResponse.json(
+        {
+          error: 'ADMIN_SELF_DELETE_BLOCKED',
+          message:
+            'Admin accounts cannot be self-deleted from the app. Ask another admin or super admin to remove this account.',
+        },
+        { status: 403 },
+      );
+    }
+
+    const now = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Soft-delete the user. `deletedAt` blocks subsequent
+      //    /api/v1/users/me reads and guardRoute will reject any
+      //    further token use against this account.
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          deletedAt: now,
+          isActive: false,
+          // Strip activation token / lockout state so the row is in
+          // a known-clean state for the eventual hard purge.
+          activationToken: null,
+          lockedUntil: null,
+        },
+      });
+
+      // 2. Revoke every refresh token — other devices are signed out
+      //    the moment they try to refresh.
+      await tx.refreshToken.deleteMany({ where: { userId } });
+
+      // 3. Drop push tokens so we stop notifying a deleted account.
+      await tx.devicePushToken.deleteMany({ where: { userId } });
+
+      // 4. Audit trail — record WHO initiated this and WHEN. Useful
+      //    for support tickets ("did I delete my own account?").
+      try {
+        await tx.userAudit.create({
+          data: {
+            userId,
+            actorId: userId,
+            action: 'deleted',
+            detail: { reason: 'self_delete_via_mobile' },
+          },
+        });
+      } catch {
+        // If the audit table is unavailable, don't block the delete —
+        // the deletion is the protection the user actually wanted.
+      }
+    });
+
+    return NextResponse.json({
+      data: {
+        deletedAt: now.toISOString(),
+        message:
+          'Your account has been deleted. We will purge your remaining personal data within 30 days per privacy policy.',
+      },
+    });
+  } catch (error) {
+    console.error('DELETE /api/v1/users/me error:', error);
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', message: 'Failed to delete account' },
+      { status: 500 },
+    );
+  }
+}

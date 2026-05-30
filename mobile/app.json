@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "Concierge",
+    "slug": "concierge",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "concierge",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.concierge.resident",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Concierge uses your camera to attach photos to maintenance requests so the property team can see the issue before they arrive.",
+        "NSPhotoLibraryUsageDescription": "Concierge uses your photo library to attach images to maintenance requests and visitor pre-authorizations.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "app.concierge.resident",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": ["NOTIFICATIONS", "CAMERA"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0F172A",
+          "defaultChannel": "default",
+          "enableBackgroundRemoteNotifications": false
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "extra": {
+      "apiBaseUrl": "https://concierge.app",
+      "buildEnv": "production"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
