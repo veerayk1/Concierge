@@ -266,7 +266,7 @@ export default function GovernanceMeetingDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <FileText className="h-12 w-12 text-neutral-300" />
-        <h1 className="text-[20px] font-bold text-neutral-900">Governance item not found</h1>
+        <h1 className="text-[24px] font-bold text-neutral-900">Governance item not found</h1>
         <p className="text-[14px] text-neutral-500">
           The meeting or resolution you are looking for does not exist.
         </p>
@@ -284,7 +284,7 @@ export default function GovernanceMeetingDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <AlertTriangle className="text-error-500 h-12 w-12" />
-        <h1 className="text-[20px] font-bold text-neutral-900">Error loading governance item</h1>
+        <h1 className="text-[24px] font-bold text-neutral-900">Error loading governance item</h1>
         <p className="text-[14px] text-neutral-500">{error}</p>
         <Link href={'/governance' as never}>
           <Button variant="secondary">

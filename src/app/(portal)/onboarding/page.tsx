@@ -1762,7 +1762,7 @@ export default function OnboardingPage() {
           <div className="bg-primary-50 flex h-20 w-20 items-center justify-center rounded-2xl">
             <Sparkles className="text-primary-600 h-10 w-10" />
           </div>
-          <h1 className="mt-6 text-[32px] font-bold tracking-tight text-neutral-900">
+          <h1 className="mt-6 text-[28px] font-bold tracking-tight text-neutral-900">
             Welcome to Concierge!
           </h1>
           <p className="mt-2 text-[16px] text-neutral-500">

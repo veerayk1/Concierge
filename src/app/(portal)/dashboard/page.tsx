@@ -775,7 +775,7 @@ function FrontDeskDashboard({ name, greeting, apiData }: FrontDeskDashboardProps
       >
         <div className="conc-greeting-wash" aria-hidden="true" />
         <div className="relative z-10 flex flex-col gap-1.5">
-          <h1 className="text-[30px] leading-[1.05] font-bold tracking-tight text-neutral-900">
+          <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
             {greeting}, <span className="text-primary-500">{firstName}.</span>
           </h1>
           <p className="text-[13.5px] text-neutral-500">
@@ -1180,7 +1180,7 @@ function SecurityDashboard({ name, greeting, apiData }: SecurityDashboardProps) 
       >
         <div className="conc-greeting-wash" aria-hidden="true" />
         <div className="relative z-10 flex flex-col gap-1.5">
-          <h1 className="text-[30px] leading-[1.05] font-bold tracking-tight text-neutral-900">
+          <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
             {greeting}, <span className="text-primary-500">{firstName}.</span>
           </h1>
           <p className="text-[13.5px] text-neutral-500">
@@ -1742,7 +1742,7 @@ function ResidentDashboard({ name, greeting, apiData }: ResidentDashboardProps) 
       >
         <div className="conc-greeting-wash" aria-hidden="true" />
         <div className="relative z-10 flex flex-col gap-1.5">
-          <h1 className="text-[30px] leading-[1.05] font-bold tracking-tight text-neutral-900">
+          <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
             {greeting}, <span className="text-primary-500">{firstName}.</span>
           </h1>
           <p className="text-[13.5px] text-neutral-500">

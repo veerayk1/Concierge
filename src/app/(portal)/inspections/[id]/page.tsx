@@ -178,7 +178,7 @@ export default function InspectionDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <ClipboardCheck className="h-12 w-12 text-neutral-300" />
-        <h1 className="text-[20px] font-bold text-neutral-900">Inspection not found</h1>
+        <h1 className="text-[24px] font-bold text-neutral-900">Inspection not found</h1>
         <p className="text-[14px] text-neutral-500">
           The inspection you are looking for does not exist or has been removed.
         </p>
@@ -194,7 +194,7 @@ export default function InspectionDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <AlertTriangle className="text-error-500 h-12 w-12" />
-        <h1 className="text-[20px] font-bold text-neutral-900">Error loading inspection</h1>
+        <h1 className="text-[24px] font-bold text-neutral-900">Error loading inspection</h1>
         <p className="text-[14px] text-neutral-500">{error}</p>
         <Button variant="secondary" onClick={() => router.push('/inspections')}>
           <ArrowLeft className="h-4 w-4" />

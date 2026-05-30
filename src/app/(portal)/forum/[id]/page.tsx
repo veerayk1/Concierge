@@ -138,7 +138,7 @@ export default function ForumThreadDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <MessageSquare className="h-12 w-12 text-neutral-300" />
-        <h1 className="text-[20px] font-bold text-neutral-900">Topic not found</h1>
+        <h1 className="text-[24px] font-bold text-neutral-900">Topic not found</h1>
         <p className="text-[14px] text-neutral-500">
           The forum topic you are looking for does not exist or has been removed.
         </p>
@@ -156,7 +156,7 @@ export default function ForumThreadDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <AlertTriangle className="text-error-500 h-12 w-12" />
-        <h1 className="text-[20px] font-bold text-neutral-900">Error loading topic</h1>
+        <h1 className="text-[24px] font-bold text-neutral-900">Error loading topic</h1>
         <p className="text-[14px] text-neutral-500">{error}</p>
         <Link href={'/forum' as never}>
           <Button variant="secondary">

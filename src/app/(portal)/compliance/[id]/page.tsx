@@ -155,7 +155,7 @@ export default function ComplianceFrameworkDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <Shield className="h-12 w-12 text-neutral-300" />
-        <h1 className="text-[20px] font-bold text-neutral-900">Framework not found</h1>
+        <h1 className="text-[24px] font-bold text-neutral-900">Framework not found</h1>
         <p className="text-[14px] text-neutral-500">
           The compliance framework you are looking for does not exist.
         </p>
@@ -173,7 +173,7 @@ export default function ComplianceFrameworkDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <AlertTriangle className="text-error-500 h-12 w-12" />
-        <h1 className="text-[20px] font-bold text-neutral-900">Error loading framework</h1>
+        <h1 className="text-[24px] font-bold text-neutral-900">Error loading framework</h1>
         <p className="text-[14px] text-neutral-500">{error}</p>
         <Link href={'/compliance' as never}>
           <Button variant="secondary">

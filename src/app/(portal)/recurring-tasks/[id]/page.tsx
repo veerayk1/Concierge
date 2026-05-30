@@ -160,7 +160,7 @@ export default function RecurringTaskDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <Repeat className="h-12 w-12 text-neutral-300" />
-        <h1 className="text-[20px] font-bold text-neutral-900">Recurring task not found</h1>
+        <h1 className="text-[24px] font-bold text-neutral-900">Recurring task not found</h1>
         <p className="text-[14px] text-neutral-500">
           The recurring task you are looking for does not exist.
         </p>
@@ -176,7 +176,7 @@ export default function RecurringTaskDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <AlertTriangle className="text-error-500 h-12 w-12" />
-        <h1 className="text-[20px] font-bold text-neutral-900">Error loading task</h1>
+        <h1 className="text-[24px] font-bold text-neutral-900">Error loading task</h1>
         <p className="text-[14px] text-neutral-500">{error}</p>
         <Button variant="secondary" onClick={() => router.push('/recurring-tasks')}>
           <ArrowLeft className="h-4 w-4" />

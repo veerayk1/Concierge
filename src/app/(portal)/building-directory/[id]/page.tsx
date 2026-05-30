@@ -160,7 +160,7 @@ export default function BuildingDirectoryDetailPage() {
         </div>
         <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
           <AlertTriangle className="text-error-500 h-12 w-12" />
-          <h1 className="text-[20px] font-bold text-neutral-900">
+          <h1 className="text-[24px] font-bold text-neutral-900">
             {error ? 'Error loading entry' : 'Entry not found'}
           </h1>
           <p className="text-[14px] text-neutral-500">

@@ -149,7 +149,7 @@ export default function ShiftLogEntryDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <MessageSquare className="h-12 w-12 text-neutral-300" />
-        <h1 className="text-[20px] font-bold text-neutral-900">Shift log entry not found</h1>
+        <h1 className="text-[24px] font-bold text-neutral-900">Shift log entry not found</h1>
         <p className="text-[14px] text-neutral-500">
           The entry you are looking for does not exist or has been removed.
         </p>
@@ -167,7 +167,7 @@ export default function ShiftLogEntryDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <AlertTriangle className="text-error-500 h-12 w-12" />
-        <h1 className="text-[20px] font-bold text-neutral-900">Error loading entry</h1>
+        <h1 className="text-[24px] font-bold text-neutral-900">Error loading entry</h1>
         <p className="text-[14px] text-neutral-500">{error}</p>
         <Link href="/shift-log">
           <Button variant="secondary">
