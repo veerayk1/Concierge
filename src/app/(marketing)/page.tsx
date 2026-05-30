@@ -5,6 +5,7 @@ import { SolutionSection } from '@/components/marketing/SolutionSection';
 import { FeaturesGrid } from '@/components/marketing/FeaturesGrid';
 import { RoleTabs } from '@/components/marketing/RoleTabs';
 import { DesignPhilosophy } from '@/components/marketing/DesignPhilosophy';
+import { MobileSection } from '@/components/marketing/MobileSection';
 import { MetricsSection } from '@/components/marketing/MetricsSection';
 import { TestimonialSection } from '@/components/marketing/TestimonialSection';
 import { CTASection } from '@/components/marketing/CTASection';
@@ -30,8 +31,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Concierge | Building Management, Reimagined',
-    description:
-      'One platform. Every building. No compromises.',
+    description: 'One platform. Every building. No compromises.',
   },
 };
 
@@ -87,6 +87,12 @@ export default function LandingPage() {
 
       {/* Section 6: Design Philosophy */}
       <DesignPhilosophy />
+
+      {/* Section 6b: Mobile — residents get an installable app today,
+          native iOS / Android in private beta. Sits between design
+          philosophy and metrics so a prospect's eye reaches it after
+          the "this is well-built" beat but before the proof numbers. */}
+      <MobileSection />
 
       {/* Section 7: Metrics / Social Proof */}
       <MetricsSection />
