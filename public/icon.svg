@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0F172A"/>
+  <!-- Building silhouette — abstract residential tower -->
+  <g fill="#FFFFFF">
+    <rect x="128" y="160" width="256" height="288" rx="8"/>
+    <!-- Roof accent -->
+    <path d="M256 96 L120 168 L392 168 Z" fill="#0F172A" stroke="#FFFFFF" stroke-width="12" stroke-linejoin="round"/>
+  </g>
+  <!-- Window grid — subtle, signals "many units" -->
+  <g fill="#0F172A">
+    <rect x="156" y="200" width="32" height="40" rx="3"/>
+    <rect x="216" y="200" width="32" height="40" rx="3"/>
+    <rect x="264" y="200" width="32" height="40" rx="3"/>
+    <rect x="324" y="200" width="32" height="40" rx="3"/>
+
+    <rect x="156" y="264" width="32" height="40" rx="3"/>
+    <rect x="216" y="264" width="32" height="40" rx="3"/>
+    <rect x="264" y="264" width="32" height="40" rx="3"/>
+    <rect x="324" y="264" width="32" height="40" rx="3"/>
+
+    <rect x="156" y="328" width="32" height="40" rx="3"/>
+    <rect x="216" y="328" width="32" height="40" rx="3"/>
+    <rect x="264" y="328" width="32" height="40" rx="3"/>
+    <rect x="324" y="328" width="32" height="40" rx="3"/>
+  </g>
+  <!-- Entry door -->
+  <rect x="232" y="392" width="48" height="56" rx="4" fill="#0F172A"/>
+</svg>

@@ -1,0 +1,47 @@
+{
+  "name": "Concierge — Building Management",
+  "short_name": "Concierge",
+  "description": "Manage packages, maintenance requests, amenity bookings, and announcements for your building.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "lang": "en-CA",
+  "categories": ["productivity", "business"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My Packages",
+      "short_name": "Packages",
+      "url": "/my-packages",
+      "description": "View deliveries waiting for pickup"
+    },
+    {
+      "name": "Submit a Request",
+      "short_name": "Maintenance",
+      "url": "/my-requests?action=new",
+      "description": "Report a maintenance issue"
+    },
+    {
+      "name": "Book an Amenity",
+      "short_name": "Book",
+      "url": "/amenity-booking",
+      "description": "Reserve gym, party room, or guest suite"
+    }
+  ]
+}

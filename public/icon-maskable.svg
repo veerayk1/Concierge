@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Maskable icon needs the icon centered in the inner 80% (safe zone)
+       and the corner pixels can be cropped by Android into a circle. -->
+  <rect width="512" height="512" fill="#0F172A"/>
+  <g fill="#FFFFFF">
+    <!-- Centered building, slightly smaller than non-maskable to keep safe zone -->
+    <rect x="160" y="192" width="192" height="216" rx="6"/>
+    <path d="M256 144 L152 200 L360 200 Z" fill="#0F172A" stroke="#FFFFFF" stroke-width="10" stroke-linejoin="round"/>
+  </g>
+  <g fill="#0F172A">
+    <rect x="180" y="224" width="24" height="32" rx="2"/>
+    <rect x="220" y="224" width="24" height="32" rx="2"/>
+    <rect x="268" y="224" width="24" height="32" rx="2"/>
+    <rect x="308" y="224" width="24" height="32" rx="2"/>
+
+    <rect x="180" y="272" width="24" height="32" rx="2"/>
+    <rect x="220" y="272" width="24" height="32" rx="2"/>
+    <rect x="268" y="272" width="24" height="32" rx="2"/>
+    <rect x="308" y="272" width="24" height="32" rx="2"/>
+
+    <rect x="180" y="320" width="24" height="32" rx="2"/>
+    <rect x="220" y="320" width="24" height="32" rx="2"/>
+    <rect x="268" y="320" width="24" height="32" rx="2"/>
+    <rect x="308" y="320" width="24" height="32" rx="2"/>
+  </g>
+  <rect x="240" y="368" width="32" height="40" rx="3" fill="#0F172A"/>
+</svg>
