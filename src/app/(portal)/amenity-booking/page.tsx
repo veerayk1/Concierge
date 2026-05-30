@@ -232,7 +232,9 @@ export default function AmenityBookingPage() {
       // (HTML5 validity) or POST a past-date that the server rejects
       // without a clear message. Be explicit about why we won't accept it.
       if (startDate) {
-        const todayIso = new Date().toISOString().split('T')[0];
+        // toISOString() always returns YYYY-MM-DDT…; split(\'T\')[0] is
+        // therefore always defined but TS doesn't know that — narrow it.
+        const todayIso = new Date().toISOString().split('T')[0] ?? '';
         if (startDate < todayIso) {
           setFeedback({
             type: 'error',

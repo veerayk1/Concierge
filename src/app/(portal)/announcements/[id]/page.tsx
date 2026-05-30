@@ -692,7 +692,19 @@ export default function AnnouncementDetailPage() {
         <EditAnnouncementDialog
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
-          announcement={announcement}
+          // API wire shape uses `content` (HTML) and `category` as a
+          // related record. The edit dialog still expects the older flat
+          // shape with `body` and a string `category`. Map both here so
+          // we don't have to refactor every other call site that already
+          // passes the old shape.
+          announcement={{
+            id: announcement.id,
+            title: announcement.title,
+            body: announcement.content ?? '',
+            category: announcement.category?.name ?? '',
+            priority: announcement.priority,
+            status: announcement.status,
+          }}
           onSuccess={refetch}
         />
       )}

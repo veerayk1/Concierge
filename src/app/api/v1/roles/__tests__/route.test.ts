@@ -85,7 +85,9 @@ describe('POST /api/v1/roles', () => {
     expect(mockRoleCreate).toHaveBeenCalledTimes(1);
 
     // permissions must default to the seed convention ["*"] when not supplied
-    const createCall = mockRoleCreate.mock.calls[0]?.[0] as { data: { permissions: string } };
+    const createCall = mockRoleCreate.mock.calls[0]?.[0] as {
+      data: { permissions: string; isSystem: boolean; slug: string };
+    };
     expect(createCall.data.permissions).toBe('["*"]');
     expect(createCall.data.isSystem).toBe(false);
     expect(createCall.data.slug).toBe('building-engineer');
