@@ -2719,7 +2719,7 @@ export default function DashboardPage() {
         {/* Greeting */}
         <div className="flex items-end justify-between">
           <div>
-            <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+            <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
               {greeting}, {effectiveName}
             </h1>
             <p className="mt-0.5 text-[14px] text-neutral-500">
@@ -2930,7 +2930,7 @@ export default function DashboardPage() {
       {/* Greeting */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+          <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">
             {greeting}, {effectiveName}
           </h1>
           <p className="mt-0.5 text-[14px] text-neutral-500">
