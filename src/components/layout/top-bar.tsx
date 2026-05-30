@@ -152,7 +152,7 @@ export function TopBar({
             deliveries so a non-zero badge has somewhere actionable to land. */}
         <Link
           href={badgeHref as never}
-          className="relative rounded-xl p-2.5 text-neutral-400 transition-all duration-200 hover:bg-neutral-50 hover:text-neutral-600"
+          className="relative flex h-11 w-11 items-center justify-center rounded-xl text-neutral-400 transition-all duration-200 hover:bg-neutral-50 hover:text-neutral-600 md:h-10 md:w-10"
           aria-label={
             effectiveCount > 0
               ? `${effectiveCount} failed notification deliveries — click to view`
