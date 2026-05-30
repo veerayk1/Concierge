@@ -6,12 +6,19 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from '@/auth/AuthContext';
 import { Text } from '@/components/Text';
 import { colors, spacing, typography } from '@/design/tokens';
+import { AmenityBookingScreen } from '@/screens/AmenityBookingScreen';
 import { DashboardScreen } from '@/screens/DashboardScreen';
 import { LoginScreen } from '@/screens/LoginScreen';
 import { MyAccountScreen } from '@/screens/MyAccountScreen';
 import { MyPackagesScreen } from '@/screens/MyPackagesScreen';
 import { MyRequestsScreen } from '@/screens/MyRequestsScreen';
-import { VisitorsScreen } from '@/screens/VisitorsScreen';
+// AnnouncementsScreen + VisitorsScreen are reachable via Stack pushes
+// from the Dashboard (not bottom tabs). Five tabs is the iOS HIG soft
+// cap, and announcements arrive via push notifications anyway —
+// no need to dedicate primary chrome to a low-frequency consumption
+// surface.
+export { AnnouncementsScreen } from '@/screens/AnnouncementsScreen';
+export { VisitorsScreen } from '@/screens/VisitorsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -75,9 +82,9 @@ function ResidentTabs() {
         options={{ tabBarIcon: ({ color }) => <TabIcon char="✦" color={color} /> }}
       />
       <Tabs.Screen
-        name="Visitors"
-        component={VisitorsScreen}
-        options={{ tabBarIcon: ({ color }) => <TabIcon char="✶" color={color} /> }}
+        name="Book"
+        component={AmenityBookingScreen}
+        options={{ tabBarIcon: ({ color }) => <TabIcon char="◐" color={color} /> }}
       />
       <Tabs.Screen
         name="Account"
