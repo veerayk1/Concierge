@@ -14,6 +14,7 @@ import {
   StickyNote,
 } from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -162,6 +163,7 @@ function AssetDetailSkeleton() {
 export default function AssetDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const toast = useToast();
   const id = params.id as string;
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -492,13 +494,13 @@ export default function AssetDetailPage() {
                       });
                       if (!res.ok) {
                         const result = await res.json();
-                        alert(`Failed to dispose asset: ${result.message || 'Unknown error'}`);
+                        toast.error('Failed to dispose asset', result.message || 'Unknown error');
                         return;
                       }
-                      alert('Asset has been disposed successfully.');
+                      toast.success('Asset disposed.');
                       refetch();
                     } catch {
-                      alert('Network error. Please try again.');
+                      toast.error('Network error', 'Please try again.');
                     }
                   }}
                 >

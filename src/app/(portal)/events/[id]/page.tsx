@@ -20,6 +20,7 @@ import {
   X as XIcon,
 } from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -149,6 +150,7 @@ function EventDetailSkeleton() {
 // ---------------------------------------------------------------------------
 
 export default function EventDetailPage() {
+  const toast = useToast();
   const { id } = useParams<{ id: string }>();
 
   const {
@@ -609,7 +611,7 @@ export default function EventDetailPage() {
                 <Button
                   variant="secondary"
                   fullWidth
-                  onClick={() => alert('Reminder sent to all attendees.')}
+                  onClick={() => toast.success('Reminder sent to all attendees.')}
                 >
                   <Bell className="h-4 w-4" />
                   Send Reminder

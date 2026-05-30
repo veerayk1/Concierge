@@ -9,6 +9,7 @@
 import type { ReactNode } from 'react';
 import { DebugSessionProvider } from '@/lib/hooks/use-debug-session';
 import { FloatingDebugButton } from '@/components/debug/floating-debug-button';
+import { ToastProvider } from '@/lib/hooks/use-toast';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -17,8 +18,10 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <DebugSessionProvider>
-      {children}
-      <FloatingDebugButton />
+      <ToastProvider>
+        {children}
+        <FloatingDebugButton />
+      </ToastProvider>
     </DebugSessionProvider>
   );
 }

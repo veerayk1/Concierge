@@ -125,6 +125,7 @@ const STEPS: StepDef[] = [
 // Import dynamic property ID (supports multi-tenancy)
 import { getPropertyId } from '@/lib/demo-config';
 import { getAuthHeaders } from '@/lib/hooks/use-api';
+import { useToast } from '@/lib/hooks/use-toast';
 
 // ---------------------------------------------------------------------------
 // API Helpers
@@ -1218,6 +1219,7 @@ function BrandingStep({
   data: Record<string, string>;
   onChange: (field: string, value: string) => void;
 }) {
+  const toast = useToast();
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(data.logoPreview || null);
 
@@ -1238,7 +1240,7 @@ function BrandingStep({
     const file = event.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      alert('Logo must be under 2MB');
+      toast.warning('Logo must be under 2MB');
       return;
     }
     const reader = new FileReader();
@@ -1553,6 +1555,7 @@ function GoLiveStep({
 // ---------------------------------------------------------------------------
 
 export default function OnboardingPage() {
+  const toast = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [skippedSteps, setSkippedSteps] = useState<Set<number>>(new Set());

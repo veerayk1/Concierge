@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
 import {
   DatabaseZap,
@@ -302,6 +303,7 @@ function StartImportDialog({
 export default function DataMigrationPage() {
   const isResident = useIsResident();
   const router = useRouter();
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [showImportDialog, setShowImportDialog] = useState(false);
 
@@ -326,7 +328,7 @@ export default function DataMigrationPage() {
     })();
 
     if (jobs.length === 0) {
-      alert('No data to export.');
+      toast.warning('No data to export.');
       return;
     }
 
@@ -378,14 +380,14 @@ export default function DataMigrationPage() {
       const result = await res.json();
 
       if (!res.ok) {
-        alert(`DSAR generation failed: ${result.message || 'Unknown error'}`);
+        toast.error('DSAR generation failed', result.message || 'Unknown error');
         return;
       }
 
-      alert('DSAR export has been queued successfully. You will be notified when it is ready.');
+      toast.success('DSAR export queued', 'You will be notified when it is ready.');
       refetch();
     } catch {
-      alert('Network error generating DSAR. Please try again.');
+      toast.error('Network error generating DSAR', 'Please try again.');
     }
   }
 

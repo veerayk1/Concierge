@@ -19,6 +19,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
+import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -94,6 +95,7 @@ function DetailSkeleton() {
 // ---------------------------------------------------------------------------
 
 export default function CommunityEventDetailPage() {
+  const toast = useToast();
   const { id } = useParams<{ id: string }>();
   const [rsvpChoice, setRsvpChoice] = useState<RsvpChoice | null>(null);
 
@@ -157,7 +159,7 @@ export default function CommunityEventDetailPage() {
               navigator.share({ title: event.title, url: window.location.href });
             } else {
               navigator.clipboard.writeText(window.location.href);
-              alert('Event link copied to clipboard.');
+              toast.success('Event link copied to clipboard.');
             }
           }}
         >
@@ -388,7 +390,7 @@ export default function CommunityEventDetailPage() {
                     navigator.share({ title: event.title, url: window.location.href });
                   } else {
                     navigator.clipboard.writeText(window.location.href);
-                    alert('Event link copied to clipboard.');
+                    toast.success('Event link copied to clipboard.');
                   }
                 }}
               >

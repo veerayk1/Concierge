@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useCallback } from 'react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -179,6 +180,7 @@ function statusVariant(status: string): 'success' | 'warning' | 'error' | 'defau
 
 export default function BillingPage() {
   const [selectedPlan] = useState('Professional');
+  const toast = useToast();
 
   // Fetch subscription data
   const {
@@ -224,10 +226,10 @@ export default function BillingPage() {
       if (result.data?.checkoutUrl) {
         window.location.href = result.data.checkoutUrl;
       } else {
-        alert('Unable to start checkout. Please ensure Stripe is configured.');
+        toast.error('Could not start checkout', 'Stripe is not configured for this property.');
       }
     } catch {
-      alert('Unable to start checkout. Please try again or contact support.');
+      toast.error('Could not start checkout', 'Please try again or contact support.');
     }
   }, []);
 
@@ -246,10 +248,10 @@ export default function BillingPage() {
       if (result.data?.portalUrl) {
         window.location.href = result.data.portalUrl;
       } else {
-        alert('Unable to open billing portal. Please ensure Stripe is configured.');
+        toast.error('Could not open billing portal', 'Stripe is not configured for this property.');
       }
     } catch {
-      alert('Unable to open billing portal. Please try again or contact support.');
+      toast.error('Could not open billing portal', 'Please try again or contact support.');
     }
   }, []);
 

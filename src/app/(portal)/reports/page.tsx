@@ -15,6 +15,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useApi, apiUrl, getAuthHeaders } from '@/lib/hooks/use-api';
+import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
 import { exportToCsv } from '@/lib/export-csv';
 import { PageShell } from '@/components/layout/page-shell';
@@ -168,6 +169,7 @@ const DEFAULT_META: ReportMeta = {
 export default function ReportsPage() {
   const isResident = useIsResident();
   const [generating, setGenerating] = useState<string | null>(null);
+  const toast = useToast();
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -236,7 +238,7 @@ export default function ReportsPage() {
 
         if (records.length === 0) {
           // Show a brief visual feedback that the report ran but had no data
-          alert('Report generated — no records found for the selected date range.');
+          toast.default('Report generated — no records found for the selected date range.');
           return;
         }
 

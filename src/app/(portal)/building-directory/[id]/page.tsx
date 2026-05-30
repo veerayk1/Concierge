@@ -17,6 +17,7 @@ import {
   User,
 } from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
@@ -127,6 +128,7 @@ function DetailSkeleton() {
 export default function BuildingDirectoryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const toast = useToast();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [confirmToggle, setConfirmToggle] = useState(false);
   const [flashBD, setFlashBD] = useState<null | { tone: 'ok' | 'err'; text: string }>(null);
@@ -343,10 +345,10 @@ export default function BuildingDirectoryDetailPage() {
                       if (res.ok) {
                         router.push('/building-directory');
                       } else {
-                        alert('Failed to delete entry. Please try again.');
+                        toast.error('Failed to delete entry', 'Please try again.');
                       }
                     } catch {
-                      alert('Failed to delete entry. Please try again.');
+                      toast.error('Failed to delete entry', 'Please try again.');
                     }
                   }}
                 >
