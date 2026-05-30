@@ -97,3 +97,33 @@ export async function createBooking(input: {
     body: input,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Visitor pre-authorization
+// ---------------------------------------------------------------------------
+
+export interface Visitor {
+  id: string;
+  visitorName: string;
+  visitorType: 'visitor' | 'delivery_person' | 'contractor' | 'real_estate_agent' | 'other';
+  arrivalAt: string;
+  comments: string | null;
+}
+
+export async function listMyExpectedVisitors(): Promise<Visitor[]> {
+  const res = await apiCall<{ data: Visitor[] } | Visitor[]>('/api/v1/my/visitors?status=expected');
+  return Array.isArray(res) ? res : res.data;
+}
+
+export async function preAuthorizeVisitor(input: {
+  visitorName: string;
+  visitorType?: Visitor['visitorType'];
+  expectedArrivalAt: string;
+  notes?: string;
+}): Promise<Visitor> {
+  const res = await apiCall<{ data: Visitor } | Visitor>('/api/v1/my/visitors', {
+    method: 'POST',
+    body: input,
+  });
+  return 'data' in (res as { data: Visitor }) ? (res as { data: Visitor }).data : (res as Visitor);
+}

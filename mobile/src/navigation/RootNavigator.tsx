@@ -11,6 +11,7 @@ import { LoginScreen } from '@/screens/LoginScreen';
 import { MyAccountScreen } from '@/screens/MyAccountScreen';
 import { MyPackagesScreen } from '@/screens/MyPackagesScreen';
 import { MyRequestsScreen } from '@/screens/MyRequestsScreen';
+import { VisitorsScreen } from '@/screens/VisitorsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -72,6 +73,11 @@ function ResidentTabs() {
         name="Requests"
         component={MyRequestsScreen}
         options={{ tabBarIcon: ({ color }) => <TabIcon char="✦" color={color} /> }}
+      />
+      <Tabs.Screen
+        name="Visitors"
+        component={VisitorsScreen}
+        options={{ tabBarIcon: ({ color }) => <TabIcon char="✶" color={color} /> }}
       />
       <Tabs.Screen
         name="Account"
