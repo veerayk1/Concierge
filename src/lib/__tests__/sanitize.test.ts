@@ -243,10 +243,12 @@ describe('stripControlChars', () => {
   });
 
   // 32
-  it('preserves newlines and tabs', () => {
+  it('preserves tabs but strips newlines (header-injection defense)', () => {
+    // stripControlChars guards single-line fields: tab stays, CR/LF go.
     const result = stripControlChars('hello\n\tworld');
-    expect(result).toContain('\n');
     expect(result).toContain('\t');
+    expect(result).not.toContain('\n');
+    expect(result).toBe('hello\tworld');
   });
 
   // 33

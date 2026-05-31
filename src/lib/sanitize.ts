@@ -180,7 +180,11 @@ export function normalizeWhitespace(input: string): string {
 }
 
 /**
- * Removes null bytes and other control characters (except newline, tab, CR).
+ * Removes null bytes and all C0 control characters EXCEPT plain tab (\t).
+ * Newline (\n) and carriage return (\r) ARE stripped — they're the seed of
+ * header-injection attacks and aren't wanted in the single-line fields this
+ * helper guards. For multi-line free text use normalizeWhitespace or a
+ * helper that intentionally preserves newlines.
  */
 export function stripControlChars(input: string): string {
   // Strip ALL C0 control chars except plain tab (\t = \x09). This includes
