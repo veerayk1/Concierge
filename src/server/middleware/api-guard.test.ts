@@ -23,6 +23,16 @@ vi.mock('@/server/errors', () => ({
   },
 }));
 
+// Isolate from the real database. Demo-mode resolution in guardRoute queries
+// prisma.user.findFirst to map a demo role to a real user; without this mock
+// the test hits the live dev DB and resolves a seeded demo user (non-
+// deterministic). With every query resolving null, guardRoute falls back to
+// its deterministic default user id — the behavior this test asserts.
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return { prisma: createMockPrisma() };
+});
+
 import { requireAuth } from '@/server/middleware/auth';
 import { AuthError } from '@/server/errors';
 

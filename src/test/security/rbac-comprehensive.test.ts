@@ -32,6 +32,14 @@ vi.mock('@/server/middleware/auth', () => ({
   requireAuth: vi.fn(),
 }));
 
+// Isolate the demo-mode path from the live dev DB so userId resolution is
+// deterministic — guardRoute falls back to its default user id rather than
+// a non-deterministic seeded demo user.
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return { prisma: createMockPrisma() };
+});
+
 // Preserve real error classes so instanceof checks work inside guardRoute
 vi.mock('@/server/errors', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
