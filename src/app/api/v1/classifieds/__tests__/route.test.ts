@@ -21,6 +21,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -342,7 +343,7 @@ describe('POST /community — Validation', () => {
   });
 
   it('accepts price of 0 (free items)', async () => {
-    mockAdCreate.mockResolvedValue({ id: 'ad-free', status: 'active', price: 0 });
+    mockAdCreate.mockResolvedValue({ id: testUuid('ad-free'), status: 'active', price: 0 });
     const req = createPostRequest('/api/v1/community', {
       ...validAd,
       price: 0,
@@ -359,7 +360,7 @@ describe('POST /community — Validation', () => {
 
 describe('POST /community — Ad Creation', () => {
   it('creates ad with status=active', async () => {
-    mockAdCreate.mockResolvedValue({ id: 'ad-1', ...validAd, status: 'active' });
+    mockAdCreate.mockResolvedValue({ id: testUuid('ad-1'), ...validAd, status: 'active' });
 
     const req = createPostRequest('/api/v1/community', validAd);
     await POST(req);
@@ -369,7 +370,7 @@ describe('POST /community — Ad Creation', () => {
   });
 
   it('returns 201 with ad data', async () => {
-    mockAdCreate.mockResolvedValue({ id: 'ad-1', ...validAd, status: 'active' });
+    mockAdCreate.mockResolvedValue({ id: testUuid('ad-1'), ...validAd, status: 'active' });
 
     const req = createPostRequest('/api/v1/community', validAd);
     const res = await POST(req);
@@ -379,7 +380,7 @@ describe('POST /community — Ad Creation', () => {
   });
 
   it('sets userId from authenticated user', async () => {
-    mockAdCreate.mockResolvedValue({ id: 'ad-1', status: 'active' });
+    mockAdCreate.mockResolvedValue({ id: testUuid('ad-1'), status: 'active' });
 
     const req = createPostRequest('/api/v1/community', validAd);
     await POST(req);
@@ -416,7 +417,7 @@ describe('POST /community — Ad Creation', () => {
 
 describe('POST /community — XSS sanitization', () => {
   it('strips HTML from title', async () => {
-    mockAdCreate.mockResolvedValue({ id: 'ad-1', status: 'active' });
+    mockAdCreate.mockResolvedValue({ id: testUuid('ad-1'), status: 'active' });
 
     const req = createPostRequest('/api/v1/community', {
       ...validAd,
@@ -429,7 +430,7 @@ describe('POST /community — XSS sanitization', () => {
   });
 
   it('strips HTML from description', async () => {
-    mockAdCreate.mockResolvedValue({ id: 'ad-1', status: 'active' });
+    mockAdCreate.mockResolvedValue({ id: testUuid('ad-1'), status: 'active' });
 
     const req = createPostRequest('/api/v1/community', {
       ...validAd,
@@ -450,15 +451,15 @@ describe('POST /community — XSS sanitization', () => {
 describe('PATCH /community/:id — Mark as sold', () => {
   it('transitions active ad to sold', async () => {
     mockAdFindUnique.mockResolvedValue({
-      id: 'ad-1',
+      id: testUuid('ad-1'),
       userId: USER_RESIDENT,
       status: 'active',
       propertyId: PROPERTY_A,
     });
-    mockAdUpdate.mockResolvedValue({ id: 'ad-1', status: 'sold' });
+    mockAdUpdate.mockResolvedValue({ id: testUuid('ad-1'), status: 'sold' });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { status: 'sold' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
     expect(body.data.status).toBe('sold');
@@ -466,14 +467,14 @@ describe('PATCH /community/:id — Mark as sold', () => {
 
   it('rejects transitioning sold ad back to active', async () => {
     mockAdFindUnique.mockResolvedValue({
-      id: 'ad-1',
+      id: testUuid('ad-1'),
       userId: USER_RESIDENT,
       status: 'sold',
       propertyId: PROPERTY_A,
     });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { status: 'active' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(400);
     const body = await parseResponse<{ error: string }>(res);
     expect(body.error).toBe('INVALID_TRANSITION');
@@ -488,29 +489,29 @@ describe('PATCH /community/:id — Ownership', () => {
   it('rejects edit from non-owner non-admin', async () => {
     setAuth(USER_OTHER, 'resident');
     mockAdFindUnique.mockResolvedValue({
-      id: 'ad-1',
+      id: testUuid('ad-1'),
       userId: USER_RESIDENT,
       status: 'active',
       propertyId: PROPERTY_A,
     });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { title: 'New title here' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(403);
   });
 
   it('allows admin to edit any ad', async () => {
     setAuth(USER_ADMIN, 'property_admin');
     mockAdFindUnique.mockResolvedValue({
-      id: 'ad-1',
+      id: testUuid('ad-1'),
       userId: USER_RESIDENT,
       status: 'active',
       propertyId: PROPERTY_A,
     });
-    mockAdUpdate.mockResolvedValue({ id: 'ad-1', status: 'active' });
+    mockAdUpdate.mockResolvedValue({ id: testUuid('ad-1'), status: 'active' });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { title: 'Admin edited title' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -518,7 +519,7 @@ describe('PATCH /community/:id — Ownership', () => {
     mockAdFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/community/ad-ghost', { title: 'New title' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'ad-ghost' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('ad-ghost') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -530,15 +531,15 @@ describe('PATCH /community/:id — Ownership', () => {
 describe('DELETE /community/:id — Soft delete', () => {
   it('archives ad on delete (soft-delete)', async () => {
     mockAdFindUnique.mockResolvedValue({
-      id: 'ad-1',
+      id: testUuid('ad-1'),
       userId: USER_RESIDENT,
       status: 'active',
       propertyId: PROPERTY_A,
     });
-    mockAdUpdate.mockResolvedValue({ id: 'ad-1', status: 'archived' });
+    mockAdUpdate.mockResolvedValue({ id: testUuid('ad-1'), status: 'archived' });
 
     const req = createDeleteRequest('/api/v1/community/ad-1');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
 
     const updateCall = mockAdUpdate.mock.calls[0]![0];
@@ -548,29 +549,29 @@ describe('DELETE /community/:id — Soft delete', () => {
   it('rejects delete from non-owner non-admin', async () => {
     setAuth(USER_OTHER, 'resident');
     mockAdFindUnique.mockResolvedValue({
-      id: 'ad-1',
+      id: testUuid('ad-1'),
       userId: USER_RESIDENT,
       status: 'active',
       propertyId: PROPERTY_A,
     });
 
     const req = createDeleteRequest('/api/v1/community/ad-1');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(403);
   });
 
   it('allows admin to delete any ad', async () => {
     setAuth(USER_ADMIN, 'property_admin');
     mockAdFindUnique.mockResolvedValue({
-      id: 'ad-1',
+      id: testUuid('ad-1'),
       userId: USER_RESIDENT,
       status: 'active',
       propertyId: PROPERTY_A,
     });
-    mockAdUpdate.mockResolvedValue({ id: 'ad-1', status: 'archived' });
+    mockAdUpdate.mockResolvedValue({ id: testUuid('ad-1'), status: 'archived' });
 
     const req = createDeleteRequest('/api/v1/community/ad-1');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -578,7 +579,7 @@ describe('DELETE /community/:id — Soft delete', () => {
     mockAdFindUnique.mockResolvedValue(null);
 
     const req = createDeleteRequest('/api/v1/community/ad-ghost');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'ad-ghost' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('ad-ghost') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -590,7 +591,7 @@ describe('DELETE /community/:id — Soft delete', () => {
 describe('GET /community/:id — Detail', () => {
   it('returns a single ad with images', async () => {
     mockAdFindUnique.mockResolvedValue({
-      id: 'ad-1',
+      id: testUuid('ad-1'),
       title: 'Leather couch',
       status: 'active',
       propertyId: PROPERTY_A,
@@ -598,17 +599,17 @@ describe('GET /community/:id — Detail', () => {
     });
 
     const req = createGetRequest('/api/v1/community/ad-1');
-    const res = await GET_ID(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await GET_ID(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { id: string } }>(res);
-    expect(body.data.id).toBe('ad-1');
+    expect(body.data.id).toBe(testUuid('ad-1'));
   });
 
   it('returns 404 for non-existent ad', async () => {
     mockAdFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/community/ad-ghost');
-    const res = await GET_ID(req, { params: Promise.resolve({ id: 'ad-ghost' }) });
+    const res = await GET_ID(req, { params: Promise.resolve({ id: testUuid('ad-ghost') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -620,14 +621,14 @@ describe('GET /community/:id — Detail', () => {
 describe('POST /community/:id/flag — Flag ad', () => {
   it('flags an ad with valid reason', async () => {
     mockAdFindUnique.mockResolvedValue({
-      id: 'ad-1',
+      id: testUuid('ad-1'),
       userId: USER_OTHER,
       status: 'active',
       propertyId: PROPERTY_A,
     });
     mockFlagCreate.mockResolvedValue({
-      id: 'flag-1',
-      adId: 'ad-1',
+      id: testUuid('flag-1'),
+      adId: testUuid('ad-1'),
       userId: USER_RESIDENT,
       reason: 'spam',
     });
@@ -635,20 +636,20 @@ describe('POST /community/:id/flag — Flag ad', () => {
     const req = createPostRequest('/api/v1/community/ad-1/flag', {
       reason: 'spam',
     });
-    const res = await FLAG_POST(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await FLAG_POST(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(201);
   });
 
   it('flags an ad with reason and description', async () => {
     mockAdFindUnique.mockResolvedValue({
-      id: 'ad-1',
+      id: testUuid('ad-1'),
       userId: USER_OTHER,
       status: 'active',
       propertyId: PROPERTY_A,
     });
     mockFlagCreate.mockResolvedValue({
-      id: 'flag-1',
-      adId: 'ad-1',
+      id: testUuid('flag-1'),
+      adId: testUuid('ad-1'),
       userId: USER_RESIDENT,
       reason: 'inappropriate',
       description: 'Contains offensive language',
@@ -658,13 +659,13 @@ describe('POST /community/:id/flag — Flag ad', () => {
       reason: 'inappropriate',
       description: 'Contains offensive language',
     });
-    const res = await FLAG_POST(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await FLAG_POST(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(201);
   });
 
   it('rejects invalid flag reason', async () => {
     mockAdFindUnique.mockResolvedValue({
-      id: 'ad-1',
+      id: testUuid('ad-1'),
       userId: USER_OTHER,
       status: 'active',
       propertyId: PROPERTY_A,
@@ -673,7 +674,7 @@ describe('POST /community/:id/flag — Flag ad', () => {
     const req = createPostRequest('/api/v1/community/ad-1/flag', {
       reason: 'invalid_reason',
     });
-    const res = await FLAG_POST(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await FLAG_POST(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -682,7 +683,7 @@ describe('POST /community/:id/flag — Flag ad', () => {
       vi.clearAllMocks();
       setAuth(USER_RESIDENT, 'resident');
       mockAdFindUnique.mockResolvedValue({
-        id: 'ad-1',
+        id: testUuid('ad-1'),
         userId: USER_OTHER,
         status: 'active',
         propertyId: PROPERTY_A,
@@ -690,7 +691,7 @@ describe('POST /community/:id/flag — Flag ad', () => {
       mockFlagCreate.mockResolvedValue({ id: `flag-${reason}`, reason });
 
       const req = createPostRequest('/api/v1/community/ad-1/flag', { reason });
-      const res = await FLAG_POST(req, { params: Promise.resolve({ id: 'ad-1' }) });
+      const res = await FLAG_POST(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
       expect(res.status).toBe(201);
     }
   });
@@ -701,7 +702,7 @@ describe('POST /community/:id/flag — Flag ad', () => {
     const req = createPostRequest('/api/v1/community/ad-ghost/flag', {
       reason: 'spam',
     });
-    const res = await FLAG_POST(req, { params: Promise.resolve({ id: 'ad-ghost' }) });
+    const res = await FLAG_POST(req, { params: Promise.resolve({ id: testUuid('ad-ghost') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -711,10 +712,16 @@ describe('POST /community/:id/flag — Flag ad', () => {
 // ---------------------------------------------------------------------------
 
 describe('POST /community/expire — Auto-expiry', () => {
+  // Expiry is admin-only and (for non-super-admins) must be scoped to a
+  // property via ?propertyId — otherwise the route returns 400 MISSING_PROPERTY.
+  beforeEach(() => {
+    setAuth(USER_ADMIN, 'property_admin');
+  });
+
   it('expires active ads older than 30 days', async () => {
     mockAdUpdateMany.mockResolvedValue({ count: 5 });
 
-    const req = createPostRequest('/api/v1/community/expire', {});
+    const req = createPostRequest('/api/v1/community/expire?propertyId=' + PROPERTY_A, {});
     const res = await EXPIRE_POST(req);
     expect(res.status).toBe(200);
 
@@ -725,7 +732,7 @@ describe('POST /community/expire — Auto-expiry', () => {
   it('sets status to expired for matching ads', async () => {
     mockAdUpdateMany.mockResolvedValue({ count: 0 });
 
-    const req = createPostRequest('/api/v1/community/expire', {});
+    const req = createPostRequest('/api/v1/community/expire?propertyId=' + PROPERTY_A, {});
     await EXPIRE_POST(req);
 
     const call = mockAdUpdateMany.mock.calls[0]![0];
@@ -737,7 +744,7 @@ describe('POST /community/expire — Auto-expiry', () => {
     mockAdUpdateMany.mockResolvedValue({ count: 0 });
 
     const beforeCall = new Date();
-    const req = createPostRequest('/api/v1/community/expire', {});
+    const req = createPostRequest('/api/v1/community/expire?propertyId=' + PROPERTY_A, {});
     await EXPIRE_POST(req);
 
     const call = mockAdUpdateMany.mock.calls[0]![0];
@@ -751,7 +758,7 @@ describe('POST /community/expire — Auto-expiry', () => {
   it('returns count of 0 when nothing to expire', async () => {
     mockAdUpdateMany.mockResolvedValue({ count: 0 });
 
-    const req = createPostRequest('/api/v1/community/expire', {});
+    const req = createPostRequest('/api/v1/community/expire?propertyId=' + PROPERTY_A, {});
     const res = await EXPIRE_POST(req);
     const body = await parseResponse<{ data: { expiredCount: number } }>(res);
     expect(body.data.expiredCount).toBe(0);
