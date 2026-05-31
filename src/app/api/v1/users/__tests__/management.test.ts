@@ -69,6 +69,7 @@ const mockSessionUpdate = vi.fn();
 const mockSessionUpdateMany = vi.fn();
 const mockRefreshTokenUpdateMany = vi.fn();
 const mockTransaction = vi.fn();
+const mockRoleFindUnique = vi.fn();
 
 vi.mock('@/server/db', async () => {
   const { createMockPrisma } = await import('@/test/mocks/prisma');
@@ -93,6 +94,9 @@ vi.mock('@/server/db', async () => {
       },
       refreshToken: {
         updateMany: (...args: unknown[]) => mockRefreshTokenUpdateMany(...args),
+      },
+      role: {
+        findUnique: (...args: unknown[]) => mockRoleFindUnique(...args),
       },
       $transaction: (...args: unknown[]) => mockTransaction(...args),
     }),
@@ -160,6 +164,27 @@ beforeEach(() => {
   mockSessionFindMany.mockResolvedValue([]);
   mockSessionUpdateMany.mockResolvedValue({ count: 0 });
   mockRefreshTokenUpdateMany.mockResolvedValue({ count: 0 });
+  mockRoleFindUnique.mockResolvedValue({ slug: 'front_desk', propertyId: PROPERTY_A });
+  // Default $transaction: run the callback against the wired tx client so user
+  // creation (tx.user.create + tx.userProperty.create) fires the spies. Tests
+  // asserting failure override with mockRejectedValue.
+  mockTransaction.mockImplementation(async (arg: unknown) => {
+    if (typeof arg === 'function') {
+      return (arg as (tx: unknown) => unknown)({
+        user: {
+          create: (...a: unknown[]) => mockUserCreate(...a),
+          update: (...a: unknown[]) => mockUserUpdate(...a),
+          findUnique: (...a: unknown[]) => mockUserFindUnique(...a),
+        },
+        userProperty: {
+          create: (...a: unknown[]) => mockUserPropertyCreate(...a),
+          updateMany: (...a: unknown[]) => mockUserPropertyUpdateMany(...a),
+        },
+      });
+    }
+    if (Array.isArray(arg)) return Promise.all(arg);
+    return null;
+  });
 });
 
 // ---------------------------------------------------------------------------
