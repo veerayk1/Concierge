@@ -9,6 +9,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createPostRequest, createGetRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 import {
   parseCsv,
   autoDetectMappings,
@@ -452,7 +453,7 @@ describe('Import Execution — Progress Tracking', () => {
   it('returns 404 for non-existent import job', async () => {
     const req = createGetRequest('/api/v1/data-migration/import/non-existent/status');
     const res = await GET_IMPORT_STATUS(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
     expect(res.status).toBe(404);
 

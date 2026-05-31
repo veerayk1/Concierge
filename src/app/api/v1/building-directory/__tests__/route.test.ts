@@ -9,6 +9,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -363,7 +364,7 @@ describe('GET /api/v1/building-directory/:id — Staff profile detail', () => {
 
     const req = createGetRequest('/api/v1/building-directory/detail');
     const res = await GET_DETAIL(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
     expect(res.status).toBe(404);
   });
@@ -373,7 +374,7 @@ describe('GET /api/v1/building-directory/:id — Staff profile detail', () => {
 
     const req = createGetRequest('/api/v1/building-directory/detail');
     const res = await GET_DETAIL(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
 
     const body = await parseResponse<{ error: string; message: string }>(res);

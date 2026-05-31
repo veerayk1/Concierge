@@ -22,6 +22,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { testUuid } from '@/test/fixtures/ids';
 import { NextResponse } from 'next/server';
 
 // ---------------------------------------------------------------------------
@@ -196,21 +197,21 @@ describe('UX-279 /api/v1/shift-log/[id] GET/PATCH/DELETE — staff-only gate', (
   it('GET passes staff-only roles', async () => {
     const mod = await import('@/app/api/v1/shift-log/[id]/route');
     await mod.GET(req('http://localhost:3000/api/v1/shift-log/abc') as any, {
-      params: Promise.resolve({ id: 'abc' }),
+      params: Promise.resolve({ id: testUuid('abc') }),
     });
     expectStaffOnlyGate();
   });
   it('PATCH passes staff-only roles', async () => {
     const mod = await import('@/app/api/v1/shift-log/[id]/route');
     await mod.PATCH(req('http://localhost:3000/api/v1/shift-log/abc') as any, {
-      params: Promise.resolve({ id: 'abc' }),
+      params: Promise.resolve({ id: testUuid('abc') }),
     });
     expectStaffOnlyGate();
   });
   it('DELETE passes staff-only roles', async () => {
     const mod = await import('@/app/api/v1/shift-log/[id]/route');
     await mod.DELETE(req('http://localhost:3000/api/v1/shift-log/abc') as any, {
-      params: Promise.resolve({ id: 'abc' }),
+      params: Promise.resolve({ id: testUuid('abc') }),
     });
     expectStaffOnlyGate();
   });

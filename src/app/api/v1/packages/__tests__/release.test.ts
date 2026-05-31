@@ -8,6 +8,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createPatchRequest, createDeleteRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 const mockFindUnique = vi.fn();
 const mockUpdate = vi.fn();
@@ -50,7 +51,7 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('Package Release — PATCH with action=release', () => {
-  const params = Promise.resolve({ id: 'pkg-1' });
+  const params = Promise.resolve({ id: testUuid('pkg-1') });
 
   it('requires releasedToName with at least 2 characters', async () => {
     const req = createPatchRequest('/api/v1/packages/pkg-1', {
@@ -166,7 +167,7 @@ describe('Package Delete — Soft Delete', () => {
     mockHistoryCreate.mockResolvedValue({});
 
     const req = createDeleteRequest('/api/v1/packages/pkg-1');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'pkg-1' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('pkg-1') }) });
 
     expect(res.status).toBe(200);
     expect(mockUpdate.mock.calls[0]![0].data.deletedAt).toBeInstanceOf(Date);
@@ -177,7 +178,7 @@ describe('Package Delete — Soft Delete', () => {
     mockHistoryCreate.mockResolvedValue({});
 
     const req = createDeleteRequest('/api/v1/packages/pkg-1');
-    await DELETE(req, { params: Promise.resolve({ id: 'pkg-1' }) });
+    await DELETE(req, { params: Promise.resolve({ id: testUuid('pkg-1') }) });
 
     expect(mockHistoryCreate).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -41,6 +41,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ===========================================================================
 // Mock Setup — all Prisma models used by the Security Console
@@ -712,7 +713,7 @@ describe('6. Event closure: sets closedBy and closedAt', () => {
     const req = createPatchRequest('/api/v1/events/evt-1', {
       status: 'closed',
     });
-    const res = await PATCH_EVENT(req, { params: Promise.resolve({ id: 'evt-1' }) });
+    const res = await PATCH_EVENT(req, { params: Promise.resolve({ id: testUuid('evt-1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockEventUpdate.mock.calls[0]![0].data;
@@ -728,7 +729,9 @@ describe('6. Event closure: sets closedBy and closedAt', () => {
     const req = createPatchRequest('/api/v1/events/nonexistent', {
       status: 'closed',
     });
-    const res = await PATCH_EVENT(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await PATCH_EVENT(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
 
     expect(res.status).toBe(404);
     const body = await parseResponse<{ error: string; message: string }>(res);
@@ -858,7 +861,7 @@ describe('8. Visitor sign-out', () => {
     });
 
     const req = createPatchRequest('/api/v1/visitors/v-1', {});
-    const res = await PATCH_VISITOR(req, { params: Promise.resolve({ id: 'v-1' }) });
+    const res = await PATCH_VISITOR(req, { params: Promise.resolve({ id: testUuid('v-1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockVisitorUpdate.mock.calls[0]![0].data;
@@ -874,7 +877,7 @@ describe('8. Visitor sign-out', () => {
     });
 
     const req = createPatchRequest('/api/v1/visitors/v-1', {});
-    const res = await PATCH_VISITOR(req, { params: Promise.resolve({ id: 'v-1' }) });
+    const res = await PATCH_VISITOR(req, { params: Promise.resolve({ id: testUuid('v-1') }) });
 
     expect(res.status).toBe(400);
     const body = await parseResponse<{ error: string }>(res);
@@ -885,7 +888,9 @@ describe('8. Visitor sign-out', () => {
     mockVisitorFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/visitors/nonexistent', {});
-    const res = await PATCH_VISITOR(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await PATCH_VISITOR(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
 
     expect(res.status).toBe(404);
   });
@@ -961,7 +966,7 @@ describe('11. Incident reporting', () => {
     });
 
     const req = createGetRequest('/api/v1/incidents/incident-1/updates');
-    const res = await GET_UPDATES(req, { params: Promise.resolve({ id: 'incident-1' }) });
+    const res = await GET_UPDATES(req, { params: Promise.resolve({ id: testUuid('incident-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { title: string } }>(res);
@@ -972,7 +977,7 @@ describe('11. Incident reporting', () => {
     mockEventFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/incidents/missing/updates');
-    const res = await GET_UPDATES(req, { params: Promise.resolve({ id: 'missing' }) });
+    const res = await GET_UPDATES(req, { params: Promise.resolve({ id: testUuid('missing') }) });
 
     expect(res.status).toBe(404);
   });
@@ -981,7 +986,7 @@ describe('11. Incident reporting', () => {
     mockEventFindUnique.mockResolvedValue({ id: 'i1', title: 'Test' });
 
     const req = createGetRequest('/api/v1/incidents/i1/updates');
-    await GET_UPDATES(req, { params: Promise.resolve({ id: 'i1' }) });
+    await GET_UPDATES(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     const select = mockEventFindUnique.mock.calls[0]![0].select;
     expect(select.id).toBe(true);
@@ -1012,7 +1017,7 @@ describe('12. Incident escalation', () => {
     mockUserPropertyFindMany.mockResolvedValue([]);
 
     const req = createPostRequest('/api/v1/incidents/i1/escalate', validEscalation);
-    const res = await POST_ESCALATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    const res = await POST_ESCALATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockEventUpdate.mock.calls[0]![0].data;
@@ -1026,7 +1031,7 @@ describe('12. Incident escalation', () => {
     mockUserPropertyFindMany.mockResolvedValue([]);
 
     const req = createPostRequest('/api/v1/incidents/i1/escalate', validEscalation);
-    await POST_ESCALATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    await POST_ESCALATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     const customFields = mockEventUpdate.mock.calls[0]![0].data.customFields;
     expect(customFields.escalatedBy).toBe('guard-001');
@@ -1043,7 +1048,7 @@ describe('12. Incident escalation', () => {
       escalateTo: 'Supervisor',
       reason: 'Needs review',
     });
-    await POST_ESCALATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    await POST_ESCALATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     expect(mockEventUpdate.mock.calls[0]![0].data.priority).toBe('high');
   });
@@ -1052,7 +1057,7 @@ describe('12. Incident escalation', () => {
     const req = createPostRequest('/api/v1/incidents/i1/escalate', {
       reason: 'Urgent',
     });
-    const res = await POST_ESCALATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    const res = await POST_ESCALATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     expect(res.status).toBe(400);
   });
@@ -1061,7 +1066,7 @@ describe('12. Incident escalation', () => {
     const req = createPostRequest('/api/v1/incidents/i1/escalate', {
       escalateTo: 'Manager',
     });
-    const res = await POST_ESCALATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    const res = await POST_ESCALATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     expect(res.status).toBe(400);
   });
@@ -1071,7 +1076,7 @@ describe('12. Incident escalation', () => {
       escalateTo: 'Manager',
       reason: 'R'.repeat(1001),
     });
-    const res = await POST_ESCALATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    const res = await POST_ESCALATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     expect(res.status).toBe(400);
   });
@@ -1085,7 +1090,7 @@ describe('12. Incident escalation', () => {
       ...validEscalation,
       escalateTo: '<script>alert(1)</script>Manager',
     });
-    await POST_ESCALATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    await POST_ESCALATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     const customFields = mockEventUpdate.mock.calls[0]![0].data.customFields;
     expect(customFields.escalatedTo).not.toContain('<script>');
@@ -1097,7 +1102,7 @@ describe('12. Incident escalation', () => {
     mockUserPropertyFindMany.mockResolvedValue([]);
 
     const req = createPostRequest('/api/v1/incidents/i1/escalate', validEscalation);
-    const res = await POST_ESCALATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    const res = await POST_ESCALATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     const body = await parseResponse<{ message: string }>(res);
     expect(body.message).toContain('Property Manager');
@@ -1119,7 +1124,7 @@ describe('13. Incident updates: append update log entries', () => {
     const req = createPostRequest('/api/v1/incidents/i1/updates', {
       content: 'Maintenance team dispatched.',
     });
-    const res = await POST_UPDATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    const res = await POST_UPDATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     expect(res.status).toBe(201);
     const updateData = mockEventUpdate.mock.calls[0]![0].data;
@@ -1133,14 +1138,14 @@ describe('13. Incident updates: append update log entries', () => {
     mockEventUpdate.mockResolvedValue({ id: 'i1' });
 
     const req = createPostRequest('/api/v1/incidents/i1/updates', { content: 'First update' });
-    const res = await POST_UPDATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    const res = await POST_UPDATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     expect(res.status).toBe(201);
   });
 
   it('rejects empty content', async () => {
     const req = createPostRequest('/api/v1/incidents/i1/updates', { content: '' });
-    const res = await POST_UPDATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    const res = await POST_UPDATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     expect(res.status).toBe(400);
   });
@@ -1149,7 +1154,7 @@ describe('13. Incident updates: append update log entries', () => {
     const req = createPostRequest('/api/v1/incidents/i1/updates', {
       content: 'X'.repeat(2001),
     });
-    const res = await POST_UPDATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    const res = await POST_UPDATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     expect(res.status).toBe(400);
   });
@@ -1161,7 +1166,7 @@ describe('13. Incident updates: append update log entries', () => {
     const req = createPostRequest('/api/v1/incidents/i1/updates', {
       content: '<script>alert("xss")</script>Real update',
     });
-    await POST_UPDATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    await POST_UPDATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     const updateData = mockEventUpdate.mock.calls[0]![0].data;
     expect(updateData.description).not.toContain('<script>');
@@ -1172,7 +1177,7 @@ describe('13. Incident updates: append update log entries', () => {
     mockEventFindUnique.mockResolvedValue(null);
 
     const req = createPostRequest('/api/v1/incidents/missing/updates', { content: 'Update' });
-    const res = await POST_UPDATE(req, { params: Promise.resolve({ id: 'missing' }) });
+    const res = await POST_UPDATE(req, { params: Promise.resolve({ id: testUuid('missing') }) });
 
     expect(res.status).toBe(404);
   });
@@ -1182,7 +1187,7 @@ describe('13. Incident updates: append update log entries', () => {
     mockEventUpdate.mockRejectedValue(new Error('Connection lost'));
 
     const req = createPostRequest('/api/v1/incidents/i1/updates', { content: 'Update' });
-    const res = await POST_UPDATE(req, { params: Promise.resolve({ id: 'i1' }) });
+    const res = await POST_UPDATE(req, { params: Promise.resolve({ id: testUuid('i1') }) });
 
     expect(res.status).toBe(500);
     const body = await parseResponse<{ message: string }>(res);
@@ -1652,7 +1657,7 @@ describe('19. Parking violation: create, track, resolve lifecycle', () => {
       resolutionType: 'resolved',
       resolutionNotes: 'Resident moved vehicle',
     });
-    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: 'pv-1' }) });
+    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: testUuid('pv-1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockViolationUpdate.mock.calls[0]![0].data;

@@ -15,6 +15,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -261,7 +262,7 @@ describe('Required Documents — insurance_certificate, permit, floor_plan', () 
     const req = createGetRequest('/api/v1/alterations/alt-1', {
       searchParams: { propertyId: PROPERTY_ID },
     });
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     const body = await parseResponse<{ data: Record<string, unknown> }>(res);
 
     expect(body.data).toHaveProperty('requiredDocuments');
@@ -286,7 +287,7 @@ describe('Required Documents — insurance_certificate, permit, floor_plan', () 
     const req = createGetRequest('/api/v1/alterations/alt-1', {
       searchParams: { propertyId: PROPERTY_ID },
     });
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     const body = await parseResponse<{ data: Record<string, unknown> }>(res);
 
     const requiredDocs = body.data.requiredDocuments as Array<{ type: string; uploaded: boolean }>;
@@ -312,7 +313,7 @@ describe('Required Documents — insurance_certificate, permit, floor_plan', () 
     const req = createGetRequest('/api/v1/alterations/alt-1', {
       searchParams: { propertyId: PROPERTY_ID },
     });
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     const body = await parseResponse<{ data: Record<string, unknown> }>(res);
 
     const requiredDocs = body.data.requiredDocuments as Array<{ type: string; uploaded: boolean }>;
@@ -359,7 +360,7 @@ describe('Status Lifecycle', () => {
     mockUpdate.mockResolvedValue({ id: 'alt-1', status: 'under_review' });
 
     const req = createPatchRequest('/api/v1/alterations/alt-1', { status: 'under_review' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(200);
     expect(mockUpdate.mock.calls[0]![0].data.status).toBe('under_review');
   });
@@ -376,7 +377,7 @@ describe('Status Lifecycle', () => {
     mockUpdate.mockResolvedValue({ id: 'alt-1', status: 'approved' });
 
     const req = createPatchRequest('/api/v1/alterations/alt-1', { status: 'approved' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(200);
     expect(mockUpdate.mock.calls[0]![0].data.status).toBe('approved');
   });
@@ -393,7 +394,7 @@ describe('Status Lifecycle', () => {
     mockUpdate.mockResolvedValue({ id: 'alt-1', status: 'in_progress' });
 
     const req = createPatchRequest('/api/v1/alterations/alt-1', { status: 'in_progress' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -412,7 +413,7 @@ describe('Status Lifecycle', () => {
       status: 'completed',
       actualCompletionDate: '2026-06-28',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -427,7 +428,7 @@ describe('Status Lifecycle', () => {
     });
 
     const req = createPatchRequest('/api/v1/alterations/alt-1', { status: 'in_progress' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(400);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -445,7 +446,7 @@ describe('Status Lifecycle', () => {
     });
 
     const req = createPatchRequest('/api/v1/alterations/alt-1', { status: 'completed' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -460,7 +461,7 @@ describe('Status Lifecycle', () => {
     });
 
     const req = createPatchRequest('/api/v1/alterations/alt-1', { status: 'completed' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -468,7 +469,7 @@ describe('Status Lifecycle', () => {
     mockFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/alterations/non-existent', { status: 'under_review' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('non-existent') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -489,7 +490,7 @@ describe('Declined Status', () => {
     });
 
     const req = createPatchRequest('/api/v1/alterations/alt-1', { status: 'declined' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(400);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -511,7 +512,7 @@ describe('Declined Status', () => {
       status: 'declined',
       declineReason: 'Missing structural engineer approval. Resubmit with PE stamp.',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(200);
 
     const updateData = mockUpdate.mock.calls[0]![0].data;
@@ -529,7 +530,7 @@ describe('Declined Status', () => {
     });
 
     const req = createPatchRequest('/api/v1/alterations/alt-1', { status: 'approved' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -544,7 +545,7 @@ describe('Declined Status', () => {
     });
 
     const req = createPatchRequest('/api/v1/alterations/alt-1', { status: 'in_progress' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -563,7 +564,7 @@ describe('Declined Status', () => {
       status: 'declined',
       declineReason: 'Incomplete submission materials',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -582,7 +583,7 @@ describe('Declined Status', () => {
       status: 'declined',
       declineReason: 'Board reversed decision',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(200);
   });
 });
@@ -654,7 +655,7 @@ describe('Momentum Indicators', () => {
     const req = createGetRequest('/api/v1/alterations/alt-1', {
       searchParams: { propertyId: PROPERTY_ID },
     });
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     const body = await parseResponse<{ data: Record<string, unknown> }>(res);
 
     expect(body.data.momentum).toBe('ok');
@@ -719,7 +720,7 @@ describe('Document Upload Tracking', () => {
       fileSizeBytes: 102400,
       contentType: 'application/pdf',
     });
-    const res = await POST_DOC(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await POST_DOC(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     expect(res.status).toBe(201);
     const body = await parseResponse<{ data: Record<string, unknown> }>(res);
@@ -736,7 +737,7 @@ describe('Document Upload Tracking', () => {
     const req = createGetRequest('/api/v1/alterations/alt-1/documents', {
       searchParams: { propertyId: PROPERTY_ID },
     });
-    const res = await GET_DOCS(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await GET_DOCS(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: Array<Record<string, unknown>> }>(res);
@@ -757,7 +758,7 @@ describe('Document Upload Tracking', () => {
       fileSizeBytes: 1024,
       contentType: 'application/pdf',
     });
-    const res = await POST_DOC(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await POST_DOC(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -771,7 +772,7 @@ describe('Document Upload Tracking', () => {
       fileSizeBytes: 1024,
       contentType: 'application/pdf',
     });
-    const res = await POST_DOC(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await POST_DOC(req, { params: Promise.resolve({ id: testUuid('non-existent') }) });
     expect(res.status).toBe(404);
   });
 
@@ -779,7 +780,7 @@ describe('Document Upload Tracking', () => {
     mockFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/alterations/non-existent/documents');
-    const res = await GET_DOCS(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await GET_DOCS(req, { params: Promise.resolve({ id: testUuid('non-existent') }) });
     expect(res.status).toBe(404);
   });
 
@@ -799,7 +800,7 @@ describe('Document Upload Tracking', () => {
       fileSizeBytes: 512,
       contentType: 'application/pdf',
     });
-    const res = await POST_DOC(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await POST_DOC(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(201);
   });
 
@@ -819,7 +820,7 @@ describe('Document Upload Tracking', () => {
       fileSizeBytes: 1024,
       contentType: 'application/pdf',
     });
-    await POST_DOC(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    await POST_DOC(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     // Should have called update to set lastActivityDate
     expect(mockUpdate).toHaveBeenCalledOnce();
@@ -852,7 +853,7 @@ describe('Inspection Scheduling', () => {
       inspectionDate: '2026-05-15',
       inspectionNotes: 'Check wall removal permits',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockUpdate.mock.calls[0]![0].data;
@@ -908,7 +909,7 @@ describe('Contractor Assignment', () => {
     const req = createPatchRequest('/api/v1/alterations/alt-1', {
       contractorVendorId: VENDOR_ID,
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     expect(res.status).toBe(200);
     expect(mockUpdate.mock.calls[0]![0].data.contractorVendorId).toBe(VENDOR_ID);
@@ -965,7 +966,7 @@ describe('Timeline Tracking — Expected vs Actual', () => {
       status: 'completed',
       actualCompletionDate: '2026-07-15',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockUpdate.mock.calls[0]![0].data;
@@ -986,7 +987,7 @@ describe('Timeline Tracking — Expected vs Actual', () => {
     const req = createPatchRequest('/api/v1/alterations/alt-1', {
       status: 'completed',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockUpdate.mock.calls[0]![0].data;
@@ -1008,7 +1009,7 @@ describe('Timeline Tracking — Expected vs Actual', () => {
     const req = createGetRequest('/api/v1/alterations/alt-1', {
       searchParams: { propertyId: PROPERTY_ID },
     });
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     const body = await parseResponse<{ data: Record<string, unknown> }>(res);
 
     expect(body.data.expectedEndDate).toBeDefined();
@@ -1041,7 +1042,7 @@ describe('Admin Approval Workflow — Multi-Step Review', () => {
       reviewStep: 'documents_check',
       reviewNotes: 'Insurance verified, permit pending',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockUpdate.mock.calls[0]![0].data;
@@ -1067,7 +1068,7 @@ describe('Admin Approval Workflow — Multi-Step Review', () => {
       reviewStep: 'board_review',
       reviewNotes: 'Board approved at March meeting',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     expect(res.status).toBe(200);
     expect(mockUpdate.mock.calls[0]![0].data.reviewStep).toBe('board_review');
@@ -1093,7 +1094,7 @@ describe('Admin Approval Workflow — Multi-Step Review', () => {
       reviewStep: 'final_approval',
       reviewNotes: 'All documents verified, board approved, final sign-off by PM',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(200);
   });
 });
@@ -1153,7 +1154,7 @@ describe('Email Notification on Status Change', () => {
     const req = createPatchRequest('/api/v1/alterations/alt-1', {
       status: 'under_review',
     });
-    await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     expect(mockSendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1181,7 +1182,7 @@ describe('Email Notification on Status Change', () => {
     const req = createPatchRequest('/api/v1/alterations/alt-1', {
       inspectionDate: '2026-05-15',
     });
-    await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     expect(mockSendEmail).not.toHaveBeenCalled();
   });
@@ -1202,7 +1203,7 @@ describe('Email Notification on Status Change', () => {
     const req = createPatchRequest('/api/v1/alterations/alt-1', {
       status: 'under_review',
     });
-    await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     expect(mockSendEmail).not.toHaveBeenCalled();
   });
@@ -1295,7 +1296,7 @@ describe('lastActivityDate tracking', () => {
     const req = createPatchRequest('/api/v1/alterations/alt-1', {
       inspectionNotes: 'Updated notes',
     });
-    await PATCH(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    await PATCH(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
 
     const updateData = mockUpdate.mock.calls[0]![0].data;
     expect(updateData.lastActivityDate).toBeInstanceOf(Date);
@@ -1313,7 +1314,7 @@ describe('GET /api/v1/alterations/:id — Detail', () => {
     const req = createGetRequest('/api/v1/alterations/non-existent', {
       searchParams: { propertyId: PROPERTY_ID },
     });
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: testUuid('non-existent') }) });
     expect(res.status).toBe(404);
   });
 
@@ -1333,7 +1334,7 @@ describe('GET /api/v1/alterations/:id — Detail', () => {
     const req = createGetRequest('/api/v1/alterations/alt-1', {
       searchParams: { propertyId: PROPERTY_ID },
     });
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'alt-1' }) });
+    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: testUuid('alt-1') }) });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{ data: Record<string, unknown> }>(res);

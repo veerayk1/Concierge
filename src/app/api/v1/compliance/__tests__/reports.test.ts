@@ -10,6 +10,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -865,7 +866,7 @@ describe('Tenant isolation for compliance reports', () => {
 
     const req = createGetRequest('/api/v1/compliance/reports/run-archived');
     const res = await GET_REPORT_DETAIL(req, {
-      params: Promise.resolve({ id: 'run-archived' }),
+      params: Promise.resolve({ id: testUuid('run-archived') }),
     });
     expect(res.status).toBe(200);
 
@@ -881,7 +882,7 @@ describe('Tenant isolation for compliance reports', () => {
 
     const req = createGetRequest('/api/v1/compliance/reports/ghost');
     const res = await GET_REPORT_DETAIL(req, {
-      params: Promise.resolve({ id: 'ghost' }),
+      params: Promise.resolve({ id: testUuid('ghost') }),
     });
     expect(res.status).toBe(404);
   });

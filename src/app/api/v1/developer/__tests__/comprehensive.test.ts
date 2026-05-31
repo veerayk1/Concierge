@@ -17,6 +17,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 import {
   generateWebhookSignature,
   verifyWebhookSignature,
@@ -710,7 +711,7 @@ describe('Webhook Delete (Comprehensive)', () => {
 
     const req = createDeleteRequest('/api/v1/developer/webhooks/delete');
     const res = await DELETE_WEBHOOK(req, {
-      params: Promise.resolve({ id: 'missing' }),
+      params: Promise.resolve({ id: testUuid('missing') }),
     });
     expect(res.status).toBe(404);
   });

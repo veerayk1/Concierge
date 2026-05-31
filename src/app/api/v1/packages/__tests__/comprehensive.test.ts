@@ -35,6 +35,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // UUIDs used throughout tests
@@ -472,7 +473,7 @@ describe('5. Oversized flag — separate storage', () => {
     const req = createPatchRequest('/api/v1/packages/pkg-1', {
       isOversized: true,
     });
-    const params = Promise.resolve({ id: 'pkg-1' });
+    const params = Promise.resolve({ id: testUuid('pkg-1') });
     const res = await PATCH(req, { params });
 
     expect(res.status).toBe(200);
@@ -684,7 +685,7 @@ describe('7. Batch intake — partial failure, atomic rollback', () => {
 // ===========================================================================
 
 describe('8. Package release — requires releasedToName', () => {
-  const params = Promise.resolve({ id: 'pkg-1' });
+  const params = Promise.resolve({ id: testUuid('pkg-1') });
 
   it('rejects release without releasedToName', async () => {
     const req = createPatchRequest('/api/v1/packages/pkg-1', {
@@ -744,7 +745,7 @@ describe('8. Package release — requires releasedToName', () => {
 // ===========================================================================
 
 describe('9. Package release — ID verification', () => {
-  const params = Promise.resolve({ id: 'pkg-1' });
+  const params = Promise.resolve({ id: testUuid('pkg-1') });
 
   it('stores idVerified=true when provided', async () => {
     mockUpdate.mockResolvedValue(makePackage({ status: 'released', idVerified: true }));
@@ -779,7 +780,7 @@ describe('9. Package release — ID verification', () => {
 // ===========================================================================
 
 describe('10. Authorized delegate pickup', () => {
-  const params = Promise.resolve({ id: 'pkg-1' });
+  const params = Promise.resolve({ id: testUuid('pkg-1') });
 
   it('stores isAuthorizedDelegate=true for delegate pickups', async () => {
     mockUpdate.mockResolvedValue(makePackage({ status: 'released', isAuthorizedDelegate: true }));
@@ -815,7 +816,7 @@ describe('10. Authorized delegate pickup', () => {
 // ===========================================================================
 
 describe('11. Release creates PackageHistory entry', () => {
-  const params = Promise.resolve({ id: 'pkg-1' });
+  const params = Promise.resolve({ id: testUuid('pkg-1') });
 
   it('creates history entry with action="released"', async () => {
     mockUpdate.mockResolvedValue(makePackage({ status: 'released' }));
@@ -885,7 +886,7 @@ describe('11. Release creates PackageHistory entry', () => {
 // ===========================================================================
 
 describe('12. Reminder — only for unreleased packages', () => {
-  const params = Promise.resolve({ id: 'pkg-1' });
+  const params = Promise.resolve({ id: testUuid('pkg-1') });
 
   it('sends reminder for unreleased package (status=unreleased)', async () => {
     mockFindUnique.mockResolvedValue(
@@ -941,7 +942,7 @@ describe('12. Reminder — only for unreleased packages', () => {
 
     const req = createPostRequest('/api/v1/packages/pkg-missing/remind', {});
     const res = await REMIND_POST(req, {
-      params: Promise.resolve({ id: 'pkg-missing' }),
+      params: Promise.resolve({ id: testUuid('pkg-missing') }),
     });
 
     expect(res.status).toBe(404);
@@ -953,7 +954,7 @@ describe('12. Reminder — only for unreleased packages', () => {
 
     const req = createPostRequest('/api/v1/packages/pkg-deleted/remind', {});
     const res = await REMIND_POST(req, {
-      params: Promise.resolve({ id: 'pkg-deleted' }),
+      params: Promise.resolve({ id: testUuid('pkg-deleted') }),
     });
 
     expect(res.status).toBe(404);
@@ -977,7 +978,7 @@ describe('13. Reminder creates PackageHistory entry', () => {
 
     const req = createPostRequest('/api/v1/packages/pkg-1/remind', {});
     const res = await REMIND_POST(req, {
-      params: Promise.resolve({ id: 'pkg-1' }),
+      params: Promise.resolve({ id: testUuid('pkg-1') }),
     });
 
     expect(res.status).toBe(200);
@@ -1004,7 +1005,7 @@ describe('13. Reminder creates PackageHistory entry', () => {
     mockHistoryCreate.mockResolvedValue({});
 
     const req = createPostRequest('/api/v1/packages/pkg-1/remind', {});
-    await REMIND_POST(req, { params: Promise.resolve({ id: 'pkg-1' }) });
+    await REMIND_POST(req, { params: Promise.resolve({ id: testUuid('pkg-1') }) });
 
     const details = mockHistoryCreate.mock.calls[0]![0].data.details;
     expect(details).toContain('PKG-XYZ789');
@@ -1022,7 +1023,7 @@ describe('14. Soft delete — sets deletedAt', () => {
 
     const req = createDeleteRequest('/api/v1/packages/pkg-1');
     const res = await DELETE(req, {
-      params: Promise.resolve({ id: 'pkg-1' }),
+      params: Promise.resolve({ id: testUuid('pkg-1') }),
     });
 
     expect(res.status).toBe(200);
@@ -1034,7 +1035,7 @@ describe('14. Soft delete — sets deletedAt', () => {
     mockHistoryCreate.mockResolvedValue({});
 
     const req = createDeleteRequest('/api/v1/packages/pkg-1');
-    await DELETE(req, { params: Promise.resolve({ id: 'pkg-1' }) });
+    await DELETE(req, { params: Promise.resolve({ id: testUuid('pkg-1') }) });
 
     expect(mockHistoryCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1051,7 +1052,7 @@ describe('14. Soft delete — sets deletedAt', () => {
     mockHistoryCreate.mockResolvedValue({});
 
     const req = createDeleteRequest('/api/v1/packages/pkg-1');
-    await DELETE(req, { params: Promise.resolve({ id: 'pkg-1' }) });
+    await DELETE(req, { params: Promise.resolve({ id: testUuid('pkg-1') }) });
 
     // mockUpdate is prisma.package.update — not prisma.package.delete
     expect(mockUpdate).toHaveBeenCalledTimes(1);
@@ -1074,7 +1075,7 @@ describe('14. Soft delete — sets deletedAt', () => {
 // ===========================================================================
 
 describe('15. Status transition: unreleased -> released', () => {
-  const params = Promise.resolve({ id: 'pkg-1' });
+  const params = Promise.resolve({ id: testUuid('pkg-1') });
 
   it('transitions status from unreleased to released on release action', async () => {
     mockUpdate.mockResolvedValue(makePackage({ status: 'released' }));
@@ -1119,7 +1120,7 @@ describe('16. Cannot un-release a released package', () => {
     const req = createPatchRequest('/api/v1/packages/pkg-1', {
       description: 'Updated description',
     });
-    const params = Promise.resolve({ id: 'pkg-1' });
+    const params = Promise.resolve({ id: testUuid('pkg-1') });
     await PATCH(req, { params });
 
     const updateData = mockUpdate.mock.calls[0]![0].data;
@@ -1134,7 +1135,7 @@ describe('16. Cannot un-release a released package', () => {
       status: 'unreleased', // trying to un-release
       description: 'Updated description',
     });
-    const params = Promise.resolve({ id: 'pkg-1' });
+    const params = Promise.resolve({ id: testUuid('pkg-1') });
     await PATCH(req, { params });
 
     const updateData = mockUpdate.mock.calls[0]![0].data;
@@ -1393,7 +1394,7 @@ describe('21. Storage spot tracking on intake', () => {
     const req = createPatchRequest('/api/v1/packages/pkg-1', {
       storageSpotId: STORAGE_SPOT_FRIDGE,
     });
-    const params = Promise.resolve({ id: 'pkg-1' });
+    const params = Promise.resolve({ id: testUuid('pkg-1') });
     const res = await PATCH(req, { params });
 
     expect(res.status).toBe(200);
@@ -1450,7 +1451,7 @@ describe('22. Label printing flag tracked in PackageHistory', () => {
       action: 'release',
       releasedToName: 'Janet Smith',
     });
-    const params = Promise.resolve({ id: 'pkg-1' });
+    const params = Promise.resolve({ id: testUuid('pkg-1') });
     await PATCH(req, { params });
 
     // The release creates a history entry, confirming the history system works
@@ -1590,7 +1591,7 @@ describe('Edge cases — error handling', () => {
 
     const req = createDeleteRequest('/api/v1/packages/pkg-1');
     const res = await DELETE(req, {
-      params: Promise.resolve({ id: 'pkg-1' }),
+      params: Promise.resolve({ id: testUuid('pkg-1') }),
     });
 
     expect(res.status).toBe(500);
@@ -1604,7 +1605,7 @@ describe('Edge cases — error handling', () => {
       releasedToName: 'Janet Smith',
     });
     const res = await PATCH(req, {
-      params: Promise.resolve({ id: 'pkg-1' }),
+      params: Promise.resolve({ id: testUuid('pkg-1') }),
     });
 
     expect(res.status).toBe(500);

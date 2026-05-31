@@ -11,6 +11,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -164,7 +165,7 @@ describe('GET /api/v1/amenities/:id — Detail', () => {
   it('returns 404 for non-existent amenity', async () => {
     mockAmenityFindUnique.mockResolvedValue(null);
     const req = createGetRequest('/api/v1/amenities/nonexistent');
-    const res = await GET_DETAIL(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await GET_DETAIL(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
     expect(res.status).toBe(404);
   });
 
@@ -176,7 +177,7 @@ describe('GET /api/v1/amenities/:id — Detail', () => {
       group: { id: 'g1', name: 'Recreation' },
     });
     const req = createGetRequest('/api/v1/amenities/amenity-1');
-    const res = await GET_DETAIL(req, { params: Promise.resolve({ id: 'amenity-1' }) });
+    const res = await GET_DETAIL(req, { params: Promise.resolve({ id: testUuid('amenity-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { name: string } }>(res);
     expect(body.data.name).toBe('Pool');
@@ -185,7 +186,7 @@ describe('GET /api/v1/amenities/:id — Detail', () => {
   it('includes bookings with unit info for schedule display', async () => {
     mockAmenityFindUnique.mockResolvedValue({ id: 'a1', name: 'Gym', bookings: [], group: null });
     const req = createGetRequest('/api/v1/amenities/a1');
-    await GET_DETAIL(req, { params: Promise.resolve({ id: 'a1' }) });
+    await GET_DETAIL(req, { params: Promise.resolve({ id: testUuid('a1') }) });
 
     const include = mockAmenityFindUnique.mock.calls[0]![0].include;
     expect(include.bookings).toBeDefined();
@@ -209,7 +210,7 @@ describe('POST /api/v1/amenities/:id — Booking Creation', () => {
 
   it('rejects missing required fields', async () => {
     const req = createPostRequest('/api/v1/amenities/amenity-1', {});
-    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: 'amenity-1' }) });
+    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: testUuid('amenity-1') }) });
     expect(res.status).toBe(400);
     const body = await parseResponse<{ error: string }>(res);
     expect(body.error).toBe('VALIDATION_ERROR');
@@ -220,14 +221,16 @@ describe('POST /api/v1/amenities/:id — Booking Creation', () => {
       ...validBooking,
       unitId: 'not-a-uuid',
     });
-    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: 'amenity-1' }) });
+    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: testUuid('amenity-1') }) });
     expect(res.status).toBe(400);
   });
 
   it('returns 404 when amenity does not exist', async () => {
     mockAmenityFindUnique.mockResolvedValue(null);
     const req = createPostRequest('/api/v1/amenities/nonexistent', validBooking);
-    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await POST_BOOKING(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
   });
 
@@ -244,7 +247,7 @@ describe('POST /api/v1/amenities/:id — Booking Creation', () => {
     });
 
     const req = createPostRequest('/api/v1/amenities/amenity-1', validBooking);
-    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: 'amenity-1' }) });
+    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: testUuid('amenity-1') }) });
     expect(res.status).toBe(201);
 
     const createData = mockBookingCreate.mock.calls[0]![0].data;
@@ -264,7 +267,7 @@ describe('POST /api/v1/amenities/:id — Booking Creation', () => {
     });
 
     const req = createPostRequest('/api/v1/amenities/amenity-1', validBooking);
-    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: 'amenity-1' }) });
+    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: testUuid('amenity-1') }) });
     expect(res.status).toBe(201);
 
     const createData = mockBookingCreate.mock.calls[0]![0].data;
@@ -280,7 +283,7 @@ describe('POST /api/v1/amenities/:id — Booking Creation', () => {
     mockBookingCreate.mockResolvedValue({ id: 'b1', status: 'approved' });
 
     const req = createPostRequest('/api/v1/amenities/a1', validBooking);
-    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: 'a1' }) });
+    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: testUuid('a1') }) });
     const body = await parseResponse<{ message: string }>(res);
     expect(body.message).toContain('confirmed');
   });
@@ -294,7 +297,7 @@ describe('POST /api/v1/amenities/:id — Booking Creation', () => {
     mockBookingCreate.mockResolvedValue({ id: 'b1', status: 'pending' });
 
     const req = createPostRequest('/api/v1/amenities/a1', validBooking);
-    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: 'a1' }) });
+    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: testUuid('a1') }) });
     const body = await parseResponse<{ message: string }>(res);
     expect(body.message).toContain('approval');
   });
@@ -308,7 +311,7 @@ describe('POST /api/v1/amenities/:id — Booking Creation', () => {
     mockBookingCreate.mockResolvedValue({ id: 'b1', status: 'approved' });
 
     const req = createPostRequest('/api/v1/amenities/a1', validBooking);
-    await POST_BOOKING(req, { params: Promise.resolve({ id: 'a1' }) });
+    await POST_BOOKING(req, { params: Promise.resolve({ id: testUuid('a1') }) });
 
     const createData = mockBookingCreate.mock.calls[0]![0].data;
     expect(createData.referenceNumber).toMatch(/^AMN-/);
@@ -316,7 +319,7 @@ describe('POST /api/v1/amenities/:id — Booking Creation', () => {
 
   it('rejects guestCount over 50', async () => {
     const req = createPostRequest('/api/v1/amenities/a1', { ...validBooking, guestCount: 51 });
-    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: 'a1' }) });
+    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: testUuid('a1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -329,7 +332,7 @@ describe('POST /api/v1/amenities/:id — Booking Creation', () => {
     mockBookingCreate.mockRejectedValue(new Error('DB constraint violation'));
 
     const req = createPostRequest('/api/v1/amenities/a1', validBooking);
-    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: 'a1' }) });
+    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: testUuid('a1') }) });
     expect(res.status).toBe(500);
     const body = await parseResponse<{ message: string }>(res);
     expect(body.message).not.toContain('constraint');

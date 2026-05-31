@@ -10,6 +10,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -545,7 +546,7 @@ describe('Report Archival (Comprehensive)', () => {
 
     const req = createGetRequest('/api/v1/compliance/reports/run-archived');
     const res = await GET_REPORT_DETAIL(req, {
-      params: Promise.resolve({ id: 'run-archived' }),
+      params: Promise.resolve({ id: testUuid('run-archived') }),
     });
     expect(res.status).toBe(200);
 
@@ -571,7 +572,7 @@ describe('Report Archival (Comprehensive)', () => {
 
     const req = createGetRequest('/api/v1/compliance/reports/non-existent');
     const res = await GET_REPORT_DETAIL(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
     expect(res.status).toBe(404);
     const body = await parseResponse<{ error: string }>(res);

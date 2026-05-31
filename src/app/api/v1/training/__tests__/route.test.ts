@@ -10,6 +10,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -315,7 +316,7 @@ describe('GET /api/v1/training/:id — Course Detail', () => {
     mockCourseFindUnique.mockResolvedValue(course);
 
     const req = createGetRequest('/api/v1/training/course-1');
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'course-1' }) });
+    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: testUuid('course-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: typeof course }>(res);
@@ -327,7 +328,7 @@ describe('GET /api/v1/training/:id — Course Detail', () => {
     mockCourseFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/training/nonexistent');
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -355,7 +356,7 @@ describe('POST /api/v1/training/:id/enroll — Enrollment', () => {
     });
 
     const req = createPostRequest('/api/v1/training/course-1/enroll', {});
-    const res = await ENROLL_POST(req, { params: Promise.resolve({ id: 'course-1' }) });
+    const res = await ENROLL_POST(req, { params: Promise.resolve({ id: testUuid('course-1') }) });
 
     expect(res.status).toBe(201);
     const body = await parseResponse<{ data: { id: string; status: string } }>(res);
@@ -378,7 +379,7 @@ describe('POST /api/v1/training/:id/enroll — Enrollment', () => {
     });
 
     const req = createPostRequest('/api/v1/training/course-1/enroll', {});
-    const res = await ENROLL_POST(req, { params: Promise.resolve({ id: 'course-1' }) });
+    const res = await ENROLL_POST(req, { params: Promise.resolve({ id: testUuid('course-1') }) });
 
     expect(res.status).toBe(409);
     const body = await parseResponse<{ error: string }>(res);
@@ -389,7 +390,9 @@ describe('POST /api/v1/training/:id/enroll — Enrollment', () => {
     mockCourseFindUnique.mockResolvedValue(null);
 
     const req = createPostRequest('/api/v1/training/nonexistent/enroll', {});
-    const res = await ENROLL_POST(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await ENROLL_POST(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
 
     expect(res.status).toBe(404);
   });
@@ -422,7 +425,7 @@ describe('POST /api/v1/training/:id/modules/:moduleId/complete — Module Comple
 
     const req = createPostRequest('/api/v1/training/course-1/modules/m2/complete', {});
     const res = await COMPLETE_POST(req, {
-      params: Promise.resolve({ id: 'course-1', moduleId: 'm2' }),
+      params: Promise.resolve({ id: testUuid('course-1'), moduleId: 'm2' }),
     });
 
     expect(res.status).toBe(200);
@@ -453,7 +456,7 @@ describe('POST /api/v1/training/:id/modules/:moduleId/complete — Module Comple
 
     const req = createPostRequest('/api/v1/training/course-1/modules/m3/complete', {});
     const res = await COMPLETE_POST(req, {
-      params: Promise.resolve({ id: 'course-1', moduleId: 'm3' }),
+      params: Promise.resolve({ id: testUuid('course-1'), moduleId: 'm3' }),
     });
 
     const body = await parseResponse<{ data: { progress: number } }>(res);
@@ -497,7 +500,7 @@ describe('POST /api/v1/training/:id/modules/:moduleId/complete — Module Comple
 
     const req = createPostRequest('/api/v1/training/course-1/modules/m3/complete', {});
     const res = await COMPLETE_POST(req, {
-      params: Promise.resolve({ id: 'course-1', moduleId: 'm3' }),
+      params: Promise.resolve({ id: testUuid('course-1'), moduleId: 'm3' }),
     });
 
     expect(res.status).toBe(200);
@@ -514,7 +517,7 @@ describe('POST /api/v1/training/:id/modules/:moduleId/complete — Module Comple
 
     const req = createPostRequest('/api/v1/training/course-1/modules/m1/complete', {});
     const res = await COMPLETE_POST(req, {
-      params: Promise.resolve({ id: 'course-1', moduleId: 'm1' }),
+      params: Promise.resolve({ id: testUuid('course-1'), moduleId: 'm1' }),
     });
 
     expect(res.status).toBe(404);
@@ -589,7 +592,7 @@ describe('POST /api/v1/training/:id/quiz — Quiz Submission', () => {
     });
 
     const req = createPostRequest('/api/v1/training/course-1/quiz', quizAnswers);
-    const res = await QUIZ_POST(req, { params: Promise.resolve({ id: 'course-1' }) });
+    const res = await QUIZ_POST(req, { params: Promise.resolve({ id: testUuid('course-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { score: number; passed: boolean } }>(res);
@@ -665,7 +668,7 @@ describe('POST /api/v1/training/:id/quiz — Quiz Submission', () => {
     };
 
     const req = createPostRequest('/api/v1/training/course-1/quiz', failAnswers);
-    const res = await QUIZ_POST(req, { params: Promise.resolve({ id: 'course-1' }) });
+    const res = await QUIZ_POST(req, { params: Promise.resolve({ id: testUuid('course-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { score: number; passed: boolean } }>(res);
@@ -676,7 +679,7 @@ describe('POST /api/v1/training/:id/quiz — Quiz Submission', () => {
     mockEnrollmentFindUnique.mockResolvedValue(null);
 
     const req = createPostRequest('/api/v1/training/course-1/quiz', quizAnswers);
-    const res = await QUIZ_POST(req, { params: Promise.resolve({ id: 'course-1' }) });
+    const res = await QUIZ_POST(req, { params: Promise.resolve({ id: testUuid('course-1') }) });
 
     expect(res.status).toBe(404);
   });
@@ -691,7 +694,7 @@ describe('POST /api/v1/training/:id/quiz — Quiz Submission', () => {
     });
 
     const req = createPostRequest('/api/v1/training/course-1/quiz', {});
-    const res = await QUIZ_POST(req, { params: Promise.resolve({ id: 'course-1' }) });
+    const res = await QUIZ_POST(req, { params: Promise.resolve({ id: testUuid('course-1') }) });
 
     expect(res.status).toBe(400);
   });

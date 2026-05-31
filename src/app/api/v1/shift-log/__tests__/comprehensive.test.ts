@@ -18,6 +18,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // UUIDs
@@ -463,7 +464,7 @@ describe('6. Pin/unpin entries', () => {
     mockEventFindUnique.mockResolvedValue(null);
 
     const res = await POST_PIN(createPostRequest('/api/v1/shift-log/pin', { pinned: true }), {
-      params: Promise.resolve({ id: 'nonexistent-id' }),
+      params: Promise.resolve({ id: testUuid('nonexistent-id') }),
     });
     expect(res.status).toBe(404);
   });

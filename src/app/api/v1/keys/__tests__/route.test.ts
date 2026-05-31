@@ -16,6 +16,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -272,7 +273,7 @@ describe('PATCH /api/v1/keys/:id — Mark Lost', () => {
     });
 
     const req = createPatchRequest('/api/v1/keys/k1', { action: 'lost' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'k1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('k1') }) });
 
     expect(res.status).toBe(200);
     const updateCall = mockUpdate.mock.calls[0]![0];
@@ -289,7 +290,7 @@ describe('PATCH /api/v1/keys/:id — Mark Lost', () => {
     });
 
     const req = createPatchRequest('/api/v1/keys/k1', { action: 'lost' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'k1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('k1') }) });
 
     const body = await parseResponse<{ message: string }>(res);
     expect(body.message).toContain('Master Key A');
@@ -300,7 +301,7 @@ describe('PATCH /api/v1/keys/:id — Mark Lost', () => {
     mockUpdate.mockRejectedValue(new Error('Record not found'));
 
     const req = createPatchRequest('/api/v1/keys/k1', { action: 'lost' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'k1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('k1') }) });
 
     expect(res.status).toBe(500);
     const body = await parseResponse<{ error: string; message: string }>(res);
@@ -327,7 +328,7 @@ describe('PATCH /api/v1/keys/:id — Decommission', () => {
       action: 'decommission',
       reason: 'Lock changed',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'k1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('k1') }) });
 
     expect(res.status).toBe(200);
     const updateCall = mockUpdate.mock.calls[0]![0];
@@ -353,7 +354,7 @@ describe('PATCH /api/v1/keys/:id — Generic Update', () => {
     const req = createPatchRequest('/api/v1/keys/k1', {
       notes: 'Spare key kept in safe',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'k1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('k1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ message: string }>(res);

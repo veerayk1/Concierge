@@ -18,6 +18,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -329,7 +330,9 @@ describe('Scenario 1: API Key Lifecycle (generate -> use -> track -> rate limit 
     mockApiKeyFindUnique.mockResolvedValue(null);
 
     const req = createDeleteRequest('/api/v1/developer/api-keys/nonexistent');
-    const res = await revokeApiKey(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await revokeApiKey(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -696,7 +699,9 @@ describe('Scenario 3: SDK Usage Patterns (list -> create -> update -> delete -> 
     mockWebhookFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/developer/webhooks/nonexistent');
-    const res = await getWebhookDetail(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await getWebhookDetail(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -708,7 +713,7 @@ describe('Scenario 3: SDK Usage Patterns (list -> create -> update -> delete -> 
 
     const req = createDeleteRequest('/api/v1/developer/webhooks/nonexistent');
     const res = await deleteWebhookDetail(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
 
@@ -723,7 +728,7 @@ describe('Scenario 3: SDK Usage Patterns (list -> create -> update -> delete -> 
       url: 'https://new.com/hook',
     });
     const res = await updateWebhookDetail(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
 
@@ -757,7 +762,7 @@ describe('Developer API: Validation & Edge Cases', () => {
 
     const req = createGetRequest('/api/v1/developer/webhooks/nonexistent/deliveries');
     const res = await listDeliveries(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
 

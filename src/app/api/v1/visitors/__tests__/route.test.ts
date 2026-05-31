@@ -13,6 +13,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 const mockFindMany = vi.fn();
 const mockCount = vi.fn();
@@ -198,7 +199,7 @@ describe('PATCH /api/v1/visitors/:id — Sign Out', () => {
     mockUpdate.mockResolvedValue({ id: 'v-1', departureAt: new Date() });
 
     const req = createPatchRequest('/api/v1/visitors/v-1', {});
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'v-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('v-1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockUpdate.mock.calls[0]![0].data;
@@ -214,7 +215,7 @@ describe('PATCH /api/v1/visitors/:id — Sign Out', () => {
     });
 
     const req = createPatchRequest('/api/v1/visitors/v-1', {});
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'v-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('v-1') }) });
 
     expect(res.status).toBe(400);
     const body = await parseResponse<{ error: string }>(res);
@@ -225,7 +226,7 @@ describe('PATCH /api/v1/visitors/:id — Sign Out', () => {
     mockFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/visitors/nonexistent', {});
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
 
     expect(res.status).toBe(404);
   });

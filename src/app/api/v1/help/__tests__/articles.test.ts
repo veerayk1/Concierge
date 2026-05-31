@@ -15,6 +15,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -450,7 +451,7 @@ describe('PATCH /api/v1/help/articles/:id — Update Article', () => {
       title: 'Updated Title',
       body: 'Updated body content with enough length to pass the validation check.',
     });
-    const res = await PATCH_ARTICLE(req, { params: Promise.resolve({ id: 'art-1' }) });
+    const res = await PATCH_ARTICLE(req, { params: Promise.resolve({ id: testUuid('art-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { title: string; body: string } }>(res);
@@ -464,7 +465,7 @@ describe('PATCH /api/v1/help/articles/:id — Update Article', () => {
       title: 'Will Not Work',
     });
     const res = await PATCH_ARTICLE(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
 
     expect(res.status).toBe(404);
@@ -479,7 +480,7 @@ describe('PATCH /api/v1/help/articles/:id — Update Article', () => {
     const req = createPatchRequest('/api/v1/help/articles/art-1', {
       title: 'Forbidden Update',
     });
-    const res = await PATCH_ARTICLE(req, { params: Promise.resolve({ id: 'art-1' }) });
+    const res = await PATCH_ARTICLE(req, { params: Promise.resolve({ id: testUuid('art-1') }) });
 
     expect(res.status).toBe(403);
   });
@@ -497,7 +498,7 @@ describe('PATCH /api/v1/help/articles/:id — Status Toggle', () => {
     const req = createPatchRequest('/api/v1/help/articles/art-1', {
       status: 'published',
     });
-    const res = await PATCH_ARTICLE(req, { params: Promise.resolve({ id: 'art-1' }) });
+    const res = await PATCH_ARTICLE(req, { params: Promise.resolve({ id: testUuid('art-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
@@ -511,7 +512,7 @@ describe('PATCH /api/v1/help/articles/:id — Status Toggle', () => {
     const req = createPatchRequest('/api/v1/help/articles/art-1', {
       status: 'archived',
     });
-    const res = await PATCH_ARTICLE(req, { params: Promise.resolve({ id: 'art-1' }) });
+    const res = await PATCH_ARTICLE(req, { params: Promise.resolve({ id: testUuid('art-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
@@ -525,7 +526,7 @@ describe('PATCH /api/v1/help/articles/:id — Status Toggle', () => {
     const req = createPatchRequest('/api/v1/help/articles/art-1', {
       status: 'in_review',
     });
-    const res = await PATCH_ARTICLE(req, { params: Promise.resolve({ id: 'art-1' }) });
+    const res = await PATCH_ARTICLE(req, { params: Promise.resolve({ id: testUuid('art-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
@@ -542,7 +543,9 @@ describe('GET /api/v1/help/articles/:id — Single Article', () => {
     mockArticleFindUnique.mockResolvedValue(sampleArticle);
 
     const req = createGetRequest('/api/v1/help/articles/art-1');
-    const res = await GET_ARTICLE_BY_ID(req, { params: Promise.resolve({ id: 'art-1' }) });
+    const res = await GET_ARTICLE_BY_ID(req, {
+      params: Promise.resolve({ id: testUuid('art-1') }),
+    });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: typeof sampleArticle }>(res);
@@ -557,7 +560,7 @@ describe('GET /api/v1/help/articles/:id — Single Article', () => {
 
     const req = createGetRequest('/api/v1/help/articles/does-not-exist');
     const res = await GET_ARTICLE_BY_ID(req, {
-      params: Promise.resolve({ id: 'does-not-exist' }),
+      params: Promise.resolve({ id: testUuid('does-not-exist') }),
     });
 
     expect(res.status).toBe(404);
@@ -570,7 +573,9 @@ describe('GET /api/v1/help/articles/:id — Single Article', () => {
     mockArticleFindUnique.mockResolvedValue({ ...sampleArticle, status: 'draft' });
 
     const req = createGetRequest('/api/v1/help/articles/art-1');
-    const res = await GET_ARTICLE_BY_ID(req, { params: Promise.resolve({ id: 'art-1' }) });
+    const res = await GET_ARTICLE_BY_ID(req, {
+      params: Promise.resolve({ id: testUuid('art-1') }),
+    });
 
     expect(res.status).toBe(404);
   });
@@ -580,7 +585,9 @@ describe('GET /api/v1/help/articles/:id — Single Article', () => {
     mockArticleFindUnique.mockResolvedValue({ ...sampleArticle, status: 'draft' });
 
     const req = createGetRequest('/api/v1/help/articles/art-1');
-    const res = await GET_ARTICLE_BY_ID(req, { params: Promise.resolve({ id: 'art-1' }) });
+    const res = await GET_ARTICLE_BY_ID(req, {
+      params: Promise.resolve({ id: testUuid('art-1') }),
+    });
 
     expect(res.status).toBe(200);
   });
@@ -792,7 +799,7 @@ describe('PATCH /api/v1/help/tickets/:id — Status Tracking', () => {
     mockTicketUpdate.mockResolvedValue({ ...existing, status: 'in_progress' });
 
     const req = createPatchRequest('/api/v1/help/tickets/tk-1', { status: 'in_progress' });
-    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
@@ -814,7 +821,7 @@ describe('PATCH /api/v1/help/tickets/:id — Status Tracking', () => {
     });
 
     const req = createPatchRequest('/api/v1/help/tickets/tk-1', { status: 'resolved' });
-    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(200);
     // Verify resolvedAt is set in update call
@@ -833,7 +840,7 @@ describe('PATCH /api/v1/help/tickets/:id — Status Tracking', () => {
     mockTicketUpdate.mockResolvedValue({ ...existing, status: 'closed', closedAt: new Date() });
 
     const req = createPatchRequest('/api/v1/help/tickets/tk-1', { status: 'closed' });
-    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockTicketUpdate.mock.calls[0]![0].data;
@@ -847,7 +854,7 @@ describe('PATCH /api/v1/help/tickets/:id — Status Tracking', () => {
       status: 'in_progress',
     });
     const res = await PATCH_TICKET(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
 
     expect(res.status).toBe(404);
@@ -873,7 +880,7 @@ describe('PATCH /api/v1/help/tickets/:id — Priority Update', () => {
       mockTicketUpdate.mockResolvedValue({ ...existing, priority });
 
       const req = createPatchRequest('/api/v1/help/tickets/tk-pri', { priority });
-      const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: 'tk-pri' }) });
+      const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: testUuid('tk-pri') }) });
 
       expect(res.status).toBe(200);
     },
@@ -922,7 +929,7 @@ describe('Help Tickets — Tenant Isolation', () => {
 
     const req = createGetRequest('/api/v1/help/tickets/tk-other');
     const res = await GET_TICKET_BY_ID(req, {
-      params: Promise.resolve({ id: 'tk-other' }),
+      params: Promise.resolve({ id: testUuid('tk-other') }),
     });
 
     expect(res.status).toBe(404);
@@ -941,7 +948,7 @@ describe('Help Tickets — Tenant Isolation', () => {
 
     const req = createGetRequest('/api/v1/help/tickets/tk-other');
     const res = await GET_TICKET_BY_ID(req, {
-      params: Promise.resolve({ id: 'tk-other' }),
+      params: Promise.resolve({ id: testUuid('tk-other') }),
     });
 
     expect(res.status).toBe(200);
@@ -973,7 +980,7 @@ describe('POST /api/v1/help/tickets/:id/comments — Comments', () => {
     const req = createPostRequest('/api/v1/help/tickets/tk-1/comments', {
       body: 'I tried restarting but the issue persists after clearing browser cache.',
     });
-    const res = await POST_COMMENTS(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await POST_COMMENTS(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(201);
     const body = await parseResponse<{ data: { body: string; isStaff: boolean } }>(res);
@@ -1001,7 +1008,7 @@ describe('POST /api/v1/help/tickets/:id/comments — Comments', () => {
     const req = createPostRequest('/api/v1/help/tickets/tk-1/comments', {
       body: 'We are investigating your issue now.',
     });
-    await POST_COMMENTS(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    await POST_COMMENTS(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     const createData = mockCommentCreate.mock.calls[0]![0].data;
     expect(createData.isStaff).toBe(true);
@@ -1017,7 +1024,7 @@ describe('POST /api/v1/help/tickets/:id/comments — Comments', () => {
     });
 
     const req = createPostRequest('/api/v1/help/tickets/tk-1/comments', { body: '' });
-    const res = await POST_COMMENTS(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await POST_COMMENTS(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(400);
   });
@@ -1030,7 +1037,7 @@ describe('POST /api/v1/help/tickets/:id/comments — Comments', () => {
       body: 'This should fail because ticket does not exist.',
     });
     const res = await POST_COMMENTS(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
 
     expect(res.status).toBe(404);
@@ -1071,7 +1078,7 @@ describe('GET /api/v1/help/tickets/:id/comments — List Comments', () => {
     mockCommentFindMany.mockResolvedValue(comments);
 
     const req = createGetRequest('/api/v1/help/tickets/tk-1/comments');
-    const res = await GET_COMMENTS(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await GET_COMMENTS(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: typeof comments }>(res);
@@ -1084,7 +1091,7 @@ describe('GET /api/v1/help/tickets/:id/comments — List Comments', () => {
 
     const req = createGetRequest('/api/v1/help/tickets/nonexistent/comments');
     const res = await GET_COMMENTS(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
 
     expect(res.status).toBe(404);

@@ -19,6 +19,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -575,7 +576,7 @@ describe('Scenario 4: Resident Views Their Request History', () => {
 
     const req = createGetRequest('/api/v1/maintenance/mr-detail-001');
     const res = await getMaintenanceRequest(req, {
-      params: Promise.resolve({ id: 'mr-detail-001' }),
+      params: Promise.resolve({ id: testUuid('mr-detail-001') }),
     });
     expect(res.status).toBe(200);
 
@@ -883,7 +884,7 @@ describe('Resident Self-Service: Validation & Edge Cases', () => {
 
     const req = createGetRequest('/api/v1/maintenance/nonexistent');
     const res = await getMaintenanceRequest(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
   });

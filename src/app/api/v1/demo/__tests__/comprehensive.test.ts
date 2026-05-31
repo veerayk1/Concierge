@@ -15,6 +15,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -440,7 +441,7 @@ describe('Reset to Initial State (Comprehensive)', () => {
 
     const req = createPostRequest('/api/v1/demo/training-demo/reset', {});
     const res = await RESET_POST(req, {
-      params: Promise.resolve({ id: 'training-demo' }),
+      params: Promise.resolve({ id: testUuid('training-demo') }),
     });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ message: string }>(res);
@@ -650,7 +651,7 @@ describe('Delete and Purge (Comprehensive)', () => {
 
     const req = createDeleteRequest('/api/v1/demo/training-1');
     const res = await DELETE(req, {
-      params: Promise.resolve({ id: 'training-1' }),
+      params: Promise.resolve({ id: testUuid('training-1') }),
     });
     expect(res.status).toBe(200);
   });
@@ -682,7 +683,7 @@ describe('GET /demo/:id — Detail View (Comprehensive)', () => {
 
     const req = createGetRequest('/api/v1/demo/non-existent');
     const res = await GET_BY_ID(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
     expect(res.status).toBe(404);
     const body = await parseResponse<{ error: string }>(res);

@@ -16,6 +16,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -768,7 +769,7 @@ describe('Governance: Validation & Edge Cases', () => {
     mockBoardResolutionFindUnique.mockResolvedValue(null);
 
     const res = await getGovernanceItem(createGetRequest('/api/v1/governance/nonexistent'), {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
 

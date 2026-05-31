@@ -18,6 +18,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -319,7 +320,9 @@ describe('Scenario 1: Property Setup (create -> roles -> event types -> onboardi
     mockPropertyFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/properties/nonexistent');
-    const res = await getProperty(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await getProperty(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -330,7 +333,9 @@ describe('Scenario 1: Property Setup (create -> roles -> event types -> onboardi
     mockPropertyFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/properties/nonexistent', { name: 'Updated' });
-    const res = await updateProperty(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await updateProperty(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -720,7 +725,7 @@ describe('Multi-Property: Validation & Edge Cases', () => {
     mockPropertyFindUnique.mockResolvedValue(null);
 
     const req = createDeleteRequest('/api/v1/demo/nonexistent');
-    const res = await deleteDemo(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await deleteDemo(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -731,7 +736,9 @@ describe('Multi-Property: Validation & Edge Cases', () => {
     mockPropertyFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/demo/nonexistent');
-    const res = await getDemoDetail(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await getDemoDetail(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -742,7 +749,7 @@ describe('Multi-Property: Validation & Edge Cases', () => {
     mockPropertyFindUnique.mockResolvedValue(null);
 
     const req = createPostRequest('/api/v1/demo/nonexistent/reset', {});
-    const res = await resetDemo(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await resetDemo(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);

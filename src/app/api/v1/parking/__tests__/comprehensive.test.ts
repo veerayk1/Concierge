@@ -30,6 +30,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -94,7 +95,10 @@ vi.mock('@/server/db', () => ({
       create: vi
         .fn()
         .mockImplementation((args: Record<string, unknown>) =>
-          Promise.resolve({ id: 'pt-new', ...(args as { data?: Record<string, unknown> }).data }),
+          Promise.resolve({
+            id: testUuid('pt-new'),
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
         ),
     },
     parkingLimitConfig: {
@@ -719,7 +723,7 @@ describe('7. Violation resolution workflow', () => {
     });
 
     const req = createPatchRequest('/api/v1/parking/violations/v1', { status: 'resolved' });
-    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: 'v1' }) });
+    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: testUuid('v1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockViolationUpdate.mock.calls[0]![0].data;
@@ -732,7 +736,7 @@ describe('7. Violation resolution workflow', () => {
     mockViolationUpdate.mockResolvedValue({ id: 'v1', notes: 'Spoke with owner' });
 
     const req = createPatchRequest('/api/v1/parking/violations/v1', { notes: 'Spoke with owner' });
-    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: 'v1' }) });
+    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: testUuid('v1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockViolationUpdate.mock.calls[0]![0].data;
@@ -743,7 +747,7 @@ describe('7. Violation resolution workflow', () => {
     mockViolationUpdate.mockResolvedValue({ id: 'v1', towRequested: true });
 
     const req = createPatchRequest('/api/v1/parking/violations/v1', { towRequested: true });
-    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: 'v1' }) });
+    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: testUuid('v1') }) });
 
     expect(res.status).toBe(200);
     const updateData = mockViolationUpdate.mock.calls[0]![0].data;
@@ -1095,7 +1099,7 @@ describe('15. Towing workflow', () => {
     mockViolationUpdate.mockResolvedValue({ id: 'v1', towRequested: true, status: 'open' });
 
     const req = createPatchRequest('/api/v1/parking/violations/v1', { towRequested: true });
-    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: 'v1' }) });
+    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: testUuid('v1') }) });
 
     expect(res.status).toBe(200);
   });

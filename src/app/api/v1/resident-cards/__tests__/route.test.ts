@@ -14,6 +14,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -548,7 +549,7 @@ describe('PATCH /api/v1/resident-cards/:id — Revoke on Move-Out', () => {
       status: 'revoked',
       revokedReason: 'move_out',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
 
     expect(res.status).toBe(404);
   });
@@ -950,7 +951,7 @@ describe('GET /api/v1/resident-cards/:id — Passport Data Fields', () => {
     const req = createGetRequest('/api/v1/resident-cards/nonexistent', {
       searchParams: { passport: 'true' },
     });
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
 
     expect(res.status).toBe(404);
   });
@@ -1129,7 +1130,7 @@ describe('POST /api/v1/resident-cards/:id/verify — QR Verification', () => {
     const req = createPostRequest('/api/v1/resident-cards/nonexistent/verify', {
       qrCode: 'any-token',
     });
-    const res = await VERIFY(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await VERIFY(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
 
     expect(res.status).toBe(404);
   });

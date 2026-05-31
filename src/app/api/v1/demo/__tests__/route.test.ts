@@ -14,6 +14,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -424,7 +425,7 @@ describe('POST /api/v1/demo/:id/reset — Reset Demo', () => {
 
     const req = createPostRequest('/api/v1/demo/nonexistent/reset', {});
     const res = await RESET_POST(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
   });
@@ -619,7 +620,7 @@ describe('DELETE /api/v1/demo/:id — Delete Demo', () => {
 
     const req = createDeleteRequest('/api/v1/demo/nonexistent');
     const res = await DELETE(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
   });

@@ -38,6 +38,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -522,7 +523,7 @@ describe('PATCH /forum/:id — Pin topic (admin only)', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', isPinned: true });
 
     const req = createPatchRequest('/api/v1/forum/topic-1', { isPinned: true });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{ data: { isPinned: boolean } }>(res);
@@ -540,7 +541,7 @@ describe('PATCH /forum/:id — Pin topic (admin only)', () => {
     });
 
     const req = createPatchRequest('/api/v1/forum/topic-1', { isPinned: true });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(403);
   });
 
@@ -557,7 +558,7 @@ describe('PATCH /forum/:id — Pin topic (admin only)', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', isPinned: false });
 
     const req = createPatchRequest('/api/v1/forum/topic-1', { isPinned: false });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
   });
 });
@@ -579,7 +580,7 @@ describe('PATCH /forum/:id — Lock topic (admin only)', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', isLocked: true });
 
     const req = createPatchRequest('/api/v1/forum/topic-1', { isLocked: true });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{ data: { isLocked: boolean } }>(res);
@@ -597,7 +598,7 @@ describe('PATCH /forum/:id — Lock topic (admin only)', () => {
     });
 
     const req = createPatchRequest('/api/v1/forum/topic-1', { isLocked: true });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(403);
   });
 
@@ -614,7 +615,7 @@ describe('PATCH /forum/:id — Lock topic (admin only)', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', isLocked: false });
 
     const req = createPatchRequest('/api/v1/forum/topic-1', { isLocked: false });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
   });
 });
@@ -636,7 +637,7 @@ describe('PATCH /forum/:id — Close/resolve topic', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', isLocked: true });
 
     const req = createPatchRequest('/api/v1/forum/topic-1', { isLocked: true });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -645,7 +646,7 @@ describe('PATCH /forum/:id — Close/resolve topic', () => {
     mockTopicFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/forum/topic-ghost', { isLocked: true });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-ghost' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-ghost') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -675,7 +676,7 @@ describe('POST /forum/:id/replies — Reply to topic', () => {
     const req = createPostRequest('/api/v1/forum/topic-1/replies', {
       body: 'I agree, we need clearer guidelines.',
     });
-    const res = await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(201);
   });
 
@@ -685,7 +686,7 @@ describe('POST /forum/:id/replies — Reply to topic', () => {
     const req = createPostRequest('/api/v1/forum/topic-ghost/replies', {
       body: 'Reply to nothing.',
     });
-    const res = await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-ghost' }) });
+    const res = await POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-ghost') }) });
     expect(res.status).toBe(404);
   });
 
@@ -705,7 +706,7 @@ describe('POST /forum/:id/replies — Reply to topic', () => {
     const req = createPostRequest('/api/v1/forum/topic-1/replies', {
       body: 'A new reply.',
     });
-    await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     const updateCall = mockTopicUpdate.mock.calls[0]![0];
     expect(updateCall.data.replyCount).toEqual({ increment: 1 });
@@ -729,7 +730,7 @@ describe('GET /forum/:id — single topic retrieval', () => {
     });
 
     const req = createGetRequest('/api/v1/forum/topic-1');
-    const res = await GET_TOPIC(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await GET_TOPIC(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{ data: { id: string; replies: unknown[] } }>(res);
@@ -741,7 +742,7 @@ describe('GET /forum/:id — single topic retrieval', () => {
     mockTopicFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/forum/topic-ghost');
-    const res = await GET_TOPIC(req, { params: Promise.resolve({ id: 'topic-ghost' }) });
+    const res = await GET_TOPIC(req, { params: Promise.resolve({ id: testUuid('topic-ghost') }) });
     expect(res.status).toBe(404);
   });
 
@@ -754,7 +755,7 @@ describe('GET /forum/:id — single topic retrieval', () => {
     });
 
     const req = createGetRequest('/api/v1/forum/topic-1');
-    await GET_TOPIC(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await GET_TOPIC(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     const call = mockTopicFindUnique.mock.calls[0]![0];
     expect(call.include.replies.where.status).toBe('active');
@@ -781,7 +782,7 @@ describe('POST /forum/:id/replies — Like concept via replies', () => {
     const req = createPostRequest('/api/v1/forum/topic-1/replies', {
       body: 'Great point, I agree with this.',
     });
-    await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     const createCall = mockReplyCreate.mock.calls[0]![0];
     expect(createCall.data.userId).toBe(USER_RESIDENT);
@@ -879,7 +880,7 @@ describe('XSS prevention on all content', () => {
     const req = createPostRequest('/api/v1/forum/topic-1/replies', {
       body: '<script>steal(cookie)</script>Safe reply content.',
     });
-    await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     const data = mockReplyCreate.mock.calls[0]![0].data;
     expect(data.body).not.toContain('<script>');
@@ -922,7 +923,7 @@ describe('Notification — Topic author notified of replies', () => {
     const req = createPostRequest('/api/v1/forum/topic-1/replies', {
       body: 'Great discussion!',
     });
-    await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     expect(mockNotificationCreate).toHaveBeenCalledTimes(1);
     const notifData = mockNotificationCreate.mock.calls[0]![0].data;
@@ -944,7 +945,7 @@ describe('Notification — Topic author notified of replies', () => {
     const req = createPostRequest('/api/v1/forum/topic-1/replies', {
       body: 'Replying to my own topic.',
     });
-    await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     expect(mockNotificationCreate).not.toHaveBeenCalled();
   });
@@ -965,7 +966,7 @@ describe('Notification — Topic author notified of replies', () => {
     const req = createPostRequest('/api/v1/forum/topic-1/replies', {
       body: 'Check notification fields.',
     });
-    await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     const notifData = mockNotificationCreate.mock.calls[0]![0].data;
     expect(notifData.referenceId).toBe('topic-1');
@@ -997,7 +998,7 @@ describe('PATCH /forum/:id — Edit own post (within 30 min)', () => {
       title: 'Updated title',
       body: 'Updated body content.',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -1015,7 +1016,7 @@ describe('PATCH /forum/:id — Edit own post (within 30 min)', () => {
       title: 'Late edit attempt',
       body: 'Trying to edit too late.',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(403);
   });
 
@@ -1033,7 +1034,7 @@ describe('PATCH /forum/:id — Edit own post (within 30 min)', () => {
     const req = createPatchRequest('/api/v1/forum/topic-1', {
       title: 'Hijack attempt',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(403);
   });
 
@@ -1050,7 +1051,7 @@ describe('PATCH /forum/:id — Edit own post (within 30 min)', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', title: 'Admin edited' });
 
     const req = createPatchRequest('/api/v1/forum/topic-1', { title: 'Admin edited' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -1058,7 +1059,7 @@ describe('PATCH /forum/:id — Edit own post (within 30 min)', () => {
     mockTopicFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/forum/topic-ghost', { title: 'Ghost edit' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'topic-ghost' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('topic-ghost') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -1078,7 +1079,7 @@ describe('DELETE /forum/:id — Delete own post', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', status: 'deleted' });
 
     const req = createDeleteRequest('/api/v1/forum/topic-1');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
 
     const updateCall = mockTopicUpdate.mock.calls[0]![0];
@@ -1095,7 +1096,7 @@ describe('DELETE /forum/:id — Delete own post', () => {
     });
 
     const req = createDeleteRequest('/api/v1/forum/topic-1');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(403);
   });
 
@@ -1103,7 +1104,7 @@ describe('DELETE /forum/:id — Delete own post', () => {
     mockTopicFindUnique.mockResolvedValue(null);
 
     const req = createDeleteRequest('/api/v1/forum/topic-ghost');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'topic-ghost' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('topic-ghost') }) });
     expect(res.status).toBe(404);
   });
 
@@ -1117,7 +1118,7 @@ describe('DELETE /forum/:id — Delete own post', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', status: 'deleted' });
 
     const req = createDeleteRequest('/api/v1/forum/topic-1');
-    await DELETE(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await DELETE(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     expect(mockTopicDelete).not.toHaveBeenCalled();
     expect(mockTopicUpdate).toHaveBeenCalledTimes(1);
@@ -1140,7 +1141,7 @@ describe('Moderation — Admin can delete any post', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', status: 'deleted' });
 
     const req = createDeleteRequest('/api/v1/forum/topic-1');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -1155,7 +1156,7 @@ describe('Moderation — Admin can delete any post', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', status: 'deleted' });
 
     const req = createDeleteRequest('/api/v1/forum/topic-1');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -1170,7 +1171,7 @@ describe('Moderation — Admin can delete any post', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', status: 'deleted' });
 
     const req = createDeleteRequest('/api/v1/forum/topic-1');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
   });
 });
@@ -1261,7 +1262,7 @@ describe('POST /forum/:id/replies — Nested replies', () => {
       body: 'I disagree with that point.',
       parentReplyId: 'reply-1',
     });
-    const res = await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(201);
 
     const createCall = mockReplyCreate.mock.calls[0]![0];
@@ -1282,7 +1283,7 @@ describe('POST /forum/:id/replies — Nested replies', () => {
       body: 'Replying to a ghost.',
       parentReplyId: 'reply-ghost',
     });
-    const res = await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(404);
   });
 
@@ -1299,7 +1300,7 @@ describe('POST /forum/:id/replies — Nested replies', () => {
     ]);
 
     const req = createGetRequest('/api/v1/forum/topic-1/replies');
-    const res = await GET_REPLIES(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await GET_REPLIES(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
 
     const resBody = await parseResponse<{ data: unknown[] }>(res);
@@ -1321,7 +1322,7 @@ describe('POST /forum/:id/replies — Nested replies', () => {
     const req = createPostRequest('/api/v1/forum/topic-1/replies', {
       body: 'Top-level reply without parent.',
     });
-    await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     const createCall = mockReplyCreate.mock.calls[0]![0];
     expect(createCall.data.parentReplyId).toBeNull();
@@ -1345,7 +1346,9 @@ describe('POST /forum/:id/replies — Locked topic', () => {
     const req = createPostRequest('/api/v1/forum/topic-locked/replies', {
       body: 'Trying to reply to a locked topic.',
     });
-    const res = await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-locked' }) });
+    const res = await POST_REPLY(req, {
+      params: Promise.resolve({ id: testUuid('topic-locked') }),
+    });
     expect(res.status).toBe(403);
   });
 });
@@ -1365,7 +1368,7 @@ describe('POST /forum/:id/replies — Empty body', () => {
     });
 
     const req = createPostRequest('/api/v1/forum/topic-1/replies', { body: '' });
-    const res = await POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(400);
   });
 });
@@ -1379,7 +1382,9 @@ describe('GET /forum/:id/replies — Topic validation', () => {
     mockTopicFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/forum/topic-ghost/replies');
-    const res = await GET_REPLIES(req, { params: Promise.resolve({ id: 'topic-ghost' }) });
+    const res = await GET_REPLIES(req, {
+      params: Promise.resolve({ id: testUuid('topic-ghost') }),
+    });
     expect(res.status).toBe(404);
   });
 
@@ -1393,7 +1398,7 @@ describe('GET /forum/:id/replies — Topic validation', () => {
     mockReplyFindMany.mockResolvedValue([]);
 
     const req = createGetRequest('/api/v1/forum/topic-1/replies');
-    await GET_REPLIES(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await GET_REPLIES(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     const call = mockReplyFindMany.mock.calls[0]![0];
     expect(call.where.status).toBe('active');

@@ -13,6 +13,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 import { calculateDepreciation } from '@/schemas/asset';
 
 // ---------------------------------------------------------------------------
@@ -792,7 +793,7 @@ describe('GET /api/v1/assets/:id/qr-code — QR code generation', () => {
 
     const req = createGetRequest('/api/v1/assets/qr-code');
     const res = await GET_QR(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
     expect(res.status).toBe(404);
   });
@@ -953,7 +954,7 @@ describe('GET /api/v1/assets/:id — Asset detail', () => {
 
     const req = createGetRequest('/api/v1/assets/detail');
     const res = await GET_DETAIL(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
     expect(res.status).toBe(404);
   });
@@ -963,7 +964,7 @@ describe('GET /api/v1/assets/:id — Asset detail', () => {
 
     const req = createGetRequest('/api/v1/assets/detail');
     const res = await GET_DETAIL(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
 
     const body = await parseResponse<{ error: string }>(res);
@@ -1048,7 +1049,7 @@ describe('PATCH /api/v1/assets/:id — Update asset', () => {
       status: 'under_repair',
     });
     const res = await PATCH(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
     expect(res.status).toBe(404);
   });

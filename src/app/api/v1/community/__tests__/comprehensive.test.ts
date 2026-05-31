@@ -49,6 +49,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -248,7 +249,7 @@ describe('2. Classified ads — status lifecycle', () => {
     mockAdUpdate.mockResolvedValue({ id: 'ad-1', status: 'active' });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { status: 'active' });
-    const res = await PATCH_AD(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH_AD(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
     expect(body.data.status).toBe('active');
@@ -264,7 +265,7 @@ describe('2. Classified ads — status lifecycle', () => {
     mockAdUpdate.mockResolvedValue({ id: 'ad-1', status: 'sold' });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { status: 'sold' });
-    const res = await PATCH_AD(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH_AD(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
     expect(body.data.status).toBe('sold');
@@ -285,7 +286,7 @@ describe('3. Classified ads — reject invalid transition', () => {
     });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { status: 'draft' });
-    const res = await PATCH_AD(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH_AD(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -298,7 +299,7 @@ describe('3. Classified ads — reject invalid transition', () => {
     });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { status: 'active' });
-    const res = await PATCH_AD(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH_AD(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(400);
   });
 });
@@ -401,7 +402,7 @@ describe('7. Idea board — upvote', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', voteCount: 1 });
 
     const req = createPostRequest('/api/v1/ideas/idea-1/vote', {});
-    const res = await VOTE_POST(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await VOTE_POST(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(201);
   });
 });
@@ -420,7 +421,7 @@ describe('8. Idea board — cannot vote on own idea', () => {
     });
 
     const req = createPostRequest('/api/v1/ideas/idea-1/vote', {});
-    const res = await VOTE_POST(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await VOTE_POST(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(403);
     const body = await parseResponse<{ error: string }>(res);
     expect(body.error).toBe('CANNOT_VOTE_OWN_IDEA');
@@ -446,7 +447,7 @@ describe('9. Idea board — prevent duplicate vote', () => {
     });
 
     const req = createPostRequest('/api/v1/ideas/idea-1/vote', {});
-    const res = await VOTE_POST(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await VOTE_POST(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(409);
     const body = await parseResponse<{ error: string }>(res);
     expect(body.error).toBe('ALREADY_VOTED');
@@ -469,7 +470,7 @@ describe('10. Idea status — admin transitions', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', status: 'under_review' });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'under_review' });
-    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -484,7 +485,7 @@ describe('10. Idea status — admin transitions', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', status: 'planned' });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'planned' });
-    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
   });
 });
@@ -504,7 +505,7 @@ describe('11. Idea status — resident cannot change', () => {
     });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'under_review' });
-    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(403);
   });
 });
@@ -706,7 +707,9 @@ describe('18. Forum — reply to topic', () => {
     const req = createPostRequest('/api/v1/forum/topic-1/replies', {
       body: 'I agree with this discussion.',
     });
-    const res = await FORUM_POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await FORUM_POST_REPLY(req, {
+      params: Promise.resolve({ id: testUuid('topic-1') }),
+    });
     expect(res.status).toBe(201);
 
     const updateCall = mockTopicUpdate.mock.calls[0]![0];
@@ -731,7 +734,9 @@ describe('19. Forum — reject reply to locked topic', () => {
     const req = createPostRequest('/api/v1/forum/topic-locked/replies', {
       body: 'Trying to reply to a locked topic.',
     });
-    const res = await FORUM_POST_REPLY(req, { params: Promise.resolve({ id: 'topic-locked' }) });
+    const res = await FORUM_POST_REPLY(req, {
+      params: Promise.resolve({ id: testUuid('topic-locked') }),
+    });
     expect(res.status).toBe(403);
   });
 });
@@ -764,7 +769,9 @@ describe('20. Forum — nested replies', () => {
       body: 'Replying to a reply.',
       parentReplyId: 'reply-1',
     });
-    const res = await FORUM_POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await FORUM_POST_REPLY(req, {
+      params: Promise.resolve({ id: testUuid('topic-1') }),
+    });
     expect(res.status).toBe(201);
 
     const createCall = mockReplyCreate.mock.calls[0]![0];
@@ -785,7 +792,9 @@ describe('20. Forum — nested replies', () => {
       body: 'Replying to a ghost.',
       parentReplyId: 'reply-ghost',
     });
-    const res = await FORUM_POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await FORUM_POST_REPLY(req, {
+      params: Promise.resolve({ id: testUuid('topic-1') }),
+    });
     expect(res.status).toBe(404);
   });
 });
@@ -807,7 +816,7 @@ describe('21. Forum — admin pin topic', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', isPinned: true });
 
     const req = createPatchRequest('/api/v1/forum/topic-1', { isPinned: true });
-    const res = await FORUM_PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await FORUM_PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -822,7 +831,7 @@ describe('21. Forum — admin pin topic', () => {
     });
 
     const req = createPatchRequest('/api/v1/forum/topic-1', { isPinned: true });
-    const res = await FORUM_PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await FORUM_PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(403);
   });
 });
@@ -844,7 +853,7 @@ describe('22. Forum — admin lock topic', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', isLocked: true });
 
     const req = createPatchRequest('/api/v1/forum/topic-1', { isLocked: true });
-    const res = await FORUM_PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await FORUM_PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { isLocked: boolean } }>(res);
     expect(body.data.isLocked).toBe(true);
@@ -861,7 +870,7 @@ describe('22. Forum — admin lock topic', () => {
     });
 
     const req = createPatchRequest('/api/v1/forum/topic-1', { isLocked: true });
-    const res = await FORUM_PATCH(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await FORUM_PATCH(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(403);
   });
 });
@@ -881,7 +890,7 @@ describe('23. Forum — author deletes own topic', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', status: 'deleted' });
 
     const req = createDeleteRequest('/api/v1/forum/topic-1');
-    const res = await FORUM_DELETE(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await FORUM_DELETE(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
 
     expect(mockTopicDelete).not.toHaveBeenCalled();
@@ -898,7 +907,7 @@ describe('23. Forum — author deletes own topic', () => {
     });
 
     const req = createDeleteRequest('/api/v1/forum/topic-1');
-    const res = await FORUM_DELETE(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await FORUM_DELETE(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(403);
   });
 });
@@ -919,7 +928,7 @@ describe('24. Forum — admin deletes any topic', () => {
     mockTopicUpdate.mockResolvedValue({ id: 'topic-1', status: 'deleted' });
 
     const req = createDeleteRequest('/api/v1/forum/topic-1');
-    const res = await FORUM_DELETE(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    const res = await FORUM_DELETE(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
     expect(res.status).toBe(200);
   });
 });
@@ -974,7 +983,7 @@ describe('25. Forum — XSS prevention', () => {
     const req = createPostRequest('/api/v1/forum/topic-1/replies', {
       body: '<script>steal(cookie)</script>Safe reply.',
     });
-    await FORUM_POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await FORUM_POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     const data = mockReplyCreate.mock.calls[0]![0].data;
     expect(data.body).not.toContain('<script>');
@@ -1003,7 +1012,7 @@ describe('26. Forum — notification on reply', () => {
     const req = createPostRequest('/api/v1/forum/topic-1/replies', {
       body: 'Great discussion!',
     });
-    await FORUM_POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await FORUM_POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     expect(mockNotificationCreate).toHaveBeenCalledTimes(1);
     const notifData = mockNotificationCreate.mock.calls[0]![0].data;
@@ -1025,7 +1034,7 @@ describe('26. Forum — notification on reply', () => {
     const req = createPostRequest('/api/v1/forum/topic-1/replies', {
       body: 'Replying to my own topic.',
     });
-    await FORUM_POST_REPLY(req, { params: Promise.resolve({ id: 'topic-1' }) });
+    await FORUM_POST_REPLY(req, { params: Promise.resolve({ id: testUuid('topic-1') }) });
 
     expect(mockNotificationCreate).not.toHaveBeenCalled();
   });
@@ -1047,7 +1056,7 @@ describe('27. Idea status — full lifecycle', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', status: 'completed' });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'completed' });
-    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -1062,7 +1071,7 @@ describe('27. Idea status — full lifecycle', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', status: 'declined' });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'declined' });
-    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
   });
 });
@@ -1082,7 +1091,7 @@ describe('28. Idea status — reject invalid transition', () => {
     });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'submitted' });
-    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -1096,7 +1105,7 @@ describe('28. Idea status — reject invalid transition', () => {
     });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'under_review' });
-    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -1105,7 +1114,7 @@ describe('28. Idea status — reject invalid transition', () => {
     mockIdeaFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/ideas/idea-ghost', { status: 'under_review' });
-    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: 'idea-ghost' }) });
+    const res = await PATCH_IDEA(req, { params: Promise.resolve({ id: testUuid('idea-ghost') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -1132,7 +1141,7 @@ describe('29. Classified ad — flagging', () => {
     const req = createPostRequest('/api/v1/community/ad-1/flag', {
       reason: 'spam',
     });
-    const res = await FLAG_AD(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await FLAG_AD(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(201);
   });
 
@@ -1142,7 +1151,7 @@ describe('29. Classified ad — flagging', () => {
     const req = createPostRequest('/api/v1/community/ad-ghost/flag', {
       reason: 'spam',
     });
-    const res = await FLAG_AD(req, { params: Promise.resolve({ id: 'ad-ghost' }) });
+    const res = await FLAG_AD(req, { params: Promise.resolve({ id: testUuid('ad-ghost') }) });
     expect(res.status).toBe(404);
   });
 
@@ -1157,7 +1166,7 @@ describe('29. Classified ad — flagging', () => {
     const req = createPostRequest('/api/v1/community/ad-1/flag', {
       reason: 'invalid_reason',
     });
-    const res = await FLAG_AD(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await FLAG_AD(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(400);
   });
 });
@@ -1209,7 +1218,7 @@ describe('31. Classified ad — delete by owner', () => {
     mockAdUpdate.mockResolvedValue({ id: 'ad-1', status: 'deleted' });
 
     const req = createDeleteRequest('/api/v1/community/ad-1');
-    const res = await DELETE_AD(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await DELETE_AD(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -1217,7 +1226,7 @@ describe('31. Classified ad — delete by owner', () => {
     mockAdFindUnique.mockResolvedValue(null);
 
     const req = createDeleteRequest('/api/v1/community/ad-ghost');
-    const res = await DELETE_AD(req, { params: Promise.resolve({ id: 'ad-ghost' }) });
+    const res = await DELETE_AD(req, { params: Promise.resolve({ id: testUuid('ad-ghost') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -1237,7 +1246,7 @@ describe('32. Classified ad — get by ID', () => {
     });
 
     const req = createGetRequest('/api/v1/community/ad-1');
-    const res = await GET_AD_ID(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await GET_AD_ID(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { id: string; title: string } }>(res);
     expect(body.data.title).toBe('Standing desk');
@@ -1247,7 +1256,7 @@ describe('32. Classified ad — get by ID', () => {
     mockAdFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/community/ad-ghost');
-    const res = await GET_AD_ID(req, { params: Promise.resolve({ id: 'ad-ghost' }) });
+    const res = await GET_AD_ID(req, { params: Promise.resolve({ id: testUuid('ad-ghost') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -1274,7 +1283,7 @@ describe('33. Community engagement — vote removal and idea detail', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', voteCount: 0 });
 
     const req = createDeleteRequest('/api/v1/ideas/idea-1/vote');
-    const res = await VOTE_DELETE(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await VOTE_DELETE(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -1288,7 +1297,7 @@ describe('33. Community engagement — vote removal and idea detail', () => {
     mockVoteFindUnique.mockResolvedValue(null);
 
     const req = createDeleteRequest('/api/v1/ideas/idea-1/vote');
-    const res = await VOTE_DELETE(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await VOTE_DELETE(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(404);
   });
 
@@ -1306,7 +1315,7 @@ describe('33. Community engagement — vote removal and idea detail', () => {
     mockCommentFindMany.mockResolvedValue([]);
 
     const req = createGetRequest('/api/v1/ideas/idea-1');
-    const res = await GET_IDEA_ID(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await GET_IDEA_ID(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { votes: unknown[] } }>(res);
     expect(body.data.votes).toHaveLength(2);
@@ -1316,7 +1325,7 @@ describe('33. Community engagement — vote removal and idea detail', () => {
     mockIdeaFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/ideas/idea-ghost');
-    const res = await GET_IDEA_ID(req, { params: Promise.resolve({ id: 'idea-ghost' }) });
+    const res = await GET_IDEA_ID(req, { params: Promise.resolve({ id: testUuid('idea-ghost') }) });
     expect(res.status).toBe(404);
   });
 
@@ -1324,7 +1333,7 @@ describe('33. Community engagement — vote removal and idea detail', () => {
     mockIdeaFindUnique.mockResolvedValue(null);
 
     const req = createPostRequest('/api/v1/ideas/idea-ghost/vote', {});
-    const res = await VOTE_POST(req, { params: Promise.resolve({ id: 'idea-ghost' }) });
+    const res = await VOTE_POST(req, { params: Promise.resolve({ id: testUuid('idea-ghost') }) });
     expect(res.status).toBe(404);
   });
 });

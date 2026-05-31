@@ -8,6 +8,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -890,7 +891,7 @@ describe('Report archival', () => {
 
     const req = createGetRequest('/api/v1/compliance/reports/run-1');
     const res = await GET_REPORT_DETAIL(req, {
-      params: Promise.resolve({ id: 'run-1' }),
+      params: Promise.resolve({ id: testUuid('run-1') }),
     });
 
     expect(res.status).toBe(200);
@@ -912,7 +913,7 @@ describe('Report archival', () => {
 
     const req = createGetRequest('/api/v1/compliance/reports/non-existent');
     const res = await GET_REPORT_DETAIL(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
 
     expect(res.status).toBe(404);

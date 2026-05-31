@@ -19,6 +19,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -909,7 +910,7 @@ describe('Amenity Booking: Validation & Transitions', () => {
         endDate: '2026-03-25',
         endTime: '2026-03-25T17:00:00Z',
       }),
-      { params: Promise.resolve({ id: 'nonexistent-amenity' }) },
+      { params: Promise.resolve({ id: testUuid('nonexistent-amenity') }) },
     );
     expect(res.status).toBe(404);
 
@@ -972,7 +973,7 @@ describe('Amenity Booking: Validation & Transitions', () => {
     mockBookingFindUnique.mockResolvedValue(null);
 
     const res = await getBooking(createGetRequest('/api/v1/bookings/nonexistent'), {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
 
@@ -991,7 +992,7 @@ describe('Amenity Booking: Validation & Transitions', () => {
 
     const res = await updateBooking(
       createPatchRequest('/api/v1/bookings/booking-declined', { status: 'approved' }),
-      { params: Promise.resolve({ id: 'booking-declined' }) },
+      { params: Promise.resolve({ id: testUuid('booking-declined') }) },
     );
     expect(res.status).toBe(400);
 
@@ -1021,7 +1022,7 @@ describe('Amenity Booking: Validation & Transitions', () => {
         status: 'declined',
         declinedReason: 'Noise complaint history',
       }),
-      { params: Promise.resolve({ id: 'booking-to-decline' }) },
+      { params: Promise.resolve({ id: testUuid('booking-to-decline') }) },
     );
     expect(res.status).toBe(200);
 

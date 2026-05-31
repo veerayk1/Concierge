@@ -13,6 +13,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -466,7 +467,9 @@ describe('Scenario 1: Course Completion — Enroll -> Modules -> Quiz -> Certifi
     mockCourseFindUnique.mockResolvedValue(null);
 
     const req = createPostRequest('/api/v1/training/nonexistent/enroll', {});
-    const res = await enrollInCourse(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await enrollInCourse(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -1121,7 +1124,7 @@ describe('Training: Course Management & Validation', () => {
     mockCourseFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/training/nonexistent');
-    const res = await getCourse(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await getCourse(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);

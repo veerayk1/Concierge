@@ -16,6 +16,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 import {
   generateWebhookSignature,
   verifyWebhookSignature,
@@ -532,7 +533,7 @@ describe('DELETE /api/v1/developer/api-keys/:id — Revoke API key', () => {
 
     const req = createDeleteRequest('/api/v1/developer/api-keys/revoke');
     const res = await DELETE_KEY(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
     expect(res.status).toBe(404);
   });
@@ -1043,7 +1044,7 @@ describe('PATCH /api/v1/developer/webhooks/:id — Update webhook', () => {
       url: 'https://example.com/new',
     });
     const res = await PATCH_WEBHOOK(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
     expect(res.status).toBe(404);
   });
@@ -1198,7 +1199,7 @@ describe('GET /api/v1/developer/webhooks/:id/deliveries — Delivery log', () =>
 
     const req = createGetRequest('/api/v1/developer/webhooks/deliveries');
     const res = await GET_DELIVERIES(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
     expect(res.status).toBe(404);
   });
@@ -1413,7 +1414,7 @@ describe('DELETE /api/v1/developer/webhooks/:id — Delete webhook', () => {
 
     const req = createDeleteRequest('/api/v1/developer/webhooks/delete');
     const res = await DELETE_WEBHOOK(req, {
-      params: Promise.resolve({ id: 'non-existent' }),
+      params: Promise.resolve({ id: testUuid('non-existent') }),
     });
     expect(res.status).toBe(404);
   });

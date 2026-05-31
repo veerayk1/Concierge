@@ -31,6 +31,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -917,7 +918,9 @@ describe('GET /api/v1/keys/:id — Key history audit trail', () => {
     mockKeyFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest(`/api/v1/keys/nonexistent`);
-    const res = await GET_KEY_DETAIL(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await GET_KEY_DETAIL(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
 
     expect(res.status).toBe(404);
   });
@@ -1113,7 +1116,9 @@ describe('PATCH — Checkout not found', () => {
     const req = createPatchRequest('/api/v1/keys/checkouts/nonexistent', {
       action: 'return',
     });
-    const res = await PATCH_CHECKOUT(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await PATCH_CHECKOUT(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
 
     expect(res.status).toBe(404);
     const body = await parseResponse<{ error: string }>(res);

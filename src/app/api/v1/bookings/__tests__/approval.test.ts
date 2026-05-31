@@ -12,6 +12,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createPatchRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -94,7 +95,7 @@ function makeBooking(overrides: Record<string, unknown> = {}) {
   };
 }
 
-const params = Promise.resolve({ id: 'booking-1' });
+const params = Promise.resolve({ id: testUuid('booking-1') });
 
 beforeEach(() => {
   vi.clearAllMocks();

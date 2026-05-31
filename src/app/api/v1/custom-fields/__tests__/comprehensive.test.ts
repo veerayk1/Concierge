@@ -22,6 +22,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { testUuid } from '@/test/fixtures/ids';
 import { NextRequest } from 'next/server';
 import { GET, POST } from '../route';
 import { GET as GET_BY_ID, PATCH, DELETE } from '../[id]/route';
@@ -825,7 +826,7 @@ describe('PATCH /api/v1/custom-fields/:id', () => {
       body: { label: 'Does not matter' },
     });
 
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'non-existent-id' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('non-existent-id') }) });
     expect(res.status).toBe(404);
   });
 
@@ -895,7 +896,7 @@ describe('DELETE /api/v1/custom-fields/:id', () => {
       method: 'DELETE',
     });
 
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'ghost-id' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('ghost-id') }) });
     expect(res.status).toBe(404);
   });
 
@@ -1024,7 +1025,9 @@ describe('GET /api/v1/custom-fields/:id', () => {
 
   it('returns 404 for non-existent id', async () => {
     const req = buildRequest('/api/v1/custom-fields/does-not-exist');
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'does-not-exist' }) });
+    const res = await GET_BY_ID(req, {
+      params: Promise.resolve({ id: testUuid('does-not-exist') }),
+    });
     expect(res.status).toBe(404);
   });
 });

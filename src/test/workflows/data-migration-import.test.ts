@@ -12,6 +12,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -414,7 +415,9 @@ describe('Scenario 1: CSV Resident Import (upload -> validate -> preview -> map 
     );
 
     const req = createGetRequest('/api/v1/data-migration/import/import-001/status');
-    const res = await getImportStatus(req, { params: Promise.resolve({ id: 'import-001' }) });
+    const res = await getImportStatus(req, {
+      params: Promise.resolve({ id: testUuid('import-001') }),
+    });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{
@@ -430,7 +433,9 @@ describe('Scenario 1: CSV Resident Import (upload -> validate -> preview -> map 
     );
 
     const req = createGetRequest('/api/v1/data-migration/import/import-001/status');
-    const res = await getImportStatus(req, { params: Promise.resolve({ id: 'import-001' }) });
+    const res = await getImportStatus(req, {
+      params: Promise.resolve({ id: testUuid('import-001') }),
+    });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{
@@ -454,7 +459,9 @@ describe('Scenario 1: CSV Resident Import (upload -> validate -> preview -> map 
     );
 
     const req = createGetRequest('/api/v1/data-migration/import/import-001/status');
-    const res = await getImportStatus(req, { params: Promise.resolve({ id: 'import-001' }) });
+    const res = await getImportStatus(req, {
+      params: Promise.resolve({ id: testUuid('import-001') }),
+    });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{
@@ -483,7 +490,9 @@ describe('Scenario 1: CSV Resident Import (upload -> validate -> preview -> map 
     );
 
     const req = createGetRequest('/api/v1/data-migration/import/import-001/status');
-    const res = await getImportStatus(req, { params: Promise.resolve({ id: 'import-001' }) });
+    const res = await getImportStatus(req, {
+      params: Promise.resolve({ id: testUuid('import-001') }),
+    });
     const body = await parseResponse<{
       data: {
         errors: { row: number; field: string; message: string }[];
@@ -509,7 +518,9 @@ describe('Scenario 1: CSV Resident Import (upload -> validate -> preview -> map 
     );
 
     const req = createGetRequest('/api/v1/data-migration/import/import-001/status');
-    const res = await getImportStatus(req, { params: Promise.resolve({ id: 'import-001' }) });
+    const res = await getImportStatus(req, {
+      params: Promise.resolve({ id: testUuid('import-001') }),
+    });
     const body = await parseResponse<{
       data: {
         totalRows: number;
@@ -998,7 +1009,9 @@ describe('Data Migration: Validation & Edge Cases', () => {
     mockGetImportJobStatus.mockReturnValue(null);
 
     const req = createGetRequest('/api/v1/data-migration/import/nonexistent/status');
-    const res = await getImportStatus(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await getImportStatus(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -1119,7 +1132,9 @@ describe('Data Migration: Validation & Edge Cases', () => {
     );
 
     const req = createGetRequest('/api/v1/data-migration/import/import-001/status');
-    const res = await getImportStatus(req, { params: Promise.resolve({ id: 'import-001' }) });
+    const res = await getImportStatus(req, {
+      params: Promise.resolve({ id: testUuid('import-001') }),
+    });
     const body = await parseResponse<{
       data: { errors: unknown[] };
     }>(res);

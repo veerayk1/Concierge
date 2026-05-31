@@ -8,6 +8,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -695,7 +696,7 @@ describe('Shift Log — Pin/Unpin Operations', () => {
       pinned: true,
     });
 
-    const res = await pinEntry(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await pinEntry(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -716,7 +717,7 @@ describe('Shift Log — Pin/Unpin Operations', () => {
       pinned: false,
     });
 
-    const res = await pinEntry(req, { params: Promise.resolve({ id: 'pinned-entry' }) });
+    const res = await pinEntry(req, { params: Promise.resolve({ id: testUuid('pinned-entry') }) });
     expect(res.status).toBe(200);
 
     const updateData = (
@@ -730,7 +731,7 @@ describe('Shift Log — Pin/Unpin Operations', () => {
   it('Pin request without pinned field returns validation error', async () => {
     const req = createPostRequest('/api/v1/shift-log/some-entry/pin', {});
 
-    const res = await pinEntry(req, { params: Promise.resolve({ id: 'some-entry' }) });
+    const res = await pinEntry(req, { params: Promise.resolve({ id: testUuid('some-entry') }) });
     expect(res.status).toBe(400);
 
     const body = await parseResponse<{ error: string }>(res);

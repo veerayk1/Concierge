@@ -19,6 +19,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -580,7 +581,7 @@ describe('Scenario 4: Key Returned and Checked Back In', () => {
       action: 'return',
     });
 
-    const res = await returnKey(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await returnKey(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -876,7 +877,7 @@ describe('Full Workflow: Key lifecycle from creation to lost replacement', () =>
         action: 'return',
         conditionNotes: 'LOST',
       }),
-      { params: Promise.resolve({ id: 'co-e2e-002' }) },
+      { params: Promise.resolve({ id: testUuid('co-e2e-002') }) },
     );
     expect(lostReturnRes.status).toBe(200);
 
@@ -933,7 +934,7 @@ describe('Key/FOB Management: Validation & Edge Cases', () => {
       action: 'invalid_action',
     });
 
-    const res = await returnKey(req, { params: Promise.resolve({ id: 'some-id' }) });
+    const res = await returnKey(req, { params: Promise.resolve({ id: testUuid('some-id') }) });
     expect(res.status).toBe(400);
 
     const body = await parseResponse<{ error: string }>(res);

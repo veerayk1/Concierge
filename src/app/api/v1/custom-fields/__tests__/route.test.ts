@@ -28,6 +28,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { testUuid } from '@/test/fixtures/ids';
 import { NextRequest } from 'next/server';
 import { GET, POST } from '../route';
 import { GET as GET_BY_ID, PATCH, DELETE } from '../[id]/route';
@@ -601,7 +602,7 @@ describe('PATCH /api/v1/custom-fields/:id -- update', () => {
       body: { label: 'Anything' },
     });
 
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('non-existent') }) });
     expect(res.status).toBe(404);
   });
 
@@ -695,7 +696,7 @@ describe('DELETE /api/v1/custom-fields/:id -- soft-delete', () => {
 
   it('returns 404 for non-existent field', async () => {
     const req = buildRequest('/api/v1/custom-fields/ghost', { method: 'DELETE' });
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'ghost' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('ghost') }) });
     expect(res.status).toBe(404);
   });
 
@@ -1093,7 +1094,9 @@ describe('Tenant isolation for custom fields', () => {
 
   it('GET by ID returns 404 for non-existent ID', async () => {
     const req = buildRequest('/api/v1/custom-fields/does-not-exist');
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'does-not-exist' }) });
+    const res = await GET_BY_ID(req, {
+      params: Promise.resolve({ id: testUuid('does-not-exist') }),
+    });
     expect(res.status).toBe(404);
   });
 

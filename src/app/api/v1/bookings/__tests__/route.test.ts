@@ -9,6 +9,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createGetRequest, createPatchRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 const mockFindMany = vi.fn();
 const mockCount = vi.fn();
@@ -92,7 +93,7 @@ describe('GET /api/v1/bookings — Tenant Isolation', () => {
 // ---------------------------------------------------------------------------
 
 describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
-  const params = Promise.resolve({ id: 'booking-1' });
+  const params = Promise.resolve({ id: testUuid('booking-1') });
 
   it('allows pending → approved', async () => {
     mockFindUnique.mockResolvedValue({
@@ -280,7 +281,7 @@ describe('PATCH /api/v1/bookings/:id — Status Transitions', () => {
     mockFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/bookings/nonexistent', { status: 'approved' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
     expect(res.status).toBe(404);
   });
 });

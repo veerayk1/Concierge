@@ -13,6 +13,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 import { calculateComplianceStatus } from '@/server/vendors/compliance';
 
 // ---------------------------------------------------------------------------
@@ -488,7 +489,9 @@ describe('GET /api/v1/vendors/:id — Vendor detail', () => {
     mockVendorFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/vendors/detail');
-    const res = await GET_DETAIL(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await GET_DETAIL(req, {
+      params: Promise.resolve({ id: testUuid('non-existent') }),
+    });
     expect(res.status).toBe(404);
   });
 
@@ -581,7 +584,7 @@ describe('PATCH /api/v1/vendors/:id — Update vendor fields', () => {
     mockVendorFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/vendors/update', { companyName: 'Test' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('non-existent') }) });
     expect(res.status).toBe(404);
   });
 
@@ -724,7 +727,7 @@ describe('POST /api/v1/vendors/:id/documents — Document upload', () => {
     mockVendorFindUnique.mockResolvedValue(null);
 
     const req = createPostRequest('/api/v1/vendors/documents', validDoc);
-    const res = await POST_DOC(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await POST_DOC(req, { params: Promise.resolve({ id: testUuid('non-existent') }) });
     expect(res.status).toBe(404);
   });
 
@@ -966,7 +969,7 @@ describe('GET /api/v1/vendors/:id/documents — List documents', () => {
     mockVendorFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/vendors/documents');
-    const res = await GET_DOCS(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await GET_DOCS(req, { params: Promise.resolve({ id: testUuid('non-existent') }) });
     expect(res.status).toBe(404);
   });
 

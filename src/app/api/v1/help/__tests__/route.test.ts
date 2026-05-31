@@ -13,6 +13,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -200,7 +201,7 @@ describe('GET /api/v1/help/articles/:id — Single Article', () => {
     mockArticleFindUnique.mockResolvedValue(article);
 
     const req = createGetRequest('/api/v1/help/articles/a1');
-    const res = await GET_ARTICLE_BY_ID(req, { params: Promise.resolve({ id: 'a1' }) });
+    const res = await GET_ARTICLE_BY_ID(req, { params: Promise.resolve({ id: testUuid('a1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: typeof article }>(res);
@@ -212,7 +213,9 @@ describe('GET /api/v1/help/articles/:id — Single Article', () => {
     mockArticleFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/help/articles/nonexistent');
-    const res = await GET_ARTICLE_BY_ID(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await GET_ARTICLE_BY_ID(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
 
     expect(res.status).toBe(404);
   });
@@ -545,7 +548,7 @@ describe('PATCH /api/v1/help/tickets/:id — Ticket Status Transitions', () => {
     mockTicketUpdate.mockResolvedValue({ ...existing, status: 'in_progress' });
 
     const req = createPatchRequest('/api/v1/help/tickets/tk-1', { status: 'in_progress' });
-    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
@@ -563,7 +566,7 @@ describe('PATCH /api/v1/help/tickets/:id — Ticket Status Transitions', () => {
     mockTicketUpdate.mockResolvedValue({ ...existing, status: 'resolved' });
 
     const req = createPatchRequest('/api/v1/help/tickets/tk-1', { status: 'resolved' });
-    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
@@ -581,7 +584,7 @@ describe('PATCH /api/v1/help/tickets/:id — Ticket Status Transitions', () => {
     mockTicketUpdate.mockResolvedValue({ ...existing, status: 'closed' });
 
     const req = createPatchRequest('/api/v1/help/tickets/tk-1', { status: 'closed' });
-    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
@@ -592,7 +595,9 @@ describe('PATCH /api/v1/help/tickets/:id — Ticket Status Transitions', () => {
     mockTicketFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/help/tickets/nonexistent', { status: 'in_progress' });
-    const res = await PATCH_TICKET(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await PATCH_TICKET(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
 
     expect(res.status).toBe(404);
   });
@@ -621,7 +626,7 @@ describe('POST /api/v1/help/tickets/:id/comments — Add Comment', () => {
     const req = createPostRequest('/api/v1/help/tickets/tk-1/comments', {
       body: 'I tried clearing my cache but the issue persists.',
     });
-    const res = await POST_COMMENTS(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await POST_COMMENTS(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(201);
     const parsed = await parseResponse<{ data: typeof comment }>(res);
@@ -634,7 +639,7 @@ describe('POST /api/v1/help/tickets/:id/comments — Add Comment', () => {
     mockTicketFindUnique.mockResolvedValue(ticket);
 
     const req = createPostRequest('/api/v1/help/tickets/tk-1/comments', { body: '' });
-    const res = await POST_COMMENTS(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await POST_COMMENTS(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(400);
   });
@@ -646,7 +651,9 @@ describe('POST /api/v1/help/tickets/:id/comments — Add Comment', () => {
     const req = createPostRequest('/api/v1/help/tickets/nonexistent/comments', {
       body: 'This should fail.',
     });
-    const res = await POST_COMMENTS(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await POST_COMMENTS(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
 
     expect(res.status).toBe(404);
   });
@@ -669,7 +676,7 @@ describe('POST /api/v1/help/tickets/:id/comments — Add Comment', () => {
     const req = createPostRequest('/api/v1/help/tickets/tk-1/comments', {
       body: 'We are looking into this.',
     });
-    const res = await POST_COMMENTS(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await POST_COMMENTS(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(201);
     const createData = mockCommentCreate.mock.calls[0]![0].data;
@@ -719,7 +726,9 @@ describe('Ticket Visibility — Role-Based Access', () => {
     mockTicketFindUnique.mockResolvedValue(otherTicket);
 
     const req = createGetRequest('/api/v1/help/tickets/tk-other');
-    const res = await GET_TICKET_BY_ID(req, { params: Promise.resolve({ id: 'tk-other' }) });
+    const res = await GET_TICKET_BY_ID(req, {
+      params: Promise.resolve({ id: testUuid('tk-other') }),
+    });
 
     expect(res.status).toBe(404);
   });
@@ -736,7 +745,9 @@ describe('Ticket Visibility — Role-Based Access', () => {
     mockTicketFindUnique.mockResolvedValue(ticket);
 
     const req = createGetRequest('/api/v1/help/tickets/tk-other');
-    const res = await GET_TICKET_BY_ID(req, { params: Promise.resolve({ id: 'tk-other' }) });
+    const res = await GET_TICKET_BY_ID(req, {
+      params: Promise.resolve({ id: testUuid('tk-other') }),
+    });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: typeof ticket }>(res);
@@ -761,7 +772,7 @@ describe('Ticket Visibility — Role-Based Access', () => {
     mockCommentFindMany.mockResolvedValue(comments);
 
     const req = createGetRequest('/api/v1/help/tickets/tk-1/comments');
-    const res = await GET_COMMENTS(req, { params: Promise.resolve({ id: 'tk-1' }) });
+    const res = await GET_COMMENTS(req, { params: Promise.resolve({ id: testUuid('tk-1') }) });
 
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: typeof comments }>(res);

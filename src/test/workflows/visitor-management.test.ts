@@ -13,6 +13,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -591,7 +592,7 @@ describe('Scenario 4: Unauthorized Visitor — Denied Entry', () => {
 
     const req = createPatchRequest('/api/v1/visitors/nonexistent', {});
     const res = await signOutVisitor(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
 
@@ -604,7 +605,7 @@ describe('Scenario 4: Unauthorized Visitor — Denied Entry', () => {
 
     const req = createGetRequest('/api/v1/visitors/nonexistent');
     const res = await getVisitor(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
   });
@@ -915,7 +916,9 @@ describe('Visitor Management — Edge Cases & Filters', () => {
     });
 
     const req = createGetRequest('/api/v1/visitors/active-visitor');
-    const res = await getVisitor(req, { params: Promise.resolve({ id: 'active-visitor' }) });
+    const res = await getVisitor(req, {
+      params: Promise.resolve({ id: testUuid('active-visitor') }),
+    });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{ data: { durationMinutes: null; status: string } }>(res);

@@ -19,6 +19,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -736,7 +737,7 @@ describe('Scenario 7: Emergency Broadcast Audit Trail', () => {
     );
 
     const req = createGetRequest('/api/v1/emergency/broadcast/bc-audit');
-    const res = await getBroadcast(req, { params: Promise.resolve({ id: 'bc-audit' }) });
+    const res = await getBroadcast(req, { params: Promise.resolve({ id: testUuid('bc-audit') }) });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{
@@ -884,7 +885,9 @@ describe('Emergency Broadcast: Validation & Edge Cases', () => {
     mockEmergencyBroadcastFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/emergency/broadcast/nonexistent');
-    const res = await getBroadcast(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await getBroadcast(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -897,7 +900,9 @@ describe('Emergency Broadcast: Validation & Edge Cases', () => {
     const req = createPostRequest('/api/v1/emergency/broadcast/nonexistent/all-clear', {
       message: 'Safe now',
     });
-    const res = await sendAllClear(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await sendAllClear(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
   });
 
@@ -946,7 +951,9 @@ describe('Emergency Broadcast: Validation & Edge Cases', () => {
     const req = createPostRequest('/api/v1/emergency/broadcast/nonexistent/acknowledge', {
       channel: 'push',
     });
-    const res = await acknowledgeBroadcast(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await acknowledgeBroadcast(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
   });
 });

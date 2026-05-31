@@ -17,6 +17,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 import {
   isValidCronExpression,
   parseCronExpression,
@@ -626,7 +627,7 @@ describe('PATCH /api/v1/recurring-tasks/:id — Status updates', () => {
     mockTaskFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/recurring-tasks/update', { name: 'Updated Name' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('non-existent') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -1276,7 +1277,9 @@ describe('GET /api/v1/recurring-tasks/:id — Task detail', () => {
     mockTaskFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/recurring-tasks/detail');
-    const res = await GET_DETAIL(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await GET_DETAIL(req, {
+      params: Promise.resolve({ id: testUuid('non-existent') }),
+    });
     expect(res.status).toBe(404);
   });
 
@@ -1329,7 +1332,9 @@ describe('DELETE /api/v1/recurring-tasks/:id — Soft delete', () => {
     mockTaskFindUnique.mockResolvedValue(null);
 
     const req = createDeleteRequest('/api/v1/recurring-tasks/delete');
-    const res = await DELETE_TASK(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await DELETE_TASK(req, {
+      params: Promise.resolve({ id: testUuid('non-existent') }),
+    });
     expect(res.status).toBe(404);
   });
 });

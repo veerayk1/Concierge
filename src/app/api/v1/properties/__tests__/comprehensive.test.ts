@@ -14,6 +14,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -402,7 +403,7 @@ describe('PATCH /properties/:id — update property', () => {
       { name: 'Updated' },
       { headers: { 'x-demo-role': 'super_admin' } },
     );
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'non-existent' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('non-existent') }) });
 
     expect(res.status).toBe(404);
   });
@@ -836,7 +837,7 @@ describe('Property deactivation — soft-disable', () => {
       {},
       { headers: { 'x-demo-role': 'super_admin' } },
     );
-    const res = await deactivate(req, { params: Promise.resolve({ id: 'missing' }) });
+    const res = await deactivate(req, { params: Promise.resolve({ id: testUuid('missing') }) });
 
     expect(res.status).toBe(404);
   });

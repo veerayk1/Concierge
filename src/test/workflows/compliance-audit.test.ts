@@ -17,6 +17,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -284,7 +285,9 @@ describe('Scenario 1: PIPEDA Audit Cycle (schedule -> review controls -> report 
       searchParams: { propertyId: PROPERTY_ID },
     });
 
-    const res = await getComplianceDetail(req, { params: Promise.resolve({ id: 'pipeda' }) });
+    const res = await getComplianceDetail(req, {
+      params: Promise.resolve({ id: testUuid('pipeda') }),
+    });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{
@@ -311,7 +314,7 @@ describe('Scenario 1: PIPEDA Audit Cycle (schedule -> review controls -> report 
       notes: 'Reviewed by external auditor on 2026-03-10.',
     });
 
-    const res = await updateControl(req, { params: Promise.resolve({ id: 'pipeda' }) });
+    const res = await updateControl(req, { params: Promise.resolve({ id: testUuid('pipeda') }) });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{
@@ -332,7 +335,7 @@ describe('Scenario 1: PIPEDA Audit Cycle (schedule -> review controls -> report 
       notes: 'Remediation due by Q2 2026.',
     });
 
-    const res = await updateControl(req, { params: Promise.resolve({ id: 'pipeda' }) });
+    const res = await updateControl(req, { params: Promise.resolve({ id: testUuid('pipeda') }) });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{ data: { status: string } }>(res);
@@ -345,7 +348,7 @@ describe('Scenario 1: PIPEDA Audit Cycle (schedule -> review controls -> report 
       status: 'compliant',
     });
 
-    const res = await updateControl(req, { params: Promise.resolve({ id: 'pipeda' }) });
+    const res = await updateControl(req, { params: Promise.resolve({ id: testUuid('pipeda') }) });
     expect(res.status).toBe(400);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -398,7 +401,7 @@ describe('Scenario 1: PIPEDA Audit Cycle (schedule -> review controls -> report 
       notes: 'Focus on consent and safeguards controls.',
     });
 
-    const res = await scheduleAudit(req, { params: Promise.resolve({ id: 'pipeda' }) });
+    const res = await scheduleAudit(req, { params: Promise.resolve({ id: testUuid('pipeda') }) });
     expect(res.status).toBe(201);
 
     const body = await parseResponse<{
@@ -430,7 +433,7 @@ describe('Scenario 1: PIPEDA Audit Cycle (schedule -> review controls -> report 
       scope: ['pip-1'],
     });
 
-    const res = await scheduleAudit(req, { params: Promise.resolve({ id: 'pipeda' }) });
+    const res = await scheduleAudit(req, { params: Promise.resolve({ id: testUuid('pipeda') }) });
     expect(res.status).toBe(400);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -730,7 +733,7 @@ describe('Scenario 3: Vendor Compliance Check (insurance status -> alerts -> upd
     mockVendorFindUnique.mockResolvedValue(null);
 
     const res = await getVendor(createGetRequest('/api/v1/vendors/nonexistent'), {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
 
@@ -780,7 +783,7 @@ describe('Compliance Audit: Validation & Edge Cases', () => {
 
   it('should return 404 for nonexistent framework', async () => {
     const res = await getComplianceDetail(createGetRequest('/api/v1/compliance/nonexistent'), {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
 
@@ -793,7 +796,7 @@ describe('Compliance Audit: Validation & Edge Cases', () => {
       status: 'compliant',
     });
 
-    const res = await updateControl(req, { params: Promise.resolve({ id: 'pipeda' }) });
+    const res = await updateControl(req, { params: Promise.resolve({ id: testUuid('pipeda') }) });
     expect(res.status).toBe(400);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -810,7 +813,7 @@ describe('Compliance Audit: Validation & Edge Cases', () => {
       scope: [],
     });
 
-    const res = await scheduleAudit(req, { params: Promise.resolve({ id: 'pipeda' }) });
+    const res = await scheduleAudit(req, { params: Promise.resolve({ id: testUuid('pipeda') }) });
     expect(res.status).toBe(400);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -826,7 +829,7 @@ describe('Compliance Audit: Validation & Edge Cases', () => {
       scope: ['pip-1'],
     });
 
-    const res = await scheduleAudit(req, { params: Promise.resolve({ id: 'pipeda' }) });
+    const res = await scheduleAudit(req, { params: Promise.resolve({ id: testUuid('pipeda') }) });
     expect(res.status).toBe(400);
   });
 
@@ -863,7 +866,9 @@ describe('Compliance Audit: Validation & Edge Cases', () => {
       searchParams: { propertyId: PROPERTY_ID },
     });
 
-    const res = await getComplianceDetail(req, { params: Promise.resolve({ id: 'gdpr' }) });
+    const res = await getComplianceDetail(req, {
+      params: Promise.resolve({ id: testUuid('gdpr') }),
+    });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{ data: { frameworkId: string; totalControls: number } }>(res);
@@ -876,7 +881,9 @@ describe('Compliance Audit: Validation & Edge Cases', () => {
       searchParams: { propertyId: PROPERTY_ID },
     });
 
-    const res = await getComplianceDetail(req, { params: Promise.resolve({ id: 'soc2' }) });
+    const res = await getComplianceDetail(req, {
+      params: Promise.resolve({ id: testUuid('soc2') }),
+    });
     expect(res.status).toBe(200);
 
     const body = await parseResponse<{ data: { frameworkId: string; totalControls: number } }>(res);

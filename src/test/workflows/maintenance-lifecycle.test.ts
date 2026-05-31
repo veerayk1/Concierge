@@ -17,6 +17,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -918,7 +919,7 @@ describe('Scenario 4: Resident-Hidden Request (staff-only visibility)', () => {
 
     const req = createGetRequest(`/api/v1/maintenance/nonexistent-id`);
     const res = await getMaintenanceRequest(req, {
-      params: Promise.resolve({ id: 'nonexistent-id' }),
+      params: Promise.resolve({ id: testUuid('nonexistent-id') }),
     });
     expect(res.status).toBe(404);
 
@@ -1059,7 +1060,7 @@ describe('Maintenance Lifecycle: Validation & Edge Cases', () => {
         body: 'This should fail.',
         visibleToResident: true,
       }),
-      { params: Promise.resolve({ id: 'nonexistent' }) },
+      { params: Promise.resolve({ id: testUuid('nonexistent') }) },
     );
     expect(res.status).toBe(404);
   });
@@ -1071,7 +1072,7 @@ describe('Maintenance Lifecycle: Validation & Edge Cases', () => {
       createPostRequest('/api/v1/maintenance/mr-001/comments', {
         visibleToResident: true,
       }),
-      { params: Promise.resolve({ id: 'mr-001' }) },
+      { params: Promise.resolve({ id: testUuid('mr-001') }) },
     );
     expect(res.status).toBe(400);
   });

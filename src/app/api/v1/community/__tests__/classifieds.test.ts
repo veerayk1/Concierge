@@ -22,6 +22,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -151,7 +152,7 @@ describe('Classified Ads — Status lifecycle', () => {
     mockAdUpdate.mockResolvedValue({ id: 'ad-1', status: 'active' });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { status: 'active' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
     expect(body.data.status).toBe('active');
@@ -167,7 +168,7 @@ describe('Classified Ads — Status lifecycle', () => {
     mockAdUpdate.mockResolvedValue({ id: 'ad-1', status: 'sold' });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { status: 'sold' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
     expect(body.data.status).toBe('sold');
@@ -182,7 +183,7 @@ describe('Classified Ads — Status lifecycle', () => {
     });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { status: 'draft' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -195,7 +196,7 @@ describe('Classified Ads — Status lifecycle', () => {
     });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { status: 'active' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(400);
   });
 });
@@ -413,7 +414,7 @@ describe('Classified Ads — Ownership enforcement', () => {
     mockAdUpdate.mockResolvedValue({ id: 'ad-1', title: 'Updated title', status: 'active' });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { title: 'Updated title' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -427,7 +428,7 @@ describe('Classified Ads — Ownership enforcement', () => {
     });
 
     const req = createPatchRequest('/api/v1/community/ad-1', { title: 'Hijack title' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(403);
   });
 
@@ -441,7 +442,7 @@ describe('Classified Ads — Ownership enforcement', () => {
     mockAdUpdate.mockResolvedValue({ id: 'ad-1', status: 'archived' });
 
     const req = createDeleteRequest('/api/v1/community/ad-1');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -455,7 +456,7 @@ describe('Classified Ads — Ownership enforcement', () => {
     });
 
     const req = createDeleteRequest('/api/v1/community/ad-1');
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(403);
   });
 
@@ -463,7 +464,7 @@ describe('Classified Ads — Ownership enforcement', () => {
     mockAdFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/community/ad-nonexistent', { title: 'Ghost' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'ad-nonexistent' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('ad-nonexistent') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -486,7 +487,7 @@ describe('Classified Ads — Flagging', () => {
       reason: 'spam',
       description: 'This looks like a scam listing.',
     });
-    const res = await FLAG_POST(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await FLAG_POST(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(201);
   });
 
@@ -502,7 +503,7 @@ describe('Classified Ads — Flagging', () => {
     const req = createPostRequest('/api/v1/community/ad-1/flag', {
       reason: 'inappropriate',
     });
-    await FLAG_POST(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    await FLAG_POST(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
 
     const data = mockAdFlagCreate.mock.calls[0]![0].data;
     expect(data.userId).toBe(USER_RESIDENT);
@@ -514,7 +515,7 @@ describe('Classified Ads — Flagging', () => {
     const req = createPostRequest('/api/v1/community/ad-ghost/flag', {
       reason: 'spam',
     });
-    const res = await FLAG_POST(req, { params: Promise.resolve({ id: 'ad-ghost' }) });
+    const res = await FLAG_POST(req, { params: Promise.resolve({ id: testUuid('ad-ghost') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -583,7 +584,7 @@ describe('Classified Ads — Admin removal', () => {
     const req = createDeleteRequest('/api/v1/community/ad-1', {
       body: { reason: 'Violates community guidelines' },
     });
-    const res = await DELETE(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    const res = await DELETE(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -600,7 +601,7 @@ describe('Classified Ads — Admin removal', () => {
     const req = createDeleteRequest('/api/v1/community/ad-1', {
       body: { reason: 'Prohibited item' },
     });
-    await DELETE(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    await DELETE(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
 
     const updateCall = mockAdUpdate.mock.calls[0]![0];
     expect(updateCall.data.rejectionReason).toBe('Prohibited item');
@@ -619,7 +620,7 @@ describe('Classified Ads — Admin removal', () => {
     const req = createDeleteRequest('/api/v1/community/ad-1', {
       body: { reason: 'Policy violation' },
     });
-    await DELETE(req, { params: Promise.resolve({ id: 'ad-1' }) });
+    await DELETE(req, { params: Promise.resolve({ id: testUuid('ad-1') }) });
 
     const updateCall = mockAdUpdate.mock.calls[0]![0];
     expect(updateCall.data.status).toBe('archived');

@@ -13,6 +13,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -782,7 +783,7 @@ describe('Scenario 2: Security Incident — Report to Resolution', () => {
     });
 
     const res = await addIncidentUpdate(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
   });
@@ -1105,7 +1106,7 @@ describe('Scenario 4: Lost Key Emergency — Report, Decommission, Reissue', () 
       action: 'return',
     });
 
-    const res = await returnKey(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await returnKey(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
     expect(res.status).toBe(404);
   });
 
@@ -1156,7 +1157,7 @@ describe('Scenario 4: Lost Key Emergency — Report, Decommission, Reissue', () 
       action: 'invalid_action',
     });
 
-    const res = await returnKey(req, { params: Promise.resolve({ id: 'some-id' }) });
+    const res = await returnKey(req, { params: Promise.resolve({ id: testUuid('some-id') }) });
     expect(res.status).toBe(400);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -1339,7 +1340,7 @@ describe('Security Operations — Edge Cases', () => {
     mockEventFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/events/nonexistent');
-    const res = await getEvent(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await getEvent(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
     expect(res.status).toBe(404);
   });
 
@@ -1354,7 +1355,9 @@ describe('Security Operations — Edge Cases', () => {
       message: 'Safe now',
     });
 
-    const res = await sendAllClear(req, { params: Promise.resolve({ id: 'cancelled-bc' }) });
+    const res = await sendAllClear(req, {
+      params: Promise.resolve({ id: testUuid('cancelled-bc') }),
+    });
     expect(res.status).toBe(400);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -1368,7 +1371,9 @@ describe('Security Operations — Edge Cases', () => {
       message: 'Safe',
     });
 
-    const res = await sendAllClear(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await sendAllClear(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
   });
 });

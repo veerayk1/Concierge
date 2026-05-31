@@ -15,6 +15,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -216,7 +217,7 @@ describe('PATCH /api/v1/parking/violations/:id — Status Updates', () => {
     mockViolationUpdate.mockResolvedValue({ id: 'v1', status: 'resolved' });
 
     const req = createPatchRequest('/api/v1/parking/violations/v1', { status: 'resolved' });
-    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: 'v1' }) });
+    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: testUuid('v1') }) });
     expect(res.status).toBe(200);
 
     const updateData = mockViolationUpdate.mock.calls[0]![0].data;
@@ -229,7 +230,7 @@ describe('PATCH /api/v1/parking/violations/:id — Status Updates', () => {
     mockViolationUpdate.mockResolvedValue({ id: 'v1', notes: 'Warning issued' });
 
     const req = createPatchRequest('/api/v1/parking/violations/v1', { notes: 'Warning issued' });
-    await PATCH_VIOLATION(req, { params: Promise.resolve({ id: 'v1' }) });
+    await PATCH_VIOLATION(req, { params: Promise.resolve({ id: testUuid('v1') }) });
 
     expect(mockViolationUpdate.mock.calls[0]![0].data.notes).toBe('Warning issued');
   });
@@ -238,7 +239,7 @@ describe('PATCH /api/v1/parking/violations/:id — Status Updates', () => {
     mockViolationUpdate.mockResolvedValue({ id: 'v1', towRequested: true });
 
     const req = createPatchRequest('/api/v1/parking/violations/v1', { towRequested: true });
-    await PATCH_VIOLATION(req, { params: Promise.resolve({ id: 'v1' }) });
+    await PATCH_VIOLATION(req, { params: Promise.resolve({ id: testUuid('v1') }) });
 
     expect(mockViolationUpdate.mock.calls[0]![0].data.towRequested).toBe(true);
   });
@@ -247,7 +248,7 @@ describe('PATCH /api/v1/parking/violations/:id — Status Updates', () => {
     mockViolationUpdate.mockRejectedValue(new Error('Record not found'));
 
     const req = createPatchRequest('/api/v1/parking/violations/bad-id', { status: 'resolved' });
-    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: 'bad-id' }) });
+    const res = await PATCH_VIOLATION(req, { params: Promise.resolve({ id: testUuid('bad-id') }) });
     expect(res.status).toBe(500);
     const body = await parseResponse<{ message: string }>(res);
     expect(body.message).not.toContain('Record not found');

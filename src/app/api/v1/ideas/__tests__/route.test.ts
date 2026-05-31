@@ -31,6 +31,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -487,7 +488,7 @@ describe('PATCH /ideas/:id — Status transitions (admin)', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', status: 'under_review' });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'under_review' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { status: string } }>(res);
     expect(body.data.status).toBe('under_review');
@@ -504,7 +505,7 @@ describe('PATCH /ideas/:id — Status transitions (admin)', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', status: 'planned' });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'planned' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -519,7 +520,7 @@ describe('PATCH /ideas/:id — Status transitions (admin)', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', status: 'completed' });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'completed' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -533,7 +534,7 @@ describe('PATCH /ideas/:id — Status transitions (admin)', () => {
     });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'submitted' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -547,7 +548,7 @@ describe('PATCH /ideas/:id — Status transitions (admin)', () => {
     });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'under_review' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(403);
   });
 
@@ -556,7 +557,7 @@ describe('PATCH /ideas/:id — Status transitions (admin)', () => {
     mockIdeaFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/ideas/idea-ghost', { status: 'under_review' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'idea-ghost' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('idea-ghost') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -580,7 +581,7 @@ describe('PATCH /ideas/:id — Decline with reason', () => {
       status: 'declined',
       adminResponse: 'Not feasible at this time.',
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
 
     const updateCall = mockIdeaUpdate.mock.calls[0]![0];
@@ -600,7 +601,7 @@ describe('PATCH /ideas/:id — Decline with reason', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', status: 'declined' });
 
     const req = createPatchRequest('/api/v1/ideas/idea-1', { status: 'declined' });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
   });
 });
@@ -623,7 +624,7 @@ describe('POST /ideas/:id/vote — Voting', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', voteCount: 1 });
 
     const req = createPostRequest('/api/v1/ideas/idea-1/vote', {});
-    const res = await VOTE_POST(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await VOTE_POST(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(201);
   });
 
@@ -631,7 +632,7 @@ describe('POST /ideas/:id/vote — Voting', () => {
     mockIdeaFindUnique.mockResolvedValue(null);
 
     const req = createPostRequest('/api/v1/ideas/idea-ghost/vote', {});
-    const res = await VOTE_POST(req, { params: Promise.resolve({ id: 'idea-ghost' }) });
+    const res = await VOTE_POST(req, { params: Promise.resolve({ id: testUuid('idea-ghost') }) });
     expect(res.status).toBe(404);
   });
 
@@ -644,7 +645,7 @@ describe('POST /ideas/:id/vote — Voting', () => {
     });
 
     const req = createPostRequest('/api/v1/ideas/idea-1/vote', {});
-    const res = await VOTE_POST(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await VOTE_POST(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(403);
     const body = await parseResponse<{ error: string }>(res);
     expect(body.error).toBe('CANNOT_VOTE_OWN_IDEA');
@@ -670,7 +671,7 @@ describe('POST /ideas/:id/vote — Duplicate vote prevention', () => {
     });
 
     const req = createPostRequest('/api/v1/ideas/idea-1/vote', {});
-    const res = await VOTE_POST(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await VOTE_POST(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(409);
     const body = await parseResponse<{ error: string }>(res);
     expect(body.error).toBe('ALREADY_VOTED');
@@ -695,7 +696,7 @@ describe('DELETE /ideas/:id/vote — Remove vote', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', voteCount: 0 });
 
     const req = createDeleteRequest('/api/v1/ideas/idea-1/vote');
-    const res = await VOTE_DELETE(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await VOTE_DELETE(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
   });
 
@@ -709,7 +710,7 @@ describe('DELETE /ideas/:id/vote — Remove vote', () => {
     mockVoteFindUnique.mockResolvedValue(null);
 
     const req = createDeleteRequest('/api/v1/ideas/idea-1/vote');
-    const res = await VOTE_DELETE(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await VOTE_DELETE(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(404);
   });
 
@@ -717,7 +718,7 @@ describe('DELETE /ideas/:id/vote — Remove vote', () => {
     mockIdeaFindUnique.mockResolvedValue(null);
 
     const req = createDeleteRequest('/api/v1/ideas/idea-ghost/vote');
-    const res = await VOTE_DELETE(req, { params: Promise.resolve({ id: 'idea-ghost' }) });
+    const res = await VOTE_DELETE(req, { params: Promise.resolve({ id: testUuid('idea-ghost') }) });
     expect(res.status).toBe(404);
   });
 });
@@ -741,7 +742,7 @@ describe('Ideas — Vote count aggregation', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', voteCount: 6 });
 
     const req = createPostRequest('/api/v1/ideas/idea-1/vote', {});
-    const res = await VOTE_POST(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await VOTE_POST(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(201);
 
     const updateCall = mockIdeaUpdate.mock.calls[0]![0];
@@ -762,7 +763,7 @@ describe('Ideas — Vote count aggregation', () => {
     mockIdeaUpdate.mockResolvedValue({ id: 'idea-1', voteCount: 2 });
 
     const req = createDeleteRequest('/api/v1/ideas/idea-1/vote');
-    const res = await VOTE_DELETE(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await VOTE_DELETE(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
 
     const updateCall = mockIdeaUpdate.mock.calls[0]![0];
@@ -792,7 +793,7 @@ describe('Ideas — Comments', () => {
     const req = createPostRequest('/api/v1/ideas/idea-1/comments', {
       content: 'Great idea, I support this!',
     });
-    const res = await COMMENT_POST(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await COMMENT_POST(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(201);
   });
 
@@ -805,7 +806,7 @@ describe('Ideas — Comments', () => {
     });
 
     const req = createPostRequest('/api/v1/ideas/idea-1/comments', { content: '' });
-    const res = await COMMENT_POST(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await COMMENT_POST(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(400);
   });
 
@@ -815,7 +816,9 @@ describe('Ideas — Comments', () => {
     const req = createPostRequest('/api/v1/ideas/idea-ghost/comments', {
       content: 'Comment on ghost idea',
     });
-    const res = await COMMENT_POST(req, { params: Promise.resolve({ id: 'idea-ghost' }) });
+    const res = await COMMENT_POST(req, {
+      params: Promise.resolve({ id: testUuid('idea-ghost') }),
+    });
     expect(res.status).toBe(404);
   });
 });
@@ -840,7 +843,7 @@ describe('Ideas — List comments', () => {
     const req = createGetRequest('/api/v1/ideas/idea-1/comments', {
       searchParams: { propertyId: PROPERTY_A },
     });
-    const res = await COMMENTS_GET(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await COMMENTS_GET(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: unknown[] }>(res);
     expect(body.data).toHaveLength(2);
@@ -852,7 +855,9 @@ describe('Ideas — List comments', () => {
     const req = createGetRequest('/api/v1/ideas/idea-ghost/comments', {
       searchParams: { propertyId: PROPERTY_A },
     });
-    const res = await COMMENTS_GET(req, { params: Promise.resolve({ id: 'idea-ghost' }) });
+    const res = await COMMENTS_GET(req, {
+      params: Promise.resolve({ id: testUuid('idea-ghost') }),
+    });
     expect(res.status).toBe(404);
   });
 });
@@ -874,7 +879,7 @@ describe('GET /ideas/:id — Detail', () => {
     mockCommentFindMany.mockResolvedValue([]);
 
     const req = createGetRequest('/api/v1/ideas/idea-1');
-    const res = await GET_ID(req, { params: Promise.resolve({ id: 'idea-1' }) });
+    const res = await GET_ID(req, { params: Promise.resolve({ id: testUuid('idea-1') }) });
     expect(res.status).toBe(200);
     const body = await parseResponse<{ data: { id: string } }>(res);
     expect(body.data.id).toBe('idea-1');
@@ -884,7 +889,7 @@ describe('GET /ideas/:id — Detail', () => {
     mockIdeaFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/ideas/idea-ghost');
-    const res = await GET_ID(req, { params: Promise.resolve({ id: 'idea-ghost' }) });
+    const res = await GET_ID(req, { params: Promise.resolve({ id: testUuid('idea-ghost') }) });
     expect(res.status).toBe(404);
   });
 });

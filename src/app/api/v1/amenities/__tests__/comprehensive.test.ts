@@ -38,6 +38,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -277,7 +278,7 @@ describe('1. Amenity CRUD', () => {
     mockAmenityFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/amenities/nonexistent');
-    const res = await GET_DETAIL(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await GET_DETAIL(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
     expect(res.status).toBe(404);
   });
 
@@ -570,7 +571,9 @@ describe('4. Booking Creation — Required Fields', () => {
     mockAmenityFindUnique.mockResolvedValue(null);
 
     const req = createPostRequest('/api/v1/amenities/nonexistent', validBookingPayload);
-    const res = await POST_BOOKING(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await POST_BOOKING(req, {
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
+    });
     expect(res.status).toBe(404);
   });
 
@@ -2080,7 +2083,7 @@ describe('23. Tenant Isolation', () => {
 
     const req = createPatchRequest('/api/v1/bookings/nonexistent', { status: 'approved' });
     const res = await PATCH_BOOKING(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
   });

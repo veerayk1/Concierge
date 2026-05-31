@@ -19,6 +19,7 @@ import {
   createDeleteRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -704,7 +705,7 @@ describe('Scenario 2: Resident Move-Out', () => {
       createPatchRequest('/api/v1/keys/checkouts/checkout-ret2', {
         action: 'return',
       }),
-      { params: Promise.resolve({ id: 'checkout-ret2' }) },
+      { params: Promise.resolve({ id: testUuid('checkout-ret2') }) },
     );
 
     expect(mockKeyInventoryUpdate).toHaveBeenCalledWith(
@@ -1280,7 +1281,7 @@ describe('Resident Onboarding: Validation & Edge Cases', () => {
 
     const res = await returnKey(
       createPatchRequest('/api/v1/keys/checkouts/nonexistent', { action: 'return' }),
-      { params: Promise.resolve({ id: 'nonexistent' }) },
+      { params: Promise.resolve({ id: testUuid('nonexistent') }) },
     );
     expect(res.status).toBe(404);
   });
@@ -1290,7 +1291,7 @@ describe('Resident Onboarding: Validation & Edge Cases', () => {
 
     const res = await returnKey(
       createPatchRequest('/api/v1/keys/checkouts/some-id', { action: 'invalid_action' }),
-      { params: Promise.resolve({ id: 'some-id' }) },
+      { params: Promise.resolve({ id: testUuid('some-id') }) },
     );
     // Should be 400 for unsupported action or 404 for not found
     expect([400, 404]).toContain(res.status);
@@ -1310,7 +1311,7 @@ describe('Resident Onboarding: Validation & Edge Cases', () => {
     mockSessionUpdateMany.mockResolvedValue({ count: 5 });
 
     await updateUser(createPatchRequest('/api/v1/users/user-suspend', { status: 'suspended' }), {
-      params: Promise.resolve({ id: 'user-suspend' }),
+      params: Promise.resolve({ id: testUuid('user-suspend') }),
     });
 
     expect(mockSessionUpdateMany).toHaveBeenCalledWith(

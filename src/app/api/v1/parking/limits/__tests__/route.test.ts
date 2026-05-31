@@ -11,6 +11,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -480,7 +481,7 @@ describe('POST /api/v1/parking/limits — Duplicate Prevention', () => {
 describe('Granular Limit Matrix Scenarios', () => {
   beforeEach(() => {
     mockCreate.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
-      Promise.resolve({ id: 'new-id', ...data }),
+      Promise.resolve({ id: testUuid('new-id'), ...data }),
     );
   });
 

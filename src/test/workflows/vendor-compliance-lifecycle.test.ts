@@ -18,6 +18,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Prisma Mock
@@ -52,7 +53,10 @@ vi.mock('@/server/db', () => ({
       create: vi
         .fn()
         .mockImplementation((args: Record<string, unknown>) =>
-          Promise.resolve({ id: 'cat-new', ...(args as { data?: Record<string, unknown> }).data }),
+          Promise.resolve({
+            id: testUuid('cat-new'),
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
         ),
     },
     user: {
@@ -742,7 +746,7 @@ describe('Vendor Compliance: Validation & Edge Cases', () => {
     mockVendorFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/vendors/nonexistent');
-    const res = await getVendor(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await getVendor(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -759,7 +763,7 @@ describe('Vendor Compliance: Validation & Edge Cases', () => {
     });
 
     const res = await uploadVendorDocument(req, {
-      params: Promise.resolve({ id: 'nonexistent' }),
+      params: Promise.resolve({ id: testUuid('nonexistent') }),
     });
     expect(res.status).toBe(404);
   });
@@ -772,7 +776,7 @@ describe('Vendor Compliance: Validation & Edge Cases', () => {
     });
 
     const res = await uploadVendorDocument(req, {
-      params: Promise.resolve({ id: 'vendor-001' }),
+      params: Promise.resolve({ id: testUuid('vendor-001') }),
     });
     expect(res.status).toBe(400);
   });
@@ -792,7 +796,7 @@ describe('Vendor Compliance: Validation & Edge Cases', () => {
     });
 
     const res = await updateVendor(req, {
-      params: Promise.resolve({ id: 'vendor-deactivate' }),
+      params: Promise.resolve({ id: testUuid('vendor-deactivate') }),
     });
     expect(res.status).toBe(200);
 

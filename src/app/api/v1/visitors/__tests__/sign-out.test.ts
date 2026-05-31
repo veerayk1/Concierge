@@ -24,6 +24,7 @@ import {
   createPatchRequest,
   parseResponse,
 } from '@/test/helpers/api';
+import { testUuid } from '@/test/fixtures/ids';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -212,7 +213,7 @@ describe('PATCH — Non-existent visitor', () => {
     mockFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/visitors/nonexistent-id', {});
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'nonexistent-id' }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: testUuid('nonexistent-id') }) });
 
     expect(res.status).toBe(404);
     const body = await parseResponse<{ error: string }>(res);
@@ -223,7 +224,7 @@ describe('PATCH — Non-existent visitor', () => {
     mockFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/visitors/ghost', {});
-    await PATCH(req, { params: Promise.resolve({ id: 'ghost' }) });
+    await PATCH(req, { params: Promise.resolve({ id: testUuid('ghost') }) });
 
     expect(mockUpdate).not.toHaveBeenCalled();
   });
@@ -817,7 +818,7 @@ describe('GET /api/v1/visitors/:id — Detail', () => {
     mockFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest(`/api/v1/visitors/nonexistent`);
-    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: 'nonexistent' }) });
+    const res = await GET_BY_ID(req, { params: Promise.resolve({ id: testUuid('nonexistent') }) });
 
     expect(res.status).toBe(404);
     const body = await parseResponse<{ error: string }>(res);
