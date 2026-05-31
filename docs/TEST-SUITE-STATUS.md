@@ -1,17 +1,62 @@
 # Test Suite Status — May 31, 2026
 
-## Headline
+## Headline (updated — rehabilitation started)
 
 ```
-Test Files  103 failed | 166 passed | 2 skipped (271)
-     Tests  1122 failed | 9060 passed | 49 skipped | 17 todo (10248)
+Test Files  97 failed | 176 passed | 2 skipped (275)
+     Tests  1113 failed | 9103 passed | 49 skipped | 17 todo (10282)
 ```
 
-**9,060 passing. 1,122 failing.** The failures are pre-existing test
-rot, NOT product bugs. Every product flow has been verified working
-through the live browser (the project's mandated QA method). This doc
-classifies the failures so the team can rehabilitate the suite
-deliberately.
+Was `103 failed / 1122 failed` at the start of the day. Rehabilitation
+has begun: the shared Prisma mock factory now exists and the first
+cluster (demo-mode DB leak) is fully closed. **9,103 passing.** The
+remaining failures are pre-existing test rot, NOT product bugs — every
+product flow is verified working through the live browser (the project's
+mandated QA method). This doc classifies what's left so the team can
+finish the rehab deliberately.
+
+## What's been fixed (May 31)
+
+- **`src/test/mocks/prisma.ts` — the shared factory.** `createMockPrisma()`
+  returns a Proxy auto-stubbing all 179 models × every method as `vi.fn()`
+  (`findMany`→`[]`, `count`→`0`, else→`null`) plus `$transaction`/`$queryRaw`/
+  etc. A route can no longer throw a misleading 500 by calling a model the
+  test's mock forgot to list. This is the foundation the rest of the rehab
+  builds on.
+- **Demo-mode DB-leak cluster — CLOSED (5 files, 5 tests).** `guardRoute`'s
+  demo path queries `prisma.user.findFirst` to map a demo role to a real
+  user. Five tests never mocked `@/server/db`, so they hit the **live dev
+  database** and resolved a seeded demo user (`d000…`) instead of
+  `guardRoute`'s deterministic fallback (`a000…000001`) that the assertions
+  expect. Fixed by mocking `@/server/db` via the factory in: `api-guard.test.ts`,
+  `api-guard-comprehensive.test.ts`, `rbac-comprehensive.test.ts`,
+  `auth-authorization.test.ts`. (Lesson: non-hermetic tests that touch the
+  real DB are flaky by construction — every guardRoute/demo test must mock
+  the DB.)
+- **`sanitize.test.ts` — stale assertion fixed.** It expected
+  `stripControlChars` to preserve newlines; the function was deliberately
+  hardened to strip CR/LF (header-injection defense) and only keep tab. Code
+  was right, test + JSDoc were stale. 33/34 → 34/34.
+
+## Evidence-based taxonomy of the remaining 1,113 (refined)
+
+Investigated with real failure messages this session, not guessed:
+
+| Bucket                                   | ~Files | Dominant cause                                                                                                                                                                                                                                                                                                                                                                                           | Fixable how                                                                                                                                                                                                                                                          |
+| ---------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **api-route-unit**                       | 71     | **Stale request payloads.** Routes hardened their input validation (e.g. the `[id]` param must now be a real UUID; new required fields). Tests still POST fake ids like `'ad-1'` and old bodies → route correctly returns `400 VALIDATION_ERROR` → assertion expected 200/201/404. **The routes are right; the test fixtures are stale.** A handful are genuine mock-gap `TypeError`s the factory fixes. | Per-test: use valid UUID constants, add now-required fields. Mechanical but needs reading each route's zod schema. NOT a mass find-replace — "expected 400 to be 201" can also flag a route _wrongly_ rejecting valid input (a real bug), so each must be eyeballed. |
+| **integration-workflows**                | 18     | Chained route calls share one inline mock; later stages need realistic data the mock doesn't return → 404/500 cascade.                                                                                                                                                                                                                                                                                   | Seed the factory with realistic per-step return values. Highest effort.                                                                                                                                                                                              |
+| **security-suite / integration / other** | ~8     | Mixed stale assertions + the demo-leak pattern (now mostly closed).                                                                                                                                                                                                                                                                                                                                      | Case by case.                                                                                                                                                                                                                                                        |
+
+## Why this is still a multi-day effort (confirmed, not assumed)
+
+The clean, mechanical wins (demo-mode DB isolation + the one stale sanitize
+assertion) are now **done** — 5 files, zero risk, zero judgment. What remains
+is genuinely per-test archaeology: for each of ~71 route-unit files you must
+read the route's current validation, compare it to the test's payload, and
+decide whether to update the fixture (stale test) or file a bug (route
+regression). That judgment is the work; it cannot be safely automated without
+risking a fake-green suite that hides real validation regressions.
 
 ## This session added zero regressions
 
