@@ -2546,7 +2546,8 @@ export async function main(): Promise<void> {
     noiseDuration: '2 hours',
     noiseVolume: 8,
     natureOfComplaint: ['Party', 'Loud Music'],
-    suspectContactMethod: 'Unit 408 - Direct contact',
+    suspectContactedBy: ['At the door'],
+    noiseLogDetails: 'Suspect unit 408 contacted directly at the door.',
     counselingNotes:
       'Spoke with residents of unit 408. They were having small dinner party. Agreed to keep music lower after 10 PM.',
     resolutionStatus: 'resolved',
@@ -2561,7 +2562,8 @@ export async function main(): Promise<void> {
     noiseDuration: '30 minutes',
     noiseVolume: 7,
     natureOfComplaint: ['Dog Barking'],
-    suspectContactMethod: 'Unit 505 - Via text note',
+    suspectContactedBy: ['Other Phone'],
+    noiseLogDetails: 'Suspect unit 505 contacted via text note.',
     counselingNotes:
       'Contacted resident re: dog barking. They have small terrier with separation anxiety. Offered building resources and local trainer recommendations.',
     resolutionStatus: 'ongoing',
@@ -2576,7 +2578,8 @@ export async function main(): Promise<void> {
     noiseDuration: 'ongoing (past 3 days)',
     noiseVolume: 6,
     natureOfComplaint: ['Construction', 'Walking/Banging'],
-    suspectContactMethod: 'Unknown - ongoing renovations',
+    suspectContactedBy: ['No one home'],
+    noiseLogDetails: 'Suspect unit 305 — ongoing renovations, no one home at time of contact.',
     counselingNotes:
       'Unit 305 undergoing alteration project. Construction hours limited to 8 AM - 6 PM weekdays per bylaw. Complaint registered. Alteration project escalated for review.',
     resolutionStatus: 'escalated',
