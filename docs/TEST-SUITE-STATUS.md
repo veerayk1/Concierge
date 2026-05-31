@@ -1,19 +1,32 @@
 # Test Suite Status — May 31, 2026
 
-## Headline (updated — Tier 0 + Tier 1 done)
+## Headline (updated — Tier 0+1 done, Tier 2 in progress)
 
 ```
-Test Files  82 failed | 191 passed | 2 skipped (275)
-     Tests  821 failed | 9395 passed | 49 skipped | 17 todo (10282)
+Test Files  79 failed | 194 passed | 2 skipped (275)
+     Tests  752 failed | 9464 passed | 49 skipped | 17 todo (10282)
 ```
 
-Trajectory this effort: `1122 → 1113 → 821` failing tests (**9,395 passing**,
-+335 recovered, zero regressions). The rehab is running against the approved
-5-tier plan. Done so far:
+Trajectory this effort: `1122 → 1113 → 821 → 752` failing tests (**9,464
+passing**, +404 recovered, zero regressions). Done so far:
 
 - **Tier 0** — trivial stale assertions (rotatedAt, CR/LF stripping). 4 tests.
 - **Tier 1** — `testUuid()` fixture helper + path-param id sweep across 59 files
   (37/43 `[id]` routes now enforce `isUuid`). ~300 tests recovered.
+- **Tier 2 (in progress)** — `createMockPrisma` adopted across 74 files
+  (crash-proof; `scripts/adopt-factory.mjs`), factory gained a `$transaction`
+  override, `packages/comprehensive` 45→18, and the **module-guard pattern**:
+  `training_lms` defaults DISABLED so `requireModule` 403s — mocking it
+  recovered ~39 training tests.
+
+### Systemic levers are now exhausted — the rest is per-file
+
+Three blunt levers landed safely (path-param uuids, factory adoption,
+module-guard mocks). A fourth — sweeping non-UUID **body** id fields — was
+attempted and **reverted**: net-negative (752→758), because body ids like
+`unitId`/`residentId`/`propertyId` are tenant- and value-matched, so a blanket
+wrap breaks as many tests as it fixes. Past this point each file needs
+per-route judgment — the documented multi-day grind, not safely automatable.
 
 The remaining failures are pre-existing test rot, NOT product bugs — every
 product flow is verified working through the live browser (the project's
