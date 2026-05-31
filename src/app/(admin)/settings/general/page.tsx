@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
@@ -52,6 +53,7 @@ interface SettingsApiData {
 // ---------------------------------------------------------------------------
 
 export default function GeneralSettingsPage() {
+  const toast = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
@@ -63,11 +65,11 @@ export default function GeneralSettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      alert('File is too large. Maximum size is 2 MB.');
+      toast.warning('File is too large', 'Maximum size is 2 MB.');
       return;
     }
     if (!['image/svg+xml', 'image/png', 'image/jpeg'].includes(file.type)) {
-      alert('Invalid file type. Please upload an SVG, PNG, or JPG image.');
+      toast.warning('Invalid file type', 'Please upload an SVG, PNG, or JPG image.');
       return;
     }
     const reader = new FileReader();

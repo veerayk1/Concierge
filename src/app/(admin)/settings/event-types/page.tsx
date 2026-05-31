@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useApi, apiUrl, apiRequest, getAuthHeaders } from '@/lib/hooks/use-api';
+import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
 
 // ---------------------------------------------------------------------------
@@ -303,6 +304,7 @@ function CreateEventTypeDialog({
 // ---------------------------------------------------------------------------
 
 export default function EventTypesPage() {
+  const toast = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -443,12 +445,13 @@ export default function EventTypesPage() {
       });
       if (res.ok) {
         refetch();
+        toast.success('Event types saved.');
       } else {
         const result = await res.json().catch(() => ({}));
-        alert(result.message || 'Failed to save changes. Please try again.');
+        toast.error('Could not save changes', result.message || 'Please try again.');
       }
     } catch {
-      alert('Network error. Please try again.');
+      toast.error('Network error', 'Please try again.');
     } finally {
       setSaving(false);
     }
