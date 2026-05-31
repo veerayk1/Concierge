@@ -1,19 +1,38 @@
 # Test Suite Status — May 31, 2026
 
-## Headline (updated — rehabilitation started)
+## Headline (updated — Tier 0 + Tier 1 done)
 
 ```
-Test Files  97 failed | 176 passed | 2 skipped (275)
-     Tests  1113 failed | 9103 passed | 49 skipped | 17 todo (10282)
+Test Files  82 failed | 191 passed | 2 skipped (275)
+     Tests  821 failed | 9395 passed | 49 skipped | 17 todo (10282)
 ```
 
-Was `103 failed / 1122 failed` at the start of the day. Rehabilitation
-has begun: the shared Prisma mock factory now exists and the first
-cluster (demo-mode DB leak) is fully closed. **9,103 passing.** The
-remaining failures are pre-existing test rot, NOT product bugs — every
+Trajectory this effort: `1122 → 1113 → 821` failing tests (**9,395 passing**,
++335 recovered, zero regressions). The rehab is running against the approved
+5-tier plan. Done so far:
+
+- **Tier 0** — trivial stale assertions (rotatedAt, CR/LF stripping). 4 tests.
+- **Tier 1** — `testUuid()` fixture helper + path-param id sweep across 59 files
+  (37/43 `[id]` routes now enforce `isUuid`). ~300 tests recovered.
+
+The remaining failures are pre-existing test rot, NOT product bugs — every
 product flow is verified working through the live browser (the project's
-mandated QA method). This doc classifies what's left so the team can
-finish the rehab deliberately.
+mandated QA method). **No real route bugs found yet** (TEST-REHAB-BUGS.md
+stays empty); all failures trace to hardened validation vs stale fixtures.
+
+### Remaining 821 — bucketed (post Tier 1)
+
+| Bucket                                                              | Count | Tier                       |
+| ------------------------------------------------------------------- | ----- | -------------------------- |
+| `500` route threw (broken `$transaction` mock)                      | 198   | Tier 2 (factory)           |
+| value/shape mismatch                                                | 189   | per-file judgment          |
+| `400→2xx` still-invalid input (missing body field / non-`id` param) | 170   | Tier 1 residual / per-file |
+| mock-gap `TypeError`                                                | 169   | Tier 2 (factory)           |
+| `400→4xx` wrong code                                                | 52    | per-file                   |
+| `4xx→2xx`                                                           | 43    | per-file                   |
+
+Tier 2 (factory adoption for the 367 `$transaction`/mock-gap failures) and
+Tier 3 (stateful mock for the ~18 workflow files) are next.
 
 ## What's been fixed (May 31)
 
