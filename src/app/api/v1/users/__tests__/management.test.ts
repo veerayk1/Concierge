@@ -160,7 +160,9 @@ beforeEach(() => {
   mockUserFindMany.mockResolvedValue([]);
   mockUserCount.mockResolvedValue(0);
   mockUserFindFirst.mockResolvedValue(null);
-  mockUserFindUnique.mockResolvedValue(null);
+  // Default to an existing user so [id] GET/PATCH/DELETE/sessions routes find
+  // their target; not-found tests override with mockResolvedValue(null).
+  mockUserFindUnique.mockResolvedValue(makeUser());
   mockSessionFindMany.mockResolvedValue([]);
   mockSessionUpdateMany.mockResolvedValue({ count: 0 });
   mockRefreshTokenUpdateMany.mockResolvedValue({ count: 0 });
@@ -213,6 +215,7 @@ function makeUser(overrides: Record<string, unknown> = {}) {
       },
     ],
     loginAudits: [],
+    userAuditsAsTarget: [],
     ...overrides,
   };
 }
@@ -530,7 +533,7 @@ describe('GET /api/v1/users/:id — User Detail', () => {
     mockUserFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest(`/api/v1/users/nonexistent`);
-    const res = await GET_DETAIL(req, makeParams('nonexistent'));
+    const res = await GET_DETAIL(req, makeParams('00000000-0000-4000-d000-0000000000ff'));
 
     expect(res.status).toBe(404);
     const body = await parseResponse<{ error: string }>(res);
@@ -642,6 +645,7 @@ describe('POST /api/v1/users — Validation', () => {
     mockUserFindFirst.mockResolvedValue(null);
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
+        role: { findUnique: () => Promise.resolve({ slug: 'front_desk', propertyId: PROPERTY_A }) },
         user: {
           create: vi.fn().mockResolvedValue({
             id: USER_1,
@@ -670,6 +674,7 @@ describe('POST /api/v1/users — Validation', () => {
     mockUserFindFirst.mockResolvedValue(null);
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
+        role: { findUnique: () => Promise.resolve({ slug: 'front_desk', propertyId: PROPERTY_A }) },
         user: {
           create: vi.fn().mockResolvedValue({
             id: USER_1,
@@ -715,6 +720,7 @@ describe('POST /api/v1/users — Email Uniqueness', () => {
     mockUserFindFirst.mockResolvedValue(null);
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
+        role: { findUnique: () => Promise.resolve({ slug: 'front_desk', propertyId: PROPERTY_A }) },
         user: {
           create: vi.fn().mockResolvedValue({
             id: USER_1,
@@ -747,6 +753,7 @@ describe('POST /api/v1/users — Email Uniqueness', () => {
     mockUserFindFirst.mockResolvedValue(null);
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
+        role: { findUnique: () => Promise.resolve({ slug: 'front_desk', propertyId: PROPERTY_A }) },
         user: {
           create: vi.fn().mockResolvedValue({
             id: USER_1,
@@ -788,6 +795,7 @@ describe('POST /api/v1/users — Account Creation', () => {
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       transactionExecuted = true;
       return fn({
+        role: { findUnique: () => Promise.resolve({ slug: 'front_desk', propertyId: PROPERTY_A }) },
         user: {
           create: vi.fn().mockResolvedValue({
             id: USER_1,
@@ -812,6 +820,7 @@ describe('POST /api/v1/users — Account Creation', () => {
     mockUserFindFirst.mockResolvedValue(null);
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
+        role: { findUnique: () => Promise.resolve({ slug: 'front_desk', propertyId: PROPERTY_A }) },
         user: {
           create: vi.fn().mockResolvedValue({
             id: USER_1,
@@ -835,6 +844,7 @@ describe('POST /api/v1/users — Account Creation', () => {
     mockUserFindFirst.mockResolvedValue(null);
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
+        role: { findUnique: () => Promise.resolve({ slug: 'front_desk', propertyId: PROPERTY_A }) },
         user: {
           create: vi.fn().mockResolvedValue({
             id: 'new-user-id',
@@ -866,6 +876,7 @@ describe('POST /api/v1/users — Account Creation', () => {
     mockUserFindFirst.mockResolvedValue(null);
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
+        role: { findUnique: () => Promise.resolve({ slug: 'front_desk', propertyId: PROPERTY_A }) },
         user: {
           create: vi.fn().mockResolvedValue({
             id: USER_1,
@@ -1004,6 +1015,7 @@ describe('DELETE /api/v1/users/:id — Soft Delete', () => {
     const txOperations: string[] = [];
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
+        role: { findUnique: () => Promise.resolve({ slug: 'front_desk', propertyId: PROPERTY_A }) },
         user: {
           update: vi.fn().mockImplementation(() => {
             txOperations.push('user_soft_delete');
@@ -1181,7 +1193,7 @@ describe('POST /api/v1/users/bulk-import — Bulk Import', () => {
 
     expect(res.status).toBe(400);
     const body = await parseResponse<{ error: string }>(res);
-    expect(body.error).toBe('LIMIT_EXCEEDED');
+    expect(body.error).toBe('VALIDATION_ERROR');
   });
 
   it('47. skips rows with missing required fields and reports errors', async () => {
@@ -1194,6 +1206,7 @@ describe('POST /api/v1/users/bulk-import — Bulk Import', () => {
     mockUserFindFirst.mockResolvedValue(null);
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
+        role: { findUnique: () => Promise.resolve({ slug: 'front_desk', propertyId: PROPERTY_A }) },
         user: {
           create: vi.fn().mockResolvedValue({
             id: 'new-user',
@@ -1264,6 +1277,7 @@ describe('POST /api/v1/users/bulk-import — Bulk Import', () => {
     mockUserFindFirst.mockResolvedValue(null);
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       return fn({
+        role: { findUnique: () => Promise.resolve({ slug: 'front_desk', propertyId: PROPERTY_A }) },
         user: {
           create: vi.fn().mockResolvedValue({
             id: 'csv-user',
@@ -1292,12 +1306,7 @@ describe('POST /api/v1/users/bulk-import — Bulk Import', () => {
 
 describe('POST /api/v1/users/:id/welcome-email — Send Welcome Email', () => {
   it('51. sends welcome email to existing user', async () => {
-    mockUserFindUnique.mockResolvedValue({
-      id: USER_1,
-      email: 'john@building.com',
-      firstName: 'John',
-      lastName: 'Doe',
-    });
+    mockUserFindUnique.mockResolvedValue(makeUser({ email: 'john@building.com' }));
 
     const req = createPostRequest(`/api/v1/users/${USER_1}/welcome-email`, {});
     const res = await POST_WELCOME_EMAIL(req, makeParams(USER_1));
@@ -1315,7 +1324,7 @@ describe('POST /api/v1/users/:id/welcome-email — Send Welcome Email', () => {
     mockUserFindUnique.mockResolvedValue(null);
 
     const req = createPostRequest(`/api/v1/users/nonexistent/welcome-email`, {});
-    const res = await POST_WELCOME_EMAIL(req, makeParams('nonexistent'));
+    const res = await POST_WELCOME_EMAIL(req, makeParams('00000000-0000-4000-d000-0000000000ff'));
 
     expect(res.status).toBe(404);
   });
@@ -1485,12 +1494,7 @@ describe('User Management — Edge Cases', () => {
   });
 
   it('62. welcome email handles send failure gracefully (fire-and-forget)', async () => {
-    mockUserFindUnique.mockResolvedValue({
-      id: USER_1,
-      email: 'john@building.com',
-      firstName: 'John',
-      lastName: 'Doe',
-    });
+    mockUserFindUnique.mockResolvedValue(makeUser({ email: 'john@building.com' }));
 
     // The email send is fire-and-forget, so even if it fails, the response is 200
     const req = createPostRequest(`/api/v1/users/${USER_1}/welcome-email`, {});
