@@ -17,6 +17,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
 import { useIsResident } from '@/lib/role-mode';
+import { formatRelative, formatDateTime } from '@/lib/format';
 import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 import { Bell, Mail, Smartphone, BellRing } from 'lucide-react';
 
@@ -85,19 +86,6 @@ function channelIcon(channel: Delivery['channel']) {
   }
 }
 
-function formatRelative(iso: string): string {
-  const dt = new Date(iso);
-  const diff = Date.now() - dt.getTime();
-  const m = Math.floor(diff / 60_000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return dt.toLocaleDateString();
-}
-
 export default function NotificationsPage() {
   const isResident = useIsResident();
   const [channel, setChannel] = useState('');
@@ -138,10 +126,7 @@ export default function NotificationsPage() {
       header: 'When',
       accessorKey: 'createdAt',
       cell: (row) => (
-        <span
-          className="text-[13px] text-neutral-600"
-          title={new Date(row.createdAt).toLocaleString()}
-        >
+        <span className="text-[13px] text-neutral-600" title={formatDateTime(row.createdAt)}>
           {formatRelative(row.createdAt)}
         </span>
       ),
