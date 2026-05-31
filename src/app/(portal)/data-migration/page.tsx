@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
-import { formatTimestamp } from '@/lib/format';
+import { formatTimestamp, formatNumber } from '@/lib/format';
 import {
   DatabaseZap,
   Upload,
@@ -482,7 +482,7 @@ export default function DataMigrationPage() {
       header: 'Records',
       cell: (row) => (
         <span className="text-[13px] text-neutral-700">
-          {getRecordsProcessed(row).toLocaleString()}/{getRecordsTotal(row).toLocaleString()}
+          {formatNumber(getRecordsProcessed(row))}/{formatNumber(getRecordsTotal(row))}
         </span>
       ),
     },
@@ -653,7 +653,7 @@ export default function DataMigrationPage() {
         />
         <KpiTile
           label="Records Imported"
-          value={totalRecordsImported.toLocaleString()}
+          value={formatNumber(totalRecordsImported)}
           icon={FileSpreadsheet}
           accent="info"
           caption="Total rows brought in across all imports"

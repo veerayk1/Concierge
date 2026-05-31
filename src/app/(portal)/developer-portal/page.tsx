@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { useIsResident } from '@/lib/role-mode';
-import { formatDate as formatDateCanonical, formatTimestamp } from '@/lib/format';
+import { formatDate as formatDateCanonical, formatTimestamp, formatNumber } from '@/lib/format';
 import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 import { Search } from 'lucide-react';
 
@@ -530,9 +530,7 @@ export default function DeveloperPortalPage() {
       id: 'requestCount',
       header: 'Requests',
       cell: (row) => (
-        <span className="font-medium text-neutral-900">
-          {(row.requestCount || 0).toLocaleString()}
-        </span>
+        <span className="font-medium text-neutral-900">{formatNumber(row.requestCount || 0)}</span>
       ),
       sortable: true,
       accessorKey: 'requestCount',
@@ -873,7 +871,7 @@ export default function DeveloperPortalPage() {
             />
             <KpiTile
               label="Total Requests"
-              value={totalRequests.toLocaleString()}
+              value={formatNumber(totalRequests)}
               icon={Clock}
               accent="info"
               caption="Across all keys."
