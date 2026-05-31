@@ -46,6 +46,10 @@ vi.mock('@/server/middleware/api-guard', () => ({
   enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
+vi.mock('@/server/middleware/module-guard', () => ({
+  requireModule: vi.fn().mockResolvedValue(null),
+}));
+
 import { POST, GET } from '../route';
 
 const PROPERTY_ID = '00000000-0000-4000-b000-000000000001';

@@ -82,6 +82,10 @@ vi.mock('@/server/middleware/api-guard', () => ({
   enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
+vi.mock('@/server/middleware/module-guard', () => ({
+  requireModule: vi.fn().mockResolvedValue(null),
+}));
+
 import { GET, POST } from '../route';
 import { POST as ENROLL_POST } from '../[id]/enroll/route';
 import { POST as COMPLETE_POST } from '../[id]/modules/[moduleId]/complete/route';

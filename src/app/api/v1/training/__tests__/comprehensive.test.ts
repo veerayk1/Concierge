@@ -158,6 +158,13 @@ vi.mock('@/server/middleware/api-guard', () => ({
   enforcePropertyAccess: vi.fn().mockReturnValue(null),
 }));
 
+// training_lms defaults to DISABLED in MODULE_DEFAULTS, so the real
+// requireModule would 403 every request. These tests exercise the route
+// logic, not the feature flag — treat the module as enabled.
+vi.mock('@/server/middleware/module-guard', () => ({
+  requireModule: vi.fn().mockResolvedValue(null),
+}));
+
 import { GET, POST } from '../route';
 import { POST as ENROLL_POST } from '../[id]/enroll/route';
 import { POST as COMPLETE_POST } from '../[id]/modules/[moduleId]/complete/route';
