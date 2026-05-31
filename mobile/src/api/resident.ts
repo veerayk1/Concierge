@@ -77,10 +77,12 @@ export async function createMaintenanceRequest(input: {
   priority?: 'low' | 'normal' | 'high' | 'urgent';
   permissionToEnter?: boolean;
 }): Promise<MaintenanceRequest> {
-  return apiCall<MaintenanceRequest>('/api/v1/resident/maintenance', {
-    method: 'POST',
-    body: input,
-  });
+  // POST responses are enveloped as { data: <created>, message }.
+  const res = await apiCall<{ data: MaintenanceRequest } | MaintenanceRequest>(
+    '/api/v1/resident/maintenance',
+    { method: 'POST', body: input },
+  );
+  return 'data' in res ? res.data : res;
 }
 
 export async function createBooking(input: {
@@ -92,10 +94,11 @@ export async function createBooking(input: {
   guestCount: number;
   requestorComments?: string;
 }): Promise<Booking> {
-  return apiCall<Booking>('/api/v1/resident/bookings', {
+  const res = await apiCall<{ data: Booking } | Booking>('/api/v1/resident/bookings', {
     method: 'POST',
     body: input,
   });
+  return 'data' in res ? res.data : res;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,5 +128,5 @@ export async function preAuthorizeVisitor(input: {
     method: 'POST',
     body: input,
   });
-  return 'data' in (res as { data: Visitor }) ? (res as { data: Visitor }).data : (res as Visitor);
+  return 'data' in res ? res.data : res;
 }

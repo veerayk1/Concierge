@@ -730,6 +730,13 @@ export async function main(): Promise<void> {
           passwordHash: u.passwordHash,
           isActive: true,
           activatedAt: new Date(),
+          // Re-seeding must FULLY restore a user, including un-deleting
+          // one that was soft-deleted (e.g. by the in-app account-delete
+          // flow). Without this, a deleted resident stays invisible
+          // forever and `prisma db seed` is not truly idempotent.
+          deletedAt: null,
+          lockedUntil: null,
+          failedLoginAttempts: 0,
         },
         create: {
           id: u.id,
