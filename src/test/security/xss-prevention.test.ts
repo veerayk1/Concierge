@@ -560,16 +560,17 @@ describe('stripControlChars — removes control characters', () => {
     expect(stripControlChars('test\x1Bvalue')).not.toContain('\x1B');
   });
 
-  it('preserves newlines (\\n)', () => {
-    expect(stripControlChars('line1\nline2')).toBe('line1\nline2');
+  it('strips newlines (\\n) — header-injection defense', () => {
+    // stripControlChars guards single-line fields; CR/LF are removed.
+    expect(stripControlChars('line1\nline2')).toBe('line1line2');
   });
 
   it('preserves tabs (\\t)', () => {
     expect(stripControlChars('col1\tcol2')).toBe('col1\tcol2');
   });
 
-  it('preserves carriage returns (\\r)', () => {
-    expect(stripControlChars('line1\r\nline2')).toBe('line1\r\nline2');
+  it('strips carriage returns (\\r) — header-injection defense', () => {
+    expect(stripControlChars('line1\r\nline2')).toBe('line1line2');
   });
 
   it('removes DEL character (\\x7F)', () => {

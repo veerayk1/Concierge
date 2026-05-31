@@ -355,12 +355,13 @@ describe('Auth Flow: Token refresh', () => {
     expect(data).toHaveProperty('accessToken');
     expect(data).toHaveProperty('refreshToken');
 
-    // Old token must be revoked (rotation)
+    // Old token must be rotated (rotation marks rotatedAt, not revokedAt;
+    // the refresh route treats either as invalidating — see refresh/route.ts).
     expect(mockRefreshTokenUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: storedToken.id },
         data: expect.objectContaining({
-          revokedAt: expect.any(Date),
+          rotatedAt: expect.any(Date),
         }),
       }),
     );
@@ -848,11 +849,11 @@ describe('Auth Flow: Full lifecycle (login → refresh → logout)', () => {
     const refreshData = (refreshBody as Record<string, unknown>).data as Record<string, unknown>;
     expect(refreshData.accessToken).toBeTruthy();
 
-    // Old refresh token must be revoked
+    // Old refresh token must be rotated (sets rotatedAt, not revokedAt).
     expect(mockRefreshTokenUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          revokedAt: expect.any(Date),
+          rotatedAt: expect.any(Date),
         }),
       }),
     );
