@@ -27,7 +27,9 @@ import { vi } from 'vitest';
 
 type AnyFn = (...args: unknown[]) => unknown;
 type ModelOverrides = Record<string, AnyFn>;
-type PrismaOverrides = Record<string, ModelOverrides>;
+// Keys are model names (→ method overrides) or top-level client methods like
+// `$transaction` (→ a single fn override).
+type PrismaOverrides = Record<string, ModelOverrides | AnyFn>;
 
 // Methods that should default to resolving an empty array rather than null,
 // because route code almost always iterates the result.
@@ -82,13 +84,21 @@ export function createMockPrisma(overrides: PrismaOverrides = {}): Record<string
     $disconnect: vi.fn().mockResolvedValue(undefined),
   };
 
+  // Top-level $-method overrides (e.g. a custom $transaction spy a test wants
+  // to assert on) replace the defaults above.
+  for (const key of Object.keys(overrides)) {
+    if (key.startsWith('$')) {
+      base[key] = overrides[key] as unknown;
+    }
+  }
+
   const proxy: Record<string, unknown> = new Proxy(base, {
     get(target, prop: string) {
       if (typeof prop !== 'string') return undefined;
       if (prop in target) return target[prop];
       // any model access → cached model proxy
       if (!modelCache[prop]) {
-        modelCache[prop] = makeModelProxy(prop, overrides[prop]);
+        modelCache[prop] = makeModelProxy(prop, overrides[prop] as ModelOverrides);
       }
       return modelCache[prop];
     },

@@ -69,26 +69,37 @@ const mockUpdateMany = vi.fn();
 const mockHistoryCreate = vi.fn();
 const mockTransaction = vi.fn();
 const mockUserFindUnique = vi.fn();
+// The single-create route now verifies unit ownership via prisma.unit.findUnique
+// (tenant-isolation hardening); the resident GET path reads occupancyRecord.
+// Both default to safe values in beforeEach; unmocked models are auto-stubbed
+// by createMockPrisma so a new route query can't throw a misleading 500.
+const mockUnitFindUnique = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    package: {
-      findMany: (...args: unknown[]) => mockFindMany(...args),
-      count: (...args: unknown[]) => mockCount(...args),
-      create: (...args: unknown[]) => mockCreate(...args),
-      findUnique: (...args: unknown[]) => mockFindUnique(...args),
-      update: (...args: unknown[]) => mockUpdate(...args),
-      updateMany: (...args: unknown[]) => mockUpdateMany(...args),
-    },
-    packageHistory: {
-      create: (...args: unknown[]) => mockHistoryCreate(...args),
-    },
-    user: {
-      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      package: {
+        findMany: (...args: unknown[]) => mockFindMany(...args),
+        count: (...args: unknown[]) => mockCount(...args),
+        create: (...args: unknown[]) => mockCreate(...args),
+        findUnique: (...args: unknown[]) => mockFindUnique(...args),
+        update: (...args: unknown[]) => mockUpdate(...args),
+        updateMany: (...args: unknown[]) => mockUpdateMany(...args),
+      },
+      packageHistory: {
+        create: (...args: unknown[]) => mockHistoryCreate(...args),
+      },
+      user: {
+        findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+      },
+      unit: {
+        findUnique: (...args: unknown[]) => mockUnitFindUnique(...args),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Mock Setup — nanoid (returns unique values per call)
@@ -211,6 +222,37 @@ beforeEach(() => {
   nanoidCounter = 0;
   mockFindMany.mockResolvedValue([]);
   mockCount.mockResolvedValue(0);
+  // Default: the declared unit exists and belongs to PROPERTY_A so the
+  // single-create tenant-ownership check passes. Cross-tenant tests override.
+  mockUnitFindUnique.mockResolvedValue({ propertyId: PROPERTY_A });
+  // Default: the [id] route fetches the package before update/release
+  // (existence + tenant check). Provide a valid unreleased package; 404 and
+  // already-released tests override this.
+  mockFindUnique.mockResolvedValue(makePackage());
+  // Release/return use a conditional updateMany (where status:'unreleased')
+  // and read result.count. Default to 1 (success); already-released tests
+  // override with { count: 0 }.
+  mockUpdateMany.mockResolvedValue({ count: 1 });
+  mockUpdate.mockResolvedValue(makePackage({ status: 'released' }));
+  mockHistoryCreate.mockResolvedValue({ id: testUuid('hist-1') });
+  // Default $transaction: run the callback against the wired tx client so a
+  // release (tx.package.update + tx.packageHistory.create) actually fires the
+  // spies. Batch tests override with mockResolvedValue and assert the spy.
+  mockTransaction.mockImplementation(async (arg: unknown) => {
+    if (typeof arg === 'function') {
+      return (arg as (tx: unknown) => unknown)({
+        package: {
+          update: (...a: unknown[]) => mockUpdate(...a),
+          findUnique: (...a: unknown[]) => mockFindUnique(...a),
+          create: (...a: unknown[]) => mockCreate(...a),
+        },
+        packageHistory: { create: (...a: unknown[]) => mockHistoryCreate(...a) },
+        user: { findUnique: (...a: unknown[]) => mockUserFindUnique(...a) },
+      });
+    }
+    if (Array.isArray(arg)) return Promise.all(arg);
+    return [];
+  });
 });
 
 // ===========================================================================
