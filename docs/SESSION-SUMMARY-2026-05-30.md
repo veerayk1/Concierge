@@ -185,3 +185,38 @@ src/
 ```
 
 Welcome back.
+
+---
+
+## Overnight continuation (May 31)
+
+Picked up the documented follow-ups and verified everything shipped.
+
+### Verified live (browser, real accounts — never scripts)
+
+- **Toast system** renders (Radix viewport, styled card) via the reports no-data path.
+- **POST /api/v1/my/visitors**: 201 valid · 400 missing-name · 400 TOO_FAR_FUTURE (>30d) · 400 NO_UNIT · appears in resident's list AND the front-desk queue.
+- **POST/DELETE /api/v1/users/me/devices**: register, upsert, bad-platform 400, short-token 400, scoped delete (1), idempotent re-delete (0).
+- **DELETE /api/v1/users/me**: property_admin blocked 403; resident soft-delete 200 → token dead (/me 404) → re-seed restores.
+
+### Bugs found + fixed this continuation
+
+- **2 ship-blocking mobile bugs**: the mobile auth client expected top-level `{accessToken}` but the web API wraps everything in `{data}` — the app could never have logged in. Fixed `login()`, `fetchMe()`, `createMaintenanceRequest()`, `createBooking()`, `preAuthorizeVisitor()` to unwrap `.data`.
+- **Seed crash**: `NoiseComplaint` used a phantom `suspectContactMethod` field → seed aborted mid-run, leaving demo data incomplete. Mapped to real schema fields; seed now runs to completion.
+- **Seed idempotency**: user upsert now resets `deletedAt`/`lockedUntil`/`failedLoginAttempts` so a soft-deleted user is fully restored on re-seed.
+- **3 more native `alert()`s** in admin settings → toast. Zero real `alert()` calls remain in UI code.
+
+### Tests
+
+- Ran full vitest: **9,060 pass / 1,122 fail**. Root-caused: pre-existing test rot (incomplete per-file Prisma mocks + stale assertions), NOT product bugs or regressions from any session. Documented in `docs/TEST-SUITE-STATUS.md` with a rehabilitation plan.
+- **+37 new passing tests** for everything shipped: my/visitors (7), devices (5), account-deletion (5), format helpers (15) — plus recovered navigation.test.ts (68/68) by aligning it with UX-101.
+
+### Design consistency
+
+- `src/lib/format.ts` canonical date/currency helpers shipped + unit-tested; migrated activity + notification logs to them (deleted 2 duplicate local `formatRelative`s). Remaining ~17 explicitly-formatted callers are consistent and tracked for incremental migration.
+
+### State at hand-off
+
+- Web typecheck: **0 errors**.
+- All commits pushed to `yaswanth-zazz/Concierge` main (through `ac84af0`).
+- `origin` (veerayk1) still has an expired embedded token — needs rotation to mirror.
