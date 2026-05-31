@@ -29,6 +29,12 @@ vi.mock('@/server/middleware/auth', () => ({
   requireAuth: vi.fn(),
 }));
 
+// Keep the demo-mode userId resolution deterministic (no live-DB dependency).
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return { prisma: createMockPrisma() };
+});
+
 vi.mock('@/server/errors', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
