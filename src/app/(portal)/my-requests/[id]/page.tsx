@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
+import { formatTimestamp } from '@/lib/format';
 import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -91,16 +92,7 @@ const PRIORITY_LABEL: Record<string, { label: string; tone: 'default' | 'warning
 
 function formatDateTime(iso: string | null): string {
   if (!iso) return '—';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return '—';
-  return d.toLocaleString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return formatTimestamp(iso);
 }
 
 function formatBytes(bytes: number): string {

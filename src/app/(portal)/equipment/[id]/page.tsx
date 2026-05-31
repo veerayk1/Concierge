@@ -15,6 +15,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { PageShell } from '@/components/layout/page-shell';
+import { formatDate } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -66,14 +67,6 @@ const STATUS_CONFIG: Record<
   out_of_service: { variant: 'error', label: 'Out of Service' },
   retired: { variant: 'default', label: 'Retired' },
 };
-
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('en-CA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-CA', {

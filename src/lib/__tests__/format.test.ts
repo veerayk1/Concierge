@@ -12,6 +12,7 @@ import {
   formatPercent,
   formatRelative,
   formatTime,
+  formatTimestamp,
 } from '../format';
 
 const D = new Date('2026-05-30T19:30:00Z');
@@ -40,6 +41,17 @@ describe('formatDateShort', () => {
 describe('formatTime', () => {
   it('renders an h:mm time', () => {
     expect(formatTime(D)).toMatch(/\d{1,2}:\d{2}/);
+  });
+});
+
+describe('formatTimestamp', () => {
+  it('keeps the year and the time, drops the weekday', () => {
+    const out = formatTimestamp(D);
+    expect(out).toMatch(/May 30, 2026/);
+    expect(out).toMatch(/\d{1,2}:\d{2}/);
+  });
+  it('returns an em-dash for invalid input', () => {
+    expect(formatTimestamp('nope')).toBe('—');
   });
 });
 

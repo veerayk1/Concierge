@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
+import { formatDate as formatDateCanonical } from '@/lib/format';
 import {
   DollarSign,
   TrendingUp,
@@ -64,11 +65,7 @@ const statusVariant: Record<string, 'success' | 'warning' | 'error' | 'default' 
 
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return 'N/A';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  return formatDateCanonical(dateStr);
 }
 
 function formatPrice(cents: number | undefined): string {

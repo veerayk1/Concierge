@@ -25,6 +25,7 @@ import { KpiTile } from '@/components/ui/kpi-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateResidentCardDialog } from '@/components/forms/create-resident-card-dialog';
 import { exportToCsv } from '@/lib/export-csv';
+import { formatDate } from '@/lib/format';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -128,14 +129,6 @@ const STATUS_CONFIG: Record<
   lost: { label: 'Lost', variant: 'error', icon: X },
   revoked: { label: 'Revoked', variant: 'error', icon: X },
 };
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-CA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Component

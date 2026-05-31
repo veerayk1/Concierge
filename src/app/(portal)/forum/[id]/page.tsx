@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, AlertTriangle, Eye, Heart, Lock, MessageSquare, Pin, User } from 'lucide-react';
 import { PageShell } from '@/components/layout/page-shell';
+import { formatTimestamp } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -56,13 +57,7 @@ const THREAD_STATUS_CONFIG: Record<
 };
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return formatTimestamp(dateStr);
 }
 
 function getInitials(userId: string): string {

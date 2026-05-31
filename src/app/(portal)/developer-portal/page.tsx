@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { KpiTile } from '@/components/ui/kpi-tile';
 import { useIsResident } from '@/lib/role-mode';
+import { formatDate as formatDateCanonical, formatTimestamp } from '@/lib/format';
 import { AccessDeniedPanel } from '@/components/ui/access-denied-panel';
 import { Search } from 'lucide-react';
 
@@ -98,21 +99,12 @@ const DOC_CARDS: DocCard[] = [
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '--';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  return formatDateCanonical(dateStr);
 }
 
 function formatDateTime(dateStr: string | null): string {
   if (!dateStr) return 'Never';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return formatTimestamp(dateStr);
 }
 
 const statusBadgeVariant: Record<string, 'success' | 'error' | 'warning' | 'default'> = {

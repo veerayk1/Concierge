@@ -73,6 +73,25 @@ export function formatDateTime(input: DateInput, locale = DEFAULT_LOCALE): strin
 }
 
 /**
+ * "May 30, 2026, 7:00 PM"
+ * Use on record-detail pages where the exact moment matters and the
+ * year must be visible (audit entries, visitor arrivals, request
+ * history). Unlike formatDateTime, this keeps the year and drops the
+ * weekday — the convention for stored records that can span years.
+ */
+export function formatTimestamp(input: DateInput, locale = DEFAULT_LOCALE): string {
+  const d = toDate(input);
+  if (!d) return '—';
+  return d.toLocaleString(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+/**
  * "7:00 PM"
  * Use where the row is already grouped by date.
  */

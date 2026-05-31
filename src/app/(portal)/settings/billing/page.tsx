@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useCallback } from 'react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { formatDate } from '@/lib/format';
 import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
@@ -147,14 +148,6 @@ function formatCurrency(amount: number, currency = 'CAD') {
     style: 'currency',
     currency,
   }).format(amount / 100);
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
 }
 
 function statusVariant(status: string): 'success' | 'warning' | 'error' | 'default' {

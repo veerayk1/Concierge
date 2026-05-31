@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiRequest } from '@/lib/hooks/use-api';
+import { formatTimestamp } from '@/lib/format';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -102,13 +103,7 @@ const PRIORITY_BADGE_VARIANT: Record<string, 'default' | 'info' | 'warning' | 'e
 };
 
 function formatDateTime(date: string): string {
-  return new Date(date).toLocaleString('en-CA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatTimestamp(date);
 }
 
 function InspectionSkeleton() {

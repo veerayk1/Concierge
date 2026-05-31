@@ -18,6 +18,7 @@ import {
   User,
 } from 'lucide-react';
 import { useApi, apiRequest } from '@/lib/hooks/use-api';
+import { formatTimestamp } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -66,13 +67,7 @@ const VISITOR_TYPE_LABELS: Record<VisitorDetail['visitorType'], string> = {
 
 function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return formatTimestamp(iso);
 }
 
 function formatDuration(minutes: number | null): string {

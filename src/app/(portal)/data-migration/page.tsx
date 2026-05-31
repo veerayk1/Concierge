@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
 import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
+import { formatTimestamp } from '@/lib/format';
 import {
   DatabaseZap,
   Upload,
@@ -132,13 +133,7 @@ function formatDuration(startedAt: string, completedAt: string | null | undefine
 }
 
 function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return formatTimestamp(dateStr);
 }
 
 // ---------------------------------------------------------------------------

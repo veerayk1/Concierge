@@ -14,6 +14,7 @@ import {
   StickyNote,
 } from 'lucide-react';
 import { useApi, apiUrl, apiRequest } from '@/lib/hooks/use-api';
+import { formatDate } from '@/lib/format';
 import { useToast } from '@/lib/hooks/use-toast';
 import { getPropertyId } from '@/lib/demo-config';
 import { PageShell } from '@/components/layout/page-shell';
@@ -83,14 +84,6 @@ function formatCurrency(value: number): string {
     currency: 'CAD',
     minimumFractionDigits: 0,
   }).format(value);
-}
-
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('en-CA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
 }
 
 const categoryLabels: Record<AssetCategory, string> = {

@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApi, apiUrl } from '@/lib/hooks/use-api';
 import { getPropertyId } from '@/lib/demo-config';
+import { formatDate } from '@/lib/format';
 import {
   FileBox,
   Plus,
@@ -67,14 +68,6 @@ function formatCurrency(value: number): string {
     currency: 'CAD',
     minimumFractionDigits: 0,
   }).format(value);
-}
-
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('en-CA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
 }
 
 const categoryLabels: Record<AssetCategory, string> = {

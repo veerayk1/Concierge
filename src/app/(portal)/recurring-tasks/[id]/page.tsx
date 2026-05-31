@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiRequest } from '@/lib/hooks/use-api';
+import { formatDate } from '@/lib/format';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -76,14 +77,6 @@ const PRIORITY_VARIANT: Record<string, 'default' | 'info' | 'warning'> = {
   medium: 'info',
   high: 'warning',
 };
-
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('en-CA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
 
 function daysUntil(date: string): number {
   const now = new Date();
