@@ -6,12 +6,31 @@ the route's current contract**, still fails in a way that suggests the ROUTE
 is wrong (not the test), it is logged here and the test is left red — never
 silenced.
 
-## Status: empty
+## Found + fixed
 
-No confirmed real route bugs found so far. Every failure investigated through
-Tier 0 and Tier 1 traced to stale test fixtures vs. deliberately hardened
-route validation (UUID id checks, required fields, rotation semantics, CR/LF
-stripping), not to product defects.
+### 1. Amenity booking `[id]` route rejected every booking (FIXED)
+
+- **Route:** `src/app/api/v1/amenities/[id]/route.ts` (POST booking), ~line 139
+- **Bug:** parsed the start/end time with `new Date(input.startTime)` where
+  `startTime` is a bare clock string like `"10:00"` (from the UI's
+  `<input type="time">`). `new Date("10:00")` is `Invalid Date`, so the
+  future-guard `Number.isNaN(startsAt.getTime())` was always true → **every
+  booking 400'd with `INVALID_TIME`.** The sibling `/resident/bookings` route
+  combined date+time correctly (`1970-01-01T${startTime}`); this endpoint did not.
+- **Fix:** combine date+time before parsing —
+  `new Date(\`${input.startDate}T${input.startTime}\`)` for both start and end.
+- **Surfaced by:** `amenities/__tests__/comprehensive.test.ts` booking-create
+  tests (they send the documented `"10:00"` format and expect 201).
+- **Severity:** real, but the production resident UI posts to `/resident/bookings`
+  (unaffected); this `[id]` endpoint is the secondary/staff path. Still a genuine
+  defect — any caller using the documented payload was blocked.
+
+## Status: 1 found and fixed, 0 outstanding
+
+Every other failure investigated through Tiers 0-2 traced to stale test
+fixtures vs. deliberately hardened route validation (UUID id checks, required
+fields, rotation semantics, CR/LF stripping, module gating, CAS transitions),
+not to product defects.
 
 <!--
 Entry format when one is found:

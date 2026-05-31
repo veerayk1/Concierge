@@ -136,14 +136,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Past-date guard — bookings must be in the future. Without this you
     // can backdate a booking to 2020 to retroactively claim usage or
     // tamper with audit trails.
-    const startsAt = new Date(input.startTime);
+    //
+    // startTime/endTime arrive as bare clock times ("10:00") from the UI's
+    // <input type="time">, and startDate/endDate as "YYYY-MM-DD". Combine them
+    // into a full datetime before parsing — `new Date("10:00")` is Invalid and
+    // would 400 every legitimate booking.
+    const startsAt = new Date(`${input.startDate}T${input.startTime}`);
     if (Number.isNaN(startsAt.getTime()) || startsAt.getTime() < Date.now() - 60_000) {
       return NextResponse.json(
         { error: 'INVALID_TIME', message: 'Start time must be in the future.' },
         { status: 400 },
       );
     }
-    const endsAt = new Date(input.endTime);
+    const endsAt = new Date(`${input.endDate}T${input.endTime}`);
     if (endsAt.getTime() <= startsAt.getTime()) {
       return NextResponse.json(
         { error: 'INVALID_TIME', message: 'End time must be after start time.' },

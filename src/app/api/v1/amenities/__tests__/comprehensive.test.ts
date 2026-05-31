@@ -49,6 +49,9 @@ const mockAmenityFindUnique = vi.fn();
 const mockAmenityCreate = vi.fn();
 const mockAmenityUpdate = vi.fn();
 const mockAmenityDelete = vi.fn();
+const mockUnitFindUnique = vi.fn();
+const mockQueryRaw = vi.fn();
+const mockExecuteRaw = vi.fn();
 const mockBookingCreate = vi.fn();
 const mockBookingFindMany = vi.fn();
 const mockBookingFindUnique = vi.fn();
@@ -101,6 +104,15 @@ vi.mock('@/server/db', async () => {
       user: {
         findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
       },
+      unit: {
+        findUnique: (...args: unknown[]) => mockUnitFindUnique(...args),
+      },
+      // Booking creation runs a raw-SQL overlap check inside $transaction;
+      // default to "no overlap" so a valid booking proceeds.
+      $queryRaw: (...args: unknown[]) => mockQueryRaw(...args),
+      // Status transitions use a raw-SQL compare-and-set; default to 1 row
+      // updated (success). Conflict tests override with 0.
+      $executeRaw: (...args: unknown[]) => mockExecuteRaw(...args),
     }),
   };
 });
@@ -153,11 +165,13 @@ const BOOKING_ID = '00000000-0000-4000-f000-000000000001';
 const futureDate = new Date(Date.now() + 86_400_000); // tomorrow
 const pastDate = new Date(Date.now() - 86_400_000); // yesterday
 
+// Use a future date so the route's past-booking guard doesn't reject it.
+const FUTURE_DATE = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 const validBookingPayload = {
   unitId: UNIT_ID,
-  startDate: '2026-04-15',
+  startDate: FUTURE_DATE,
   startTime: '10:00',
-  endDate: '2026-04-15',
+  endDate: FUTURE_DATE,
   endTime: '12:00',
   guestCount: 5,
 };
@@ -234,6 +248,11 @@ beforeEach(() => {
     email: 'resident@example.com',
     firstName: 'Jane',
   });
+  // The booking route verifies the unit belongs to the amenity's property.
+  mockUnitFindUnique.mockResolvedValue({ id: UNIT_ID, propertyId: PROPERTY_A });
+  // No overlapping booking by default (raw-SQL overlap probe).
+  mockQueryRaw.mockResolvedValue([{ count: 0n }]);
+  mockExecuteRaw.mockResolvedValue(1);
 });
 
 // ===========================================================================
@@ -2057,15 +2076,16 @@ describe('23. Tenant Isolation', () => {
     expect(res.status).toBe(400);
   });
 
-  it('booking listing scopes by propertyId and soft-delete', async () => {
+  it('booking listing scopes by propertyId', async () => {
     const req = createGetRequest('/api/v1/bookings', {
       searchParams: { propertyId: PROPERTY_A },
     });
     await GET_BOOKINGS(req);
 
+    // Bookings are hard-deleted (no deletedAt on the model); the list scopes
+    // by propertyId for tenant isolation.
     const where = mockBookingFindMany.mock.calls[0]![0].where;
     expect(where.propertyId).toBe(PROPERTY_A);
-    expect(where.deletedAt).toBeNull();
   });
 
   // --- Booking Creation ---
