@@ -385,10 +385,12 @@ describe('Resident Owner navigation (Section 7.10)', () => {
     expect(labels).toContain('Amenity Booking');
   });
 
-  it('sees BUILDING: Announcements, Events, Marketplace, Library, Surveys', () => {
+  it('sees BUILDING: Announcements, Marketplace, Library, Surveys (Events is staff-only per UX-101)', () => {
     const labels = getLabelsForRole(role);
     expect(labels).toContain('Announcements');
-    expect(labels).toContain('Events');
+    // Events was removed from the resident sidebar in UX-101 — /events is
+    // the staff community-events console, not a resident surface.
+    expect(labels).not.toContain('Events');
     expect(labels).toContain('Marketplace');
     expect(labels).toContain('Library');
     expect(labels).toContain('Surveys');
@@ -424,10 +426,10 @@ describe('Resident Tenant navigation (Section 7.11)', () => {
     expect(labels).toContain('Amenity Booking');
   });
 
-  it('sees BUILDING: Announcements, Events, Marketplace, Library', () => {
+  it('sees BUILDING: Announcements, Marketplace, Library (Events is staff-only per UX-101)', () => {
     const labels = getLabelsForRole(role);
     expect(labels).toContain('Announcements');
-    expect(labels).toContain('Events');
+    expect(labels).not.toContain('Events');
     expect(labels).toContain('Marketplace');
     expect(labels).toContain('Library');
   });
@@ -452,10 +454,10 @@ describe('Offsite Owner navigation (Section 7.12)', () => {
     expect(getLabelsForRole(role)).toContain('Dashboard');
   });
 
-  it('sees BUILDING: Announcements, Events, Library, Surveys', () => {
+  it('sees BUILDING: Announcements, Library, Surveys (Events is staff-only per UX-101)', () => {
     const labels = getLabelsForRole(role);
     expect(labels).toContain('Announcements');
-    expect(labels).toContain('Events');
+    expect(labels).not.toContain('Events');
     expect(labels).toContain('Library');
     expect(labels).toContain('Surveys');
   });
@@ -497,10 +499,10 @@ describe('Family Member navigation (Section 7.13)', () => {
     expect(getLabelsForRole(role)).not.toContain('My Requests');
   });
 
-  it('sees BUILDING: Announcements, Events, Library', () => {
+  it('sees BUILDING: Announcements, Library (Events is staff-only per UX-101)', () => {
     const labels = getLabelsForRole(role);
     expect(labels).toContain('Announcements');
-    expect(labels).toContain('Events');
+    expect(labels).not.toContain('Events');
     expect(labels).toContain('Library');
   });
 
