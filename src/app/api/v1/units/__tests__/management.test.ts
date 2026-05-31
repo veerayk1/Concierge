@@ -61,28 +61,31 @@ const mockInstructionDelete = vi.fn();
 const mockTransaction = vi.fn();
 const mockUserFindMany = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    unit: {
-      findMany: (...args: unknown[]) => mockUnitFindMany(...args),
-      count: (...args: unknown[]) => mockUnitCount(...args),
-      create: (...args: unknown[]) => mockUnitCreate(...args),
-      findUnique: (...args: unknown[]) => mockUnitFindUnique(...args),
-      update: (...args: unknown[]) => mockUnitUpdate(...args),
-      findFirst: (...args: unknown[]) => mockUnitFindFirst(...args),
-    },
-    unitInstruction: {
-      findMany: (...args: unknown[]) => mockInstructionFindMany(...args),
-      create: (...args: unknown[]) => mockInstructionCreate(...args),
-      update: (...args: unknown[]) => mockInstructionUpdate(...args),
-      delete: (...args: unknown[]) => mockInstructionDelete(...args),
-    },
-    user: {
-      findMany: (...args: unknown[]) => mockUserFindMany(...args),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      unit: {
+        findMany: (...args: unknown[]) => mockUnitFindMany(...args),
+        count: (...args: unknown[]) => mockUnitCount(...args),
+        create: (...args: unknown[]) => mockUnitCreate(...args),
+        findUnique: (...args: unknown[]) => mockUnitFindUnique(...args),
+        update: (...args: unknown[]) => mockUnitUpdate(...args),
+        findFirst: (...args: unknown[]) => mockUnitFindFirst(...args),
+      },
+      unitInstruction: {
+        findMany: (...args: unknown[]) => mockInstructionFindMany(...args),
+        create: (...args: unknown[]) => mockInstructionCreate(...args),
+        update: (...args: unknown[]) => mockInstructionUpdate(...args),
+        delete: (...args: unknown[]) => mockInstructionDelete(...args),
+      },
+      user: {
+        findMany: (...args: unknown[]) => mockUserFindMany(...args),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: (s: string) => s,

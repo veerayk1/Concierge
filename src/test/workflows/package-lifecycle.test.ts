@@ -39,37 +39,40 @@ const mockNotificationFindMany = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    package: {
-      create: (...args: unknown[]) => mockPackageCreate(...args),
-      findMany: (...args: unknown[]) => mockPackageFindMany(...args),
-      count: (...args: unknown[]) => mockPackageCount(...args),
-      findUnique: (...args: unknown[]) => mockPackageFindUnique(...args),
-      update: (...args: unknown[]) => mockPackageUpdate(...args),
-      updateMany: (...args: unknown[]) => mockPackageUpdateMany(...args),
-    },
-    packageHistory: {
-      create: (...args: unknown[]) => mockPackageHistoryCreate(...args),
-      findMany: (...args: unknown[]) => mockPackageHistoryFindMany(...args),
-    },
-    notification: {
-      create: (...args: unknown[]) => mockNotificationCreate(...args),
-      findMany: (...args: unknown[]) => mockNotificationFindMany(...args),
-    },
-    $transaction: (...args: unknown[]) => {
-      const first = args[0];
-      if (typeof first === 'function') {
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      package: {
+        create: (...args: unknown[]) => mockPackageCreate(...args),
+        findMany: (...args: unknown[]) => mockPackageFindMany(...args),
+        count: (...args: unknown[]) => mockPackageCount(...args),
+        findUnique: (...args: unknown[]) => mockPackageFindUnique(...args),
+        update: (...args: unknown[]) => mockPackageUpdate(...args),
+        updateMany: (...args: unknown[]) => mockPackageUpdateMany(...args),
+      },
+      packageHistory: {
+        create: (...args: unknown[]) => mockPackageHistoryCreate(...args),
+        findMany: (...args: unknown[]) => mockPackageHistoryFindMany(...args),
+      },
+      notification: {
+        create: (...args: unknown[]) => mockNotificationCreate(...args),
+        findMany: (...args: unknown[]) => mockNotificationFindMany(...args),
+      },
+      $transaction: (...args: unknown[]) => {
+        const first = args[0];
+        if (typeof first === 'function') {
+          return mockTransaction(...args);
+        }
+        // Array-based transaction (batch package creation)
+        if (Array.isArray(first)) {
+          return Promise.all(first);
+        }
         return mockTransaction(...args);
-      }
-      // Array-based transaction (batch package creation)
-      if (Array.isArray(first)) {
-        return Promise.all(first);
-      }
-      return mockTransaction(...args);
-    },
-  },
-}));
+      },
+    }),
+  };
+});
 
 // Nanoid mock — returns incrementing values for unique ref numbers
 let nanoidCounter = 0;

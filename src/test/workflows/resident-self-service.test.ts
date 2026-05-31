@@ -46,50 +46,53 @@ const mockNotificationCreate = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    maintenanceRequest: {
-      create: (...args: unknown[]) => mockMaintenanceRequestCreate(...args),
-      findMany: (...args: unknown[]) => mockMaintenanceRequestFindMany(...args),
-      count: (...args: unknown[]) => mockMaintenanceRequestCount(...args),
-      findUnique: (...args: unknown[]) => mockMaintenanceRequestFindUnique(...args),
-      update: (...args: unknown[]) => mockMaintenanceRequestUpdate(...args),
-    },
-    maintenanceStatusChange: {
-      create: (...args: unknown[]) => mockMaintenanceStatusChangeCreate(...args),
-    },
-    maintenanceComment: {
-      create: (...args: unknown[]) => mockMaintenanceCommentCreate(...args),
-      findMany: vi.fn().mockResolvedValue([]),
-    },
-    user: {
-      findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn().mockResolvedValue(null),
-      findFirst: vi.fn().mockResolvedValue(null),
-    },
-    reservation: {
-      create: (...args: unknown[]) => mockReservationCreate(...args),
-      findMany: (...args: unknown[]) => mockReservationFindMany(...args),
-      count: (...args: unknown[]) => mockReservationCount(...args),
-    },
-    booking: {
-      create: (...args: unknown[]) => mockReservationCreate(...args),
-      findMany: (...args: unknown[]) => mockReservationFindMany(...args),
-      count: (...args: unknown[]) => mockReservationCount(...args),
-    },
-    amenity: {
-      findUnique: (...args: unknown[]) => mockAmenityFindUnique(...args),
-    },
-    package: {
-      findMany: (...args: unknown[]) => mockPackageFindMany(...args),
-      count: (...args: unknown[]) => mockPackageCount(...args),
-    },
-    notification: {
-      create: (...args: unknown[]) => mockNotificationCreate(...args),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      maintenanceRequest: {
+        create: (...args: unknown[]) => mockMaintenanceRequestCreate(...args),
+        findMany: (...args: unknown[]) => mockMaintenanceRequestFindMany(...args),
+        count: (...args: unknown[]) => mockMaintenanceRequestCount(...args),
+        findUnique: (...args: unknown[]) => mockMaintenanceRequestFindUnique(...args),
+        update: (...args: unknown[]) => mockMaintenanceRequestUpdate(...args),
+      },
+      maintenanceStatusChange: {
+        create: (...args: unknown[]) => mockMaintenanceStatusChangeCreate(...args),
+      },
+      maintenanceComment: {
+        create: (...args: unknown[]) => mockMaintenanceCommentCreate(...args),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      user: {
+        findMany: vi.fn().mockResolvedValue([]),
+        findUnique: vi.fn().mockResolvedValue(null),
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+      reservation: {
+        create: (...args: unknown[]) => mockReservationCreate(...args),
+        findMany: (...args: unknown[]) => mockReservationFindMany(...args),
+        count: (...args: unknown[]) => mockReservationCount(...args),
+      },
+      booking: {
+        create: (...args: unknown[]) => mockReservationCreate(...args),
+        findMany: (...args: unknown[]) => mockReservationFindMany(...args),
+        count: (...args: unknown[]) => mockReservationCount(...args),
+      },
+      amenity: {
+        findUnique: (...args: unknown[]) => mockAmenityFindUnique(...args),
+      },
+      package: {
+        findMany: (...args: unknown[]) => mockPackageFindMany(...args),
+        count: (...args: unknown[]) => mockPackageCount(...args),
+      },
+      notification: {
+        create: (...args: unknown[]) => mockNotificationCreate(...args),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('RS001'),

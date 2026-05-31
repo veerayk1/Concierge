@@ -54,37 +54,40 @@ const mockSettingsUpsert = vi.fn();
 const mockEmailConfigFindMany = vi.fn();
 const mockEmailConfigUpsert = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    user: {
-      findMany: (...args: unknown[]) => mockUserFindMany(...args),
-      count: (...args: unknown[]) => mockUserCount(...args),
-      findFirst: (...args: unknown[]) => mockUserFindFirst(...args),
-      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
-      create: (...args: unknown[]) => mockUserCreate(...args),
-      update: (...args: unknown[]) => mockUserUpdate(...args),
-    },
-    userProperty: {
-      create: vi.fn(),
-      updateMany: vi.fn(),
-    },
-    consentRecord: {
-      findMany: (...args: unknown[]) => mockConsentFindMany(...args),
-      create: (...args: unknown[]) => mockConsentCreate(...args),
-      update: (...args: unknown[]) => mockConsentUpdate(...args),
-      count: (...args: unknown[]) => mockConsentCount(...args),
-    },
-    propertySettings: {
-      findUnique: (...args: unknown[]) => mockSettingsFindUnique(...args),
-      upsert: (...args: unknown[]) => mockSettingsUpsert(...args),
-    },
-    eventTypeEmailConfig: {
-      findMany: (...args: unknown[]) => mockEmailConfigFindMany(...args),
-      upsert: (...args: unknown[]) => mockEmailConfigUpsert(...args),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      user: {
+        findMany: (...args: unknown[]) => mockUserFindMany(...args),
+        count: (...args: unknown[]) => mockUserCount(...args),
+        findFirst: (...args: unknown[]) => mockUserFindFirst(...args),
+        findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+        create: (...args: unknown[]) => mockUserCreate(...args),
+        update: (...args: unknown[]) => mockUserUpdate(...args),
+      },
+      userProperty: {
+        create: vi.fn(),
+        updateMany: vi.fn(),
+      },
+      consentRecord: {
+        findMany: (...args: unknown[]) => mockConsentFindMany(...args),
+        create: (...args: unknown[]) => mockConsentCreate(...args),
+        update: (...args: unknown[]) => mockConsentUpdate(...args),
+        count: (...args: unknown[]) => mockConsentCount(...args),
+      },
+      propertySettings: {
+        findUnique: (...args: unknown[]) => mockSettingsFindUnique(...args),
+        upsert: (...args: unknown[]) => mockSettingsUpsert(...args),
+      },
+      eventTypeEmailConfig: {
+        findMany: (...args: unknown[]) => mockEmailConfigFindMany(...args),
+        upsert: (...args: unknown[]) => mockEmailConfigUpsert(...args),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 vi.mock('@/server/auth/password', () => ({
   hashPassword: vi.fn().mockResolvedValue('$argon2id$v=19$m=65536,t=3,p=4$hashed'),

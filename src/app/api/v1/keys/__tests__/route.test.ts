@@ -28,19 +28,22 @@ const mockUpdate = vi.fn();
 const mockCount = vi.fn();
 const mockIncidentCreate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    keyInventory: {
-      findMany: (...args: unknown[]) => mockFindMany(...args),
-      create: (...args: unknown[]) => mockCreate(...args),
-      update: (...args: unknown[]) => mockUpdate(...args),
-      count: (...args: unknown[]) => mockCount(...args),
-    },
-    incidentReport: {
-      create: (...args: unknown[]) => mockIncidentCreate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      keyInventory: {
+        findMany: (...args: unknown[]) => mockFindMany(...args),
+        create: (...args: unknown[]) => mockCreate(...args),
+        update: (...args: unknown[]) => mockUpdate(...args),
+        count: (...args: unknown[]) => mockCount(...args),
+      },
+      incidentReport: {
+        create: (...args: unknown[]) => mockIncidentCreate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn().mockResolvedValue({

@@ -57,56 +57,59 @@ const mockBookingUpdate = vi.fn();
 const mockBookingFindMany = vi.fn();
 const mockBookingCount = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    package: {
-      create: (...args: unknown[]) => mockPackageCreate(...args),
-      findMany: (...args: unknown[]) => mockPackageFindMany(...args),
-      count: (...args: unknown[]) => mockPackageCount(...args),
-      findUnique: (...args: unknown[]) => mockPackageFindUnique(...args),
-      update: (...args: unknown[]) => mockPackageUpdate(...args),
-    },
-    packageHistory: {
-      create: (...args: unknown[]) => mockPackageHistoryCreate(...args),
-    },
-    user: {
-      create: (...args: unknown[]) => mockUserCreate(...args),
-      findFirst: (...args: unknown[]) => mockUserFindFirst(...args),
-      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
-      update: (...args: unknown[]) => mockUserUpdate(...args),
-      findMany: (...args: unknown[]) => mockUserFindMany(...args),
-      count: (...args: unknown[]) => mockUserCount(...args),
-    },
-    userProperty: {
-      create: (...args: unknown[]) => mockUserPropertyCreate(...args),
-      updateMany: vi.fn(),
-    },
-    session: {
-      updateMany: (...args: unknown[]) => mockSessionUpdateMany(...args),
-    },
-    refreshToken: {
-      updateMany: vi.fn(),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-    visitorEntry: {
-      create: (...args: unknown[]) => mockVisitorEntryCreate(...args),
-      findMany: (...args: unknown[]) => mockVisitorEntryFindMany(...args),
-      count: (...args: unknown[]) => mockVisitorEntryCount(...args),
-      findUnique: (...args: unknown[]) => mockVisitorEntryFindUnique(...args),
-      update: (...args: unknown[]) => mockVisitorEntryUpdate(...args),
-    },
-    amenity: {
-      findUnique: (...args: unknown[]) => mockAmenityFindUnique(...args),
-    },
-    booking: {
-      create: (...args: unknown[]) => mockBookingCreate(...args),
-      findUnique: (...args: unknown[]) => mockBookingFindUnique(...args),
-      update: (...args: unknown[]) => mockBookingUpdate(...args),
-      findMany: (...args: unknown[]) => mockBookingFindMany(...args),
-      count: (...args: unknown[]) => mockBookingCount(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      package: {
+        create: (...args: unknown[]) => mockPackageCreate(...args),
+        findMany: (...args: unknown[]) => mockPackageFindMany(...args),
+        count: (...args: unknown[]) => mockPackageCount(...args),
+        findUnique: (...args: unknown[]) => mockPackageFindUnique(...args),
+        update: (...args: unknown[]) => mockPackageUpdate(...args),
+      },
+      packageHistory: {
+        create: (...args: unknown[]) => mockPackageHistoryCreate(...args),
+      },
+      user: {
+        create: (...args: unknown[]) => mockUserCreate(...args),
+        findFirst: (...args: unknown[]) => mockUserFindFirst(...args),
+        findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+        update: (...args: unknown[]) => mockUserUpdate(...args),
+        findMany: (...args: unknown[]) => mockUserFindMany(...args),
+        count: (...args: unknown[]) => mockUserCount(...args),
+      },
+      userProperty: {
+        create: (...args: unknown[]) => mockUserPropertyCreate(...args),
+        updateMany: vi.fn(),
+      },
+      session: {
+        updateMany: (...args: unknown[]) => mockSessionUpdateMany(...args),
+      },
+      refreshToken: {
+        updateMany: vi.fn(),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+      visitorEntry: {
+        create: (...args: unknown[]) => mockVisitorEntryCreate(...args),
+        findMany: (...args: unknown[]) => mockVisitorEntryFindMany(...args),
+        count: (...args: unknown[]) => mockVisitorEntryCount(...args),
+        findUnique: (...args: unknown[]) => mockVisitorEntryFindUnique(...args),
+        update: (...args: unknown[]) => mockVisitorEntryUpdate(...args),
+      },
+      amenity: {
+        findUnique: (...args: unknown[]) => mockAmenityFindUnique(...args),
+      },
+      booking: {
+        create: (...args: unknown[]) => mockBookingCreate(...args),
+        findUnique: (...args: unknown[]) => mockBookingFindUnique(...args),
+        update: (...args: unknown[]) => mockBookingUpdate(...args),
+        findMany: (...args: unknown[]) => mockBookingFindMany(...args),
+        count: (...args: unknown[]) => mockBookingCount(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/schemas/package', () => ({
   createPackageSchema: {

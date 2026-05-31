@@ -47,18 +47,21 @@ const mockPhotoFindUnique = vi.fn();
 
 const mockGuardRoute = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    photoAlbum: {
-      findUnique: (...args: unknown[]) => mockAlbumFindUnique(...args),
-      update: (...args: unknown[]) => mockAlbumUpdate(...args),
-    },
-    albumPhoto: {
-      create: (...args: unknown[]) => mockPhotoCreate(...args),
-      findUnique: (...args: unknown[]) => mockPhotoFindUnique(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      photoAlbum: {
+        findUnique: (...args: unknown[]) => mockAlbumFindUnique(...args),
+        update: (...args: unknown[]) => mockAlbumUpdate(...args),
+      },
+      albumPhoto: {
+        create: (...args: unknown[]) => mockPhotoCreate(...args),
+        findUnique: (...args: unknown[]) => mockPhotoFindUnique(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: vi.fn((input: string) => input.replace(/<[^>]*>/g, '')),

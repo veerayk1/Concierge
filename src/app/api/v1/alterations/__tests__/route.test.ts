@@ -32,24 +32,27 @@ const mockDocCreate = vi.fn();
 
 const mockSendEmail = vi.fn().mockResolvedValue('msg-id');
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    alterationProject: {
-      findMany: (...args: unknown[]) => mockFindMany(...args),
-      count: (...args: unknown[]) => mockCount(...args),
-      create: (...args: unknown[]) => mockCreate(...args),
-      findUnique: (...args: unknown[]) => mockFindUnique(...args),
-      update: (...args: unknown[]) => mockUpdate(...args),
-    },
-    alterationDocument: {
-      findMany: (...args: unknown[]) => mockDocFindMany(...args),
-      create: (...args: unknown[]) => mockDocCreate(...args),
-    },
-    alterationStatusChange: {
-      create: vi.fn(),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      alterationProject: {
+        findMany: (...args: unknown[]) => mockFindMany(...args),
+        count: (...args: unknown[]) => mockCount(...args),
+        create: (...args: unknown[]) => mockCreate(...args),
+        findUnique: (...args: unknown[]) => mockFindUnique(...args),
+        update: (...args: unknown[]) => mockUpdate(...args),
+      },
+      alterationDocument: {
+        findMany: (...args: unknown[]) => mockDocFindMany(...args),
+        create: (...args: unknown[]) => mockDocCreate(...args),
+      },
+      alterationStatusChange: {
+        create: vi.fn(),
+      },
+    }),
+  };
+});
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('A1B2'),

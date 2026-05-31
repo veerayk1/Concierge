@@ -50,76 +50,79 @@ const mockUserFindUnique = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    property: {
-      create: (...args: unknown[]) => mockPropertyCreate(...args),
-      findMany: (...args: unknown[]) => mockPropertyFindMany(...args),
-      findUnique: (...args: unknown[]) => mockPropertyFindUnique(...args),
-      update: (...args: unknown[]) => mockPropertyUpdate(...args),
-      count: (...args: unknown[]) => mockPropertyCount(...args),
-    },
-    userProperty: {
-      findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
-      create: (...args: unknown[]) => mockUserPropertyCreate(...args),
-      delete: (...args: unknown[]) => mockUserPropertyDelete(...args),
-      findUnique: (...args: unknown[]) => mockUserPropertyFindUnique(...args),
-      findFirst: (...args: unknown[]) => mockUserPropertyFindFirst(...args),
-    },
-    subscription: {
-      findMany: (...args: unknown[]) => mockSubscriptionFindMany(...args),
-      findFirst: (...args: unknown[]) => mockSubscriptionFindFirst(...args),
-    },
-    eventType: {
-      findMany: (...args: unknown[]) => mockEventTypeFindMany(...args),
-    },
-    propertySettings: {
-      findUnique: (...args: unknown[]) => mockPropertySettingsFindUnique(...args),
-      upsert: (...args: unknown[]) => mockPropertySettingsUpsert(...args),
-    },
-    event: {
-      count: (...args: unknown[]) => mockEventCount(...args),
-    },
-    maintenanceRequest: {
-      count: (...args: unknown[]) => mockMaintenanceRequestCount(...args),
-    },
-    package: {
-      count: (...args: unknown[]) => mockPackageCount(...args),
-    },
-    booking: {
-      count: (...args: unknown[]) => mockBookingCount(...args),
-    },
-    unit: {
-      count: (...args: unknown[]) => mockUnitCount(...args),
-    },
-    user: {
-      findMany: (...args: unknown[]) => mockUserFindMany(...args),
-      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
-    },
-    role: {
-      createMany: vi.fn().mockResolvedValue({ count: 6 }),
-    },
-    $transaction: (...args: unknown[]) => {
-      const first = args[0];
-      if (typeof first === 'function') {
-        return (first as (tx: unknown) => Promise<unknown>)({
-          property: {
-            create: (...a: unknown[]) => mockPropertyCreate(...a),
-            findUnique: (...a: unknown[]) => mockPropertyFindUnique(...a),
-            update: (...a: unknown[]) => mockPropertyUpdate(...a),
-          },
-          role: {
-            createMany: vi.fn().mockResolvedValue({ count: 6 }),
-          },
-        });
-      }
-      if (Array.isArray(first)) {
-        return Promise.all(first);
-      }
-      return mockTransaction(...args);
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      property: {
+        create: (...args: unknown[]) => mockPropertyCreate(...args),
+        findMany: (...args: unknown[]) => mockPropertyFindMany(...args),
+        findUnique: (...args: unknown[]) => mockPropertyFindUnique(...args),
+        update: (...args: unknown[]) => mockPropertyUpdate(...args),
+        count: (...args: unknown[]) => mockPropertyCount(...args),
+      },
+      userProperty: {
+        findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
+        create: (...args: unknown[]) => mockUserPropertyCreate(...args),
+        delete: (...args: unknown[]) => mockUserPropertyDelete(...args),
+        findUnique: (...args: unknown[]) => mockUserPropertyFindUnique(...args),
+        findFirst: (...args: unknown[]) => mockUserPropertyFindFirst(...args),
+      },
+      subscription: {
+        findMany: (...args: unknown[]) => mockSubscriptionFindMany(...args),
+        findFirst: (...args: unknown[]) => mockSubscriptionFindFirst(...args),
+      },
+      eventType: {
+        findMany: (...args: unknown[]) => mockEventTypeFindMany(...args),
+      },
+      propertySettings: {
+        findUnique: (...args: unknown[]) => mockPropertySettingsFindUnique(...args),
+        upsert: (...args: unknown[]) => mockPropertySettingsUpsert(...args),
+      },
+      event: {
+        count: (...args: unknown[]) => mockEventCount(...args),
+      },
+      maintenanceRequest: {
+        count: (...args: unknown[]) => mockMaintenanceRequestCount(...args),
+      },
+      package: {
+        count: (...args: unknown[]) => mockPackageCount(...args),
+      },
+      booking: {
+        count: (...args: unknown[]) => mockBookingCount(...args),
+      },
+      unit: {
+        count: (...args: unknown[]) => mockUnitCount(...args),
+      },
+      user: {
+        findMany: (...args: unknown[]) => mockUserFindMany(...args),
+        findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+      },
+      role: {
+        createMany: vi.fn().mockResolvedValue({ count: 6 }),
+      },
+      $transaction: (...args: unknown[]) => {
+        const first = args[0];
+        if (typeof first === 'function') {
+          return (first as (tx: unknown) => Promise<unknown>)({
+            property: {
+              create: (...a: unknown[]) => mockPropertyCreate(...a),
+              findUnique: (...a: unknown[]) => mockPropertyFindUnique(...a),
+              update: (...a: unknown[]) => mockPropertyUpdate(...a),
+            },
+            role: {
+              createMany: vi.fn().mockResolvedValue({ count: 6 }),
+            },
+          });
+        }
+        if (Array.isArray(first)) {
+          return Promise.all(first);
+        }
+        return mockTransaction(...args);
+      },
+    }),
+  };
+});
 
 let mockGuardRole = 'super_admin';
 let mockGuardUserId = 'test-user-id';

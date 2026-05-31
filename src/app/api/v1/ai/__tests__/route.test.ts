@@ -28,42 +28,45 @@ const mockBuildingHealthScoreCreate = vi.fn();
 const mockAnnouncementCount = vi.fn();
 const mockEventCount = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    package: {
-      count: (...args: unknown[]) => mockPackageCount(...args),
-      findMany: (...args: unknown[]) => mockPackageFindMany(...args),
-      groupBy: (...args: unknown[]) => mockPackageGroupBy(...args),
-    },
-    visitorEntry: {
-      count: (...args: unknown[]) => mockVisitorCount(...args),
-    },
-    maintenanceRequest: {
-      count: (...args: unknown[]) => mockMaintenanceCount(...args),
-      findMany: (...args: unknown[]) => mockMaintenanceFindMany(...args),
-    },
-    booking: {
-      count: (...args: unknown[]) => mockBookingCount(...args),
-    },
-    shiftHandoff: {
-      findFirst: (...args: unknown[]) => mockShiftHandoffFindFirst(...args),
-    },
-    aIBriefing: {
-      findFirst: (...args: unknown[]) => mockAIBriefingFindFirst(...args),
-      create: (...args: unknown[]) => mockAIBriefingCreate(...args),
-    },
-    buildingHealthScore: {
-      findFirst: (...args: unknown[]) => mockBuildingHealthScoreFindFirst(...args),
-      create: (...args: unknown[]) => mockBuildingHealthScoreCreate(...args),
-    },
-    announcement: {
-      count: (...args: unknown[]) => mockAnnouncementCount(...args),
-    },
-    event: {
-      count: (...args: unknown[]) => mockEventCount(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      package: {
+        count: (...args: unknown[]) => mockPackageCount(...args),
+        findMany: (...args: unknown[]) => mockPackageFindMany(...args),
+        groupBy: (...args: unknown[]) => mockPackageGroupBy(...args),
+      },
+      visitorEntry: {
+        count: (...args: unknown[]) => mockVisitorCount(...args),
+      },
+      maintenanceRequest: {
+        count: (...args: unknown[]) => mockMaintenanceCount(...args),
+        findMany: (...args: unknown[]) => mockMaintenanceFindMany(...args),
+      },
+      booking: {
+        count: (...args: unknown[]) => mockBookingCount(...args),
+      },
+      shiftHandoff: {
+        findFirst: (...args: unknown[]) => mockShiftHandoffFindFirst(...args),
+      },
+      aIBriefing: {
+        findFirst: (...args: unknown[]) => mockAIBriefingFindFirst(...args),
+        create: (...args: unknown[]) => mockAIBriefingCreate(...args),
+      },
+      buildingHealthScore: {
+        findFirst: (...args: unknown[]) => mockBuildingHealthScoreFindFirst(...args),
+        create: (...args: unknown[]) => mockBuildingHealthScoreCreate(...args),
+      },
+      announcement: {
+        count: (...args: unknown[]) => mockAnnouncementCount(...args),
+      },
+      event: {
+        count: (...args: unknown[]) => mockEventCount(...args),
+      },
+    }),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Auth mock — configurable per test via setAuth

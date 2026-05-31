@@ -37,44 +37,47 @@ const mockDemoTemplateFindMany = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    property: {
-      create: (...args: unknown[]) => mockPropertyCreate(...args),
-      findMany: (...args: unknown[]) => mockPropertyFindMany(...args),
-      findUnique: (...args: unknown[]) => mockPropertyFindUnique(...args),
-      update: (...args: unknown[]) => mockPropertyUpdate(...args),
-      delete: (...args: unknown[]) => mockPropertyDelete(...args),
-    },
-    userProperty: {
-      findFirst: (...args: unknown[]) => mockUserPropertyFindFirst(...args),
-    },
-    demoTemplate: {
-      findUnique: (...args: unknown[]) => mockDemoTemplateFindUnique(...args),
-      findMany: (...args: unknown[]) => mockDemoTemplateFindMany(...args),
-    },
-    $transaction: (...args: unknown[]) => {
-      const first = args[0];
-      if (typeof first === 'function') {
-        return (first as (tx: unknown) => Promise<unknown>)({
-          property: {
-            create: (...a: unknown[]) => mockPropertyCreate(...a),
-            findUnique: (...a: unknown[]) => mockPropertyFindUnique(...a),
-            update: (...a: unknown[]) => mockPropertyUpdate(...a),
-            delete: (...a: unknown[]) => mockPropertyDelete(...a),
-          },
-          role: {
-            createMany: vi.fn().mockResolvedValue({ count: 6 }),
-          },
-        });
-      }
-      if (Array.isArray(first)) {
-        return Promise.all(first);
-      }
-      return mockTransaction(...args);
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      property: {
+        create: (...args: unknown[]) => mockPropertyCreate(...args),
+        findMany: (...args: unknown[]) => mockPropertyFindMany(...args),
+        findUnique: (...args: unknown[]) => mockPropertyFindUnique(...args),
+        update: (...args: unknown[]) => mockPropertyUpdate(...args),
+        delete: (...args: unknown[]) => mockPropertyDelete(...args),
+      },
+      userProperty: {
+        findFirst: (...args: unknown[]) => mockUserPropertyFindFirst(...args),
+      },
+      demoTemplate: {
+        findUnique: (...args: unknown[]) => mockDemoTemplateFindUnique(...args),
+        findMany: (...args: unknown[]) => mockDemoTemplateFindMany(...args),
+      },
+      $transaction: (...args: unknown[]) => {
+        const first = args[0];
+        if (typeof first === 'function') {
+          return (first as (tx: unknown) => Promise<unknown>)({
+            property: {
+              create: (...a: unknown[]) => mockPropertyCreate(...a),
+              findUnique: (...a: unknown[]) => mockPropertyFindUnique(...a),
+              update: (...a: unknown[]) => mockPropertyUpdate(...a),
+              delete: (...a: unknown[]) => mockPropertyDelete(...a),
+            },
+            role: {
+              createMany: vi.fn().mockResolvedValue({ count: 6 }),
+            },
+          });
+        }
+        if (Array.isArray(first)) {
+          return Promise.all(first);
+        }
+        return mockTransaction(...args);
+      },
+    }),
+  };
+});
 
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: (s: string) => s,

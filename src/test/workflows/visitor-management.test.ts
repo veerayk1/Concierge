@@ -30,24 +30,27 @@ const mockVisitorParkingPermitCreate = vi.fn();
 
 const mockEventCreate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    visitorEntry: {
-      create: (...args: unknown[]) => mockVisitorEntryCreate(...args),
-      findMany: (...args: unknown[]) => mockVisitorEntryFindMany(...args),
-      findUnique: (...args: unknown[]) => mockVisitorEntryFindUnique(...args),
-      update: (...args: unknown[]) => mockVisitorEntryUpdate(...args),
-      updateMany: (...args: unknown[]) => mockVisitorEntryUpdateMany(...args),
-      count: (...args: unknown[]) => mockVisitorEntryCount(...args),
-    },
-    visitorParkingPermit: {
-      create: (...args: unknown[]) => mockVisitorParkingPermitCreate(...args),
-    },
-    event: {
-      create: (...args: unknown[]) => mockEventCreate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      visitorEntry: {
+        create: (...args: unknown[]) => mockVisitorEntryCreate(...args),
+        findMany: (...args: unknown[]) => mockVisitorEntryFindMany(...args),
+        findUnique: (...args: unknown[]) => mockVisitorEntryFindUnique(...args),
+        update: (...args: unknown[]) => mockVisitorEntryUpdate(...args),
+        updateMany: (...args: unknown[]) => mockVisitorEntryUpdateMany(...args),
+        count: (...args: unknown[]) => mockVisitorEntryCount(...args),
+      },
+      visitorParkingPermit: {
+        create: (...args: unknown[]) => mockVisitorParkingPermitCreate(...args),
+      },
+      event: {
+        create: (...args: unknown[]) => mockEventCreate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: (s: string) => s,

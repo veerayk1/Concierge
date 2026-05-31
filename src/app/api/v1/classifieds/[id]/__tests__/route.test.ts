@@ -43,14 +43,17 @@ const mockAdUpdate = vi.fn();
 
 const mockGuardRoute = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    classifiedAd: {
-      findUnique: (...args: unknown[]) => mockAdFindUnique(...args),
-      update: (...args: unknown[]) => mockAdUpdate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      classifiedAd: {
+        findUnique: (...args: unknown[]) => mockAdFindUnique(...args),
+        update: (...args: unknown[]) => mockAdUpdate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: vi.fn((input: string) => input.replace(/<[^>]*>/g, '')),

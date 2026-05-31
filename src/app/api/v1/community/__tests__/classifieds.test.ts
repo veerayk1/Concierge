@@ -41,26 +41,29 @@ const mockAdImageCreate = vi.fn();
 
 const mockGuardRoute = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    classifiedAd: {
-      findMany: (...args: unknown[]) => mockAdFindMany(...args),
-      findUnique: (...args: unknown[]) => mockAdFindUnique(...args),
-      count: (...args: unknown[]) => mockAdCount(...args),
-      create: (...args: unknown[]) => mockAdCreate(...args),
-      update: (...args: unknown[]) => mockAdUpdate(...args),
-      delete: (...args: unknown[]) => mockAdDelete(...args),
-      updateMany: (...args: unknown[]) => mockAdUpdateMany(...args),
-    },
-    classifiedAdFlag: {
-      create: (...args: unknown[]) => mockAdFlagCreate(...args),
-      findMany: (...args: unknown[]) => mockAdFlagFindMany(...args),
-    },
-    classifiedAdImage: {
-      create: (...args: unknown[]) => mockAdImageCreate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      classifiedAd: {
+        findMany: (...args: unknown[]) => mockAdFindMany(...args),
+        findUnique: (...args: unknown[]) => mockAdFindUnique(...args),
+        count: (...args: unknown[]) => mockAdCount(...args),
+        create: (...args: unknown[]) => mockAdCreate(...args),
+        update: (...args: unknown[]) => mockAdUpdate(...args),
+        delete: (...args: unknown[]) => mockAdDelete(...args),
+        updateMany: (...args: unknown[]) => mockAdUpdateMany(...args),
+      },
+      classifiedAdFlag: {
+        create: (...args: unknown[]) => mockAdFlagCreate(...args),
+        findMany: (...args: unknown[]) => mockAdFlagFindMany(...args),
+      },
+      classifiedAdImage: {
+        create: (...args: unknown[]) => mockAdImageCreate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: (...args: unknown[]) => mockGuardRoute(...args),

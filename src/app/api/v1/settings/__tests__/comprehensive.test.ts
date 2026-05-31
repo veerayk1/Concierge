@@ -56,36 +56,39 @@ const mockFeatureFlagFindMany = vi.fn();
 const mockFeatureFlagFindUnique = vi.fn();
 const mockFeatureFlagUpsert = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    property: {
-      findUnique: (...args: unknown[]) => mockPropertyFindUnique(...args),
-      update: (...args: unknown[]) => mockPropertyUpdate(...args),
-    },
-    eventType: {
-      findMany: (...args: unknown[]) => mockEventTypeFindMany(...args),
-      create: (...args: unknown[]) => mockEventTypeCreate(...args),
-      findFirst: (...args: unknown[]) => mockEventTypeFindFirst(...args),
-      update: (...args: unknown[]) => mockEventTypeUpdate(...args),
-      delete: (...args: unknown[]) => mockEventTypeDelete(...args),
-    },
-    event: {
-      count: (...args: unknown[]) => mockEventCount(...args),
-    },
-    role: {
-      findMany: (...args: unknown[]) => mockRoleFindMany(...args),
-    },
-    notificationTemplate: {
-      findMany: (...args: unknown[]) => mockNotificationTemplateFindMany(...args),
-      create: (...args: unknown[]) => mockNotificationTemplateCreate(...args),
-    },
-    featureFlag: {
-      findMany: (...args: unknown[]) => mockFeatureFlagFindMany(...args),
-      findUnique: (...args: unknown[]) => mockFeatureFlagFindUnique(...args),
-      upsert: (...args: unknown[]) => mockFeatureFlagUpsert(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      property: {
+        findUnique: (...args: unknown[]) => mockPropertyFindUnique(...args),
+        update: (...args: unknown[]) => mockPropertyUpdate(...args),
+      },
+      eventType: {
+        findMany: (...args: unknown[]) => mockEventTypeFindMany(...args),
+        create: (...args: unknown[]) => mockEventTypeCreate(...args),
+        findFirst: (...args: unknown[]) => mockEventTypeFindFirst(...args),
+        update: (...args: unknown[]) => mockEventTypeUpdate(...args),
+        delete: (...args: unknown[]) => mockEventTypeDelete(...args),
+      },
+      event: {
+        count: (...args: unknown[]) => mockEventCount(...args),
+      },
+      role: {
+        findMany: (...args: unknown[]) => mockRoleFindMany(...args),
+      },
+      notificationTemplate: {
+        findMany: (...args: unknown[]) => mockNotificationTemplateFindMany(...args),
+        create: (...args: unknown[]) => mockNotificationTemplateCreate(...args),
+      },
+      featureFlag: {
+        findMany: (...args: unknown[]) => mockFeatureFlagFindMany(...args),
+        findUnique: (...args: unknown[]) => mockFeatureFlagFindUnique(...args),
+        upsert: (...args: unknown[]) => mockFeatureFlagUpsert(...args),
+      },
+    }),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Mock Setup — guardRoute

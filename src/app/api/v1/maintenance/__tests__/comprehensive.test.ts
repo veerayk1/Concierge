@@ -63,33 +63,36 @@ const mockAttachmentCreate = vi.fn();
 const mockAttachmentFindMany = vi.fn();
 const mockSendEmail = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    maintenanceRequest: {
-      findMany: (...args: unknown[]) => mockFindMany(...args),
-      count: (...args: unknown[]) => mockCount(...args),
-      create: (...args: unknown[]) => mockCreate(...args),
-      findUnique: (...args: unknown[]) => mockFindUnique(...args),
-      update: (...args: unknown[]) => mockUpdate(...args),
-    },
-    maintenanceStatusChange: {
-      create: (...args: unknown[]) => mockStatusChangeCreate(...args),
-    },
-    maintenanceComment: {
-      create: (...args: unknown[]) => mockCommentCreate(...args),
-      findMany: (...args: unknown[]) => mockCommentFindMany(...args),
-    },
-    attachment: {
-      create: (...args: unknown[]) => mockAttachmentCreate(...args),
-      findMany: (...args: unknown[]) => mockAttachmentFindMany(...args),
-    },
-    user: {
-      findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn().mockResolvedValue(null),
-      findFirst: vi.fn().mockResolvedValue(null),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      maintenanceRequest: {
+        findMany: (...args: unknown[]) => mockFindMany(...args),
+        count: (...args: unknown[]) => mockCount(...args),
+        create: (...args: unknown[]) => mockCreate(...args),
+        findUnique: (...args: unknown[]) => mockFindUnique(...args),
+        update: (...args: unknown[]) => mockUpdate(...args),
+      },
+      maintenanceStatusChange: {
+        create: (...args: unknown[]) => mockStatusChangeCreate(...args),
+      },
+      maintenanceComment: {
+        create: (...args: unknown[]) => mockCommentCreate(...args),
+        findMany: (...args: unknown[]) => mockCommentFindMany(...args),
+      },
+      attachment: {
+        create: (...args: unknown[]) => mockAttachmentCreate(...args),
+        findMany: (...args: unknown[]) => mockAttachmentFindMany(...args),
+      },
+      user: {
+        findMany: vi.fn().mockResolvedValue([]),
+        findUnique: vi.fn().mockResolvedValue(null),
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+    }),
+  };
+});
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('A1B2C3'),

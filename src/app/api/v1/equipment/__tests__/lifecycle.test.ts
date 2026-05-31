@@ -46,22 +46,25 @@ const mockMrFindMany = vi.fn();
 const mockMrCount = vi.fn();
 const mockMrAggregate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    equipment: {
-      findMany: (...args: unknown[]) => mockFindMany(...args),
-      count: (...args: unknown[]) => mockCount(...args),
-      create: (...args: unknown[]) => mockCreate(...args),
-      findUnique: (...args: unknown[]) => mockFindUnique(...args),
-      update: (...args: unknown[]) => mockUpdate(...args),
-    },
-    maintenanceRequest: {
-      findMany: (...args: unknown[]) => mockMrFindMany(...args),
-      count: (...args: unknown[]) => mockMrCount(...args),
-      aggregate: (...args: unknown[]) => mockMrAggregate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      equipment: {
+        findMany: (...args: unknown[]) => mockFindMany(...args),
+        count: (...args: unknown[]) => mockCount(...args),
+        create: (...args: unknown[]) => mockCreate(...args),
+        findUnique: (...args: unknown[]) => mockFindUnique(...args),
+        update: (...args: unknown[]) => mockUpdate(...args),
+      },
+      maintenanceRequest: {
+        findMany: (...args: unknown[]) => mockMrFindMany(...args),
+        count: (...args: unknown[]) => mockMrCount(...args),
+        aggregate: (...args: unknown[]) => mockMrAggregate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('X9Y8'),

@@ -20,16 +20,19 @@ const mockCount = vi.fn();
 const mockFindFirst = vi.fn();
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    user: {
-      findMany: (...args: unknown[]) => mockFindMany(...args),
-      count: (...args: unknown[]) => mockCount(...args),
-      findFirst: (...args: unknown[]) => mockFindFirst(...args),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      user: {
+        findMany: (...args: unknown[]) => mockFindMany(...args),
+        count: (...args: unknown[]) => mockCount(...args),
+        findFirst: (...args: unknown[]) => mockFindFirst(...args),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 vi.mock('@/server/auth/password', () => ({
   hashPassword: vi.fn().mockResolvedValue('$argon2id$v=19$m=65536,t=3,p=4$hashed'),

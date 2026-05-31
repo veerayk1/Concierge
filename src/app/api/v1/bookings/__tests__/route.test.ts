@@ -19,23 +19,26 @@ const mockUserFindUnique = vi.fn();
 const mockWaitlistFindFirst = vi.fn();
 const mockWaitlistUpdate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    booking: {
-      findMany: (...args: unknown[]) => mockFindMany(...args),
-      count: (...args: unknown[]) => mockCount(...args),
-      findUnique: (...args: unknown[]) => mockFindUnique(...args),
-      update: (...args: unknown[]) => mockUpdate(...args),
-    },
-    user: {
-      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
-    },
-    waitlistEntry: {
-      findFirst: (...args: unknown[]) => mockWaitlistFindFirst(...args),
-      update: (...args: unknown[]) => mockWaitlistUpdate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      booking: {
+        findMany: (...args: unknown[]) => mockFindMany(...args),
+        count: (...args: unknown[]) => mockCount(...args),
+        findUnique: (...args: unknown[]) => mockFindUnique(...args),
+        update: (...args: unknown[]) => mockUpdate(...args),
+      },
+      user: {
+        findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+      },
+      waitlistEntry: {
+        findFirst: (...args: unknown[]) => mockWaitlistFindFirst(...args),
+        update: (...args: unknown[]) => mockWaitlistUpdate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/email', () => ({
   sendEmail: vi.fn().mockResolvedValue('msg-id'),

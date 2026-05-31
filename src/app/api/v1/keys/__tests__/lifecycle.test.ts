@@ -36,28 +36,31 @@ const mockIncidentCreate = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    keyInventory: {
-      findMany: (...args: unknown[]) => mockKeyFindMany(...args),
-      findUnique: (...args: unknown[]) => mockKeyFindUnique(...args),
-      create: (...args: unknown[]) => mockKeyCreate(...args),
-      update: (...args: unknown[]) => mockKeyUpdate(...args),
-      count: (...args: unknown[]) => mockKeyCount(...args),
-    },
-    keyCheckout: {
-      findMany: (...args: unknown[]) => mockCheckoutFindMany(...args),
-      findUnique: (...args: unknown[]) => mockCheckoutFindUnique(...args),
-      create: (...args: unknown[]) => mockCheckoutCreate(...args),
-      update: (...args: unknown[]) => mockCheckoutUpdate(...args),
-      createMany: (...args: unknown[]) => mockCheckoutCreateMany(...args),
-    },
-    incidentReport: {
-      create: (...args: unknown[]) => mockIncidentCreate(...args),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      keyInventory: {
+        findMany: (...args: unknown[]) => mockKeyFindMany(...args),
+        findUnique: (...args: unknown[]) => mockKeyFindUnique(...args),
+        create: (...args: unknown[]) => mockKeyCreate(...args),
+        update: (...args: unknown[]) => mockKeyUpdate(...args),
+        count: (...args: unknown[]) => mockKeyCount(...args),
+      },
+      keyCheckout: {
+        findMany: (...args: unknown[]) => mockCheckoutFindMany(...args),
+        findUnique: (...args: unknown[]) => mockCheckoutFindUnique(...args),
+        create: (...args: unknown[]) => mockCheckoutCreate(...args),
+        update: (...args: unknown[]) => mockCheckoutUpdate(...args),
+        createMany: (...args: unknown[]) => mockCheckoutCreateMany(...args),
+      },
+      incidentReport: {
+        create: (...args: unknown[]) => mockIncidentCreate(...args),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn().mockResolvedValue({

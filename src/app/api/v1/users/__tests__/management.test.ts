@@ -70,31 +70,34 @@ const mockSessionUpdateMany = vi.fn();
 const mockRefreshTokenUpdateMany = vi.fn();
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    user: {
-      findMany: (...args: unknown[]) => mockUserFindMany(...args),
-      count: (...args: unknown[]) => mockUserCount(...args),
-      findFirst: (...args: unknown[]) => mockUserFindFirst(...args),
-      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
-      create: (...args: unknown[]) => mockUserCreate(...args),
-      update: (...args: unknown[]) => mockUserUpdate(...args),
-    },
-    userProperty: {
-      create: (...args: unknown[]) => mockUserPropertyCreate(...args),
-      updateMany: (...args: unknown[]) => mockUserPropertyUpdateMany(...args),
-    },
-    session: {
-      findMany: (...args: unknown[]) => mockSessionFindMany(...args),
-      update: (...args: unknown[]) => mockSessionUpdate(...args),
-      updateMany: (...args: unknown[]) => mockSessionUpdateMany(...args),
-    },
-    refreshToken: {
-      updateMany: (...args: unknown[]) => mockRefreshTokenUpdateMany(...args),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      user: {
+        findMany: (...args: unknown[]) => mockUserFindMany(...args),
+        count: (...args: unknown[]) => mockUserCount(...args),
+        findFirst: (...args: unknown[]) => mockUserFindFirst(...args),
+        findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+        create: (...args: unknown[]) => mockUserCreate(...args),
+        update: (...args: unknown[]) => mockUserUpdate(...args),
+      },
+      userProperty: {
+        create: (...args: unknown[]) => mockUserPropertyCreate(...args),
+        updateMany: (...args: unknown[]) => mockUserPropertyUpdateMany(...args),
+      },
+      session: {
+        findMany: (...args: unknown[]) => mockSessionFindMany(...args),
+        update: (...args: unknown[]) => mockSessionUpdate(...args),
+        updateMany: (...args: unknown[]) => mockSessionUpdateMany(...args),
+      },
+      refreshToken: {
+        updateMany: (...args: unknown[]) => mockRefreshTokenUpdateMany(...args),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 vi.mock('@/server/auth/password', () => ({
   hashPassword: vi.fn().mockResolvedValue('$argon2id$v=19$m=65536,t=3,p=4$hashed'),

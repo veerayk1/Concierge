@@ -37,26 +37,29 @@ const mockAckCount = vi.fn();
 const mockUserPropertyFindMany = vi.fn();
 const mockGuardRoute = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    emergencyBroadcast: {
-      create: (...args: unknown[]) => mockBroadcastCreate(...args),
-      findUnique: (...args: unknown[]) => mockBroadcastFindUnique(...args),
-      findMany: (...args: unknown[]) => mockBroadcastFindMany(...args),
-      count: (...args: unknown[]) => mockBroadcastCount(...args),
-      update: (...args: unknown[]) => mockBroadcastUpdate(...args),
-    },
-    emergencyBroadcastAcknowledgment: {
-      create: (...args: unknown[]) => mockAckCreate(...args),
-      findUnique: (...args: unknown[]) => mockAckFindUnique(...args),
-      findMany: (...args: unknown[]) => mockAckFindMany(...args),
-      count: (...args: unknown[]) => mockAckCount(...args),
-    },
-    userProperty: {
-      findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      emergencyBroadcast: {
+        create: (...args: unknown[]) => mockBroadcastCreate(...args),
+        findUnique: (...args: unknown[]) => mockBroadcastFindUnique(...args),
+        findMany: (...args: unknown[]) => mockBroadcastFindMany(...args),
+        count: (...args: unknown[]) => mockBroadcastCount(...args),
+        update: (...args: unknown[]) => mockBroadcastUpdate(...args),
+      },
+      emergencyBroadcastAcknowledgment: {
+        create: (...args: unknown[]) => mockAckCreate(...args),
+        findUnique: (...args: unknown[]) => mockAckFindUnique(...args),
+        findMany: (...args: unknown[]) => mockAckFindMany(...args),
+        count: (...args: unknown[]) => mockAckCount(...args),
+      },
+      userProperty: {
+        findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: vi.fn((input: string) => input.replace(/<[^>]*>/g, '')),

@@ -42,17 +42,20 @@ const mockQuestionDeleteMany = vi.fn();
 
 const mockGuardRoute = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    survey: {
-      findUnique: (...args: unknown[]) => mockSurveyFindUnique(...args),
-      update: (...args: unknown[]) => mockSurveyUpdate(...args),
-    },
-    surveyQuestion: {
-      deleteMany: (...args: unknown[]) => mockQuestionDeleteMany(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      survey: {
+        findUnique: (...args: unknown[]) => mockSurveyFindUnique(...args),
+        update: (...args: unknown[]) => mockSurveyUpdate(...args),
+      },
+      surveyQuestion: {
+        deleteMany: (...args: unknown[]) => mockQuestionDeleteMany(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: vi.fn((input: string) => input.replace(/<[^>]*>/g, '')),

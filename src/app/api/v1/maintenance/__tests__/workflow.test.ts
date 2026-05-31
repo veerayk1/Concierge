@@ -27,30 +27,33 @@ const mockCommentFindMany = vi.fn();
 const mockAttachmentCreate = vi.fn();
 const mockSendEmail = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    maintenanceRequest: {
-      findUnique: (...args: unknown[]) => mockFindUnique(...args),
-      update: (...args: unknown[]) => mockUpdate(...args),
-      create: (...args: unknown[]) => mockCreate(...args),
-    },
-    maintenanceStatusChange: {
-      create: (...args: unknown[]) => mockStatusChangeCreate(...args),
-    },
-    maintenanceComment: {
-      create: (...args: unknown[]) => mockCommentCreate(...args),
-      findMany: (...args: unknown[]) => mockCommentFindMany(...args),
-    },
-    attachment: {
-      create: (...args: unknown[]) => mockAttachmentCreate(...args),
-    },
-    user: {
-      findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn().mockResolvedValue(null),
-      findFirst: vi.fn().mockResolvedValue(null),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      maintenanceRequest: {
+        findUnique: (...args: unknown[]) => mockFindUnique(...args),
+        update: (...args: unknown[]) => mockUpdate(...args),
+        create: (...args: unknown[]) => mockCreate(...args),
+      },
+      maintenanceStatusChange: {
+        create: (...args: unknown[]) => mockStatusChangeCreate(...args),
+      },
+      maintenanceComment: {
+        create: (...args: unknown[]) => mockCommentCreate(...args),
+        findMany: (...args: unknown[]) => mockCommentFindMany(...args),
+      },
+      attachment: {
+        create: (...args: unknown[]) => mockAttachmentCreate(...args),
+      },
+      user: {
+        findMany: vi.fn().mockResolvedValue([]),
+        findUnique: vi.fn().mockResolvedValue(null),
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/email', () => ({
   sendEmail: (...args: unknown[]) => mockSendEmail(...args),

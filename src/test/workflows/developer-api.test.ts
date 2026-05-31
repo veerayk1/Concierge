@@ -38,27 +38,30 @@ const mockWebhookDelete = vi.fn();
 const mockWebhookDeliveryFindMany = vi.fn();
 const mockWebhookDeliveryCount = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    apiKey: {
-      create: (...args: unknown[]) => mockApiKeyCreate(...args),
-      findMany: (...args: unknown[]) => mockApiKeyFindMany(...args),
-      findUnique: (...args: unknown[]) => mockApiKeyFindUnique(...args),
-      update: (...args: unknown[]) => mockApiKeyUpdate(...args),
-    },
-    webhook: {
-      create: (...args: unknown[]) => mockWebhookCreate(...args),
-      findMany: (...args: unknown[]) => mockWebhookFindMany(...args),
-      findUnique: (...args: unknown[]) => mockWebhookFindUnique(...args),
-      update: (...args: unknown[]) => mockWebhookUpdate(...args),
-      delete: (...args: unknown[]) => mockWebhookDelete(...args),
-    },
-    webhookDelivery: {
-      findMany: (...args: unknown[]) => mockWebhookDeliveryFindMany(...args),
-      count: (...args: unknown[]) => mockWebhookDeliveryCount(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      apiKey: {
+        create: (...args: unknown[]) => mockApiKeyCreate(...args),
+        findMany: (...args: unknown[]) => mockApiKeyFindMany(...args),
+        findUnique: (...args: unknown[]) => mockApiKeyFindUnique(...args),
+        update: (...args: unknown[]) => mockApiKeyUpdate(...args),
+      },
+      webhook: {
+        create: (...args: unknown[]) => mockWebhookCreate(...args),
+        findMany: (...args: unknown[]) => mockWebhookFindMany(...args),
+        findUnique: (...args: unknown[]) => mockWebhookFindUnique(...args),
+        update: (...args: unknown[]) => mockWebhookUpdate(...args),
+        delete: (...args: unknown[]) => mockWebhookDelete(...args),
+      },
+      webhookDelivery: {
+        findMany: (...args: unknown[]) => mockWebhookDeliveryFindMany(...args),
+        count: (...args: unknown[]) => mockWebhookDeliveryCount(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/schemas/developer', () => ({
   createApiKeySchema: {

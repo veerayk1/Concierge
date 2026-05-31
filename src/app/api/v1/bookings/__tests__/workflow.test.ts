@@ -54,29 +54,32 @@ const mockUserFindUnique = vi.fn();
 const mockGuardRoute = vi.fn();
 const mockSendEmail = vi.fn().mockResolvedValue('msg-id');
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    booking: {
-      create: (...args: unknown[]) => mockBookingCreate(...args),
-      findMany: (...args: unknown[]) => mockBookingFindMany(...args),
-      findUnique: (...args: unknown[]) => mockBookingFindUnique(...args),
-      findFirst: (...args: unknown[]) => mockBookingFindFirst(...args),
-      update: (...args: unknown[]) => mockBookingUpdate(...args),
-      count: (...args: unknown[]) => mockBookingCount(...args),
-    },
-    amenity: {
-      findUnique: (...args: unknown[]) => mockAmenityFindUnique(...args),
-    },
-    waitlistEntry: {
-      findFirst: (...args: unknown[]) => mockWaitlistFindFirst(...args),
-      update: (...args: unknown[]) => mockWaitlistUpdate(...args),
-      create: (...args: unknown[]) => mockWaitlistCreate(...args),
-    },
-    user: {
-      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      booking: {
+        create: (...args: unknown[]) => mockBookingCreate(...args),
+        findMany: (...args: unknown[]) => mockBookingFindMany(...args),
+        findUnique: (...args: unknown[]) => mockBookingFindUnique(...args),
+        findFirst: (...args: unknown[]) => mockBookingFindFirst(...args),
+        update: (...args: unknown[]) => mockBookingUpdate(...args),
+        count: (...args: unknown[]) => mockBookingCount(...args),
+      },
+      amenity: {
+        findUnique: (...args: unknown[]) => mockAmenityFindUnique(...args),
+      },
+      waitlistEntry: {
+        findFirst: (...args: unknown[]) => mockWaitlistFindFirst(...args),
+        update: (...args: unknown[]) => mockWaitlistUpdate(...args),
+        create: (...args: unknown[]) => mockWaitlistCreate(...args),
+      },
+      user: {
+        findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/email', () => ({
   sendEmail: (...args: unknown[]) => mockSendEmail(...args),

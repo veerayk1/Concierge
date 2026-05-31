@@ -45,62 +45,65 @@ const mockUserPropertyFindMany = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    event: {
-      create: (...args: unknown[]) => mockEventCreate(...args),
-      findMany: (...args: unknown[]) => mockEventFindMany(...args),
-      findUnique: (...args: unknown[]) => mockEventFindUnique(...args),
-      update: (...args: unknown[]) => mockEventUpdate(...args),
-      count: (...args: unknown[]) => mockEventCount(...args),
-    },
-    emergencyBroadcast: {
-      create: (...args: unknown[]) => mockEmergencyBroadcastCreate(...args),
-      findUnique: (...args: unknown[]) => mockEmergencyBroadcastFindUnique(...args),
-      update: (...args: unknown[]) => mockEmergencyBroadcastUpdate(...args),
-      findMany: (...args: unknown[]) => mockEmergencyBroadcastFindMany(...args),
-      count: (...args: unknown[]) => mockEmergencyBroadcastCount(...args),
-    },
-    keyInventory: {
-      findUnique: (...args: unknown[]) => mockKeyInventoryFindUnique(...args),
-      update: (...args: unknown[]) => mockKeyInventoryUpdate(...args),
-      count: (...args: unknown[]) => mockKeyInventoryCount(...args),
-    },
-    keyCheckout: {
-      create: (...args: unknown[]) => mockKeyCheckoutCreate(...args),
-      findUnique: (...args: unknown[]) => mockKeyCheckoutFindUnique(...args),
-      update: (...args: unknown[]) => mockKeyCheckoutUpdate(...args),
-    },
-    maintenanceRequest: {
-      create: (...args: unknown[]) => mockMaintenanceRequestCreate(...args),
-    },
-    userProperty: {
-      findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
-    },
-    eventType: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'evt-type-1', name: 'Security Event' }),
-      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
-        Promise.resolve({
-          id: 'evt-type-new',
-          ...(args as { data?: Record<string, unknown> }).data,
-        }),
-      ),
-    },
-    eventGroup: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'evt-group-1', name: 'Security' }),
-      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
-        Promise.resolve({
-          id: 'evt-group-new',
-          ...(args as { data?: Record<string, unknown> }).data,
-        }),
-      ),
-    },
-    eventTypeEmailConfig: {
-      findFirst: vi.fn().mockResolvedValue(null),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      event: {
+        create: (...args: unknown[]) => mockEventCreate(...args),
+        findMany: (...args: unknown[]) => mockEventFindMany(...args),
+        findUnique: (...args: unknown[]) => mockEventFindUnique(...args),
+        update: (...args: unknown[]) => mockEventUpdate(...args),
+        count: (...args: unknown[]) => mockEventCount(...args),
+      },
+      emergencyBroadcast: {
+        create: (...args: unknown[]) => mockEmergencyBroadcastCreate(...args),
+        findUnique: (...args: unknown[]) => mockEmergencyBroadcastFindUnique(...args),
+        update: (...args: unknown[]) => mockEmergencyBroadcastUpdate(...args),
+        findMany: (...args: unknown[]) => mockEmergencyBroadcastFindMany(...args),
+        count: (...args: unknown[]) => mockEmergencyBroadcastCount(...args),
+      },
+      keyInventory: {
+        findUnique: (...args: unknown[]) => mockKeyInventoryFindUnique(...args),
+        update: (...args: unknown[]) => mockKeyInventoryUpdate(...args),
+        count: (...args: unknown[]) => mockKeyInventoryCount(...args),
+      },
+      keyCheckout: {
+        create: (...args: unknown[]) => mockKeyCheckoutCreate(...args),
+        findUnique: (...args: unknown[]) => mockKeyCheckoutFindUnique(...args),
+        update: (...args: unknown[]) => mockKeyCheckoutUpdate(...args),
+      },
+      maintenanceRequest: {
+        create: (...args: unknown[]) => mockMaintenanceRequestCreate(...args),
+      },
+      userProperty: {
+        findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
+      },
+      eventType: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'evt-type-1', name: 'Security Event' }),
+        create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'evt-type-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+      },
+      eventGroup: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'evt-group-1', name: 'Security' }),
+        create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'evt-group-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+      },
+      eventTypeEmailConfig: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 vi.mock('@/schemas/event', () => ({
   createEventSchema: {

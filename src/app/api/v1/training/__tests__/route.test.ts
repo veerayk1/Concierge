@@ -30,35 +30,38 @@ const mockQuizFindUnique = vi.fn();
 const mockQuizAnswerCreateMany = vi.fn();
 const mockQuizAttemptUpdate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    course: {
-      findMany: (...args: unknown[]) => mockCourseFindMany(...args),
-      count: (...args: unknown[]) => mockCourseCount(...args),
-      findUnique: (...args: unknown[]) => mockCourseFindUnique(...args),
-      create: (...args: unknown[]) => mockCourseCreate(...args),
-    },
-    enrollment: {
-      findUnique: (...args: unknown[]) => mockEnrollmentFindUnique(...args),
-      findMany: (...args: unknown[]) => mockEnrollmentFindMany(...args),
-      create: (...args: unknown[]) => mockEnrollmentCreate(...args),
-      update: (...args: unknown[]) => mockEnrollmentUpdate(...args),
-    },
-    certificate: {
-      create: (...args: unknown[]) => mockCertificateCreate(...args),
-    },
-    quiz: {
-      findUnique: (...args: unknown[]) => mockQuizFindUnique(...args),
-    },
-    quizAttempt: {
-      create: (...args: unknown[]) => mockQuizAttemptCreate(...args),
-      update: (...args: unknown[]) => mockQuizAttemptUpdate(...args),
-    },
-    quizAnswer: {
-      createMany: (...args: unknown[]) => mockQuizAnswerCreateMany(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      course: {
+        findMany: (...args: unknown[]) => mockCourseFindMany(...args),
+        count: (...args: unknown[]) => mockCourseCount(...args),
+        findUnique: (...args: unknown[]) => mockCourseFindUnique(...args),
+        create: (...args: unknown[]) => mockCourseCreate(...args),
+      },
+      enrollment: {
+        findUnique: (...args: unknown[]) => mockEnrollmentFindUnique(...args),
+        findMany: (...args: unknown[]) => mockEnrollmentFindMany(...args),
+        create: (...args: unknown[]) => mockEnrollmentCreate(...args),
+        update: (...args: unknown[]) => mockEnrollmentUpdate(...args),
+      },
+      certificate: {
+        create: (...args: unknown[]) => mockCertificateCreate(...args),
+      },
+      quiz: {
+        findUnique: (...args: unknown[]) => mockQuizFindUnique(...args),
+      },
+      quizAttempt: {
+        create: (...args: unknown[]) => mockQuizAttemptCreate(...args),
+        update: (...args: unknown[]) => mockQuizAttemptUpdate(...args),
+      },
+      quizAnswer: {
+        createMany: (...args: unknown[]) => mockQuizAnswerCreateMany(...args),
+      },
+    }),
+  };
+});
 
 let mockGuardRole = 'property_admin';
 

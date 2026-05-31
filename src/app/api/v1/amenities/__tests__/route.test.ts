@@ -23,21 +23,24 @@ const mockBookingCreate = vi.fn();
 const mockAmenityGroupFindMany = vi.fn();
 const mockAmenityGroupCreate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    amenity: {
-      findMany: (...args: unknown[]) => mockAmenityFindMany(...args),
-      findUnique: (...args: unknown[]) => mockAmenityFindUnique(...args),
-    },
-    booking: {
-      create: (...args: unknown[]) => mockBookingCreate(...args),
-    },
-    amenityGroup: {
-      findMany: (...args: unknown[]) => mockAmenityGroupFindMany(...args),
-      create: (...args: unknown[]) => mockAmenityGroupCreate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      amenity: {
+        findMany: (...args: unknown[]) => mockAmenityFindMany(...args),
+        findUnique: (...args: unknown[]) => mockAmenityFindUnique(...args),
+      },
+      booking: {
+        create: (...args: unknown[]) => mockBookingCreate(...args),
+      },
+      amenityGroup: {
+        findMany: (...args: unknown[]) => mockAmenityGroupFindMany(...args),
+        create: (...args: unknown[]) => mockAmenityGroupCreate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn().mockResolvedValue({

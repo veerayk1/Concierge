@@ -22,35 +22,38 @@ const mockAnnouncementCount = vi.fn();
 const mockEventFindMany = vi.fn();
 const mockOccupancyFindFirst = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    package: {
-      count: (...args: unknown[]) => mockPackageCount(...args),
-    },
-    visitorEntry: {
-      count: (...args: unknown[]) => mockVisitorCount(...args),
-    },
-    maintenanceRequest: {
-      count: (...args: unknown[]) => mockMaintenanceCount(...args),
-      findMany: (...args: unknown[]) => mockMaintenanceFindMany(...args),
-    },
-    communityEvent: {
-      count: (...args: unknown[]) => mockCommunityEventCount(...args),
-    },
-    booking: {
-      count: (...args: unknown[]) => mockBookingCount(...args),
-    },
-    announcement: {
-      count: (...args: unknown[]) => mockAnnouncementCount(...args),
-    },
-    event: {
-      findMany: (...args: unknown[]) => mockEventFindMany(...args),
-    },
-    occupancyRecord: {
-      findFirst: (...args: unknown[]) => mockOccupancyFindFirst(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      package: {
+        count: (...args: unknown[]) => mockPackageCount(...args),
+      },
+      visitorEntry: {
+        count: (...args: unknown[]) => mockVisitorCount(...args),
+      },
+      maintenanceRequest: {
+        count: (...args: unknown[]) => mockMaintenanceCount(...args),
+        findMany: (...args: unknown[]) => mockMaintenanceFindMany(...args),
+      },
+      communityEvent: {
+        count: (...args: unknown[]) => mockCommunityEventCount(...args),
+      },
+      booking: {
+        count: (...args: unknown[]) => mockBookingCount(...args),
+      },
+      announcement: {
+        count: (...args: unknown[]) => mockAnnouncementCount(...args),
+      },
+      event: {
+        findMany: (...args: unknown[]) => mockEventFindMany(...args),
+      },
+      occupancyRecord: {
+        findFirst: (...args: unknown[]) => mockOccupancyFindFirst(...args),
+      },
+    }),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Auth mock — configurable per test via mockGuardRoute

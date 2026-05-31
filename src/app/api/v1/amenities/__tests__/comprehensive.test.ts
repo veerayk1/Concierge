@@ -65,42 +65,45 @@ const mockWaitlistUpdate = vi.fn();
 const mockWaitlistCount = vi.fn();
 const mockUserFindUnique = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    amenity: {
-      findMany: (...args: unknown[]) => mockAmenityFindMany(...args),
-      findUnique: (...args: unknown[]) => mockAmenityFindUnique(...args),
-      create: (...args: unknown[]) => mockAmenityCreate(...args),
-      update: (...args: unknown[]) => mockAmenityUpdate(...args),
-      delete: (...args: unknown[]) => mockAmenityDelete(...args),
-    },
-    booking: {
-      create: (...args: unknown[]) => mockBookingCreate(...args),
-      findMany: (...args: unknown[]) => mockBookingFindMany(...args),
-      findUnique: (...args: unknown[]) => mockBookingFindUnique(...args),
-      update: (...args: unknown[]) => mockBookingUpdate(...args),
-      count: (...args: unknown[]) => mockBookingCount(...args),
-      findFirst: (...args: unknown[]) => mockBookingFindFirst(...args),
-    },
-    amenityGroup: {
-      findMany: (...args: unknown[]) => mockAmenityGroupFindMany(...args),
-      create: (...args: unknown[]) => mockAmenityGroupCreate(...args),
-    },
-    amenityOption: {
-      findMany: (...args: unknown[]) => mockAmenityOptionFindMany(...args),
-      create: (...args: unknown[]) => mockAmenityOptionCreate(...args),
-    },
-    waitlistEntry: {
-      findFirst: (...args: unknown[]) => mockWaitlistFindFirst(...args),
-      create: (...args: unknown[]) => mockWaitlistCreate(...args),
-      update: (...args: unknown[]) => mockWaitlistUpdate(...args),
-      count: (...args: unknown[]) => mockWaitlistCount(...args),
-    },
-    user: {
-      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      amenity: {
+        findMany: (...args: unknown[]) => mockAmenityFindMany(...args),
+        findUnique: (...args: unknown[]) => mockAmenityFindUnique(...args),
+        create: (...args: unknown[]) => mockAmenityCreate(...args),
+        update: (...args: unknown[]) => mockAmenityUpdate(...args),
+        delete: (...args: unknown[]) => mockAmenityDelete(...args),
+      },
+      booking: {
+        create: (...args: unknown[]) => mockBookingCreate(...args),
+        findMany: (...args: unknown[]) => mockBookingFindMany(...args),
+        findUnique: (...args: unknown[]) => mockBookingFindUnique(...args),
+        update: (...args: unknown[]) => mockBookingUpdate(...args),
+        count: (...args: unknown[]) => mockBookingCount(...args),
+        findFirst: (...args: unknown[]) => mockBookingFindFirst(...args),
+      },
+      amenityGroup: {
+        findMany: (...args: unknown[]) => mockAmenityGroupFindMany(...args),
+        create: (...args: unknown[]) => mockAmenityGroupCreate(...args),
+      },
+      amenityOption: {
+        findMany: (...args: unknown[]) => mockAmenityOptionFindMany(...args),
+        create: (...args: unknown[]) => mockAmenityOptionCreate(...args),
+      },
+      waitlistEntry: {
+        findFirst: (...args: unknown[]) => mockWaitlistFindFirst(...args),
+        create: (...args: unknown[]) => mockWaitlistCreate(...args),
+        update: (...args: unknown[]) => mockWaitlistUpdate(...args),
+        count: (...args: unknown[]) => mockWaitlistCount(...args),
+      },
+      user: {
+        findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+      },
+    }),
+  };
+});
 
 const mockSendEmail = vi.fn().mockResolvedValue('msg-id');
 

@@ -61,85 +61,88 @@ const mockInvoiceUpdate = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    property: {
-      create: (...args: unknown[]) => mockPropertyCreate(...args),
-      findUnique: (...args: unknown[]) => mockPropertyFindUnique(...args),
-      update: (...args: unknown[]) => mockPropertyUpdate(...args),
-    },
-    onboardingProgress: {
-      findFirst: (...args: unknown[]) => mockOnboardingProgressFindFirst(...args),
-      upsert: (...args: unknown[]) => mockOnboardingProgressUpsert(...args),
-    },
-    unit: {
-      createMany: (...args: unknown[]) => mockUnitCreateMany(...args),
-      findMany: (...args: unknown[]) => mockUnitFindMany(...args),
-      count: (...args: unknown[]) => mockUnitCount(...args),
-    },
-    user: {
-      create: (...args: unknown[]) => mockUserCreate(...args),
-    },
-    userProperty: {
-      create: (...args: unknown[]) => mockUserPropertyCreate(...args),
-      findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
-      count: (...args: unknown[]) => mockUserPropertyCount(...args),
-    },
-    event: {
-      create: (...args: unknown[]) => mockEventCreate(...args),
-      findMany: (...args: unknown[]) => mockEventFindMany(...args),
-      count: (...args: unknown[]) => mockEventCount(...args),
-    },
-    package: {
-      create: (...args: unknown[]) => mockPackageCreate(...args),
-      findMany: (...args: unknown[]) => mockPackageFindMany(...args),
-      count: (...args: unknown[]) => mockPackageCount(...args),
-    },
-    subscription: {
-      create: (...args: unknown[]) => mockSubscriptionCreate(...args),
-      findFirst: (...args: unknown[]) => mockSubscriptionFindFirst(...args),
-      update: (...args: unknown[]) => mockSubscriptionUpdate(...args),
-    },
-    invoice: {
-      create: (...args: unknown[]) => mockInvoiceCreate(...args),
-      findFirst: (...args: unknown[]) => mockInvoiceFindFirst(...args),
-      findMany: (...args: unknown[]) => mockInvoiceFindMany(...args),
-      count: (...args: unknown[]) => mockInvoiceCount(...args),
-      update: (...args: unknown[]) => mockInvoiceUpdate(...args),
-    },
-    eventType: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'evt-type-1', name: 'Security Event' }),
-      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
-        Promise.resolve({
-          id: 'evt-type-new',
-          ...(args as { data?: Record<string, unknown> }).data,
-        }),
-      ),
-    },
-    eventGroup: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'evt-group-1', name: 'Security' }),
-      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
-        Promise.resolve({
-          id: 'evt-group-new',
-          ...(args as { data?: Record<string, unknown> }).data,
-        }),
-      ),
-    },
-    eventTypeEmailConfig: {
-      findFirst: vi.fn().mockResolvedValue(null),
-    },
-    $transaction: (...args: unknown[]) => {
-      const first = args[0];
-      if (typeof first === 'function') {
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      property: {
+        create: (...args: unknown[]) => mockPropertyCreate(...args),
+        findUnique: (...args: unknown[]) => mockPropertyFindUnique(...args),
+        update: (...args: unknown[]) => mockPropertyUpdate(...args),
+      },
+      onboardingProgress: {
+        findFirst: (...args: unknown[]) => mockOnboardingProgressFindFirst(...args),
+        upsert: (...args: unknown[]) => mockOnboardingProgressUpsert(...args),
+      },
+      unit: {
+        createMany: (...args: unknown[]) => mockUnitCreateMany(...args),
+        findMany: (...args: unknown[]) => mockUnitFindMany(...args),
+        count: (...args: unknown[]) => mockUnitCount(...args),
+      },
+      user: {
+        create: (...args: unknown[]) => mockUserCreate(...args),
+      },
+      userProperty: {
+        create: (...args: unknown[]) => mockUserPropertyCreate(...args),
+        findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
+        count: (...args: unknown[]) => mockUserPropertyCount(...args),
+      },
+      event: {
+        create: (...args: unknown[]) => mockEventCreate(...args),
+        findMany: (...args: unknown[]) => mockEventFindMany(...args),
+        count: (...args: unknown[]) => mockEventCount(...args),
+      },
+      package: {
+        create: (...args: unknown[]) => mockPackageCreate(...args),
+        findMany: (...args: unknown[]) => mockPackageFindMany(...args),
+        count: (...args: unknown[]) => mockPackageCount(...args),
+      },
+      subscription: {
+        create: (...args: unknown[]) => mockSubscriptionCreate(...args),
+        findFirst: (...args: unknown[]) => mockSubscriptionFindFirst(...args),
+        update: (...args: unknown[]) => mockSubscriptionUpdate(...args),
+      },
+      invoice: {
+        create: (...args: unknown[]) => mockInvoiceCreate(...args),
+        findFirst: (...args: unknown[]) => mockInvoiceFindFirst(...args),
+        findMany: (...args: unknown[]) => mockInvoiceFindMany(...args),
+        count: (...args: unknown[]) => mockInvoiceCount(...args),
+        update: (...args: unknown[]) => mockInvoiceUpdate(...args),
+      },
+      eventType: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'evt-type-1', name: 'Security Event' }),
+        create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'evt-type-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+      },
+      eventGroup: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'evt-group-1', name: 'Security' }),
+        create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'evt-group-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+      },
+      eventTypeEmailConfig: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+      $transaction: (...args: unknown[]) => {
+        const first = args[0];
+        if (typeof first === 'function') {
+          return mockTransaction(...args);
+        }
+        if (Array.isArray(first)) {
+          return Promise.all(first);
+        }
         return mockTransaction(...args);
-      }
-      if (Array.isArray(first)) {
-        return Promise.all(first);
-      }
-      return mockTransaction(...args);
-    },
-  },
-}));
+      },
+    }),
+  };
+});
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('PLC001'),

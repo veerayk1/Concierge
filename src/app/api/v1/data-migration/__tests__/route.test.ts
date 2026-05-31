@@ -31,28 +31,31 @@ const mockPackageCreate = vi.fn();
 const mockMaintenanceFindMany = vi.fn();
 const mockVisitorFindMany = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    user: {
-      findMany: (...args: unknown[]) => mockUserFindMany(...args),
-      create: (...args: unknown[]) => mockUserCreate(...args),
-    },
-    unit: {
-      findMany: (...args: unknown[]) => mockUnitFindMany(...args),
-      create: (...args: unknown[]) => mockUnitCreate(...args),
-    },
-    package: {
-      findMany: (...args: unknown[]) => mockPackageFindMany(...args),
-      create: (...args: unknown[]) => mockPackageCreate(...args),
-    },
-    maintenanceRequest: {
-      findMany: (...args: unknown[]) => mockMaintenanceFindMany(...args),
-    },
-    visitorEntry: {
-      findMany: (...args: unknown[]) => mockVisitorFindMany(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      user: {
+        findMany: (...args: unknown[]) => mockUserFindMany(...args),
+        create: (...args: unknown[]) => mockUserCreate(...args),
+      },
+      unit: {
+        findMany: (...args: unknown[]) => mockUnitFindMany(...args),
+        create: (...args: unknown[]) => mockUnitCreate(...args),
+      },
+      package: {
+        findMany: (...args: unknown[]) => mockPackageFindMany(...args),
+        create: (...args: unknown[]) => mockPackageCreate(...args),
+      },
+      maintenanceRequest: {
+        findMany: (...args: unknown[]) => mockMaintenanceFindMany(...args),
+      },
+      visitorEntry: {
+        findMany: (...args: unknown[]) => mockVisitorFindMany(...args),
+      },
+    }),
+  };
+});
 
 const mockGuardRoute = vi.fn();
 

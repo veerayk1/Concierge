@@ -50,59 +50,62 @@ const mockKyrLeaderboardUpsert = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    course: {
-      findMany: (...args: unknown[]) => mockCourseFindMany(...args),
-      findUnique: (...args: unknown[]) => mockCourseFindUnique(...args),
-      create: (...args: unknown[]) => mockCourseCreate(...args),
-    },
-    enrollment: {
-      findUnique: (...args: unknown[]) => mockEnrollmentFindUnique(...args),
-      create: (...args: unknown[]) => mockEnrollmentCreate(...args),
-      update: (...args: unknown[]) => mockEnrollmentUpdate(...args),
-    },
-    quiz: {
-      findUnique: (...args: unknown[]) => mockQuizFindUnique(...args),
-    },
-    quizAttempt: {
-      create: (...args: unknown[]) => mockQuizAttemptCreate(...args),
-      update: (...args: unknown[]) => mockQuizAttemptUpdate(...args),
-    },
-    quizAnswer: {
-      createMany: (...args: unknown[]) => mockQuizAnswerCreateMany(...args),
-    },
-    certificate: {
-      create: (...args: unknown[]) => mockCertificateCreate(...args),
-    },
-    occupancyRecord: {
-      findMany: (...args: unknown[]) => mockOccupancyRecordFindMany(...args),
-    },
-    kyrSession: {
-      create: (...args: unknown[]) => mockKyrSessionCreate(...args),
-      findUnique: (...args: unknown[]) => mockKyrSessionFindUnique(...args),
-      update: (...args: unknown[]) => mockKyrSessionUpdate(...args),
-    },
-    kyrAnswer: {
-      create: (...args: unknown[]) => mockKyrAnswerCreate(...args),
-    },
-    kyrLeaderboard: {
-      findMany: (...args: unknown[]) => mockKyrLeaderboardFindMany(...args),
-      findUnique: (...args: unknown[]) => mockKyrLeaderboardFindUnique(...args),
-      upsert: (...args: unknown[]) => mockKyrLeaderboardUpsert(...args),
-    },
-    $transaction: (...args: unknown[]) => {
-      const first = args[0];
-      if (typeof first === 'function') {
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      course: {
+        findMany: (...args: unknown[]) => mockCourseFindMany(...args),
+        findUnique: (...args: unknown[]) => mockCourseFindUnique(...args),
+        create: (...args: unknown[]) => mockCourseCreate(...args),
+      },
+      enrollment: {
+        findUnique: (...args: unknown[]) => mockEnrollmentFindUnique(...args),
+        create: (...args: unknown[]) => mockEnrollmentCreate(...args),
+        update: (...args: unknown[]) => mockEnrollmentUpdate(...args),
+      },
+      quiz: {
+        findUnique: (...args: unknown[]) => mockQuizFindUnique(...args),
+      },
+      quizAttempt: {
+        create: (...args: unknown[]) => mockQuizAttemptCreate(...args),
+        update: (...args: unknown[]) => mockQuizAttemptUpdate(...args),
+      },
+      quizAnswer: {
+        createMany: (...args: unknown[]) => mockQuizAnswerCreateMany(...args),
+      },
+      certificate: {
+        create: (...args: unknown[]) => mockCertificateCreate(...args),
+      },
+      occupancyRecord: {
+        findMany: (...args: unknown[]) => mockOccupancyRecordFindMany(...args),
+      },
+      kyrSession: {
+        create: (...args: unknown[]) => mockKyrSessionCreate(...args),
+        findUnique: (...args: unknown[]) => mockKyrSessionFindUnique(...args),
+        update: (...args: unknown[]) => mockKyrSessionUpdate(...args),
+      },
+      kyrAnswer: {
+        create: (...args: unknown[]) => mockKyrAnswerCreate(...args),
+      },
+      kyrLeaderboard: {
+        findMany: (...args: unknown[]) => mockKyrLeaderboardFindMany(...args),
+        findUnique: (...args: unknown[]) => mockKyrLeaderboardFindUnique(...args),
+        upsert: (...args: unknown[]) => mockKyrLeaderboardUpsert(...args),
+      },
+      $transaction: (...args: unknown[]) => {
+        const first = args[0];
+        if (typeof first === 'function') {
+          return mockTransaction(...args);
+        }
+        if (Array.isArray(first)) {
+          return Promise.all(first);
+        }
         return mockTransaction(...args);
-      }
-      if (Array.isArray(first)) {
-        return Promise.all(first);
-      }
-      return mockTransaction(...args);
-    },
-  },
-}));
+      },
+    }),
+  };
+});
 
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: (s: string) => s,

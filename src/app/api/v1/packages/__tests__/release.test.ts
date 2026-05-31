@@ -14,17 +14,20 @@ const mockFindUnique = vi.fn();
 const mockUpdate = vi.fn();
 const mockHistoryCreate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    package: {
-      findUnique: (...args: unknown[]) => mockFindUnique(...args),
-      update: (...args: unknown[]) => mockUpdate(...args),
-    },
-    packageHistory: {
-      create: (...args: unknown[]) => mockHistoryCreate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      package: {
+        findUnique: (...args: unknown[]) => mockFindUnique(...args),
+        update: (...args: unknown[]) => mockUpdate(...args),
+      },
+      packageHistory: {
+        create: (...args: unknown[]) => mockHistoryCreate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn().mockResolvedValue({

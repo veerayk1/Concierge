@@ -35,36 +35,37 @@ const mockVendorDocumentFindMany = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    vendor: {
-      create: (...args: unknown[]) => mockVendorCreate(...args),
-      findMany: (...args: unknown[]) => mockVendorFindMany(...args),
-      findUnique: (...args: unknown[]) => mockVendorFindUnique(...args),
-      update: (...args: unknown[]) => mockVendorUpdate(...args),
-      count: (...args: unknown[]) => mockVendorCount(...args),
-    },
-    vendorDocument: {
-      create: (...args: unknown[]) => mockVendorDocumentCreate(...args),
-      findMany: (...args: unknown[]) => mockVendorDocumentFindMany(...args),
-    },
-    vendorServiceCategory: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'cat-1', name: 'General' }),
-      create: vi
-        .fn()
-        .mockImplementation((args: Record<string, unknown>) =>
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      vendor: {
+        create: (...args: unknown[]) => mockVendorCreate(...args),
+        findMany: (...args: unknown[]) => mockVendorFindMany(...args),
+        findUnique: (...args: unknown[]) => mockVendorFindUnique(...args),
+        update: (...args: unknown[]) => mockVendorUpdate(...args),
+        count: (...args: unknown[]) => mockVendorCount(...args),
+      },
+      vendorDocument: {
+        create: (...args: unknown[]) => mockVendorDocumentCreate(...args),
+        findMany: (...args: unknown[]) => mockVendorDocumentFindMany(...args),
+      },
+      vendorServiceCategory: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'cat-1', name: 'General' }),
+        create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
           Promise.resolve({
             id: testUuid('cat-new'),
             ...(args as { data?: Record<string, unknown> }).data,
           }),
         ),
-    },
-    user: {
-      findFirst: vi.fn().mockResolvedValue(null),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+      },
+      user: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 vi.mock('@/schemas/vendor', () => ({
   createVendorSchema: {

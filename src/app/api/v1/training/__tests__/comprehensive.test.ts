@@ -78,64 +78,67 @@ const mockKyrLeaderboardFindMany = vi.fn();
 const mockKyrLeaderboardUpsert = vi.fn();
 const mockKyrLeaderboardFindUnique = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    course: {
-      findMany: (...args: unknown[]) => mockCourseFindMany(...args),
-      count: (...args: unknown[]) => mockCourseCount(...args),
-      findUnique: (...args: unknown[]) => mockCourseFindUnique(...args),
-      create: (...args: unknown[]) => mockCourseCreate(...args),
-      update: (...args: unknown[]) => mockCourseUpdate(...args),
-    },
-    enrollment: {
-      findUnique: (...args: unknown[]) => mockEnrollmentFindUnique(...args),
-      findMany: (...args: unknown[]) => mockEnrollmentFindMany(...args),
-      create: (...args: unknown[]) => mockEnrollmentCreate(...args),
-      update: (...args: unknown[]) => mockEnrollmentUpdate(...args),
-    },
-    certificate: {
-      create: (...args: unknown[]) => mockCertificateCreate(...args),
-    },
-    quiz: {
-      findUnique: (...args: unknown[]) => mockQuizFindUnique(...args),
-    },
-    quizAttempt: {
-      create: (...args: unknown[]) => mockQuizAttemptCreate(...args),
-      update: (...args: unknown[]) => mockQuizAttemptUpdate(...args),
-    },
-    quizAnswer: {
-      createMany: (...args: unknown[]) => mockQuizAnswerCreateMany(...args),
-    },
-    learningPath: {
-      findMany: (...args: unknown[]) => mockLearningPathFindMany(...args),
-      findUnique: (...args: unknown[]) => mockLearningPathFindUnique(...args),
-      create: (...args: unknown[]) => mockLearningPathCreate(...args),
-    },
-    learningPathCourse: {
-      create: (...args: unknown[]) => mockLearningPathCoursesCreate(...args),
-    },
-    module: {
-      create: (...args: unknown[]) => mockModuleCreate(...args),
-      findMany: (...args: unknown[]) => mockModuleFindMany(...args),
-    },
-    occupancyRecord: {
-      findMany: (...args: unknown[]) => mockOccupancyFindMany(...args),
-    },
-    kyrSession: {
-      create: (...args: unknown[]) => mockKyrSessionCreate(...args),
-      findUnique: (...args: unknown[]) => mockKyrSessionFindUnique(...args),
-      update: (...args: unknown[]) => mockKyrSessionUpdate(...args),
-    },
-    kyrAnswer: {
-      create: (...args: unknown[]) => mockKyrAnswerCreate(...args),
-    },
-    kyrLeaderboard: {
-      findMany: (...args: unknown[]) => mockKyrLeaderboardFindMany(...args),
-      upsert: (...args: unknown[]) => mockKyrLeaderboardUpsert(...args),
-      findUnique: (...args: unknown[]) => mockKyrLeaderboardFindUnique(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      course: {
+        findMany: (...args: unknown[]) => mockCourseFindMany(...args),
+        count: (...args: unknown[]) => mockCourseCount(...args),
+        findUnique: (...args: unknown[]) => mockCourseFindUnique(...args),
+        create: (...args: unknown[]) => mockCourseCreate(...args),
+        update: (...args: unknown[]) => mockCourseUpdate(...args),
+      },
+      enrollment: {
+        findUnique: (...args: unknown[]) => mockEnrollmentFindUnique(...args),
+        findMany: (...args: unknown[]) => mockEnrollmentFindMany(...args),
+        create: (...args: unknown[]) => mockEnrollmentCreate(...args),
+        update: (...args: unknown[]) => mockEnrollmentUpdate(...args),
+      },
+      certificate: {
+        create: (...args: unknown[]) => mockCertificateCreate(...args),
+      },
+      quiz: {
+        findUnique: (...args: unknown[]) => mockQuizFindUnique(...args),
+      },
+      quizAttempt: {
+        create: (...args: unknown[]) => mockQuizAttemptCreate(...args),
+        update: (...args: unknown[]) => mockQuizAttemptUpdate(...args),
+      },
+      quizAnswer: {
+        createMany: (...args: unknown[]) => mockQuizAnswerCreateMany(...args),
+      },
+      learningPath: {
+        findMany: (...args: unknown[]) => mockLearningPathFindMany(...args),
+        findUnique: (...args: unknown[]) => mockLearningPathFindUnique(...args),
+        create: (...args: unknown[]) => mockLearningPathCreate(...args),
+      },
+      learningPathCourse: {
+        create: (...args: unknown[]) => mockLearningPathCoursesCreate(...args),
+      },
+      module: {
+        create: (...args: unknown[]) => mockModuleCreate(...args),
+        findMany: (...args: unknown[]) => mockModuleFindMany(...args),
+      },
+      occupancyRecord: {
+        findMany: (...args: unknown[]) => mockOccupancyFindMany(...args),
+      },
+      kyrSession: {
+        create: (...args: unknown[]) => mockKyrSessionCreate(...args),
+        findUnique: (...args: unknown[]) => mockKyrSessionFindUnique(...args),
+        update: (...args: unknown[]) => mockKyrSessionUpdate(...args),
+      },
+      kyrAnswer: {
+        create: (...args: unknown[]) => mockKyrAnswerCreate(...args),
+      },
+      kyrLeaderboard: {
+        findMany: (...args: unknown[]) => mockKyrLeaderboardFindMany(...args),
+        upsert: (...args: unknown[]) => mockKyrLeaderboardUpsert(...args),
+        findUnique: (...args: unknown[]) => mockKyrLeaderboardFindUnique(...args),
+      },
+    }),
+  };
+});
 
 let mockGuardRole = 'property_admin';
 

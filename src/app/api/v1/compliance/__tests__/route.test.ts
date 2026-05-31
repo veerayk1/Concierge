@@ -27,36 +27,39 @@ const mockMaintenanceRequestCount = vi.fn();
 const mockReportRunFindUnique = vi.fn();
 const mockReportRunCreate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    auditEntry: {
-      findMany: (...args: unknown[]) => mockAuditEntryFindMany(...args),
-      count: (...args: unknown[]) => mockAuditEntryCount(...args),
-    },
-    userProperty: {
-      findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
-      count: (...args: unknown[]) => mockUserPropertyCount(...args),
-    },
-    incidentReport: {
-      findMany: (...args: unknown[]) => mockIncidentReportFindMany(...args),
-      count: (...args: unknown[]) => mockIncidentReportCount(...args),
-    },
-    vendor: {
-      findMany: (...args: unknown[]) => mockVendorFindMany(...args),
-    },
-    loginAudit: {
-      findMany: (...args: unknown[]) => mockLoginAuditFindMany(...args),
-    },
-    maintenanceRequest: {
-      findMany: (...args: unknown[]) => mockMaintenanceRequestFindMany(...args),
-      count: (...args: unknown[]) => mockMaintenanceRequestCount(...args),
-    },
-    reportRun: {
-      findUnique: (...args: unknown[]) => mockReportRunFindUnique(...args),
-      create: (...args: unknown[]) => mockReportRunCreate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      auditEntry: {
+        findMany: (...args: unknown[]) => mockAuditEntryFindMany(...args),
+        count: (...args: unknown[]) => mockAuditEntryCount(...args),
+      },
+      userProperty: {
+        findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
+        count: (...args: unknown[]) => mockUserPropertyCount(...args),
+      },
+      incidentReport: {
+        findMany: (...args: unknown[]) => mockIncidentReportFindMany(...args),
+        count: (...args: unknown[]) => mockIncidentReportCount(...args),
+      },
+      vendor: {
+        findMany: (...args: unknown[]) => mockVendorFindMany(...args),
+      },
+      loginAudit: {
+        findMany: (...args: unknown[]) => mockLoginAuditFindMany(...args),
+      },
+      maintenanceRequest: {
+        findMany: (...args: unknown[]) => mockMaintenanceRequestFindMany(...args),
+        count: (...args: unknown[]) => mockMaintenanceRequestCount(...args),
+      },
+      reportRun: {
+        findUnique: (...args: unknown[]) => mockReportRunFindUnique(...args),
+        create: (...args: unknown[]) => mockReportRunCreate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn().mockResolvedValue({

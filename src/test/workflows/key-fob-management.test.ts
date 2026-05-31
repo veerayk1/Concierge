@@ -40,27 +40,30 @@ const mockEventCreate = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    keyInventory: {
-      create: (...args: unknown[]) => mockKeyInventoryCreate(...args),
-      findMany: (...args: unknown[]) => mockKeyInventoryFindMany(...args),
-      findUnique: (...args: unknown[]) => mockKeyInventoryFindUnique(...args),
-      update: (...args: unknown[]) => mockKeyInventoryUpdate(...args),
-      count: (...args: unknown[]) => mockKeyInventoryCount(...args),
-    },
-    keyCheckout: {
-      create: (...args: unknown[]) => mockKeyCheckoutCreate(...args),
-      findMany: (...args: unknown[]) => mockKeyCheckoutFindMany(...args),
-      findUnique: (...args: unknown[]) => mockKeyCheckoutFindUnique(...args),
-      update: (...args: unknown[]) => mockKeyCheckoutUpdate(...args),
-    },
-    event: {
-      create: (...args: unknown[]) => mockEventCreate(...args),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      keyInventory: {
+        create: (...args: unknown[]) => mockKeyInventoryCreate(...args),
+        findMany: (...args: unknown[]) => mockKeyInventoryFindMany(...args),
+        findUnique: (...args: unknown[]) => mockKeyInventoryFindUnique(...args),
+        update: (...args: unknown[]) => mockKeyInventoryUpdate(...args),
+        count: (...args: unknown[]) => mockKeyInventoryCount(...args),
+      },
+      keyCheckout: {
+        create: (...args: unknown[]) => mockKeyCheckoutCreate(...args),
+        findMany: (...args: unknown[]) => mockKeyCheckoutFindMany(...args),
+        findUnique: (...args: unknown[]) => mockKeyCheckoutFindUnique(...args),
+        update: (...args: unknown[]) => mockKeyCheckoutUpdate(...args),
+      },
+      event: {
+        create: (...args: unknown[]) => mockEventCreate(...args),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: (s: string) => s,

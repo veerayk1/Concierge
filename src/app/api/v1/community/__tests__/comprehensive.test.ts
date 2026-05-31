@@ -93,61 +93,64 @@ const mockNotificationCreate = vi.fn();
 
 const mockGuardRoute = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    classifiedAd: {
-      findMany: (...args: unknown[]) => mockAdFindMany(...args),
-      findUnique: (...args: unknown[]) => mockAdFindUnique(...args),
-      count: (...args: unknown[]) => mockAdCount(...args),
-      create: (...args: unknown[]) => mockAdCreate(...args),
-      update: (...args: unknown[]) => mockAdUpdate(...args),
-      updateMany: (...args: unknown[]) => mockAdUpdateMany(...args),
-    },
-    classifiedAdFlag: {
-      create: (...args: unknown[]) => mockAdFlagCreate(...args),
-      findMany: (...args: unknown[]) => mockAdFlagFindMany(...args),
-    },
-    classifiedAdImage: {
-      create: (...args: unknown[]) => mockAdImageCreate(...args),
-    },
-    idea: {
-      findMany: (...args: unknown[]) => mockIdeaFindMany(...args),
-      findUnique: (...args: unknown[]) => mockIdeaFindUnique(...args),
-      create: (...args: unknown[]) => mockIdeaCreate(...args),
-      update: (...args: unknown[]) => mockIdeaUpdate(...args),
-    },
-    ideaVote: {
-      create: (...args: unknown[]) => mockVoteCreate(...args),
-      findUnique: (...args: unknown[]) => mockVoteFindUnique(...args),
-      delete: (...args: unknown[]) => mockVoteDelete(...args),
-      count: (...args: unknown[]) => mockVoteCount(...args),
-    },
-    ideaComment: {
-      create: (...args: unknown[]) => mockCommentCreate(...args),
-      findMany: (...args: unknown[]) => mockCommentFindMany(...args),
-    },
-    communityEvent: {
-      findMany: (...args: unknown[]) => mockEventFindMany(...args),
-      create: (...args: unknown[]) => mockEventCreate(...args),
-    },
-    forumTopic: {
-      findMany: (...args: unknown[]) => mockTopicFindMany(...args),
-      findUnique: (...args: unknown[]) => mockTopicFindUnique(...args),
-      create: (...args: unknown[]) => mockTopicCreate(...args),
-      update: (...args: unknown[]) => mockTopicUpdate(...args),
-      delete: (...args: unknown[]) => mockTopicDelete(...args),
-      count: (...args: unknown[]) => mockTopicCount(...args),
-    },
-    forumReply: {
-      findMany: (...args: unknown[]) => mockReplyFindMany(...args),
-      findUnique: (...args: unknown[]) => mockReplyFindUnique(...args),
-      create: (...args: unknown[]) => mockReplyCreate(...args),
-    },
-    notification: {
-      create: (...args: unknown[]) => mockNotificationCreate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      classifiedAd: {
+        findMany: (...args: unknown[]) => mockAdFindMany(...args),
+        findUnique: (...args: unknown[]) => mockAdFindUnique(...args),
+        count: (...args: unknown[]) => mockAdCount(...args),
+        create: (...args: unknown[]) => mockAdCreate(...args),
+        update: (...args: unknown[]) => mockAdUpdate(...args),
+        updateMany: (...args: unknown[]) => mockAdUpdateMany(...args),
+      },
+      classifiedAdFlag: {
+        create: (...args: unknown[]) => mockAdFlagCreate(...args),
+        findMany: (...args: unknown[]) => mockAdFlagFindMany(...args),
+      },
+      classifiedAdImage: {
+        create: (...args: unknown[]) => mockAdImageCreate(...args),
+      },
+      idea: {
+        findMany: (...args: unknown[]) => mockIdeaFindMany(...args),
+        findUnique: (...args: unknown[]) => mockIdeaFindUnique(...args),
+        create: (...args: unknown[]) => mockIdeaCreate(...args),
+        update: (...args: unknown[]) => mockIdeaUpdate(...args),
+      },
+      ideaVote: {
+        create: (...args: unknown[]) => mockVoteCreate(...args),
+        findUnique: (...args: unknown[]) => mockVoteFindUnique(...args),
+        delete: (...args: unknown[]) => mockVoteDelete(...args),
+        count: (...args: unknown[]) => mockVoteCount(...args),
+      },
+      ideaComment: {
+        create: (...args: unknown[]) => mockCommentCreate(...args),
+        findMany: (...args: unknown[]) => mockCommentFindMany(...args),
+      },
+      communityEvent: {
+        findMany: (...args: unknown[]) => mockEventFindMany(...args),
+        create: (...args: unknown[]) => mockEventCreate(...args),
+      },
+      forumTopic: {
+        findMany: (...args: unknown[]) => mockTopicFindMany(...args),
+        findUnique: (...args: unknown[]) => mockTopicFindUnique(...args),
+        create: (...args: unknown[]) => mockTopicCreate(...args),
+        update: (...args: unknown[]) => mockTopicUpdate(...args),
+        delete: (...args: unknown[]) => mockTopicDelete(...args),
+        count: (...args: unknown[]) => mockTopicCount(...args),
+      },
+      forumReply: {
+        findMany: (...args: unknown[]) => mockReplyFindMany(...args),
+        findUnique: (...args: unknown[]) => mockReplyFindUnique(...args),
+        create: (...args: unknown[]) => mockReplyCreate(...args),
+      },
+      notification: {
+        create: (...args: unknown[]) => mockNotificationCreate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: (...args: unknown[]) => mockGuardRoute(...args),

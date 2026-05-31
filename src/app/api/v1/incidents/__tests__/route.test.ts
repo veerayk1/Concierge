@@ -19,17 +19,20 @@ const mockEventFindUnique = vi.fn();
 const mockEventUpdate = vi.fn();
 const mockUserPropertyFindMany = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    event: {
-      findUnique: (...args: unknown[]) => mockEventFindUnique(...args),
-      update: (...args: unknown[]) => mockEventUpdate(...args),
-    },
-    userProperty: {
-      findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      event: {
+        findUnique: (...args: unknown[]) => mockEventFindUnique(...args),
+        update: (...args: unknown[]) => mockEventUpdate(...args),
+      },
+      userProperty: {
+        findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn().mockResolvedValue({

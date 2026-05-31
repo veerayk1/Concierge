@@ -27,32 +27,35 @@ const mockAnnouncementFindMany = vi.fn();
 const mockAnnouncementCount = vi.fn();
 const mockGuardRoute = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    announcement: {
-      findUnique: (...args: unknown[]) => mockAnnouncementFindUnique(...args),
-      create: (...args: unknown[]) => mockAnnouncementCreate(...args),
-      findMany: (...args: unknown[]) => mockAnnouncementFindMany(...args),
-      count: (...args: unknown[]) => mockAnnouncementCount(...args),
-    },
-    announcementDelivery: {
-      findMany: (...args: unknown[]) => mockDeliveryFindMany(...args),
-      createMany: (...args: unknown[]) => mockDeliveryCreateMany(...args),
-      count: (...args: unknown[]) => mockDeliveryCount(...args),
-      updateMany: (...args: unknown[]) => mockDeliveryUpdateMany(...args),
-      groupBy: (...args: unknown[]) => mockDeliveryGroupBy(...args),
-    },
-    userProperty: {
-      findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
-    },
-    notificationPreference: {
-      findMany: (...args: unknown[]) => mockNotificationPreferenceFindMany(...args),
-    },
-    user: {
-      findMany: vi.fn().mockResolvedValue([]),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      announcement: {
+        findUnique: (...args: unknown[]) => mockAnnouncementFindUnique(...args),
+        create: (...args: unknown[]) => mockAnnouncementCreate(...args),
+        findMany: (...args: unknown[]) => mockAnnouncementFindMany(...args),
+        count: (...args: unknown[]) => mockAnnouncementCount(...args),
+      },
+      announcementDelivery: {
+        findMany: (...args: unknown[]) => mockDeliveryFindMany(...args),
+        createMany: (...args: unknown[]) => mockDeliveryCreateMany(...args),
+        count: (...args: unknown[]) => mockDeliveryCount(...args),
+        updateMany: (...args: unknown[]) => mockDeliveryUpdateMany(...args),
+        groupBy: (...args: unknown[]) => mockDeliveryGroupBy(...args),
+      },
+      userProperty: {
+        findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
+      },
+      notificationPreference: {
+        findMany: (...args: unknown[]) => mockNotificationPreferenceFindMany(...args),
+      },
+      user: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+    }),
+  };
+});
 
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: vi.fn((input: string) => input.replace(/<[^>]*>/g, '')),

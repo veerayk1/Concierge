@@ -44,33 +44,36 @@ const mockNotificationCreate = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    emergencyBroadcast: {
-      create: (...args: unknown[]) => mockEmergencyBroadcastCreate(...args),
-      findUnique: (...args: unknown[]) => mockEmergencyBroadcastFindUnique(...args),
-      update: (...args: unknown[]) => mockEmergencyBroadcastUpdate(...args),
-      findMany: (...args: unknown[]) => mockEmergencyBroadcastFindMany(...args),
-      count: (...args: unknown[]) => mockEmergencyBroadcastCount(...args),
-    },
-    emergencyBroadcastAcknowledgment: {
-      create: (...args: unknown[]) => mockAcknowledgmentCreate(...args),
-      findUnique: (...args: unknown[]) => mockAcknowledgmentFindUnique(...args),
-    },
-    userProperty: {
-      findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
-    },
-    event: {
-      create: (...args: unknown[]) => mockEventCreate(...args),
-      update: (...args: unknown[]) => mockEventUpdate(...args),
-      findUnique: (...args: unknown[]) => mockEventFindUnique(...args),
-    },
-    notification: {
-      create: (...args: unknown[]) => mockNotificationCreate(...args),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      emergencyBroadcast: {
+        create: (...args: unknown[]) => mockEmergencyBroadcastCreate(...args),
+        findUnique: (...args: unknown[]) => mockEmergencyBroadcastFindUnique(...args),
+        update: (...args: unknown[]) => mockEmergencyBroadcastUpdate(...args),
+        findMany: (...args: unknown[]) => mockEmergencyBroadcastFindMany(...args),
+        count: (...args: unknown[]) => mockEmergencyBroadcastCount(...args),
+      },
+      emergencyBroadcastAcknowledgment: {
+        create: (...args: unknown[]) => mockAcknowledgmentCreate(...args),
+        findUnique: (...args: unknown[]) => mockAcknowledgmentFindUnique(...args),
+      },
+      userProperty: {
+        findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
+      },
+      event: {
+        create: (...args: unknown[]) => mockEventCreate(...args),
+        update: (...args: unknown[]) => mockEventUpdate(...args),
+        findUnique: (...args: unknown[]) => mockEventFindUnique(...args),
+      },
+      notification: {
+        create: (...args: unknown[]) => mockNotificationCreate(...args),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: (s: string) => s,

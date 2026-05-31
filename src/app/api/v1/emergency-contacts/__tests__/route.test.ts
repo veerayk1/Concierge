@@ -16,14 +16,17 @@ import { createGetRequest, createPostRequest, parseResponse } from '@/test/helpe
 const mockContactFindMany = vi.fn();
 const mockContactCreate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    emergencyContact: {
-      findMany: (...args: unknown[]) => mockContactFindMany(...args),
-      create: (...args: unknown[]) => mockContactCreate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      emergencyContact: {
+        findMany: (...args: unknown[]) => mockContactFindMany(...args),
+        create: (...args: unknown[]) => mockContactCreate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn().mockResolvedValue({

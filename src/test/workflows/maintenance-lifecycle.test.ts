@@ -38,33 +38,36 @@ const mockAttachmentCreate = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    maintenanceRequest: {
-      create: (...args: unknown[]) => mockMaintenanceRequestCreate(...args),
-      findMany: (...args: unknown[]) => mockMaintenanceRequestFindMany(...args),
-      count: (...args: unknown[]) => mockMaintenanceRequestCount(...args),
-      findUnique: (...args: unknown[]) => mockMaintenanceRequestFindUnique(...args),
-      update: (...args: unknown[]) => mockMaintenanceRequestUpdate(...args),
-    },
-    maintenanceComment: {
-      create: (...args: unknown[]) => mockMaintenanceCommentCreate(...args),
-      findMany: (...args: unknown[]) => mockMaintenanceCommentFindMany(...args),
-    },
-    maintenanceStatusChange: {
-      create: (...args: unknown[]) => mockMaintenanceStatusChangeCreate(...args),
-    },
-    attachment: {
-      create: (...args: unknown[]) => mockAttachmentCreate(...args),
-    },
-    user: {
-      findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn().mockResolvedValue(null),
-      findFirst: vi.fn().mockResolvedValue(null),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      maintenanceRequest: {
+        create: (...args: unknown[]) => mockMaintenanceRequestCreate(...args),
+        findMany: (...args: unknown[]) => mockMaintenanceRequestFindMany(...args),
+        count: (...args: unknown[]) => mockMaintenanceRequestCount(...args),
+        findUnique: (...args: unknown[]) => mockMaintenanceRequestFindUnique(...args),
+        update: (...args: unknown[]) => mockMaintenanceRequestUpdate(...args),
+      },
+      maintenanceComment: {
+        create: (...args: unknown[]) => mockMaintenanceCommentCreate(...args),
+        findMany: (...args: unknown[]) => mockMaintenanceCommentFindMany(...args),
+      },
+      maintenanceStatusChange: {
+        create: (...args: unknown[]) => mockMaintenanceStatusChangeCreate(...args),
+      },
+      attachment: {
+        create: (...args: unknown[]) => mockAttachmentCreate(...args),
+      },
+      user: {
+        findMany: vi.fn().mockResolvedValue([]),
+        findUnique: vi.fn().mockResolvedValue(null),
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('MR01'),

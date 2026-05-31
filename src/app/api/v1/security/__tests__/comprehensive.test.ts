@@ -105,111 +105,114 @@ const mockSearchAnnouncementFindMany = vi.fn();
 
 const mockTransaction = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    event: {
-      findMany: (...args: unknown[]) => mockEventFindMany(...args),
-      count: (...args: unknown[]) => mockEventCount(...args),
-      create: (...args: unknown[]) => mockEventCreate(...args),
-      findUnique: (...args: unknown[]) => mockEventFindUnique(...args),
-      update: (...args: unknown[]) => mockEventUpdate(...args),
-      updateMany: (...args: unknown[]) => mockEventUpdateMany(...args),
-    },
-    visitorEntry: {
-      findMany: (...args: unknown[]) => mockVisitorFindMany(...args),
-      count: (...args: unknown[]) => mockVisitorCount(...args),
-      create: (...args: unknown[]) => mockVisitorCreate(...args),
-      findUnique: (...args: unknown[]) => mockVisitorFindUnique(...args),
-      update: (...args: unknown[]) => mockVisitorUpdate(...args),
-      updateMany: (...args: unknown[]) => mockVisitorUpdateMany(...args),
-    },
-    incidentReport: {
-      create: (...args: unknown[]) => mockIncidentCreate(...args),
-      findMany: (...args: unknown[]) => mockIncidentFindMany(...args),
-      findUnique: (...args: unknown[]) => mockIncidentFindUnique(...args),
-      update: (...args: unknown[]) => mockIncidentUpdate(...args),
-    },
-    keyInventory: {
-      findMany: (...args: unknown[]) => mockKeyFindMany(...args),
-      findUnique: (...args: unknown[]) => mockKeyFindUnique(...args),
-      create: (...args: unknown[]) => mockKeyCreate(...args),
-      update: (...args: unknown[]) => mockKeyUpdate(...args),
-      count: (...args: unknown[]) => mockKeyCount(...args),
-    },
-    keyCheckout: {
-      findMany: (...args: unknown[]) => mockCheckoutFindMany(...args),
-      findUnique: (...args: unknown[]) => mockCheckoutFindUnique(...args),
-      create: (...args: unknown[]) => mockCheckoutCreate(...args),
-      update: (...args: unknown[]) => mockCheckoutUpdate(...args),
-    },
-    passOnLog: {
-      findMany: (...args: unknown[]) => mockPassOnFindMany(...args),
-      create: (...args: unknown[]) => mockPassOnCreate(...args),
-    },
-    emergencyContact: {
-      findMany: (...args: unknown[]) => mockContactFindMany(...args),
-      create: (...args: unknown[]) => mockContactCreate(...args),
-    },
-    parkingViolation: {
-      findMany: (...args: unknown[]) => mockViolationFindMany(...args),
-      create: (...args: unknown[]) => mockViolationCreate(...args),
-      update: (...args: unknown[]) => mockViolationUpdate(...args),
-    },
-    parkingPermit: {
-      findMany: (...args: unknown[]) => mockPermitFindMany(...args),
-    },
-    fob: {
-      findMany: (...args: unknown[]) => mockFobFindMany(...args),
-      create: (...args: unknown[]) => mockFobCreate(...args),
-      count: (...args: unknown[]) => mockFobCount(...args),
-    },
-    userProperty: {
-      findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
-    },
-    user: {
-      findMany: (...args: unknown[]) => mockSearchUserFindMany(...args),
-    },
-    unit: {
-      findMany: (...args: unknown[]) => mockSearchUnitFindMany(...args),
-    },
-    package: {
-      findMany: (...args: unknown[]) => mockSearchPackageFindMany(...args),
-    },
-    announcement: {
-      findMany: (...args: unknown[]) => mockSearchAnnouncementFindMany(...args),
-    },
-    searchHistory: {
-      findMany: (...args: unknown[]) => mockSearchHistoryFindMany(...args),
-      create: (...args: unknown[]) => mockSearchHistoryCreate(...args),
-    },
-    maintenanceRequest: {
-      findMany: vi.fn().mockResolvedValue([]),
-      count: vi.fn().mockResolvedValue(0),
-    },
-    eventType: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'evt-type-1', name: 'Security Event' }),
-      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
-        Promise.resolve({
-          id: 'evt-type-new',
-          ...(args as { data?: Record<string, unknown> }).data,
-        }),
-      ),
-    },
-    eventGroup: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'evt-group-1', name: 'Security' }),
-      create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
-        Promise.resolve({
-          id: 'evt-group-new',
-          ...(args as { data?: Record<string, unknown> }).data,
-        }),
-      ),
-    },
-    eventTypeEmailConfig: {
-      findFirst: vi.fn().mockResolvedValue(null),
-    },
-    $transaction: (...args: unknown[]) => mockTransaction(...args),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      event: {
+        findMany: (...args: unknown[]) => mockEventFindMany(...args),
+        count: (...args: unknown[]) => mockEventCount(...args),
+        create: (...args: unknown[]) => mockEventCreate(...args),
+        findUnique: (...args: unknown[]) => mockEventFindUnique(...args),
+        update: (...args: unknown[]) => mockEventUpdate(...args),
+        updateMany: (...args: unknown[]) => mockEventUpdateMany(...args),
+      },
+      visitorEntry: {
+        findMany: (...args: unknown[]) => mockVisitorFindMany(...args),
+        count: (...args: unknown[]) => mockVisitorCount(...args),
+        create: (...args: unknown[]) => mockVisitorCreate(...args),
+        findUnique: (...args: unknown[]) => mockVisitorFindUnique(...args),
+        update: (...args: unknown[]) => mockVisitorUpdate(...args),
+        updateMany: (...args: unknown[]) => mockVisitorUpdateMany(...args),
+      },
+      incidentReport: {
+        create: (...args: unknown[]) => mockIncidentCreate(...args),
+        findMany: (...args: unknown[]) => mockIncidentFindMany(...args),
+        findUnique: (...args: unknown[]) => mockIncidentFindUnique(...args),
+        update: (...args: unknown[]) => mockIncidentUpdate(...args),
+      },
+      keyInventory: {
+        findMany: (...args: unknown[]) => mockKeyFindMany(...args),
+        findUnique: (...args: unknown[]) => mockKeyFindUnique(...args),
+        create: (...args: unknown[]) => mockKeyCreate(...args),
+        update: (...args: unknown[]) => mockKeyUpdate(...args),
+        count: (...args: unknown[]) => mockKeyCount(...args),
+      },
+      keyCheckout: {
+        findMany: (...args: unknown[]) => mockCheckoutFindMany(...args),
+        findUnique: (...args: unknown[]) => mockCheckoutFindUnique(...args),
+        create: (...args: unknown[]) => mockCheckoutCreate(...args),
+        update: (...args: unknown[]) => mockCheckoutUpdate(...args),
+      },
+      passOnLog: {
+        findMany: (...args: unknown[]) => mockPassOnFindMany(...args),
+        create: (...args: unknown[]) => mockPassOnCreate(...args),
+      },
+      emergencyContact: {
+        findMany: (...args: unknown[]) => mockContactFindMany(...args),
+        create: (...args: unknown[]) => mockContactCreate(...args),
+      },
+      parkingViolation: {
+        findMany: (...args: unknown[]) => mockViolationFindMany(...args),
+        create: (...args: unknown[]) => mockViolationCreate(...args),
+        update: (...args: unknown[]) => mockViolationUpdate(...args),
+      },
+      parkingPermit: {
+        findMany: (...args: unknown[]) => mockPermitFindMany(...args),
+      },
+      fob: {
+        findMany: (...args: unknown[]) => mockFobFindMany(...args),
+        create: (...args: unknown[]) => mockFobCreate(...args),
+        count: (...args: unknown[]) => mockFobCount(...args),
+      },
+      userProperty: {
+        findMany: (...args: unknown[]) => mockUserPropertyFindMany(...args),
+      },
+      user: {
+        findMany: (...args: unknown[]) => mockSearchUserFindMany(...args),
+      },
+      unit: {
+        findMany: (...args: unknown[]) => mockSearchUnitFindMany(...args),
+      },
+      package: {
+        findMany: (...args: unknown[]) => mockSearchPackageFindMany(...args),
+      },
+      announcement: {
+        findMany: (...args: unknown[]) => mockSearchAnnouncementFindMany(...args),
+      },
+      searchHistory: {
+        findMany: (...args: unknown[]) => mockSearchHistoryFindMany(...args),
+        create: (...args: unknown[]) => mockSearchHistoryCreate(...args),
+      },
+      maintenanceRequest: {
+        findMany: vi.fn().mockResolvedValue([]),
+        count: vi.fn().mockResolvedValue(0),
+      },
+      eventType: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'evt-type-1', name: 'Security Event' }),
+        create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'evt-type-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+      },
+      eventGroup: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'evt-group-1', name: 'Security' }),
+        create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
+          Promise.resolve({
+            id: 'evt-group-new',
+            ...(args as { data?: Record<string, unknown> }).data,
+          }),
+        ),
+      },
+      eventTypeEmailConfig: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+      $transaction: (...args: unknown[]) => mockTransaction(...args),
+    }),
+  };
+});
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('X9Z8Y7'),

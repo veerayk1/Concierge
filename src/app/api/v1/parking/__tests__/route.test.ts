@@ -27,21 +27,24 @@ const mockViolationUpdate = vi.fn();
 const mockAreaFindMany = vi.fn();
 const mockAreaCreate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    parkingPermit: {
-      findMany: (...args: unknown[]) => mockPermitFindMany(...args),
-    },
-    parkingViolation: {
-      findMany: (...args: unknown[]) => mockViolationFindMany(...args),
-      update: (...args: unknown[]) => mockViolationUpdate(...args),
-    },
-    parkingArea: {
-      findMany: (...args: unknown[]) => mockAreaFindMany(...args),
-      create: (...args: unknown[]) => mockAreaCreate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      parkingPermit: {
+        findMany: (...args: unknown[]) => mockPermitFindMany(...args),
+      },
+      parkingViolation: {
+        findMany: (...args: unknown[]) => mockViolationFindMany(...args),
+        update: (...args: unknown[]) => mockViolationUpdate(...args),
+      },
+      parkingArea: {
+        findMany: (...args: unknown[]) => mockAreaFindMany(...args),
+        create: (...args: unknown[]) => mockAreaCreate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: vi.fn().mockResolvedValue({

@@ -37,23 +37,26 @@ const mockStatusChangeCreate = vi.fn();
 
 const mockGuardRoute = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    maintenanceRequest: {
-      findMany: (...args: unknown[]) => mockFindMany(...args),
-      create: (...args: unknown[]) => mockCreate(...args),
-      update: (...args: unknown[]) => mockUpdate(...args),
-      findUnique: (...args: unknown[]) => mockFindUnique(...args),
-      count: (...args: unknown[]) => mockCount(...args),
-    },
-    maintenanceStatusChange: {
-      create: (...args: unknown[]) => mockStatusChangeCreate(...args),
-    },
-    attachment: {
-      create: vi.fn(),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      maintenanceRequest: {
+        findMany: (...args: unknown[]) => mockFindMany(...args),
+        create: (...args: unknown[]) => mockCreate(...args),
+        update: (...args: unknown[]) => mockUpdate(...args),
+        findUnique: (...args: unknown[]) => mockFindUnique(...args),
+        count: (...args: unknown[]) => mockCount(...args),
+      },
+      maintenanceStatusChange: {
+        create: (...args: unknown[]) => mockStatusChangeCreate(...args),
+      },
+      attachment: {
+        create: vi.fn(),
+      },
+    }),
+  };
+});
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('HFR1'),

@@ -64,78 +64,79 @@ const mockLimitConfigCreate = vi.fn();
 const mockTransaction = vi.fn();
 const mockGuardRoute = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    parkingPermit: {
-      create: (...args: unknown[]) => mockPermitCreate(...args),
-      findMany: (...args: unknown[]) => mockPermitFindMany(...args),
-      findUnique: (...args: unknown[]) => mockPermitFindUnique(...args),
-      findFirst: (...args: unknown[]) => mockPermitFindFirst(...args),
-      update: (...args: unknown[]) => mockPermitUpdate(...args),
-      count: (...args: unknown[]) => mockPermitCount(...args),
-    },
-    parkingViolation: {
-      create: (...args: unknown[]) => mockViolationCreate(...args),
-      findMany: (...args: unknown[]) => mockViolationFindMany(...args),
-      update: (...args: unknown[]) => mockViolationUpdate(...args),
-      count: (...args: unknown[]) => mockViolationCount(...args),
-    },
-    parkingArea: {
-      findMany: (...args: unknown[]) => mockAreaFindMany(...args),
-      create: (...args: unknown[]) => mockAreaCreate(...args),
-    },
-    parkingSpot: {
-      findMany: (...args: unknown[]) => mockSpotFindMany(...args),
-      findFirst: (...args: unknown[]) => mockSpotFindFirst(...args),
-      update: (...args: unknown[]) => mockSpotUpdate(...args),
-    },
-    permitType: {
-      findMany: (...args: unknown[]) => mockPermitTypeFindMany(...args),
-      findFirst: vi.fn().mockResolvedValue({ id: 'pt-1', name: 'Resident' }),
-      create: vi
-        .fn()
-        .mockImplementation((args: Record<string, unknown>) =>
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      parkingPermit: {
+        create: (...args: unknown[]) => mockPermitCreate(...args),
+        findMany: (...args: unknown[]) => mockPermitFindMany(...args),
+        findUnique: (...args: unknown[]) => mockPermitFindUnique(...args),
+        findFirst: (...args: unknown[]) => mockPermitFindFirst(...args),
+        update: (...args: unknown[]) => mockPermitUpdate(...args),
+        count: (...args: unknown[]) => mockPermitCount(...args),
+      },
+      parkingViolation: {
+        create: (...args: unknown[]) => mockViolationCreate(...args),
+        findMany: (...args: unknown[]) => mockViolationFindMany(...args),
+        update: (...args: unknown[]) => mockViolationUpdate(...args),
+        count: (...args: unknown[]) => mockViolationCount(...args),
+      },
+      parkingArea: {
+        findMany: (...args: unknown[]) => mockAreaFindMany(...args),
+        create: (...args: unknown[]) => mockAreaCreate(...args),
+      },
+      parkingSpot: {
+        findMany: (...args: unknown[]) => mockSpotFindMany(...args),
+        findFirst: (...args: unknown[]) => mockSpotFindFirst(...args),
+        update: (...args: unknown[]) => mockSpotUpdate(...args),
+      },
+      permitType: {
+        findMany: (...args: unknown[]) => mockPermitTypeFindMany(...args),
+        findFirst: vi.fn().mockResolvedValue({ id: 'pt-1', name: 'Resident' }),
+        create: vi.fn().mockImplementation((args: Record<string, unknown>) =>
           Promise.resolve({
             id: testUuid('pt-new'),
             ...(args as { data?: Record<string, unknown> }).data,
           }),
         ),
-    },
-    parkingLimitConfig: {
-      findMany: (...args: unknown[]) => mockLimitConfigFindMany(...args),
-      findFirst: (...args: unknown[]) => mockLimitConfigFindFirst(...args),
-      create: (...args: unknown[]) => mockLimitConfigCreate(...args),
-    },
-    vehicle: {
-      create: vi.fn().mockResolvedValue({ id: 'vehicle-1' }),
-    },
-    user: {
-      findFirst: vi.fn().mockResolvedValue(null),
-    },
-    $transaction: (...args: unknown[]) => {
-      const first = args[0];
-      if (typeof first === 'function') {
-        return (first as (tx: unknown) => Promise<unknown>)({
-          parkingPermit: {
-            create: (...a: unknown[]) => mockPermitCreate(...a),
-            findUnique: (...a: unknown[]) => mockPermitFindUnique(...a),
-            update: (...a: unknown[]) => mockPermitUpdate(...a),
-          },
-          parkingSpot: {
-            update: (...a: unknown[]) => mockSpotUpdate(...a),
-          },
-          parkingViolation: {
-            updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-          },
-        });
-      }
-      if (Array.isArray(first)) {
-        return Promise.all(first);
-      }
-      return mockTransaction(...args);
-    },
-  },
-}));
+      },
+      parkingLimitConfig: {
+        findMany: (...args: unknown[]) => mockLimitConfigFindMany(...args),
+        findFirst: (...args: unknown[]) => mockLimitConfigFindFirst(...args),
+        create: (...args: unknown[]) => mockLimitConfigCreate(...args),
+      },
+      vehicle: {
+        create: vi.fn().mockResolvedValue({ id: 'vehicle-1' }),
+      },
+      user: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+      $transaction: (...args: unknown[]) => {
+        const first = args[0];
+        if (typeof first === 'function') {
+          return (first as (tx: unknown) => Promise<unknown>)({
+            parkingPermit: {
+              create: (...a: unknown[]) => mockPermitCreate(...a),
+              findUnique: (...a: unknown[]) => mockPermitFindUnique(...a),
+              update: (...a: unknown[]) => mockPermitUpdate(...a),
+            },
+            parkingSpot: {
+              update: (...a: unknown[]) => mockSpotUpdate(...a),
+            },
+            parkingViolation: {
+              updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+            },
+          });
+        }
+        if (Array.isArray(first)) {
+          return Promise.all(first);
+        }
+        return mockTransaction(...args);
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: (...args: unknown[]) => mockGuardRoute(...args),

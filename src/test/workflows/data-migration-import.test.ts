@@ -28,23 +28,26 @@ const mockDataExportRequestCount = vi.fn();
 
 const mockAuditLogCreate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    importJob: {
-      create: (...args: unknown[]) => mockImportJobCreate(...args),
-      findMany: (...args: unknown[]) => mockImportJobFindMany(...args),
-      count: (...args: unknown[]) => mockImportJobCount(...args),
-    },
-    dataExportRequest: {
-      create: (...args: unknown[]) => mockDataExportRequestCreate(...args),
-      findMany: (...args: unknown[]) => mockDataExportRequestFindMany(...args),
-      count: (...args: unknown[]) => mockDataExportRequestCount(...args),
-    },
-    auditLog: {
-      create: (...args: unknown[]) => mockAuditLogCreate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      importJob: {
+        create: (...args: unknown[]) => mockImportJobCreate(...args),
+        findMany: (...args: unknown[]) => mockImportJobFindMany(...args),
+        count: (...args: unknown[]) => mockImportJobCount(...args),
+      },
+      dataExportRequest: {
+        create: (...args: unknown[]) => mockDataExportRequestCreate(...args),
+        findMany: (...args: unknown[]) => mockDataExportRequestFindMany(...args),
+        count: (...args: unknown[]) => mockDataExportRequestCount(...args),
+      },
+      auditLog: {
+        create: (...args: unknown[]) => mockAuditLogCreate(...args),
+      },
+    }),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Data Migration Mock

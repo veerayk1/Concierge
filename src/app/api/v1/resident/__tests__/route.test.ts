@@ -50,53 +50,56 @@ const mockNotificationPrefUpsert = vi.fn();
 const mockOccupancyFindFirst = vi.fn();
 const mockAttachmentCreate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    package: {
-      findMany: (...args: unknown[]) => mockPackageFindMany(...args),
-      count: (...args: unknown[]) => mockPackageCount(...args),
-    },
-    maintenanceRequest: {
-      findMany: (...args: unknown[]) => mockMaintenanceFindMany(...args),
-      count: (...args: unknown[]) => mockMaintenanceCount(...args),
-      create: (...args: unknown[]) => mockMaintenanceCreate(...args),
-    },
-    booking: {
-      findMany: (...args: unknown[]) => mockBookingFindMany(...args),
-      count: (...args: unknown[]) => mockBookingCount(...args),
-      create: (...args: unknown[]) => mockBookingCreate(...args),
-      findUnique: (...args: unknown[]) => mockBookingFindUnique(...args),
-      update: (...args: unknown[]) => mockBookingUpdate(...args),
-    },
-    announcement: {
-      findMany: (...args: unknown[]) => mockAnnouncementFindMany(...args),
-      count: (...args: unknown[]) => mockAnnouncementCount(...args),
-    },
-    user: {
-      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
-      update: (...args: unknown[]) => mockUserUpdate(...args),
-    },
-    notification: {
-      findMany: (...args: unknown[]) => mockNotificationFindMany(...args),
-      count: (...args: unknown[]) => mockNotificationCount(...args),
-    },
-    notificationPreference: {
-      findMany: (...args: unknown[]) => mockNotificationPrefFindMany(...args),
-      upsert: (...args: unknown[]) => mockNotificationPrefUpsert(...args),
-    },
-    occupancyRecord: {
-      findFirst: (...args: unknown[]) => mockOccupancyFindFirst(...args),
-    },
-    attachment: {
-      create: (...args: unknown[]) => mockAttachmentCreate(...args),
-    },
-    maintenanceCategory: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'cat-general', name: 'General' }),
-    },
-    $queryRaw: vi.fn().mockResolvedValue([]),
-    $executeRaw: vi.fn().mockResolvedValue(0),
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      package: {
+        findMany: (...args: unknown[]) => mockPackageFindMany(...args),
+        count: (...args: unknown[]) => mockPackageCount(...args),
+      },
+      maintenanceRequest: {
+        findMany: (...args: unknown[]) => mockMaintenanceFindMany(...args),
+        count: (...args: unknown[]) => mockMaintenanceCount(...args),
+        create: (...args: unknown[]) => mockMaintenanceCreate(...args),
+      },
+      booking: {
+        findMany: (...args: unknown[]) => mockBookingFindMany(...args),
+        count: (...args: unknown[]) => mockBookingCount(...args),
+        create: (...args: unknown[]) => mockBookingCreate(...args),
+        findUnique: (...args: unknown[]) => mockBookingFindUnique(...args),
+        update: (...args: unknown[]) => mockBookingUpdate(...args),
+      },
+      announcement: {
+        findMany: (...args: unknown[]) => mockAnnouncementFindMany(...args),
+        count: (...args: unknown[]) => mockAnnouncementCount(...args),
+      },
+      user: {
+        findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+        update: (...args: unknown[]) => mockUserUpdate(...args),
+      },
+      notification: {
+        findMany: (...args: unknown[]) => mockNotificationFindMany(...args),
+        count: (...args: unknown[]) => mockNotificationCount(...args),
+      },
+      notificationPreference: {
+        findMany: (...args: unknown[]) => mockNotificationPrefFindMany(...args),
+        upsert: (...args: unknown[]) => mockNotificationPrefUpsert(...args),
+      },
+      occupancyRecord: {
+        findFirst: (...args: unknown[]) => mockOccupancyFindFirst(...args),
+      },
+      attachment: {
+        create: (...args: unknown[]) => mockAttachmentCreate(...args),
+      },
+      maintenanceCategory: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'cat-general', name: 'General' }),
+      },
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      $executeRaw: vi.fn().mockResolvedValue(0),
+    }),
+  };
+});
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('ABC123'),

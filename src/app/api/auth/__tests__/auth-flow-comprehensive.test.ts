@@ -33,42 +33,45 @@ const mockPasswordHistoryCreate = vi.fn();
 const mockRecoveryCodeFindFirst = vi.fn();
 const mockRecoveryCodeUpdate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    user: {
-      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
-      update: (...args: unknown[]) => mockUserUpdate(...args),
-    },
-    loginAudit: {
-      create: (...args: unknown[]) => mockLoginAuditCreate(...args),
-    },
-    refreshToken: {
-      create: (...args: unknown[]) => mockRefreshTokenCreate(...args),
-      findUnique: (...args: unknown[]) => mockRefreshTokenFindUnique(...args),
-      update: (...args: unknown[]) => mockRefreshTokenUpdate(...args),
-      updateMany: (...args: unknown[]) => mockRefreshTokenUpdateMany(...args),
-    },
-    session: {
-      create: (...args: unknown[]) => mockSessionCreate(...args),
-      findFirst: (...args: unknown[]) => mockSessionFindFirst(...args),
-      updateMany: (...args: unknown[]) => mockSessionUpdateMany(...args),
-    },
-    passwordResetToken: {
-      count: (...args: unknown[]) => mockPasswordResetTokenCount(...args),
-      create: (...args: unknown[]) => mockPasswordResetTokenCreate(...args),
-      findUnique: (...args: unknown[]) => mockPasswordResetTokenFindUnique(...args),
-      update: (...args: unknown[]) => mockPasswordResetTokenUpdate(...args),
-    },
-    passwordHistory: {
-      findMany: (...args: unknown[]) => mockPasswordHistoryFindMany(...args),
-      create: (...args: unknown[]) => mockPasswordHistoryCreate(...args),
-    },
-    recoveryCode: {
-      findFirst: (...args: unknown[]) => mockRecoveryCodeFindFirst(...args),
-      update: (...args: unknown[]) => mockRecoveryCodeUpdate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      user: {
+        findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+        update: (...args: unknown[]) => mockUserUpdate(...args),
+      },
+      loginAudit: {
+        create: (...args: unknown[]) => mockLoginAuditCreate(...args),
+      },
+      refreshToken: {
+        create: (...args: unknown[]) => mockRefreshTokenCreate(...args),
+        findUnique: (...args: unknown[]) => mockRefreshTokenFindUnique(...args),
+        update: (...args: unknown[]) => mockRefreshTokenUpdate(...args),
+        updateMany: (...args: unknown[]) => mockRefreshTokenUpdateMany(...args),
+      },
+      session: {
+        create: (...args: unknown[]) => mockSessionCreate(...args),
+        findFirst: (...args: unknown[]) => mockSessionFindFirst(...args),
+        updateMany: (...args: unknown[]) => mockSessionUpdateMany(...args),
+      },
+      passwordResetToken: {
+        count: (...args: unknown[]) => mockPasswordResetTokenCount(...args),
+        create: (...args: unknown[]) => mockPasswordResetTokenCreate(...args),
+        findUnique: (...args: unknown[]) => mockPasswordResetTokenFindUnique(...args),
+        update: (...args: unknown[]) => mockPasswordResetTokenUpdate(...args),
+      },
+      passwordHistory: {
+        findMany: (...args: unknown[]) => mockPasswordHistoryFindMany(...args),
+        create: (...args: unknown[]) => mockPasswordHistoryCreate(...args),
+      },
+      recoveryCode: {
+        findFirst: (...args: unknown[]) => mockRecoveryCodeFindFirst(...args),
+        update: (...args: unknown[]) => mockRecoveryCodeUpdate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/auth/password', () => ({
   verifyPassword: vi.fn(),

@@ -58,27 +58,30 @@ const mockNotificationCreate = vi.fn();
 
 const mockGuardRoute = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    forumTopic: {
-      findMany: (...args: unknown[]) => mockTopicFindMany(...args),
-      findUnique: (...args: unknown[]) => mockTopicFindUnique(...args),
-      create: (...args: unknown[]) => mockTopicCreate(...args),
-      update: (...args: unknown[]) => mockTopicUpdate(...args),
-      delete: (...args: unknown[]) => mockTopicDelete(...args),
-      count: (...args: unknown[]) => mockTopicCount(...args),
-    },
-    forumReply: {
-      findMany: (...args: unknown[]) => mockReplyFindMany(...args),
-      findUnique: (...args: unknown[]) => mockReplyFindUnique(...args),
-      create: (...args: unknown[]) => mockReplyCreate(...args),
-      update: (...args: unknown[]) => mockReplyUpdate(...args),
-    },
-    notification: {
-      create: (...args: unknown[]) => mockNotificationCreate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      forumTopic: {
+        findMany: (...args: unknown[]) => mockTopicFindMany(...args),
+        findUnique: (...args: unknown[]) => mockTopicFindUnique(...args),
+        create: (...args: unknown[]) => mockTopicCreate(...args),
+        update: (...args: unknown[]) => mockTopicUpdate(...args),
+        delete: (...args: unknown[]) => mockTopicDelete(...args),
+        count: (...args: unknown[]) => mockTopicCount(...args),
+      },
+      forumReply: {
+        findMany: (...args: unknown[]) => mockReplyFindMany(...args),
+        findUnique: (...args: unknown[]) => mockReplyFindUnique(...args),
+        create: (...args: unknown[]) => mockReplyCreate(...args),
+        update: (...args: unknown[]) => mockReplyUpdate(...args),
+      },
+      notification: {
+        create: (...args: unknown[]) => mockNotificationCreate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/server/middleware/api-guard', () => ({
   guardRoute: (...args: unknown[]) => mockGuardRoute(...args),

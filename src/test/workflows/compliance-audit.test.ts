@@ -33,23 +33,26 @@ const mockVendorFindUnique = vi.fn();
 const mockVendorFindMany = vi.fn();
 const mockVendorUpdate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    complianceReport: {
-      create: (...args: unknown[]) => mockComplianceReportCreate(...args),
-      findMany: (...args: unknown[]) => mockComplianceReportFindMany(...args),
-      findUnique: (...args: unknown[]) => mockComplianceReportFindUnique(...args),
-    },
-    reportRun: {
-      findUnique: (...args: unknown[]) => mockReportRunFindUnique(...args),
-    },
-    vendor: {
-      findUnique: (...args: unknown[]) => mockVendorFindUnique(...args),
-      findMany: (...args: unknown[]) => mockVendorFindMany(...args),
-      update: (...args: unknown[]) => mockVendorUpdate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      complianceReport: {
+        create: (...args: unknown[]) => mockComplianceReportCreate(...args),
+        findMany: (...args: unknown[]) => mockComplianceReportFindMany(...args),
+        findUnique: (...args: unknown[]) => mockComplianceReportFindUnique(...args),
+      },
+      reportRun: {
+        findUnique: (...args: unknown[]) => mockReportRunFindUnique(...args),
+      },
+      vendor: {
+        findUnique: (...args: unknown[]) => mockVendorFindUnique(...args),
+        findMany: (...args: unknown[]) => mockVendorFindMany(...args),
+        update: (...args: unknown[]) => mockVendorUpdate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('@/lib/sanitize', () => ({
   stripHtml: (s: string) => s,

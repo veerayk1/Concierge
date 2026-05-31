@@ -36,33 +36,36 @@ const mockTemplateFindUnique = vi.fn();
 
 const mockMaintenanceCreate = vi.fn();
 
-vi.mock('@/server/db', () => ({
-  prisma: {
-    inspection: {
-      findMany: (...args: unknown[]) => mockInspectionFindMany(...args),
-      findUnique: (...args: unknown[]) => mockInspectionFindUnique(...args),
-      count: (...args: unknown[]) => mockInspectionCount(...args),
-      create: (...args: unknown[]) => mockInspectionCreate(...args),
-      update: (...args: unknown[]) => mockInspectionUpdate(...args),
-    },
-    inspectionItem: {
-      findMany: (...args: unknown[]) => mockItemFindMany(...args),
-      findUnique: (...args: unknown[]) => mockItemFindUnique(...args),
-      update: (...args: unknown[]) => mockItemUpdate(...args),
-      create: (...args: unknown[]) => mockItemCreate(...args),
-      createMany: vi.fn(),
-    },
-    inspectionTemplate: {
-      findMany: (...args: unknown[]) => mockTemplateFindMany(...args),
-      findUnique: (...args: unknown[]) => mockTemplateFindUnique(...args),
-      count: (...args: unknown[]) => mockTemplateCount(...args),
-      create: (...args: unknown[]) => mockTemplateCreate(...args),
-    },
-    maintenanceRequest: {
-      create: (...args: unknown[]) => mockMaintenanceCreate(...args),
-    },
-  },
-}));
+vi.mock('@/server/db', async () => {
+  const { createMockPrisma } = await import('@/test/mocks/prisma');
+  return {
+    prisma: createMockPrisma({
+      inspection: {
+        findMany: (...args: unknown[]) => mockInspectionFindMany(...args),
+        findUnique: (...args: unknown[]) => mockInspectionFindUnique(...args),
+        count: (...args: unknown[]) => mockInspectionCount(...args),
+        create: (...args: unknown[]) => mockInspectionCreate(...args),
+        update: (...args: unknown[]) => mockInspectionUpdate(...args),
+      },
+      inspectionItem: {
+        findMany: (...args: unknown[]) => mockItemFindMany(...args),
+        findUnique: (...args: unknown[]) => mockItemFindUnique(...args),
+        update: (...args: unknown[]) => mockItemUpdate(...args),
+        create: (...args: unknown[]) => mockItemCreate(...args),
+        createMany: vi.fn(),
+      },
+      inspectionTemplate: {
+        findMany: (...args: unknown[]) => mockTemplateFindMany(...args),
+        findUnique: (...args: unknown[]) => mockTemplateFindUnique(...args),
+        count: (...args: unknown[]) => mockTemplateCount(...args),
+        create: (...args: unknown[]) => mockTemplateCreate(...args),
+      },
+      maintenanceRequest: {
+        create: (...args: unknown[]) => mockMaintenanceCreate(...args),
+      },
+    }),
+  };
+});
 
 vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('X1Y2'),
