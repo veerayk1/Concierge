@@ -50,6 +50,7 @@ const mockCheckoutUpdate = vi.fn();
 
 const mockIncidentCreate = vi.fn();
 const mockTransaction = vi.fn();
+const mockExecuteRaw = vi.fn();
 
 vi.mock('@/server/db', async () => {
   const { createMockPrisma } = await import('@/test/mocks/prisma');
@@ -72,6 +73,8 @@ vi.mock('@/server/db', async () => {
         create: (...args: unknown[]) => mockIncidentCreate(...args),
       },
       $transaction: (...args: unknown[]) => mockTransaction(...args),
+      // Return uses a raw-SQL compare-and-set; default to 1 row updated.
+      $executeRaw: (...args: unknown[]) => mockExecuteRaw(...args),
     }),
   };
 });
@@ -120,13 +123,23 @@ const CHECKOUT_ID_2 = '00000000-0000-4000-b000-000000000031';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockExecuteRaw.mockResolvedValue(1);
   mockKeyFindMany.mockResolvedValue([]);
-  mockKeyFindUnique.mockResolvedValue(null);
+  mockKeyFindUnique.mockResolvedValue({
+    id: '00000000-0000-4000-a000-00000000ke01',
+    propertyId: '00000000-0000-4000-b000-000000000001',
+    status: 'available',
+  });
   mockKeyCreate.mockResolvedValue({});
   mockKeyUpdate.mockResolvedValue({});
   mockKeyCount.mockResolvedValue(0);
   mockCheckoutFindMany.mockResolvedValue([]);
-  mockCheckoutFindUnique.mockResolvedValue(null);
+  mockCheckoutFindUnique.mockResolvedValue({
+    id: '00000000-0000-4000-a000-00000000co01',
+    propertyId: '00000000-0000-4000-b000-000000000001',
+    returnedAt: null,
+    key: { id: '00000000-0000-4000-a000-00000000ke01' },
+  });
   mockCheckoutCreate.mockResolvedValue({});
   mockCheckoutUpdate.mockResolvedValue({});
   mockIncidentCreate.mockResolvedValue({});
@@ -489,7 +502,11 @@ describe('POST — Unavailable key prevention', () => {
   });
 
   it('returns 404 when key does not exist', async () => {
-    mockKeyFindUnique.mockResolvedValue(null);
+    mockKeyFindUnique.mockResolvedValue({
+      id: '00000000-0000-4000-a000-00000000ke01',
+      propertyId: '00000000-0000-4000-b000-000000000001',
+      status: 'available',
+    });
 
     const req = createPostRequest('/api/v1/keys/checkouts', baseCheckout);
     const res = await POST_CHECKOUT(req);
@@ -918,7 +935,11 @@ describe('GET /api/v1/keys/:id — Key history audit trail', () => {
   });
 
   it('returns 404 for non-existent key', async () => {
-    mockKeyFindUnique.mockResolvedValue(null);
+    mockKeyFindUnique.mockResolvedValue({
+      id: '00000000-0000-4000-a000-00000000ke01',
+      propertyId: '00000000-0000-4000-b000-000000000001',
+      status: 'available',
+    });
 
     const req = createGetRequest(`/api/v1/keys/nonexistent`);
     const res = await GET_KEY_DETAIL(req, {
@@ -1114,7 +1135,12 @@ describe('Key transfer scenario', () => {
 
 describe('PATCH — Checkout not found', () => {
   it('returns 404 for non-existent checkout record', async () => {
-    mockCheckoutFindUnique.mockResolvedValue(null);
+    mockCheckoutFindUnique.mockResolvedValue({
+      id: '00000000-0000-4000-a000-00000000co01',
+      propertyId: '00000000-0000-4000-b000-000000000001',
+      returnedAt: null,
+      key: { id: '00000000-0000-4000-a000-00000000ke01' },
+    });
 
     const req = createPatchRequest('/api/v1/keys/checkouts/nonexistent', {
       action: 'return',
