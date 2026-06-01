@@ -383,11 +383,11 @@ describe('Auth Comprehensive: Token refresh with valid refresh token', () => {
       createPostRequest('/api/auth/refresh', { refreshToken: 'valid-refresh-token' }),
     );
 
-    // Old token revoked
+    // Old token rotated (rotation sets rotatedAt, not revokedAt).
     expect(mockRefreshTokenUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: storedToken.id },
-        data: expect.objectContaining({ revokedAt: expect.any(Date) }),
+        data: expect.objectContaining({ rotatedAt: expect.any(Date) }),
       }),
     );
 

@@ -131,12 +131,12 @@ describe('POST /api/auth/refresh', () => {
     expect((body as any).data).toHaveProperty('refreshToken');
     expect((body as any).data.refreshToken).not.toBe('valid-refresh-token');
 
-    // Old token should be revoked
+    // Old token should be rotated (rotation sets rotatedAt, not revokedAt).
     expect(prisma.refreshToken.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: rt.id },
         data: expect.objectContaining({
-          revokedAt: expect.any(Date),
+          rotatedAt: expect.any(Date),
         }),
       }),
     );
