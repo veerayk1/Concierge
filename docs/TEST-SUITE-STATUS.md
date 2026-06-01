@@ -1,23 +1,55 @@
 # Test Suite Status — May 31, 2026
 
-## Headline (updated — Tier 0+1 done, Tier 2 in progress)
+## Headline (updated — Tier 0+1 done, Tier 2 deep in progress)
 
 ```
-Test Files  79 failed | 194 passed | 2 skipped (275)
-     Tests  752 failed | 9464 passed | 49 skipped | 17 todo (10282)
+Test Files  73 failed | 200 passed | 2 skipped (275)
+     Tests  565 failed | 9651 passed | 49 skipped | 17 todo (10282)
 ```
 
-Trajectory this effort: `1122 → 1113 → 821 → 752` failing tests (**9,464
-passing**, +404 recovered, zero regressions). Done so far:
+Trajectory this effort: `1122 → 821 → 752 → 565` failing tests (**9,651
+passing**, +557 recovered, zero regressions). Done so far:
 
-- **Tier 0** — trivial stale assertions (rotatedAt, CR/LF stripping). 4 tests.
-- **Tier 1** — `testUuid()` fixture helper + path-param id sweep across 59 files
-  (37/43 `[id]` routes now enforce `isUuid`). ~300 tests recovered.
+- **Tier 0** — trivial stale assertions (rotatedAt, CR/LF stripping).
+- **Tier 1** — `testUuid()` fixture helper + path-param id sweep (59 files).
 - **Tier 2 (in progress)** — `createMockPrisma` adopted across 74 files
-  (crash-proof; `scripts/adopt-factory.mjs`), factory gained a `$transaction`
-  override, `packages/comprehensive` 45→18, and the **module-guard pattern**:
-  `training_lms` defaults DISABLED so `requireModule` 403s — mocking it
-  recovered ~39 training tests.
+  (`scripts/adopt-factory.mjs`), factory gained `$transaction`/`$queryRaw`/
+  `$executeRaw` overrides. **Fully greened:** amenities/comprehensive,
+  users/management, surveys/[id], classifieds/[id], photo-albums/[id],
+  visitors/sign-out, custom-fields, training (mostly). **Found + fixed 1 real
+  production bug** (amenity booking `new Date("10:00")` — see TEST-REHAB-BUGS.md).
+
+### The proven per-file recipe (Tier 2)
+
+Each failing route-unit file is fixed by some combination of these — the
+diagnosis is always: read the route, see which model/method/shape the hardened
+code now needs, wire the default. The recurring fixes:
+
+1. **Valid-UUID id constants.** `const X_ID = 'survey-detail-001'` → a real
+   UUID. The `[id]` routes `isUuid()`-gate the path param; non-UUID = 400 on
+   every test. (Caught the `makeParams(id)` variable form the literal sweep missed.)
+2. **Entity `findUnique` defaults in `beforeEach`.** Hardened routes fetch the
+   target (unit ownership, package existence, role privilege-guard) before
+   acting; factory returns null → 404/400. Default it to a valid entity;
+   not-found tests override with null.
+3. **`$executeRaw` → 1.** Status transitions use a raw-SQL compare-and-set
+   (`UPDATE … WHERE status=$old`); factory returns 0 → 409. Conflict tests override.
+4. **`$queryRaw` → `[{count:0n}]`.** Booking/overlap probes; factory null → crash.
+5. **`$transaction` callback-runner.** So `tx.x.create` fires the wired spies;
+   include every model the tx callback touches (e.g. `tx.role.findUnique`).
+6. **module-guard mock** for default-OFF modules (`training_lms`, `community`,
+   `ai_features`): `requireModule` → null.
+7. **Future dates** where a past-booking guard is correct.
+8. **Stale assertions** (error code drift like `LIMIT_EXCEEDED`→`VALIDATION_ERROR`,
+   soft-delete on a hard-deleted model) — fix the test to current behavior.
+
+### Remaining 565 (73 files)
+
+Mostly the route-unit files above (per-file, ~10–30 min each) plus the **18
+integration-workflow files** (`src/test/workflows/`, Tier 3) that need the
+stateful in-memory mock. No systemic shortcut remains — it's the recipe above,
+file by file. The work is bounded and mechanical-but-attentive; it is not a
+research problem.
 
 ### Systemic levers are now exhausted — the rest is per-file
 
