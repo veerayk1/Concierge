@@ -415,7 +415,7 @@ describe('GET /api/v1/units/:id — Unit Detail', () => {
     mockUnitFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest(`/api/v1/units/nonexistent`);
-    const res = await GET_DETAIL(req, makeParams('nonexistent'));
+    const res = await GET_DETAIL(req, makeParams('00000000-0000-4000-e000-0000000000ff'));
 
     expect(res.status).toBe(404);
     const body = await parseResponse<{ error: string }>(res);
@@ -743,7 +743,7 @@ describe('GET /api/v1/units/:id/residents — Unit Occupants', () => {
     mockUnitFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest(`/api/v1/units/nonexistent/residents`);
-    const res = await GET_RESIDENTS(req, makeParams('nonexistent'));
+    const res = await GET_RESIDENTS(req, makeParams('00000000-0000-4000-e000-0000000000ff'));
 
     expect(res.status).toBe(404);
     const body = await parseResponse<{ error: string }>(res);
