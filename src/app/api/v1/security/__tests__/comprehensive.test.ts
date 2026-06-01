@@ -175,6 +175,7 @@ vi.mock('@/server/db', async () => {
       },
       unit: {
         findMany: (...args: unknown[]) => mockSearchUnitFindMany(...args),
+        findUnique: (...args: unknown[]) => mockUnitFindUnique(...args),
       },
       package: {
         findMany: (...args: unknown[]) => mockSearchPackageFindMany(...args),
@@ -211,11 +212,7 @@ vi.mock('@/server/db', async () => {
       eventTypeEmailConfig: {
         findFirst: vi.fn().mockResolvedValue(null),
       },
-      // Visitor sign-in verifies unit ownership; status transitions use a
-      // raw-SQL compare-and-set.
-      unit: {
-        findUnique: (...args: unknown[]) => mockUnitFindUnique(...args),
-      },
+      // Status transitions use a raw-SQL compare-and-set.
       $transaction: (...args: unknown[]) => mockTransaction(...args),
       $executeRaw: (...args: unknown[]) => mockExecuteRaw(...args),
     }),
