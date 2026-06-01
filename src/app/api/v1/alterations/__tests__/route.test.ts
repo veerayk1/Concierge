@@ -26,6 +26,7 @@ const mockCount = vi.fn();
 const mockCreate = vi.fn();
 const mockFindUnique = vi.fn();
 const mockUpdate = vi.fn();
+const mockExecuteRaw = vi.fn();
 
 const mockDocFindMany = vi.fn();
 const mockDocCreate = vi.fn();
@@ -50,6 +51,9 @@ vi.mock('@/server/db', async () => {
       alterationStatusChange: {
         create: vi.fn(),
       },
+      // Status transitions use a raw-SQL compare-and-set; default to 1 row
+      // updated (success). Conflict tests override with 0.
+      $executeRaw: (...args: unknown[]) => mockExecuteRaw(...args),
     }),
   };
 });
@@ -83,6 +87,7 @@ import { calculateMomentum } from '@/schemas/alteration';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockExecuteRaw.mockResolvedValue(1);
   mockFindMany.mockResolvedValue([]);
   mockCount.mockResolvedValue(0);
 });
