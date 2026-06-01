@@ -62,6 +62,7 @@ const mockCommentFindMany = vi.fn();
 const mockAttachmentCreate = vi.fn();
 const mockAttachmentFindMany = vi.fn();
 const mockSendEmail = vi.fn();
+const mockExecuteRaw = vi.fn();
 
 vi.mock('@/server/db', async () => {
   const { createMockPrisma } = await import('@/test/mocks/prisma');
@@ -90,6 +91,9 @@ vi.mock('@/server/db', async () => {
         findUnique: vi.fn().mockResolvedValue(null),
         findFirst: vi.fn().mockResolvedValue(null),
       },
+      // Status transitions use a raw-SQL compare-and-set; default to 1 row
+      // updated (success). Conflict tests override with 0.
+      $executeRaw: (...args: unknown[]) => mockExecuteRaw(...args),
     }),
   };
 });
@@ -181,9 +185,14 @@ const validCreateBody = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockExecuteRaw.mockResolvedValue(1);
   mockFindMany.mockResolvedValue([]);
   mockCount.mockResolvedValue(0);
   mockSendEmail.mockResolvedValue('msg-id');
+  // Transition/assign routes fetch then update the request; default both so the
+  // handlers have data. Not-found tests override findUnique with null.
+  mockFindUnique.mockResolvedValue(makeRequest());
+  mockUpdate.mockResolvedValue(makeRequest());
   mockStatusChangeCreate.mockResolvedValue({ id: 'sc-1' });
   mockAttachmentCreate.mockResolvedValue({ id: 'att-1' });
 });
