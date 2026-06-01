@@ -148,7 +148,8 @@ vi.mock('@/server/db', () => {
         create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
           idCounter++;
           const record = {
-            id: `cf-${idCounter.toString().padStart(4, '0')}`,
+            // Valid UUID so the [id] routes' isUuid() guard accepts it.
+            id: `00000000-0000-4000-cf00-${idCounter.toString().padStart(12, '0')}`,
             isActive: true,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
