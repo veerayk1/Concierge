@@ -104,6 +104,8 @@ const mockSearchPackageFindMany = vi.fn();
 const mockSearchAnnouncementFindMany = vi.fn();
 
 const mockTransaction = vi.fn();
+const mockExecuteRaw = vi.fn();
+const mockUnitFindUnique = vi.fn();
 
 vi.mock('@/server/db', async () => {
   const { createMockPrisma } = await import('@/test/mocks/prisma');
@@ -209,7 +211,13 @@ vi.mock('@/server/db', async () => {
       eventTypeEmailConfig: {
         findFirst: vi.fn().mockResolvedValue(null),
       },
+      // Visitor sign-in verifies unit ownership; status transitions use a
+      // raw-SQL compare-and-set.
+      unit: {
+        findUnique: (...args: unknown[]) => mockUnitFindUnique(...args),
+      },
       $transaction: (...args: unknown[]) => mockTransaction(...args),
+      $executeRaw: (...args: unknown[]) => mockExecuteRaw(...args),
     }),
   };
 });
@@ -295,6 +303,11 @@ const EVENT_TYPE_CLEANING = '00000000-0000-4000-d000-000000000003';
 beforeEach(() => {
   vi.clearAllMocks();
   appCache.clear();
+  mockExecuteRaw.mockResolvedValue(1);
+  mockUnitFindUnique.mockResolvedValue({
+    id: '00000000-0000-4000-e000-000000000001',
+    propertyId: '00000000-0000-4000-b000-000000000001',
+  });
 
   // Default empty results for all mocks
   mockEventFindMany.mockResolvedValue([]);
