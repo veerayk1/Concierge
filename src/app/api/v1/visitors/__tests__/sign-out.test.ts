@@ -33,6 +33,7 @@ import { testUuid } from '@/test/fixtures/ids';
 const mockFindMany = vi.fn();
 const mockCount = vi.fn();
 const mockCreate = vi.fn();
+const mockUnitFindUnique = vi.fn();
 const mockFindUnique = vi.fn();
 const mockUpdate = vi.fn();
 const mockUpdateMany = vi.fn();
@@ -57,6 +58,10 @@ vi.mock('@/server/db', async () => {
         create: (...args: unknown[]) => mockParkingPermitCreate(...args),
         update: (...args: unknown[]) => mockParkingPermitUpdate(...args),
         findFirst: (...args: unknown[]) => mockParkingPermitFindFirst(...args),
+      },
+      // Sign-in verifies the unit belongs to the property.
+      unit: {
+        findUnique: (...args: unknown[]) => mockUnitFindUnique(...args),
       },
     }),
   };
@@ -102,6 +107,7 @@ const VISITOR_ID_3 = '00000000-0000-4000-f000-000000000003';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockUnitFindUnique.mockResolvedValue({ id: UNIT_ID, propertyId: PROPERTY_ID });
   mockFindMany.mockResolvedValue([]);
   mockCount.mockResolvedValue(0);
 });
