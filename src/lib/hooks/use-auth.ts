@@ -104,6 +104,27 @@ function isTokenExpired(token: string): boolean {
   return payload.exp * 1000 < Date.now() + 30_000;
 }
 
+/**
+ * Reconcile leftover demo/impersonation state with a real authenticated session.
+ *
+ * A `demo_role` in localStorage drives role-aware views (dashboard, nav) when
+ * there is no real user. If a real user logs in or rehydrates, a STALE
+ * `demo_role` (e.g. 'property_admin' left over from a prior "Open Portal" or a
+ * demo-role switch) would otherwise hijack their view — a super_admin would see
+ * a single property's property-admin dashboard with no way back. The ONLY
+ * sanctioned impersonation ("Open Portal") sets `demo_mode = 'showcase'` and
+ * shows an exit banner, so we preserve that case and purge everything else.
+ *
+ * Exported for testing.
+ */
+export function reconcileDemoStateForRealSession(): void {
+  if (typeof window === 'undefined') return;
+  if (localStorage.getItem('demo_mode') === 'showcase') return; // active, banner-guarded impersonation
+  localStorage.removeItem('demo_role');
+  localStorage.removeItem('demo_propertyId');
+  localStorage.removeItem('demo_return_role');
+}
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
@@ -125,6 +146,9 @@ export function useAuth(): UseAuthReturn {
     const restoreUserFromStorageOrToken = (token: string): void => {
       const payload = decodeJwtPayload(token);
       if (!payload || typeof payload.sub !== 'string') return;
+      // A real session is being restored — drop any stale, non-showcase demo
+      // impersonation so it can't override this user's role/property view.
+      reconcileDemoStateForRealSession();
       const storedUser = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
       if (storedUser) {
         try {

@@ -2559,17 +2559,26 @@ export default function DashboardPage() {
     manager: 'property_manager',
   };
   const resolvedDemoRole = demoRole ? ((ROLE_ALIASES[demoRole] ?? demoRole) as Role) : null;
-  const effectiveRole: Role = user?.role ?? resolvedDemoRole ?? 'front_desk';
+  // Showcase = the sanctioned "Open Portal" impersonation (banner-guarded, has
+  // an exit). Only THEN does a demo_role override an authenticated user's role.
+  // Otherwise a real session always wins, so a leftover demo_role can never
+  // hijack a super_admin into a single-property property_admin view.
+  const isShowcase =
+    typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'showcase';
+  const effectiveRole: Role = isShowcase
+    ? (resolvedDemoRole ?? user?.role ?? 'front_desk')
+    : (user?.role ?? resolvedDemoRole ?? 'front_desk');
 
-  // In demo mode (no real auth), fetch the demo user's profile so we can greet
-  // them by their actual DB name instead of a hardcoded placeholder.
+  // Fetch the impersonated/demo user's profile so we greet them by their real
+  // DB name. In showcase we greet the impersonated property's admin; in a pure
+  // demo session (no real auth) we greet the demo user.
+  const useDemoIdentity = isShowcase || (!user && !!resolvedDemoRole);
   const { data: meData } = useApi<{ firstName: string; lastName: string }>(
-    !user && resolvedDemoRole ? '/api/v1/users/me' : null,
+    useDemoIdentity ? '/api/v1/users/me' : null,
   );
-  const effectiveName =
-    user?.firstName ??
-    meData?.firstName ??
-    (resolvedDemoRole ? (ROLE_DISPLAY_NAMES[effectiveRole] ?? 'User') : 'User');
+  const effectiveName = useDemoIdentity
+    ? (meData?.firstName ?? ROLE_DISPLAY_NAMES[effectiveRole] ?? 'User')
+    : (user?.firstName ?? 'User');
 
   // Super Admin gets platform-level dashboard — no property-specific API calls
   const isSuperAdmin = effectiveRole === 'super_admin';
@@ -2668,7 +2677,11 @@ export default function DashboardPage() {
 
   const buildingHealthScore = aiAnalytics?.healthScore ?? null;
 
-  if (loading && !demoRole) {
+  // Wait for auth to resolve before choosing the role. Previously a stale
+  // `demo_role` short-circuited this guard, so an authenticated super_admin
+  // could render the single-property property_admin view (using the
+  // half-hydrated user=null window) instead of their multi-property overview.
+  if (loading) {
     return <DashboardSkeleton />;
   }
 
