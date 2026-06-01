@@ -82,7 +82,7 @@ import { GET, PATCH, POST, DELETE } from '../route';
 // ---------------------------------------------------------------------------
 
 const PROPERTY_A = '00000000-0000-4000-b000-000000000001';
-const ALBUM_ID = 'album-detail-001';
+const ALBUM_ID = '00000000-0000-4000-b000-0000000000a3';
 const PHOTO_ID = '00000000-0000-4000-b000-000000000010';
 const USER_ADMIN = 'user-admin-001';
 
@@ -180,7 +180,7 @@ describe('GET /api/v1/photo-albums/:id', () => {
     mockAlbumFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/photo-albums/non-existent');
-    const res = await GET(req, makeParams('non-existent'));
+    const res = await GET(req, makeParams('00000000-0000-4000-b000-0000000000ff'));
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -294,7 +294,7 @@ describe('PATCH /api/v1/photo-albums/:id — Update metadata', () => {
     mockAlbumFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/photo-albums/non-existent', { title: 'New Title' });
-    const res = await PATCH(req, makeParams('non-existent'));
+    const res = await PATCH(req, makeParams('00000000-0000-4000-b000-0000000000ff'));
     expect(res.status).toBe(404);
   });
 });
@@ -416,7 +416,7 @@ describe('POST /api/v1/photo-albums/:id — Add photo', () => {
       filename: 'photo.jpg',
       url: '/uploads/photo.jpg',
     });
-    const res = await POST(req, makeParams('non-existent'));
+    const res = await POST(req, makeParams('00000000-0000-4000-b000-0000000000ff'));
     expect(res.status).toBe(404);
   });
 
@@ -476,7 +476,7 @@ describe('DELETE /api/v1/photo-albums/:id', () => {
     mockAlbumFindUnique.mockResolvedValue(null);
 
     const req = createDeleteRequest('/api/v1/photo-albums/non-existent');
-    const res = await DELETE(req, makeParams('non-existent'));
+    const res = await DELETE(req, makeParams('00000000-0000-4000-b000-0000000000ff'));
     expect(res.status).toBe(404);
   });
 });
