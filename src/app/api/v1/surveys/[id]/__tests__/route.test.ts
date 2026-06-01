@@ -76,7 +76,7 @@ import { GET, PATCH, POST } from '../route';
 // ---------------------------------------------------------------------------
 
 const PROPERTY_A = '00000000-0000-4000-b000-000000000001';
-const SURVEY_ID = 'survey-detail-001';
+const SURVEY_ID = '00000000-0000-4000-b000-0000000000a1';
 const USER_ADMIN = 'user-admin-001';
 const USER_RESIDENT = 'user-resident-002';
 const USER_OTHER = 'user-other-003';
@@ -162,7 +162,7 @@ describe('GET /api/v1/surveys/:id', () => {
     mockSurveyFindUnique.mockResolvedValue(null);
 
     const req = createGetRequest('/api/v1/surveys/non-existent');
-    const res = await GET(req, makeParams('non-existent'));
+    const res = await GET(req, makeParams('00000000-0000-4000-b000-0000000000ff'));
     expect(res.status).toBe(404);
 
     const body = await parseResponse<{ error: string }>(res);
@@ -324,7 +324,7 @@ describe('PATCH /api/v1/surveys/:id — Access control', () => {
     mockSurveyFindUnique.mockResolvedValue(null);
 
     const req = createPatchRequest('/api/v1/surveys/non-existent', { status: 'active' });
-    const res = await PATCH(req, makeParams('non-existent'));
+    const res = await PATCH(req, makeParams('00000000-0000-4000-b000-0000000000ff'));
     expect(res.status).toBe(404);
   });
 
@@ -506,7 +506,7 @@ describe('POST /api/v1/surveys/:id — Submit response', () => {
     const req = createPostRequest('/api/v1/surveys/non-existent', {
       answers: [{ questionId: Q1_ID, value: 5 }],
     });
-    const res = await POST(req, makeParams('non-existent'));
+    const res = await POST(req, makeParams('00000000-0000-4000-b000-0000000000ff'));
     expect(res.status).toBe(404);
   });
 
