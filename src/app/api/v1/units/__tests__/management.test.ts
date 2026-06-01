@@ -118,7 +118,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockUnitFindMany.mockResolvedValue([]);
   mockUnitCount.mockResolvedValue(0);
-  mockUnitFindUnique.mockResolvedValue(null);
+  // [id] routes fetch the unit before acting; default to an existing unit so
+  // GET/PATCH/DELETE find it. Not-found tests override with null.
+  mockUnitFindUnique.mockResolvedValue(makeUnit());
   mockUnitFindFirst.mockResolvedValue(null);
   mockInstructionFindMany.mockResolvedValue([]);
   mockUserFindMany.mockResolvedValue([]);
