@@ -27,6 +27,7 @@ const mockCreateMany = vi.fn();
 const mockFindUnique = vi.fn();
 const mockUpdate = vi.fn();
 const mockTransaction = vi.fn();
+const mockUnitFindUnique = vi.fn();
 
 vi.mock('@/server/db', async () => {
   const { createMockPrisma } = await import('@/test/mocks/prisma');
@@ -39,6 +40,10 @@ vi.mock('@/server/db', async () => {
         createMany: (...args: unknown[]) => mockCreateMany(...args),
         findUnique: (...args: unknown[]) => mockFindUnique(...args),
         update: (...args: unknown[]) => mockUpdate(...args),
+      },
+      // Card issuance verifies the unit belongs to the property.
+      unit: {
+        findUnique: (...args: unknown[]) => mockUnitFindUnique(...args),
       },
       $transaction: (...args: unknown[]) => mockTransaction(...args),
     }),
@@ -70,6 +75,7 @@ import { POST as VERIFY } from '../[id]/verify/route';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockUnitFindUnique.mockResolvedValue({ propertyId: PROPERTY_ID });
   mockFindMany.mockResolvedValue([]);
   mockCount.mockResolvedValue(0);
 });
