@@ -671,27 +671,27 @@ function ResidentsVisual() {
             }}
           >
             <PhoneNotification
-              app="Concierge"
+              app="BuildingAutopilot"
               title="Your package has arrived"
               body="Amazon · ready for pickup at the front desk"
               time="now"
             />
             <PhoneNotification
-              app="Concierge"
+              app="BuildingAutopilot"
               title="Booking confirmed"
               body="Party room — Saturday 6–10pm"
               time="2m"
               dim={0.92}
             />
             <PhoneNotification
-              app="Concierge"
+              app="BuildingAutopilot"
               title="Building announcement"
               body="Water shutoff on the 9th floor 9–11am tomorrow"
               time="14m"
               dim={0.78}
             />
             <PhoneNotification
-              app="Concierge"
+              app="BuildingAutopilot"
               title="Request resolved"
               body="Your hot water leak request is closed."
               time="1h"

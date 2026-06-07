@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { LoginForm } from './login-form';
 
 export const metadata: Metadata = {
-  title: 'Sign In | Concierge',
+  title: 'Sign In | BuildingAutopilot',
 };
 
 export default function LoginPage() {

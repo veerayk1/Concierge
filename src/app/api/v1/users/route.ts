@@ -429,7 +429,7 @@ export async function POST(request: NextRequest) {
       await sendEmailWithLog(
         {
           to: user.email,
-          subject: `Welcome to ${property?.name ?? 'Concierge'}`,
+          subject: `Welcome to ${property?.name ?? 'BuildingAutopilot'}`,
           html: renderTemplate('welcome', {
             firstName: user.firstName,
             propertyName: property?.name ?? 'your property',

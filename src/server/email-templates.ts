@@ -91,13 +91,13 @@ function baseLayout(title: string, bodyContent: string): string {
   <div class="email-wrapper">
     <div class="email-container">
       <div class="email-header">
-        <a href="#" class="email-logo">Concierge</a>
+        <a href="#" class="email-logo">BuildingAutopilot</a>
       </div>
       <div class="email-body">
         ${bodyContent}
       </div>
       <div class="email-footer">
-        <p>Concierge &mdash; Building Management</p>
+        <p>BuildingAutopilot &mdash; Building Management</p>
         <p><a href="{{unsubscribeUrl}}">Unsubscribe</a> from these notifications</p>
       </div>
     </div>
@@ -268,8 +268,8 @@ const templates: Record<string, TemplateDefinition> = {
     requiredVars: ['firstName', 'propertyName', 'loginUrl'],
     render: (vars) =>
       baseLayout(
-        'Welcome to Concierge',
-        `<h1>Welcome to Concierge</h1>
+        'Welcome to BuildingAutopilot',
+        `<h1>Welcome to BuildingAutopilot</h1>
         <p>Hi ${v(vars, 'firstName')},</p>
         <p>Your account at <strong>${v(vars, 'propertyName')}</strong> has been created. You can access the resident portal using the button below.</p>
         <p style="margin: 24px 0;">
@@ -437,7 +437,7 @@ export function renderTemplate(templateName: string, variables: Record<string, u
   // Replace the unsubscribe placeholder
   const unsubscribeUrl =
     (variables.unsubscribeUrl as string | undefined) ??
-    'https://app.concierge.io/settings/notifications';
+    'https://buildingautopilot.ca/settings/notifications';
 
   return html.replace(/\{\{unsubscribeUrl\}\}/g, escapeHtml(unsubscribeUrl));
 }

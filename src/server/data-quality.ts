@@ -1,5 +1,5 @@
 /**
- * Data Quality System — Concierge
+ * Data Quality System — BuildingAutopilot
  *
  * Validation, duplicate detection, quality scoring, missing data reports,
  * and auto-fix suggestions per docs/tech/DATA-QUALITY.md.

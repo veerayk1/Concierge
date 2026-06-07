@@ -375,7 +375,7 @@ function PropertyDetailsStep({
             {
               key: 'dataProcessing',
               label:
-                "I consent to Concierge processing my property's data as described in the Privacy Policy",
+                "I consent to BuildingAutopilot processing my property's data as described in the Privacy Policy",
               required: true,
             },
             {
@@ -1000,8 +1000,8 @@ function StaffStep({
       <Card>
         <h4 className="mb-3 text-[14px] font-semibold text-neutral-900">Invite Team Members</h4>
         <p className="mb-4 text-[13px] text-neutral-500">
-          Add the staff who will use Concierge. Temporary login credentials will be generated when
-          the property goes live.
+          Add the staff who will use BuildingAutopilot. Temporary login credentials will be
+          generated when the property goes live.
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <Input
@@ -1766,7 +1766,7 @@ export default function OnboardingPage() {
             <Sparkles className="text-primary-600 h-10 w-10" />
           </div>
           <h1 className="mt-6 text-[28px] font-bold tracking-tight text-neutral-900">
-            Welcome to Concierge!
+            Welcome to BuildingAutopilot!
           </h1>
           <p className="mt-2 text-[16px] text-neutral-500">
             Your property is now live. Staff and residents can start using the portal immediately.

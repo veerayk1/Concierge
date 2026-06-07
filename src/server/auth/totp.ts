@@ -8,7 +8,7 @@
 
 const TOTP_PERIOD = 30;
 const TOTP_DIGITS = 6;
-const TOTP_ISSUER = process.env['TOTP_ISSUER'] || 'Concierge';
+const TOTP_ISSUER = process.env['TOTP_ISSUER'] || 'BuildingAutopilot';
 
 /**
  * Generate a new TOTP secret for user enrollment. Per A.5

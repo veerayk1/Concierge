@@ -99,6 +99,15 @@ export default function PropertyDetailPage() {
     );
   }
 
+  // Stash the property context, then route. Every property-scoped page reads
+  // `demo_propertyId` from localStorage to filter its data to this property.
+  const goToProperty = (href: string) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('demo_propertyId', property.id);
+    }
+    router.push(href as never);
+  };
+
   const tierLabel =
     property.subscriptionTier === 'ENTERPRISE'
       ? 'Enterprise'
@@ -169,55 +178,43 @@ export default function PropertyDetailPage() {
         )}
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — click any number to drill into this property's list */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-primary-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Building2 className="text-primary-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {property.unitCount}
-            </p>
-            <p className="text-[13px] text-neutral-500">Total Units</p>
-          </div>
-        </Card>
+        <StatCard
+          icon={Building2}
+          iconWrapClass="bg-primary-50"
+          iconClass="text-primary-600"
+          value={property.unitCount}
+          label="Total Units"
+          onClick={() => goToProperty('/units')}
+        />
 
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-success-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Users className="text-success-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {dashboard?.kpis.residentCount ?? '—'}
-            </p>
-            <p className="text-[13px] text-neutral-500">Residents</p>
-          </div>
-        </Card>
+        <StatCard
+          icon={Users}
+          iconWrapClass="bg-success-50"
+          iconClass="text-success-600"
+          value={dashboard?.kpis.residentCount ?? '—'}
+          label="Residents"
+          onClick={() => goToProperty('/residents')}
+        />
 
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-warning-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Package className="text-warning-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {dashboard?.kpis.unreleasedPackages ?? '—'}
-            </p>
-            <p className="text-[13px] text-neutral-500">Unreleased Packages</p>
-          </div>
-        </Card>
+        <StatCard
+          icon={Package}
+          iconWrapClass="bg-warning-50"
+          iconClass="text-warning-600"
+          value={dashboard?.kpis.unreleasedPackages ?? '—'}
+          label="Unreleased Packages"
+          onClick={() => goToProperty('/packages')}
+        />
 
-        <Card padding="sm" className="flex items-center gap-4">
-          <div className="bg-info-50 flex h-10 w-10 items-center justify-center rounded-xl">
-            <Wrench className="text-info-600 h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[24px] font-bold tracking-tight text-neutral-900">
-              {dashboard?.kpis.openMaintenanceRequests ?? '—'}
-            </p>
-            <p className="text-[13px] text-neutral-500">Open Maintenance</p>
-          </div>
-        </Card>
+        <StatCard
+          icon={Wrench}
+          iconWrapClass="bg-info-50"
+          iconClass="text-info-600"
+          value={dashboard?.kpis.openMaintenanceRequests ?? '—'}
+          label="Open Maintenance"
+          onClick={() => goToProperty('/maintenance')}
+        />
       </div>
 
       {/* Details Grid */}
@@ -246,37 +243,25 @@ export default function PropertyDetailPage() {
               icon={Users}
               title="Manage Users"
               description="View and manage staff and residents"
-              onClick={() => {
-                localStorage.setItem('demo_propertyId', property.id);
-                router.push('/users');
-              }}
+              onClick={() => goToProperty('/users')}
             />
             <ActionCard
               icon={Package}
               title="Packages"
               description="Track incoming and outgoing packages"
-              onClick={() => {
-                localStorage.setItem('demo_propertyId', property.id);
-                router.push('/packages');
-              }}
+              onClick={() => goToProperty('/packages')}
             />
             <ActionCard
               icon={Wrench}
               title="Maintenance"
               description="View and assign work orders"
-              onClick={() => {
-                localStorage.setItem('demo_propertyId', property.id);
-                router.push('/maintenance');
-              }}
+              onClick={() => goToProperty('/maintenance')}
             />
             <ActionCard
               icon={BarChart3}
               title="Reports"
               description="Generate property reports"
-              onClick={() => {
-                localStorage.setItem('demo_propertyId', property.id);
-                router.push('/reports');
-              }}
+              onClick={() => goToProperty('/reports')}
             />
           </div>
         </Card>
@@ -329,6 +314,40 @@ function InfoRow({
       <span className="w-28 shrink-0 text-[13px] font-medium text-neutral-500">{label}</span>
       <span className="text-[14px] text-neutral-900">{value}</span>
     </div>
+  );
+}
+
+function StatCard({
+  icon: Icon,
+  iconWrapClass,
+  iconClass,
+  value,
+  label,
+  onClick,
+}: {
+  icon: React.ElementType;
+  iconWrapClass: string;
+  iconClass: string;
+  value: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-4 rounded-2xl border border-neutral-200/80 bg-white p-4 text-left shadow-xs transition-all hover:border-neutral-300 hover:shadow-sm"
+    >
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconWrapClass}`}
+      >
+        <Icon className={`h-5 w-5 ${iconClass}`} />
+      </div>
+      <div>
+        <p className="text-[24px] font-bold tracking-tight text-neutral-900">{value}</p>
+        <p className="text-[13px] text-neutral-500">{label}</p>
+      </div>
+    </button>
   );
 }
 

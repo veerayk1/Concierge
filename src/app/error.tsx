@@ -23,7 +23,7 @@ interface ErrorPageProps {
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
     // Log the error for debugging
-    console.error('[Concierge] Unhandled error:', error);
+    console.error('[BuildingAutopilot] Unhandled error:', error);
 
     // Report to debugging intelligence layer — fire-and-forget
     const pathname = typeof window !== 'undefined' ? window.location.pathname : undefined;

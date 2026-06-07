@@ -148,7 +148,7 @@ function ProductMockup({ isVisible }: { isVisible: boolean }) {
               <rect x="3" y="6" width="8" height="6" rx="1" />
               <path d="M5 6V4a2 2 0 0 1 4 0v2" strokeLinecap="round" />
             </svg>
-            app.concierge.ca
+            buildingautopilot.ca
             <span style={{ color: 'rgba(255,255,255,0.3)' }}>/dashboard</span>
           </div>
         </div>
@@ -204,7 +204,7 @@ function ProductMockup({ isVisible }: { isVisible: boolean }) {
               <span
                 style={{ fontSize: 13, color: '#fff', fontWeight: 500, letterSpacing: '-0.01em' }}
               >
-                Concierge
+                BuildingAutopilot
               </span>
             </div>
 
@@ -770,7 +770,7 @@ export function SolutionSection() {
                     display: 'inline-block',
                   }}
                 />
-                Introducing Concierge
+                Introducing BuildingAutopilot
               </p>
               <h2
                 style={{

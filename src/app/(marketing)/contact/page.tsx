@@ -27,8 +27,8 @@ const SUBJECTS = [
 const CONTACT_LINKS = [
   {
     label: 'Email',
-    value: 'hello@concierge.com',
-    href: 'mailto:hello@concierge.com',
+    value: 'hello@buildingautopilot.ca',
+    href: 'mailto:hello@buildingautopilot.ca',
   },
   { label: 'Address', value: 'Toronto, Ontario, Canada', href: null },
   { label: 'Hours', value: 'Mon–Fri · 9:00 AM – 6:00 PM ET', href: null },
@@ -195,10 +195,10 @@ export default function ContactPage() {
             A real person on the team will reply within one business day. If your building is
             mid-emergency, email{' '}
             <a
-              href="mailto:urgent@concierge.com"
+              href="mailto:urgent@buildingautopilot.ca"
               style={{ color: '#C9A96E', textDecoration: 'underline' }}
             >
-              urgent@concierge.com
+              urgent@buildingautopilot.ca
             </a>{' '}
             and someone will pick up faster.
           </p>

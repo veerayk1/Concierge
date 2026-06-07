@@ -112,7 +112,7 @@ export function seedDemoData(store: DemoDataStore) {
     // --- Super Admin ---
     {
       id: IDS.superAdmin,
-      email: 'admin@concierge.app',
+      email: 'admin@buildingautopilot.ca',
       firstName: 'Platform',
       lastName: 'Admin',
       phone: '+1-416-555-0001',

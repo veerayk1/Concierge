@@ -88,7 +88,7 @@ export function MobileSection() {
               letterSpacing: '-0.005em',
             }}
           >
-            Residents add Concierge to their home screen in two taps. Packages, maintenance
+            Residents add BuildingAutopilot to their home screen in two taps. Packages, maintenance
             requests, and amenity bookings live in one place — not buried in three different
             buildings' apps.
           </p>
@@ -160,8 +160,8 @@ export function MobileSection() {
               margin: '20px 0 0 0',
             }}
           >
-            <strong style={{ color: '#0F172A' }}>iPhone:</strong> Open the Concierge URL in Safari →
-            tap the share icon → "Add to Home Screen."
+            <strong style={{ color: '#0F172A' }}>iPhone:</strong> Open the BuildingAutopilot URL in
+            Safari → tap the share icon → "Add to Home Screen."
             <br />
             <strong style={{ color: '#0F172A' }}>Android:</strong> Open in Chrome → menu → "Install
             app."
@@ -244,7 +244,7 @@ function PhoneMockup() {
   return (
     <div
       role="img"
-      aria-label="Concierge mobile app preview showing the resident dashboard"
+      aria-label="BuildingAutopilot mobile app preview showing the resident dashboard"
       style={{
         width: 280,
         height: 580,

@@ -74,10 +74,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     void sendEmail({
       to: user.email,
-      subject: 'Welcome to Concierge — Activate Your Account',
+      subject: 'Welcome to BuildingAutopilot — Activate Your Account',
       html: renderTemplate('welcome', {
         firstName: user.firstName ?? 'there',
-        propertyName: 'Concierge',
+        propertyName: 'BuildingAutopilot',
         loginUrl: activateUrl,
       }),
     }).catch((err) => {

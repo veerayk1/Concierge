@@ -2,7 +2,7 @@
 
 /**
  * Preloader — Sets the tone before the page loads.
- * Shows "Concierge" wordmark with an expanding line, then slides up.
+ * Shows "BuildingAutopilot" wordmark with an expanding line, then slides up.
  * Only shows on initial page load (sessionStorage check).
  */
 
@@ -32,7 +32,7 @@ export function Preloader() {
           sessionStorage.setItem('concierge-loaded', '1');
         }, 600);
       },
-      prefersReducedMotion ? 200 : 1800
+      prefersReducedMotion ? 200 : 1800,
     );
 
     return () => clearTimeout(timer);
@@ -67,7 +67,7 @@ export function Preloader() {
           marginBottom: '1.5rem',
         }}
       >
-        Concierge
+        BuildingAutopilot
       </span>
 
       {/* Expanding line */}

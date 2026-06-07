@@ -287,7 +287,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
               sendEmail({
                 to: waitlistedUser.email,
                 subject: `A slot for ${amenityName} is now available`,
-                text: `Hi ${waitlistedUser.firstName ?? 'there'},\n\nA booking slot for ${amenityName} is now available. Log in to claim it before it expires.\n\n— Concierge`,
+                text: `Hi ${waitlistedUser.firstName ?? 'there'},\n\nA booking slot for ${amenityName} is now available. Log in to claim it before it expires.\n\n— BuildingAutopilot`,
               }).catch(() => {
                 /* email failures are non-blocking */
               });

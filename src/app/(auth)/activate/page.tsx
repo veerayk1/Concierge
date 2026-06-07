@@ -8,7 +8,7 @@ import { Suspense } from 'react';
 import { ActivateForm } from './activate-form';
 
 export const metadata: Metadata = {
-  title: 'Activate Account | Concierge',
+  title: 'Activate Account | BuildingAutopilot',
 };
 
 export default function ActivatePage() {
@@ -19,7 +19,7 @@ export default function ActivatePage() {
           Activate your account
         </h1>
         <p className="text-[15px] leading-relaxed text-neutral-500">
-          Set up your password to activate your Concierge account.
+          Set up your password to activate your BuildingAutopilot account.
         </p>
       </div>
       <Suspense

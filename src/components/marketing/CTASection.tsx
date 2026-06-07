@@ -130,7 +130,8 @@ export function CTASection() {
                 }}
               >
                 We will sit with your team, walk through how your building runs today, and show you
-                exactly how Concierge handles each piece. Thirty minutes. No deck. No nonsense.
+                exactly how BuildingAutopilot handles each piece. Thirty minutes. No deck. No
+                nonsense.
               </p>
             </ScrollReveal>
 

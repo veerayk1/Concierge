@@ -48,7 +48,7 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
 
   // -- Email (SES / SMTP) ---------------------------------------------------
-  EMAIL_FROM: z.string().email().default('noreply@concierge.app'),
+  EMAIL_FROM: z.string().email().default('noreply@buildingautopilot.ca'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),

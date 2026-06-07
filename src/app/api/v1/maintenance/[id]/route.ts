@@ -501,7 +501,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       // Vendor notification on assignment
       if (input.assignedVendorId && !notificationSent) {
         await sendEmail({
-          to: 'vendor-notifications@concierge.app', // placeholder — real vendor lookup would go here
+          to: 'vendor-notifications@buildingautopilot.ca', // placeholder — real vendor lookup would go here
           subject: `Maintenance ${existing.referenceNumber} — vendor assigned`,
           text: `A maintenance request has been assigned to your organization. Reference: ${existing.referenceNumber}.`,
         });
@@ -523,7 +523,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     } else if (input.assignedVendorId) {
       // Vendor assigned without status change — still notify
       await sendEmail({
-        to: 'vendor-notifications@concierge.app',
+        to: 'vendor-notifications@buildingautopilot.ca',
         subject: `Maintenance ${existing.referenceNumber} — vendor assigned`,
         text: `A maintenance request has been assigned to your organization. Reference: ${existing.referenceNumber}.`,
       });

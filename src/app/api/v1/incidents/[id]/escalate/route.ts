@@ -130,7 +130,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         if (normalizedPhone) {
           void sendSms({
             to: normalizedPhone,
-            body: `URGENT: Incident "${event.title}" escalated (${input.priority}). Reason: ${input.reason}. Please review ASAP. — Concierge`,
+            body: `URGENT: Incident "${event.title}" escalated (${input.priority}). Reason: ${input.reason}. Please review ASAP. — BuildingAutopilot`,
           }).catch((err) => {
             logger.error(
               { err, eventId: id, recipientPhone: pu.user.phone },

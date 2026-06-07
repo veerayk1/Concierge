@@ -471,7 +471,7 @@ export async function processDigests(
 
       await sendEmail({
         to: user.email,
-        subject: `Your ${periodLabel} Notification Digest — Concierge`,
+        subject: `Your ${periodLabel} Notification Digest — BuildingAutopilot`,
         html,
       });
 

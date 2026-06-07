@@ -107,7 +107,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         if (normalizedPhone) {
           void sendSms({
             to: normalizedPhone,
-            body: `Hi${resident.firstName ? ` ${resident.firstName}` : ''}, your package (${pkg.referenceNumber}) is waiting at the front desk. Please pick it up at your earliest convenience. — Concierge`,
+            body: `Hi${resident.firstName ? ` ${resident.firstName}` : ''}, your package (${pkg.referenceNumber}) is waiting at the front desk. Please pick it up at your earliest convenience. — BuildingAutopilot`,
           }).catch((err) => {
             logger.error(
               { err, packageId: id, residentId: pkg.residentId },

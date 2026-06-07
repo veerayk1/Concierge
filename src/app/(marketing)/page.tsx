@@ -14,23 +14,23 @@ import { CTASection } from '@/components/marketing/CTASection';
 // Metadata
 // ---------------------------------------------------------------------------
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://buildingautopilot.ca';
 
 export const metadata: Metadata = {
-  title: 'Concierge | The Last Platform Your Building Will Ever Need',
+  title: 'BuildingAutopilot | The Last Platform Your Building Will Ever Need',
   description:
-    'Concierge replaces your fragmented tools with one unified system — packages, maintenance, security, amenities, parking, and everything in between — designed for the people who actually run buildings.',
+    'BuildingAutopilot replaces your fragmented tools with one unified system — packages, maintenance, security, amenities, parking, and everything in between — designed for the people who actually run buildings.',
   openGraph: {
-    title: 'Concierge | Building Management, Reimagined',
+    title: 'BuildingAutopilot | Building Management, Reimagined',
     description:
       'One platform. Every building. No compromises. Packages, maintenance, security logs, visitor management, amenity bookings, parking, resident communications, and more.',
     type: 'website',
     url: BASE_URL,
-    siteName: 'Concierge',
+    siteName: 'BuildingAutopilot',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Concierge | Building Management, Reimagined',
+    title: 'BuildingAutopilot | Building Management, Reimagined',
     description: 'One platform. Every building. No compromises.',
   },
 };
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
 const organizationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
-  name: 'Concierge',
+  name: 'BuildingAutopilot',
   url: BASE_URL,
   description:
     'Next-generation condo and building management platform. Packages, maintenance, security, amenities, parking — all unified.',

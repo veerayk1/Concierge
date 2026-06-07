@@ -57,42 +57,100 @@ const QUICK_LINKS = [
     title: 'Book Amenity',
     description: 'Reserve party rooms, gyms, guest suites, and more.',
     icon: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C9A96E"
+        strokeWidth="1.5"
+      >
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M16 2v4M8 2v4M3 10h18" />
+      </svg>
     ),
   },
   {
     title: 'Track Package',
     description: 'Check the status of your deliveries in real time.',
     icon: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" strokeWidth="1.5"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C9A96E"
+        strokeWidth="1.5"
+      >
+        <path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2" />
+        <path d="M16 2v4M8 2v4M3 10h18" />
+      </svg>
     ),
   },
   {
     title: 'Submit Request',
     description: 'Report maintenance issues with photo uploads.',
     icon: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" strokeWidth="1.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C9A96E"
+        strokeWidth="1.5"
+      >
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+      </svg>
     ),
   },
   {
     title: 'Register Visitor',
     description: 'Pre-authorize guests for seamless check-in.',
     icon: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" strokeWidth="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C9A96E"
+        strokeWidth="1.5"
+      >
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
     ),
   },
   {
     title: 'View Announcements',
     description: 'Stay updated with building news and notices.',
     icon: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" strokeWidth="1.5"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0" /></svg>
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C9A96E"
+        strokeWidth="1.5"
+      >
+        <path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0" />
+      </svg>
     ),
   },
   {
     title: 'Contact Management',
     description: 'Reach your property management office.',
     icon: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" strokeWidth="1.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C9A96E"
+        strokeWidth="1.5"
+      >
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+      </svg>
     ),
   },
 ];
@@ -110,11 +168,11 @@ export async function generateMetadata({ params }: PageParams): Promise<Metadata
   const property = await getProperty(slug);
 
   if (!property) {
-    return { title: 'Property Not Found | Concierge' };
+    return { title: 'Property Not Found | BuildingAutopilot' };
   }
 
   return {
-    title: `${property.name} | Concierge`,
+    title: `${property.name} | BuildingAutopilot`,
     description: `Access the resident portal for ${property.name} at ${property.address}, ${property.city}.`,
   };
 }
@@ -168,8 +226,9 @@ export default async function PropertyVanityPage({ params }: PageParams) {
     );
   }
 
-  const primaryColor =
-    (property.branding as Record<string, unknown> | null)?.primary_color as string | undefined;
+  const primaryColor = (property.branding as Record<string, unknown> | null)?.primary_color as
+    | string
+    | undefined;
   const accentColor = primaryColor || '#C9A96E';
 
   return (
@@ -337,10 +396,8 @@ export default async function PropertyVanityPage({ params }: PageParams) {
               >
                 {property.name} is a premier residential address in {property.city},{' '}
                 {property.province}
-                {property.unitCount > 0
-                  ? `, offering ${property.unitCount} suites`
-                  : ''}
-                . Managed through the Concierge platform, residents enjoy seamless access to amenity
+                {property.unitCount > 0 ? `, offering ${property.unitCount} suites` : ''}. Managed
+                through the BuildingAutopilot platform, residents enjoy seamless access to amenity
                 bookings, package tracking, maintenance requests, and building communications.
               </p>
             </div>
@@ -412,23 +469,31 @@ export default async function PropertyVanityPage({ params }: PageParams) {
               letterSpacing: '-0.02em',
             }}
           >
-            Concierge
+            BuildingAutopilot
           </span>
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
             <Link
               href="/privacy"
-              style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}
+              style={{
+                fontSize: '0.75rem',
+                color: 'rgba(255,255,255,0.4)',
+                textDecoration: 'none',
+              }}
             >
               Privacy
             </Link>
             <Link
               href="/terms"
-              style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}
+              style={{
+                fontSize: '0.75rem',
+                color: 'rgba(255,255,255,0.4)',
+                textDecoration: 'none',
+              }}
             >
               Terms
             </Link>
             <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
-              &copy; 2026 Concierge
+              &copy; 2026 BuildingAutopilot
             </span>
           </div>
         </div>

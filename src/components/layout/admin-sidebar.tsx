@@ -72,9 +72,9 @@ export function AdminSidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-neutral-200 px-4">
         {collapsed ? (
-          <span className="text-primary-500 text-lg font-bold">C</span>
+          <span className="text-primary-500 text-lg font-bold">B</span>
         ) : (
-          <span className="text-lg font-bold text-neutral-900">Concierge</span>
+          <span className="text-lg font-bold text-neutral-900">BuildingAutopilot</span>
         )}
       </div>
 

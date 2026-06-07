@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Verify2faForm } from './verify-2fa-form';
 
 export const metadata: Metadata = {
-  title: 'Verify Identity | Concierge',
+  title: 'Verify Identity | BuildingAutopilot',
 };
 
 export default function Verify2faPage() {

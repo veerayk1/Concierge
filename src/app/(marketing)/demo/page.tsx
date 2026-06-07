@@ -29,7 +29,7 @@ const BENEFITS = [
   {
     eyebrow: 'Migration mapped',
     title: 'We map your current tools to what replaces them.',
-    body: 'BuildingLink? ICON? Condo Control? AppFolio? A spreadsheet? We map every workflow you use today to the Concierge module that replaces it — and show what the migration looks like end-to-end.',
+    body: 'BuildingLink? ICON? Condo Control? AppFolio? A spreadsheet? We map every workflow you use today to the BuildingAutopilot module that replaces it — and show what the migration looks like end-to-end.',
   },
   {
     eyebrow: 'No commitment',
@@ -688,7 +688,7 @@ export default function DemoPage() {
                 a: 'No. The demo is a web call (Google Meet, Zoom, Teams — your pick) and a browser tab. We provide a sandbox URL afterward so your team can click around independently.',
               },
               {
-                q: 'How much does Concierge cost?',
+                q: 'How much does BuildingAutopilot cost?',
                 a: 'Pricing depends on unit count, modules enabled, and pilot terms. We share a tailored quote in writing after the demo — no high-pressure phone follow-up.',
               },
               {

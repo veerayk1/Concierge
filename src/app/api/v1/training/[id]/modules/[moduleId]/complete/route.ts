@@ -125,7 +125,7 @@ export async function POST(
             propertyName: course.property?.name ?? 'Property',
             completionDate: new Date(),
             score: Number(enrollment.bestQuizScore ?? 0),
-            verificationUrl: `https://app.concierge.com/verify/${enrollment.id}`,
+            verificationUrl: `https://buildingautopilot.ca/verify/${enrollment.id}`,
           },
         });
         updated = await prisma.enrollment.update({

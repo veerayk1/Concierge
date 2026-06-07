@@ -299,7 +299,7 @@ async function sendEventAutoCc(
     subject,
     html,
     from: emailConfig.fromAddress
-      ? `${emailConfig.fromName ?? 'Concierge'} <${emailConfig.fromAddress}>`
+      ? `${emailConfig.fromName ?? 'BuildingAutopilot'} <${emailConfig.fromAddress}>`
       : undefined,
     replyTo: emailConfig.replyToAddress ?? undefined,
   });
@@ -347,7 +347,7 @@ function buildEventNotificationHtml(event: CreatedEventForNotification, actor: A
     </tr>
   </table>
   ${event.description ? `<p style="margin-top:16px;font-size:14px;"><strong>Notes:</strong> ${event.description}</p>` : ''}
-  <p style="margin-top:24px;font-size:12px;color:#9ca3af;">This is an automated notification from Concierge. You are receiving this because you are configured as an auto-CC recipient for ${event.eventType?.name ?? 'this event type'} events.</p>
+  <p style="margin-top:24px;font-size:12px;color:#9ca3af;">This is an automated notification from BuildingAutopilot. You are receiving this because you are configured as an auto-CC recipient for ${event.eventType?.name ?? 'this event type'} events.</p>
 </body>
 </html>`;
 }

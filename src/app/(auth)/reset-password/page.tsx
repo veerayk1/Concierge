@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { ResetPasswordForm } from './reset-password-form';
 
 export const metadata: Metadata = {
-  title: 'Reset Password | Concierge',
+  title: 'Reset Password | BuildingAutopilot',
 };
 
 export default function ResetPasswordPage() {

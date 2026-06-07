@@ -57,7 +57,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
           </div>
-          <span className="text-[18px] font-medium tracking-tight text-white">Concierge</span>
+          <span className="text-[18px] font-medium tracking-tight text-white">
+            BuildingAutopilot
+          </span>
         </div>
 
         <div className="relative z-10 flex flex-col gap-8">
@@ -91,7 +93,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         </div>
 
         <p className="relative z-10 text-[12px] text-white/30">
-          &copy; {new Date().getFullYear()} Concierge. All rights reserved.
+          &copy; {new Date().getFullYear()} BuildingAutopilot. All rights reserved.
         </p>
       </div>
 
@@ -115,7 +117,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             </svg>
           </div>
           <span className="text-[20px] font-semibold tracking-tight text-neutral-900">
-            Concierge
+            BuildingAutopilot
           </span>
         </div>
 

@@ -122,7 +122,7 @@ const ALL_NAV_GROUPS: NavGroup[] = [
     items: [
       {
         id: 'multi-property-dashboard',
-        label: 'Multi-Property Dashboard',
+        label: 'Properties',
         href: '/system/properties',
         icon: Gauge,
         roles: ['super_admin'],

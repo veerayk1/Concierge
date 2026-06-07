@@ -5,12 +5,12 @@ import type { Metadata } from 'next';
 // SEO Metadata
 // ---------------------------------------------------------------------------
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://buildingautopilot.ca';
 
 const SEO_TITLE =
-  'For Property Teams | Software for Concierge, Security, Managers & Boards — Concierge';
+  'For Property Teams | Software for Concierge, Security, Managers & Boards — BuildingAutopilot';
 const SEO_DESCRIPTION =
-  'Built for everyone who keeps the building running. Concierge software for front desk staff, security guards, property managers, condo boards, and residents — one platform, five tailored interfaces, real-time everything.';
+  'Built for everyone who keeps the building running. BuildingAutopilot software for front desk staff, security guards, property managers, condo boards, and residents — one platform, five tailored interfaces, real-time everything.';
 
 export const metadata: Metadata = {
   title: SEO_TITLE,
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     description: SEO_DESCRIPTION,
     type: 'website',
     url: `${BASE_URL}/for-teams`,
-    siteName: 'Concierge',
+    siteName: 'BuildingAutopilot',
   },
   twitter: {
     card: 'summary_large_image',

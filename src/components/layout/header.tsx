@@ -16,7 +16,7 @@ export function Header({ title }: HeaderProps) {
   return (
     <header className="flex h-16 items-center justify-between border-b border-neutral-200 bg-white px-8">
       {/* Page Title */}
-      <h1 className="text-lg font-semibold text-neutral-900">{title ?? 'Concierge'}</h1>
+      <h1 className="text-lg font-semibold text-neutral-900">{title ?? 'BuildingAutopilot'}</h1>
 
       {/* Actions */}
       <div className="flex items-center gap-3">

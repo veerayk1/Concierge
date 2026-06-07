@@ -5,7 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { ForgotPasswordForm } from './forgot-password-form';
 
 export const metadata: Metadata = {
-  title: 'Forgot Password | Concierge',
+  title: 'Forgot Password | BuildingAutopilot',
 };
 
 export default function ForgotPasswordPage() {

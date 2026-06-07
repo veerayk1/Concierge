@@ -22,7 +22,7 @@ const logger = createLogger('email');
 // ---------------------------------------------------------------------------
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'noreply@concierge.app';
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'noreply@buildingautopilot.ca';
 const RESEND_API_URL = 'https://api.resend.com/emails';
 
 // ---------------------------------------------------------------------------
@@ -262,7 +262,7 @@ export async function sendPasswordResetEmail(payload: PasswordResetEmailPayload)
 
   await sendEmail({
     to: payload.email,
-    subject: 'Reset your Concierge password',
+    subject: 'Reset your BuildingAutopilot password',
     html: renderTemplate('password_reset', {
       resetUrl: resetLink,
       expiresIn: '1 hour',

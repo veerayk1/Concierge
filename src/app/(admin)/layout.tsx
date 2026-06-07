@@ -88,7 +88,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             // of always reading "Admin User" regardless of who's logged in.
             firstName: ROLE_DISPLAY_NAMES[demoRole] ?? 'Admin',
             lastName: 'User',
-            email: `${demoRole}@concierge.com`,
+            email: `${demoRole}@buildingautopilot.ca`,
             role: demoRole,
             avatarUrl: undefined,
           }}

@@ -5,12 +5,12 @@ import type { Metadata } from 'next';
 // SEO Metadata
 // ---------------------------------------------------------------------------
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://buildingautopilot.ca';
 
 const SEO_TITLE =
-  'The Concierge Field Notes | Property Management, Building Operations & Resident Experience';
+  'The BuildingAutopilot Field Notes | Property Management, Building Operations & Resident Experience';
 const SEO_DESCRIPTION =
-  'Insights for property managers, condo boards, and concierge teams. Building operations playbooks, security best practices, resident experience tactics, and product changelogs from the Concierge team.';
+  'Insights for property managers, condo boards, and concierge teams. Building operations playbooks, security best practices, resident experience tactics, and product changelogs from the BuildingAutopilot team.';
 
 export const metadata: Metadata = {
   title: SEO_TITLE,
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     description: SEO_DESCRIPTION,
     type: 'website',
     url: `${BASE_URL}/blog`,
-    siteName: 'Concierge',
+    siteName: 'BuildingAutopilot',
   },
   twitter: {
     card: 'summary_large_image',

@@ -146,7 +146,7 @@ export async function deliverWebhook(
           'X-Webhook-Signature': signature,
           'X-Webhook-Event': payload.event,
           'X-Webhook-ID': webhook.id,
-          'User-Agent': 'Concierge-Webhooks/1.0',
+          'User-Agent': 'BuildingAutopilot-Webhooks/1.0',
         },
         body: payloadStr,
         signal: AbortSignal.timeout(10000), // 10s timeout

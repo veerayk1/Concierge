@@ -5,17 +5,18 @@ import type { Metadata } from 'next';
 // SEO Metadata
 // ---------------------------------------------------------------------------
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://buildingautopilot.ca';
 
-const SEO_TITLE = 'About Concierge | The Modern Property Management Platform Built in Canada';
+const SEO_TITLE =
+  'About BuildingAutopilot | The Modern Property Management Platform Built in Canada';
 const SEO_DESCRIPTION =
-  'Concierge is the next-generation property management software built for Canadian condos, HOAs, and high-rises. We reverse-engineered every major platform, kept the best, dropped the worst, and rebuilt the category around real building operations.';
+  'BuildingAutopilot is the next-generation property management software built for Canadian condos, HOAs, and high-rises. We reverse-engineered every major platform, kept the best, dropped the worst, and rebuilt the category around real building operations.';
 
 export const metadata: Metadata = {
   title: SEO_TITLE,
   description: SEO_DESCRIPTION,
   keywords: [
-    'about Concierge',
+    'about BuildingAutopilot',
     'property management platform Canada',
     'condo software Toronto',
     'PIPEDA-compliant property software',
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
     description: SEO_DESCRIPTION,
     type: 'website',
     url: `${BASE_URL}/about`,
-    siteName: 'Concierge',
+    siteName: 'BuildingAutopilot',
   },
   twitter: {
     card: 'summary_large_image',
@@ -292,10 +293,10 @@ export default function AboutPage() {
               margin: '1.25rem 0 0',
             }}
           >
-            Concierge replaces all of it with one platform — designed by people who watched the
-            concierge at peak hours, the security guard mid-shift, the board director on a Sunday
-            night, the resident at the bus stop, and the property manager prepping for a board
-            meeting.
+            BuildingAutopilot replaces all of it with one platform — designed by people who watched
+            the concierge at peak hours, the security guard mid-shift, the board director on a
+            Sunday night, the resident at the bus stop, and the property manager prepping for a
+            board meeting.
           </p>
         </div>
       </section>

@@ -44,6 +44,13 @@ const nextConfig: NextConfig = {
 
   typedRoutes: true,
 
+  eslint: {
+    // Lint runs as its own CI step (pnpm lint); it should not block production
+    // builds on code-style / a11y warnings. TypeScript checking stays enabled
+    // below so real correctness errors still fail the build.
+    ignoreDuringBuilds: true,
+  },
+
   webpack: (config, { dev }) => {
     if (dev) {
       config.watchOptions = {

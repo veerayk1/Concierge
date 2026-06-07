@@ -115,9 +115,9 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
               letterSpacing: '-0.02em',
               textDecoration: 'none',
             }}
-            aria-label="Concierge home"
+            aria-label="BuildingAutopilot home"
           >
-            Concierge
+            BuildingAutopilot
           </Link>
 
           {/* Desktop center nav */}
@@ -329,7 +329,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
                   color: '#fff',
                 }}
               >
-                Concierge
+                BuildingAutopilot
               </p>
               <p
                 style={{
@@ -541,7 +541,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
             }}
           >
             <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', margin: 0 }}>
-              &copy; 2026 Concierge. All rights reserved.
+              &copy; 2026 BuildingAutopilot. All rights reserved.
             </p>
             <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', margin: 0 }}>
               Built in Toronto

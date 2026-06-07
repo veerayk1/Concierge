@@ -401,7 +401,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         await sendEmail({
           to: resident.email,
           subject: `Alteration ${existing.referenceNumber} — status changed to ${newStatus}`,
-          text: `Hi${resident.firstName ? ` ${resident.firstName}` : ''},\n\nYour alteration project ${existing.referenceNumber} has been updated to: ${newStatus}.\n\n— Concierge`,
+          text: `Hi${resident.firstName ? ` ${resident.firstName}` : ''},\n\nYour alteration project ${existing.referenceNumber} has been updated to: ${newStatus}.\n\n— BuildingAutopilot`,
         });
       }
 

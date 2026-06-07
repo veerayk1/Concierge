@@ -156,7 +156,9 @@ export function StepFieldMapping({
                       <tr className="border-b border-neutral-200 bg-neutral-50">
                         <th className="px-4 py-3 font-medium text-neutral-600">Your Column</th>
                         <th className="px-4 py-3 font-medium text-neutral-600" />
-                        <th className="px-4 py-3 font-medium text-neutral-600">Concierge Field</th>
+                        <th className="px-4 py-3 font-medium text-neutral-600">
+                          BuildingAutopilot Field
+                        </th>
                         <th className="px-4 py-3 font-medium text-neutral-600">Confidence</th>
                         <th className="px-4 py-3 font-medium text-neutral-600">Sample Values</th>
                       </tr>

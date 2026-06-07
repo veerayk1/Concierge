@@ -84,7 +84,7 @@ export interface DeliveryOptions {
 
 export const MAX_RETRY_ATTEMPTS = 3;
 export const DEFAULT_TIMEOUT_MS = 5000;
-const USER_AGENT = 'Concierge-Webhooks/1.0';
+const USER_AGENT = 'BuildingAutopilot-Webhooks/1.0';
 
 // ---------------------------------------------------------------------------
 // Signature
@@ -202,7 +202,7 @@ const defaultGenerateId = (): string => {
  *
  * Sends an HTTP POST with:
  * - Content-Type: application/json
- * - User-Agent: Concierge-Webhooks/1.0
+ * - User-Agent: BuildingAutopilot-Webhooks/1.0
  * - X-Webhook-Signature: HMAC-SHA256 signature of the body
  * - X-Webhook-Event: The event type
  * - X-Webhook-ID: The webhook endpoint ID

@@ -56,7 +56,7 @@ function isRateLimited(email: string): boolean {
 // Email builder
 // ---------------------------------------------------------------------------
 
-const SALES_EMAIL = process.env.SALES_CONTACT_EMAIL ?? 'hello@concierge.com';
+const SALES_EMAIL = process.env.SALES_CONTACT_EMAIL ?? 'hello@buildingautopilot.ca';
 
 function buildEmailHtml(data: z.infer<typeof DemoRequestSchema>): string {
   const rows = [
@@ -86,7 +86,7 @@ function buildEmailHtml(data: z.infer<typeof DemoRequestSchema>): string {
         ${tableRows}
       </table>
       <p style="margin-top:16px;font-size:13px;color:#6b7280;">
-        Submitted via concierge.com/demo
+        Submitted via buildingautopilot.ca/demo
       </p>
     </div>
   `;

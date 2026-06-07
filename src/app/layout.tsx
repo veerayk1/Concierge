@@ -32,15 +32,15 @@ const inter = Inter({
 // ---------------------------------------------------------------------------
 
 export const metadata: Metadata = {
-  title: 'Concierge | Building Management Portal',
+  title: 'BuildingAutopilot | Building Management Portal',
   description:
     'Next-generation condo and building management portal with role-aware interfaces, unified event logging, and Apple-grade design.',
   robots: { index: false, follow: false },
   manifest: '/manifest.webmanifest',
-  applicationName: 'Concierge',
+  applicationName: 'BuildingAutopilot',
   appleWebApp: {
     capable: true,
-    title: 'Concierge',
+    title: 'BuildingAutopilot',
     statusBarStyle: 'default',
   },
   icons: {

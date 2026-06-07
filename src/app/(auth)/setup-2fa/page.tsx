@@ -7,7 +7,7 @@ import type { Metadata } from 'next';
 import { Setup2faForm } from './setup-2fa-form';
 
 export const metadata: Metadata = {
-  title: 'Set Up 2FA | Concierge',
+  title: 'Set Up 2FA | BuildingAutopilot',
 };
 
 export default function Setup2FAPage() {

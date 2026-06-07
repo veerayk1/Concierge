@@ -5,11 +5,12 @@ import { LegalShell } from '@/components/marketing/LegalShell';
 // SEO Metadata
 // ---------------------------------------------------------------------------
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://buildingautopilot.ca';
 
-const SEO_TITLE = 'Privacy Policy | PIPEDA, GDPR, HIPAA Compliant Property Software — Concierge';
+const SEO_TITLE =
+  'Privacy Policy | PIPEDA, GDPR, HIPAA Compliant Property Software — BuildingAutopilot';
 const SEO_DESCRIPTION =
-  'How Concierge collects, uses, and protects personal information. Compliant with PIPEDA (Canada), GDPR (EU), and HIPAA (US). Full DSAR workflow, ROPA documented, data minimization by design.';
+  'How BuildingAutopilot collects, uses, and protects personal information. Compliant with PIPEDA (Canada), GDPR (EU), and HIPAA (US). Full DSAR workflow, ROPA documented, data minimization by design.';
 
 export const metadata: Metadata = {
   title: SEO_TITLE,
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
     description: SEO_DESCRIPTION,
     type: 'website',
     url: `${BASE_URL}/privacy`,
-    siteName: 'Concierge',
+    siteName: 'BuildingAutopilot',
   },
   twitter: {
     card: 'summary_large_image',
@@ -44,14 +45,18 @@ export default function PrivacyPolicyPage() {
       lastUpdated={LAST_UPDATED}
     >
       <h2>1. Introduction</h2>
+      {/* TODO(legal-entity): "BuildingAutopilot Property Management Inc." is a PLACEHOLDER —
+          the legal entity is not yet registered. Replace with the exact registered name once
+          incorporated. Also appears at the Contact section below and in terms/page.tsx.
+          See docs/LEGAL-ENTITY-TODO.md */}
       <p>
-        Concierge Property Management Inc. (&ldquo;Concierge&rdquo;, &ldquo;we&rdquo;,
-        &ldquo;us&rdquo;, &ldquo;our&rdquo;) respects your privacy. This policy explains, in plain
-        language, what personal information we collect, why we collect it, how we use it, and the
-        rights you have over it.
+        BuildingAutopilot Property Management Inc. (&ldquo;BuildingAutopilot&rdquo;,
+        &ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;) respects your privacy. This policy
+        explains, in plain language, what personal information we collect, why we collect it, how we
+        use it, and the rights you have over it.
       </p>
       <p>
-        Concierge complies with the{' '}
+        BuildingAutopilot complies with the{' '}
         <strong>Personal Information Protection and Electronic Documents Act (PIPEDA)</strong> in
         Canada, the <strong>General Data Protection Regulation (GDPR)</strong> in the European
         Union, and the <strong>Health Insurance Portability and Accountability Act (HIPAA)</strong>{' '}
@@ -59,7 +64,7 @@ export default function PrivacyPolicyPage() {
       </p>
       <p>
         If you have any questions, contact our Privacy Officer at{' '}
-        <a href="mailto:privacy@concierge.com">privacy@concierge.com</a>.
+        <a href="mailto:privacy@buildingautopilot.ca">privacy@buildingautopilot.ca</a>.
       </p>
 
       <h2>2. Information we collect</h2>
@@ -185,8 +190,8 @@ export default function PrivacyPolicyPage() {
       </ul>
       <p>
         Submit a Data Subject Access Request (DSAR) by emailing{' '}
-        <a href="mailto:privacy@concierge.com">privacy@concierge.com</a>. We will respond within 30
-        days (and typically within 48 hours).
+        <a href="mailto:privacy@buildingautopilot.ca">privacy@buildingautopilot.ca</a>. We will
+        respond within 30 days (and typically within 48 hours).
       </p>
 
       <h2>7. Cookies & tracking</h2>
@@ -198,15 +203,16 @@ export default function PrivacyPolicyPage() {
 
       <h2>8. International transfers</h2>
       <p>
-        Concierge primarily stores data in Canadian and US data centres. For EU customers, we
-        operate an EU data residency option. International transfers are protected by
+        BuildingAutopilot primarily stores data in Canadian and US data centres. For EU customers,
+        we operate an EU data residency option. International transfers are protected by
         <em> Standard Contractual Clauses</em> and equivalent safeguards.
       </p>
 
       <h2>9. Children&rsquo;s privacy</h2>
       <p>
-        Concierge is not directed at children under 13. If a parent or guardian becomes aware that a
-        child under 13 has provided personal information, please contact us and we will delete it.
+        BuildingAutopilot is not directed at children under 13. If a parent or guardian becomes
+        aware that a child under 13 has provided personal information, please contact us and we will
+        delete it.
       </p>
 
       <h2>10. Changes to this policy</h2>
@@ -219,11 +225,12 @@ export default function PrivacyPolicyPage() {
       <p>
         <strong>Privacy Officer</strong>
         <br />
-        Concierge Property Management Inc.
+        {/* TODO(legal-entity): PLACEHOLDER name — replace once the entity is registered. See docs/LEGAL-ENTITY-TODO.md */}
+        BuildingAutopilot Property Management Inc.
         <br />
         Toronto, Ontario, Canada
         <br />
-        Email: <a href="mailto:privacy@concierge.com">privacy@concierge.com</a>
+        Email: <a href="mailto:privacy@buildingautopilot.ca">privacy@buildingautopilot.ca</a>
       </p>
       <p>
         For Canadian residents, you also have the right to complain to the{' '}

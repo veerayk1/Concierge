@@ -5,11 +5,11 @@ import { LegalShell } from '@/components/marketing/LegalShell';
 // SEO Metadata
 // ---------------------------------------------------------------------------
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://buildingautopilot.ca';
 
-const SEO_TITLE = 'Terms of Service | Concierge Property Management Platform';
+const SEO_TITLE = 'Terms of Service | BuildingAutopilot Property Management Platform';
 const SEO_DESCRIPTION =
-  'The terms governing your use of Concierge — the all-in-one property management platform. Plain-language, fair-use, and built on enterprise security commitments.';
+  'The terms governing your use of BuildingAutopilot — the all-in-one property management platform. Plain-language, fair-use, and built on enterprise security commitments.';
 
 export const metadata: Metadata = {
   title: SEO_TITLE,
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     description: SEO_DESCRIPTION,
     type: 'website',
     url: `${BASE_URL}/terms`,
-    siteName: 'Concierge',
+    siteName: 'BuildingAutopilot',
   },
   twitter: {
     card: 'summary_large_image',
@@ -40,24 +40,27 @@ export default function TermsOfServicePage() {
     <LegalShell
       eyebrow="Plain-language terms"
       title="Terms of Service"
-      description="The agreement between you and Concierge — written in plain English, with no hidden gotchas, and built on enterprise security commitments."
+      description="The agreement between you and BuildingAutopilot — written in plain English, with no hidden gotchas, and built on enterprise security commitments."
       lastUpdated={LAST_UPDATED}
     >
       <h2>1. Agreement to terms</h2>
+      {/* TODO(legal-entity): The contracting party here is the brand "BuildingAutopilot". Once the
+          legal entity "BuildingAutopilot Property Management Inc." (PLACEHOLDER) is registered,
+          confirm whether these Terms should name the full registered entity. See docs/LEGAL-ENTITY-TODO.md */}
       <p>
-        By accessing or using Concierge (&ldquo;the Service&rdquo;) you agree to be bound by these
-        Terms of Service (&ldquo;Terms&rdquo;). If you are using the Service on behalf of a property
-        corporation, building owner, condo board, HOA, or other entity, you represent that you have
-        authority to bind that entity to these Terms.
+        By accessing or using BuildingAutopilot (&ldquo;the Service&rdquo;) you agree to be bound by
+        these Terms of Service (&ldquo;Terms&rdquo;). If you are using the Service on behalf of a
+        property corporation, building owner, condo board, HOA, or other entity, you represent that
+        you have authority to bind that entity to these Terms.
       </p>
       <p>If you do not agree to these Terms, do not use the Service.</p>
 
       <h2>2. The service</h2>
       <p>
-        Concierge is a multi-tenant property management software-as-a-service platform that replaces
-        a portfolio of legacy tools. It includes (without limitation): package tracking, visitor
-        management, maintenance requests, amenity booking, security console, resident portal, board
-        governance, vendor compliance, and compliance reporting.
+        BuildingAutopilot is a multi-tenant property management software-as-a-service platform that
+        replaces a portfolio of legacy tools. It includes (without limitation): package tracking,
+        visitor management, maintenance requests, amenity booking, security console, resident
+        portal, board governance, vendor compliance, and compliance reporting.
       </p>
       <p>
         We provide the Service on a continuous-improvement basis. New features ship regularly.
@@ -74,7 +77,7 @@ export default function TermsOfServicePage() {
         </li>
         <li>
           You must immediately notify us of any unauthorized access at{' '}
-          <a href="mailto:security@concierge.com">security@concierge.com</a>
+          <a href="mailto:security@buildingautopilot.ca">security@buildingautopilot.ca</a>
         </li>
       </ul>
       <h3>Roles & permissions</h3>
@@ -118,7 +121,8 @@ export default function TermsOfServicePage() {
       <h2>5. Customer data</h2>
       <p>
         You retain ownership of all data you upload to the Service (&ldquo;Customer Data&rdquo;).
-        Concierge processes Customer Data solely to provide the Service to you and on your behalf.
+        BuildingAutopilot processes Customer Data solely to provide the Service to you and on your
+        behalf.
       </p>
       <p>
         We do <strong>not</strong> sell Customer Data. We do <strong>not</strong> use Customer Data
@@ -153,14 +157,14 @@ export default function TermsOfServicePage() {
 
       <h2>8. Intellectual property</h2>
       <p>
-        Concierge retains all rights, title, and interest in the Service, including all software,
-        documentation, designs, trademarks, and underlying technology. These Terms grant you a
-        limited, non-exclusive, non-transferable, revocable licence to use the Service in accordance
-        with these Terms and your subscription.
+        BuildingAutopilot retains all rights, title, and interest in the Service, including all
+        software, documentation, designs, trademarks, and underlying technology. These Terms grant
+        you a limited, non-exclusive, non-transferable, revocable licence to use the Service in
+        accordance with these Terms and your subscription.
       </p>
       <p>
-        Customer Data remains your property. You grant Concierge a limited licence to use Customer
-        Data solely to provide the Service.
+        Customer Data remains your property. You grant BuildingAutopilot a limited licence to use
+        Customer Data solely to provide the Service.
       </p>
 
       <h2>9. Disclaimers</h2>
@@ -171,16 +175,16 @@ export default function TermsOfServicePage() {
         infringement.
       </p>
       <p>
-        Concierge is a tool to <em>support</em> property operations. It does not replace legal,
-        accounting, security, or emergency response professionals. If your building is in an active
-        emergency, contact emergency services.
+        BuildingAutopilot is a tool to <em>support</em> property operations. It does not replace
+        legal, accounting, security, or emergency response professionals. If your building is in an
+        active emergency, contact emergency services.
       </p>
 
       <h2>10. Limitation of liability</h2>
       <p>
-        To the maximum extent permitted by applicable law, Concierge&rsquo;s aggregate liability for
-        any claim arising out of or relating to the Service is limited to the fees you paid in the
-        12 months preceding the event giving rise to the claim.
+        To the maximum extent permitted by applicable law, BuildingAutopilot&rsquo;s aggregate
+        liability for any claim arising out of or relating to the Service is limited to the fees you
+        paid in the 12 months preceding the event giving rise to the claim.
       </p>
       <p>
         We are not liable for indirect, consequential, special, or punitive damages, including lost
@@ -189,9 +193,9 @@ export default function TermsOfServicePage() {
 
       <h2>11. Indemnification</h2>
       <p>
-        You agree to defend, indemnify, and hold harmless Concierge and its officers, directors,
-        employees, and agents from any claim arising out of your use of the Service in violation of
-        these Terms or applicable law.
+        You agree to defend, indemnify, and hold harmless BuildingAutopilot and its officers,
+        directors, employees, and agents from any claim arising out of your use of the Service in
+        violation of these Terms or applicable law.
       </p>
 
       <h2>12. Termination</h2>
@@ -227,7 +231,7 @@ export default function TermsOfServicePage() {
       <h2>15. Contact</h2>
       <p>
         Questions about these Terms? Contact us at{' '}
-        <a href="mailto:legal@concierge.com">legal@concierge.com</a>.
+        <a href="mailto:legal@buildingautopilot.ca">legal@buildingautopilot.ca</a>.
       </p>
     </LegalShell>
   );

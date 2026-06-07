@@ -492,7 +492,8 @@ export default function HelpCenterPage() {
               variant="primary"
               size="md"
               onClick={() => {
-                window.location.href = 'mailto:support@concierge.app?subject=Support%20request';
+                window.location.href =
+                  'mailto:support@buildingautopilot.ca?subject=Support%20request';
               }}
             >
               <MessageSquare className="h-4 w-4" />

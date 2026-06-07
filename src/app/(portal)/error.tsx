@@ -22,7 +22,7 @@ interface PortalErrorProps {
 
 export default function PortalError({ error, reset }: PortalErrorProps) {
   useEffect(() => {
-    console.error('[Concierge] Portal error:', error);
+    console.error('[BuildingAutopilot] Portal error:', error);
 
     // Report to debugging intelligence layer — fire-and-forget
     const pathname = typeof window !== 'undefined' ? window.location.pathname : undefined;

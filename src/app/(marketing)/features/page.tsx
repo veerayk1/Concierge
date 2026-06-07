@@ -5,10 +5,10 @@ import type { Metadata } from 'next';
 // SEO Metadata — targets high-volume property management keywords
 // ---------------------------------------------------------------------------
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://buildingautopilot.ca';
 
 const SEO_TITLE =
-  'Property Management Software | All-in-One Building Management Platform — Concierge';
+  'Property Management Software | All-in-One Building Management Platform — BuildingAutopilot';
 const SEO_DESCRIPTION =
   'The modern property management software that replaces five disconnected tools. Package tracking, visitor management, maintenance requests, amenity booking, security console, and resident portal — one platform, every role, real-time.';
 
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     description: SEO_DESCRIPTION,
     type: 'website',
     url: `${BASE_URL}/features`,
-    siteName: 'Concierge',
+    siteName: 'BuildingAutopilot',
   },
   twitter: {
     card: 'summary_large_image',
@@ -212,26 +212,26 @@ const STATS = [
 const SEO_FAQ = [
   {
     q: 'What is the best property management software for Canadian condos?',
-    a: 'Concierge is purpose-built for Canadian property management — PIPEDA-compliant, bilingual (English / fr-CA), and supports the operational realities of high-rise condos, low-rise apartments, mixed-use buildings, and townhouse communities. It replaces fragmented tools with one unified platform.',
+    a: 'BuildingAutopilot is purpose-built for Canadian property management — PIPEDA-compliant, bilingual (English / fr-CA), and supports the operational realities of high-rise condos, low-rise apartments, mixed-use buildings, and townhouse communities. It replaces fragmented tools with one unified platform.',
   },
   {
     q: 'How does the visitor management system work?',
     a: 'Residents pre-authorize expected visitors from their phone. Front desk and security see the day’s expected arrivals in one feed. When the guest arrives, one tap signs them in — capturing photo, ID, vehicle plate, and parking pass — and notifies the host automatically.',
   },
   {
-    q: 'Can residents book amenities and pay through Concierge?',
+    q: 'Can residents book amenities and pay through BuildingAutopilot?',
     a: 'Yes. The amenity booking module supports party rooms, guest suites, gyms, BBQ areas, EV chargers, and any custom amenity. Approval workflows are configurable. Payment collection is integrated via Stripe — deposits, full payments, refunds, and recurring bookings all supported.',
   },
   {
-    q: 'Does Concierge handle package deliveries from Amazon, FedEx, and UPS?',
+    q: 'Does BuildingAutopilot handle package deliveries from Amazon, FedEx, and UPS?',
     a: 'Yes. Every package gets a courier-branded card, an auto-generated reference number, and triggers a multi-channel notification (push, email, SMS) the moment it’s logged. Bulk intake lets one concierge process thirty deliveries in five minutes. Perishable items get aging-shelf alerts.',
   },
   {
     q: 'What about security and compliance — is the data safe?',
-    a: 'Concierge is built to enterprise standards: SOC 2, ISO 27001, ISO 27701, ISO 27017, ISO 9001, PIPEDA, GDPR, and HIPAA frameworks are all addressed. Every administrative action is logged in an immutable audit log. Data subject access requests (DSAR) can be fulfilled in hours.',
+    a: 'BuildingAutopilot is built to enterprise standards: SOC 2, ISO 27001, ISO 27701, ISO 27017, ISO 9001, PIPEDA, GDPR, and HIPAA frameworks are all addressed. Every administrative action is logged in an immutable audit log. Data subject access requests (DSAR) can be fulfilled in hours.',
   },
   {
-    q: 'Is Concierge mobile-friendly for residents and staff?',
+    q: 'Is BuildingAutopilot mobile-friendly for residents and staff?',
     a: 'Yes — the platform is mobile-first. Residents file maintenance requests, schedule visitors, and book amenities from their phone. Staff use mobile-optimized views for inspections, package intake, and the security console while walking the property.',
   },
 ] as const;
@@ -840,8 +840,8 @@ export default function FeaturesPage() {
               maxWidth: 580,
             }}
           >
-            Book a personalized walk-through. We&apos;ll show you exactly how Concierge handles the
-            day your front desk would rather forget.
+            Book a personalized walk-through. We&apos;ll show you exactly how BuildingAutopilot
+            handles the day your front desk would rather forget.
           </p>
           <Link href={'/contact' as never} className="btn-primary">
             Request a Demo

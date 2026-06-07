@@ -140,7 +140,7 @@ export function TestimonialSection() {
                   marginTop: 1,
                 }}
               >
-                Founder, Concierge
+                Founder, BuildingAutopilot
               </div>
             </div>
           </div>

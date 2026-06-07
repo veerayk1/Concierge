@@ -72,7 +72,7 @@ const INTEGRATION_DEFS: IntegrationDef[] = [
   {
     id: 'sentry',
     name: 'Sentry',
-    description: 'Error tracking and performance monitoring for the Concierge platform.',
+    description: 'Error tracking and performance monitoring for the BuildingAutopilot platform.',
     icon: ShieldAlert,
     color: 'text-error-600',
     bgColor: 'bg-error-50',

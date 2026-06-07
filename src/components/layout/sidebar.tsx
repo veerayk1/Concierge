@@ -75,7 +75,9 @@ export function Sidebar({
             </svg>
           </div>
           {!collapsed && (
-            <span className="text-[17px] font-bold tracking-tight text-neutral-900">Concierge</span>
+            <span className="text-[17px] font-bold tracking-tight text-neutral-900">
+              BuildingAutopilot
+            </span>
           )}
         </Link>
       </div>

@@ -5,12 +5,12 @@ import type { Metadata } from 'next';
 // SEO Metadata
 // ---------------------------------------------------------------------------
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://concierge.app';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://buildingautopilot.ca';
 
 const SEO_TITLE =
-  'Security & Privacy | SOC 2, ISO 27001, PIPEDA, GDPR Compliant Property Software — Concierge';
+  'Security & Privacy | SOC 2, ISO 27001, PIPEDA, GDPR Compliant Property Software — BuildingAutopilot';
 const SEO_DESCRIPTION =
-  'Concierge is built to enterprise security standards. SOC 2 Type II, ISO 27001, ISO 27701, ISO 27017, ISO 9001, PIPEDA, GDPR, and HIPAA frameworks — applied to every byte of resident, visitor, and operational data.';
+  'BuildingAutopilot is built to enterprise security standards. SOC 2 Type II, ISO 27001, ISO 27701, ISO 27017, ISO 9001, PIPEDA, GDPR, and HIPAA frameworks — applied to every byte of resident, visitor, and operational data.';
 
 export const metadata: Metadata = {
   title: SEO_TITLE,
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     description: SEO_DESCRIPTION,
     type: 'website',
     url: `${BASE_URL}/security-privacy`,
-    siteName: 'Concierge',
+    siteName: 'BuildingAutopilot',
   },
   twitter: {
     card: 'summary_large_image',
@@ -283,9 +283,9 @@ export default function SecurityPrivacyPage() {
             }}
           >
             Resident contact info. Visitor logs. Incident reports. Insurance certificates. Board
-            minutes. Concierge is built to handle the most sensitive operational data in your
-            building with the same rigor financial services treat your bank account — encrypted,
-            audited, compliant.
+            minutes. BuildingAutopilot is built to handle the most sensitive operational data in
+            your building with the same rigor financial services treat your bank account —
+            encrypted, audited, compliant.
           </p>
           <div
             style={{
@@ -647,10 +647,10 @@ export default function SecurityPrivacyPage() {
           >
             We run a responsible disclosure program for security researchers. Email{' '}
             <a
-              href="mailto:security@concierge.com"
+              href="mailto:security@buildingautopilot.ca"
               style={{ color: '#7C9CFF', textDecoration: 'underline' }}
             >
-              security@concierge.com
+              security@buildingautopilot.ca
             </a>{' '}
             with a clear repro and we will respond within 24 hours, work with you on scope, and
             credit you in our hall of fame once the fix ships. We do not pursue good-faith security
