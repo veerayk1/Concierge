@@ -3,7 +3,6 @@
 import '@/styles/marketing.css';
 import { useState, useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
-import { Preloader } from '@/components/marketing/Preloader';
 import { CustomCursor } from '@/components/marketing/CustomCursor';
 
 // ---------------------------------------------------------------------------
@@ -69,8 +68,6 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="marketing">
-      {/* Preloader */}
-      <Preloader />
       {/* Custom Cursor (desktop only) */}
       <CustomCursor />
 
