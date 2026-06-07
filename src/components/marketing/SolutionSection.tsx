@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
+import { useCountUp } from '@/components/marketing/useCountUp';
 
 // ---------------------------------------------------------------------------
 // Product Mockup — a richly-detailed CSS rendering of the actual dashboard.
@@ -62,6 +63,8 @@ const ACTIVITY = [
 ] as const;
 
 function ProductMockup({ isVisible }: { isVisible: boolean }) {
+  // Health score counts up + ring fills as the dashboard scrolls into view.
+  const { ref: healthRef, value: health } = useCountUp(87, 1600);
   return (
     <div
       className="mkt-mockup-stage"
@@ -435,7 +438,8 @@ function ProductMockup({ isVisible }: { isVisible: boolean }) {
                       width: 60,
                       height: 60,
                       borderRadius: '50%',
-                      background: 'conic-gradient(#5BD493 0% 87%, rgba(255,255,255,0.06) 87% 100%)',
+                      background: `conic-gradient(#5BD493 0% ${health}%, rgba(255,255,255,0.06) ${health}% 100%)`,
+                      transition: 'background 120ms linear',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -455,8 +459,9 @@ function ProductMockup({ isVisible }: { isVisible: boolean }) {
                         color: '#fff',
                         fontFeatureSettings: '"tnum"',
                       }}
+                      ref={healthRef}
                     >
-                      87
+                      {health}
                     </div>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>

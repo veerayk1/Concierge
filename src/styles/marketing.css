@@ -30,13 +30,13 @@
   --space-lg: 2rem; /* 32px */
   --space-xl: 3rem; /* 48px */
   --space-2xl: 4rem; /* 64px */
-  --space-3xl: 6rem; /* 96px */
+  --space-3xl: 3.75rem; /* tightened from 96px — kill dead space between section blocks */
   --space-4xl: 8rem; /* 128px */
-  --space-section: clamp(6rem, 12vh, 10rem);
+  --space-section: clamp(3.25rem, 6vh, 5.5rem);
 
   /* Typography */
   --font-display: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
-  --font-heading: var(--font-fraunces), Georgia, 'Times New Roman', serif;
+  --font-heading: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
 
   /* Transitions */
