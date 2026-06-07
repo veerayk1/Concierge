@@ -35,7 +35,8 @@
   --space-section: clamp(6rem, 12vh, 10rem);
 
   /* Typography */
-  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: var(--font-fraunces), Georgia, 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
 
   /* Transitions */
@@ -341,6 +342,16 @@
 
 .marketing .btn-secondary:active {
   transform: scale(0.98);
+}
+
+/* Marketing display headings — Fraunces editorial serif (identity pass).
+   Body/UI stays on the clean sans (--font-display); only headlines get voice. */
+.marketing h1,
+.marketing h2,
+.marketing h3,
+.marketing h4 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
 }
 
 /* Ghost — translucent on dark */

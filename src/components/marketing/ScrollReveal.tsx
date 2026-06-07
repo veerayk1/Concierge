@@ -24,9 +24,7 @@ export function ScrollReveal({
     if (!el) return;
 
     // Respect reduced-motion preference
-    const prefersReducedMotion = window.matchMedia(
-      '(prefers-reduced-motion: reduce)'
-    ).matches;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) {
       el.style.opacity = '1';
       el.style.transform = 'none';
@@ -35,16 +33,16 @@ export function ScrollReveal({
 
     // Set initial transform based on direction
     const transformMap = {
-      up: 'translateY(40px)',
-      left: 'translateX(-40px)',
-      right: 'translateX(40px)',
+      up: 'translateY(18px)',
+      left: 'translateX(-18px)',
+      right: 'translateX(18px)',
     } as const;
 
     el.style.opacity = '0';
     el.style.transform = transformMap[direction];
     el.style.transition = [
-      `opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
-      `transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
+      `opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
+      `transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
     ].join(', ');
 
     const observer = new IntersectionObserver(
@@ -55,7 +53,9 @@ export function ScrollReveal({
           observer.unobserve(el);
         }
       },
-      { threshold: 0.15 }
+      // Fire as soon as the element starts entering, plus a bottom-margin
+      // pre-trigger, so content is never sitting dim/blank when it reaches view.
+      { threshold: 0.01, rootMargin: '0px 0px -10% 0px' },
     );
 
     observer.observe(el);

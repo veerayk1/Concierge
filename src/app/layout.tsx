@@ -7,7 +7,7 @@
 
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import { Inter } from 'next/font/google';
+import { Inter, Fraunces } from 'next/font/google';
 
 import '@/styles/globals.css';
 import { Providers } from '@/components/layout/providers';
@@ -21,6 +21,16 @@ const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-inter',
+});
+
+// Fraunces — an expressive, optically-sized editorial serif used for marketing
+// display headlines. Gives the brand a crafted, premium voice instead of the
+// generic all-Inter look. Italic is loaded for the hero accent ("will ever").
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  display: 'swap',
+  style: ['normal', 'italic'],
+  variable: '--font-fraunces',
 });
 
 // Note: Inter Display is not available on Google Fonts as a separate family.
@@ -66,7 +76,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${fraunces.variable}`} suppressHydrationWarning>
       <body className="min-h-screen bg-white antialiased">
         <Providers>{children}</Providers>
         <ServiceWorkerRegister />
