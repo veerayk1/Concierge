@@ -111,7 +111,7 @@ export function FeaturesGrid() {
         </div>
 
         {/* Category blocks */}
-        <div style={{ display: 'grid', gap: '5rem' }}>
+        <div style={{ display: 'grid', gap: '2.5rem' }}>
           <FeatureBlock
             number="01"
             label="Operations"
@@ -349,7 +349,7 @@ function FeatureBlock({
       style={{
         display: 'grid',
         gridTemplateColumns: 'minmax(0, 0.95fr) minmax(0, 1.05fr)',
-        gap: '4.5rem',
+        gap: '3rem',
         alignItems: 'center',
       }}
     >
